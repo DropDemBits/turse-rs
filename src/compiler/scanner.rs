@@ -1,4 +1,5 @@
 //! Scanner for tokens
+use crate::status_reporter::StatusReporter;
 use std::num::ParseIntError;
 
 /// Location of a token in a file/text stream
@@ -9,9 +10,9 @@ pub struct Location {
     /// Ending byte of a lexeme
     end: usize,
     /// Line number of the lexeme
-    line: usize,
+    pub line: usize,
     /// Starting column of the lexeme
-    column: usize,
+    pub column: usize,
 }
 
 impl Location {
@@ -45,6 +46,7 @@ pub struct Token {
 }
 
 /// Valid tokens in Turing
+#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Character Tokens
@@ -234,10 +236,10 @@ pub enum TokenType {
 pub struct Scanner<'a> {
     /// Scanning source
     source: &'a str,
+    /// Status reporter
+    reporter: StatusReporter,
     /// Vector of scanned tokens
     pub tokens: Vec<Token>,
-    /// If the scan was successful
-    pub is_valid_scan: bool,
     /// Iterator for char indicies
     next_indicies: std::str::CharIndices<'a>,
     /// Iterator for chars
@@ -265,14 +267,19 @@ impl<'s> Scanner<'s> {
 
         Self {
             source,
+            reporter: StatusReporter::new(),
             tokens: vec![],
-            is_valid_scan: true,
             next_indicies,
             chars,
             peek,
             peek_ahead,
             cursor: Location::new(),
         }
+    }
+
+    /// Checks if the scan was successfully performed
+    pub fn is_valid_scan(&self) -> bool {
+        !self.reporter.has_error()
     }
 
     /// Scans the source input for all tokens
@@ -361,9 +368,10 @@ impl<'s> Scanner<'s> {
                 if is_ident_char(chr) {
                     self.make_ident();
                 } else {
-                    // TODO: Make an error reporter
-                    eprintln!("{:?} Unrecognized character '{}'", self.cursor, chr);
-                    self.is_valid_scan = false;
+                    self.reporter.report_error(
+                        &self.cursor,
+                        format_args!("Unrecognized character '{}'", chr),
+                    );
                 }
             }
         }
@@ -416,13 +424,15 @@ impl<'s> Scanner<'s> {
             }
             Err(e) if e.to_string() == "number too large to fit in target type" => {
                 // Too large
-                eprintln!("{:?} Integer literal is too large", &self.cursor);
-                self.is_valid_scan = false;
+                self.reporter
+                    .report_error(&self.cursor, format_args!("Integer literal is too large"));
             }
             Err(_) => {
                 // Bad!
-                eprintln!("Failed to parse integer literal at {:?}", &self.cursor);
-                self.is_valid_scan = false;
+                self.reporter.report_error(
+                    &self.cursor,
+                    format_args!("Failed to parse integer literal"),
+                );
             }
         }
 
@@ -465,18 +475,20 @@ impl<'s> Scanner<'s> {
 
         // Check if the base is in range
         if base < 2 || base > 36 {
-            eprintln!(
-                "{:?} Base for integer literal is not between the range of 2 - 36",
-                &self.cursor
+            self.reporter.report_error(
+                &self.cursor,
+                format_args!("Base for integer literal is not between the range of 2 - 36"),
             );
-            self.is_valid_scan = false;
+
             return;
         }
 
         // Check if there are any numeral digits
         if radix_numerals.is_empty() {
-            eprintln!("{:?} Missing digits for integer literal", &self.cursor);
-            self.is_valid_scan = false;
+            self.reporter.report_error(
+                &self.cursor,
+                format_args!("Missing digits for integer literal"),
+            );
             return;
         }
 
@@ -488,13 +500,15 @@ impl<'s> Scanner<'s> {
             }
             Err(k) => match k {
                 IntErrKind::Overflow(_) => {
-                    eprintln!("{:?} Integer literal is too large", &self.cursor);
-                    self.is_valid_scan = false;
+                    self.reporter
+                        .report_error(&self.cursor, format_args!("Integer literal is too large"));
                     return;
                 }
                 IntErrKind::InvalidDigit(_) => {
-                    eprintln!("{:?} Digit in integer literal is outside of the specified base's allowed digits", &self.cursor);
-                    self.is_valid_scan = false;
+                    self.reporter.report_error(
+                        &self.cursor,
+                        format_args!("Digit in integer literal is outside of the specified base's allowed digits"),
+                    );
                     return;
                 }
                 IntErrKind::Other(e) => panic!(
@@ -531,23 +545,21 @@ impl<'s> Scanner<'s> {
         let value = self.get_source_slice(&self.cursor).parse::<f64>();
         match value {
             Ok(num) if num.is_infinite() => {
-                eprintln!("{:?} Real literal too large", &self.cursor);
-                self.is_valid_scan = false;
+                self.reporter
+                    .report_error(&self.cursor, format_args!("Real literal is too large"));
             }
             Ok(num) if num.is_nan() => {
                 // Capture NaNs (What impl does)
-                eprintln!("{:?} Invalid real literal", &self.cursor);
-                self.is_valid_scan = false;
+                self.reporter
+                    .report_error(&self.cursor, format_args!("Invalid real literal"));
             }
             Err(e) if e.to_string() == "invalid float literal" => {
-                eprintln!("{:?} Invalid real literal", &self.cursor);
-                self.is_valid_scan = false;
+                self.reporter
+                    .report_error(&self.cursor, format_args!("Invalid real literal"));
             }
             Err(e) => eprintln!("{}", e.to_string()),
             Ok(num) => self.make_token(TokenType::RealLiteral(num)),
         }
-
-        //unimplemented!()
     }
 
     fn make_ident(&mut self) {
@@ -607,7 +619,7 @@ mod test {
             let mut scanner = Scanner::new(&s);
             scanner.scan_tokens();
 
-            if scanner.is_valid_scan {
+            if scanner.is_valid_scan() {
                 panic!("Invalid char {} passed as valid", c);
             }
         }
@@ -618,7 +630,7 @@ mod test {
         // Valid ident
         let mut scanner = Scanner::new("_source_text");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
         assert_eq!(
             scanner.tokens[0].token_type,
             TokenType::Identifier("_source_text".to_string())
@@ -627,7 +639,7 @@ mod test {
         // Skip over first digits
         let mut scanner = Scanner::new("0_separate");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
         assert_ne!(
             scanner.tokens[0].token_type,
             TokenType::Identifier("0123_separate".to_string())
@@ -636,7 +648,7 @@ mod test {
         // Invalid ident
         let mut scanner = Scanner::new("ba$e");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
     }
 
     #[test]
@@ -644,18 +656,18 @@ mod test {
         // Basic integer literal
         let mut scanner = Scanner::new("01234560");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
         assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(1234560));
 
         // Overflow
         let mut scanner = Scanner::new("99999999999999999999");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // Digit cutoff
         let mut scanner = Scanner::new("999a999");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
         assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(999));
     }
 
@@ -664,38 +676,38 @@ mod test {
         // Integer literal with base
         let mut scanner = Scanner::new("16#EABC");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
         assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0xEABC));
 
         // Overflow
         let mut scanner = Scanner::new("10#99999999999999999999");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // No digits
         let mut scanner = Scanner::new("30#");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // Out of range (> 36)
         let mut scanner = Scanner::new("37#asda");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // Out of range (= 0)
         let mut scanner = Scanner::new("0#0000");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // Out of range (= 1)
         let mut scanner = Scanner::new("1#0000");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // Invalid digit
         let mut scanner = Scanner::new("10#999a999");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
     }
 
     #[test]
@@ -703,32 +715,32 @@ mod test {
         // Real Literal
         let mut scanner = Scanner::new("1.");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
 
         let mut scanner = Scanner::new("100.00");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
 
         let mut scanner = Scanner::new("100.00e10");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
 
         let mut scanner = Scanner::new("100.00e100");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
 
         let mut scanner = Scanner::new("1e100");
         scanner.scan_tokens();
-        assert!(scanner.is_valid_scan);
+        assert!(scanner.is_valid_scan());
 
         // Invalid format
         let mut scanner = Scanner::new("1e");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
 
         // Too big
         let mut scanner = Scanner::new("1e600");
         scanner.scan_tokens();
-        assert!(!scanner.is_valid_scan);
+        assert!(!scanner.is_valid_scan());
     }
 }
