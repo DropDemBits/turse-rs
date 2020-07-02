@@ -1,3 +1,9 @@
+#![allow(dead_code)]
+mod compiler;
+
 fn main() {
-    println!("RsProlog Bare Bones");
+    let mut scanner = compiler::scanner::Scanner::new("> >= => = :=");
+    scanner.scan_tokens();
+
+    println!("Tokens: {:#?}", &scanner.tokens);
 }

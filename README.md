@@ -3,6 +3,9 @@
 RsProlog is a new Rust interpreter for the (forsaken) Turing language, and is
 intended to be a drop in replacement for TProlog, the older interpreter.
 
+This project uses information from these repositories:
+* [OpenTuring](https://github.com/Open-Turing-Project/OpenTuring)
+* [turing-deep-doc](https://github.com/DropDemBits/turing-deep-doc)
 
 ## Why
 
@@ -14,7 +17,6 @@ intended to be a drop in replacement for TProlog, the older interpreter.
 - The current "situation" gives me time to play with
 
 Do not expect this project to be maintained for a long time.
-
 
 ## Building
 
