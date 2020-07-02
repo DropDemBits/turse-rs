@@ -1,6 +1,7 @@
 //! Scanner for tokens
 use crate::status_reporter::StatusReporter;
 use std::num::ParseIntError;
+use unicode_width::UnicodeWidthStr;
 
 /// Location of a token in a file/text stream
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -30,9 +31,25 @@ impl Location {
         self.start = self.end;
     }
 
+    /// Advances the column location by the give amount of steps
+    pub fn columns(&mut self, steps: usize) {
+        self.column += steps;
+    }
+
+    /// Advances the line location by the give amount of steps, as well as resetting the column
+    pub fn lines(&mut self, steps: usize) {
+        self.column = 1;
+        self.line += steps;
+    }
+
     /// Moves the end of the lexeme to the given byte index
     pub fn current_to(&mut self, next_end: usize) {
         self.end = next_end;
+    }
+
+    /// Moves the end of the lexeme to the end of the given location
+    pub fn current_to_other(&mut self, other: &Location) {
+        self.end = other.end;
     }
 }
 
@@ -338,29 +355,31 @@ impl<'s> Scanner<'s> {
         let chr = self.next_char();
 
         match chr {
-            '\0' => self.make_token(TokenType::Eof),
+            '\0' => self.make_token(TokenType::Eof, 0),
             // Whitespace
-            ' ' | '\t' | '\r' => {}
+            ' ' | '\t' => self.cursor.columns(1),
+            '\r' => {}
+            '\n' => self.cursor.lines(1),
             // Meaningful tokens
-            '(' => self.make_token(TokenType::LeftParen),
-            ')' => self.make_token(TokenType::RightParen),
-            '&' => self.make_token(TokenType::Ampersand),
-            '@' => self.make_token(TokenType::At),
-            '^' => self.make_token(TokenType::Caret),
-            ',' => self.make_token(TokenType::Comma),
-            '#' => self.make_token(TokenType::Pound),
-            '-' => self.make_or_default('>', TokenType::Deref, TokenType::Dash),
-            '|' => self.make_token(TokenType::Bar),
-            '+' => self.make_token(TokenType::Plus),
-            ';' => self.make_token(TokenType::Semicolon),
-            '/' => self.make_token(TokenType::Slash),
-            '~' => self.make_token(TokenType::Tilde),
-            '=' => self.make_or_default('>', TokenType::Imply, TokenType::Equ),
-            ':' => self.make_or_default('=', TokenType::Assign, TokenType::Colon),
-            '>' => self.make_or_default('=', TokenType::GreaterEqu, TokenType::Greater),
-            '<' => self.make_or_default('=', TokenType::LessEqu, TokenType::Less),
-            '.' => self.make_or_default('.', TokenType::Range, TokenType::Dot),
-            '*' => self.make_or_default('*', TokenType::Exp, TokenType::Star),
+            '(' => self.make_token(TokenType::LeftParen, 1),
+            ')' => self.make_token(TokenType::RightParen, 1),
+            '&' => self.make_token(TokenType::Ampersand, 1),
+            '@' => self.make_token(TokenType::At, 1),
+            '^' => self.make_token(TokenType::Caret, 1),
+            ',' => self.make_token(TokenType::Comma, 1),
+            '#' => self.make_token(TokenType::Pound, 1),
+            '-' => self.make_or_default('>', TokenType::Deref, 2, TokenType::Dash, 1),
+            '|' => self.make_token(TokenType::Bar, 1),
+            '+' => self.make_token(TokenType::Plus, 1),
+            ';' => self.make_token(TokenType::Semicolon, 1),
+            '/' => self.make_token(TokenType::Slash, 1),
+            '~' => self.make_token(TokenType::Tilde, 1),
+            '=' => self.make_or_default('>', TokenType::Imply, 2, TokenType::Equ, 1),
+            ':' => self.make_or_default('=', TokenType::Assign, 2, TokenType::Colon, 1),
+            '>' => self.make_or_default('=', TokenType::GreaterEqu, 2, TokenType::Greater, 1),
+            '<' => self.make_or_default('=', TokenType::LessEqu, 2, TokenType::Less, 1),
+            '.' => self.make_or_default('.', TokenType::Range, 2, TokenType::Dot, 1),
+            '*' => self.make_or_default('*', TokenType::Exp, 2, TokenType::Star, 1),
             '"' => unimplemented!(),         // make string literal
             '\'' => unimplemented!(),        // make char literal
             '0'..='9' => self.make_number(), // make number literal
@@ -378,19 +397,30 @@ impl<'s> Scanner<'s> {
     }
 
     /// Makes a token and adds it to the token list
-    fn make_token(&mut self, token_type: TokenType) {
+    /// Also steps the cursor's columns
+    fn make_token(&mut self, token_type: TokenType, steps: usize) {
         self.tokens.push(Token {
             token_type,
             location: self.cursor.clone(),
-        })
+        });
+
+        self.cursor.columns(steps);
     }
 
     /// Makes the `does_match` token if the char matched, otherwise makes the `no_match` token
-    fn make_or_default(&mut self, expect: char, does_match: TokenType, no_match: TokenType) {
+    /// Also steps with the appropriate token
+    fn make_or_default(
+        &mut self,
+        expect: char,
+        does_match: TokenType,
+        step_match: usize,
+        no_match: TokenType,
+        step_no_match: usize,
+    ) {
         if self.match_next(expect) {
-            self.make_token(does_match);
+            self.make_token(does_match, step_match);
         } else {
-            self.make_token(no_match);
+            self.make_token(no_match, step_no_match);
         }
     }
 
@@ -416,11 +446,12 @@ impl<'s> Scanner<'s> {
     fn make_number_basic(&mut self) {
         // End normal IntLiteral
         let numerals = self.get_source_slice(&self.cursor);
+        let numerals_len = numerals.len();
         let value = numerals.parse::<u64>();
 
         match value {
             Ok(num) => {
-                self.make_token(TokenType::IntLiteral(num));
+                self.make_token(TokenType::IntLiteral(num), numerals_len);
             }
             Err(e) if e.to_string() == "number too large to fit in target type" => {
                 // Too large
@@ -455,7 +486,7 @@ impl<'s> Scanner<'s> {
         }
 
         // Select the rest of the radix digits
-        radix_locate.current_to(self.cursor.end);
+        radix_locate.current_to_other(&self.cursor);
         let radix_numerals = self
             .get_source_slice(&radix_locate)
             .to_string()
@@ -496,7 +527,8 @@ impl<'s> Scanner<'s> {
 
         match try_parse_int(&radix_numerals, base as u32) {
             Ok(num) => {
-                self.make_token(TokenType::IntLiteral(num));
+                let literal_len = self.get_source_slice(&self.cursor).len();
+                self.make_token(TokenType::IntLiteral(num), literal_len);
             }
             Err(k) => match k {
                 IntErrKind::Overflow(_) => {
@@ -542,7 +574,9 @@ impl<'s> Scanner<'s> {
         }
 
         // Try to parse the value
-        let value = self.get_source_slice(&self.cursor).parse::<f64>();
+        let digits = self.get_source_slice(&self.cursor);
+        let digits_len = digits.len();
+        let value = digits.parse::<f64>();
         match value {
             Ok(num) if num.is_infinite() => {
                 self.reporter
@@ -558,7 +592,7 @@ impl<'s> Scanner<'s> {
                     .report_error(&self.cursor, format_args!("Invalid real literal"));
             }
             Err(e) => eprintln!("{}", e.to_string()),
-            Ok(num) => self.make_token(TokenType::RealLiteral(num)),
+            Ok(num) => self.make_token(TokenType::RealLiteral(num), digits_len),
         }
     }
 
@@ -569,8 +603,11 @@ impl<'s> Scanner<'s> {
         }
 
         // Produce the identifier
-        let ident = self.get_source_slice(&self.cursor).to_string();
-        self.make_token(TokenType::Identifier(ident));
+        let ident_slice = self.get_source_slice(&self.cursor);
+        let ident = ident_slice.to_string();
+        let len = UnicodeWidthStr::width(ident_slice);
+
+        self.make_token(TokenType::Identifier(ident), len);
     }
 }
 
