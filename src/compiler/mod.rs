@@ -1,3 +1,3 @@
-extern crate unicode_width;
+extern crate unicode_segmentation;
 
 pub(crate) mod scanner;

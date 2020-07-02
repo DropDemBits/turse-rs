@@ -3,7 +3,7 @@ mod status_reporter;
 
 fn main() {
     let mut scanner = compiler::scanner::Scanner::new(
-        "tok mod rem 1 36#4ah519ASdgfd 1. 1.0 100.00e200\nheyo hai",
+        "tok mod rem 1 36#4ah519ASdgfd 1. 1.0 100.00e200\nheyo hai '💖 wew 💖' babi",
     );
     scanner.scan_tokens();
 
@@ -13,3 +13,7 @@ fn main() {
         eprintln!("Error occurred during scanning");
     }
 }
+/*
+tok mod rem 1 36#4ah519ASdgfd 1. 1.0 100.00e200
+heyo hai '💖 wew 💖' babi
+*/

@@ -1,7 +1,7 @@
 //! Scanner for tokens
 use crate::status_reporter::StatusReporter;
 use std::num::ParseIntError;
-use unicode_width::UnicodeWidthStr;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Location of a token in a file/text stream
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -26,7 +26,7 @@ impl Location {
         }
     }
 
-    /// Advances the location to the next lexeme
+    /// Advances the location to the next lexeme, beginning a new lexeme
     pub fn step(&mut self) {
         self.start = self.end;
     }
@@ -380,9 +380,9 @@ impl<'s> Scanner<'s> {
             '<' => self.make_or_default('=', TokenType::LessEqu, 2, TokenType::Less, 1),
             '.' => self.make_or_default('.', TokenType::Range, 2, TokenType::Dot, 1),
             '*' => self.make_or_default('*', TokenType::Exp, 2, TokenType::Star, 1),
-            '"' => unimplemented!(),         // make string literal
-            '\'' => unimplemented!(),        // make char literal
-            '0'..='9' => self.make_number(), // make number literal
+            '"' => self.make_char_sequence(true),
+            '\'' => self.make_char_sequence(false),
+            '0'..='9' => self.make_number(),
             _ => {
                 if is_ident_char(chr) {
                     self.make_ident();
@@ -596,6 +596,63 @@ impl<'s> Scanner<'s> {
         }
     }
 
+    fn make_char_sequence(&mut self, is_str_literal: bool) {
+        let mut text_locate = self.cursor.clone();
+        let ending_delimiter = if is_str_literal { '"' } else { '\'' };
+
+        // Step over starting delimiter
+        text_locate.step();
+
+        // Keep going along the string until the end of the line, or the delimiter
+        // TODO: Handle char escapes (eg \n)
+        while self.peek != ending_delimiter && self.peek != '\n' && self.peek != '\0' {
+            self.next_char();
+        }
+
+        // Get the width of the lexeme
+        let lexeme = self.get_source_slice(&self.cursor);
+        let part_width = UnicodeSegmentation::graphemes(lexeme, true).count();
+
+        match self.peek {
+            '\n' => {
+                self.reporter.report_error(
+                    &self.cursor,
+                    format_args!("String literal ends at the end of the line"),
+                );
+                self.cursor.columns(part_width);
+
+                return;
+            }
+            '\0' => {
+                self.reporter.report_error(
+                    &self.cursor,
+                    format_args!("String literal ends at the end of the file"),
+                );
+                self.cursor.columns(part_width);
+
+                return;
+            }
+            _ => {
+                assert!((self.peek == '\'' || self.peek == '"'));
+
+                // End the string
+                text_locate.current_to_other(&self.cursor);
+
+                // Consume other delimiter
+                self.next_char();
+
+                let text_slice = self.get_source_slice(&text_locate).to_string();
+
+                // Make it! (Adjust part_width by 1 to account for ending delimiter)
+                if is_str_literal {
+                    self.make_token(TokenType::StringLiteral(text_slice), part_width + 1);
+                } else {
+                    self.make_token(TokenType::CharLiteral(text_slice), part_width + 1);
+                }
+            }
+        }
+    }
+
     fn make_ident(&mut self) {
         // Consume all of the identifier digits
         while is_ident_char_or_digit(self.peek) {
@@ -605,7 +662,7 @@ impl<'s> Scanner<'s> {
         // Produce the identifier
         let ident_slice = self.get_source_slice(&self.cursor);
         let ident = ident_slice.to_string();
-        let len = UnicodeWidthStr::width(ident_slice);
+        let len = UnicodeSegmentation::graphemes(ident_slice, true).count();
 
         self.make_token(TokenType::Identifier(ident), len);
     }
@@ -777,6 +834,53 @@ mod test {
 
         // Too big
         let mut scanner = Scanner::new("1e600");
+        scanner.scan_tokens();
+        assert!(!scanner.is_valid_scan());
+    }
+
+    #[test]
+    fn test_string_literal() {
+        // String literal parsing
+        let mut scanner = Scanner::new("\"abcd💖\"a");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(
+            scanner.tokens[0].token_type,
+            TokenType::StringLiteral("abcd💖".to_string())
+        );
+
+        // Validate width
+        assert_eq!(scanner.tokens[1].location.column, 8);
+
+        // Ends at the end of line
+        let mut scanner = Scanner::new("\"abcd\n");
+        scanner.scan_tokens();
+        assert!(!scanner.is_valid_scan());
+
+        // Ends at the end of file
+        let mut scanner = Scanner::new("\"abcd");
+        scanner.scan_tokens();
+        assert!(!scanner.is_valid_scan());
+    }
+
+    #[test]
+    fn test_char_literal() {
+        // Char(n) literal parsing
+        let mut scanner = Scanner::new("'abcd'");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(
+            scanner.tokens[0].token_type,
+            TokenType::CharLiteral("abcd".to_string())
+        );
+
+        // Ends at the end of line
+        let mut scanner = Scanner::new("'abcd\n");
+        scanner.scan_tokens();
+        assert!(!scanner.is_valid_scan());
+
+        // Ends at the end of file
+        let mut scanner = Scanner::new("'abcd");
         scanner.scan_tokens();
         assert!(!scanner.is_valid_scan());
     }
