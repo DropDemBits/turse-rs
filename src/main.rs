@@ -3,7 +3,7 @@ mod status_reporter;
 
 fn main() {
     let mut scanner = compiler::scanner::Scanner::new(
-        "tok mod rem 1 36#4ah519ASdgfd 1. 1.0 100.00e200\nheyo hai '💖 wew 💖' babi",
+        "tok mod rem 1 36#4ah519ASdgfd 1. 1.0 100.00e200\nheyo hai '💖 wew 💖' babi /*ha /* nested! */ oi */ a % heh",
     );
     scanner.scan_tokens();
 

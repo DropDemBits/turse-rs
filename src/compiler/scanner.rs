@@ -313,11 +313,7 @@ impl<'s> Scanner<'s> {
 
     // Checks if the end of the stream has been reached
     fn is_at_end(&self) -> bool {
-        // Not at the end if the last added token is not Eof, or there are no tokens
-        match self.tokens.last() {
-            Some(ref tok) => tok.token_type == TokenType::Eof,
-            None => false,
-        }
+        self.cursor.end >= self.source.len()
     }
 
     /// Grabs the next char in the text stream
@@ -372,7 +368,73 @@ impl<'s> Scanner<'s> {
             '|' => self.make_token(TokenType::Bar, 1),
             '+' => self.make_token(TokenType::Plus, 1),
             ';' => self.make_token(TokenType::Semicolon, 1),
-            '/' => self.make_token(TokenType::Slash, 1),
+            '/' => {
+                if self.match_next('*') {
+                    // Block comment parsing
+                    let mut depth: usize = 1;
+
+                    while depth > 0 && !self.is_at_end() {
+                        match self.peek {
+                            '\0' => {
+                                // Block comment ends at the end of the file
+                                self.next_char();
+                                self.cursor.step();
+                                self.make_token(TokenType::Eof, 0);
+
+                                self.reporter.report_error(
+                                    &self.cursor,
+                                    format_args!(
+                                        "Block comment (starting here) ends at the end of the file"
+                                    ),
+                                );
+                                break;
+                            }
+                            '*' => {
+                                if self.peek_ahead == '/' {
+                                    // Decrease depth and consume '*/'
+                                    self.next_char();
+                                    self.next_char();
+                                    depth = depth.saturating_sub(1);
+                                }
+                            }
+                            '/' => {
+                                if self.peek_ahead == '*' {
+                                    // Increase depth and consume '/*'
+                                    self.next_char();
+                                    self.next_char();
+                                    depth = depth.saturating_add(1);
+                                }
+                            }
+                            '\n' => {
+                                // End the line and rebase lexeme start to the beginning of the line
+                                self.next_char();
+                                self.cursor.lines(1);
+                                self.cursor.step();
+                            }
+                            _ => {
+                                // Consume char
+                                self.next_char();
+                            }
+                        }
+                    }
+
+                    // Handle column stuff
+                    let remaining_comment = self.get_source_slice(&self.cursor);
+                    let end_at_column =
+                        UnicodeSegmentation::graphemes(remaining_comment, true).count();
+                    self.cursor.columns(end_at_column);
+                } else {
+                    self.make_token(TokenType::Slash, 1);
+                }
+            }
+            '%' => {
+                // Line comment
+                while self.peek != '\n' && !self.is_at_end() {
+                    eprintln!("o");
+                    // Nom all the chars
+                    self.next_char();
+                }
+            }
             '~' => self.make_token(TokenType::Tilde, 1),
             '=' => self.make_or_default('>', TokenType::Imply, 2, TokenType::Equ, 1),
             ':' => self.make_or_default('=', TokenType::Assign, 2, TokenType::Colon, 1),
