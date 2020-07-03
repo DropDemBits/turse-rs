@@ -13,7 +13,3 @@ fn main() {
         eprintln!("Error occurred during scanning");
     }
 }
-/*
-tok mod rem 1 36#4ah519ASdgfd 1. 1.0 100.00e200
-heyo hai '💖 wew 💖' babi
-*/

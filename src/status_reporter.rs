@@ -1,5 +1,5 @@
 //! Common status reporting facility
-use crate::compiler::scanner::Location;
+use crate::compiler::Location;
 use std::cell::Cell;
 use std::fmt::{self, Arguments, Display, Formatter};
 
