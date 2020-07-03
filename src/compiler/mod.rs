@@ -1,7 +1,8 @@
-extern crate unicode_segmentation;
-
 pub(crate) mod scanner;
 pub(crate) mod token;
+
+extern crate unicode_segmentation;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Location of a token in a file/text stream
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -50,5 +51,15 @@ impl Location {
     /// Moves the end of the lexeme to the end of the given location
     pub fn current_to_other(&mut self, other: &Location) {
         self.end = other.end;
+    }
+
+    /// Gets the width of the location from the slice, in graphemes
+    pub fn get_length(&self, source: &str) -> usize {
+        if self.start == self.end {
+            0
+        } else {
+            let slice = &source[self.start..self.end];
+            UnicodeSegmentation::graphemes(slice, true).count()
+        }
     }
 }
