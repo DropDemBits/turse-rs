@@ -1,5 +1,8 @@
+pub(crate) mod ast;
+pub(crate) mod parser;
 pub(crate) mod scanner;
 pub(crate) mod token;
+pub(crate) mod types;
 
 extern crate unicode_segmentation;
 use unicode_segmentation::UnicodeSegmentation;

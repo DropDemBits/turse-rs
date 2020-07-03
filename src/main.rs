@@ -77,22 +77,12 @@ fn compile_run_file(path: &str) {
     let mut scanner = compiler::scanner::Scanner::new(&file_contents);
     scanner.scan_tokens();
 
-    if scanner.is_valid_scan() {
-        //println!("Tokens: {:#?}", &scanner.tokens);
-        for token in scanner.tokens {
-            let locate = token.location;
-            let tok_width = locate.get_length(&file_contents);
-
-            println!(
-                "{}:{}-{} in {} {:?}",
-                locate.line,
-                locate.column,
-                locate.column + tok_width,
-                path,
-                token.token_type
-            );
-        }
-    } else {
+    if !scanner.is_valid_scan() {
         eprintln!("Error occurred during scanning");
+        return;
     }
+
+    let mut parser = compiler::parser::Parser::new(scanner.tokens);
+    parser.parse();
+    println!("{:#?}", parser.exprs);
 }

@@ -1,7 +1,7 @@
 use crate::compiler::Location;
 
 /// Parsed token
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     /// Type of the token
     pub token_type: TokenType,
@@ -10,7 +10,7 @@ pub struct Token {
 }
 
 /// Valid tokens in Turing
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Character Tokens
     /// &
@@ -65,6 +65,13 @@ pub enum TokenType {
     Exp,
     /// ~
     Tilde,
+
+    // Composite Tokens
+    // Stitched together by the scanner
+    /// not in | ~in | ~ in
+    NotIn,
+    /// not = | not= | ~= | ~ =
+    NotEq,
 
     // Packed Operator-Assign
     // These are complicated by the fact that whitespace does not matter
