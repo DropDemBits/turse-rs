@@ -48,7 +48,7 @@ pub enum TokenType {
     /// <
     Less,
     /// -
-    Dash,
+    Minus,
     /// |
     Bar,
     /// +

@@ -1,5 +1,5 @@
 //! Main parser for tokens to build the AST
-use crate::compiler::ast::{Expr, Stmt};
+use crate::compiler::ast::Expr;
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
@@ -245,7 +245,7 @@ impl Parser {
 
         Ok(Expr::Grouping {
             expr: Box::new(expr),
-            types: 0,
+            eval_type: 0,
         })
     }
 
@@ -256,7 +256,7 @@ impl Parser {
         Ok(Expr::UnaryOp {
             op: op.clone(),
             right: Box::new(right),
-            types: 0,
+            eval_type: 0,
         })
     }
 
@@ -270,7 +270,7 @@ impl Parser {
             left: Box::new(lhs),
             op: op.clone(),
             right: Box::new(rhs),
-            types: (0, 0),
+            eval_type: 0,
         })
     }
 
@@ -280,19 +280,19 @@ impl Parser {
         match token.token_type {
             TokenType::StringLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                types: 0,
+                eval_type: 0,
             }),
             TokenType::CharLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                types: 0,
+                eval_type: 0,
             }),
             TokenType::IntLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                types: 0,
+                eval_type: 0,
             }),
             TokenType::RealLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                types: 0,
+                eval_type: 0,
             }),
             _ => Err(ParsingStatus::Error(
                 token.location,
@@ -309,7 +309,7 @@ impl Parser {
                 prefix_rule: Some(Parser::expr_grouping),
                 infix_rule: None,
             },
-            TokenType::Plus | TokenType::Dash => &PrecedenceRule {
+            TokenType::Plus | TokenType::Minus => &PrecedenceRule {
                 precedence: Precedence::Sum,
                 prefix_rule: Some(Parser::expr_unary),
                 infix_rule: Some(Parser::expr_binary),

@@ -60,6 +60,7 @@ impl<'s> Scanner<'s> {
         while !self.is_at_end() {
             self.cursor.step();
             self.scan_token();
+            self.stitch_token();
         }
     }
 
@@ -102,7 +103,46 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    // Scan a single token
+    /// Stiches the previous token with the current ont
+    fn stitch_token(&mut self) {
+        let mut reverse_iter = self.tokens.iter().rev();
+        let mut next_reverse = move || {
+            reverse_iter
+                .next()
+                .map(|tok| &tok.token_type)
+                .unwrap_or(&TokenType::Eof)
+        };
+
+        match next_reverse() {
+            TokenType::In => match next_reverse() {
+                TokenType::Not | TokenType::Tilde => {
+                    // Stitch not in -> not_in
+                    let end_loc = self.tokens.pop().unwrap().location;
+                    let change = self.tokens.last_mut().unwrap();
+
+                    // Adjust location & kind
+                    change.token_type = TokenType::NotIn;
+                    change.location.current_to_other(&end_loc);
+                }
+                _ => {}
+            },
+            TokenType::Equ => match next_reverse() {
+                TokenType::Not | TokenType::Tilde => {
+                    // Stitch not = -> not_=
+                    let end_loc = self.tokens.pop().unwrap().location;
+                    let change = self.tokens.last_mut().unwrap();
+
+                    // Adjust location & kind
+                    change.token_type = TokenType::NotEq;
+                    change.location.current_to_other(&end_loc);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    /// Scan a single token
     fn scan_token(&mut self) {
         let chr = self.next_char();
 
@@ -120,7 +160,7 @@ impl<'s> Scanner<'s> {
             '^' => self.make_token(TokenType::Caret, 1),
             ',' => self.make_token(TokenType::Comma, 1),
             '#' => self.make_token(TokenType::Pound, 1),
-            '-' => self.make_or_default('>', TokenType::Deref, 2, TokenType::Dash, 1),
+            '-' => self.make_or_default('>', TokenType::Deref, 2, TokenType::Minus, 1),
             '|' => self.make_token(TokenType::Bar, 1),
             '+' => self.make_token(TokenType::Plus, 1),
             ';' => self.make_token(TokenType::Semicolon, 1),
@@ -862,5 +902,50 @@ mod test {
         assert!(scanner.is_valid_scan());
         assert_eq!(scanner.tokens.len(), 1);
         assert_eq!(scanner.tokens[0].token_type, TokenType::And);
+    }
+
+    #[test]
+    fn test_not_in_stitching() {
+        let mut scanner = Scanner::new("not in ~ in ~in in in not");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(
+            scanner
+                .tokens
+                .iter()
+                .map(|tk| &tk.token_type)
+                .collect::<Vec<&TokenType>>(),
+            vec![
+                &TokenType::NotIn,
+                &TokenType::NotIn,
+                &TokenType::NotIn,
+                &TokenType::In,
+                &TokenType::In,
+                &TokenType::Not
+            ]
+        );
+    }
+
+    #[test]
+    fn test_not_eq_stitching() {
+        let mut scanner = Scanner::new("not = not= ~ = ~= = = not");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(
+            scanner
+                .tokens
+                .iter()
+                .map(|tk| &tk.token_type)
+                .collect::<Vec<&TokenType>>(),
+            vec![
+                &TokenType::NotEq,
+                &TokenType::NotEq,
+                &TokenType::NotEq,
+                &TokenType::NotEq,
+                &TokenType::Equ,
+                &TokenType::Equ,
+                &TokenType::Not
+            ]
+        );
     }
 }

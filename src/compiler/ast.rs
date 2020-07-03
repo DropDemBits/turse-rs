@@ -8,20 +8,20 @@ pub enum Expr {
         left: Box<Self>,
         op: Token,
         right: Box<Self>,
-        types: (TypeRef, TypeRef),
+        eval_type: TypeRef,
     },
     UnaryOp {
         op: Token,
         right: Box<Self>,
-        types: TypeRef,
+        eval_type: TypeRef,
     },
     Grouping {
         expr: Box<Self>,
-        types: TypeRef,
+        eval_type: TypeRef,
     },
     Literal {
         value: Token,
-        types: TypeRef,
+        eval_type: TypeRef,
     },
 }
 
