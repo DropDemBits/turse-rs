@@ -63,7 +63,6 @@ pub struct Token {
 }
 
 /// Valid tokens in Turing
-#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Character Tokens
@@ -373,7 +372,7 @@ impl<'s> Scanner<'s> {
                     // Block comment parsing
                     let mut depth: usize = 1;
 
-                    while depth > 0 && !self.is_at_end() {
+                    while depth > 0 {
                         match self.peek {
                             '\0' => {
                                 // Block comment ends at the end of the file
@@ -430,7 +429,6 @@ impl<'s> Scanner<'s> {
             '%' => {
                 // Line comment
                 while self.peek != '\n' && !self.is_at_end() {
-                    eprintln!("o");
                     // Nom all the chars
                     self.next_char();
                 }
@@ -726,7 +724,122 @@ impl<'s> Scanner<'s> {
         let ident = ident_slice.to_string();
         let len = UnicodeSegmentation::graphemes(ident_slice, true).count();
 
-        self.make_token(TokenType::Identifier(ident), len);
+        let token_type = match ident_slice {
+            "addressint" => TokenType::Addressint,
+            "all" => TokenType::All,
+            "and" => TokenType::And,
+            "array" => TokenType::Array,
+            "asm" => TokenType::Asm,
+            "assert" => TokenType::Assert,
+            "begin" => TokenType::Begin,
+            "bind" => TokenType::Bind,
+            "body" => TokenType::Body,
+            "boolean" => TokenType::Boolean,
+            "by" => TokenType::By,
+            "case" => TokenType::Case,
+            "char" => TokenType::Char,
+            "checked" => TokenType::Checked,
+            "class" => TokenType::Class,
+            "close" => TokenType::Close,
+            "collection" => TokenType::Collection,
+            "condition" => TokenType::Condition,
+            "const" => TokenType::Const,
+            "decreasing" => TokenType::Decreasing,
+            "def" => TokenType::Def,
+            "deferred" => TokenType::Deferred,
+            "div" => TokenType::Div,
+            "else" => TokenType::Else,
+            "elsif" => TokenType::Elsif,
+            "end" => TokenType::End,
+            "enum" => TokenType::Enum,
+            "exit" => TokenType::Exit,
+            "export" => TokenType::Export,
+            "external" => TokenType::External,
+            "false" => TokenType::False,
+            "fcn" => TokenType::Fcn,
+            "flexible" => TokenType::Flexible,
+            "for" => TokenType::For,
+            "fork" => TokenType::Fork,
+            "forward" => TokenType::Forward,
+            "free" => TokenType::Free,
+            "function" => TokenType::Function,
+            "get" => TokenType::Get,
+            "handler" => TokenType::Handler,
+            "if" => TokenType::If,
+            "implement" => TokenType::Implement,
+            "import" => TokenType::Import,
+            "in" => TokenType::In,
+            "include" => TokenType::Include,
+            "inherit" => TokenType::Inherit,
+            "init" => TokenType::Init,
+            "int" => TokenType::Int,
+            "int1" => TokenType::Int1,
+            "int2" => TokenType::Int2,
+            "int4" => TokenType::Int4,
+            "invariant" => TokenType::Invariant,
+            "label" => TokenType::Label,
+            "loop" => TokenType::Loop,
+            "mod" => TokenType::Mod,
+            "module" => TokenType::Module,
+            "monitor" => TokenType::Monitor,
+            "nat" => TokenType::Nat,
+            "nat1" => TokenType::Nat1,
+            "nat2" => TokenType::Nat2,
+            "nat4" => TokenType::Nat4,
+            "new" => TokenType::New,
+            "nil" => TokenType::Nil,
+            "not" => TokenType::Not,
+            "of" => TokenType::Of,
+            "opaque" => TokenType::Opaque,
+            "open" => TokenType::Open,
+            "or" => TokenType::Or,
+            "packed" => TokenType::Packed,
+            "pause" => TokenType::Pause,
+            "pervasive" => TokenType::Pervasive,
+            "pointer" => TokenType::Pointer,
+            "post" => TokenType::Post,
+            "pre" => TokenType::Pre,
+            "priority" => TokenType::Priority,
+            "proc" => TokenType::Proc,
+            "procedure" => TokenType::Procedure,
+            "process" => TokenType::Process,
+            "put" => TokenType::Put,
+            "quit" => TokenType::Quit,
+            "read" => TokenType::Read,
+            "real" => TokenType::Real,
+            "real4" => TokenType::Real4,
+            "real8" => TokenType::Real8,
+            "record" => TokenType::Record,
+            "register" => TokenType::Register,
+            "rem" => TokenType::Rem,
+            "result" => TokenType::Result_,
+            "return" => TokenType::Return,
+            "seek" => TokenType::Seek,
+            "set" => TokenType::Set,
+            "shl" => TokenType::Shl,
+            "shr" => TokenType::Shr,
+            "signal" => TokenType::Signal,
+            "skip" => TokenType::Skip,
+            "string" => TokenType::String_,
+            "tag" => TokenType::Tag,
+            "tell" => TokenType::Tell,
+            "then" => TokenType::Then,
+            "timeout" => TokenType::Timeout,
+            "to" => TokenType::To,
+            "true" => TokenType::True,
+            "type" => TokenType::Type,
+            "unchecked" => TokenType::Unchecked,
+            "union" => TokenType::Union,
+            "unqualified" => TokenType::Unqualified,
+            "var" => TokenType::Var,
+            "wait" => TokenType::Wait,
+            "when" => TokenType::When,
+            "write" => TokenType::Write,
+            "xor" => TokenType::Xor,
+            _ => TokenType::Identifier(ident),
+        };
+
+        self.make_token(token_type, len);
     }
 }
 
@@ -945,5 +1058,52 @@ mod test {
         let mut scanner = Scanner::new("'abcd");
         scanner.scan_tokens();
         assert!(!scanner.is_valid_scan());
+    }
+
+    #[test]
+    fn test_block_comment() {
+        // Block comments
+        let mut scanner = Scanner::new("/* /* abcd */ */ asd");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(
+            scanner.tokens[0].token_type,
+            TokenType::Identifier("asd".to_string())
+        );
+
+        // End of file, mismatch
+        let mut scanner = Scanner::new("/* /* abcd */ ");
+        scanner.scan_tokens();
+        assert!(!scanner.is_valid_scan());
+    }
+
+    #[test]
+    fn test_line_comment() {
+        // Line comment
+        let mut scanner = Scanner::new("% abcd asd\n asd");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(
+            scanner.tokens[0].token_type,
+            TokenType::Identifier("asd".to_string())
+        );
+
+        // End of file
+        let mut scanner = Scanner::new("% abcd asd");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(scanner.tokens.len(), 0);
+    }
+
+    #[test]
+    fn test_keyword() {
+        // Keyword as the corresponding keyword
+        let mut scanner = Scanner::new("and");
+        scanner.scan_tokens();
+        assert!(scanner.is_valid_scan());
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].token_type, TokenType::And);
     }
 }
