@@ -4,6 +4,7 @@ use crate::compiler::token::{Token, TokenType};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::Cell;
+use std::fmt::Arguments;
 
 /*
 expr:
@@ -110,17 +111,19 @@ impl Precedence {
     }
 }
 
-struct PrecedenceRule {
+struct PrecedenceRule<'a> {
     precedence: Precedence,
-    prefix_rule: Option<fn(&Parser) -> Result<Expr, ParsingStatus>>,
-    infix_rule: Option<fn(&Parser, Expr) -> Result<Expr, ParsingStatus>>,
+    prefix_rule: Option<fn(&Parser<'a>) -> Result<Expr, ParsingStatus>>,
+    infix_rule: Option<fn(&Parser<'a>, Expr) -> Result<Expr, ParsingStatus>>,
 }
 
 /// Main parser
 #[derive(Debug)]
-pub struct Parser {
+pub struct Parser<'a> {
     /// Status reporter
     reporter: StatusReporter,
+    /// File source used for getting lexemes for reporting
+    source: &'a str,
     /// Source for tokens
     tokens: Vec<Token>,
     /// Parsed expressions
@@ -131,14 +134,15 @@ pub struct Parser {
 
 #[derive(Debug)]
 enum ParsingStatus {
-    Error(Location, String),
-    Warn(Location, String),
+    Error,
+    Warn,
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: Vec<Token>, source: &'a str) -> Self {
         Self {
             reporter: StatusReporter::new(),
+            source,
             tokens,
             exprs: vec![],
             current: Cell::new(0),
@@ -146,17 +150,22 @@ impl Parser {
     }
 
     pub fn parse(&mut self) {
-        match self.expr() {
-            Ok(expr) => self.exprs.push(expr),
-            Err(status) => match status {
-                ParsingStatus::Error(loc, msg) => {
-                    self.reporter.report_error(&loc, format_args!("{}", msg))
-                }
-                ParsingStatus::Warn(loc, msg) => {
-                    self.reporter.report_warning(&loc, format_args!("{}", msg))
-                }
-            },
+        while !self.is_at_end() {
+            match self.stmt() {
+                Ok(expr) => self.exprs.push(expr),
+                Err(_) => {}
+            }
         }
+    }
+
+    fn report_error<T>(&self, at: Location, message: Arguments) -> Result<T, ParsingStatus> {
+        self.reporter.report_error(&at, message);
+        Err(ParsingStatus::Error)
+    }
+
+    #[allow(dead_code)]
+    fn report_warning<T>(&self, at: Location, message: Arguments) {
+        self.reporter.report_warning(&at, message);
     }
 
     /// Gets the previous token in the stream
@@ -164,13 +173,13 @@ impl Parser {
         &self.tokens[self.current.get().saturating_sub(1)]
     }
 
-    /// Peeks at the next token in the stream
-    fn peek(&self) -> &Token {
+    /// Gets the current token in the stream
+    fn current(&self) -> &Token {
         &self.tokens[self.current.get()]
     }
 
-    /// Peeks at the next next token in the stream
-    fn peek_ahead(&self) -> &Token {
+    /// Peeks at the next token in the stream
+    fn peek(&self) -> &Token {
         &self.tokens[self.current.get().saturating_add(1)]
     }
 
@@ -186,16 +195,31 @@ impl Parser {
 
     /// Checks if all of the tokens have been consumed yet
     fn is_at_end(&self) -> bool {
-        self.current.get() >= self.tokens.len() || self.peek().token_type == TokenType::Eof
+        self.current().token_type == TokenType::Eof
     }
 
     /// Consumes the expected token, or returns a message indicating the error
-    fn expects(&self, expected_type: TokenType, message: String) -> Result<&Token, ParsingStatus> {
-        if self.peek().token_type == expected_type {
+    fn expects(
+        &self,
+        expected_type: TokenType,
+        message: Arguments,
+    ) -> Result<&Token, ParsingStatus> {
+        if self.current().token_type == expected_type {
             Ok(self.next_token())
         } else {
-            Err(ParsingStatus::Error(self.peek().location, message))
+            self.report_error(self.current().location, message)
         }
+    }
+
+    fn stmt(&self) -> Result<Expr, ParsingStatus> {
+        let expr = self.expr()?;
+
+        self.expects(
+            TokenType::Semicolon,
+            format_args!("Expected semicolon after expression"),
+        )?;
+
+        Ok(expr)
     }
 
     // --- Expr Parsing ---
@@ -205,26 +229,49 @@ impl Parser {
     }
 
     fn expr_precedence(&self, min_precedence: Precedence) -> Result<Expr, ParsingStatus> {
+        // Keep track of last token
+        let before_op = self.previous();
+
         // Get prefix side
         let op = self.next_token();
-        let prefix_rule =
-            self.get_precedence(&op.token_type)
-                .prefix_rule
-                .ok_or(ParsingStatus::Error(
-                    self.previous().location,
-                    "Expected expression".to_string(),
-                ))?;
+
+        let prefix_rule = self.get_rule(&op.token_type).prefix_rule.ok_or_else(|| {
+            // Try to figure out if the typo was a reasonable one
+            // ???: Rework this system to use a hashmap with key (token_type, token_type)?
+
+            let hint = if before_op.location != op.location {
+                if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ {
+                    "(Did you mean '=' instead of '=='?)"
+                } else {
+                    ""
+                }
+            } else {
+                // No hints for looking back at the start or end of the file
+                ""
+            };
+
+            let _ = self.report_error::<Expr>(
+                self.previous().location,
+                format_args!(
+                    "Expected expression before '{}' {}",
+                    self.previous().location.get_lexeme(self.source),
+                    hint
+                ),
+            );
+
+            ParsingStatus::Error
+        })?;
 
         // Go over infix operators
         let mut expr = prefix_rule(self)?;
 
         while !self.is_at_end()
-            && min_precedence <= self.get_precedence(&self.peek().token_type).precedence
+            && min_precedence <= self.get_rule(&self.current().token_type).precedence
         {
             let op = self.next_token();
 
             let infix_rule = self
-                .get_precedence(&op.token_type)
+                .get_rule(&op.token_type)
                 .infix_rule
                 .expect("No infix function for given rule");
 
@@ -240,7 +287,7 @@ impl Parser {
         let expr = self.expr()?;
         self.expects(
             TokenType::RightParen,
-            "Expected ')' to close off parenthetical grouping".to_string(),
+            format_args!("Expected ')' to close off parenthetical grouping"),
         )?;
 
         Ok(Expr::Grouping {
@@ -262,7 +309,7 @@ impl Parser {
 
     fn expr_binary(&self, lhs: Expr) -> Result<Expr, ParsingStatus> {
         let op = self.previous();
-        let rule = self.get_precedence(&op.token_type);
+        let rule = self.get_rule(&op.token_type);
         // Get rhs
         let rhs = self.expr_precedence(rule.precedence.up())?;
 
@@ -294,32 +341,112 @@ impl Parser {
                 value: token.clone(),
                 eval_type: 0,
             }),
-            _ => Err(ParsingStatus::Error(
+            TokenType::True => Ok(Expr::Literal {
+                value: Token {
+                    token_type: TokenType::BoolLiteral(true),
+                    location: token.location.clone(),
+                },
+                eval_type: 0,
+            }),
+            TokenType::False => Ok(Expr::Literal {
+                value: Token {
+                    token_type: TokenType::BoolLiteral(false),
+                    location: token.location.clone(),
+                },
+                eval_type: 0,
+            }),
+            TokenType::Nil => Ok(Expr::Literal {
+                value: token.clone(),
+                eval_type: 0,
+            }),
+            _ => self.report_error(
                 token.location,
-                "Unexpected token".to_string(),
-            )),
+                format_args!(
+                    "Unexpected token '{}'",
+                    token.location.get_lexeme(self.source)
+                ),
+            ),
         }
     }
 
     /// Gets the precedence and associativity
-    fn get_precedence(&self, token_type: &TokenType) -> &PrecedenceRule {
+    fn get_rule(&self, token_type: &TokenType) -> &PrecedenceRule {
         match token_type {
             TokenType::LeftParen => &PrecedenceRule {
                 precedence: Precedence::NoPrec,
                 prefix_rule: Some(Parser::expr_grouping),
                 infix_rule: None,
             },
+            TokenType::Imply => &PrecedenceRule {
+                precedence: Precedence::Imply,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_binary),
+            },
+            TokenType::Or => &PrecedenceRule {
+                precedence: Precedence::BitOr,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_binary),
+            },
+            TokenType::And => &PrecedenceRule {
+                precedence: Precedence::BitAnd,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_binary),
+            },
+            TokenType::Not => &PrecedenceRule {
+                precedence: Precedence::BitNot,
+                prefix_rule: Some(Parser::expr_unary),
+                infix_rule: None,
+            },
+            TokenType::Less
+            | TokenType::Greater
+            | TokenType::Equ
+            | TokenType::LessEqu
+            | TokenType::GreaterEqu
+            | TokenType::NotEq
+            | TokenType::In
+            | TokenType::NotIn => &PrecedenceRule {
+                precedence: Precedence::Comparison,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_binary),
+            },
             TokenType::Plus | TokenType::Minus => &PrecedenceRule {
                 precedence: Precedence::Sum,
                 prefix_rule: Some(Parser::expr_unary),
                 infix_rule: Some(Parser::expr_binary),
             },
-            TokenType::Star | TokenType::Slash | TokenType::Div => &PrecedenceRule {
+            TokenType::Xor => &PrecedenceRule {
+                precedence: Precedence::Sum,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_binary),
+            },
+            TokenType::Star
+            | TokenType::Slash
+            | TokenType::Div
+            | TokenType::Mod
+            | TokenType::Rem
+            | TokenType::Shl
+            | TokenType::Shr => &PrecedenceRule {
                 precedence: Precedence::Product,
                 prefix_rule: None,
                 infix_rule: Some(Parser::expr_binary),
             },
-            TokenType::IntLiteral(_) | TokenType::RealLiteral(_) => &PrecedenceRule {
+            TokenType::Pound | TokenType::Caret => &PrecedenceRule {
+                precedence: Precedence::Conversion,
+                prefix_rule: Some(Parser::expr_unary),
+                infix_rule: None,
+            },
+            TokenType::Exp => &PrecedenceRule {
+                precedence: Precedence::Exponent,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_binary),
+            },
+            TokenType::IntLiteral(_)
+            | TokenType::RealLiteral(_)
+            | TokenType::CharLiteral(_)
+            | TokenType::StringLiteral(_)
+            | TokenType::True
+            | TokenType::False
+            | TokenType::Nil => &PrecedenceRule {
                 precedence: Precedence::Primary,
                 prefix_rule: Some(Parser::expr_primary),
                 infix_rule: None,

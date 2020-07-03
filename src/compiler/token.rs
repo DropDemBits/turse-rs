@@ -197,6 +197,7 @@ pub enum TokenType {
     StringLiteral(String),
     IntLiteral(u64),
     RealLiteral(f64),
+    BoolLiteral(bool),
 
     // Other
     Eof,

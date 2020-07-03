@@ -62,10 +62,12 @@ impl<'s> Scanner<'s> {
             self.scan_token();
             self.stitch_token();
         }
-    }
 
-    fn get_source_slice(&self, locate: &Location) -> &str {
-        &self.source[locate.start..locate.end]
+        if self.tokens.is_empty() || self.tokens.last().unwrap().token_type != TokenType::Eof {
+            // Add eof
+            self.cursor.step();
+            self.make_token(TokenType::Eof, 1);
+        }
     }
 
     // Checks if the end of the stream has been reached
@@ -215,7 +217,7 @@ impl<'s> Scanner<'s> {
                     }
 
                     // Handle column stuff
-                    let remaining_comment = self.get_source_slice(&self.cursor);
+                    let remaining_comment = self.cursor.get_lexeme(self.source);
                     let end_at_column =
                         UnicodeSegmentation::graphemes(remaining_comment, true).count();
                     self.cursor.columns(end_at_column);
@@ -302,7 +304,7 @@ impl<'s> Scanner<'s> {
 
     fn make_number_basic(&mut self) {
         // End normal IntLiteral
-        let numerals = self.get_source_slice(&self.cursor);
+        let numerals = self.cursor.get_lexeme(self.source);
         let numerals_len = numerals.len();
         let value = numerals.parse::<u64>();
 
@@ -330,7 +332,7 @@ impl<'s> Scanner<'s> {
 
     fn make_number_radix(&mut self) {
         // Base has already been parsed
-        let base_numerals = self.get_source_slice(&self.cursor).to_string();
+        let base_numerals = self.cursor.get_lexeme(self.source).to_string();
         // Nom the '#'
         self.next_char();
 
@@ -344,8 +346,8 @@ impl<'s> Scanner<'s> {
 
         // Select the rest of the radix digits
         radix_locate.current_to_other(&self.cursor);
-        let radix_numerals = self
-            .get_source_slice(&radix_locate)
+        let radix_numerals = radix_locate
+            .get_lexeme(self.source)
             .to_string()
             .to_ascii_lowercase();
 
@@ -384,7 +386,7 @@ impl<'s> Scanner<'s> {
 
         match try_parse_int(&radix_numerals, base as u32) {
             Ok(num) => {
-                let literal_len = self.get_source_slice(&self.cursor).len();
+                let literal_len = self.cursor.get_lexeme(self.source).len();
                 self.make_token(TokenType::IntLiteral(num), literal_len);
             }
             Err(k) => match k {
@@ -431,7 +433,7 @@ impl<'s> Scanner<'s> {
         }
 
         // Try to parse the value
-        let digits = self.get_source_slice(&self.cursor);
+        let digits = self.cursor.get_lexeme(self.source);
         let digits_len = digits.len();
         let value = digits.parse::<f64>();
         match value {
@@ -467,7 +469,7 @@ impl<'s> Scanner<'s> {
         }
 
         // Get the width of the lexeme
-        let lexeme = self.get_source_slice(&self.cursor);
+        let lexeme = self.cursor.get_lexeme(self.source);
         let part_width = UnicodeSegmentation::graphemes(lexeme, true).count();
 
         match self.peek {
@@ -498,7 +500,7 @@ impl<'s> Scanner<'s> {
                 // Consume other delimiter
                 self.next_char();
 
-                let text_slice = self.get_source_slice(&text_locate).to_string();
+                let text_slice = text_locate.get_lexeme(self.source).to_string();
 
                 // Make it! (Adjust part_width by 1 to account for ending delimiter)
                 if is_str_literal {
@@ -517,7 +519,7 @@ impl<'s> Scanner<'s> {
         }
 
         // Produce the identifier
-        let ident_slice = self.get_source_slice(&self.cursor);
+        let ident_slice = self.cursor.get_lexeme(self.source);
         let ident = ident_slice.to_string();
         let len = UnicodeSegmentation::graphemes(ident_slice, true).count();
 
