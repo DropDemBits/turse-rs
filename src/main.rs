@@ -34,7 +34,11 @@ fn main() {
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
-        Err(f) => panic!(f.to_string()),
+        Err(f) => {
+            eprintln!("{}", f.to_string());
+            show_usage(&program, &opts);
+            return;
+        }
     };
 
     if matches.opt_present("help") {
