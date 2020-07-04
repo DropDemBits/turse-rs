@@ -3,6 +3,27 @@ use crate::compiler::token::Token;
 use crate::compiler::types::TypeRef;
 use std::fmt;
 
+/// Definition of an identifier
+#[derive(Debug)]
+pub struct Identifier {
+    /// The token associated with the name
+    token: Token,
+    /// The name of the identifier
+    name: String,
+    /// The type for this identifier
+    type_spec: TypeRef,
+}
+
+impl Identifier {
+    pub fn new(token: &Token, type_spec: TypeRef, source: &str) -> Self {
+        Self {
+            token: token.clone(),
+            name: token.location.get_lexeme(source).to_string(),
+            type_spec,
+        }
+    }
+}
+
 pub enum Expr {
     BinaryOp {
         left: Box<Self>,
@@ -25,9 +46,7 @@ pub enum Expr {
     },
     // Note: Some functions & procedures may be in the AST as pure references (in the middle of expressions)
     Reference {
-        ident: Token,
-        name: String,
-        eval_type: TypeRef,
+        ident: Identifier,
     },
     Call {
         left: Box<Self>,
@@ -76,11 +95,7 @@ impl fmt::Debug for Expr {
                 TokenType::Nil => f.write_fmt(format_args!("nil")),
                 _ => f.write_fmt(format_args!("unk({:?})", value)),
             },
-            Reference {
-                ident: _,
-                name,
-                eval_type: _,
-            } => f.write_fmt(format_args!("ref({})", name)),
+            Reference { ident } => f.write_fmt(format_args!("ref({})", ident.name)),
             Call {
                 left,
                 op: _,
@@ -99,6 +114,13 @@ impl fmt::Debug for Expr {
 
 #[derive(Debug)]
 pub enum Stmt {
+    // Decls
+    VarDecl {
+        ident: Identifier,
+        value: Option<Box<Expr>>,
+        is_const: bool,
+    },
+    // Stmts
     Assign {
         var_ref: Box<Expr>,
         op: Token,

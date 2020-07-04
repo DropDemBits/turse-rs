@@ -1,6 +1,7 @@
 //! Main parser for tokens to build the AST
-use crate::compiler::ast::{Expr, Stmt};
+use crate::compiler::ast::{Expr, Identifier, Stmt};
 use crate::compiler::token::{Token, TokenType};
+use crate::compiler::types::{PrimitiveType, TypeRef};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::Cell;
@@ -162,7 +163,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) {
         while !self.is_at_end() {
-            match self.stmt() {
+            match self.decl() {
                 Ok(expr) => self.stmts.push(expr),
                 Err(_) => {}
             }
@@ -179,7 +180,6 @@ impl<'a> Parser<'a> {
         Err(ParsingStatus::Error)
     }
 
-    #[allow(dead_code)]
     fn report_warning(&self, at: Location, message: Arguments) {
         self.reporter.report_warning(&at, message);
     }
@@ -227,7 +227,85 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn warn_equ_as_assign(&self, at: Location) {
+        self.report_warning(at, format_args!("'=' found, assumed it to be ':='"));
+    }
+
     // --- Decl Parsing --- //
+    fn decl(&self) -> Result<Stmt, ParsingStatus> {
+        let nom = self.current();
+        match nom.token_type {
+            TokenType::Var => self.decl_var(false),
+            TokenType::Const => self.decl_var(true),
+            _ => self.stmt(),
+        }
+    }
+
+    fn decl_var(&self, is_const: bool) -> Result<Stmt, ParsingStatus> {
+        let decl_name = if is_const { "const" } else { "var" };
+
+        // Consume decl_tok
+        let decl_tok = self.next_token();
+
+        // Grab identifier
+        let ident = self.expects(
+            TokenType::Identifier,
+            format_args!("Expected an identifier for the declared {}", decl_name),
+        )?;
+
+        // Grab typespec
+        let type_spec = if self.current().token_type == TokenType::Colon {
+            // Consume colon
+            self.next_token();
+
+            // TODO: Parse the var decl, but have this for now
+            self.expects(
+                TokenType::Int,
+                format_args!("Expected 'int' as the type specifier"),
+            )?;
+
+            TypeRef::Primitive(PrimitiveType::Int)
+        } else {
+            // Will be resolved in the type analysis stage
+            TypeRef::Unknown
+        };
+
+        // Grab assign value
+        let assign_expr = if self.is_simple_assignment() {
+            if &self.current().token_type == &TokenType::Equ {
+                // Warn of mistake
+                self.warn_equ_as_assign(self.current().location);
+            }
+
+            // Consume assign
+            self.next_token();
+
+            // Get the assign expression
+            Some(Box::new(self.expr()?))
+        } else if is_const {
+            // const declares require the assignment expression
+            self.report_error(
+                decl_tok.location,
+                format_args!("const declaration requires an initial value"),
+            )?;
+
+            unreachable!()
+        } else {
+            None
+        };
+
+        if let TypeRef::Unknown = type_spec {
+            if assign_expr.is_none() {
+                self.report_error(decl_tok.location, format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name))?;
+            }
+        }
+
+        Ok(Stmt::VarDecl {
+            ident: self.make_identifier(ident, type_spec),
+            value: assign_expr,
+            is_const,
+        })
+    }
 
     // --- Stmt Parsing --- //
 
@@ -256,12 +334,7 @@ impl<'a> Parser<'a> {
         let reference = self.expr_precedence(Precedence::Deref)?;
         let is_compound_assign = self.is_compound_assignment();
 
-        if is_compound_assign
-            || matches!(
-                self.current().token_type,
-                TokenType::Equ | TokenType::Assign
-            )
-        {
+        if is_compound_assign || self.is_simple_assignment() {
             // Is a (compound) assignment or '='
             // '=' is checked for as it's a common mistake to have '=' instead of ':='
             let mut assign_op = self.next_token().clone();
@@ -273,7 +346,7 @@ impl<'a> Parser<'a> {
                 // Current assignment op is '=', not ':='
                 // Warn of mistake, convert into ':='
                 let locate = self.previous().location;
-                self.report_warning(locate, format_args!("'=' found, assumed it to be ':='"));
+                self.warn_equ_as_assign(locate);
 
                 assign_op.token_type = TokenType::Assign;
             };
@@ -293,6 +366,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Checks if the current tokens form a compound assignment (operator '=')
     fn is_compound_assignment(&self) -> bool {
         if &self.peek().token_type == &TokenType::Equ {
             // Look ahead token is a '=', check if current is one of the valid compound assign operators
@@ -316,6 +390,14 @@ impl<'a> Parser<'a> {
         } else {
             false
         }
+    }
+
+    /// Checks if the current token is a simple assignment (':=' or '=')
+    fn is_simple_assignment(&self) -> bool {
+        matches!(
+            &self.current().token_type,
+            TokenType::Assign | TokenType::Equ
+        )
     }
 
     // --- Expr Parsing --- //
@@ -398,7 +480,7 @@ impl<'a> Parser<'a> {
 
         Ok(Expr::Grouping {
             expr: Box::new(expr),
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -412,7 +494,7 @@ impl<'a> Parser<'a> {
             left: Box::new(lhs),
             op: op.clone(),
             right: Box::new(rhs),
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -423,7 +505,7 @@ impl<'a> Parser<'a> {
         Ok(Expr::UnaryOp {
             op: op.clone(),
             right: Box::new(right),
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -435,7 +517,7 @@ impl<'a> Parser<'a> {
         Ok(Expr::UnaryOp {
             op: op.clone(),
             right: Box::new(right),
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -447,7 +529,7 @@ impl<'a> Parser<'a> {
             left: Box::new(func_ref),
             op: op.clone(),
             arg_list,
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -462,7 +544,7 @@ impl<'a> Parser<'a> {
             left: Box::new(var_ref),
             ident: ident.clone(),
             name: ident.location.get_lexeme(self.source).to_string(),
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -476,7 +558,7 @@ impl<'a> Parser<'a> {
                 location: op.location.clone(),
             },
             right: Box::new(var_ref),
-            eval_type: 0,
+            eval_type: TypeRef::Unknown,
         })
     }
 
@@ -486,37 +568,37 @@ impl<'a> Parser<'a> {
         match token.token_type {
             TokenType::StringLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             TokenType::CharLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             TokenType::IntLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             TokenType::RealLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             TokenType::True => Ok(Expr::Literal {
                 value: Token {
                     token_type: TokenType::BoolLiteral(true),
                     location: token.location.clone(),
                 },
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             TokenType::False => Ok(Expr::Literal {
                 value: Token {
                     token_type: TokenType::BoolLiteral(false),
                     location: token.location.clone(),
                 },
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             TokenType::Nil => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: 0,
+                eval_type: TypeRef::Unknown,
             }),
             _ => self.report_error(
                 token.location,
@@ -533,9 +615,7 @@ impl<'a> Parser<'a> {
 
         if let TokenType::Identifier = &token.token_type {
             Ok(Expr::Reference {
-                ident: token.clone(),
-                name: token.location.get_lexeme(self.source).to_string(),
-                eval_type: 0,
+                ident: self.make_identifier(token, TypeRef::Unknown),
             })
         } else {
             panic!(
@@ -546,6 +626,10 @@ impl<'a> Parser<'a> {
     }
 
     /// --- Helpers ---
+    fn make_identifier(&self, token: &Token, type_spec: TypeRef) -> Identifier {
+        Identifier::new(token, type_spec, self.source)
+    }
+
     fn make_arg_list(&self) -> Result<Option<Vec<Expr>>, ParsingStatus> {
         if self.previous().token_type != TokenType::LeftParen {
             // No arg_list to be found
@@ -684,5 +768,79 @@ impl<'a> Parser<'a> {
                 infix_rule: None,
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::compiler::scanner::Scanner;
+
+    fn make_test_parser(source: &str) -> Parser {
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+
+        Parser::new(scanner.tokens, source)
+    }
+
+    #[test]
+    fn test_var_decl() {
+        let mut parser = make_test_parser(
+            "
+        % Valid forms
+        var a : int := 1
+        var b : int
+        var c := 3 + 6 ** 2
+        
+        % Accepted forms
+        var d : int = -5
+        var e : int = -10 + 3 * 2",
+        );
+        parser.parse();
+        assert!(!parser.reporter.has_error());
+
+        let mut parser = make_test_parser(
+            "
+        % Invalid forms
+        var a
+        var c",
+        );
+        parser.parse();
+        assert!(parser.reporter.has_error());
+    }
+
+    #[test]
+    fn test_const_decl() {
+        let mut parser = make_test_parser(
+            "
+        % Valid forms
+        const a : int := 1
+        const c := 3 + 6 ** 2
+        
+        % Accepted forms
+        const d : int = -5
+        const e : int = -10 + 3 * 2",
+        );
+        parser.parse();
+        assert!(!parser.reporter.has_error());
+
+        // Invalid forms
+        let mut parser = make_test_parser(
+            "
+        % Invalid forms - No type or value
+        const a
+        const b",
+        );
+        parser.parse();
+        assert!(parser.reporter.has_error());
+
+        let mut parser = make_test_parser(
+            "
+        % Invalid forms - No value
+        const a : int
+        const b : int",
+        );
+        parser.parse();
+        assert!(parser.reporter.has_error());
     }
 }
