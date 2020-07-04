@@ -193,6 +193,9 @@ impl<'s> Scanner<'s> {
                                     self.next_char();
                                     self.next_char();
                                     depth = depth.saturating_sub(1);
+                                } else {
+                                    // Consume the star
+                                    self.next_char();
                                 }
                             }
                             '/' => {
@@ -201,6 +204,9 @@ impl<'s> Scanner<'s> {
                                     self.next_char();
                                     self.next_char();
                                     depth = depth.saturating_add(1);
+                                } else {
+                                    // Consume the slash
+                                    self.next_char();
                                 }
                             }
                             '\n' => {
@@ -863,7 +869,7 @@ mod test {
     #[test]
     fn test_block_comment() {
         // Block comments
-        let mut scanner = Scanner::new("/* /* abcd */ */ asd");
+        let mut scanner = Scanner::new("/* /* abcd % * / */ */ asd");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
         assert_eq!(scanner.tokens.len(), 2);
