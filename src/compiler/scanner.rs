@@ -520,7 +520,6 @@ impl<'s> Scanner<'s> {
 
         // Produce the identifier
         let ident_slice = self.cursor.get_lexeme(self.source);
-        let ident = ident_slice.to_string();
         let len = UnicodeSegmentation::graphemes(ident_slice, true).count();
 
         let token_type = match ident_slice {
@@ -635,7 +634,7 @@ impl<'s> Scanner<'s> {
             "when" => TokenType::When,
             "write" => TokenType::Write,
             "xor" => TokenType::Xor,
-            _ => TokenType::Identifier(ident),
+            _ => TokenType::Identifier,
         };
 
         self.make_token(token_type, len);
@@ -699,18 +698,20 @@ mod test {
         let mut scanner = Scanner::new("_source_text");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
+        assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);
         assert_eq!(
-            scanner.tokens[0].token_type,
-            TokenType::Identifier("_source_text".to_string())
+            scanner.tokens[0].location.get_lexeme(scanner.source),
+            "_source_text"
         );
 
         // Skip over first digits
-        let mut scanner = Scanner::new("0_separate");
+        let mut scanner = Scanner::new("0123_separate");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
+        assert_ne!(scanner.tokens[0].token_type, TokenType::Identifier);
         assert_ne!(
-            scanner.tokens[0].token_type,
-            TokenType::Identifier("0123_separate".to_string())
+            scanner.tokens[0].location.get_lexeme(scanner.source),
+            "0123_separate"
         );
 
         // Invalid ident
@@ -865,11 +866,8 @@ mod test {
         let mut scanner = Scanner::new("/* /* abcd */ */ asd");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(
-            scanner.tokens[0].token_type,
-            TokenType::Identifier("asd".to_string())
-        );
+        assert_eq!(scanner.tokens.len(), 2);
+        assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);
 
         // End of file, mismatch
         let mut scanner = Scanner::new("/* /* abcd */ ");
@@ -883,17 +881,14 @@ mod test {
         let mut scanner = Scanner::new("% abcd asd\n asd");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(
-            scanner.tokens[0].token_type,
-            TokenType::Identifier("asd".to_string())
-        );
+        assert_eq!(scanner.tokens.len(), 2);
+        assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);
 
         // End of file
         let mut scanner = Scanner::new("% abcd asd");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
-        assert_eq!(scanner.tokens.len(), 0);
+        assert_eq!(scanner.tokens.len(), 1);
     }
 
     #[test]
@@ -902,7 +897,7 @@ mod test {
         let mut scanner = Scanner::new("and");
         scanner.scan_tokens();
         assert!(scanner.is_valid_scan());
-        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens.len(), 2);
         assert_eq!(scanner.tokens[0].token_type, TokenType::And);
     }
 
@@ -923,7 +918,8 @@ mod test {
                 &TokenType::NotIn,
                 &TokenType::In,
                 &TokenType::In,
-                &TokenType::Not
+                &TokenType::Not,
+                &TokenType::Eof,
             ]
         );
     }
@@ -946,7 +942,8 @@ mod test {
                 &TokenType::NotEq,
                 &TokenType::Equ,
                 &TokenType::Equ,
-                &TokenType::Not
+                &TokenType::Not,
+                &TokenType::Eof,
             ]
         );
     }

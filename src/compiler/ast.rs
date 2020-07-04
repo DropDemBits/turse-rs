@@ -23,6 +23,23 @@ pub enum Expr {
         value: Token,
         eval_type: TypeRef,
     },
+    // Note: Some functions & procedures may be in the AST as pure references (in the middle of expressions)
+    Reference {
+        ident: Token,
+        name: String,
+        eval_type: TypeRef,
+    },
+    Call {
+        left: Box<Self>,
+        op: Token,
+        arg_list: Vec<Self>, // Parens may be omitted
+        eval_type: TypeRef,
+    },
+    Dot {
+        left: Box<Self>,
+        ident: Token,
+        eval_type: TypeRef,
+    },
 }
 
 impl fmt::Debug for Expr {
@@ -58,6 +75,22 @@ impl fmt::Debug for Expr {
                 TokenType::Nil => f.write_fmt(format_args!("nil")),
                 _ => f.write_fmt(format_args!("unk({:?})", value)),
             },
+            Reference {
+                ident: _,
+                name,
+                eval_type: _,
+            } => f.write_fmt(format_args!("ref({})", name)),
+            Call {
+                left,
+                op: _,
+                arg_list,
+                eval_type: _,
+            } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
+            Dot {
+                left,
+                ident,
+                eval_type: _,
+            } => f.write_fmt(format_args!("{:?}.{:?}", left, ident.token_type)),
         }
     }
 }

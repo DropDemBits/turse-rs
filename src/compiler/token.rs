@@ -192,7 +192,7 @@ pub enum TokenType {
     Xor,
 
     // Literals
-    Identifier(String),
+    Identifier,
     CharLiteral(String),
     StringLiteral(String),
     IntLiteral(u64),

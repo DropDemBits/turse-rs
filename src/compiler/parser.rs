@@ -27,11 +27,20 @@ literal:
     CharLiteral
 
 selector:
-    '(' param_list ')'  // arrays
-    '.' reference		// fields
+    '(' arg_list ')'  // arrays (params: Expr::List)
+    '.' reference		// fields (Expr::BinaryOp, op: Dot)
 
 reference:
-    identifier selector?
+    identifier
+    array_reference
+    property_reference
+
+
+array_reference:
+    reference '(' arg_list ')' // Call on "op_subscript" (Expr::Call { Expr, List })
+
+property_reference:
+    reference '.' identifier // (Expr::Get {Expr, Identifier} )
 
 binary:
     expr binOp expr
@@ -39,17 +48,11 @@ binary:
 unary:
     unOp expr
 
-unOp:
-    '+'
-    '-'
-    '^'
-    '#'
-
 funCall:
-    reference '(' param_list? ')'
+    reference '(' arg_list? ')' // (Expr::Call {Expr, List})
 
 setCons:
-    reference '(' param_list? ')' // Encoded as a "call" to the constructor
+    reference '(' arg_list? ')' // Call on "set_cons" (Expr::Call { Expr, List })
 
 enumValue:
     reference '.' identifier // Documented encoding
@@ -83,6 +86,8 @@ enum Precedence {
     Conversion,
     /// Exponent Operator \ **
     Exponent,
+    /// Calling & Get Operators \ ( .
+    Call,
     /// Primaries
     Primary,
 }
@@ -106,7 +111,8 @@ impl Precedence {
             Product => Unary,
             Unary => Conversion,
             Conversion => Exponent,
-            Exponent => Primary,
+            Exponent => Call,
+            Call => Primary,
         }
     }
 }
@@ -321,6 +327,32 @@ impl<'a> Parser<'a> {
         })
     }
 
+    fn expr_call(&self, func_ref: Expr) -> Result<Expr, ParsingStatus> {
+        let op = self.previous();
+        let arg_list = self.make_arg_list()?.unwrap();
+
+        Ok(Expr::Call {
+            left: Box::new(func_ref),
+            op: op.clone(),
+            arg_list,
+            eval_type: 0,
+        })
+    }
+
+    fn expr_dot(&self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+        // Get the ident
+        let ident = self.expects(
+            TokenType::Identifier,
+            format_args!("Missing identifier after '.'"),
+        )?;
+
+        Ok(Expr::Dot {
+            left: Box::new(var_ref),
+            ident: ident.clone(),
+            eval_type: 0,
+        })
+    }
+
     fn expr_primary(&self) -> Result<Expr, ParsingStatus> {
         let token = self.previous();
 
@@ -369,13 +401,61 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn expr_ident(&self) -> Result<Expr, ParsingStatus> {
+        let token = self.previous();
+
+        if let TokenType::Identifier = &token.token_type {
+            Ok(Expr::Reference {
+                ident: token.clone(),
+                name: token.location.get_lexeme(self.source).to_string(),
+                eval_type: 0,
+            })
+        } else {
+            panic!(
+                "Identifier found but also not found (at {:?})",
+                token.location
+            )
+        }
+    }
+
+    /// --- Helpers ---
+    fn make_arg_list(&self) -> Result<Option<Vec<Expr>>, ParsingStatus> {
+        if self.previous().token_type != TokenType::LeftParen {
+            // No arg_list to be found
+            return Ok(None);
+        }
+
+        let mut arg_list = vec![];
+
+        if self.current().token_type != TokenType::RightParen {
+            loop {
+                arg_list.push(self.expr()?);
+
+                if self.current().token_type != TokenType::Comma {
+                    break;
+                }
+
+                // Consume comma
+                self.next_token();
+            }
+        }
+
+        self.expects(
+            TokenType::RightParen,
+            format_args!("Missing ')' after parameter list"),
+        )?;
+
+        // Give back the arg list
+        return Ok(Some(arg_list));
+    }
+
     /// Gets the precedence and associativity
     fn get_rule(&self, token_type: &TokenType) -> &PrecedenceRule {
         match token_type {
             TokenType::LeftParen => &PrecedenceRule {
-                precedence: Precedence::NoPrec,
+                precedence: Precedence::Call,
                 prefix_rule: Some(Parser::expr_grouping),
-                infix_rule: None,
+                infix_rule: Some(Parser::expr_call),
             },
             TokenType::Imply => &PrecedenceRule {
                 precedence: Precedence::Imply,
@@ -440,6 +520,11 @@ impl<'a> Parser<'a> {
                 prefix_rule: None,
                 infix_rule: Some(Parser::expr_binary),
             },
+            TokenType::Dot => &PrecedenceRule {
+                precedence: Precedence::Call,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_dot),
+            },
             TokenType::IntLiteral(_)
             | TokenType::RealLiteral(_)
             | TokenType::CharLiteral(_)
@@ -449,6 +534,11 @@ impl<'a> Parser<'a> {
             | TokenType::Nil => &PrecedenceRule {
                 precedence: Precedence::Primary,
                 prefix_rule: Some(Parser::expr_primary),
+                infix_rule: None,
+            },
+            TokenType::Identifier => &PrecedenceRule {
+                precedence: Precedence::Primary,
+                prefix_rule: Some(Parser::expr_ident),
                 infix_rule: None,
             },
             _ => &PrecedenceRule {
