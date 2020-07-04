@@ -13,8 +13,6 @@ pub struct Token {
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Character Tokens
-    /// &
-    Ampersand,
     /// ^
     At,
     /// ->
@@ -49,8 +47,6 @@ pub enum TokenType {
     Less,
     /// -
     Minus,
-    /// |
-    Bar,
     /// +
     Plus,
     /// )

@@ -157,15 +157,15 @@ impl<'s> Scanner<'s> {
             // Meaningful tokens
             '(' => self.make_token(TokenType::LeftParen, 1),
             ')' => self.make_token(TokenType::RightParen, 1),
-            '&' => self.make_token(TokenType::Ampersand, 1),
             '@' => self.make_token(TokenType::At, 1),
             '^' => self.make_token(TokenType::Caret, 1),
             ',' => self.make_token(TokenType::Comma, 1),
             '#' => self.make_token(TokenType::Pound, 1),
-            '-' => self.make_or_default('>', TokenType::Deref, 2, TokenType::Minus, 1),
-            '|' => self.make_token(TokenType::Bar, 1),
             '+' => self.make_token(TokenType::Plus, 1),
             ';' => self.make_token(TokenType::Semicolon, 1),
+            '~' => self.make_token(TokenType::Tilde, 1),
+            '&' => self.make_token(TokenType::And, 1),
+            '|' => self.make_token(TokenType::Or, 1),
             '/' => {
                 if self.match_next('*') {
                     // Block comment parsing
@@ -238,7 +238,7 @@ impl<'s> Scanner<'s> {
                     self.next_char();
                 }
             }
-            '~' => self.make_token(TokenType::Tilde, 1),
+            '-' => self.make_or_default('>', TokenType::Deref, 2, TokenType::Minus, 1),
             '=' => self.make_or_default('>', TokenType::Imply, 2, TokenType::Equ, 1),
             ':' => self.make_or_default('=', TokenType::Assign, 2, TokenType::Colon, 1),
             '>' => self.make_or_default('=', TokenType::GreaterEqu, 2, TokenType::Greater, 1),

@@ -38,6 +38,7 @@ pub enum Expr {
     Dot {
         left: Box<Self>,
         ident: Token,
+        name: String,
         eval_type: TypeRef,
     },
 }
@@ -88,12 +89,22 @@ impl fmt::Debug for Expr {
             } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot {
                 left,
-                ident,
+                ident: _,
+                name,
                 eval_type: _,
-            } => f.write_fmt(format_args!("{:?}.{:?}", left, ident.token_type)),
+            } => f.write_fmt(format_args!("(. {:?} {:?})", left, name)), //f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
         }
     }
 }
 
 #[derive(Debug)]
-pub enum Stmt {}
+pub enum Stmt {
+    Assign {
+        var_ref: Box<Expr>,
+        op: Token,
+        value: Box<Expr>,
+    },
+    ProcedureCall {
+        proc_ref: Box<Expr>,
+    },
+}

@@ -1,5 +1,5 @@
 //! Main parser for tokens to build the AST
-use crate::compiler::ast::Expr;
+use crate::compiler::ast::{Expr, Stmt};
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
@@ -82,12 +82,16 @@ enum Precedence {
     Product,
     /// Unary Operators \ + -
     Unary,
-    /// Conversion Operators \ # ^
-    Conversion,
     /// Exponent Operator \ **
     Exponent,
+    /// Conversion Operator \ #
+    Conversion,
+    /// Deref Operator \ ->
+    Deref,
     /// Calling & Get Operators \ ( .
     Call,
+    /// Pointer Follow Operator \ ^
+    Follow,
     /// Primaries
     Primary,
 }
@@ -109,10 +113,12 @@ impl Precedence {
             Comparison => Sum,
             Sum => Product,
             Product => Unary,
-            Unary => Conversion,
-            Conversion => Exponent,
-            Exponent => Call,
-            Call => Primary,
+            Unary => Exponent,
+            Exponent => Conversion,
+            Conversion => Deref,
+            Deref => Call,
+            Call => Follow,
+            Follow => Primary,
         }
     }
 }
@@ -132,8 +138,8 @@ pub struct Parser<'a> {
     source: &'a str,
     /// Source for tokens
     tokens: Vec<Token>,
-    /// Parsed expressions
-    pub exprs: Vec<Expr>,
+    /// Parsed statements
+    pub stmts: Vec<Stmt>,
     /// Current token being parsed
     current: Cell<usize>,
 }
@@ -141,7 +147,6 @@ pub struct Parser<'a> {
 #[derive(Debug)]
 enum ParsingStatus {
     Error,
-    Warn,
 }
 
 impl<'a> Parser<'a> {
@@ -150,7 +155,7 @@ impl<'a> Parser<'a> {
             reporter: StatusReporter::new(),
             source,
             tokens,
-            exprs: vec![],
+            stmts: vec![],
             current: Cell::new(0),
         }
     }
@@ -158,8 +163,13 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) {
         while !self.is_at_end() {
             match self.stmt() {
-                Ok(expr) => self.exprs.push(expr),
+                Ok(expr) => self.stmts.push(expr),
                 Err(_) => {}
+            }
+
+            if self.current().token_type == TokenType::Semicolon {
+                // Nom the semicolon
+                self.next_token();
             }
         }
     }
@@ -170,7 +180,7 @@ impl<'a> Parser<'a> {
     }
 
     #[allow(dead_code)]
-    fn report_warning<T>(&self, at: Location, message: Arguments) {
+    fn report_warning(&self, at: Location, message: Arguments) {
         self.reporter.report_warning(&at, message);
     }
 
@@ -217,18 +227,98 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn stmt(&self) -> Result<Expr, ParsingStatus> {
-        let expr = self.expr()?;
+    // --- Decl Parsing --- //
 
-        self.expects(
-            TokenType::Semicolon,
-            format_args!("Expected semicolon after expression"),
-        )?;
+    // --- Stmt Parsing --- //
 
-        Ok(expr)
+    fn stmt(&self) -> Result<Stmt, ParsingStatus> {
+        let nom = self.current();
+        match nom.token_type {
+            TokenType::Identifier | TokenType::Caret => self.handle_reference_stmt(),
+            _ => {
+                // Nom as token isn't consumed by anything else
+                self.next_token();
+
+                self.report_error(
+                    nom.location,
+                    format_args!(
+                        "'{}' does not begin a statement or declaration",
+                        nom.location.get_lexeme(self.source)
+                    ),
+                )
+            }
+        }
     }
 
-    // --- Expr Parsing ---
+    fn handle_reference_stmt(&self) -> Result<Stmt, ParsingStatus> {
+        // Identifiers & References can begin either an assignment or a procedure call
+        // Both take references as the primary expression
+        let reference = self.expr_precedence(Precedence::Deref)?;
+        let is_compound_assign = self.is_compound_assignment();
+
+        if is_compound_assign
+            || matches!(
+                self.current().token_type,
+                TokenType::Equ | TokenType::Assign
+            )
+        {
+            // Is a (compound) assignment or '='
+            // '=' is checked for as it's a common mistake to have '=' instead of ':='
+            let mut assign_op = self.next_token().clone();
+
+            if is_compound_assign {
+                // Nom the other equ in the compound assignment
+                self.next_token();
+            } else if assign_op.token_type != TokenType::Assign {
+                // Current assignment op is '=', not ':='
+                // Warn of mistake, convert into ':='
+                let locate = self.previous().location;
+                self.report_warning(locate, format_args!("'=' found, assumed it to be ':='"));
+
+                assign_op.token_type = TokenType::Assign;
+            };
+
+            let value = self.expr()?;
+
+            Ok(Stmt::Assign {
+                var_ref: Box::new(reference),
+                op: assign_op,
+                value: Box::new(value),
+            })
+        } else {
+            // Is a procedure call
+            Ok(Stmt::ProcedureCall {
+                proc_ref: Box::new(reference),
+            })
+        }
+    }
+
+    fn is_compound_assignment(&self) -> bool {
+        if &self.peek().token_type == &TokenType::Equ {
+            // Look ahead token is a '=', check if current is one of the valid compound assign operators
+            match &self.current().token_type {
+                TokenType::Plus
+                | TokenType::Minus
+                | TokenType::Star
+                | TokenType::Div
+                | TokenType::Slash
+                | TokenType::Rem
+                | TokenType::Mod
+                | TokenType::Exp
+                | TokenType::And
+                | TokenType::Or
+                | TokenType::Xor
+                | TokenType::Shl
+                | TokenType::Shr
+                | TokenType::Imply => true,
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
+    // --- Expr Parsing --- //
 
     fn expr(&self) -> Result<Expr, ParsingStatus> {
         self.expr_precedence(Precedence::Imply)
@@ -241,7 +331,8 @@ impl<'a> Parser<'a> {
         // Get prefix side
         let op = self.next_token();
 
-        let prefix_rule = self.get_rule(&op.token_type).prefix_rule.ok_or_else(|| {
+        let prefix = self.get_rule(&op.token_type);
+        let prefix_rule = prefix.prefix_rule.ok_or_else(|| {
             // Try to figure out if the typo was a reasonable one
             // ???: Rework this system to use a hashmap with key (token_type, token_type)?
 
@@ -268,18 +359,27 @@ impl<'a> Parser<'a> {
             ParsingStatus::Error
         })?;
 
-        // Go over infix operators
         let mut expr = prefix_rule(self)?;
 
+        // Go over infix operators
         while !self.is_at_end()
             && min_precedence <= self.get_rule(&self.current().token_type).precedence
         {
-            let op = self.next_token();
+            let op = self.current();
+            let infix = self.get_rule(&op.token_type);
 
-            let infix_rule = self
-                .get_rule(&op.token_type)
+            if infix.precedence >= Precedence::Follow {
+                // Is  a deref, identifier, or literal
+                // Most likely end of expression, so return
+                return Ok(expr);
+            }
+
+            let infix_rule = infix
                 .infix_rule
-                .expect("No infix function for given rule");
+                .expect(&format!("No infix function for given rule '{:?}'", op).to_string());
+
+            // Consume token for infix rule
+            self.next_token();
 
             // Produce the next expression
             expr = infix_rule(self, expr)?;
@@ -302,6 +402,20 @@ impl<'a> Parser<'a> {
         })
     }
 
+    fn expr_binary(&self, lhs: Expr) -> Result<Expr, ParsingStatus> {
+        let op = self.previous();
+        let rule = self.get_rule(&op.token_type);
+        // Get rhs
+        let rhs = self.expr_precedence(rule.precedence.up())?;
+
+        Ok(Expr::BinaryOp {
+            left: Box::new(lhs),
+            op: op.clone(),
+            right: Box::new(rhs),
+            eval_type: 0,
+        })
+    }
+
     fn expr_unary(&self) -> Result<Expr, ParsingStatus> {
         let op = self.previous();
         let right = self.expr_precedence(Precedence::Unary)?;
@@ -313,16 +427,14 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn expr_binary(&self, lhs: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_unary_rule(&self) -> Result<Expr, ParsingStatus> {
         let op = self.previous();
         let rule = self.get_rule(&op.token_type);
-        // Get rhs
-        let rhs = self.expr_precedence(rule.precedence.up())?;
+        let right = self.expr_precedence(rule.precedence)?;
 
-        Ok(Expr::BinaryOp {
-            left: Box::new(lhs),
+        Ok(Expr::UnaryOp {
             op: op.clone(),
-            right: Box::new(rhs),
+            right: Box::new(right),
             eval_type: 0,
         })
     }
@@ -349,6 +461,21 @@ impl<'a> Parser<'a> {
         Ok(Expr::Dot {
             left: Box::new(var_ref),
             ident: ident.clone(),
+            name: ident.location.get_lexeme(self.source).to_string(),
+            eval_type: 0,
+        })
+    }
+
+    fn expr_deref(&self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+        let op = self.previous();
+
+        // Wrap the var_ref in a deref
+        self.expr_dot(Expr::UnaryOp {
+            op: Token {
+                token_type: TokenType::Caret,
+                location: op.location.clone(),
+            },
+            right: Box::new(var_ref),
             eval_type: 0,
         })
     }
@@ -474,7 +601,7 @@ impl<'a> Parser<'a> {
             },
             TokenType::Not => &PrecedenceRule {
                 precedence: Precedence::BitNot,
-                prefix_rule: Some(Parser::expr_unary),
+                prefix_rule: Some(Parser::expr_unary_rule),
                 infix_rule: None,
             },
             TokenType::Less
@@ -510,10 +637,20 @@ impl<'a> Parser<'a> {
                 prefix_rule: None,
                 infix_rule: Some(Parser::expr_binary),
             },
-            TokenType::Pound | TokenType::Caret => &PrecedenceRule {
+            TokenType::Pound => &PrecedenceRule {
                 precedence: Precedence::Conversion,
-                prefix_rule: Some(Parser::expr_unary),
+                prefix_rule: Some(Parser::expr_unary_rule),
                 infix_rule: None,
+            },
+            TokenType::Caret => &PrecedenceRule {
+                precedence: Precedence::Follow,
+                prefix_rule: Some(Parser::expr_unary_rule),
+                infix_rule: None,
+            },
+            TokenType::Deref => &PrecedenceRule {
+                precedence: Precedence::Deref,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_deref),
             },
             TokenType::Exp => &PrecedenceRule {
                 precedence: Precedence::Exponent,

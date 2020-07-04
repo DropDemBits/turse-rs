@@ -84,7 +84,7 @@ fn compile_run_file(path: &str) {
 
     let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents);
     parser.parse();
-    for expr in parser.exprs {
+    for expr in parser.stmts {
         println!("{:?}", expr);
     }
 }
