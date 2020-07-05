@@ -77,11 +77,6 @@ fn compile_run_file(path: &str) {
     let mut scanner = compiler::scanner::Scanner::new(&file_contents);
     scanner.scan_tokens();
 
-    if !scanner.is_valid_scan() {
-        eprintln!("Error occurred during scanning");
-        return;
-    }
-
     let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents);
     parser.parse();
     for expr in parser.stmts {
