@@ -1,7 +1,7 @@
 //! Main parser for tokens to build the AST
 use crate::compiler::ast::{Expr, Identifier, Stmt};
 use crate::compiler::token::{Token, TokenType};
-use crate::compiler::types::{PrimitiveType, TypeRef};
+use crate::compiler::types::{self, PrimitiveType, TypeRef};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::Cell;
@@ -565,41 +565,61 @@ impl<'a> Parser<'a> {
     fn expr_primary(&self) -> Result<Expr, ParsingStatus> {
         let token = self.previous();
 
-        match token.token_type {
-            TokenType::StringLiteral(_) => Ok(Expr::Literal {
+        match &token.token_type {
+            TokenType::StringLiteral(s) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: TypeRef::Unknown,
+                eval_type: TypeRef::Primitive(types::get_string_kind(&s)),
             }),
-            TokenType::CharLiteral(_) => Ok(Expr::Literal {
+            TokenType::CharLiteral(s) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: TypeRef::Unknown,
+                eval_type: TypeRef::Primitive(types::get_char_kind(&s)),
             }),
             TokenType::IntLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: TypeRef::Unknown,
+                eval_type: TypeRef::Primitive(PrimitiveType::Int),
             }),
             TokenType::RealLiteral(_) => Ok(Expr::Literal {
                 value: token.clone(),
-                eval_type: TypeRef::Unknown,
+                eval_type: TypeRef::Primitive(PrimitiveType::Real),
             }),
             TokenType::True => Ok(Expr::Literal {
                 value: Token {
                     token_type: TokenType::BoolLiteral(true),
                     location: token.location.clone(),
                 },
-                eval_type: TypeRef::Unknown,
+                eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
             }),
             TokenType::False => Ok(Expr::Literal {
                 value: Token {
                     token_type: TokenType::BoolLiteral(false),
                     location: token.location.clone(),
                 },
-                eval_type: TypeRef::Unknown,
+                eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
             }),
-            TokenType::Nil => Ok(Expr::Literal {
-                value: token.clone(),
-                eval_type: TypeRef::Unknown,
-            }),
+            TokenType::Nil => {
+                // Consume optional collection / class id
+
+                // TODO: validate that theses are the same as the pointer type
+                // For classes, both must have a common ancestor
+                if &self.current().token_type == &TokenType::LeftParen {
+                    // Consume optional identifier & parens
+                    self.next_token(); // (
+
+                    if &self.current().token_type == &TokenType::Identifier {
+                        self.next_token(); // identifier
+                    }
+
+                    self.expects(
+                        TokenType::RightParen,
+                        format_args!("Expected ')' to close off parentheses for 'nil'"),
+                    )?;
+                }
+
+                Ok(Expr::Literal {
+                    value: token.clone(),
+                    eval_type: TypeRef::Primitive(PrimitiveType::Nil),
+                })
+            }
             _ => self.report_error(
                 token.location,
                 format_args!(
