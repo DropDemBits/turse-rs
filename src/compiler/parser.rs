@@ -843,4 +843,144 @@ mod test {
         parser.parse();
         assert!(parser.reporter.has_error());
     }
+
+    #[test]
+    fn test_simple_assignment() {
+        let mut parser = make_test_parser(
+            "
+        % Setup
+        var a : int
+        
+        % Valid forms
+        a := 1
+        a := 3 + 5 + 7
+        a := #9 * 2 ** 3 and 5 xor 6
+
+        % Accepted forms
+        a = 2
+        a = 194812
+        a = -6
+        ",
+        );
+        parser.parse();
+        assert!(!parser.reporter.has_error());
+
+        // Invaild: Dropped value
+        let mut parser = make_test_parser(
+            "
+        % Setup
+        var a : int
+        a := 
+        ",
+        );
+        parser.parse();
+        assert!(parser.reporter.has_error());
+
+        let mut parser = make_test_parser(
+            "
+        % Setup
+        var a : int
+        a = 
+        ",
+        );
+        parser.parse();
+        assert!(parser.reporter.has_error());
+    }
+
+    #[test]
+    fn test_compound_assignment() {
+        // Main operators
+        let mut parser = make_test_parser(
+            "
+        % Setup
+        var a : int
+        var r : int % Should be real, but parser doesn't care about types
+        
+        % Valid forms
+        a := 3
+        a += 5
+        a -= 7
+        a *= 9
+        a div= 11
+        r /= 12.0
+        a rem= 3
+        a mod= 5
+        a **= 2
+        a and= 3
+        a or= 5
+        a xor= 6
+        a shl= 9
+        a shr= 12
+
+        % Accepted forms
+        a = 2
+        ",
+        );
+        parser.parse();
+        assert!(!parser.reporter.has_error());
+        let expected_ops = [
+            TokenType::Assign,
+            TokenType::Plus,
+            TokenType::Minus,
+            TokenType::Star,
+            TokenType::Div,
+            TokenType::Slash,
+            TokenType::Rem,
+            TokenType::Mod,
+            TokenType::Exp,
+            TokenType::And,
+            TokenType::Or,
+            TokenType::Xor,
+            TokenType::Shl,
+            TokenType::Shr,
+            TokenType::Assign,
+        ];
+
+        for test_stmt in parser.stmts[2..].iter().zip(expected_ops.iter()) {
+            if let Stmt::Assign {
+                op: Token { ref token_type, .. },
+                ..
+            } = test_stmt.0
+            {
+                if token_type != test_stmt.1 {
+                    panic!(
+                        "Mismatch between expected {:?} and parsed {:?}",
+                        test_stmt.1, token_type
+                    );
+                }
+            }
+        }
+
+        // Boolean operator versions
+        let mut parser = make_test_parser(
+            "
+        % Setup
+        var b : int % Should be boolean, but parser doesn't care about types
+        
+        % Valid forms
+        b =>= true
+        b and= false
+        b or= true
+        % xor= only valid for integers (int, nat, long, ulong) & sets
+        ",
+        );
+        parser.parse();
+        assert!(!parser.reporter.has_error());
+        let expected_ops = [TokenType::Imply, TokenType::And, TokenType::Or];
+
+        for test_stmt in parser.stmts[1..].iter().zip(expected_ops.iter()) {
+            if let Stmt::Assign {
+                op: Token { ref token_type, .. },
+                ..
+            } = test_stmt.0
+            {
+                if token_type != test_stmt.1 {
+                    panic!(
+                        "Mismatch between expected {:?} and parsed {:?}",
+                        test_stmt.1, token_type
+                    );
+                }
+            }
+        }
+    }
 }
