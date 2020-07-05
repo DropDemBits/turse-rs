@@ -79,6 +79,13 @@ fn compile_run_file(path: &str) {
 
     let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents);
     parser.parse();
+
+    // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
+    // TODO: Provide external type resolution stage
+
+    let mut type_validator = compiler::type_validator::TypeValidator::new();
+    parser.visit_ast(&mut type_validator);
+
     for expr in parser.stmts {
         println!("{:?}", expr);
     }

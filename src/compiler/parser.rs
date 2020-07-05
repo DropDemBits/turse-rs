@@ -1,5 +1,5 @@
 //! Main parser for tokens to build the AST
-use crate::compiler::ast::{Expr, Identifier, Stmt};
+use crate::compiler::ast::{ASTVisitor, Expr, Identifier, Stmt};
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, TypeRef};
 use crate::compiler::Location;
@@ -161,7 +161,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) {
+    /// Parses the token stream
+    /// Returns if the parse has no errors
+    pub fn parse(&mut self) -> bool {
         while !self.is_at_end() {
             match self.decl() {
                 Ok(expr) => self.stmts.push(expr),
@@ -172,6 +174,19 @@ impl<'a> Parser<'a> {
                 // Nom the semicolon
                 self.next_token();
             }
+        }
+
+        self.reporter.has_error()
+    }
+
+    /// Visits the AST using the given ASTVisitor
+    /// Allows mutable access to the AST
+    pub fn visit_ast<T>(&mut self, visitor: &mut T)
+    where
+        T: ASTVisitor,
+    {
+        for stmt in self.stmts.iter_mut() {
+            visitor.visit_stmt(stmt);
         }
     }
 
@@ -542,8 +557,7 @@ impl<'a> Parser<'a> {
 
         Ok(Expr::Dot {
             left: Box::new(var_ref),
-            ident: ident.clone(),
-            name: ident.location.get_lexeme(self.source).to_string(),
+            ident: self.make_identifier(ident, TypeRef::Unknown),
             eval_type: TypeRef::Unknown,
         })
     }

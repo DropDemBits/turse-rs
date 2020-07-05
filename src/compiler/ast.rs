@@ -7,11 +7,11 @@ use std::fmt;
 #[derive(Debug)]
 pub struct Identifier {
     /// The token associated with the name
-    token: Token,
+    pub token: Token,
     /// The name of the identifier
-    name: String,
+    pub name: String,
     /// The type for this identifier
-    type_spec: TypeRef,
+    pub type_spec: TypeRef,
 }
 
 impl Identifier {
@@ -56,10 +56,23 @@ pub enum Expr {
     },
     Dot {
         left: Box<Self>,
-        ident: Token,
-        name: String,
+        ident: Identifier,
         eval_type: TypeRef,
     },
+}
+
+impl Expr {
+    pub fn get_eval_type(&self) -> TypeRef {
+        match self {
+            Expr::BinaryOp { eval_type, .. } => *eval_type,
+            Expr::UnaryOp { eval_type, .. } => *eval_type,
+            Expr::Grouping { eval_type, .. } => *eval_type,
+            Expr::Literal { eval_type, .. } => *eval_type,
+            Expr::Call { eval_type, .. } => *eval_type,
+            Expr::Dot { eval_type, .. } => *eval_type,
+            Expr::Reference { ident } => ident.type_spec,
+        }
+    }
 }
 
 impl fmt::Debug for Expr {
@@ -104,10 +117,9 @@ impl fmt::Debug for Expr {
             } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot {
                 left,
-                ident: _,
-                name,
+                ident,
                 eval_type: _,
-            } => f.write_fmt(format_args!("(. {:?} {:?})", left, name)), //f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
+            } => f.write_fmt(format_args!("(. {:?} {:?})", left, ident.name)), //f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
         }
     }
 }
@@ -129,4 +141,13 @@ pub enum Stmt {
     ProcedureCall {
         proc_ref: Box<Expr>,
     },
+}
+
+/// Mutable Visitor for a generated AST
+pub trait ASTVisitor {
+    /// Visit a single statement in the tree
+    fn visit_stmt(&mut self, stmt: &mut Stmt);
+
+    /// Visit an expression in the tree
+    fn visit_expr(&mut self, expr: &mut Expr);
 }

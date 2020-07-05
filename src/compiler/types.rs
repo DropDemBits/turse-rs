@@ -15,7 +15,7 @@ pub const MIN_STRING_LENGTH: usize = 256;
 pub const MAX_STRING_LENGTH: usize = 65536;
 
 /// Unique type reference for a type
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TypeRef {
     /// Unknown type reference, to be resolved in type analysis
     Unknown,

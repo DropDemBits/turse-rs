@@ -2,6 +2,7 @@ pub(crate) mod ast;
 pub(crate) mod parser;
 pub(crate) mod scanner;
 pub(crate) mod token;
+pub(crate) mod type_validator;
 pub(crate) mod types;
 
 extern crate unicode_segmentation;
