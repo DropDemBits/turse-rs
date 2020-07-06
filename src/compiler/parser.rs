@@ -176,7 +176,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.reporter.has_error()
+        !self.reporter.has_error()
     }
 
     /// Visits the AST using the given ASTVisitor
@@ -273,13 +273,8 @@ impl<'a> Parser<'a> {
             // Consume colon
             self.next_token();
 
-            // TODO: Parse the var decl, but have this for now
-            self.expects(
-                TokenType::Int,
-                format_args!("Expected 'int' as the type specifier"),
-            )?;
-
-            TypeRef::Primitive(PrimitiveType::Int)
+            // Parse the type spec
+            self.parse_type()?
         } else {
             // Will be resolved in the type analysis stage
             TypeRef::Unknown
@@ -659,7 +654,125 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// --- Helpers ---
+    // --- Type Parsing --- //
+    fn parse_type(&self) -> Result<TypeRef, ParsingStatus> {
+        let nom_ok = |prim_type| {
+            self.next_token();
+            TypeRef::Primitive(prim_type)
+        };
+
+        let get_size_specifier = || {
+            let size = match self.current().token_type {
+                TokenType::IntLiteral(size) if size > 0 => {
+                    if size as usize >= types::MAX_STRING_SIZE {
+                        self.report_error(
+                            self.current().location,
+                            format_args!(
+                                "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
+                                size,
+                                types::MAX_STRING_SIZE
+                            ),
+                        )?;
+                    }
+
+                    size
+                }
+                TokenType::Star => 0,
+                _ => self.report_error(
+                    self.current().location,
+                    format_args!(
+                        "Length specifier is not a '*' or a non-zero compile time expression"
+                    ),
+                )?,
+            } as usize;
+
+            // Over parsed type
+            self.next_token();
+
+            Ok(size)
+        };
+
+        match &self.current().token_type {
+            // Basic primitive types
+            TokenType::Addressint => Ok(nom_ok(PrimitiveType::AddressInt)),
+            TokenType::Boolean => Ok(nom_ok(PrimitiveType::Boolean)),
+            TokenType::Int => Ok(nom_ok(PrimitiveType::Int)),
+            TokenType::Int1 => Ok(nom_ok(PrimitiveType::Int1)),
+            TokenType::Int2 => Ok(nom_ok(PrimitiveType::Int2)),
+            TokenType::Int4 => Ok(nom_ok(PrimitiveType::Int4)),
+            TokenType::Nat => Ok(nom_ok(PrimitiveType::Nat)),
+            TokenType::Nat1 => Ok(nom_ok(PrimitiveType::Nat1)),
+            TokenType::Nat2 => Ok(nom_ok(PrimitiveType::Nat2)),
+            TokenType::Nat4 => Ok(nom_ok(PrimitiveType::Nat4)),
+            TokenType::Real => Ok(nom_ok(PrimitiveType::Real)),
+            TokenType::Real4 => Ok(nom_ok(PrimitiveType::Real4)),
+            TokenType::Real8 => Ok(nom_ok(PrimitiveType::Real8)),
+            TokenType::String_ => {
+                // Nom string
+                self.next_token();
+
+                // If left paren, construct sized type
+                if self.current().token_type == TokenType::LeftParen {
+                    self.next_token();
+
+                    let size = get_size_specifier()?;
+
+                    self.expects(
+                        TokenType::RightParen,
+                        format_args!("Expected ')' after length specifier"),
+                    )?;
+
+                    Ok(TypeRef::Primitive(PrimitiveType::StringN(size)))
+                } else {
+                    // Make varsized type
+                    Ok(TypeRef::Primitive(PrimitiveType::String_))
+                }
+            }
+            TokenType::Char => {
+                // Nom char
+                self.next_token();
+
+                // If left paren, construct sized type
+                if self.current().token_type == TokenType::LeftParen {
+                    self.next_token();
+
+                    let size = get_size_specifier()?;
+
+                    self.expects(
+                        TokenType::RightParen,
+                        format_args!("Expected ')' after length specifier"),
+                    )?;
+
+                    Ok(TypeRef::Primitive(PrimitiveType::CharN(size)))
+                } else {
+                    // Make single char type
+                    Ok(TypeRef::Primitive(PrimitiveType::Char))
+                }
+            }
+
+            // Compound primitives (requires type/sym table)
+            TokenType::Array => unimplemented!(),
+            TokenType::Pointer | TokenType::Caret => unimplemented!(),
+            TokenType::Set => unimplemented!(), // Only in "type" decls
+            // subprogram_header
+            TokenType::Function => unimplemented!(),
+            TokenType::Procedure => unimplemented!(),
+            TokenType::Enum => unimplemented!(),
+            TokenType::Record => unimplemented!(),
+            TokenType::Union => unimplemented!(),
+            TokenType::Identifier => unimplemented!(),
+            _ => self.report_error(
+                self.current().location,
+                format_args!(
+                    "Unexpected '{}', expected a type specifier",
+                    self.current().location.get_lexeme(self.source)
+                ),
+            ),
+        }
+    }
+
+    // --- Helpers --- //
+
     fn make_identifier(&self, token: &Token, type_spec: TypeRef) -> Identifier {
         Identifier::new(token, type_spec, self.source)
     }
@@ -928,7 +1041,7 @@ mod test {
             "
         % Setup
         var a : int
-        var r : int % Should be real, but parser doesn't care about types
+        var r : real
         
         % Valid forms
         a := 3
@@ -989,7 +1102,7 @@ mod test {
         let mut parser = make_test_parser(
             "
         % Setup
-        var b : int % Should be boolean, but parser doesn't care about types
+        var b : boolean
         
         % Valid forms
         b =>= true
@@ -1016,5 +1129,109 @@ mod test {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_primitive_type_parser() {
+        let mut parser = make_test_parser(
+            "
+        var a : boolean
+        var b : int
+        var c : int1
+        var d : int2
+        var e : int4
+        var f : nat
+        var g : nat1
+        var h : nat2
+        var i : nat4
+        var j : real
+        var k : real4
+        var l : real8
+        var m : string
+        var n : string(300)
+        var o : string(*)       % repr as size == 0
+        var p : char
+        var q : char(768)
+        var r : char(*)         % repr as size == 0
+        var s : addressint
+        ",
+        );
+        assert!(parser.parse());
+
+        let expected_types = [
+            TypeRef::Primitive(PrimitiveType::Boolean),
+            TypeRef::Primitive(PrimitiveType::Int),
+            TypeRef::Primitive(PrimitiveType::Int1),
+            TypeRef::Primitive(PrimitiveType::Int2),
+            TypeRef::Primitive(PrimitiveType::Int4),
+            TypeRef::Primitive(PrimitiveType::Nat),
+            TypeRef::Primitive(PrimitiveType::Nat1),
+            TypeRef::Primitive(PrimitiveType::Nat2),
+            TypeRef::Primitive(PrimitiveType::Nat4),
+            TypeRef::Primitive(PrimitiveType::Real),
+            TypeRef::Primitive(PrimitiveType::Real4),
+            TypeRef::Primitive(PrimitiveType::Real8),
+            TypeRef::Primitive(PrimitiveType::String_),
+            TypeRef::Primitive(PrimitiveType::StringN(300)),
+            TypeRef::Primitive(PrimitiveType::StringN(0)),
+            TypeRef::Primitive(PrimitiveType::Char),
+            TypeRef::Primitive(PrimitiveType::CharN(768)),
+            TypeRef::Primitive(PrimitiveType::CharN(0)),
+            TypeRef::Primitive(PrimitiveType::AddressInt),
+        ];
+
+        for test_stmt in parser.stmts.iter().zip(expected_types.iter()) {
+            if let Stmt::VarDecl {
+                ident: Identifier { ref type_spec, .. },
+                ..
+            } = test_stmt.0
+            {
+                assert_eq!(type_spec, test_stmt.1);
+            }
+        }
+
+        // Compile time expr (we don't evaluate them yet)
+        /*
+        let mut parser = make_test_parser(
+            "
+        const c := 5 + 25 * 2 % 55
+        var str : string(c)
+        ",
+        );
+        assert!(parser.parse());
+        assert_eq!(
+            match parser.stmts[1] {
+                Stmt::VarDecl {
+                    ident: Identifier { type_spec, .. },
+                    ..
+                } => type_spec,
+                _ => unreachable!(),
+            },
+            TypeRef::Primitive(PrimitiveType::StringN(55))
+        );
+        */
+
+        // Invalid: Bigger than the maximum size
+        let mut parser = make_test_parser("const c : string(16#10000)");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("const c : string(16#10001)");
+        assert!(!parser.parse());
+
+        // Invalid: Zero length size expression
+        let mut parser = make_test_parser("const c : char(16#0)");
+        assert!(!parser.parse());
+
+        // Invalid: Dropping the right paren
+        let mut parser = make_test_parser("const c : char(16#0");
+        assert!(!parser.parse());
+
+        // Invalid: No length specification
+        let mut parser = make_test_parser("const c : string(");
+        assert!(!parser.parse());
+
+        // Invalid: Not a type specification (should parse the := "hee", but parser needs a bit of rework)
+        let mut parser = make_test_parser("const c : to := 'hee'");
+        assert!(!parser.parse());
     }
 }

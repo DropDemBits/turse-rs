@@ -6,13 +6,14 @@
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
 
-/// Minimum string size, in bytes
+/// Default string size, in bytes
+/// This is the default size for a string if it is not specified
 /// Includes the null terminator
-pub const MIN_STRING_LENGTH: usize = 256;
+pub const DEFAULT_STRING_SIZE: usize = 256;
 
 /// Maximum string size, in bytes
 /// Includes the null terminator
-pub const MAX_STRING_LENGTH: usize = 65536;
+pub const MAX_STRING_SIZE: usize = 65536;
 
 /// Unique type reference for a type
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -67,12 +68,21 @@ pub enum PrimitiveType {
     /// Sized real type, equivalent to 'f64'
     /// Allows for the assignment of the denormalized 0x800000000800000000, or UNINIT_REAL
     Real8,
-    /// String of ASCII characters (u8's)
+    /// Variable-sized string of ASCII characters (u8's)
+    /// The default size of a string is `DEFAULT_STRING_SIZE`, but can grow to
+    // accommodate larger strings
+    String_,
+    /// Fixed-size string of ASCII characters (u8's)
+    /// `usize` is the maximum length storable in the string
+    /// A size of zero indicates a dynamic length type, or a '*' size specifier
     /// Assignable to other StrN's of the same or larger size
     StringN(usize),
-    /// Single or multiple ASCII characters (u8's)
+    /// A single ASCII character
+    Char,
+    /// Multiple ASCII characters (u8's)
+    /// `usize` is the maximum length storable in the string
+    /// A size of zero indicates a dynamic length type, or a '*' size specifier
     /// Assignable to other CharN's of the same or larger size
-    /// The primitive type "char" is represented as a CharN(1)
     CharN(usize),
     /// A type able to store a pointer address
     /// The size of an AddressInt varies between compiling for 32-bit or 64-bit machines
