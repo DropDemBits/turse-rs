@@ -179,6 +179,8 @@ impl<'a> Parser<'a> {
         !self.reporter.has_error()
     }
 
+    // Next up: Identifier / symbol table
+
     /// Visits the AST using the given ASTVisitor
     /// Allows mutable access to the AST
     pub fn visit_ast<T>(&mut self, visitor: &mut T)

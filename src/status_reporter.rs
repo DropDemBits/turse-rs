@@ -39,9 +39,10 @@ impl StatusReporter {
     }
 
     fn report_at(&self, reporting: ReportMessage) {
+        let end_column = reporting.at.column + reporting.at.width;
         eprintln!(
-            "{} line:{} column:{} {}",
-            reporting.kind, reporting.at.line, reporting.at.column, reporting.message
+            "{} line:{} column:{}-{} {}",
+            reporting.kind, reporting.at.line, reporting.at.column, end_column, reporting.message
         );
     }
 
