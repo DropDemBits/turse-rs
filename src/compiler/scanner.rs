@@ -264,12 +264,12 @@ impl<'s> Scanner<'s> {
     /// Makes a token and adds it to the token list
     /// Also steps the cursor's columns
     fn make_token(&mut self, token_type: TokenType, steps: usize) {
+        self.cursor.columns(steps);
+
         self.tokens.push(Token {
             token_type,
             location: self.cursor.clone(),
         });
-
-        self.cursor.columns(steps);
     }
 
     /// Makes the `does_match` token if the char matched, otherwise makes the `no_match` token
