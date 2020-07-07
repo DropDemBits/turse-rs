@@ -196,15 +196,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn report_error<T>(&self, at: Location, message: Arguments) -> Result<T, ParsingStatus> {
-        self.reporter.report_error(&at, message);
-        Err(ParsingStatus::Error)
-    }
-
-    fn report_warning(&self, at: Location, message: Arguments) {
-        self.reporter.report_warning(&at, message);
-    }
-
     /// Gets the previous token in the stream
     fn previous(&self) -> &Token {
         &self.tokens[self.current.get().saturating_sub(1)]
@@ -244,12 +235,15 @@ impl<'a> Parser<'a> {
         if self.current().token_type == expected_type {
             Ok(self.next_token())
         } else {
-            self.report_error(self.current().location, message)
+            self.reporter
+                .report_error(&self.current().location, message);
+            Err(ParsingStatus::Error)
         }
     }
 
     fn warn_equ_as_assign(&self, at: Location) {
-        self.report_warning(at, format_args!("'=' found, assumed it to be ':='"));
+        self.reporter
+            .report_warning(&at, format_args!("'=' found, assumed it to be ':='"));
     }
 
     // --- Decl Parsing --- //
@@ -314,15 +308,15 @@ impl<'a> Parser<'a> {
         if is_const && assign_expr.is_none() {
             // const declares require the assignment expression
             // Recoverable error, just use Unknown as the type_spec
-            let _ = self.report_error::<Expr>(
-                decl_tok.location,
+            self.reporter.report_error(
+                &decl_tok.location,
                 format_args!("const declaration requires an initial value"),
             );
         } else if type_spec == TypeRef::Unknown && assign_expr.is_none() {
             // No type inferrable
             // Recoverable error, just use Unknown as the type_spec
-            let _ = self.report_error::<Expr>(
-                decl_tok.location,
+            self.reporter.report_error(
+                &decl_tok.location,
                 format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name)
             );
         }
@@ -347,13 +341,16 @@ impl<'a> Parser<'a> {
                 // Nom as token isn't consumed by anything else
                 self.next_token();
 
-                self.report_error(
-                    nom.location,
+                self.reporter.report_error(
+                    &nom.location,
                     format_args!(
                         "'{}' does not begin a statement or declaration",
                         nom.location.get_lexeme(self.source)
                     ),
-                )
+                );
+
+                // Cause an error
+                Err(ParsingStatus::Error)
             }
         }
     }
@@ -466,8 +463,8 @@ impl<'a> Parser<'a> {
                 ""
             };
 
-            let _ = self.report_error::<Expr>(
-                self.previous().location,
+            self.reporter.report_error(
+                &self.previous().location,
                 format_args!(
                     "Expected expression before '{}' {}",
                     self.previous().location.get_lexeme(self.source),
@@ -662,13 +659,16 @@ impl<'a> Parser<'a> {
                     eval_type: TypeRef::Primitive(PrimitiveType::Nil),
                 })
             }
-            _ => self.report_error(
-                token.location,
-                format_args!(
-                    "Unexpected token '{}'",
-                    token.location.get_lexeme(self.source)
-                ),
-            ),
+            _ => {
+                self.reporter.report_error(
+                    &token.location,
+                    format_args!(
+                        "Unexpected token '{}'",
+                        token.location.get_lexeme(self.source)
+                    ),
+                );
+                Err(ParsingStatus::Error)
+            }
         }
     }
 
@@ -696,35 +696,40 @@ impl<'a> Parser<'a> {
             TypeRef::Primitive(prim_type)
         };
 
-        let get_size_specifier = || -> Result<usize, ParsingStatus> {
-            let size = match self.current().token_type {
+        let get_size_specifier = || -> Result<usize, ()> {
+            match self.current().token_type {
                 TokenType::IntLiteral(size) if size > 0 => {
                     if size as usize >= types::MAX_STRING_SIZE {
-                        self.report_error(
-                            self.current().location,
+                        self.reporter.report_error(
+                            &self.current().location,
                             format_args!(
                                 "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
                                 size,
                                 types::MAX_STRING_SIZE
                             ),
-                        )?;
+                        );
+                        Err(())
+                    } else {
+                        // Consume parsed type
+                        self.next_token();
+                        Ok(size as usize)
                     }
-
-                    size
                 }
-                TokenType::Star => 0,
-                _ => self.report_error(
-                    self.current().location,
-                    format_args!(
-                        "Length specifier is not a '*' or a non-zero compile time expression"
-                    ),
-                )?,
-            } as usize;
-
-            // Over parsed type
-            self.next_token();
-
-            Ok(size)
+                TokenType::Star => {
+                    // Consume parsed type
+                    self.next_token();
+                    Ok(0 as usize)
+                }
+                _ => {
+                    self.reporter.report_error(
+                        &self.current().location,
+                        format_args!(
+                            "Length specifier is not a '*' or a non-zero compile time expression"
+                        ),
+                    );
+                    Err(())
+                }
+            }
         };
 
         match &self.current().token_type {
@@ -796,8 +801,8 @@ impl<'a> Parser<'a> {
             TokenType::Union => unimplemented!(),
             TokenType::Identifier => unimplemented!(),
             _ => {
-                let _ = self.report_error::<TypeRef>(
-                    self.current().location,
+                self.reporter.report_error(
+                    &self.current().location,
                     format_args!(
                         "Unexpected '{}', expected a type specifier",
                         self.current().location.get_lexeme(self.source)
@@ -831,7 +836,8 @@ impl<'a> Parser<'a> {
         );
 
         if let Some(msg) = err {
-            let _ = self.report_error::<Identifier>(ident.location, format_args!("{}", msg));
+            self.reporter
+                .report_error(&ident.location, format_args!("{}", msg));
         }
 
         reference
@@ -861,7 +867,8 @@ impl<'a> Parser<'a> {
             .use_ident(&ident, ident.location.get_lexeme(self.source));
 
         if let Some(msg) = err {
-            let _ = self.report_error::<Identifier>(ident.location, format_args!("{}", msg));
+            self.reporter
+                .report_error(&ident.location, format_args!("{}", msg));
         }
 
         reference
