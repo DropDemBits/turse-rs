@@ -2,6 +2,7 @@
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
+use std::char;
 use std::num::ParseIntError;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -70,7 +71,8 @@ impl<'s> Scanner<'s> {
 
     // Checks if the end of the stream has been reached
     fn is_at_end(&self) -> bool {
-        self.cursor.end >= self.source.len()
+        (!self.tokens.is_empty() && self.tokens.last().unwrap().token_type == TokenType::Eof)
+            || self.cursor.end >= self.source.len()
     }
 
     /// Grabs the next char in the text stream
@@ -524,26 +526,23 @@ impl<'s> Scanner<'s> {
     }
 
     fn make_char_sequence(&mut self, is_str_literal: bool) {
-        let mut literal_text = String::with_capacity(256);
         let ending_delimiter = if is_str_literal { '"' } else { '\'' };
-
-        // Keep going along the string until the end of the line, or the delimiter
-        // TODO: Handle char escapes (eg \n)
-        while self.peek != ending_delimiter && self.peek != '\n' && self.peek != '\0' {
-            literal_text.push(self.next_char());
-        }
+        let literal_text = self.extract_char_sequence(ending_delimiter);
 
         // Get the width of the lexeme
         let lexeme = self.cursor.get_lexeme(self.source);
         let part_width = UnicodeSegmentation::graphemes(lexeme, true).count();
+        // Advance to the correct location
+        self.cursor.columns(part_width);
 
         match self.peek {
-            '\n' => {
+            '\r' | '\n' => {
                 self.reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the line"),
                 );
-                self.make_str_literal(is_str_literal, literal_text, part_width);
+
+                self.make_str_literal(is_str_literal, literal_text, 0);
 
                 return;
             }
@@ -563,9 +562,282 @@ impl<'s> Scanner<'s> {
                 self.next_char();
 
                 // Make it! (Adjust part_width by 1 to account for ending delimiter)
-                self.make_str_literal(is_str_literal, literal_text, part_width + 1);
+                self.make_str_literal(is_str_literal, literal_text, 1);
             }
         }
+    }
+
+    /// Extracts the character sequence from the source, handling escape sequences
+    fn extract_char_sequence(&mut self, ending_delimiter: char) -> String {
+        let mut literal_text = String::with_capacity(256);
+
+        // Note: Depending on the VM settings, this text may either be interpreted in
+        // Turing's main character encoding (Windows-1252), or as unicode charaters.
+        // Neither the scanner nor the compiler in general do not have to deal with
+        // the character encoding nonsense, so all characters are treated as if they
+        // were all unicode characters.
+        //
+        // While this handling may cause issues when running the compiled version in
+        // the original TProlog (via compilation to *.tbc), this should not be a major
+        // issue as *.tbc compilation is more of a fun experiment rather than a major
+        // feature.
+        // If compatibility with TProlog is desired, the code generator can also solve
+        // this issue by converting the UTF-8 strings into ASCII strings.
+
+        // Keep going along the string until the end of the line, or the delimiter
+        while self.peek != ending_delimiter && !matches!(self.peek, '\r' | '\n' | '\0') {
+            let current = self.next_char();
+            match current {
+                '\\' => {
+                    // Parse escape character
+                    let escaped = self.peek;
+
+                    match escaped {
+                        '\r' | '\n' | '\0' => break, // Reacched the end of the literal
+                        '\'' => {
+                            literal_text.push('\'');
+                            self.next_char();
+                        }
+                        '"' => {
+                            literal_text.push('"');
+                            self.next_char();
+                        }
+                        '\\' => {
+                            literal_text.push('\\');
+                            self.next_char();
+                        }
+                        'b' | 'B' => {
+                            literal_text.push('\x08');
+                            self.next_char();
+                        }
+                        'd' | 'D' => {
+                            literal_text.push('\x7F');
+                            self.next_char();
+                        }
+                        'e' | 'E' => {
+                            literal_text.push('\x1B');
+                            self.next_char();
+                        }
+                        'f' | 'F' => {
+                            literal_text.push('\x0C');
+                            self.next_char();
+                        }
+                        'r' | 'R' => {
+                            literal_text.push('\r');
+                            self.next_char();
+                        }
+                        'n' | 'N' => {
+                            literal_text.push('\n');
+                            self.next_char();
+                        }
+                        't' | 'T' => {
+                            literal_text.push('\t');
+                            self.next_char();
+                        }
+                        '^' => {
+                            // Unescaped version is parsed in Caret Notation
+                            literal_text.push('^');
+                            self.next_char();
+                        }
+                        '0'..='7' => {
+                            // Octal str, {1-3}, 0 - 377
+                            let mut octal_cursor = self.cursor.clone();
+
+                            // Start at the first digit
+                            octal_cursor.step();
+
+                            // Nom all of the octal digits
+                            for _ in 0..3 {
+                                if !matches!(self.peek, '0'..='7') {
+                                    break;
+                                }
+
+                                self.next_char();
+                                octal_cursor.columns(1);
+                            }
+
+                            // Select the octal digits
+                            octal_cursor.current_to_other(&self.cursor);
+
+                            let to_chr =
+                                u16::from_str_radix(octal_cursor.get_lexeme(self.source), 8)
+                                    .expect("Failure in parsing octal digits");
+
+                            // Check if the parsed character is in range
+                            if to_chr >= 256 {
+                                self.reporter.report_error(
+                                    &octal_cursor,
+                                    format_args!(
+                                        "Octal character value is larger than 255 (octal 377)"
+                                    ),
+                                );
+
+                                literal_text.push('�');
+                            } else {
+                                literal_text.push((to_chr as u8) as char);
+                            }
+                        }
+                        'x' if self.peek_ahead.is_ascii_alphanumeric() => {
+                            // Hex sequence, {1-2} digits
+                            // nom 'x'
+                            self.next_char();
+
+                            let mut hex_cursor = self.cursor.clone();
+
+                            // Start at the first digit
+                            hex_cursor.step();
+
+                            // Nom all of the hex digits
+                            for _ in 0..2 {
+                                if !self.peek.is_ascii_alphanumeric() {
+                                    break;
+                                }
+
+                                self.next_char();
+                                hex_cursor.columns(1);
+                            }
+
+                            // Select the hex digits
+                            hex_cursor.current_to_other(&self.cursor);
+
+                            let to_chr = u8::from_str_radix(hex_cursor.get_lexeme(self.source), 16)
+                                .expect("Failure in parsing hex digits");
+
+                            // Push the parsed char
+                            literal_text.push(to_chr as char);
+                        }
+                        'u' | 'U' if self.peek_ahead.is_ascii_alphanumeric() => {
+                            // u: unicode character {4-8} � if out of range
+                            // nom 'u' or 'U'
+                            self.next_char();
+
+                            let mut hex_cursor = self.cursor.clone();
+
+                            // Start at the first digit
+                            hex_cursor.step();
+
+                            // Nom all of the hex digits
+                            for _ in 0..8 {
+                                if !self.peek.is_ascii_alphanumeric() {
+                                    break;
+                                }
+
+                                self.next_char();
+                                hex_cursor.columns(1);
+                            }
+
+                            // Select the hex digits
+                            hex_cursor.current_to_other(&self.cursor);
+
+                            let to_chr =
+                                u32::from_str_radix(hex_cursor.get_lexeme(self.source), 16)
+                                    .expect("Failure in parsing hex digits");
+
+                            // Check if the parsed char is in range
+                            if to_chr > 0x10FFFF {
+                                self.reporter.report_error(
+                                    &hex_cursor,
+                                    format_args!(
+                                        "Unicode codepoint value is greater than U+10FFFF"
+                                    ),
+                                );
+                                literal_text.push('�');
+                            } else {
+                                // Push the parsed char
+                                literal_text.push(char::from_u32(to_chr).unwrap());
+                            }
+                        }
+                        _ => {
+                            // Fetch the location
+                            let mut bad_escape = self.cursor.clone();
+                            self.next_char();
+
+                            // Select the escape sequence
+                            bad_escape.step();
+                            bad_escape.current_to_other(&self.cursor);
+                            // Adjust everything so that the lexeme lines up with the escape sequence
+                            bad_escape.start -= 1;
+                            bad_escape.column += 1;
+                            bad_escape.width = 2;
+
+                            match escaped {
+                                'x' | 'u' | 'U' => {
+                                    // Missing the hex digits
+                                    self.reporter.report_error(
+                                        &bad_escape,
+                                        format_args!(
+                                            "Invalid escape sequence character '{}' (missing hexadecimal digits after the '{}')",
+                                            bad_escape.get_lexeme(self.source), escaped
+                                        ),
+                                    );
+                                }
+                                _ => {
+                                    // Bog-standard error report
+                                    self.reporter.report_error(
+                                        &bad_escape,
+                                        format_args!(
+                                            "Invalid escape sequence character '{}'",
+                                            bad_escape.get_lexeme(self.source)
+                                        ),
+                                    );
+                                }
+                            }
+
+                            // Add escaped to the string
+                            literal_text.push(escaped);
+                        }
+                    }
+                }
+                '^' => {
+                    // Parse caret notation
+                    // ASCII character range from '@' to '_', includes '?' (DEL)
+                    let escaped = self.peek;
+                    match escaped {
+                        '\r' | '\n' | '\0' => break, // Reacched the end of the literal
+                        '@'..='_' | 'a'..='z' => {
+                            let parsed = (escaped.to_ascii_uppercase() as u8) & 0x1F;
+                            literal_text.push(parsed as char);
+                        }
+                        '?' => {
+                            // As the DEL char
+                            literal_text.push('\x7F');
+                        }
+                        _ => {
+                            // Unless the user knows what they are doing, they are likely to not intend for the ^ character to be parsed as the beginning of a caret sequence
+                            // Notify the user with this situation
+                            // Fetch the location
+                            let mut bad_escape = self.cursor.clone();
+                            self.next_char();
+
+                            // Select the escape sequence
+                            bad_escape.step();
+                            bad_escape.current_to_other(&self.cursor);
+                            // Adjust everything so that the lexeme lines up with the escape sequence
+                            bad_escape.start -= 1;
+                            bad_escape.column += 1;
+                            bad_escape.width = 2;
+
+                            self.reporter.report_error(
+                                &bad_escape,
+                                format_args!(
+                                    "Unknown caret notation sequence '{}' (did you mean to escape the caret by typing '\\^'?)",
+                                    bad_escape.get_lexeme(self.source)
+                                ),
+                            );
+
+                            // Add as is
+                            literal_text.push(escaped);
+                        }
+                    }
+
+                    // Consume the character
+                    self.next_char();
+                }
+                _ => literal_text.push(current),
+            }
+        }
+
+        literal_text
     }
 
     fn make_ident(&mut self) {
@@ -959,6 +1231,115 @@ mod test {
             scanner.tokens[0].token_type,
             TokenType::CharLiteral("abcd\"".to_string())
         );
+    }
+
+    #[test]
+    fn test_char_literal_escapes() {
+        // Valid escapes:
+        let valid_escapes = [
+            ("'\\\\'", "\\"),
+            ("'\\\''", "\'"),
+            ("'\\\"'", "\""),
+            ("'\\b'", "\x08"),
+            ("'\\d'", "\x7F"),
+            ("'\\e'", "\x1B"),
+            ("'\\f'", "\x0C"),
+            ("'\\r'", "\r"),
+            ("'\\n'", "\n"),
+            ("'\\t'", "\t"),
+            ("'\\^'", "^"),
+            ("'\\B'", "\x08"),
+            ("'\\D'", "\x7F"),
+            ("'\\E'", "\x1B"),
+            ("'\\F'", "\x0C"),
+            ("'\\T'", "\t"),
+            // Octal escapes
+            ("'\\0'", "\0"),
+            ("'\\43'", "#"),
+            ("'\\101'", "A"),
+            ("'\\377'", "\u{00FF}"), // Have to use unicode characters
+            ("'\\1011'", "A1"),
+            // Hex escapes
+            ("'\\x0'", "\0"),
+            ("'\\x00'", "\0"),
+            ("'\\x00A'", "\0A"),
+            ("'\\x20'", " "),
+            ("'\\x20A'", " A"),
+            ("'\\xfe'", "\u{00FE}"),
+            // Unicode escapes
+            ("'\\u8'", "\x08"),
+            ("'\\uA7'", "§"),
+            ("'\\u394'", "Δ"),
+            ("'\\u2764'", "❤"),
+            ("'\\u1f029'", "🀩"),
+            ("'\\u10f029'", "\u{10F029}"),
+            ("'\\U8'", "\x08"),
+            ("'\\Ua7'", "§"),
+            ("'\\U394'", "Δ"),
+            ("'\\U2764'", "❤"),
+            ("'\\U1F029'", "🀩"),
+            ("'\\U10F029'", "\u{10F029}"),
+            // Caret escapes
+            ("'^J'", "\n"),
+            ("'^M'", "\r"),
+            ("'^?'", "\x7F"),
+        ];
+
+        for escape_test in valid_escapes.iter() {
+            let mut scanner = Scanner::new(escape_test.0);
+            assert!(scanner.scan_tokens());
+            assert_eq!(
+                scanner.tokens[0].token_type,
+                TokenType::CharLiteral(escape_test.1.to_string())
+            );
+        }
+
+        // Escapes at the end of lines
+        let failed_escapes = [
+            "'\\\n'", "'\\\r'", "'\\\0'", // Slash escapes
+            "'^\n'", "'^\r'", "'^\0'", // Caret escapes
+        ];
+
+        for escape_test in failed_escapes.iter() {
+            let mut scanner = Scanner::new(escape_test);
+            assert!(!scanner.scan_tokens());
+            assert_eq!(
+                scanner.tokens[0].token_type,
+                TokenType::CharLiteral("".to_string())
+            );
+        }
+
+        // Bad escape sequences
+        let failed_escapes = [
+            "'\\777'", // Bad octal size
+        ];
+
+        for escape_test in failed_escapes.iter() {
+            let mut scanner = Scanner::new(escape_test);
+            assert!(!scanner.scan_tokens());
+            assert_eq!(
+                scanner.tokens[0].token_type,
+                TokenType::CharLiteral('�'.to_string())
+            );
+        }
+
+        // Incorrect start of escape sequence
+        let incorrect_start = [
+            ("'\\8'", "8"),
+            ("'^~'", "~"),
+            ("'\\x'", "x"),
+            ("'\\u'", "u"),
+            ("'\\U'", "U"),
+        ];
+
+        for escape_test in incorrect_start.iter() {
+            let mut scanner = Scanner::new(escape_test.0);
+            assert!(!scanner.scan_tokens());
+            assert_eq!(
+                scanner.tokens[0].token_type,
+                TokenType::CharLiteral(escape_test.1.to_string())
+            );
+        }
     }
 
     #[test]
