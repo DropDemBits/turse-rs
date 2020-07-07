@@ -265,13 +265,35 @@ impl<'a> Parser<'a> {
 
         // TODO: parse definition of multiple identifiers
         // Grab identifier token
-        let ident_tok = self.expects(
-            TokenType::Identifier,
-            format_args!("Expected an identifier for the declared {}", decl_name),
-        )?;
+        let ident_tokens = {
+            let mut idents = vec![self.expects(
+                TokenType::Identifier,
+                format_args!("Expected an identifier for the declared {}", decl_name),
+            )?];
+
+            while self.current().token_type == TokenType::Comma {
+                // Consume comma
+                self.next_token();
+
+                // Identifier expected, but can break out of loop
+                let token = self.expects(
+                    TokenType::Identifier,
+                    format_args!("Expected an identifier after the comma"),
+                );
+
+                if token.is_err() {
+                    break;
+                }
+
+                // Add to identifier list
+                idents.push(token.unwrap());
+            }
+
+            idents
+        };
 
         // Grab typespec
-        let type_spec = if self.current().token_type == TokenType::Colon {
+        let mut type_spec = if self.current().token_type == TokenType::Colon {
             // Consume colon
             self.next_token();
 
@@ -305,27 +327,35 @@ impl<'a> Parser<'a> {
         };
 
         // Validate if the declaration requirements have been met
+        // Otherwise, produce an error and a TypeError
         if is_const && assign_expr.is_none() {
             // const declares require the assignment expression
-            // Recoverable error, just use Unknown as the type_spec
+            // Recoverable error, just use TypeError as the type_spec
             self.reporter.report_error(
                 &decl_tok.location,
                 format_args!("const declaration requires an initial value"),
             );
+
+            type_spec = TypeRef::TypeError;
         } else if type_spec == TypeRef::Unknown && assign_expr.is_none() {
             // No type inferrable
-            // Recoverable error, just use Unknown as the type_spec
+            // Recoverable error, just use TypeError as the type_spec
             self.reporter.report_error(
                 &decl_tok.location,
                 format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name)
             );
+
+            type_spec = TypeRef::TypeError;
         }
 
-        // Declare the identifier
-        let ident = self.declare_ident(ident_tok, type_spec, is_const, false);
+        // Declare the identifiers
+        let idents: Vec<Identifier> = ident_tokens
+            .iter()
+            .map(|token| self.declare_ident(token, type_spec, is_const, false))
+            .collect();
 
         Ok(Stmt::VarDecl {
-            ident,
+            idents,
             value: assign_expr,
             is_const,
         })
@@ -638,7 +668,7 @@ impl<'a> Parser<'a> {
             TokenType::Nil => {
                 // Consume optional collection / class id
 
-                // TODO: validate that theses are the same as the pointer type
+                // TODO: validate that theses are the same as the pointer type (ie produce nil for a given type id)
                 // For classes, both must have a common ancestor
                 if &self.current().token_type == &TokenType::LeftParen {
                     // Consume optional identifier & parens
@@ -1028,6 +1058,20 @@ mod test {
         Parser::new(scanner.tokens, source)
     }
 
+    fn check_ident_expected_type(parser: &Parser, name: &str, expected: TypeRef) {
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident(name)
+                .unwrap()
+                .type_spec,
+            expected
+        );
+    }
+
     #[test]
     fn test_var_decl() {
         let mut parser = make_test_parser(
@@ -1036,22 +1080,48 @@ mod test {
         var a : int := 1
         var b : int
         var c := 3 + 6 ** 2
+        var d, e, f : string := \"hai\"
+        var x, y, z : real := 42e10
         
         % Accepted forms
-        var d : int = -5
-        var e : int = -10 + 3 * 2",
+        var g : int = -5
+        var h : int = -10 + 3 * 2
+        var i, j, k : nat = 20 + 40 shl 5
+        ",
         );
-        parser.parse();
-        assert!(!parser.reporter.has_error());
+        assert!(parser.parse());
+        for name in ["x", "y", "z"].iter() {
+            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::Real));
+        }
 
+        for name in ["d", "e", "f"].iter() {
+            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::String_));
+        }
+
+        for name in ["i", "j", "k"].iter() {
+            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::Nat));
+        }
+
+        // Invalid forms - can't deduce type
         let mut parser = make_test_parser(
             "
         % Invalid forms
         var a
-        var c",
+        var c
+        var e, b, k",
         );
-        parser.parse();
-        assert!(parser.reporter.has_error());
+        assert!(!parser.parse());
+        for name in ["a", "c", "e", "b", "k"].iter() {
+            check_ident_expected_type(&parser, name, TypeRef::TypeError);
+        }
+
+        // Invalid forms - comma after last item
+        let mut parser = make_test_parser(
+            "
+        % Invalid forms
+        var a, b, c, : int := 5",
+        );
+        assert!(!parser.parse());
     }
 
     #[test]
@@ -1060,14 +1130,18 @@ mod test {
             "
         % Valid forms
         const a : int := 1
-        const c := 3 + 6 ** 2
+        const b := 5.0
+        const c, d : int := 3
+        const e, f := 3 + 6 ** 2
         
         % Accepted forms
-        const d : int = -5
-        const e : int = -10 + 3 * 2",
+        const g : int = -5
+        const h : int = -10 + 3 * 2",
         );
-        parser.parse();
-        assert!(!parser.reporter.has_error());
+        assert!(parser.parse());
+        for name in ["c", "d"].iter() {
+            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::Int));
+        }
 
         // Invalid forms
         let mut parser = make_test_parser(
@@ -1076,8 +1150,9 @@ mod test {
         const a
         const b",
         );
-        parser.parse();
-        assert!(parser.reporter.has_error());
+        assert!(!parser.parse());
+        check_ident_expected_type(&parser, "a", TypeRef::TypeError);
+        check_ident_expected_type(&parser, "b", TypeRef::TypeError);
 
         let mut parser = make_test_parser(
             "
@@ -1085,8 +1160,7 @@ mod test {
         const a : int
         const b : int",
         );
-        parser.parse();
-        assert!(parser.reporter.has_error());
+        assert!(!parser.parse());
     }
 
     #[test]
@@ -1279,12 +1353,8 @@ mod test {
         ];
 
         for test_stmt in parser.stmts.iter().zip(expected_types.iter()) {
-            if let Stmt::VarDecl {
-                ident: Identifier { ref type_spec, .. },
-                ..
-            } = test_stmt.0
-            {
-                assert_eq!(type_spec, test_stmt.1);
+            if let Stmt::VarDecl { ref idents, .. } = test_stmt.0 {
+                assert_eq!(&idents[0].type_spec, test_stmt.1);
             }
         }
 
@@ -1313,75 +1383,42 @@ mod test {
         let mut parser = make_test_parser("var c : string(16#10000)");
         assert!(!parser.parse());
         // Tried to parse as a "string"
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => {
-                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
-            }
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
 
         let mut parser = make_test_parser("var c : string(16#10001)");
         assert!(!parser.parse());
         // Tried to parse as a "string"
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => {
-                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
-            }
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
 
         // Invalid: Zero length size expression
         let mut parser = make_test_parser("var c : char(16#0)");
         assert!(!parser.parse());
         // Tried to parse as a "char"
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => {
-                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Char))
-            }
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::Char));
 
         let mut parser = make_test_parser("var c : string(16#0)");
         assert!(!parser.parse());
         // Tried to parse as a "string"
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => {
-                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
-            }
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
 
         // Invalid: Dropping the right paren
         let mut parser = make_test_parser("var c : char(16#0");
         assert!(!parser.parse());
         // Tried to parse as a "char"
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => {
-                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Char))
-            }
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::Char));
 
         // Invalid: No length specification
         let mut parser = make_test_parser("var c : string(");
         assert!(!parser.parse());
         // Tried to parse as a "string"
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => {
-                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
-            }
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
 
         // Invalid: Not a type specification (shouldn't parse the := "hee" nor the 'to' as it may cause
         // phantom errors)
         let mut parser = make_test_parser("var c : to := 'hee'");
         assert!(!parser.parse());
         // Failed to parse, as type error
-        match &parser.stmts[0] {
-            Stmt::VarDecl { ident, .. } => assert_eq!(ident.type_spec, TypeRef::TypeError),
-            _ => panic!(),
-        }
+        check_ident_expected_type(&parser, "c", TypeRef::TypeError);
     }
 
     #[test]
@@ -1394,17 +1431,7 @@ mod test {
         ",
         );
         assert!(parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
 
         // v decl usage usage
         let mut parser = make_test_parser(
@@ -1415,17 +1442,7 @@ mod test {
         ",
         );
         assert!(parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
 
         // x usage
         let mut parser = make_test_parser(
@@ -1434,17 +1451,7 @@ mod test {
         ",
         );
         assert!(!parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::TypeError
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::TypeError);
 
         // x usage decl
         let mut parser = make_test_parser(
@@ -1454,17 +1461,7 @@ mod test {
         ",
         );
         assert!(!parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
 
         // x usage decl decl
         let mut parser = make_test_parser(
@@ -1475,17 +1472,7 @@ mod test {
         ",
         );
         assert!(!parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::Primitive(PrimitiveType::String_)
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
 
         // x decl decl
         let mut parser = make_test_parser(
@@ -1495,17 +1482,7 @@ mod test {
         ",
         );
         assert!(!parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::Primitive(PrimitiveType::Real8)
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Real8));
 
         // x decl usage-in-asn
         let mut parser = make_test_parser(
@@ -1514,16 +1491,6 @@ mod test {
         ",
         );
         assert!(!parser.parse());
-        assert_eq!(
-            parser
-                .scopes
-                .last()
-                .unwrap()
-                .borrow()
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
-            TypeRef::Primitive(PrimitiveType::String_)
-        );
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
     }
 }

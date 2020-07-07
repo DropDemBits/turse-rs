@@ -20,17 +20,26 @@ impl TypeValidator {
 impl ASTVisitor for TypeValidator {
     fn visit_stmt(&mut self, stmt: &mut Stmt) {
         match stmt {
-            Stmt::VarDecl { ident, value, .. } => {
-                if ident.type_spec == TypeRef::Unknown {
-                    // Unknown type, use the type of the expr
-                    let expr = value.as_mut().unwrap();
-                    self.visit_expr(expr);
-                    ident.type_spec = expr.get_eval_type();
-                } else {
-                    // TODO: Validate that the types are assignable
+            Stmt::VarDecl { idents, value, .. } => {
+                for ident in idents.iter_mut() {
+                    if ident.type_spec == TypeRef::Unknown {
+                        // Unknown type, use the type of the expr
+                        // Safe to unwrap as if no expr was provided, the type_spec would be TypeError
+                        let expr = value.as_mut().unwrap();
+                        self.visit_expr(expr);
+                        // Resolve the type
+                        // TODO: Modify the corresponding identifier?
+                        ident.type_spec = expr.get_eval_type();
+                    } else {
+                        // TODO: Validate that the types are assignable
+                    }
                 }
             }
-            Stmt::Assign { var_ref, op, value } => {
+            Stmt::Assign {
+                var_ref,
+                op: _,
+                value,
+            } => {
                 self.visit_expr(var_ref);
                 self.visit_expr(value);
 
@@ -49,9 +58,9 @@ impl ASTVisitor for TypeValidator {
             }
             Expr::BinaryOp {
                 left,
-                op,
+                op: _,
                 right,
-                eval_type,
+                eval_type: _,
             } => {
                 self.visit_expr(left);
                 self.visit_expr(right);
@@ -60,7 +69,7 @@ impl ASTVisitor for TypeValidator {
                 // eval_type is the type of the expr result
             }
             Expr::UnaryOp {
-                op,
+                op: _,
                 right,
                 eval_type,
             } => {
@@ -75,7 +84,7 @@ impl ASTVisitor for TypeValidator {
                 left,
                 op: _,
                 arg_list,
-                eval_type,
+                eval_type: _,
             } => {
                 self.visit_expr(left);
                 arg_list.iter_mut().for_each(|expr| self.visit_expr(expr));
@@ -86,15 +95,15 @@ impl ASTVisitor for TypeValidator {
             }
             Expr::Dot {
                 left,
-                field,
-                eval_type,
+                field: _,
+                eval_type: _,
             } => {
                 self.visit_expr(left);
 
                 // Validate that the field exists in the given type
                 // eval_type is the field type
             }
-            Expr::Reference { ident } => {
+            Expr::Reference { ident: _ } => {
                 // Fetch the type_spec from the type table
             }
             Expr::Literal { .. } => {} // Literal values already have the type resolved

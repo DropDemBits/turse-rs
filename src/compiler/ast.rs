@@ -138,7 +138,7 @@ impl fmt::Debug for Expr {
 pub enum Stmt {
     // Decls
     VarDecl {
-        ident: Identifier,
+        idents: Vec<Identifier>,
         value: Option<Box<Expr>>,
         is_const: bool,
     },
