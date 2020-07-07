@@ -572,10 +572,10 @@ impl<'s> Scanner<'s> {
         let mut literal_text = String::with_capacity(256);
 
         // Note: Depending on the VM settings, this text may either be interpreted in
-        // Turing's main character encoding (Windows-1252), or as unicode charaters.
-        // Neither the scanner nor the compiler in general do not have to deal with
-        // the character encoding nonsense, so all characters are treated as if they
-        // were all unicode characters.
+        // Turing's main character encodings (Windows-1252 and IBM / Code Page 437),
+        // or as UTF-8 characters. Neither the scanner nor the compiler in general do
+        // not have to deal with the character encoding nonsense, so all
+        // characters are treated as if they were all UTF-8 characters.
         //
         // While this handling may cause issues when running the compiled version in
         // the original TProlog (via compilation to *.tbc), this should not be a major
