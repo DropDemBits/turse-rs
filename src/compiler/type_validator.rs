@@ -20,19 +20,29 @@ impl TypeValidator {
 impl ASTVisitor for TypeValidator {
     fn visit_stmt(&mut self, stmt: &mut Stmt) {
         match stmt {
-            Stmt::VarDecl { idents, value, .. } => {
+            Stmt::VarDecl {
+                idents,
+                type_spec,
+                value,
+                ..
+            } => {
+                if *type_spec == TypeRef::TypeError {
+                    // Nothing to do, all the correct types
+                    return;
+                } else if *type_spec == TypeRef::Unknown {
+                    // Unknown type, use the type of the expr
+                    // Safe to unwrap as if no expr was provided, the type_spec would be TypeError
+                    let expr = value.as_mut().unwrap();
+                    self.visit_expr(expr);
+
+                    *type_spec = expr.get_eval_type();
+                } else {
+                    // TODO: Validate that the types are assignable
+                }
+
+                // Update the types
                 for ident in idents.iter_mut() {
-                    if ident.type_spec == TypeRef::Unknown {
-                        // Unknown type, use the type of the expr
-                        // Safe to unwrap as if no expr was provided, the type_spec would be TypeError
-                        let expr = value.as_mut().unwrap();
-                        self.visit_expr(expr);
-                        // Resolve the type
-                        // TODO: Modify the corresponding identifier?
-                        ident.type_spec = expr.get_eval_type();
-                    } else {
-                        // TODO: Validate that the types are assignable
-                    }
+                    ident.type_spec = *type_spec;
                 }
             }
             Stmt::Assign {

@@ -356,6 +356,7 @@ impl<'a> Parser<'a> {
 
         Ok(Stmt::VarDecl {
             idents,
+            type_spec,
             value: assign_expr,
             is_const,
         })

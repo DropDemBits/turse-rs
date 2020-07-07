@@ -139,6 +139,7 @@ pub enum Stmt {
     // Decls
     VarDecl {
         idents: Vec<Identifier>,
+        type_spec: TypeRef,
         value: Option<Box<Expr>>,
         is_const: bool,
     },
