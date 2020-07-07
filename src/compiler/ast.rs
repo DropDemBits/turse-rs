@@ -2,6 +2,7 @@
 use crate::compiler::token::Token;
 use crate::compiler::types::TypeRef;
 use std::fmt;
+use std::num::NonZeroU32;
 
 /// Definition of an identifier
 #[derive(Debug, Clone)]
@@ -21,11 +22,16 @@ pub struct Identifier {
     /// has been defined by reference to the name (used to keep track of undefined
     /// identifiers)
     pub is_declared: bool,
-    // ??? Do we need to keep track of the instance of the identifer (i.e. how many times it's been redeclared, not usages)
+    /// The import index of the identifier
+    /// If None, the identifier is local to the scope
+    /// If Some, this is the index (plus one) to the corresponding entry into the
+    /// current scope's import table
+    pub import_index: Option<NonZeroU32>,
 }
 
 impl Identifier {
     /// Creates a new identifier
+    /// `token` Location of the reference token
     pub fn new(
         token: Token,
         type_spec: TypeRef,
@@ -33,6 +39,7 @@ impl Identifier {
         is_const: bool,
         is_typedef: bool,
         is_declared: bool,
+        import_index: u32,
     ) -> Self {
         Self {
             token,
@@ -41,6 +48,7 @@ impl Identifier {
             is_const,
             is_typedef,
             is_declared,
+            import_index: NonZeroU32::new(import_index),
         }
     }
 }

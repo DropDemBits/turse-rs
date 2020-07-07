@@ -13,8 +13,8 @@ use crate::compiler::token::Token;
 use crate::compiler::types::TypeRef;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
-use std::rc::Weak;
+use std::num::NonZeroU32;
+use std::rc::{Rc, Weak};
 
 /// Location of a token in a file/text stream
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -77,6 +77,15 @@ impl Location {
     }
 }
 
+// To migrate to scope.rs
+
+#[derive(Debug)]
+pub struct ImportInfo {
+    /// How many scopes down, relative to the global scope, the identifier was imported from
+    /// Starts from 0
+    downscopes: usize,
+}
+
 /// Scope of identifiers
 #[derive(Debug)]
 pub struct Scope {
@@ -89,6 +98,10 @@ pub struct Scope {
     /// First element is the global scope for the current code unit
     /// If the vector is empty, the current scope is the global scope
     parent_scopes: Vec<Weak<RefCell<Self>>>,
+    /// Next import index into the import table
+    next_import_index: u32,
+    /// Import table
+    import_table: Vec<ImportInfo>,
 }
 
 impl Scope {
@@ -103,6 +116,8 @@ impl Scope {
                 .iter()
                 .map(|scope| Rc::downgrade(scope))
                 .collect(),
+            next_import_index: 0,
+            import_table: vec![],
         }
     }
 
@@ -128,17 +143,43 @@ impl Scope {
             is_const,
             is_typedef,
             true,
+            0, // Not imported
         );
 
-        if let Some(_) = self.idents.insert(name.clone(), new_def.clone()) {
-            // Old identifier has already been declared
-            // TODO: Check if the identifier is a scope external reference, to
+        // Check to see if the identifier exists in the current scope or within the import boundary
+        let mut ident_exists = self.get_ident(&name).is_some();
+
+        for scope_ref in self.parent_scopes.iter().rev() {
+            if ident_exists {
+                // Found something, either in current or parent scope
+                break;
+            }
+
+            let scope_ref = scope_ref
+                .upgrade()
+                .expect("Memory Error: Scope freed while references still existed towards it");
+
+            ident_exists = scope_ref.borrow().get_ident(&name).is_some();
+        }
+
+        // Always declare the identifier
+        // For error recovery purposes
+        let old_value = self.idents.insert(name.clone(), new_def.clone());
+
+        if ident_exists {
+            // Old identifier has already been declared, either within the current
+            // scope, or within the import boundary
+
+            // TODO: Check if the identifier is across an import boundary, to
             // see if it can be overwritten
             (
                 new_def,
                 Some(format!("'{}' has already been declared", name)),
             )
         } else {
+            assert!(old_value.is_none());
+
+            // Defining a new identifier
             (new_def, None)
         }
     }
@@ -169,6 +210,7 @@ impl Scope {
 
     /// Uses an identifer.
     /// If an identifier is not found in the current scope, it is returned from one of the parent scopes
+    /// If an identifer is found from one of the parent scopes, a new import entry is also created
     /// Should an identifier not be found, an error message is produced, and
     /// an identifier with the same name is declared in the current scope
     pub fn use_ident(&mut self, ident: &Token, name: &str) -> (ast::Identifier, Option<String>) {
@@ -180,7 +222,12 @@ impl Scope {
             (reference, None)
         } else {
             // Peek into each of the parent scopes, in reverse order
-            for scope_ref in self.parent_scopes.iter().rev() {
+            for (scope_ref, downscopes) in self
+                .parent_scopes
+                .iter()
+                .zip(0..self.parent_scopes.len())
+                .rev()
+            {
                 let scope_ref = scope_ref
                     .upgrade()
                     .expect("Memory Error: Scope freed while references still existed towards it");
@@ -188,9 +235,19 @@ impl Scope {
                 let parent_ident = scope.get_ident(name);
 
                 if let Some(declared) = parent_ident {
+                    // Add import info entry
+                    let index = self.add_import_entry(ImportInfo { downscopes });
+
                     let mut reference = declared.clone();
-                    // Change the location to be that of the reference location
+
+                    // Change the location to point to the reference location
                     reference.token = ident.clone();
+                    // Update the import index
+                    reference.import_index.replace(index);
+
+                    // Add to the local definition table
+                    let old_value = self.idents.insert(name.to_string(), reference.clone());
+                    assert!(old_value.is_none());
 
                     return (reference, None);
                 }
@@ -204,15 +261,16 @@ impl Scope {
                 false,
                 false,
                 false,
+                0, // Not imported, just creating a new definition
             );
+
+            // Define the error entry
+            let old_value = self.idents.insert(name.to_string(), err_ident.clone());
 
             // While this should never happen on a single thread, if the
             // parser is somehow made multithreaded, then there may already be
             // a definition
-            assert!(self
-                .idents
-                .insert(name.to_string(), err_ident.clone())
-                .is_none());
+            assert!(old_value.is_none());
 
             (
                 err_ident,
@@ -224,5 +282,21 @@ impl Scope {
     /// Gets the identifier with the given name from the current scope's identifier list
     fn get_ident(&self, name: &str) -> Option<&ast::Identifier> {
         self.idents.get(name)
+    }
+
+    /// Checks if the identifier has been declared in the current scope
+    /// True if it is declared in the current scope, false otherwise
+    fn is_declared(&self, name: &str) -> bool {
+        self.get_ident(name).is_some()
+    }
+
+    /// Adds the given entry to the import table
+    /// Returns the corresponding import index (plus 1)
+    fn add_import_entry(&mut self, info: ImportInfo) -> NonZeroU32 {
+        self.import_table.push(info);
+
+        self.next_import_index += 1;
+        // Import index is +1 of regular index
+        NonZeroU32::new(self.next_import_index).unwrap()
     }
 }
