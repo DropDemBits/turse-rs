@@ -86,7 +86,7 @@ impl ASTVisitor for TypeValidator {
             }
             Expr::Dot {
                 left,
-                ident,
+                field,
                 eval_type,
             } => {
                 self.visit_expr(left);

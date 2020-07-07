@@ -2,10 +2,11 @@
 use crate::compiler::ast::{ASTVisitor, Expr, Identifier, Stmt};
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, TypeRef};
-use crate::compiler::Location;
+use crate::compiler::{Location, Scope};
 use crate::status_reporter::StatusReporter;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::fmt::Arguments;
+use std::rc::Rc;
 
 /*
 expr:
@@ -141,6 +142,8 @@ pub struct Parser<'a> {
     tokens: Vec<Token>,
     /// Parsed statements
     pub stmts: Vec<Stmt>,
+    /// Current scope list
+    scopes: Vec<Rc<RefCell<Scope>>>,
     /// Current token being parsed
     current: Cell<usize>,
 }
@@ -157,6 +160,7 @@ impl<'a> Parser<'a> {
             source,
             tokens,
             stmts: vec![],
+            scopes: vec![Rc::new(RefCell::new(Scope::new(&vec![])))],
             current: Cell::new(0),
         }
     }
@@ -264,11 +268,15 @@ impl<'a> Parser<'a> {
         // Consume decl_tok
         let decl_tok = self.next_token();
 
-        // Grab identifier
-        let ident = self.expects(
+        // TODO: parse definition of multiple identifiers
+        // Grab identifier token
+        let ident_tok = self.expects(
             TokenType::Identifier,
             format_args!("Expected an identifier for the declared {}", decl_name),
         )?;
+
+        // Declare the identifier
+        let _ = self.declare_ident(ident_tok, TypeRef::Unknown, is_const, false);
 
         // Grab typespec
         let type_spec = if self.current().token_type == TokenType::Colon {
@@ -281,6 +289,9 @@ impl<'a> Parser<'a> {
             // Will be resolved in the type analysis stage
             TypeRef::Unknown
         };
+
+        // Resolve the identifier
+        let ident = self.resolve_ident(ident_tok, type_spec, is_const, false);
 
         // Grab assign value
         let assign_expr = if self.is_simple_assignment() {
@@ -313,7 +324,7 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Stmt::VarDecl {
-            ident: self.make_identifier(ident, type_spec),
+            ident,
             value: assign_expr,
             is_const,
         })
@@ -552,9 +563,15 @@ impl<'a> Parser<'a> {
             format_args!("Missing identifier after '.'"),
         )?;
 
+        // The actual identifier information will be resolved at type resolution time,
+        // so we can just store the field name and location info
+
         Ok(Expr::Dot {
             left: Box::new(var_ref),
-            ident: self.make_identifier(ident, TypeRef::Unknown),
+            field: (
+                ident.clone(),
+                ident.location.get_lexeme(self.source).to_string(),
+            ),
             eval_type: TypeRef::Unknown,
         })
     }
@@ -642,16 +659,16 @@ impl<'a> Parser<'a> {
     }
 
     fn expr_ident(&self) -> Result<Expr, ParsingStatus> {
-        let token = self.previous();
+        let ident = self.previous();
 
-        if let TokenType::Identifier = &token.token_type {
+        if let TokenType::Identifier = &ident.token_type {
             Ok(Expr::Reference {
-                ident: self.make_identifier(token, TypeRef::Unknown),
+                ident: self.use_ident(ident),
             })
         } else {
             panic!(
                 "Identifier found but also not found (at {:?})",
-                token.location
+                ident.location
             )
         }
     }
@@ -775,10 +792,62 @@ impl<'a> Parser<'a> {
 
     // --- Helpers --- //
 
-    fn make_identifier(&self, token: &Token, type_spec: TypeRef) -> Identifier {
-        Identifier::new(token, type_spec, self.source)
+    // -- Wrappers around the scope list -- //
+    // See `Scope` for the documentation of these functions
+
+    fn declare_ident(
+        &self,
+        ident: &Token,
+        type_spec: TypeRef,
+        is_const: bool,
+        is_typedef: bool,
+    ) -> Identifier {
+        let (reference, err) = self.scopes.last().unwrap().borrow_mut().declare_ident(
+            ident,
+            ident.location.get_lexeme(self.source).to_string(),
+            type_spec,
+            is_const,
+            is_typedef,
+        );
+
+        if let Some(msg) = err {
+            let _ = self.report_error::<Identifier>(ident.location, format_args!("{}", msg));
+        }
+
+        reference
     }
 
+    fn resolve_ident(
+        &self,
+        ident: &Token,
+        type_spec: TypeRef,
+        is_const: bool,
+        is_typedef: bool,
+    ) -> Identifier {
+        self.scopes.last().unwrap().borrow_mut().resolve_ident(
+            ident.location.get_lexeme(self.source),
+            type_spec,
+            is_const,
+            is_typedef,
+        )
+    }
+
+    fn use_ident(&self, ident: &Token) -> Identifier {
+        let (reference, err) = self
+            .scopes
+            .last()
+            .unwrap()
+            .borrow_mut()
+            .use_ident(&ident, ident.location.get_lexeme(self.source));
+
+        if let Some(msg) = err {
+            let _ = self.report_error::<Identifier>(ident.location, format_args!("{}", msg));
+        }
+
+        reference
+    }
+
+    /// Builds an argument list for an expression
     fn make_arg_list(&self) -> Result<Option<Vec<Expr>>, ParsingStatus> {
         if self.previous().token_type != TokenType::LeftParen {
             // No arg_list to be found
@@ -809,7 +878,7 @@ impl<'a> Parser<'a> {
         return Ok(Some(arg_list));
     }
 
-    /// Gets the precedence and associativity
+    /// Gets the precedence rule for the given token
     fn get_rule(&self, token_type: &TokenType) -> &PrecedenceRule {
         match token_type {
             TokenType::LeftParen => &PrecedenceRule {

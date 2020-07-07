@@ -4,7 +4,7 @@ use crate::compiler::types::TypeRef;
 use std::fmt;
 
 /// Definition of an identifier
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier {
     /// The token associated with the name
     pub token: Token,
@@ -12,14 +12,35 @@ pub struct Identifier {
     pub name: String,
     /// The type for this identifier
     pub type_spec: TypeRef,
+    /// If the identifier backs a storage unit not mutable at runtime
+    pub is_const: bool,
+    /// If the identifier is the name for the type definition pointed to by
+    /// `type_spec`
+    pub is_typedef: bool,
+    /// If the identifier has been declared in a declaration statement, or
+    /// has been defined by reference to the name (used to keep track of undefined
+    /// identifiers)
+    pub is_declared: bool,
+    // ??? Do we need to keep track of the instance of the identifer (i.e. how many times it's been redeclared, not usages)
 }
 
 impl Identifier {
-    pub fn new(token: &Token, type_spec: TypeRef, source: &str) -> Self {
+    /// Creates a new identifier
+    pub fn new(
+        token: Token,
+        type_spec: TypeRef,
+        name: String,
+        is_const: bool,
+        is_typedef: bool,
+        is_declared: bool,
+    ) -> Self {
         Self {
-            token: token.clone(),
-            name: token.location.get_lexeme(source).to_string(),
+            token,
+            name,
             type_spec,
+            is_const,
+            is_typedef,
+            is_declared,
         }
     }
 }
@@ -56,7 +77,9 @@ pub enum Expr {
     },
     Dot {
         left: Box<Self>,
-        ident: Identifier,
+        // Token is provided in case an error wants to be reported at the token location
+        // String is provided as type information is only needed during type validation & compilation
+        field: (Token, String),
         eval_type: TypeRef,
     },
 }
@@ -82,24 +105,16 @@ impl fmt::Debug for Expr {
 
         match self {
             BinaryOp {
-                left,
-                op,
-                right,
-                eval_type: _,
+                left, op, right, ..
             } => f.write_fmt(format_args!(
                 "({:?} {:?} {:?})",
                 &op.token_type, left, right
             )),
-            UnaryOp {
-                op,
-                right,
-                eval_type: _,
-            } => f.write_fmt(format_args!("({:?} {:?})", &op.token_type, right)),
+            UnaryOp { op, right, .. } => {
+                f.write_fmt(format_args!("({:?} {:?})", &op.token_type, right))
+            }
             Grouping { expr, eval_type: _ } => f.write_fmt(format_args!("({:?})", expr)),
-            Literal {
-                value,
-                eval_type: _,
-            } => match &value.token_type {
+            Literal { value, .. } => match &value.token_type {
                 TokenType::StringLiteral(s) => f.write_fmt(format_args!("\"{}\"", s)),
                 TokenType::CharLiteral(s) => f.write_fmt(format_args!("'{}'", s)),
                 TokenType::IntLiteral(n) => f.write_fmt(format_args!("int({})", n)),
@@ -109,17 +124,12 @@ impl fmt::Debug for Expr {
                 _ => f.write_fmt(format_args!("unk({:?})", value)),
             },
             Reference { ident } => f.write_fmt(format_args!("ref({})", ident.name)),
-            Call {
-                left,
-                op: _,
-                arg_list,
-                eval_type: _,
-            } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
+            Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot {
                 left,
-                ident,
-                eval_type: _,
-            } => f.write_fmt(format_args!("(. {:?} {:?})", left, ident.name)), //f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
+                field: (_tok, name),
+                ..
+            } => f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
         }
     }
 }

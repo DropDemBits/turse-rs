@@ -86,7 +86,8 @@ fn compile_run_file(path: &str) {
     let mut type_validator = compiler::type_validator::TypeValidator::new();
     parser.visit_ast(&mut type_validator);
 
-    for expr in parser.stmts {
+    /*for expr in parser.stmts {
         println!("{:?}", expr);
-    }
+    }*/
+    println!("{:#?}", parser);
 }
