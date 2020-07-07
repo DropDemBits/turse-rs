@@ -20,6 +20,8 @@ pub const MAX_STRING_SIZE: usize = 65536;
 pub enum TypeRef {
     /// Unknown type reference, to be resolved in type analysis
     Unknown,
+    /// Error during type analysis or parsing
+    TypeError,
     /// Reference to a primitive type
     Primitive(PrimitiveType),
     /// Reference to a named type, with the unit type id included

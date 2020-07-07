@@ -275,23 +275,19 @@ impl<'a> Parser<'a> {
             format_args!("Expected an identifier for the declared {}", decl_name),
         )?;
 
-        // Declare the identifier
-        let _ = self.declare_ident(ident_tok, TypeRef::Unknown, is_const, false);
-
         // Grab typespec
         let type_spec = if self.current().token_type == TokenType::Colon {
             // Consume colon
             self.next_token();
 
             // Parse the type spec
-            self.parse_type()?
+            // If type parsing fails (i.e. TypeRef::TypeError is produced), the
+            // assignment value is automagically skipped
+            self.parse_type()
         } else {
             // Will be resolved in the type analysis stage
             TypeRef::Unknown
         };
-
-        // Resolve the identifier
-        let ident = self.resolve_ident(ident_tok, type_spec, is_const, false);
 
         // Grab assign value
         let assign_expr = if self.is_simple_assignment() {
@@ -304,24 +300,32 @@ impl<'a> Parser<'a> {
             self.next_token();
 
             // Get the assign expression
-            Some(Box::new(self.expr()?))
-        } else if is_const {
-            // const declares require the assignment expression
-            self.report_error(
-                decl_tok.location,
-                format_args!("const declaration requires an initial value"),
-            )?;
+            let asn_expr = self.expr();
 
-            unreachable!()
+            asn_expr
+                .map(|expr| Some(Box::new(expr)))
+                .unwrap_or_else(|_| None)
         } else {
             None
         };
 
-        if let TypeRef::Unknown = type_spec {
-            if assign_expr.is_none() {
-                self.report_error(decl_tok.location, format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name))?;
-            }
+        // Validate if the declaration requirements have been met
+        if is_const && assign_expr.is_none() {
+            // const declares require the assignment expression
+            let _ = self.report_error::<Expr>(
+                decl_tok.location,
+                format_args!("const declaration requires an initial value"),
+            );
+        } else if type_spec == TypeRef::Unknown && assign_expr.is_none() {
+            // No type inferrable
+            let _ = self.report_error::<Expr>(
+                decl_tok.location,
+                format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name)
+            );
         }
+
+        // Declare the identifier
+        let ident = self.declare_ident(ident_tok, type_spec, is_const, false);
 
         Ok(Stmt::VarDecl {
             ident,
@@ -674,13 +678,15 @@ impl<'a> Parser<'a> {
     }
 
     // --- Type Parsing --- //
-    fn parse_type(&self) -> Result<TypeRef, ParsingStatus> {
+    /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged
+    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed
+    fn parse_type(&self) -> TypeRef {
         let nom_ok = |prim_type| {
             self.next_token();
             TypeRef::Primitive(prim_type)
         };
 
-        let get_size_specifier = || {
+        let get_size_specifier = || -> Result<usize, ParsingStatus> {
             let size = match self.current().token_type {
                 TokenType::IntLiteral(size) if size > 0 => {
                     if size as usize >= types::MAX_STRING_SIZE {
@@ -713,59 +719,58 @@ impl<'a> Parser<'a> {
 
         match &self.current().token_type {
             // Basic primitive types
-            TokenType::Addressint => Ok(nom_ok(PrimitiveType::AddressInt)),
-            TokenType::Boolean => Ok(nom_ok(PrimitiveType::Boolean)),
-            TokenType::Int => Ok(nom_ok(PrimitiveType::Int)),
-            TokenType::Int1 => Ok(nom_ok(PrimitiveType::Int1)),
-            TokenType::Int2 => Ok(nom_ok(PrimitiveType::Int2)),
-            TokenType::Int4 => Ok(nom_ok(PrimitiveType::Int4)),
-            TokenType::Nat => Ok(nom_ok(PrimitiveType::Nat)),
-            TokenType::Nat1 => Ok(nom_ok(PrimitiveType::Nat1)),
-            TokenType::Nat2 => Ok(nom_ok(PrimitiveType::Nat2)),
-            TokenType::Nat4 => Ok(nom_ok(PrimitiveType::Nat4)),
-            TokenType::Real => Ok(nom_ok(PrimitiveType::Real)),
-            TokenType::Real4 => Ok(nom_ok(PrimitiveType::Real4)),
-            TokenType::Real8 => Ok(nom_ok(PrimitiveType::Real8)),
-            TokenType::String_ => {
-                // Nom string
-                self.next_token();
+            TokenType::Addressint => nom_ok(PrimitiveType::AddressInt),
+            TokenType::Boolean => nom_ok(PrimitiveType::Boolean),
+            TokenType::Int => nom_ok(PrimitiveType::Int),
+            TokenType::Int1 => nom_ok(PrimitiveType::Int1),
+            TokenType::Int2 => nom_ok(PrimitiveType::Int2),
+            TokenType::Int4 => nom_ok(PrimitiveType::Int4),
+            TokenType::Nat => nom_ok(PrimitiveType::Nat),
+            TokenType::Nat1 => nom_ok(PrimitiveType::Nat1),
+            TokenType::Nat2 => nom_ok(PrimitiveType::Nat2),
+            TokenType::Nat4 => nom_ok(PrimitiveType::Nat4),
+            TokenType::Real => nom_ok(PrimitiveType::Real),
+            TokenType::Real4 => nom_ok(PrimitiveType::Real4),
+            TokenType::Real8 => nom_ok(PrimitiveType::Real8),
+            TokenType::String_ | TokenType::Char => {
+                // Nom "string" / "char"
+                let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
 
                 // If left paren, construct sized type
                 if self.current().token_type == TokenType::LeftParen {
                     self.next_token();
 
-                    let size = get_size_specifier()?;
+                    // Try to get the size
+                    let parsed_size = get_size_specifier();
 
-                    self.expects(
+                    // Missing ) is recoverable
+                    let _ = self.expects(
                         TokenType::RightParen,
                         format_args!("Expected ')' after length specifier"),
-                    )?;
+                    );
 
-                    Ok(TypeRef::Primitive(PrimitiveType::StringN(size)))
+                    if is_char_type {
+                        match parsed_size {
+                            Ok(size) => TypeRef::Primitive(PrimitiveType::CharN(size)),
+                            // Try to return as a single char, for preserving type analysis semantic and preserving compatibility with Turing proper
+                            Err(_) => TypeRef::Primitive(PrimitiveType::Char),
+                        }
+                    } else {
+                        match parsed_size {
+                            Ok(size) => TypeRef::Primitive(PrimitiveType::StringN(size)),
+                            // Try to return as a normal string, for preserving type analysis semantic
+                            Err(_) => TypeRef::Primitive(PrimitiveType::String_),
+                        }
+                    }
                 } else {
-                    // Make varsized type
-                    Ok(TypeRef::Primitive(PrimitiveType::String_))
-                }
-            }
-            TokenType::Char => {
-                // Nom char
-                self.next_token();
-
-                // If left paren, construct sized type
-                if self.current().token_type == TokenType::LeftParen {
-                    self.next_token();
-
-                    let size = get_size_specifier()?;
-
-                    self.expects(
-                        TokenType::RightParen,
-                        format_args!("Expected ')' after length specifier"),
-                    )?;
-
-                    Ok(TypeRef::Primitive(PrimitiveType::CharN(size)))
-                } else {
-                    // Make single char type
-                    Ok(TypeRef::Primitive(PrimitiveType::Char))
+                    // Produce bracketless versions
+                    if is_char_type {
+                        // Make single char type
+                        TypeRef::Primitive(PrimitiveType::Char)
+                    } else {
+                        // Make varsized type
+                        TypeRef::Primitive(PrimitiveType::String_)
+                    }
                 }
             }
 
@@ -780,13 +785,18 @@ impl<'a> Parser<'a> {
             TokenType::Record => unimplemented!(),
             TokenType::Union => unimplemented!(),
             TokenType::Identifier => unimplemented!(),
-            _ => self.report_error(
-                self.current().location,
-                format_args!(
-                    "Unexpected '{}', expected a type specifier",
-                    self.current().location.get_lexeme(self.source)
-                ),
-            ),
+            _ => {
+                let _ = self.report_error::<TypeRef>(
+                    self.current().location,
+                    format_args!(
+                        "Unexpected '{}', expected a type specifier",
+                        self.current().location.get_lexeme(self.source)
+                    ),
+                );
+
+                // Return a type error
+                TypeRef::TypeError
+            }
         }
     }
 
@@ -1283,26 +1293,220 @@ mod test {
         */
 
         // Invalid: Bigger than the maximum size
-        let mut parser = make_test_parser("const c : string(16#10000)");
+        let mut parser = make_test_parser("var c : string(16#10000)");
         assert!(!parser.parse());
+        // Tried to parse as a "string"
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => {
+                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
+            }
+            _ => panic!(),
+        }
 
-        let mut parser = make_test_parser("const c : string(16#10001)");
+        let mut parser = make_test_parser("var c : string(16#10001)");
         assert!(!parser.parse());
+        // Tried to parse as a "string"
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => {
+                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
+            }
+            _ => panic!(),
+        }
 
         // Invalid: Zero length size expression
-        let mut parser = make_test_parser("const c : char(16#0)");
+        let mut parser = make_test_parser("var c : char(16#0)");
         assert!(!parser.parse());
+        // Tried to parse as a "char"
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => {
+                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Char))
+            }
+            _ => panic!(),
+        }
+
+        let mut parser = make_test_parser("var c : string(16#0)");
+        assert!(!parser.parse());
+        // Tried to parse as a "string"
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => {
+                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
+            }
+            _ => panic!(),
+        }
 
         // Invalid: Dropping the right paren
-        let mut parser = make_test_parser("const c : char(16#0");
+        let mut parser = make_test_parser("var c : char(16#0");
         assert!(!parser.parse());
+        // Tried to parse as a "char"
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => {
+                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Char))
+            }
+            _ => panic!(),
+        }
 
         // Invalid: No length specification
-        let mut parser = make_test_parser("const c : string(");
+        let mut parser = make_test_parser("var c : string(");
         assert!(!parser.parse());
+        // Tried to parse as a "string"
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => {
+                assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_))
+            }
+            _ => panic!(),
+        }
 
-        // Invalid: Not a type specification (should parse the := "hee", but parser needs a bit of rework)
-        let mut parser = make_test_parser("const c : to := 'hee'");
+        // Invalid: Not a type specification (shouldn't parse the := "hee" nor the 'to' as it may cause
+        // phantom errors)
+        let mut parser = make_test_parser("var c : to := 'hee'");
         assert!(!parser.parse());
+        // Failed to parse, as type error
+        match &parser.stmts[0] {
+            Stmt::VarDecl { ident, .. } => assert_eq!(ident.type_spec, TypeRef::TypeError),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_identifier_resolution() {
+        // v decl usage
+        let mut parser = make_test_parser(
+            "
+        var a : int
+        a := a + 1
+        ",
+        );
+        assert!(parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        // v decl usage usage
+        let mut parser = make_test_parser(
+            "
+        var a : int
+        a := a + 1
+        var b := a + 1
+        ",
+        );
+        assert!(parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        // x usage
+        let mut parser = make_test_parser(
+            "
+        a := a + 1 % final type
+        ",
+        );
+        assert!(!parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::TypeError
+        );
+
+        // x usage decl
+        let mut parser = make_test_parser(
+            "
+        a := a + 1
+        var a : int % final type
+        ",
+        );
+        assert!(!parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        // x usage decl decl
+        let mut parser = make_test_parser(
+            "
+        a := a + 1
+        var a : int
+        var a : string % final type
+        ",
+        );
+        assert!(!parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
+
+        // x decl decl
+        let mut parser = make_test_parser(
+            "
+        var a : string
+        var a : real8 % final type
+        ",
+        );
+        assert!(!parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::Real8)
+        );
+
+        // x decl usage-in-asn
+        let mut parser = make_test_parser(
+            "
+        var a : string := a + \"oops\"
+        ",
+        );
+        assert!(!parser.parse());
+        assert_eq!(
+            parser
+                .scopes
+                .last()
+                .unwrap()
+                .borrow()
+                .get_ident("a")
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
     }
 }

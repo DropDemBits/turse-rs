@@ -199,7 +199,7 @@ impl Scope {
             // None found, make a new one!
             let err_ident = Identifier::new(
                 ident.clone(),
-                TypeRef::Unknown,
+                TypeRef::TypeError, // Produce a type error to propagate the error
                 name.to_string(),
                 false,
                 false,
