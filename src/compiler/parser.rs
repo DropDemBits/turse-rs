@@ -253,6 +253,7 @@ impl<'a> Parser<'a> {
     }
 
     // --- Decl Parsing --- //
+
     fn decl(&self) -> Result<Stmt, ParsingStatus> {
         let nom = self.current();
         match nom.token_type {
@@ -312,12 +313,14 @@ impl<'a> Parser<'a> {
         // Validate if the declaration requirements have been met
         if is_const && assign_expr.is_none() {
             // const declares require the assignment expression
+            // Recoverable error, just use Unknown as the type_spec
             let _ = self.report_error::<Expr>(
                 decl_tok.location,
                 format_args!("const declaration requires an initial value"),
             );
         } else if type_spec == TypeRef::Unknown && assign_expr.is_none() {
             // No type inferrable
+            // Recoverable error, just use Unknown as the type_spec
             let _ = self.report_error::<Expr>(
                 decl_tok.location,
                 format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name)
@@ -358,6 +361,10 @@ impl<'a> Parser<'a> {
     fn handle_reference_stmt(&self) -> Result<Stmt, ParsingStatus> {
         // Identifiers & References can begin either an assignment or a procedure call
         // Both take references as the primary expression
+
+        // If the reference expr can't be parsed, bail out
+        // Referring to the an identifier (aside from checking if it's been declared)
+        // isn't important in type resolution
         let reference = self.expr_precedence(Precedence::Deref)?;
         let is_compound_assign = self.is_compound_assignment();
 
@@ -378,6 +385,9 @@ impl<'a> Parser<'a> {
                 assign_op.token_type = TokenType::Assign;
             };
 
+            // If the assign value expr can't be parsed, bail out
+            // Assignment after variable declaration isn't really important
+            // for type resolution
             let value = self.expr()?;
 
             Ok(Stmt::Assign {
