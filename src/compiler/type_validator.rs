@@ -56,6 +56,13 @@ impl ASTVisitor for TypeValidator {
                 // TODO Validate that the types are assignable for the given operation
             }
             Stmt::ProcedureCall { proc_ref } => self.visit_expr(proc_ref),
+            Stmt::Block { block } => {
+                // Change our active scope
+                for stmt in block.borrow_mut().stmts.iter_mut() {
+                    self.visit_stmt(stmt);
+                }
+                // Revert to previous scope
+            }
         }
     }
 

@@ -1,8 +1,11 @@
 //! AST structure definitions
+use crate::compiler::block::CodeBlock;
 use crate::compiler::token::Token;
 use crate::compiler::types::TypeRef;
+use std::cell::RefCell;
 use std::fmt;
 use std::num::NonZeroU32;
+use std::rc::Rc;
 
 /// Definition of an identifier
 #[derive(Debug, Clone)]
@@ -159,6 +162,9 @@ pub enum Stmt {
     },
     ProcedureCall {
         proc_ref: Box<Expr>,
+    },
+    Block {
+        block: Rc<RefCell<CodeBlock>>,
     },
 }
 

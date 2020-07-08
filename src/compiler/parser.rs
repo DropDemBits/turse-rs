@@ -1,8 +1,9 @@
 //! Main parser for tokens to build the AST
 use crate::compiler::ast::{ASTVisitor, Expr, Identifier, Stmt};
+use crate::compiler::block::{BlockKind, CodeBlock};
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, TypeRef};
-use crate::compiler::{Location, Scope};
+use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::{Cell, RefCell};
 use std::fmt::Arguments;
@@ -140,10 +141,11 @@ pub struct Parser<'a> {
     source: &'a str,
     /// Source for tokens
     tokens: Vec<Token>,
-    /// Parsed statements
-    pub stmts: Vec<Stmt>,
-    /// Current scope list
-    scopes: Vec<Rc<RefCell<Scope>>>,
+    /// Parsed main block statements
+    stmts: Vec<Stmt>,
+    /// Current code block list
+    // Enclosing in a RefCell because mutability loops
+    blocks: RefCell<Vec<Rc<RefCell<CodeBlock>>>>,
     /// Current token being parsed
     current: Cell<usize>,
 }
@@ -160,7 +162,10 @@ impl<'a> Parser<'a> {
             source,
             tokens,
             stmts: vec![],
-            scopes: vec![Rc::new(RefCell::new(Scope::new(&vec![])))],
+            blocks: RefCell::new(vec![Rc::new(RefCell::new(CodeBlock::new(
+                BlockKind::Main,
+                &vec![],
+            )))]),
             current: Cell::new(0),
         }
     }
@@ -168,6 +173,8 @@ impl<'a> Parser<'a> {
     /// Parses the token stream
     /// Returns if the parse has no errors
     pub fn parse(&mut self) -> bool {
+        // TODO: Check if the root block is a unit block
+
         while !self.is_at_end() {
             match self.decl() {
                 Ok(expr) => self.stmts.push(expr),
@@ -182,8 +189,6 @@ impl<'a> Parser<'a> {
 
         !self.reporter.has_error()
     }
-
-    // Next up: Identifier / symbol table
 
     /// Visits the AST using the given ASTVisitor
     /// Allows mutable access to the AST
@@ -367,7 +372,8 @@ impl<'a> Parser<'a> {
     fn stmt(&self) -> Result<Stmt, ParsingStatus> {
         let nom = self.current();
         match nom.token_type {
-            TokenType::Identifier | TokenType::Caret => self.handle_reference_stmt(),
+            TokenType::Identifier | TokenType::Caret => self.stmt_reference(),
+            TokenType::Begin => self.stmt_block(),
             _ => {
                 // Nom as token isn't consumed by anything else
                 self.next_token();
@@ -386,7 +392,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn handle_reference_stmt(&self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_reference(&self) -> Result<Stmt, ParsingStatus> {
         // Identifiers & References can begin either an assignment or a procedure call
         // Both take references as the primary expression
 
@@ -431,38 +437,41 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Checks if the current tokens form a compound assignment (operator '=')
-    fn is_compound_assignment(&self) -> bool {
-        if &self.peek().token_type == &TokenType::Equ {
-            // Look ahead token is a '=', check if current is one of the valid compound assign operators
-            match &self.current().token_type {
-                TokenType::Plus
-                | TokenType::Minus
-                | TokenType::Star
-                | TokenType::Div
-                | TokenType::Slash
-                | TokenType::Rem
-                | TokenType::Mod
-                | TokenType::Exp
-                | TokenType::And
-                | TokenType::Or
-                | TokenType::Xor
-                | TokenType::Shl
-                | TokenType::Shr
-                | TokenType::Imply => true,
-                _ => false,
-            }
-        } else {
-            false
-        }
-    }
+    fn stmt_block(&self) -> Result<Stmt, ParsingStatus> {
+        // Nom begin
+        let begin_tok = self.next_token();
 
-    /// Checks if the current token is a simple assignment (':=' or '=')
-    fn is_simple_assignment(&self) -> bool {
-        matches!(
-            &self.current().token_type,
-            TokenType::Assign | TokenType::Equ
-        )
+        self.push_block(BlockKind::InnerBlock);
+
+        let mut stmts = vec![];
+        while !matches!(self.current().token_type, TokenType::End | TokenType::Eof) {
+            let stmt = self.decl();
+
+            // Only add the Stmt if it was parsed successfully
+            if stmt.is_ok() {
+                stmts.push(stmt.unwrap());
+            }
+        }
+
+        if matches!(self.current().token_type, TokenType::Eof) {
+            // If at the end of file, do nothing
+            // All of the statements have been absolved into this block
+
+            self.reporter.report_error(
+                &begin_tok.location,
+                format_args!("'begin' block does not have a matching 'end'"),
+            );
+        } else {
+            let _ = self.expects(
+                TokenType::End,
+                format_args!("Expected 'end' to close off 'begin' block"),
+            );
+        }
+
+        // Close the block
+        let block = self.pop_block(&mut stmts);
+
+        Ok(Stmt::Block { block })
     }
 
     // --- Expr Parsing --- //
@@ -846,8 +855,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // --- Helpers --- //
-
     // -- Wrappers around the scope list -- //
     // See `Scope` for the documentation of these functions
 
@@ -858,13 +865,20 @@ impl<'a> Parser<'a> {
         is_const: bool,
         is_typedef: bool,
     ) -> Identifier {
-        let (reference, err) = self.scopes.last().unwrap().borrow_mut().declare_ident(
-            ident,
-            ident.location.get_lexeme(self.source).to_string(),
-            type_spec,
-            is_const,
-            is_typedef,
-        );
+        let (reference, err) = self
+            .blocks
+            .borrow()
+            .last()
+            .unwrap()
+            .borrow_mut()
+            .scope
+            .declare_ident(
+                ident,
+                ident.location.get_lexeme(self.source).to_string(),
+                type_spec,
+                is_const,
+                is_typedef,
+            );
 
         if let Some(msg) = err {
             self.reporter
@@ -874,6 +888,7 @@ impl<'a> Parser<'a> {
         reference
     }
 
+    #[allow(dead_code)]
     fn resolve_ident(
         &self,
         ident: &Token,
@@ -881,20 +896,28 @@ impl<'a> Parser<'a> {
         is_const: bool,
         is_typedef: bool,
     ) -> Identifier {
-        self.scopes.last().unwrap().borrow_mut().resolve_ident(
-            ident.location.get_lexeme(self.source),
-            type_spec,
-            is_const,
-            is_typedef,
-        )
+        self.blocks
+            .borrow()
+            .last()
+            .unwrap()
+            .borrow_mut()
+            .scope
+            .resolve_ident(
+                ident.location.get_lexeme(self.source),
+                type_spec,
+                is_const,
+                is_typedef,
+            )
     }
 
     fn use_ident(&self, ident: &Token) -> Identifier {
         let (reference, err) = self
-            .scopes
+            .blocks
+            .borrow()
             .last()
             .unwrap()
             .borrow_mut()
+            .scope
             .use_ident(&ident, ident.location.get_lexeme(self.source));
 
         if let Some(msg) = err {
@@ -903,6 +926,59 @@ impl<'a> Parser<'a> {
         }
 
         reference
+    }
+
+    /// Pushes a new block onto the block list
+    fn push_block(&self, block_kind: BlockKind) {
+        let block = CodeBlock::new(block_kind, self.blocks.borrow().as_ref());
+
+        // Add the block to the list
+        self.blocks.borrow_mut().push(Rc::new(RefCell::new(block)));
+    }
+
+    /// Pops a block off of the block list, and moving the given statement list
+    /// into the block
+    fn pop_block(&self, stmts: &mut Vec<Stmt>) -> Rc<RefCell<CodeBlock>> {
+        let block = self.blocks.borrow_mut().pop().unwrap();
+        block.borrow_mut().stmts.append(stmts);
+
+        block
+    }
+
+    // --- Helpers --- //
+
+    /// Checks if the current tokens form a compound assignment (operator '=')
+    fn is_compound_assignment(&self) -> bool {
+        if &self.peek().token_type == &TokenType::Equ {
+            // Look ahead token is a '=', check if current is one of the valid compound assign operators
+            match &self.current().token_type {
+                TokenType::Plus
+                | TokenType::Minus
+                | TokenType::Star
+                | TokenType::Div
+                | TokenType::Slash
+                | TokenType::Rem
+                | TokenType::Mod
+                | TokenType::Exp
+                | TokenType::And
+                | TokenType::Or
+                | TokenType::Xor
+                | TokenType::Shl
+                | TokenType::Shr
+                | TokenType::Imply => true,
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Checks if the current token is a simple assignment (':=' or '=')
+    fn is_simple_assignment(&self) -> bool {
+        matches!(
+            &self.current().token_type,
+            TokenType::Assign | TokenType::Equ
+        )
     }
 
     /// Builds an argument list for an expression
@@ -1062,10 +1138,12 @@ mod test {
     fn check_ident_expected_type(parser: &Parser, name: &str, expected: TypeRef) {
         assert_eq!(
             parser
-                .scopes
+                .blocks
+                .borrow()
                 .last()
                 .unwrap()
                 .borrow()
+                .scope
                 .get_ident(name)
                 .unwrap()
                 .type_spec,
@@ -1493,5 +1571,58 @@ mod test {
         );
         assert!(!parser.parse());
         check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
+    }
+
+    #[test]
+    fn test_block_stmt() {
+        let mut parser = make_test_parser(
+            "
+        % Local declarations & importation
+        begin
+            var hey := 2
+            begin
+                var yay : real := 5 + hey
+            end
+            var yay : int := 6 - hey
+        end
+        var yay : string := \"hello!\"
+        ",
+        );
+        assert!(parser.parse());
+
+        // Missing end
+        let mut parser = make_test_parser(
+            "
+        begin
+            var yay : int := 5
+        var yay : string := \"hello!\"
+        ",
+        );
+        assert!(!parser.parse());
+
+        // Redeclaration of declared - global - inner
+        let mut parser = make_test_parser(
+            "
+        var yay : string := \"hello!\"
+        begin
+            var yay : int := 5
+        end
+        ",
+        );
+        assert!(!parser.parse());
+
+        // Redeclaration of declared - inner - inner
+        let mut parser = make_test_parser(
+            "
+        begin
+            var yay : int := 5
+            begin
+                var yay : int := 5
+            end
+        end
+        var yay : string := \"hello!\"
+        ",
+        );
+        assert!(!parser.parse());
     }
 }
