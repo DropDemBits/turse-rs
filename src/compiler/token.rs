@@ -13,7 +13,7 @@ pub struct Token {
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Character Tokens
-    /// ^
+    /// @
     At,
     /// ->
     Deref,
@@ -106,7 +106,6 @@ pub enum TokenType {
     Export,
     External,
     False,
-    Fcn,
     Flexible,
     For,
     Fork,
@@ -150,7 +149,6 @@ pub enum TokenType {
     Post,
     Pre,
     Priority,
-    Proc,
     Procedure,
     Process,
     Put,

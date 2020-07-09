@@ -882,7 +882,7 @@ impl<'s> Scanner<'s> {
             "export" => TokenType::Export,
             "external" => TokenType::External,
             "false" => TokenType::False,
-            "fcn" => TokenType::Fcn,
+            "fcn" => TokenType::Function,
             "flexible" => TokenType::Flexible,
             "for" => TokenType::For,
             "fork" => TokenType::Fork,
@@ -926,7 +926,7 @@ impl<'s> Scanner<'s> {
             "post" => TokenType::Post,
             "pre" => TokenType::Pre,
             "priority" => TokenType::Priority,
-            "proc" => TokenType::Proc,
+            "proc" => TokenType::Procedure,
             "procedure" => TokenType::Procedure,
             "process" => TokenType::Process,
             "put" => TokenType::Put,
@@ -1421,5 +1421,19 @@ mod test {
                 &TokenType::Eof,
             ]
         );
+    }
+
+    #[test]
+    fn test_aliases() {
+        let mut scanner = Scanner::new("fcn proc");
+        assert!(scanner.scan_tokens());
+        assert_eq!(
+            scanner
+                .tokens
+                .iter()
+                .map(|tk| &tk.token_type)
+                .collect::<Vec<&TokenType>>(),
+            vec![&TokenType::Function, &TokenType::Procedure, &TokenType::Eof,]
+        )
     }
 }
