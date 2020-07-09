@@ -2,7 +2,7 @@
 use crate::compiler::ast::{ASTVisitor, Expr, Identifier, Stmt};
 use crate::compiler::block::{BlockKind, CodeBlock};
 use crate::compiler::token::{Token, TokenType};
-use crate::compiler::types::{self, PrimitiveType, TypeRef};
+use crate::compiler::types::{self, FuncParam, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::{Cell, RefCell};
@@ -141,13 +141,17 @@ pub struct Parser<'a> {
     source: &'a str,
     /// Source for tokens
     tokens: Vec<Token>,
+    /// Current token being parsed
+    current: Cell<usize>,
+
+    // CodeUnit Things
     /// Parsed main block statements
     stmts: Vec<Stmt>,
     /// Current code block list
-    // Enclosing in a RefCell because mutability loops
+    // Enclosing in a RefCell because of mutability loops
     blocks: RefCell<Vec<Rc<RefCell<CodeBlock>>>>,
-    /// Current token being parsed
-    current: Cell<usize>,
+    /// All types defined in the unit
+    types: RefCell<TypeTable>,
 }
 
 #[derive(Debug)]
@@ -161,12 +165,13 @@ impl<'a> Parser<'a> {
             reporter: StatusReporter::new(),
             source,
             tokens,
+            current: Cell::new(0),
             stmts: vec![],
             blocks: RefCell::new(vec![Rc::new(RefCell::new(CodeBlock::new(
                 BlockKind::Main,
                 &vec![],
             )))]),
-            current: Cell::new(0),
+            types: RefCell::new(TypeTable::new()),
         }
     }
 
@@ -231,7 +236,8 @@ impl<'a> Parser<'a> {
         self.current().token_type == TokenType::Eof
     }
 
-    /// Consumes the expected token, or returns a message indicating the error
+    /// If the current token matches the expected token, the current token is consumed \
+    /// Otherwise an error messag is reported
     fn expects(
         &self,
         expected_type: TokenType,
@@ -305,9 +311,9 @@ impl<'a> Parser<'a> {
             // Parse the type spec
             // If type parsing fails (i.e. TypeRef::TypeError is produced), the
             // assignment value is automagically skipped
-            self.parse_type()
+            self.parse_type(&decl_tok.token_type)
         } else {
-            // Will be resolved in the type analysis stage
+            // Will be resolved in the type resolution stage
             TypeRef::Unknown
         };
 
@@ -728,14 +734,74 @@ impl<'a> Parser<'a> {
     }
 
     // --- Type Parsing --- //
-    /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged
-    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed
-    fn parse_type(&self) -> TypeRef {
-        let nom_ok = |prim_type| {
-            self.next_token();
-            TypeRef::Primitive(prim_type)
-        };
+    /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged \
+    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed \
+    ///
+    /// `parse_context`         The token type describing where the type is being parsed
+    fn parse_type(&self, parse_context: &TokenType) -> TypeRef {
+        match &self.current().token_type {
+            // Basic primitive types
+            TokenType::Addressint => self.type_primitive(PrimitiveType::AddressInt),
+            TokenType::Boolean => self.type_primitive(PrimitiveType::Boolean),
+            TokenType::Int => self.type_primitive(PrimitiveType::Int),
+            TokenType::Int1 => self.type_primitive(PrimitiveType::Int1),
+            TokenType::Int2 => self.type_primitive(PrimitiveType::Int2),
+            TokenType::Int4 => self.type_primitive(PrimitiveType::Int4),
+            TokenType::Nat => self.type_primitive(PrimitiveType::Nat),
+            TokenType::Nat1 => self.type_primitive(PrimitiveType::Nat1),
+            TokenType::Nat2 => self.type_primitive(PrimitiveType::Nat2),
+            TokenType::Nat4 => self.type_primitive(PrimitiveType::Nat4),
+            TokenType::Real => self.type_primitive(PrimitiveType::Real),
+            TokenType::Real4 => self.type_primitive(PrimitiveType::Real4),
+            TokenType::Real8 => self.type_primitive(PrimitiveType::Real8),
+            TokenType::String_ | TokenType::Char => self.type_char_seq(),
 
+            // Compound primitives
+            TokenType::Flexible | TokenType::Array => unimplemented!(),
+            TokenType::Pointer | TokenType::Caret => self.type_pointer(parse_context),
+            TokenType::Set => unimplemented!(), // Only in "type" decls
+            // subprogram_header
+            TokenType::Function | TokenType::Procedure => {
+                // Consume function & the identifier (don't care about those)
+                // "function" / "procedure"
+                let is_function = matches!(self.next_token().token_type, TokenType::Function);
+                // Identifier
+                let _ = self.expects(
+                    TokenType::Identifier,
+                    format_args!("Expected identifier in function type declaration"),
+                );
+
+                self.type_function(parse_context, is_function)
+            }
+            TokenType::Enum => unimplemented!(),
+            TokenType::Record => unimplemented!(),
+            TokenType::Union => unimplemented!(),
+            TokenType::Identifier => self.type_ident(),
+            _ => {
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!(
+                        "Unexpected '{}', expected a type specifier",
+                        self.current().location.get_lexeme(self.source)
+                    ),
+                );
+
+                // Return a type error
+                TypeRef::TypeError
+            }
+        }
+    }
+
+    /// Parse a basic primitive type
+    fn type_primitive(&self, primitive: PrimitiveType) -> TypeRef {
+        // Consume name
+        self.next_token();
+
+        TypeRef::Primitive(primitive)
+    }
+
+    /// Parse character sequence (string, char, char(n))
+    fn type_char_seq(&self) -> TypeRef {
         let get_size_specifier = || -> Result<usize, ()> {
             match self.current().token_type {
                 TokenType::IntLiteral(size) if size > 0 => {
@@ -772,92 +838,147 @@ impl<'a> Parser<'a> {
             }
         };
 
-        match &self.current().token_type {
-            // Basic primitive types
-            TokenType::Addressint => nom_ok(PrimitiveType::AddressInt),
-            TokenType::Boolean => nom_ok(PrimitiveType::Boolean),
-            TokenType::Int => nom_ok(PrimitiveType::Int),
-            TokenType::Int1 => nom_ok(PrimitiveType::Int1),
-            TokenType::Int2 => nom_ok(PrimitiveType::Int2),
-            TokenType::Int4 => nom_ok(PrimitiveType::Int4),
-            TokenType::Nat => nom_ok(PrimitiveType::Nat),
-            TokenType::Nat1 => nom_ok(PrimitiveType::Nat1),
-            TokenType::Nat2 => nom_ok(PrimitiveType::Nat2),
-            TokenType::Nat4 => nom_ok(PrimitiveType::Nat4),
-            TokenType::Real => nom_ok(PrimitiveType::Real),
-            TokenType::Real4 => nom_ok(PrimitiveType::Real4),
-            TokenType::Real8 => nom_ok(PrimitiveType::Real8),
-            TokenType::String_ | TokenType::Char => {
-                // Nom "string" / "char"
-                let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
+        // Nom "string" / "char"
+        let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
 
-                // If left paren, construct sized type
-                if self.current().token_type == TokenType::LeftParen {
-                    self.next_token();
+        // If left paren, construct sized type
+        if self.current().token_type == TokenType::LeftParen {
+            self.next_token();
 
-                    // Try to get the size
-                    let parsed_size = get_size_specifier();
+            // Try to get the size
+            let parsed_size = get_size_specifier();
 
-                    // Missing ) is recoverable
+            // Missing ) is recoverable
+            let _ = self.expects(
+                TokenType::RightParen,
+                format_args!("Expected ')' after length specifier"),
+            );
+
+            if is_char_type {
+                match parsed_size {
+                    Ok(size) => TypeRef::Primitive(PrimitiveType::CharN(size)),
+                    // Try to return as a single char, for preserving type resolution semantics and preserving compatibility with Turing proper
+                    Err(_) => TypeRef::Primitive(PrimitiveType::Char),
+                }
+            } else {
+                match parsed_size {
+                    Ok(size) => TypeRef::Primitive(PrimitiveType::StringN(size)),
+                    // Try to return as a normal string, for preserving type resolution semantics
+                    Err(_) => TypeRef::Primitive(PrimitiveType::String_),
+                }
+            }
+        } else {
+            // Produce bracketless versions
+            if is_char_type {
+                // Make single char type
+                TypeRef::Primitive(PrimitiveType::Char)
+            } else {
+                // Make varsized type
+                TypeRef::Primitive(PrimitiveType::String_)
+            }
+        }
+    }
+
+    /// Parse pointer to another type
+    fn type_pointer(&self, parse_context: &TokenType) -> TypeRef {
+        // Consume "pointer" or '^'
+        if let TokenType::Pointer = &self.next_token().token_type {
+            // Consume the "to"
+            let _ = self.expects(TokenType::To, format_args!("Expected 'to' after 'pointer'"));
+        }
+
+        // Get the pointer to type
+        let pointer_to = self.parse_type(parse_context);
+        let typedef = Type::Pointer { to: pointer_to };
+
+        TypeRef::Named(self.types.borrow_mut().declare_type(typedef))
+    }
+
+    /// Parse procedure & function parameter specification & result type
+    fn type_function(&self, parse_context: &TokenType, has_result: bool) -> TypeRef {
+        let param_decl = if let TokenType::LeftParen = self.current().token_type {
+            // Parameter Declaration
+
+            // Consume left paren
+            self.next_token();
+
+            let mut params = vec![];
+
+            if self.current().token_type != TokenType::RightParen {
+                loop {
+                    let ident = self
+                        .expects(
+                            TokenType::Identifier,
+                            format_args!("Expected identifier for parameter name"),
+                        )
+                        .map(|tok| tok.location.get_lexeme(self.source).to_string())
+                        .unwrap_or(String::from("<invalid>"));
+
                     let _ = self.expects(
-                        TokenType::RightParen,
-                        format_args!("Expected ')' after length specifier"),
+                        TokenType::Colon,
+                        format_args!("Expected ':' after parameter name"),
                     );
 
-                    if is_char_type {
-                        match parsed_size {
-                            Ok(size) => TypeRef::Primitive(PrimitiveType::CharN(size)),
-                            // Try to return as a single char, for preserving type analysis semantic and preserving compatibility with Turing proper
-                            Err(_) => TypeRef::Primitive(PrimitiveType::Char),
-                        }
-                    } else {
-                        match parsed_size {
-                            Ok(size) => TypeRef::Primitive(PrimitiveType::StringN(size)),
-                            // Try to return as a normal string, for preserving type analysis semantic
-                            Err(_) => TypeRef::Primitive(PrimitiveType::String_),
-                        }
+                    let param_type = self.parse_type(parse_context);
+
+                    params.push(FuncParam(ident, param_type));
+
+                    if self.current().token_type != TokenType::Comma {
+                        // No more things to parse, or invalid token
+                        break;
                     }
-                } else {
-                    // Produce bracketless versions
-                    if is_char_type {
-                        // Make single char type
-                        TypeRef::Primitive(PrimitiveType::Char)
-                    } else {
-                        // Make varsized type
-                        TypeRef::Primitive(PrimitiveType::String_)
-                    }
+
+                    // Consume ','
+                    self.next_token();
                 }
             }
 
-            // Compound primitives (requires type/sym table)
-            TokenType::Array => unimplemented!(),
-            TokenType::Pointer | TokenType::Caret => unimplemented!(),
-            TokenType::Set => unimplemented!(), // Only in "type" decls
-            // subprogram_header
-            TokenType::Function => unimplemented!(),
-            TokenType::Procedure => unimplemented!(),
-            TokenType::Enum => unimplemented!(),
-            TokenType::Record => unimplemented!(),
-            TokenType::Union => unimplemented!(),
-            TokenType::Identifier => unimplemented!(),
-            _ => {
-                self.reporter.report_error(
-                    &self.current().location,
-                    format_args!(
-                        "Unexpected '{}', expected a type specifier",
-                        self.current().location.get_lexeme(self.source)
-                    ),
-                );
+            let _ = self.expects(
+                TokenType::RightParen,
+                format_args!("Expected ')' after parameter declaration"),
+            );
 
-                // Return a type error
-                TypeRef::TypeError
-            }
-        }
+            Some(params)
+        } else {
+            // Parameterless declaration
+            None
+        };
+
+        let result_type = if has_result {
+            let _ = self.expects(
+                TokenType::Colon,
+                format_args!("Expected ':' before the result type"),
+            );
+
+            Some(self.parse_type(parse_context))
+        } else {
+            // No result type
+            None
+        };
+
+        TypeRef::Named(self.types.borrow_mut().declare_type(Type::Function {
+            params: param_decl,
+            result: result_type,
+        }))
+    }
+
+    /// Parse an identifier
+    fn type_ident(&self) -> TypeRef {
+        // Get ident token
+        let ident_tok = self.next_token();
+        let (ident, _) = self.use_ident_msg(ident_tok);
+
+        // Postpone type resolution until later
+        // The identifier may refer to an imported unqualified identifier,
+        // which are not resolved until after AST building. The error message
+        // is therefore ignored, as the identifier may be resolved later.
+        TypeRef::Named(self.types.borrow_mut().declare_type(Type::Named { ident }))
     }
 
     // -- Wrappers around the scope list -- //
     // See `Scope` for the documentation of these functions
 
+    /// Declares an identifer in the current scope, reporting the error message
     fn declare_ident(
         &self,
         ident: &Token,
@@ -910,15 +1031,20 @@ impl<'a> Parser<'a> {
             )
     }
 
-    fn use_ident(&self, ident: &Token) -> Identifier {
-        let (reference, err) = self
-            .blocks
+    /// Uses an identifer, providing the error message
+    fn use_ident_msg(&self, ident: &Token) -> (Identifier, Option<String>) {
+        self.blocks
             .borrow()
             .last()
             .unwrap()
             .borrow_mut()
             .scope
-            .use_ident(&ident, ident.location.get_lexeme(self.source));
+            .use_ident(&ident, ident.location.get_lexeme(self.source))
+    }
+
+    /// Uses an identifer, reporting the error message
+    fn use_ident(&self, ident: &Token) -> Identifier {
+        let (reference, err) = self.use_ident_msg(ident);
 
         if let Some(msg) = err {
             self.reporter
@@ -1498,6 +1624,56 @@ mod test {
         assert!(!parser.parse());
         // Failed to parse, as type error
         check_ident_expected_type(&parser, "c", TypeRef::TypeError);
+    }
+
+    #[test]
+    fn test_compound_type_parser() {
+        // Undeclared type identifiers don't produce an error until the type resolution stage
+        let mut parser = make_test_parser(
+            "
+var a : pointer to int
+var b : ^ string
+var c : some_type
+var d : procedure nps
+var e : procedure np   ()
+var f : procedure p1   (a : int)
+var g : procedure p2   (a : int, b : string)
+var h : procedure pisp (a : int, b : string, c : procedure _ ())
+var i : function nps : int
+var j : function np   () : real
+var k : function p1   (a : int) : string
+var l : function p2   (a : int, b : string) : addressint
+var m : function pisp (a : int, b : string, c : procedure _ ()) : boolean
+        ",
+        );
+        assert!(parser.parse());
+
+        // Pointer type expects "to"
+        let mut parser = make_test_parser("var a : pointer int");
+        assert!(!parser.parse());
+
+        // Pointer type expects type
+        let mut parser = make_test_parser("var a : ^");
+        assert!(!parser.parse());
+
+        // Pointer type expects type
+        let mut parser = make_test_parser("var a : pointer");
+        assert!(!parser.parse());
+
+        // Function expects ':' before result type
+        let mut parser = make_test_parser("var a : function a int");
+        assert!(!parser.parse());
+
+        // Function expects type after ':'
+        let mut parser = make_test_parser("var a : function a :");
+        assert!(!parser.parse());
+
+        // Function / procedure expects identifier after keyword (this can be made optional in the future)
+        let mut parser = make_test_parser("var a : procedure");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : function : int");
+        assert!(!parser.parse());
     }
 
     #[test]

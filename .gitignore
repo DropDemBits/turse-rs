@@ -1,4 +1,5 @@
 /target
 # Test Turing files
+scratch_files/*
 test.t
 compile_output.txt
