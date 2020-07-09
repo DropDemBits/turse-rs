@@ -18,13 +18,14 @@ pub struct ImportInfo {
 #[derive(Debug)]
 pub struct Scope {
     /// Mappings for all active identifiers
-    /// Identifiers are unique within a given scope, and any name conflicts
-    /// are resolved by storing the most recent definition (as it is assumed
-    /// that the old identifier definition is not going to be used anymore)
+    /// Identifiers are unique within a given scope.
+    /// Any name conflicts are resolved by storing the most recent definition
+    /// as it is assumed that the old identifier definition is not going to
+    /// be used anymore.
     idents: HashMap<String, Identifier>,
-    /// Parent scopes of the current scope
-    /// First element is the global scope for the current code unit
-    /// If the vector is empty, the current scope is the global scope
+    /// Parent scopes of the current scope.
+    /// First element is the global scope for the current code unit.
+    /// If the vector is empty, the current scope is the global scope.
     parent_blocks: Vec<Weak<RefCell<CodeBlock>>>,
     /// Next import index into the import table
     next_import_index: u32,
@@ -91,7 +92,7 @@ impl Scope {
 
             let block_ref = block_ref
                 .upgrade()
-                .expect("Memory Error: Scope freed while references still existed towards it");
+                .expect("Block dropped while references still exists to it");
 
             ident_exists = block_ref.borrow().scope.get_ident(&name).is_some();
         }
@@ -157,15 +158,10 @@ impl Scope {
             (reference, None)
         } else {
             // Peek into each of the parent scopes, in reverse order
-            for (block_ref, downscopes) in self
-                .parent_blocks
-                .iter()
-                .zip(0..self.parent_blocks.len())
-                .rev()
-            {
+            for (downscopes, block_ref) in self.parent_blocks.iter().enumerate().rev() {
                 let block_ref = block_ref
                     .upgrade()
-                    .expect("Memory Error: Scope freed while references still existed towards it");
+                    .expect("Block dropped while references still exists to it");
                 let block = block_ref.borrow();
                 let parent_ident = block.scope.get_ident(name);
 
@@ -227,5 +223,272 @@ impl Scope {
         self.next_import_index += 1;
         // Import index is +1 of regular index
         NonZeroU32::new(self.next_import_index).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::compiler::block::BlockKind;
+    use crate::compiler::token::TokenType;
+    use crate::compiler::types::PrimitiveType;
+    use crate::compiler::Location;
+
+    fn make_test_block(
+        block_kind: BlockKind,
+        enclosing_blocks: &Vec<Rc<RefCell<CodeBlock>>>,
+    ) -> CodeBlock {
+        CodeBlock::new(block_kind, enclosing_blocks)
+    }
+
+    /// Makes a nested block list with the specified number of blocks
+    /// `depth` How many nested blocks to construct
+    fn make_test_block_list(depth: usize) -> Vec<Rc<RefCell<CodeBlock>>> {
+        let mut blocks = vec![];
+
+        for _ in 0..depth {
+            blocks.push(Rc::new(RefCell::new(make_test_block(
+                BlockKind::InnerBlock,
+                &blocks,
+            ))));
+        }
+
+        blocks
+    }
+
+    fn make_ident_token() -> Token {
+        Token {
+            location: Location::new(),
+            token_type: TokenType::Identifier,
+        }
+    }
+
+    #[test]
+    fn test_ident_declare_use() {
+        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let mut scope = root_block.scope;
+
+        let (ident, declare_msg) = scope.declare_ident(
+            &make_ident_token(),
+            String::from("a"),
+            TypeRef::Primitive(PrimitiveType::Int),
+            false,
+            false,
+        );
+        assert!(declare_msg.is_none());
+        assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        let (use_ident, use_msg) = scope.use_ident(&make_ident_token(), "a");
+        assert!(use_msg.is_none());
+        assert_eq!(use_ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
+    }
+
+    #[test]
+    fn test_ident_redeclare() {
+        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let mut scope = root_block.scope;
+
+        // First decl, pass
+        let (ident, declare_msg) = scope.declare_ident(
+            &make_ident_token(),
+            String::from("a"),
+            TypeRef::Primitive(PrimitiveType::Int),
+            false,
+            false,
+        );
+        assert!(declare_msg.is_none());
+        assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        // Redecl, fail
+        let (redeclare_ident, redeclare_msg) = scope.declare_ident(
+            &make_ident_token(),
+            String::from("a"),
+            TypeRef::Primitive(PrimitiveType::String_),
+            false,
+            false,
+        );
+        assert!(redeclare_msg.is_some());
+        assert_eq!(
+            redeclare_ident.type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
+    }
+
+    #[test]
+    fn test_ident_declare_shadow() {
+        // Identifier shadowing is not allow within inner scopes
+        let mut blocks = vec![];
+        let root_block = Rc::new(RefCell::new(make_test_block(BlockKind::Main, &blocks)));
+        blocks.push(root_block);
+        let inner_block = Rc::new(RefCell::new(make_test_block(
+            BlockKind::InnerBlock,
+            &blocks,
+        )));
+        blocks.push(inner_block);
+
+        // Outer declare
+        {
+            let root_scope = &mut blocks[0].borrow_mut().scope;
+
+            let (declare_ident, declare_msg) = root_scope.declare_ident(
+                &make_ident_token(),
+                String::from("a"),
+                TypeRef::Primitive(PrimitiveType::Int),
+                false,
+                false,
+            );
+            assert!(declare_msg.is_none());
+            assert_eq!(
+                declare_ident.type_spec,
+                TypeRef::Primitive(PrimitiveType::Int)
+            );
+        }
+
+        // Inner declare
+        {
+            let inner_scope = &mut blocks[1].borrow_mut().scope;
+            let (shadow_ident, shadow_msg) = inner_scope.declare_ident(
+                &make_ident_token(),
+                String::from("a"),
+                TypeRef::Primitive(PrimitiveType::Real),
+                false,
+                false,
+            );
+            assert!(shadow_msg.is_some());
+            assert_eq!(
+                shadow_ident.type_spec,
+                TypeRef::Primitive(PrimitiveType::Real)
+            );
+        }
+    }
+
+    #[test]
+    fn test_ident_declare_no_shadow() {
+        // Declaring outer after inner scopes should not cause issues
+        let mut blocks = vec![];
+        let root_block = Rc::new(RefCell::new(make_test_block(BlockKind::Main, &blocks)));
+        blocks.push(root_block);
+        let inner_block = Rc::new(RefCell::new(make_test_block(
+            BlockKind::InnerBlock,
+            &blocks,
+        )));
+        blocks.push(inner_block);
+
+        // Inner declare
+        {
+            let inner_scope = &mut blocks[1].borrow_mut().scope;
+            let (shadow_ident, shadow_msg) = inner_scope.declare_ident(
+                &make_ident_token(),
+                String::from("a"),
+                TypeRef::Primitive(PrimitiveType::Real),
+                false,
+                false,
+            );
+            assert!(shadow_msg.is_none());
+            assert_eq!(
+                shadow_ident.type_spec,
+                TypeRef::Primitive(PrimitiveType::Real)
+            );
+        }
+
+        // Outer declare
+        {
+            let root_scope = &mut blocks[0].borrow_mut().scope;
+
+            let (declare_ident, declare_msg) = root_scope.declare_ident(
+                &make_ident_token(),
+                String::from("a"),
+                TypeRef::Primitive(PrimitiveType::Int),
+                false,
+                false,
+            );
+            assert!(declare_msg.is_none());
+            assert_eq!(
+                declare_ident.type_spec,
+                TypeRef::Primitive(PrimitiveType::Int)
+            );
+        }
+    }
+
+    #[test]
+    fn test_resolve_defined() {
+        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let mut scope = root_block.scope;
+
+        let (ident, msg) = scope.declare_ident(
+            &make_ident_token(),
+            String::from("a"),
+            TypeRef::Primitive(PrimitiveType::Int),
+            false,
+            false,
+        );
+        assert!(msg.is_none());
+        assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        let ident =
+            scope.resolve_ident("a", TypeRef::Primitive(PrimitiveType::String_), true, true);
+
+        assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_));
+        assert_eq!(
+            scope.get_ident("a").unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "The given identifier has not been declared yet")]
+    fn test_resolve_undefined() {
+        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let mut scope = root_block.scope;
+
+        // Panics!
+        let _ = scope.resolve_ident("a", TypeRef::Primitive(PrimitiveType::String_), true, true);
+    }
+
+    #[test]
+    fn test_use_undefined() {
+        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let mut scope = root_block.scope;
+
+        let (ident, msg) = scope.use_ident(&make_ident_token(), "a");
+        assert!(msg.is_some());
+        assert_eq!(ident.type_spec, TypeRef::TypeError);
+    }
+
+    #[test]
+    fn test_use_import() {
+        // External identifiers should be imported into the current scope
+        let mut blocks = make_test_block_list(3);
+
+        // Outer declare
+        {
+            let root_scope = &mut blocks[1].borrow_mut().scope;
+
+            let (declare_ident, declare_msg) = root_scope.declare_ident(
+                &make_ident_token(),
+                String::from("a"),
+                TypeRef::Primitive(PrimitiveType::Int),
+                false,
+                false,
+            );
+            assert!(declare_msg.is_none());
+            assert_eq!(
+                declare_ident.type_spec,
+                TypeRef::Primitive(PrimitiveType::Int)
+            );
+        }
+
+        // Inner use
+        {
+            let inner_scope = &mut blocks[2].borrow_mut().scope;
+            let (shadow_ident, shadow_msg) = inner_scope.use_ident(&make_ident_token(), "a");
+            assert!(shadow_msg.is_none());
+            assert_eq!(
+                shadow_ident.type_spec,
+                TypeRef::Primitive(PrimitiveType::Int)
+            );
+            // Going down 1 scope from root/import boundary
+            assert_eq!(inner_scope.import_table[0].downscopes, 1);
+        }
     }
 }
