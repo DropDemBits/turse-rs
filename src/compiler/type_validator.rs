@@ -159,7 +159,13 @@ impl ASTVisitorMut<()> for TypeValidator {
                                     .unwrap();
                         } else {
                             // error, report!
-                            self.reporter.report_error(loc, format_args!("Operands of '+' must both be scalars (int, real, or nat), strings, or compatible sets"));
+                            self.reporter.report_error(
+                                loc, 
+                                format_args!(
+                                    "Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets",
+                                    op
+                                ),
+                            );
                             *eval_type = binary_default(op);
                         }
                     }
@@ -177,8 +183,10 @@ impl ASTVisitorMut<()> for TypeValidator {
                             // error, report!
                             self.reporter.report_error(
                                 loc,
-                                format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", 
-                                if op == &TokenType::Minus { "-" } else { "*" })
+                                format_args!(
+                                    "Operands of '{}' must both be scalars (int, real, or nat), or compatible sets",
+                                    op
+                                ),
                             );
                             *eval_type = binary_default(op);
                         }
@@ -195,7 +203,8 @@ impl ASTVisitorMut<()> for TypeValidator {
                             self.reporter.report_error(
                                 loc,
                                 format_args!(
-                                    "Operands of '/' must both be scalars (int, real, or nat)"
+                                    "Operands of '{}' must both be scalars (int, real, or nat)",
+                                    op
                                 ),
                             );
                             *eval_type = binary_default(op);
@@ -213,7 +222,8 @@ impl ASTVisitorMut<()> for TypeValidator {
                             self.reporter.report_error(
                                 loc,
                                 format_args!(
-                                    "Operands of 'div' must both be scalars (int, real, or nat)"
+                                    "Operands of '{}' must both be scalars (int, real, or nat)",
+                                    op
                                 ),
                             );
                             *eval_type = binary_default(op);
@@ -234,12 +244,7 @@ impl ASTVisitorMut<()> for TypeValidator {
                                 loc,
                                 format_args!(
                                     "Operands of '{}' must both be scalars (int, real, or nat)",
-                                    match op {
-                                        TokenType::Mod => "mod",
-                                        TokenType::Rem => "rem",
-                                        TokenType::Exp => "**",
-                                        _ => unreachable!(),
-                                    }
+                                    op
                                 ),
                             );
                             *eval_type = binary_default(op);
