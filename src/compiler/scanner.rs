@@ -866,6 +866,7 @@ impl<'s> Scanner<'s> {
             "by" => TokenType::By,
             "case" => TokenType::Case,
             "char" => TokenType::Char,
+            "cheat" => TokenType::Cheat,
             "checked" => TokenType::Checked,
             "class" => TokenType::Class,
             "close" => TokenType::Close,
