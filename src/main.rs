@@ -2,9 +2,14 @@ mod compiler;
 mod status_reporter;
 
 extern crate getopts;
+#[macro_use]
+extern crate lazy_static;
+
 use getopts::Options;
+use std::cell::RefCell;
 use std::env;
 use std::fs;
+use std::rc::Rc;
 
 fn show_usage(program_name: &String, opts: &Options) {
     let brief = format!("Usage: {} [options]", program_name);
@@ -80,14 +85,17 @@ fn compile_run_file(path: &str) {
     let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents);
     parser.parse();
 
+    // Take the unit from the parser
+    let code_unit = Rc::new(RefCell::new(parser.take_unit()));
+    let type_table = Rc::new(RefCell::new(parser.take_types()));
+
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
     // TODO: Provide external type resolution stage
 
-    let mut type_validator = compiler::type_validator::TypeValidator::new();
-    parser.visit_ast(&mut type_validator);
+    // Validate types
+    let mut type_validator = compiler::type_validator::TypeValidator::new(&code_unit, &type_table);
+    code_unit.borrow_mut().visit_ast_mut(&mut type_validator);
 
-    /*for expr in parser.stmts {
-        println!("{:?}", expr);
-    }*/
-    println!("{:#?}", parser);
+    println!("Types:\n{:#?}", type_table);
+    println!("Unit:\n{:#?}", code_unit);
 }

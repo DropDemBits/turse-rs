@@ -1,6 +1,6 @@
 //! Main parser for tokens to build the AST
-use crate::compiler::ast::{ASTVisitor, Expr, Identifier, Stmt};
-use crate::compiler::block::{BlockKind, CodeBlock};
+use crate::compiler::ast::{Expr, Identifier, Stmt};
+use crate::compiler::block::{BlockKind, CodeBlock, CodeUnit};
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::types::{self, FuncParam, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::Location;
@@ -143,15 +143,10 @@ pub struct Parser<'a> {
     tokens: Vec<Token>,
     /// Current token being parsed
     current: Cell<usize>,
-
-    // CodeUnit Things
-    /// Parsed main block statements
-    stmts: Vec<Stmt>,
-    /// Current code block list
-    // Enclosing in a RefCell because of mutability loops
-    blocks: RefCell<Vec<Rc<RefCell<CodeBlock>>>>,
-    /// All types defined in the unit
-    types: RefCell<TypeTable>,
+    /// Parsed Code Unit
+    unit: RefCell<Option<CodeUnit>>,
+    /// Current types
+    types: RefCell<Option<TypeTable>>,
 }
 
 #[derive(Debug)]
@@ -166,12 +161,8 @@ impl<'a> Parser<'a> {
             source,
             tokens,
             current: Cell::new(0),
-            stmts: vec![],
-            blocks: RefCell::new(vec![Rc::new(RefCell::new(CodeBlock::new(
-                BlockKind::Main,
-                &vec![],
-            )))]),
-            types: RefCell::new(TypeTable::new()),
+            unit: RefCell::new(None),
+            types: RefCell::new(None),
         }
     }
 
@@ -179,10 +170,15 @@ impl<'a> Parser<'a> {
     /// Returns if the parse has no errors
     pub fn parse(&mut self) -> bool {
         // TODO: Check if the root block is a unit block
+        self.unit.replace(Some(CodeUnit::new(true)));
+        self.types.replace(Some(TypeTable::new()));
+
+        // Parse the statements
+        let mut stmts = vec![];
 
         while !self.is_at_end() {
             match self.decl() {
-                Ok(expr) => self.stmts.push(expr),
+                Ok(expr) => stmts.push(expr),
                 Err(_) => {}
             }
 
@@ -192,18 +188,27 @@ impl<'a> Parser<'a> {
             }
         }
 
+        // Transfer statements over to the CodeUnit
+        self.unit
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .stmts_mut()
+            .append(&mut stmts);
+
         !self.reporter.has_error()
     }
 
-    /// Visits the AST using the given ASTVisitor
-    /// Allows mutable access to the AST
-    pub fn visit_ast<T>(&mut self, visitor: &mut T)
-    where
-        T: ASTVisitor,
-    {
-        for stmt in self.stmts.iter_mut() {
-            visitor.visit_stmt(stmt);
-        }
+    /// Takes the unit from the parser
+    pub fn take_unit(&mut self) -> CodeUnit {
+        let code_unit = self.unit.borrow_mut().take().unwrap();
+        code_unit
+    }
+
+    /// Takes the type table from the parser
+    pub fn take_types(&mut self) -> TypeTable {
+        let type_table = self.types.borrow_mut().take().unwrap();
+        type_table
     }
 
     /// Gets the previous token in the stream
@@ -891,7 +896,7 @@ impl<'a> Parser<'a> {
         let pointer_to = self.parse_type(parse_context);
         let typedef = Type::Pointer { to: pointer_to };
 
-        TypeRef::Named(self.types.borrow_mut().declare_type(typedef))
+        self.declare_type(typedef)
     }
 
     /// Parse procedure & function parameter specification & result type
@@ -956,10 +961,10 @@ impl<'a> Parser<'a> {
             None
         };
 
-        TypeRef::Named(self.types.borrow_mut().declare_type(Type::Function {
+        self.declare_type(Type::Function {
             params: param_decl,
             result: result_type,
-        }))
+        })
     }
 
     /// Parse an identifier
@@ -972,7 +977,7 @@ impl<'a> Parser<'a> {
         // The identifier may refer to an imported unqualified identifier,
         // which are not resolved until after AST building. The error message
         // is therefore ignored, as the identifier may be resolved later.
-        TypeRef::Named(self.types.borrow_mut().declare_type(Type::Named { ident }))
+        self.declare_type(Type::Named { ident })
     }
 
     // -- Wrappers around the scope list -- //
@@ -987,8 +992,11 @@ impl<'a> Parser<'a> {
         is_typedef: bool,
     ) -> Identifier {
         let (reference, err) = self
-            .blocks
+            .unit
             .borrow()
+            .as_ref()
+            .unwrap()
+            .blocks()
             .last()
             .unwrap()
             .borrow_mut()
@@ -1017,8 +1025,11 @@ impl<'a> Parser<'a> {
         is_const: bool,
         is_typedef: bool,
     ) -> Identifier {
-        self.blocks
+        self.unit
             .borrow()
+            .as_ref()
+            .unwrap()
+            .blocks()
             .last()
             .unwrap()
             .borrow_mut()
@@ -1033,8 +1044,11 @@ impl<'a> Parser<'a> {
 
     /// Uses an identifer, providing the error message
     fn use_ident_msg(&self, ident: &Token) -> (Identifier, Option<String>) {
-        self.blocks
+        self.unit
             .borrow()
+            .as_ref()
+            .unwrap()
+            .blocks()
             .last()
             .unwrap()
             .borrow_mut()
@@ -1056,19 +1070,42 @@ impl<'a> Parser<'a> {
 
     /// Pushes a new block onto the block list
     fn push_block(&self, block_kind: BlockKind) {
-        let block = CodeBlock::new(block_kind, self.blocks.borrow().as_ref());
+        let block = CodeBlock::new(block_kind, self.unit.borrow().as_ref().unwrap().blocks());
 
         // Add the block to the list
-        self.blocks.borrow_mut().push(Rc::new(RefCell::new(block)));
+        self.unit
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .blocks_mut()
+            .push(Rc::new(RefCell::new(block)));
     }
 
     /// Pops a block off of the block list, and moving the given statement list
     /// into the block
     fn pop_block(&self, stmts: &mut Vec<Stmt>) -> Rc<RefCell<CodeBlock>> {
-        let block = self.blocks.borrow_mut().pop().unwrap();
+        let block = self
+            .unit
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .blocks_mut()
+            .pop()
+            .unwrap();
         block.borrow_mut().stmts.append(stmts);
 
         block
+    }
+
+    // -- Wrappers around the type table -- //
+    fn declare_type(&self, type_info: Type) -> TypeRef {
+        TypeRef::Named(
+            self.types
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .declare_type(type_info),
+        )
     }
 
     // --- Helpers --- //
@@ -1263,11 +1300,7 @@ mod test {
 
     fn check_ident_expected_type(parser: &Parser, name: &str, expected: TypeRef) {
         assert_eq!(
-            parser
-                .blocks
-                .borrow()
-                .last()
-                .unwrap()
+            parser.unit.borrow().as_ref().unwrap().blocks()[0]
                 .borrow()
                 .scope
                 .get_ident(name)
@@ -1460,7 +1493,10 @@ mod test {
             TokenType::Assign,
         ];
 
-        for test_stmt in parser.stmts[2..].iter().zip(expected_ops.iter()) {
+        let unit = parser.unit.borrow();
+        let root_stmts = unit.as_ref().unwrap().stmts();
+
+        for test_stmt in root_stmts[2..].iter().zip(expected_ops.iter()) {
             if let Stmt::Assign {
                 op: Token { ref token_type, .. },
                 ..
@@ -1492,7 +1528,10 @@ mod test {
         assert!(!parser.reporter.has_error());
         let expected_ops = [TokenType::Imply, TokenType::And, TokenType::Or];
 
-        for test_stmt in parser.stmts[1..].iter().zip(expected_ops.iter()) {
+        let unit = parser.unit.borrow();
+        let root_stmts = unit.as_ref().unwrap().stmts();
+
+        for test_stmt in root_stmts[1..].iter().zip(expected_ops.iter()) {
             if let Stmt::Assign {
                 op: Token { ref token_type, .. },
                 ..
@@ -1535,6 +1574,7 @@ mod test {
         );
         assert!(parser.parse());
 
+        // TODO: Move sized types into the compound section
         let expected_types = [
             TypeRef::Primitive(PrimitiveType::Boolean),
             TypeRef::Primitive(PrimitiveType::Int),
@@ -1557,7 +1597,10 @@ mod test {
             TypeRef::Primitive(PrimitiveType::AddressInt),
         ];
 
-        for test_stmt in parser.stmts.iter().zip(expected_types.iter()) {
+        let unit = parser.unit.borrow();
+        let root_stmts = unit.as_ref().unwrap().stmts();
+
+        for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
             if let Stmt::VarDecl { ref idents, .. } = test_stmt.0 {
                 assert_eq!(&idents[0].type_spec, test_stmt.1);
             }

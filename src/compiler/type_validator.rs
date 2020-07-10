@@ -1,32 +1,39 @@
 //! Type validator upon the AST tree
-use crate::compiler::ast::{ASTVisitor, Expr, Stmt};
-use crate::compiler::types::TypeRef;
+use crate::compiler::ast::{ASTVisitorMut, Expr, Stmt};
+use crate::compiler::block::{CodeBlock, CodeUnit};
+use crate::compiler::token::TokenType;
+use crate::compiler::types::{self, PrimitiveType, TypeRef, TypeTable};
 use crate::status_reporter::StatusReporter;
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
 pub struct TypeValidator {
     /// Status reporter for the type validator
     reporter: StatusReporter,
+    type_table: Weak<RefCell<TypeTable>>,
+    active_scope: Weak<RefCell<CodeBlock>>,
 }
 
 impl TypeValidator {
-    // TODO: Pass in a reference to the resolved type table
-    pub fn new() -> Self {
+    pub fn new(validate_unit: &Rc<RefCell<CodeUnit>>, type_table: &Rc<RefCell<TypeTable>>) -> Self {
         Self {
             reporter: StatusReporter::new(),
+            type_table: Rc::downgrade(type_table),
+            active_scope: Rc::downgrade(&validate_unit.borrow().blocks()[0]),
         }
     }
 }
 
-impl ASTVisitor for TypeValidator {
-    fn visit_stmt(&mut self, stmt: &mut Stmt) {
-        match stmt {
+impl ASTVisitorMut<()> for TypeValidator {
+    fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
+        match visit_stmt {
             Stmt::VarDecl {
                 idents,
                 type_spec,
                 value,
                 ..
             } => {
-                if *type_spec == TypeRef::TypeError {
+                if types::is_error(type_spec) {
                     // Nothing to do, all the correct types
                     return;
                 } else if *type_spec == TypeRef::Unknown {
@@ -66,24 +73,150 @@ impl ASTVisitor for TypeValidator {
         }
     }
 
-    // Note: If the eval_type is still TypeRef::Unknown, propagate the known type??
-    fn visit_expr(&mut self, expr: &mut Expr) {
-        match expr {
+    // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
+    fn visit_expr(&mut self, visit_expr: &mut Expr) {
+        match visit_expr {
             Expr::Grouping { expr, eval_type } => {
                 self.visit_expr(expr);
                 *eval_type = expr.get_eval_type();
             }
             Expr::BinaryOp {
                 left,
-                op: _,
+                op,
                 right,
-                eval_type: _,
+                eval_type,
             } => {
                 self.visit_expr(left);
                 self.visit_expr(right);
 
                 // Validate that the types are assignable with the given operation
                 // eval_type is the type of the expr result
+
+                let loc = &op.location;
+                let op = &op.token_type;
+
+                // TODO: Resolve & De-alias type refs
+                let type_table = self.type_table.upgrade().unwrap();
+                let left_type = &left.get_eval_type();
+                let right_type = &right.get_eval_type();
+
+                if left_type == &TypeRef::TypeError || right_type == &TypeRef::TypeError {
+                    // Either one is a type error
+                    // Set default type & return (no need to report an error as this is just propoagtion)
+                    *eval_type = binary_default(op);
+                    return;
+                }
+
+                // TODO: (xor, shl, shr), (>, >=, <, <=, =, ~=, in, ~in), (=>), (and, or)
+
+                match op {
+                    TokenType::Plus => {
+                        // Valid conditions:
+                        // - Both types are strings
+                        // - Both types are numerics (real, int, nat, etc)
+                        // - Both types are sets (not checked right now)
+                        // Otherwise, TypeError is produced
+                        if types::is_char_seq_type(left_type) && types::is_char_seq_type(right_type)
+                        {
+                            // String expr, concatenation
+                            *eval_type = TypeRef::Primitive(PrimitiveType::String_);
+                        } else if types::is_number_type(left_type)
+                            && types::is_number_type(right_type)
+                        {
+                            // Number expr, sum
+                            *eval_type =
+                                *types::common_type(left_type, right_type, &type_table.borrow())
+                                    .unwrap();
+                        } else {
+                            // error, report!
+                            self.reporter.report_error(loc, format_args!("Operands of '+' must both be scalars (int, real, or nat), strings, or compatible sets"));
+                            *eval_type = binary_default(op);
+                        }
+                    }
+                    TokenType::Minus | TokenType::Star => {
+                        // Valid conditions:
+                        // - Both types are numerics (real, int, nat, etc)
+                        // - Both types are sets (not checked right now)
+                        // Otherwise, TypeError is produced
+                        if types::is_number_type(left_type) && types::is_number_type(right_type) {
+                            // Number expr, minus & mul
+                            *eval_type =
+                                *types::common_type(left_type, right_type, &type_table.borrow())
+                                    .unwrap();
+                        } else {
+                            // error, report!
+                            self.reporter.report_error(
+                                loc,
+                                format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", 
+                                if op == &TokenType::Minus { "-" } else { "*" })
+                            );
+                            *eval_type = binary_default(op);
+                        }
+                    }
+                    TokenType::Slash => {
+                        // Valid conditions:
+                        // - Both types are numerics (real, int, nat, etc)
+                        // Otherwise, TypeError is produced
+                        if types::is_number_type(left_type) && types::is_number_type(right_type) {
+                            // Number expr, real div
+                            *eval_type = TypeRef::Primitive(PrimitiveType::Real);
+                        } else {
+                            // error, report!
+                            self.reporter.report_error(
+                                loc,
+                                format_args!(
+                                    "Operands of '/' must both be scalars (int, real, or nat)"
+                                ),
+                            );
+                            *eval_type = binary_default(op);
+                        }
+                    }
+                    TokenType::Div => {
+                        // Valid conditions:
+                        // - Both types are numerics (real, int, nat, etc)
+                        // Otherwise, TypeError is produced
+                        if types::is_number_type(left_type) && types::is_number_type(right_type) {
+                            // Number expr, int div
+                            *eval_type = TypeRef::Primitive(PrimitiveType::Int);
+                        } else {
+                            // error, report!
+                            self.reporter.report_error(
+                                loc,
+                                format_args!(
+                                    "Operands of 'div' must both be scalars (int, real, or nat)"
+                                ),
+                            );
+                            *eval_type = binary_default(op);
+                        }
+                    }
+                    TokenType::Mod | TokenType::Rem | TokenType::Exp => {
+                        // Valid conditions:
+                        // - Both types are numerics (real, int, nat, etc)
+                        // Otherwise, TypeError is produced
+                        if types::is_number_type(left_type) && types::is_number_type(right_type) {
+                            // Number expr, mod, rem & exp
+                            *eval_type =
+                                *types::common_type(left_type, right_type, &type_table.borrow())
+                                    .unwrap();
+                        } else {
+                            // error, report!
+                            self.reporter.report_error(
+                                loc,
+                                format_args!(
+                                    "Operands of '{}' must both be scalars (int, real, or nat)",
+                                    match op {
+                                        TokenType::Mod => "mod",
+                                        TokenType::Rem => "rem",
+                                        TokenType::Exp => "**",
+                                        _ => unreachable!(),
+                                    }
+                                ),
+                            );
+                            *eval_type = binary_default(op);
+                        }
+                    }
+                    _ => unreachable!(),
+                }
             }
             Expr::UnaryOp {
                 op: _,
@@ -93,7 +226,6 @@ impl ASTVisitor for TypeValidator {
                 self.visit_expr(right);
 
                 // Validate that the unary operator can be applied to the rhs
-                // Validate that the types are assignable with the given operation
                 // eval_type is the usually same type as the rhs
                 *eval_type = right.get_eval_type();
             }
@@ -107,7 +239,7 @@ impl ASTVisitor for TypeValidator {
                 arg_list.iter_mut().for_each(|expr| self.visit_expr(expr));
 
                 // Validate that 'left' is "callable"
-                // Validate that the types are assignable using the given reference
+                // Validate that the argument types match the type_spec using the given reference
                 // eval_type is the result of the call expr
             }
             Expr::Dot {
@@ -120,10 +252,45 @@ impl ASTVisitor for TypeValidator {
                 // Validate that the field exists in the given type
                 // eval_type is the field type
             }
-            Expr::Reference { ident: _ } => {
-                // Fetch the type_spec from the type table
+            Expr::Reference { ident } => {
+                if ident.is_declared {
+                    // Fetch the ident's `type_spec` from the type table
+
+                    // tall boi
+                    let new_ident = self
+                        .active_scope
+                        .upgrade()
+                        .as_ref()
+                        .unwrap()
+                        .borrow()
+                        .scope
+                        .get_ident(&ident.name)
+                        .unwrap()
+                        .clone();
+                    *ident = new_ident.clone();
+                } else {
+                    // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
+                }
             }
             Expr::Literal { .. } => {} // Literal values already have the type resolved
         }
+    }
+}
+
+/// Default type in a binary expression
+fn binary_default(op: &TokenType) -> TypeRef {
+    match op {
+        TokenType::Less
+        | TokenType::Greater
+        | TokenType::LessEqu
+        | TokenType::GreaterEqu
+        | TokenType::Equ
+        | TokenType::NotEq
+        | TokenType::In
+        | TokenType::NotIn
+        | TokenType::And
+        | TokenType::Or
+        | TokenType::Imply => TypeRef::Primitive(PrimitiveType::Boolean),
+        _ => TypeRef::TypeError,
     }
 }

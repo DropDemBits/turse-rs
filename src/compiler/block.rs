@@ -1,5 +1,6 @@
-use crate::compiler::ast::Stmt;
+use crate::compiler::ast::{ASTVisitorMut, Stmt};
 use crate::compiler::scope::Scope;
+use crate::compiler::types::TypeTable;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
@@ -49,5 +50,60 @@ impl CodeBlock {
                 .map(|block| Rc::downgrade(block))
                 .collect(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct CodeUnit {
+    blocks: Vec<Rc<RefCell<CodeBlock>>>,
+    /// Root statements
+    stmts: Vec<Stmt>,
+    types: RefCell<TypeTable>,
+}
+
+impl CodeUnit {
+    pub fn new(is_main: bool) -> Self {
+        Self {
+            blocks: vec![Rc::new(RefCell::new(CodeBlock::new(
+                if is_main {
+                    BlockKind::Main
+                } else {
+                    BlockKind::Unit
+                },
+                &vec![],
+            )))],
+            stmts: vec![],
+            types: RefCell::new(TypeTable::new()),
+        }
+    }
+
+    /// Visits the AST using the given ASTVisitorMut, providing mutable access
+    pub fn visit_ast_mut<T, U>(&mut self, visitor: &mut T)
+    where
+        T: ASTVisitorMut<U>,
+    {
+        for stmt in self.stmts.iter_mut() {
+            visitor.visit_stmt(stmt);
+        }
+    }
+
+    pub fn stmts(&self) -> &Vec<Stmt> {
+        &self.stmts
+    }
+
+    pub fn stmts_mut(&mut self) -> &mut Vec<Stmt> {
+        &mut self.stmts
+    }
+
+    pub fn blocks(&self) -> &Vec<Rc<RefCell<CodeBlock>>> {
+        &self.blocks
+    }
+
+    pub fn blocks_mut(&mut self) -> &mut Vec<Rc<RefCell<CodeBlock>>> {
+        &mut self.blocks
+    }
+
+    pub fn types(&self) -> &RefCell<TypeTable> {
+        &self.types
     }
 }

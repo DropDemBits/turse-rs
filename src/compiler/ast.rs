@@ -169,10 +169,10 @@ pub enum Stmt {
 }
 
 /// Mutable Visitor for a generated AST
-pub trait ASTVisitor {
+pub trait ASTVisitorMut<T> {
     /// Visit a single statement in the tree
-    fn visit_stmt(&mut self, stmt: &mut Stmt);
+    fn visit_stmt(&mut self, stmt: &mut Stmt) -> T;
 
     /// Visit an expression in the tree
-    fn visit_expr(&mut self, expr: &mut Expr);
+    fn visit_expr(&mut self, expr: &mut Expr) -> T;
 }
