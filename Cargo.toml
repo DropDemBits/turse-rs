@@ -10,4 +10,4 @@ license = "MIT"
 [dependencies]
 unicode-segmentation = "^0.1"
 getopts = "0.2"
-lazy_static = "^1.4.0"
+#lazy_static = "^1.4.0"

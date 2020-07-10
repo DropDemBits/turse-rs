@@ -6,7 +6,6 @@
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
 use crate::compiler::ast::{Expr, Identifier};
-use std::collections::HashMap;
 
 /// Default string size, in bytes
 /// This is the default size for a string if it is not specified
@@ -16,135 +15,6 @@ pub const DEFAULT_STRING_SIZE: usize = 256;
 /// Maximum string size, in bytes
 /// Includes the null terminator
 pub const MAX_STRING_SIZE: usize = 65536;
-
-lazy_static! {
-    static ref PRIMITIVE_TYPE_INFO: HashMap<PrimitiveType, Type> = {
-        let mut map = HashMap::new();
-
-        map.insert(
-            PrimitiveType::Boolean,
-            Type::Primitive {
-                kind: PrimitiveType::Boolean,
-            },
-        );
-        map.insert(
-            PrimitiveType::Int,
-            Type::Primitive {
-                kind: PrimitiveType::Int,
-            },
-        );
-        map.insert(
-            PrimitiveType::Int1,
-            Type::Primitive {
-                kind: PrimitiveType::Int1,
-            },
-        );
-        map.insert(
-            PrimitiveType::Int2,
-            Type::Primitive {
-                kind: PrimitiveType::Int2,
-            },
-        );
-        map.insert(
-            PrimitiveType::Int4,
-            Type::Primitive {
-                kind: PrimitiveType::Int4,
-            },
-        );
-        map.insert(
-            PrimitiveType::Int8,
-            Type::Primitive {
-                kind: PrimitiveType::Int8,
-            },
-        );
-        map.insert(
-            PrimitiveType::Nat,
-            Type::Primitive {
-                kind: PrimitiveType::Nat,
-            },
-        );
-        map.insert(
-            PrimitiveType::Nat1,
-            Type::Primitive {
-                kind: PrimitiveType::Nat1,
-            },
-        );
-        map.insert(
-            PrimitiveType::Nat2,
-            Type::Primitive {
-                kind: PrimitiveType::Nat2,
-            },
-        );
-        map.insert(
-            PrimitiveType::Nat4,
-            Type::Primitive {
-                kind: PrimitiveType::Nat4,
-            },
-        );
-        map.insert(
-            PrimitiveType::Nat8,
-            Type::Primitive {
-                kind: PrimitiveType::Nat8,
-            },
-        );
-        map.insert(
-            PrimitiveType::LongInt,
-            Type::Primitive {
-                kind: PrimitiveType::LongInt,
-            },
-        );
-        map.insert(
-            PrimitiveType::LongNat,
-            Type::Primitive {
-                kind: PrimitiveType::LongNat,
-            },
-        );
-        map.insert(
-            PrimitiveType::Real,
-            Type::Primitive {
-                kind: PrimitiveType::Real,
-            },
-        );
-        map.insert(
-            PrimitiveType::Real4,
-            Type::Primitive {
-                kind: PrimitiveType::Real4,
-            },
-        );
-        map.insert(
-            PrimitiveType::Real8,
-            Type::Primitive {
-                kind: PrimitiveType::Real8,
-            },
-        );
-        map.insert(
-            PrimitiveType::String_,
-            Type::Primitive {
-                kind: PrimitiveType::String_,
-            },
-        );
-        map.insert(
-            PrimitiveType::Char,
-            Type::Primitive {
-                kind: PrimitiveType::Char,
-            },
-        );
-        map.insert(
-            PrimitiveType::AddressInt,
-            Type::Primitive {
-                kind: PrimitiveType::AddressInt,
-            },
-        );
-        map.insert(
-            PrimitiveType::Nil,
-            Type::Primitive {
-                kind: PrimitiveType::Nil,
-            },
-        );
-
-        map
-    };
-}
 
 /// Unique type reference for a type
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -266,9 +136,6 @@ pub enum Type {
     Named { ident: Identifier },
     /// Pointer to a given TypeRef
     Pointer { to: TypeRef },
-    /// Primitive type. Only used during type resolution, and is never stored
-    /// in the unit type table
-    Primitive { kind: PrimitiveType },
     /// Inclusive range type, encoding `start` .. `end` and `start` .. * \
     /// `start` must evaluate to be less than or equal to `end` \
     /// Expressions are used, as dynamic arrays have an upper bound
@@ -308,20 +175,6 @@ impl TypeTable {
             .expect("Too many types defined in the unit");
         self.types.push(type_info);
         id
-    }
-
-    /// Converts the `type_ref` into the associated type info
-    pub fn ref_to_type(&self, type_ref: &TypeRef) -> Option<&Type> {
-        match type_ref {
-            TypeRef::Primitive(kind) => match kind {
-                PrimitiveType::CharN(_) | PrimitiveType::StringN(_) => {
-                    panic!("Sized char sequences are supposed to be in the type table")
-                }
-                _ => Some(PRIMITIVE_TYPE_INFO.get(kind).unwrap()),
-            },
-            TypeRef::Named(type_id) => Some(self.get_type(*type_id)),
-            _ => None,
-        }
     }
 
     /// Gets a reference to a defined type
@@ -381,6 +234,16 @@ pub fn is_string(type_ref: &TypeRef) -> bool {
 pub fn is_charn(type_ref: &TypeRef) -> bool {
     match type_ref {
         TypeRef::Primitive(kind) => matches!(kind, PrimitiveType::CharN(_)),
+        _ => false,
+    }
+}
+
+/// Checks if the given `type_ref` references a single char type (Char)
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
+pub fn is_char(type_ref: &TypeRef) -> bool {
+    match type_ref {
+        TypeRef::Primitive(kind) => matches!(kind, PrimitiveType::Char),
         _ => false,
     }
 }
@@ -509,14 +372,6 @@ pub fn is_number_type(type_ref: &TypeRef) -> bool {
     is_real(type_ref) || is_integer_type(type_ref)
 }
 
-/// Converts a primitive into a type info
-pub fn primitive_to_type_info(type_ref: &TypeRef) -> Option<Type> {
-    match type_ref {
-        TypeRef::Primitive(kind) => Some(Type::Primitive { kind: *kind }),
-        _ => None,
-    }
-}
-
 /// Gets the common type between the two given type refs
 pub fn common_type<'a>(
     lhs: &'a TypeRef,
@@ -556,11 +411,12 @@ pub fn common_type<'a>(
 /// Most types have their root types defined as themselves. However, range types and string-class types have different root types.
 /// - All string-class types (i.e. `string` and `string(n)`) have `string` as the root type.
 /// - All integer range types (e.g. `3 .. 20`) have `int` as the root type (i.e. all `int`s are assignable to the given range).
+/// - All enum range types have the enum type as the root type
 /// - All boolean range types (e.g. `false .. true`) have `boolean` as the root type (i.e. all `boolean`s are assignable to the given range).
 ///
 /// # Assignability rules
 /// - If two types (after de-aliasing) have the same `type_id` (i.e, have the same root definition) \
-/// - If two types (after de-aliasing) have the same or equvalent root type \
+/// - If two types (after de-aliasing) have equvalent root types \
 /// - If `lvalue` is 'real' and `rvalue` is either `real` or an integer-class type (`rvalue` is converted into an int) \
 /// - If `lvalue` is a range and `rvalue` both is the same type kind, as well as existing in the given range \
 /// - If `lvalue` is a `char` and `rvalue` is a `char(1)` (or vice versa)
@@ -569,15 +425,27 @@ pub fn common_type<'a>(
 /// - If `lvalue` is a `char(n)` and `rvalue` is a `string(n)` (`rvalue` gets converted into a `string(n)`)
 /// - If `lvalue` and `rvalue` are pointers to classes and they are the same class or share a common ancestor
 pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTable) -> bool {
+    // TODO: Not all of the assignability rules listed above are checked yet, still need to do
+    // - Other equivalencies
+    // - pointer class inheritance
+    // - range containment
+    // - set, function/procedure, and array equivalency
     if rvalue == lvalue {
-        // Same types are assignable
+        // Same types are assignable / equivalent
 
         // Also Covers:
-        // - Set assignment
-        // - Array assignment
-        // - Function/Procedure assignment
-        //
+        // - Record, Enum, Union assignment
+        // - Opaque assignment
+
+        // Somewhat covers
+        // - Pointer to non-class type assignment (need to check pointed type equivalency)
+        // - Set assignment (need to check for range equivalency)
+        // - Array assignment (need to check for both ranges and element equivalency)
+        // - Function/Procedure assignment (need to check param & result type equivalency)
         true
+    } else if is_error(lvalue) || is_error(rvalue) {
+        // Quick escape for type errors
+        false
     } else if is_integer_type(lvalue) && is_integer_type(rvalue) {
         // Integer-class types are mutually assignable to eachother
         true
@@ -588,17 +456,30 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // Char Sequence types are assignable into unsized 'string's
         true
     } else if is_charn(lvalue) && is_char_seq_type(rvalue) {
-        if is_charn(rvalue) {
-            // Must check length
-            let lvalue_len = get_sized_len(lvalue).unwrap();
-            let rvalue_len = get_sized_len(rvalue).unwrap();
+        // Must check length
+        let lvalue_len = get_sized_len(lvalue).unwrap();
+        let rvalue_len = get_sized_len(rvalue).unwrap();
 
-            // Assignable if lvalue is a char(*) or if the rvalue can be contained inside of the lvalue
-            lvalue_len == 0 || lvalue_len >= rvalue_len
-        } else {
-            // Is string or stringN(), okay to assign (checked at runtime)
-            true
-        }
+        // Assignable if lvalue is a char(*), string(*) or if the rvalue can be contained inside of the lvalue
+        lvalue_len == 0 || lvalue_len >= rvalue_len
+    } else if (is_charn(lvalue) && is_char(rvalue)) || (is_char(lvalue) && is_char_seq_type(rvalue))
+    {
+        // Must check length
+        let lvalue_len = get_sized_len(lvalue).unwrap_or(1);
+        let rvalue_len = get_sized_len(rvalue).unwrap_or(1);
+
+        // For the string -> char case, we have to default to true,
+        // as the value of an unsized `string` can only be checked at runtime
+
+        // `char` is only assignable into `char(n)` iff `char(n)` is of length 1
+        // `charn(n)` is only assignable into `char` iff `char(n)` is of length 1
+        // `string(n)` is only assignable into `char` iff `string(n)` is of length 1
+        // `char` is not assignable into `char(*)`
+        // `char` is not assignable into `string(*)`
+        lvalue_len == rvalue_len
+    } else if is_string_type(lvalue) && is_char(rvalue) {
+        // `char` is assignable into string-class types
+        true
     } else {
         false
     }

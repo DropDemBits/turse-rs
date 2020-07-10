@@ -102,8 +102,4 @@ impl CodeUnit {
     pub fn blocks_mut(&mut self) -> &mut Vec<Rc<RefCell<CodeBlock>>> {
         &mut self.blocks
     }
-
-    pub fn types(&self) -> &RefCell<TypeTable> {
-        &self.types
-    }
 }

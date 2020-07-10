@@ -34,7 +34,14 @@ impl ASTVisitorMut<()> for TypeValidator {
                 ..
             } => {
                 if types::is_error(type_spec) {
-                    // Nothing to do, all the correct types
+                    // Nothing to do, the identifiers should all have matching values
+                    debug_assert!(
+                        idents
+                            .iter()
+                            .filter(|ident| !types::is_error(&ident.type_spec))
+                            .count()
+                            == 0
+                    );
                     return;
                 } else if *type_spec == TypeRef::Unknown {
                     // Unknown type, use the type of the expr
@@ -43,13 +50,36 @@ impl ASTVisitorMut<()> for TypeValidator {
                     self.visit_expr(expr);
 
                     *type_spec = expr.get_eval_type();
-                } else {
-                    // TODO: Validate that the types are assignable
-                }
+                } else if value.is_some() {
+                    let asn_type = value.as_ref().unwrap().get_eval_type();
 
-                // Update the types
+                    if asn_type != TypeRef::TypeError {
+                        // Validate that the types are assignable
+                        let type_table = self.type_table.upgrade().unwrap();
+                        if !types::is_assignable_to(type_spec, &asn_type, &type_table.borrow()) {
+                            // Value to assign is the wrong type
+                            self.reporter.report_error(
+                                &idents.last().as_ref().unwrap().token.location,
+                                format_args!("Assignment value is the wrong type"),
+                            );
+                            *type_spec = TypeRef::TypeError;
+                        }
+                    } else {
+                        // Silently propogate type error (error has been reported)
+                        *type_spec = TypeRef::TypeError;
+                    }
+                }
+                // Variable declarations with no assignment value will have the type already given
+
+                // Update the identifiers to the new assignment value
                 for ident in idents.iter_mut() {
                     ident.type_spec = *type_spec;
+                    self.active_scope
+                        .upgrade()
+                        .unwrap()
+                        .borrow_mut()
+                        .scope
+                        .resolve_ident(&ident.name, *type_spec, ident.is_const, ident.is_typedef);
                 }
             }
             Stmt::Assign {
@@ -107,7 +137,7 @@ impl ASTVisitorMut<()> for TypeValidator {
                     return;
                 }
 
-                // TODO: (xor, shl, shr), (>, >=, <, <=, =, ~=, in, ~in), (=>), (and, or)
+                // TODO: (xor, shl, shr) -> (nat, TypeError), (>, >=, <, <=, =, ~=, in, ~in, =>) -> boolean, (and, or) -> (nat, boolean)
 
                 match op {
                     TokenType::Plus => {
@@ -254,7 +284,7 @@ impl ASTVisitorMut<()> for TypeValidator {
             }
             Expr::Reference { ident } => {
                 if ident.is_declared {
-                    // Fetch the ident's `type_spec` from the type table
+                    // Fetch the updated ident's `type_spec` from the type table
 
                     // tall boi
                     let new_ident = self

@@ -2,8 +2,6 @@ mod compiler;
 mod status_reporter;
 
 extern crate getopts;
-#[macro_use]
-extern crate lazy_static;
 
 use getopts::Options;
 use std::cell::RefCell;
