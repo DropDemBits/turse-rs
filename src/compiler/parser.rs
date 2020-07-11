@@ -5,7 +5,7 @@ use crate::compiler::token::{Token, TokenType};
 use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
@@ -126,23 +126,26 @@ impl Precedence {
     }
 }
 
-struct PrecedenceRule<'a, 'b> {
+// The contents of the Parser are valid for the entire lifetime of the parser,
+// but the mutable reference is only bound to the lifetime of the
+// PrecedenceRule reference
+struct PrecedenceRule<'s, 'local> {
     precedence: Precedence,
-    prefix_rule: Option<fn(&'a mut Parser<'b>) -> Result<Expr, ParsingStatus>>,
-    infix_rule: Option<fn(&'a mut Parser<'b>, Expr) -> Result<Expr, ParsingStatus>>,
+    prefix_rule: Option<fn(&'local mut Parser<'s>) -> Result<Expr, ParsingStatus>>,
+    infix_rule: Option<fn(&'local mut Parser<'s>, Expr) -> Result<Expr, ParsingStatus>>,
 }
 
 /// Main parser
 #[derive(Debug)]
-pub struct Parser<'a> {
+pub struct Parser<'s> {
     /// Status reporter
     reporter: StatusReporter,
     /// File source used for getting lexemes for reporting
-    source: &'a str,
+    source: &'s str,
     /// Source for tokens
     tokens: Vec<Token>,
     /// Current token being parsed
-    current: Cell<usize>,
+    current: usize,
     /// Parsed Code Unit
     unit: Option<CodeUnit>,
     /// Actively parsed blocks
@@ -154,13 +157,13 @@ enum ParsingStatus {
     Error,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(tokens: Vec<Token>, source: &'a str, unit: CodeUnit) -> Self {
+impl<'s> Parser<'s> {
+    pub fn new(tokens: Vec<Token>, source: &'s str, unit: CodeUnit) -> Self {
         Self {
             reporter: StatusReporter::new(),
             source,
             tokens,
-            current: Cell::new(0),
+            current: 0,
             // Clone a ref to the root block
             blocks: vec![unit.root_block().clone()],
             unit: Some(unit),
@@ -200,24 +203,24 @@ impl<'a> Parser<'a> {
 
     /// Gets the previous token in the stream
     fn previous(&self) -> &Token {
-        &self.tokens[self.current.get().saturating_sub(1)]
+        &self.tokens[self.current.saturating_sub(1)]
     }
 
     /// Gets the current token in the stream
     fn current(&self) -> &Token {
-        &self.tokens[self.current.get()]
+        &self.tokens[self.current]
     }
 
     /// Peeks at the next token in the stream
     fn peek(&self) -> &Token {
-        &self.tokens[self.current.get().saturating_add(1)]
+        &self.tokens[self.current.saturating_add(1)]
     }
 
     /// Advances to the next token, returning the previous token
     fn next_token(&mut self) -> Token {
         if !self.is_at_end() {
             // Advance cursor
-            self.current.set(self.current.get().saturating_add(1));
+            self.current = self.current.saturating_add(1);
         }
 
         self.previous().clone()
@@ -497,7 +500,7 @@ impl<'a> Parser<'a> {
         // Get prefix side
         let op = self.current();
 
-        let prefix = self.get_rule(&op.token_type);
+        let prefix = Parser::get_rule(&op.token_type);
         let prefix_rule = prefix.prefix_rule.ok_or_else(|| {
             // Try to figure out if the typo was a reasonable one
             // ???: Rework this system to use a hashmap with key (token_type, token_type)?
@@ -513,6 +516,8 @@ impl<'a> Parser<'a> {
                 ""
             };
 
+            // The token reference are relative to the next token, as the next
+            // token is consumed unconditionally
             self.reporter.report_error(
                 &self.current().location,
                 format_args!(
@@ -522,7 +527,6 @@ impl<'a> Parser<'a> {
                 ),
             );
 
-            // Consume the token
             ParsingStatus::Error
         });
 
@@ -533,13 +537,13 @@ impl<'a> Parser<'a> {
 
         // Go over infix operators
         while !self.is_at_end()
-            && min_precedence <= self.get_rule(&self.current().token_type).precedence
+            && min_precedence <= Parser::get_rule(&self.current().token_type).precedence
         {
             let op = self.current();
-            let infix = self.get_rule(&op.token_type);
+            let infix = Parser::get_rule(&op.token_type);
 
             if infix.precedence >= Precedence::Follow {
-                // Is  a deref, identifier, or literal
+                // Is a deref, identifier, or literal
                 // Most likely end of expression, so return
                 return Ok(expr);
             }
@@ -575,7 +579,7 @@ impl<'a> Parser<'a> {
 
     fn expr_binary(&mut self, lhs: Expr) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
-        let precedence = self.get_rule(&op.token_type).precedence.up();
+        let precedence = Parser::get_rule(&op.token_type).precedence.up();
         // Get rhs
         let rhs = self.expr_precedence(precedence)?;
 
@@ -602,7 +606,7 @@ impl<'a> Parser<'a> {
 
     fn expr_unary_rule(&mut self) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
-        let precedence = self.get_rule(&op.token_type).precedence;
+        let precedence = Parser::get_rule(&op.token_type).precedence;
         let right = self.expr_precedence(precedence)?;
 
         Ok(Expr::UnaryOp {
@@ -1248,7 +1252,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Gets the precedence rule for the given token
-    fn get_rule<'b>(&self, token_type: &'b TokenType) -> &PrecedenceRule<'b, 'a> {
+    fn get_rule<'a>(token_type: &'a TokenType) -> &PrecedenceRule<'s, 'a> {
         match token_type {
             TokenType::LeftParen => &PrecedenceRule {
                 precedence: Precedence::Call,
