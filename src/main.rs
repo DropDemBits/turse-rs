@@ -91,10 +91,10 @@ fn compile_run_file(path: &str) {
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
     // TODO: Provide external type resolution stage
 
-    // Validate types
-    let mut type_validator =
-        compiler::type_validator::TypeValidator::new(code_unit.root_block(), &mut type_table);
-    code_unit.visit_ast_mut(&mut type_validator);
+    // Validate AST
+    let mut validator =
+        compiler::validator::Validator::new(code_unit.root_block(), &mut type_table);
+    code_unit.visit_ast_mut(&mut validator);
     code_unit.put_types(type_table);
 
     println!("Unit:\n{:#?}", code_unit);

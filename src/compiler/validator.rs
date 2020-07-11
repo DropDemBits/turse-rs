@@ -1,4 +1,8 @@
 //! Type validator upon the AST tree
+//! Performs the majority of the semantic validation pass
+//! - Propogates and checks expressions for type correctness
+//! - Resolves identifiers into their final types
+//! - Checks and evaluates compile-time expressions
 use crate::compiler::ast::{ASTVisitorMut, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
@@ -7,14 +11,14 @@ use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-pub struct TypeValidator<'a> {
+pub struct Validator<'a> {
     /// Status reporter for the type validator
     reporter: StatusReporter,
     type_table: &'a mut TypeTable,
     active_scope: Weak<RefCell<CodeBlock>>,
 }
 
-impl<'a> TypeValidator<'a> {
+impl<'a> Validator<'a> {
     pub fn new(root_block: &Rc<RefCell<CodeBlock>>, type_table: &'a mut TypeTable) -> Self {
         Self {
             reporter: StatusReporter::new(),
@@ -24,7 +28,7 @@ impl<'a> TypeValidator<'a> {
     }
 }
 
-impl ASTVisitorMut<()> for TypeValidator<'_> {
+impl ASTVisitorMut<()> for Validator<'_> {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match visit_stmt {
             Stmt::VarDecl {

@@ -332,7 +332,7 @@ impl<'s> Parser<'s> {
             // assignment value is automagically skipped
             self.parse_type(&decl_tok.token_type)
         } else {
-            // Will be resolved in the type resolution stage
+            // Will be resolved in the validation stage
             TypeRef::Unknown
         };
 
@@ -460,8 +460,9 @@ impl<'s> Parser<'s> {
         // Both take references as the primary expression
 
         // If the reference expr can't be parsed, bail out
-        // Referring to the an identifier (aside from checking if it's been declared)
-        // isn't important in type resolution
+        // Referring to an identifier (aside from checking if it's been declared)
+        // does not have any side effects in an invalid parse and can be
+        // safely ignored
         let reference = self.expr_precedence(Precedence::Deref)?;
         let is_compound_assign = self.is_compound_assignment();
 
@@ -484,7 +485,7 @@ impl<'s> Parser<'s> {
 
             // If the assign value expr can't be parsed, bail out
             // Assignment after variable declaration isn't really important
-            // for type resolution
+            // in an invalid parse state
             let value = self.expr()?;
 
             Ok(Stmt::Assign {
@@ -687,7 +688,7 @@ impl<'s> Parser<'s> {
             format_args!("Missing identifier after '.'"),
         )?;
 
-        // The actual identifier information will be resolved at type resolution time,
+        // The actual identifier information will be resolved at validator time,
         // so we can just store the field name and location info
 
         let name = ident.location.get_lexeme(self.source).to_string();
@@ -950,13 +951,13 @@ impl<'s> Parser<'s> {
             if is_char_type {
                 match parsed_size {
                     Ok(size) => TypeRef::Primitive(PrimitiveType::CharN(size)),
-                    // Try to return as a single char, for preserving type resolution semantics and preserving compatibility with Turing proper
+                    // Try to return as a single char, for preserving validator semantics and preserving compatibility with Turing proper
                     Err(_) => TypeRef::Primitive(PrimitiveType::Char),
                 }
             } else {
                 match parsed_size {
                     Ok(size) => TypeRef::Primitive(PrimitiveType::StringN(size)),
-                    // Try to return as a normal string, for preserving type resolution semantics
+                    // Try to return as a normal string, for preserving validator semantics
                     Err(_) => TypeRef::Primitive(PrimitiveType::String_),
                 }
             }
@@ -1161,7 +1162,7 @@ impl<'s> Parser<'s> {
         let ident_tok = self.next_token();
         let (ident, _) = self.use_ident_msg(ident_tok);
 
-        // Postpone type resolution until later
+        // Postpone type resolution until the validation stage
         // The identifier may refer to an imported unqualified identifier,
         // which are not resolved until after AST building. The error message
         // is therefore ignored, as the identifier may be resolved later.
@@ -2084,7 +2085,7 @@ mod test {
 
     #[test]
     fn test_compound_type_parser() {
-        // Undeclared type identifiers don't produce an error until the type resolution stage
+        // Undeclared type identifiers don't produce an error until the validator stage
         let mut parser = make_test_parser(
             "
 var a : pointer to int

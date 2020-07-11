@@ -19,9 +19,9 @@ pub const MAX_STRING_SIZE: usize = 65536;
 /// Unique type reference for a type
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TypeRef {
-    /// Unknown type reference, to be resolved in type resolution
+    /// Unknown type reference, to be resolved in the validator stage
     Unknown,
-    /// Error during type resolution or parsing
+    /// Error during type validation or parsing
     TypeError,
     /// Reference to a primitive type
     Primitive(PrimitiveType),
@@ -31,7 +31,7 @@ pub enum TypeRef {
 
 /// Enum of basic primitive types
 /// Not included in the unit type table
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PrimitiveType {
     // Base primative types
     /// Boolean type
@@ -155,8 +155,8 @@ pub enum Type {
         result: Option<TypeRef>,
     },
     /// A named type.
-    /// This type is resolved into the corresponding type at type resolution stage,
-    /// as imports are resovled before type resolution
+    /// This type is resolved into the corresponding type at the validation stage,
+    /// as imports are resovled before validation
     Named { ident: Identifier },
     /// Pointer to a given TypeRef
     Pointer { to: TypeRef },
