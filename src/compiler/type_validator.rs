@@ -51,11 +51,14 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
 
                     *type_spec = expr.get_eval_type();
                 } else if value.is_some() {
-                    // TODO: Resolve & De-alias type refs
-                    let asn_type = value.as_ref().unwrap().get_eval_type();
+                    let asn_type = &value.as_ref().unwrap().get_eval_type();
                     let resolved_spec = &type_spec;
 
-                    if asn_type != TypeRef::TypeError {
+                    // TODO: Resolve & De-alias type refs
+                    debug_assert!(types::is_base_type(asn_type, &self.type_table));
+                    debug_assert!(types::is_base_type(resolved_spec, &self.type_table));
+
+                    if !types::is_error(asn_type) {
                         // Validate that the types are assignable
                         if !types::is_assignable_to(resolved_spec, &asn_type, &self.type_table) {
                             // Value to assign is the wrong type
@@ -91,9 +94,12 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 self.visit_expr(var_ref);
                 self.visit_expr(value);
 
-                // TODO: Resolve & De-alias type refs
                 let ref_type = &var_ref.get_eval_type();
                 let value_type = &value.get_eval_type();
+                
+                // TODO: Resolve & De-alias type refs
+                debug_assert!(types::is_base_type(ref_type, &self.type_table));
+                debug_assert!(types::is_base_type(value_type, &self.type_table));
 
                 // Validate that the types are assignable for the given operation
                 if types::is_error(value_type) {
@@ -107,7 +113,7 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                         );
                     }
                 } else {
-                    if check_binary_operands(ref_type, &op.token_type, value_type, &self.type_table).is_err() {
+                    if check_binary_operands((&var_ref, ref_type), &op.token_type, (&value, value_type), &self.type_table).is_err() {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
                             &op.location,
@@ -149,18 +155,21 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 let loc = &op.location;
                 let op = &op.token_type;
 
-                // TODO: Resolve & De-alias type refs
                 let left_type = &left.get_eval_type();
                 let right_type = &right.get_eval_type();
 
-                if left_type == &TypeRef::TypeError || right_type == &TypeRef::TypeError {
+                // TODO: Resolve & De-alias type refs
+                debug_assert!(types::is_base_type(left_type, &self.type_table));
+                debug_assert!(types::is_base_type(right_type, &self.type_table));
+
+                if types::is_error(left_type) || types::is_error(right_type) {
                     // Either one is a type error
                     // Set default type & return (no need to report an error as this is just propoagtion)
                     *eval_type = binary_default(op);
                     return;
                 }
 
-                match check_binary_operands(left_type, op, right_type, &self.type_table) {
+                match check_binary_operands((&left, left_type), op, (&right, right_type), &self.type_table) {
                     Ok(good_eval) => *eval_type = good_eval,
                     Err(bad_eval) => {
                         *eval_type = bad_eval;
@@ -257,15 +266,23 @@ fn binary_default(op: &TokenType) -> TypeRef {
     }
 }
 
+/// Check if the binary operands are valid for the given operation
+/// Assumes that the left and right types are de-aliased and resolved (i.e. they are the base types)
 fn check_binary_operands(
-    left_type: &TypeRef,
+    left: (&Expr, &TypeRef),
     op: &TokenType,
-    right_type: &TypeRef,
+    right: (&Expr, &TypeRef),
     type_table: &TypeTable,
 ) -> Result<TypeRef, TypeRef> {
     // TODO: (>, >=, <, <=) -> boolean, (=, ~=) -> boolean, (>, >=, <, <=, =, ~=) -> boolean, (+, *, -, in, ~in) -> (default) for sets
     // Ordering comparisons require sets, enums, and objectclass types
     // Equality comparisons require the above and full equivalence checking
+
+    let (_, left_type) = left;
+    let (_, right_type) = right;
+
+    debug_assert!(types::is_base_type(left_type, &type_table));
+    debug_assert!(types::is_base_type(right_type, &type_table));
 
     match op {
         TokenType::Plus => {

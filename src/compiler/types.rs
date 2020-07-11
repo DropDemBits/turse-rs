@@ -407,6 +407,20 @@ pub fn is_boolean(type_ref: &TypeRef) -> bool {
     }
 }
 
+/// Checks if the given `type_ref` is references a base type (i.e. the
+/// reference does not point to a Type::Alias, Type::Named, Type::Forward,
+/// TypeRef::Unknown, or TypeRef::TypeError)
+pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    match type_ref {
+        TypeRef::Unknown | TypeRef::TypeError => false,
+        TypeRef::Primitive(_) => true,
+        TypeRef::Named(type_id) => !matches!(
+            type_table.get_type(*type_id),
+            Type::Alias { .. } | Type::Named { .. } | Type::Forward { .. }
+        ),
+    }
+}
+
 /// Gets the common type between the two given type refs
 pub fn common_type<'a>(
     lhs: &'a TypeRef,
@@ -503,14 +517,14 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         let lvalue_len = get_sized_len(lvalue).unwrap_or(1);
         let rvalue_len = get_sized_len(rvalue).unwrap_or(1);
 
-        // For the string -> char case, we have to default to true,
-        // as the value of an unsized `string` can only be checked at runtime
-
         // `char` is only assignable into `char(n)` iff `char(n)` is of length 1
         // `charn(n)` is only assignable into `char` iff `char(n)` is of length 1
         // `string(n)` is only assignable into `char` iff `string(n)` is of length 1
         // `char` is not assignable into `char(*)`
         // `char` is not assignable into `string(*)`
+
+        // For the `char` <- `string` case, we have to default to true,
+        // as the value of an unsized `string` can only be checked at runtime
         lvalue_len == rvalue_len
     } else if is_string_type(lvalue) && is_char(rvalue) {
         // `char` is assignable into string-class types
@@ -530,7 +544,7 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
     }
 
     // Perform equivalence testing based on the type info
-    // TODO: None of this is finished
+    // TODO: Finish the equivalency cases
     // Unions, Records, Enums, and Collections have equivalency based on the type_id, so they will always fail this check
     if let TypeRef::Named(left_id) = lhs {
         if let TypeRef::Named(right_id) = rhs {
