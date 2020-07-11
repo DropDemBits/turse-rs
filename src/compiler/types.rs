@@ -236,6 +236,9 @@ pub fn get_char_kind(s: &String) -> PrimitiveType {
 
 // Helpers for comparing types
 
+/// Checks if the given `type_ref` is a type error
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
 pub fn is_error(type_ref: &TypeRef) -> bool {
     matches!(type_ref, TypeRef::TypeError)
 }
@@ -392,6 +395,16 @@ pub fn is_nat(type_ref: &TypeRef) -> bool {
 /// Checks if the given `type_ref` references number type (real, int, nat, long int, long nat)
 pub fn is_number_type(type_ref: &TypeRef) -> bool {
     is_real(type_ref) || is_integer_type(type_ref)
+}
+
+/// Checks if the given `type_ref` references a boolean
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
+pub fn is_boolean(type_ref: &TypeRef) -> bool {
+    match type_ref {
+        TypeRef::Primitive(kind) => matches!(kind, PrimitiveType::Boolean),
+        _ => false,
+    }
 }
 
 /// Gets the common type between the two given type refs

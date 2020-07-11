@@ -263,7 +263,9 @@ fn check_binary_operands(
     right_type: &TypeRef,
     type_table: &TypeTable,
 ) -> Result<TypeRef, TypeRef> {
-    // TODO: (xor, shl, shr) -> (nat, TypeError), (>, >=, <, <=, =, ~=, in, ~in, =>) -> boolean, (and, or) -> (nat, boolean)
+    // TODO: (>, >=, <, <=) -> boolean, (=, ~=) -> boolean, (>, >=, <, <=, =, ~=) -> boolean, (+, *, -, in, ~in) -> (default) for sets
+    // Ordering comparisons require sets, enums, and objectclass types
+    // Equality comparisons require the above and full equivalence checking
 
     match op {
         TokenType::Plus => {
@@ -315,6 +317,37 @@ fn check_binary_operands(
             if types::is_number_type(left_type) && types::is_number_type(right_type) {
                 // Number expr, mod, rem & exp
                 return Ok(*types::common_type(left_type, right_type, &type_table).unwrap());
+            }
+        }
+        TokenType::And | TokenType::Or | TokenType::Xor => {
+            // Valid conditions:
+            // - Both types are numerics (real, int, nat, etc)
+            // - Both types are booleans
+            // Otherwise, TypeError is produced
+            if types::is_integer_type(left_type) && types::is_integer_type(left_type) {
+                // Integer expr, produce nat
+                return Ok(TypeRef::Primitive(PrimitiveType::Nat));
+            } else if types::is_boolean(left_type) && types::is_boolean(left_type) {
+                // Boolean expr, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            }
+        }
+        TokenType::Shl | TokenType::Shr => {
+            // Valid conditions:
+            // - Both types are numerics (real, int, nat, etc)
+            // Otherwise, TypeError is produced
+            if types::is_integer_type(left_type) && types::is_integer_type(left_type) {
+                // Integer expr, produce nat
+                return Ok(TypeRef::Primitive(PrimitiveType::Nat));
+            }
+        }
+        TokenType::Imply => {
+            // Valid conditions:
+            // - Both types are booleans
+            // Otherwise, TypeError is produced
+            if types::is_boolean(left_type) && types::is_boolean(left_type) {
+                // Boolean expr, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
         }
         _ => todo!()
