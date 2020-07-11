@@ -769,7 +769,7 @@ impl<'a> Parser<'a> {
             TokenType::Real => self.type_primitive(PrimitiveType::Real),
             TokenType::Real4 => self.type_primitive(PrimitiveType::Real4),
             TokenType::Real8 => self.type_primitive(PrimitiveType::Real8),
-            TokenType::String_ | TokenType::Char => self.type_char_seq(),
+            TokenType::String_ | TokenType::Char => self.type_char_seq(parse_context),
 
             // Compound primitives
             TokenType::Flexible | TokenType::Array => unimplemented!(),
@@ -815,7 +815,7 @@ impl<'a> Parser<'a> {
         TypeRef::Primitive(primitive)
     }
 
-    fn get_size_specifier(&mut self) -> Result<usize, ()> {
+    fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<usize, ()> {
         match self.current().token_type {
             TokenType::IntLiteral(size) if size > 0 => {
                 if size as usize >= types::MAX_STRING_SIZE {
@@ -837,13 +837,25 @@ impl<'a> Parser<'a> {
             TokenType::Star => {
                 // Consume parsed type
                 self.next_token();
-                Ok(0 as usize)
+
+                if matches!(parse_context, TokenType::Function | TokenType::Procedure) {
+                    Ok(0 as usize)
+                } else {
+                    self.reporter.report_error(
+                        &self.previous().location,
+                        format_args!(
+                            "Length specifier of '*' is only valid in subprogram parameter types"
+                        ),
+                    );
+
+                    Err(())
+                }
             }
             _ => {
                 self.reporter.report_error(
                     &self.current().location,
                     format_args!(
-                        "Length specifier is not a '*' or a non-zero compile time integer literal"
+                        "Length specifier is not a '*' or a non-zero compile time expression"
                     ),
                 );
                 Err(())
@@ -852,7 +864,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse character sequence (string, char, char(n))
-    fn type_char_seq(&mut self) -> TypeRef {
+    fn type_char_seq(&mut self, parse_context: &TokenType) -> TypeRef {
         // Nom "string" / "char"
         let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
 
@@ -861,7 +873,7 @@ impl<'a> Parser<'a> {
             self.next_token();
 
             // Try to get the size
-            let parsed_size = self.get_size_specifier();
+            let parsed_size = self.get_size_specifier(parse_context);
 
             // Missing ) is recoverable
             let _ = self.expects(
@@ -920,19 +932,21 @@ impl<'a> Parser<'a> {
             let mut params = vec![];
 
             if self.current().token_type != TokenType::RightParen {
+                let param_context = if has_result {
+                    &TokenType::Function
+                } else {
+                    &TokenType::Procedure
+                };
+
                 loop {
                     // Parse a parameter type
                     match self.current().token_type {
                         TokenType::Function | TokenType::Procedure => {
                             // Parse in the context of a function/procedure, as those allow omission of '()'
                             // for function subprograms
-                            params.push(self.type_subprogram_param(if has_result {
-                                &TokenType::Function
-                            } else {
-                                &TokenType::Procedure
-                            }))
+                            params.push(self.type_subprogram_param(param_context))
                         }
-                        _ => params.append(&mut self.type_var_param(parse_context)),
+                        _ => params.append(&mut self.type_var_param(param_context)),
                     }
 
                     if self.current().token_type != TokenType::Comma {
@@ -1635,11 +1649,9 @@ mod test {
         var l : real8
         var m : string
         var n : string(300)
-        var o : string(*)       % repr as size == 0
-        var p : char
-        var q : char(768)
-        var r : char(*)         % repr as size == 0
-        var s : addressint
+        var o : char
+        var p : char(768)
+        var q : addressint
         ",
         );
         assert!(parser.parse());
@@ -1659,10 +1671,8 @@ mod test {
             TypeRef::Primitive(PrimitiveType::Real8),
             TypeRef::Primitive(PrimitiveType::String_),
             TypeRef::Primitive(PrimitiveType::StringN(300)),
-            TypeRef::Primitive(PrimitiveType::StringN(0)),
             TypeRef::Primitive(PrimitiveType::Char),
             TypeRef::Primitive(PrimitiveType::CharN(768)),
-            TypeRef::Primitive(PrimitiveType::CharN(0)),
             TypeRef::Primitive(PrimitiveType::AddressInt),
         ];
 
@@ -1673,6 +1683,15 @@ mod test {
                 assert_eq!(&idents[0].type_spec, test_stmt.1);
             }
         }
+
+        // Star lengths in subprogram parameters
+        let mut parser = make_test_parser(
+            "
+        var a : proc _ (a : string(*))
+        var b : proc _ (b : char(*))
+        ",
+        );
+        assert!(parser.parse());
 
         // Compile time expr (we don't evaluate them yet)
         /*
@@ -1735,6 +1754,17 @@ mod test {
         assert!(!parser.parse());
         // Failed to parse, as type error
         check_ident_expected_type(&parser, "c", TypeRef::TypeError);
+
+        // Invalid: '*' specifiec is only valid in subprogram parameter declarations
+        let mut parser = make_test_parser("var c : string(*)");
+        assert!(!parser.parse());
+        // Failed to parse, as string
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
+
+        let mut parser = make_test_parser("var c : char(*)");
+        assert!(!parser.parse());
+        // Failed to parse, as char
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::Char));
     }
 
     #[test]
