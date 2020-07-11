@@ -25,6 +25,8 @@ pub struct Identifier {
     /// has been defined by reference to the name (used to keep track of undefined
     /// identifiers)
     pub is_declared: bool,
+    /// If the identifier references a value that can be evaluated at compile time
+    pub is_compile_eval: bool,
     /// The import index of the identifier
     /// If None, the identifier is local to the scope
     /// If Some, this is the index (plus one) to the corresponding entry into the
@@ -52,6 +54,7 @@ impl Identifier {
             is_typedef,
             is_declared,
             import_index: NonZeroU32::new(import_index),
+            is_compile_eval: false,
         }
     }
 }
@@ -62,15 +65,19 @@ pub enum Expr {
         op: Token,
         right: Box<Self>,
         eval_type: TypeRef,
+        is_compile_eval: bool,
     },
     UnaryOp {
         op: Token,
         right: Box<Self>,
         eval_type: TypeRef,
+        is_compile_eval: bool,
     },
     Grouping {
         expr: Box<Self>,
+        // The following are for caching purposes
         eval_type: TypeRef,
+        is_compile_eval: bool,
     },
     Literal {
         value: Token,
@@ -85,6 +92,7 @@ pub enum Expr {
         op: Token,
         arg_list: Vec<Self>, // Parens may be omitted
         eval_type: TypeRef,
+        is_compile_eval: bool,
     },
     Dot {
         left: Box<Self>,
@@ -92,10 +100,12 @@ pub enum Expr {
         // String is provided as type information is only needed during type validation & compilation
         field: (Token, String),
         eval_type: TypeRef,
+        is_compile_eval: bool,
     },
 }
 
 impl Expr {
+    /// Gets the evaluation type produced by the expression
     pub fn get_eval_type(&self) -> TypeRef {
         match self {
             Expr::BinaryOp { eval_type, .. } => *eval_type,
@@ -105,6 +115,29 @@ impl Expr {
             Expr::Call { eval_type, .. } => *eval_type,
             Expr::Dot { eval_type, .. } => *eval_type,
             Expr::Reference { ident } => ident.type_spec,
+        }
+    }
+
+    /// Gets the compile evaluability status of the expression
+    pub fn is_compile_eval(&self) -> bool {
+        match self {
+            Expr::BinaryOp {
+                is_compile_eval, ..
+            } => *is_compile_eval,
+            Expr::UnaryOp {
+                is_compile_eval, ..
+            } => *is_compile_eval,
+            Expr::Grouping {
+                is_compile_eval, ..
+            } => *is_compile_eval,
+            Expr::Literal { .. } => true, // Literals are already evaluated
+            Expr::Call {
+                is_compile_eval, ..
+            } => *is_compile_eval,
+            Expr::Dot {
+                is_compile_eval, ..
+            } => *is_compile_eval,
+            Expr::Reference { ident } => ident.is_compile_eval,
         }
     }
 }
@@ -124,7 +157,7 @@ impl fmt::Debug for Expr {
             UnaryOp { op, right, .. } => {
                 f.write_fmt(format_args!("({:?} {:?})", &op.token_type, right))
             }
-            Grouping { expr, eval_type: _ } => f.write_fmt(format_args!("({:?})", expr)),
+            Grouping { expr, .. } => f.write_fmt(format_args!("({:?})", expr)),
             Literal { value, .. } => match &value.token_type {
                 TokenType::StringLiteral(s) => f.write_fmt(format_args!("\"{}\"", s)),
                 TokenType::CharLiteral(s) => f.write_fmt(format_args!("'{}'", s)),

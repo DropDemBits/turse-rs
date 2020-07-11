@@ -33,14 +33,16 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 value,
                 ..
             } => {
+                let mut is_compile_eval = false;
+
                 if types::is_error(type_spec) {
                     // Nothing to do, the identifiers should all have matching values
-                    debug_assert!(
+                    debug_assert_eq!(
                         idents
                             .iter()
                             .filter(|ident| !types::is_error(&ident.type_spec))
-                            .count()
-                            == 0
+                            .count(),
+                        0
                     );
                     return;
                 } else if *type_spec == TypeRef::Unknown {
@@ -50,6 +52,7 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                     self.visit_expr(expr);
 
                     *type_spec = expr.get_eval_type();
+                    is_compile_eval = expr.is_compile_eval();
                 } else if value.is_some() {
                     let asn_type = &value.as_ref().unwrap().get_eval_type();
                     let resolved_spec = &type_spec;
@@ -67,6 +70,8 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                                 format_args!("Initialization value is the wrong type"),
                             );
                             *type_spec = TypeRef::TypeError;
+                        } else {
+                            is_compile_eval = value.as_ref().unwrap().is_compile_eval();
                         }
                     } else {
                         // Silently propogate type error (error has been reported)
@@ -78,12 +83,14 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 // Update the identifiers to the new assignment value
                 for ident in idents.iter_mut() {
                     ident.type_spec = *type_spec;
+                    // Only compile-time evaluable if the identifier referencences a constant
+                    ident.is_compile_eval = is_compile_eval && ident.is_const;
                     self.active_scope
                         .upgrade()
                         .unwrap()
                         .borrow_mut()
                         .scope
-                        .resolve_ident(&ident.name, *type_spec, ident.is_const, ident.is_typedef);
+                        .resolve_ident(&ident.name, &ident);
                 }
             }
             Stmt::Assign {
@@ -96,15 +103,18 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
 
                 let ref_type = &var_ref.get_eval_type();
                 let value_type = &value.get_eval_type();
-                
-                // TODO: Resolve & De-alias type refs
-                debug_assert!(types::is_base_type(ref_type, &self.type_table));
-                debug_assert!(types::is_base_type(value_type, &self.type_table));
 
                 // Validate that the types are assignable for the given operation
                 if types::is_error(value_type) {
                     // Silently drop propogated TypeErrors
-                } else if op.token_type == TokenType::Assign {
+                    return;
+                }
+
+                // TODO: Resolve & De-alias type refs
+                debug_assert!(types::is_base_type(ref_type, &self.type_table));
+                debug_assert!(types::is_base_type(value_type, &self.type_table));
+                
+                if op.token_type == TokenType::Assign {
                     if !types::is_assignable_to(ref_type, value_type, &self.type_table) {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
@@ -136,15 +146,17 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
     fn visit_expr(&mut self, visit_expr: &mut Expr) {
         match visit_expr {
-            Expr::Grouping { expr, eval_type } => {
+            Expr::Grouping { expr, eval_type, is_compile_eval } => {
                 self.visit_expr(expr);
                 *eval_type = expr.get_eval_type();
+                *is_compile_eval = expr.is_compile_eval();
             }
             Expr::BinaryOp {
                 left,
                 op,
                 right,
                 eval_type,
+                is_compile_eval,
             } => {
                 self.visit_expr(left);
                 self.visit_expr(right);
@@ -166,13 +178,19 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                     // Either one is a type error
                     // Set default type & return (no need to report an error as this is just propoagtion)
                     *eval_type = binary_default(op);
+                    *is_compile_eval = false;
                     return;
                 }
 
                 match check_binary_operands((&left, left_type), op, (&right, right_type), &self.type_table) {
-                    Ok(good_eval) => *eval_type = good_eval,
+                    Ok(good_eval) => {
+                        // Only evaluable if the operands are not type errors and are applicable
+                        *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
+                        *eval_type = good_eval
+                    },
                     Err(bad_eval) => {
                         *eval_type = bad_eval;
+                        *is_compile_eval = false;
 
                         match op {
                             TokenType::Plus => 
@@ -190,18 +208,23 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 op: _,
                 right,
                 eval_type,
+                is_compile_eval,
             } => {
                 self.visit_expr(right);
 
                 // Validate that the unary operator can be applied to the rhs
                 // eval_type is the usually same type as the rhs
                 *eval_type = right.get_eval_type();
+
+                // is_compile_eval is the usually same type as the rhs
+                *is_compile_eval = right.is_compile_eval();
             }
             Expr::Call {
                 left,
                 op: _,
                 arg_list,
                 eval_type: _,
+                is_compile_eval,
             } => {
                 self.visit_expr(left);
                 arg_list.iter_mut().for_each(|expr| self.visit_expr(expr));
@@ -209,16 +232,25 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 // Validate that 'left' is "callable"
                 // Validate that the argument types match the type_spec using the given reference
                 // eval_type is the result of the call expr
+
+                // For now, call expressions default to runtime-time only
+                // A call expression would be compile-time evaluable if it had no side effects,
+                // but we don't check that right now
+                *is_compile_eval = false;
             }
             Expr::Dot {
                 left,
                 field: _,
                 eval_type: _,
+                is_compile_eval,
             } => {
                 self.visit_expr(left);
 
                 // Validate that the field exists in the given type
                 // eval_type is the field type
+
+                // For now, dot expressions default to runtime-time only
+                *is_compile_eval = false;
             }
             Expr::Reference { ident } => {
                 if ident.is_declared {
@@ -267,7 +299,16 @@ fn binary_default(op: &TokenType) -> TypeRef {
 }
 
 /// Check if the binary operands are valid for the given operation
-/// Assumes that the left and right types are de-aliased and resolved (i.e. they are the base types)
+/// Assumes that the left and right types are de-aliased and resolved (i.e.
+/// they are the base types) \
+/// `left`                  Tuple containing the left expression and the left
+///                         base type
+/// `op`                    The operator to check for \
+/// `right`                 Tuple containing the left expression and the left
+///                         base type \
+/// `type_table`            Type table to resolve named types \
+/// `check_compile_eval`    Whether to check for compile-time evaluability for
+///                         certain operations (e.g. shl, shr)
 fn check_binary_operands(
     left: (&Expr, &TypeRef),
     op: &TokenType,

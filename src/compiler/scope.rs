@@ -122,22 +122,16 @@ impl Scope {
     /// If the given identifier has not been declared in the current scope
     /// (either by importing from an external scope or by local declaration), a panic is done
     /// An identifier should already be declared by the time this is executed
-    #[allow(dead_code)]
-    pub fn resolve_ident(
-        &mut self,
-        name: &str,
-        type_spec: TypeRef,
-        is_const: bool,
-        is_typedef: bool,
-    ) -> Identifier {
+    pub fn resolve_ident(&mut self, name: &str, new_info: &Identifier) -> Identifier {
         let ident = self
             .idents
             .get_mut(name)
             .expect("The given identifier has not been declared yet");
-        ident.type_spec = type_spec;
+        ident.type_spec = new_info.type_spec;
+        ident.is_compile_eval = new_info.is_compile_eval;
         // Remove modifying these if not needed
-        ident.is_const = is_const;
-        ident.is_typedef = is_typedef;
+        ident.is_const = new_info.is_const;
+        ident.is_typedef = new_info.is_typedef;
 
         // Give back the resovled copy
         ident.clone()
@@ -424,8 +418,16 @@ mod test {
         assert!(msg.is_none());
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
-        let ident =
-            scope.resolve_ident("a", TypeRef::Primitive(PrimitiveType::String_), true, true);
+        let new_info = Identifier::new(
+            make_ident_token(),
+            TypeRef::Primitive(PrimitiveType::String_),
+            String::from(""),
+            true,
+            true,
+            true,
+            0,
+        );
+        let ident = scope.resolve_ident("a", &new_info);
 
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_));
         assert_eq!(
@@ -441,7 +443,16 @@ mod test {
         let mut scope = root_block.scope;
 
         // Panics!
-        let _ = scope.resolve_ident("a", TypeRef::Primitive(PrimitiveType::String_), true, true);
+        let new_info = Identifier::new(
+            make_ident_token(),
+            TypeRef::Primitive(PrimitiveType::String_),
+            String::from(""),
+            true,
+            true,
+            true,
+            0,
+        );
+        let _ = scope.resolve_ident("a", &new_info);
     }
 
     #[test]

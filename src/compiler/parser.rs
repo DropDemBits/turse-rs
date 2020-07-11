@@ -2,12 +2,12 @@
 use crate::compiler::ast::{Expr, Identifier, Stmt};
 use crate::compiler::block::{BlockKind, CodeBlock, CodeUnit};
 use crate::compiler::token::{Token, TokenType};
-use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
+use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::{Cell, RefCell};
 use std::fmt::Arguments;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 /*
 expr:
@@ -569,6 +569,7 @@ impl<'a> Parser<'a> {
         Ok(Expr::Grouping {
             expr: Box::new(expr),
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -583,6 +584,7 @@ impl<'a> Parser<'a> {
             op,
             right: Box::new(rhs),
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -594,6 +596,7 @@ impl<'a> Parser<'a> {
             op,
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -606,6 +609,7 @@ impl<'a> Parser<'a> {
             op,
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -618,6 +622,7 @@ impl<'a> Parser<'a> {
             op,
             arg_list,
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -637,6 +642,7 @@ impl<'a> Parser<'a> {
             left: Box::new(var_ref),
             field: (ident, name),
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -651,6 +657,7 @@ impl<'a> Parser<'a> {
             },
             right: Box::new(var_ref),
             eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
         })
     }
 
@@ -836,7 +843,7 @@ impl<'a> Parser<'a> {
                 self.reporter.report_error(
                     &self.current().location,
                     format_args!(
-                        "Length specifier is not a '*' or a non-zero compile time expression"
+                        "Length specifier is not a '*' or a non-zero compile time integer literal"
                     ),
                 );
                 Err(())
@@ -1105,27 +1112,6 @@ impl<'a> Parser<'a> {
         }
 
         reference
-    }
-
-    #[allow(dead_code)]
-    fn resolve_ident(
-        &self,
-        ident: &Token,
-        type_spec: TypeRef,
-        is_const: bool,
-        is_typedef: bool,
-    ) -> Identifier {
-        self.blocks
-            .last()
-            .unwrap()
-            .borrow_mut()
-            .scope
-            .resolve_ident(
-                ident.location.get_lexeme(self.source),
-                type_spec,
-                is_const,
-                is_typedef,
-            )
     }
 
     /// Uses an identifer, providing the error message
