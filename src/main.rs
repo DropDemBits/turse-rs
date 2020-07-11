@@ -4,10 +4,8 @@ mod status_reporter;
 extern crate getopts;
 
 use getopts::Options;
-use std::cell::RefCell;
 use std::env;
 use std::fs;
-use std::rc::Rc;
 
 fn show_usage(program_name: &String, opts: &Options) {
     let brief = format!("Usage: {} [options]", program_name);
@@ -77,23 +75,27 @@ fn compile_run_file(path: &str) {
         }
     };
 
+    // Build the main unit
+    let code_unit = compiler::block::CodeUnit::new(true);
+
     let mut scanner = compiler::scanner::Scanner::new(&file_contents);
     scanner.scan_tokens();
 
-    let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents);
+    let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents, code_unit);
     parser.parse();
 
-    // Take the unit from the parser
-    let code_unit = Rc::new(RefCell::new(parser.take_unit()));
-    let type_table = Rc::new(RefCell::new(parser.take_types()));
+    // Take the unit back from the parser
+    let mut code_unit = parser.take_unit();
+    let mut type_table = code_unit.take_types();
 
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
     // TODO: Provide external type resolution stage
 
     // Validate types
-    let mut type_validator = compiler::type_validator::TypeValidator::new(&code_unit, &type_table);
-    code_unit.borrow_mut().visit_ast_mut(&mut type_validator);
+    let mut type_validator =
+        compiler::type_validator::TypeValidator::new(code_unit.root_block(), &mut type_table);
+    code_unit.visit_ast_mut(&mut type_validator);
+    code_unit.put_types(type_table);
 
-    println!("Types:\n{:#?}", type_table);
     println!("Unit:\n{:#?}", code_unit);
 }

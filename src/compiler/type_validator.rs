@@ -1,30 +1,30 @@
 //! Type validator upon the AST tree
 use crate::compiler::ast::{ASTVisitorMut, Expr, Stmt};
-use crate::compiler::block::{CodeBlock, CodeUnit};
+use crate::compiler::block::{CodeBlock};
 use crate::compiler::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, TypeRef, TypeTable};
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-pub struct TypeValidator {
+pub struct TypeValidator<'a> {
     /// Status reporter for the type validator
     reporter: StatusReporter,
-    type_table: Weak<RefCell<TypeTable>>,
+    type_table: &'a mut TypeTable,
     active_scope: Weak<RefCell<CodeBlock>>,
 }
 
-impl TypeValidator {
-    pub fn new(validate_unit: &Rc<RefCell<CodeUnit>>, type_table: &Rc<RefCell<TypeTable>>) -> Self {
+impl<'a> TypeValidator<'a> {
+    pub fn new(root_block: &Rc<RefCell<CodeBlock>>, type_table: &'a mut TypeTable) -> Self {
         Self {
             reporter: StatusReporter::new(),
-            type_table: Rc::downgrade(type_table),
-            active_scope: Rc::downgrade(&validate_unit.borrow().blocks()[0]),
+            type_table,
+            active_scope: Rc::downgrade(root_block),
         }
     }
 }
 
-impl ASTVisitorMut<()> for TypeValidator {
+impl ASTVisitorMut<()> for TypeValidator<'_> {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match visit_stmt {
             Stmt::VarDecl {
@@ -55,12 +55,11 @@ impl ASTVisitorMut<()> for TypeValidator {
 
                     if asn_type != TypeRef::TypeError {
                         // Validate that the types are assignable
-                        let type_table = self.type_table.upgrade().unwrap();
-                        if !types::is_assignable_to(type_spec, &asn_type, &type_table.borrow()) {
+                        if !types::is_assignable_to(type_spec, &asn_type, &self.type_table) {
                             // Value to assign is the wrong type
                             self.reporter.report_error(
                                 &idents.last().as_ref().unwrap().token.location,
-                                format_args!("Assignment value is the wrong type"),
+                                format_args!("Initialization value is the wrong type"),
                             );
                             *type_spec = TypeRef::TypeError;
                         }
@@ -126,7 +125,6 @@ impl ASTVisitorMut<()> for TypeValidator {
                 let op = &op.token_type;
 
                 // TODO: Resolve & De-alias type refs
-                let type_table = self.type_table.upgrade().unwrap();
                 let left_type = &left.get_eval_type();
                 let right_type = &right.get_eval_type();
 
@@ -155,7 +153,7 @@ impl ASTVisitorMut<()> for TypeValidator {
                         {
                             // Number expr, sum
                             *eval_type =
-                                *types::common_type(left_type, right_type, &type_table.borrow())
+                                *types::common_type(left_type, right_type, &self.type_table)
                                     .unwrap();
                         } else {
                             // error, report!
@@ -177,7 +175,7 @@ impl ASTVisitorMut<()> for TypeValidator {
                         if types::is_number_type(left_type) && types::is_number_type(right_type) {
                             // Number expr, minus & mul
                             *eval_type =
-                                *types::common_type(left_type, right_type, &type_table.borrow())
+                                *types::common_type(left_type, right_type, &self.type_table)
                                     .unwrap();
                         } else {
                             // error, report!
@@ -236,7 +234,7 @@ impl ASTVisitorMut<()> for TypeValidator {
                         if types::is_number_type(left_type) && types::is_number_type(right_type) {
                             // Number expr, mod, rem & exp
                             *eval_type =
-                                *types::common_type(left_type, right_type, &type_table.borrow())
+                                *types::common_type(left_type, right_type, &self.type_table)
                                     .unwrap();
                         } else {
                             // error, report!

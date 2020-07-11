@@ -55,25 +55,29 @@ impl CodeBlock {
 
 #[derive(Debug)]
 pub struct CodeUnit {
-    blocks: Vec<Rc<RefCell<CodeBlock>>>,
+    //blocks: Vec<Rc<RefCell<CodeBlock>>>,
+    /// Root block of the unit
+    root_block: Rc<RefCell<CodeBlock>>,
     /// Root statements
     stmts: Vec<Stmt>,
-    types: RefCell<TypeTable>,
+    /// Type table associated with the unit.
+    /// May be moved into and outside of the unit for mutability purposes
+    types: Option<TypeTable>,
 }
 
 impl CodeUnit {
     pub fn new(is_main: bool) -> Self {
         Self {
-            blocks: vec![Rc::new(RefCell::new(CodeBlock::new(
+            root_block: Rc::new(RefCell::new(CodeBlock::new(
                 if is_main {
                     BlockKind::Main
                 } else {
                     BlockKind::Unit
                 },
                 &vec![],
-            )))],
+            ))),
             stmts: vec![],
-            types: RefCell::new(TypeTable::new()),
+            types: Some(TypeTable::new()),
         }
     }
 
@@ -95,11 +99,29 @@ impl CodeUnit {
         &mut self.stmts
     }
 
-    pub fn blocks(&self) -> &Vec<Rc<RefCell<CodeBlock>>> {
-        &self.blocks
+    pub fn root_block(&self) -> &Rc<RefCell<CodeBlock>> {
+        &self.root_block
     }
 
-    pub fn blocks_mut(&mut self) -> &mut Vec<Rc<RefCell<CodeBlock>>> {
-        &mut self.blocks
+    pub fn root_block_mut(&mut self) -> &mut Rc<RefCell<CodeBlock>> {
+        &mut self.root_block
+    }
+
+    // TODO: Revisit these when dealing with multiple files, as requirements will change
+
+    pub fn take_types(&mut self) -> TypeTable {
+        self.types.take().unwrap()
+    }
+
+    pub fn put_types(&mut self, table: TypeTable) {
+        self.types.replace(table);
+    }
+
+    pub fn types_mut(&mut self) -> &mut TypeTable {
+        self.types.as_mut().unwrap()
+    }
+
+    pub fn types(&self) -> &TypeTable {
+        self.types.as_ref().unwrap()
     }
 }

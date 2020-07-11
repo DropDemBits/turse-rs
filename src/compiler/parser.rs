@@ -7,7 +7,7 @@ use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::{Cell, RefCell};
 use std::fmt::Arguments;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 /*
 expr:
@@ -145,8 +145,8 @@ pub struct Parser<'a> {
     current: Cell<usize>,
     /// Parsed Code Unit
     unit: Option<CodeUnit>,
-    /// Current types
-    types: Option<TypeTable>,
+    /// Actively parsed blocks
+    blocks: Vec<Rc<RefCell<CodeBlock>>>,
 }
 
 #[derive(Debug)]
@@ -155,14 +155,15 @@ enum ParsingStatus {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: Vec<Token>, source: &'a str) -> Self {
+    pub fn new(tokens: Vec<Token>, source: &'a str, unit: CodeUnit) -> Self {
         Self {
             reporter: StatusReporter::new(),
             source,
             tokens,
             current: Cell::new(0),
-            unit: None,
-            types: None,
+            // Clone a ref to the root block
+            blocks: vec![unit.root_block().clone()],
+            unit: Some(unit),
         }
     }
 
@@ -170,9 +171,6 @@ impl<'a> Parser<'a> {
     /// Returns if the parse has no errors
     pub fn parse(&mut self) -> bool {
         // TODO: Check if the root block is a unit block
-        self.unit.replace(CodeUnit::new(true));
-        self.types.replace(TypeTable::new());
-
         // Parse the statements
         let mut stmts = vec![];
 
@@ -198,12 +196,6 @@ impl<'a> Parser<'a> {
     pub fn take_unit(&mut self) -> CodeUnit {
         let code_unit = self.unit.take().unwrap();
         code_unit
-    }
-
-    /// Takes the type table from the parser
-    pub fn take_types(&mut self) -> TypeTable {
-        let type_table = self.types.take().unwrap();
-        type_table
     }
 
     /// Gets the previous token in the stream
@@ -1101,10 +1093,7 @@ impl<'a> Parser<'a> {
         let name = ident.location.get_lexeme(self.source).to_string();
 
         let (reference, err) = self
-            .unit
-            .as_ref()
-            .unwrap()
-            .blocks()
+            .blocks
             .last()
             .unwrap()
             .borrow_mut()
@@ -1127,10 +1116,7 @@ impl<'a> Parser<'a> {
         is_const: bool,
         is_typedef: bool,
     ) -> Identifier {
-        self.unit
-            .as_ref()
-            .unwrap()
-            .blocks()
+        self.blocks
             .last()
             .unwrap()
             .borrow_mut()
@@ -1147,10 +1133,7 @@ impl<'a> Parser<'a> {
     fn use_ident_msg(&self, ident: Token) -> (Identifier, Option<String>) {
         let name = ident.location.get_lexeme(self.source);
 
-        self.unit
-            .as_ref()
-            .unwrap()
-            .blocks()
+        self.blocks
             .last()
             .unwrap()
             .borrow_mut()
@@ -1172,20 +1155,16 @@ impl<'a> Parser<'a> {
 
     /// Pushes a new block onto the block list
     fn push_block(&mut self, block_kind: BlockKind) {
-        let block = CodeBlock::new(block_kind, self.unit.as_ref().unwrap().blocks());
+        let block = CodeBlock::new(block_kind, &self.blocks);
 
         // Add the block to the list
-        self.unit
-            .as_mut()
-            .unwrap()
-            .blocks_mut()
-            .push(Rc::new(RefCell::new(block)));
+        self.blocks.push(Rc::new(RefCell::new(block)));
     }
 
     /// Pops a block off of the block list, and moving the given statement list
     /// into the block
     fn pop_block(&mut self, stmts: &mut Vec<Stmt>) -> Rc<RefCell<CodeBlock>> {
-        let block = self.unit.as_mut().unwrap().blocks_mut().pop().unwrap();
+        let block = self.blocks.pop().unwrap();
         block.borrow_mut().stmts.append(stmts);
 
         block
@@ -1193,7 +1172,13 @@ impl<'a> Parser<'a> {
 
     // -- Wrappers around the type table -- //
     fn declare_type(&mut self, type_info: Type) -> TypeRef {
-        TypeRef::Named(self.types.as_mut().unwrap().declare_type(type_info))
+        TypeRef::Named(
+            self.unit
+                .as_mut()
+                .unwrap()
+                .types_mut()
+                .declare_type(type_info),
+        )
     }
 
     // --- Helpers --- //
@@ -1384,11 +1369,15 @@ mod test {
         let mut scanner = Scanner::new(source);
         scanner.scan_tokens();
 
-        Parser::new(scanner.tokens, source)
+        Parser::new(scanner.tokens, source, CodeUnit::new(true))
     }
 
     fn get_ident_type(parser: &Parser, name: &str) -> TypeRef {
-        parser.unit.as_ref().unwrap().blocks()[0]
+        parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .root_block()
             .borrow()
             .scope
             .get_ident(name)
@@ -1404,7 +1393,7 @@ mod test {
         types::is_equivalent_to(
             &get_ident_type(&parser, lhs),
             &get_ident_type(&parser, rhs),
-            parser.types.as_ref().unwrap(),
+            parser.unit.as_ref().unwrap().types(),
         )
     }
 
