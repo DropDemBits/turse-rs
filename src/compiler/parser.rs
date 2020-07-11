@@ -2145,6 +2145,22 @@ var runtime_size : array 1 .. up_size of real
         assert!(is_ident_type_equivalent_to(&parser, "n", "o"));
         assert!(is_ident_type_equivalent_to(&parser, "p", "q"));
 
+        // Arbitrary expressions are not valid types
+        let mut parser = make_test_parser("var a : 1");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : 1 ** 2");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : (1 * 6 - 1 + 4 = 1)");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : false");
+        assert!(!parser.parse());
+    }
+
+    #[test]
+    fn test_pointer_type_invalids() {
         // Pointer type expects "to"
         let mut parser = make_test_parser("var a : pointer int");
         assert!(!parser.parse());
@@ -2156,7 +2172,10 @@ var runtime_size : array 1 .. up_size of real
         // Pointer type expects type
         let mut parser = make_test_parser("var a : pointer");
         assert!(!parser.parse());
+    }
 
+    #[test]
+    fn test_subprogram_type_invalids() {
         // Function expects ':' before result type
         let mut parser = make_test_parser("var a : function a int");
         assert!(!parser.parse());
@@ -2175,7 +2194,10 @@ var runtime_size : array 1 .. up_size of real
 
         let mut parser = make_test_parser("var a : function : int");
         assert!(!parser.parse());
+    }
 
+    #[test]
+    fn test_range_type_invalids() {
         // Inferred range end is only valid in array range contexts
         let mut parser = make_test_parser("var a : 1 .. *");
         assert!(!parser.parse());
@@ -2183,44 +2205,36 @@ var runtime_size : array 1 .. up_size of real
         // No range end
         let mut parser = make_test_parser("var a : 1 .. ");
         assert!(!parser.parse());
+    }
 
+    #[test]
+    fn test_set_type_invalids() {
         // Set type declarations are only valid in type statements
         let mut parser = make_test_parser("var a : set of 1 .. 3");
         assert!(!parser.parse());
+        assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, false);
 
         // Set type declarations expect 'of'
-        let mut parser = make_test_parser("var a : int \n type a : set 1 .. 3");
+        let mut parser = make_test_parser("type a : set 1 .. 3");
         assert!(!parser.parse());
-        assert!(get_ident(&parser, "a").unwrap().is_declared);
-        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 
         let mut parser = make_test_parser("type a : set");
         assert!(!parser.parse());
-        assert!(get_ident(&parser, "a").unwrap().is_declared);
-        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 
         // Set type declarations expect a range
         let mut parser = make_test_parser("type a : set of ");
         assert!(!parser.parse());
-        assert!(get_ident(&parser, "a").unwrap().is_declared);
-        assert!(get_ident(&parser, "a").unwrap().is_typedef);
-
-        // Arbitrary expressions are not valid types
-        let mut parser = make_test_parser("var a : 1");
-        assert!(!parser.parse());
-
-        let mut parser = make_test_parser("var a : 1 ** 2");
-        assert!(!parser.parse());
-
-        let mut parser = make_test_parser("var a : (1 * 6 - 1 + 4 = 1)");
-        assert!(!parser.parse());
-
-        let mut parser = make_test_parser("var a : false");
-        assert!(!parser.parse());
+        assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
     }
 
     #[test]
-    fn test_array_invalids() {
+    fn test_array_type_invalids() {
         // Flexible array cannot have an implicit range
         let mut parser = make_test_parser("var inv : flexible array 1 .. * of real");
         assert!(!parser.parse());
