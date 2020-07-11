@@ -341,10 +341,10 @@ fn check_binary_operands(
             // - Both types are numerics (real, int, nat, etc)
             // - Both types are booleans
             // Otherwise, TypeError is produced
-            if types::is_integer_type(left_type) && types::is_integer_type(left_type) {
+            if types::is_integer_type(left_type) && types::is_integer_type(right_type) {
                 // Integer expr, produce nat
                 return Ok(TypeRef::Primitive(PrimitiveType::Nat));
-            } else if types::is_boolean(left_type) && types::is_boolean(left_type) {
+            } else if types::is_boolean(left_type) && types::is_boolean(right_type) {
                 // Boolean expr, produce boolean
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
@@ -353,7 +353,7 @@ fn check_binary_operands(
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // Otherwise, TypeError is produced
-            if types::is_integer_type(left_type) && types::is_integer_type(left_type) {
+            if types::is_integer_type(left_type) && types::is_integer_type(right_type) {
                 // Integer expr, produce nat
                 return Ok(TypeRef::Primitive(PrimitiveType::Nat));
             }
@@ -362,7 +362,7 @@ fn check_binary_operands(
             // Valid conditions:
             // - Both types are booleans
             // Otherwise, TypeError is produced
-            if types::is_boolean(left_type) && types::is_boolean(left_type) {
+            if types::is_boolean(left_type) && types::is_boolean(right_type) {
                 // Boolean expr, produce boolean
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
