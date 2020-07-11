@@ -280,7 +280,6 @@ impl<'a> Parser<'a> {
         // Consume decl_tok
         let decl_tok = self.next_token();
 
-        // TODO: parse definition of multiple identifiers
         // Grab identifier token
         let ident_tokens = {
             let mut idents = vec![self.expects(
@@ -1659,7 +1658,6 @@ mod test {
         );
         assert!(parser.parse());
 
-        // TODO: Move sized types into the compound section
         let expected_types = [
             TypeRef::Primitive(PrimitiveType::Boolean),
             TypeRef::Primitive(PrimitiveType::Int),
