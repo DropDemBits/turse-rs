@@ -823,7 +823,10 @@ impl<'s> Parser<'s> {
             TokenType::String_ | TokenType::Char => self.type_char_seq(parse_context),
 
             // Compound primitives
-            TokenType::Flexible | TokenType::Array => self.type_array(parse_context),
+            TokenType::Flexible if self.peek().token_type == TokenType::Array => {
+                self.type_array(parse_context)
+            }
+            TokenType::Array => self.type_array(parse_context),
             TokenType::Pointer | TokenType::Caret => self.type_pointer(parse_context),
             TokenType::Set => self.type_set(parse_context),
             TokenType::Function | TokenType::Procedure => {
@@ -843,12 +846,15 @@ impl<'s> Parser<'s> {
             TokenType::Enum => unimplemented!(),
             TokenType::Record => unimplemented!(),
             TokenType::Union => unimplemented!(),
-            TokenType::Identifier => self.type_ident(),
+            TokenType::Identifier if self.peek().token_type != TokenType::Range => {
+                // TODO: Handle field references in conjunction with range parsing
+                self.type_ident()
+            }
             _ => {
-                // Try to parse the current type as an expression
-                let left_expr = self.expr();
+                // Try to parse a range type
+                let range = self.type_range(parse_context);
 
-                if left_expr.is_err() || self.current().token_type != TokenType::Range {
+                if range.is_err() {
                     self.reporter.report_error(
                         &self.current().location,
                         format_args!(
@@ -860,8 +866,7 @@ impl<'s> Parser<'s> {
                     // Return a type error
                     TypeRef::TypeError
                 } else {
-                    // Produce a range expression
-                    self.type_range(left_expr.ok().unwrap(), parse_context)
+                    range.ok().unwrap()
                 }
             }
         }
@@ -1164,7 +1169,22 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse a range type
-    fn type_range(&mut self, start_range: Expr, parse_context: &TokenType) -> TypeRef {
+    fn type_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
+        // Try to parse the start range
+        let start_range = self.expr().map_err(|_| ())?;
+
+        if self.current().token_type != TokenType::Range {
+            // Not a range expression
+            // Propogate the error up
+            return Err(());
+        }
+
+        Ok(self.type_range_rest(start_range, parse_context))
+    }
+
+    // Parse the rest of a range type
+    // Will always produce a range
+    fn type_range_rest(&mut self, start_range: Expr, parse_context: &TokenType) -> TypeRef {
         // A None for the range is only acceptable in array decls
         // Everywhere else is invalid
         let is_inferred_valid = *parse_context == TokenType::Array;
@@ -1183,8 +1203,10 @@ impl<'s> Parser<'s> {
                 } else {
                     self.reporter.report_error(
                         &star_tok.location,
-                        format_args!("'*' as a range end is only valid in array ranges"),
+                        format_args!("'*' as a range end is only valid in an array range"),
                     );
+
+                    // Bail out completely
                     return TypeRef::TypeError;
                 }
             }
@@ -1202,6 +1224,7 @@ impl<'s> Parser<'s> {
                         format_args!("Expected expression after '..'")
                     },
                 );
+
                 TypeRef::TypeError
             }
             Ok(end_range) => self.declare_type(Type::Range {
@@ -1212,9 +1235,146 @@ impl<'s> Parser<'s> {
         }
     }
 
+    /// Parse a single index specificier
+    fn type_index(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
+        // "boolean" | "char" | type_ident | type_range
+        // TODO: Identifiers aren't properly parsed yet as they may be part of a range expression
+        match self.current().token_type {
+            TokenType::Boolean | TokenType::Char => Ok(self.parse_type(parse_context)),
+            _ => self.type_range(parse_context),
+        }
+    }
+
     /// Parse an array type
     fn type_array(&mut self, parse_context: &TokenType) -> TypeRef {
-        todo!()
+        // "flexible"? "array" range_spec (',' range_spec)* "of" type_spec
+
+        let is_flexible = self.optional(TokenType::Flexible);
+        let flexible_tok = self.previous().clone();
+
+        // Guarranteed to always be called with array as the current or next token
+        let array_tok = self
+            .expects(TokenType::Array, format_args!("!!! oopsies !!!"))
+            .expect("'type_array' called without checking if next or current token is 'array'");
+
+        let mut is_init_sized = false;
+        let mut ranges = vec![];
+
+        loop {
+            let range = self.type_index(&TokenType::Array);
+
+            if range.is_err() {
+                let _ = self.reporter.report_error(
+                    &self.current().location,
+                    format_args!("Expected a range specifier after ','"),
+                );
+                break;
+            }
+
+            let range = range.ok().unwrap();
+
+            if ranges.is_empty() {
+                // Pushing the first range, check for implicit range
+                if let Some(Type::Range { ref end, .. }) =
+                    self.unit.as_ref().unwrap().types().type_from_ref(&range)
+                {
+                    if is_flexible && end.is_none() {
+                        // Flexible array cannot have an implicit range specifier
+                        self.reporter.report_error(
+                            &self.previous().location,
+                            format_args!("Flexible array cannot have an implicit range specifier"),
+                        );
+                    }
+
+                    // An array is init-sized if the first range is an implicit range
+                    is_init_sized = end.is_none();
+                }
+                // Add the range
+                ranges.push(range);
+            } else if is_init_sized {
+                // Part of an init sized array, drop the extra ranges
+                self.reporter.report_error(
+                    &self.previous().location,
+                    format_args!("Extra range specifier found in implicit size array"),
+                );
+            } else {
+                // Pushing in an additional range, where an additional range is accepted
+                if let Some(Type::Range { ref end, .. }) =
+                    self.unit.as_ref().unwrap().types().type_from_ref(&range)
+                {
+                    // Report if the range is an implicit range
+                    if end.is_none() {
+                        self.reporter.report_error(
+                            &self.previous().location,
+                            format_args!("'*' is only valid for the first range specifier"),
+                        );
+                    }
+                }
+
+                // Add the range
+                ranges.push(range);
+            }
+
+            if !self.optional(TokenType::Comma) {
+                break;
+            }
+        }
+
+        if ranges.is_empty() {
+            self.reporter.report_error(
+                &self.current().location,
+                format_args!("Expected a range specifier after 'array'"),
+            );
+        }
+
+        let _ = self.expects(
+            TokenType::Of,
+            format_args!("Expected 'of' after the last range specifier"),
+        );
+
+        let element_type = self.parse_type(&TokenType::Array);
+
+        // Check if the current array is allowed in the current parsing context
+        if matches!(
+            parse_context,
+            TokenType::Union
+                | TokenType::Record
+                | TokenType::Array
+                | TokenType::Function
+                | TokenType::Procedure
+        ) {
+            let context_name = match parse_context {
+                TokenType::Union => "unions",
+                TokenType::Record => "records",
+                TokenType::Array => "array element type specifiers",
+                TokenType::Function => "function parameters",
+                TokenType::Procedure => "procedure parameters",
+                _ => unreachable!(),
+            };
+
+            if is_flexible {
+                self.reporter.report_error(
+                    &flexible_tok.location,
+                    format_args!("Flexible arrays are not allowed inside of {}", context_name),
+                );
+            } else if is_init_sized {
+                self.reporter.report_error(
+                    &array_tok.location,
+                    format_args!(
+                        "Implicit size arrays are not allowed inside of {}",
+                        context_name
+                    ),
+                );
+            }
+        }
+
+        // Build the type
+        self.declare_type(Type::Array {
+            ranges,
+            element_type,
+            is_flexible,
+            is_init_sized,
+        })
     }
 
     /// Parse a set type
@@ -1225,13 +1385,9 @@ impl<'s> Parser<'s> {
         let _ = self.expects(TokenType::Of, format_args!("Expected 'of' after 'set'"));
 
         // Parse the range!
-        let range = {
-            let expr = self.expr();
-
-            match expr {
-                Err(_) => TypeRef::TypeError,
-                Ok(start) => self.type_range(start, &TokenType::Set),
-            }
+        let range = match self.type_range(&TokenType::Set) {
+            Err(_) => TypeRef::TypeError,
+            Ok(range) => range,
         };
 
         if *parse_context != TokenType::Type {
@@ -1961,6 +2117,28 @@ var a_range : (1 - 3 shl 5) .. (2 * 50 - 8 * 4)
 
 % Set parsing (only valid in type statements)
 type some_set : set of 1 .. 5
+
+% Array parsing setup
+var start_range := 1
+var end_range := 5
+
+% Array parsing (enum ranges aren't parsed yet, but are equivalent to identifiers)
+var t : array 1 .. 2 of int
+% Multiple ranges
+var u : array 1 .. 2, (-1 - 20) .. (2 + 3), (1 + 8) .. (2 + 16) of string
+% Char ranges
+var v : array 'a' .. 'f' of real
+var w : array char of nat
+% Boolean ranges
+var x : array false .. true of char
+var y : array boolean of boolean
+% Other ranges
+var z : array start_range .. end_range of real
+var implicit_size : array 1 .. * of real
+var flexi : flexible array 1 .. 0 of real
+
+var up_size := 5
+var runtime_size : array 1 .. up_size of real
         ",
         );
         assert!(parser.parse());
@@ -2039,6 +2217,81 @@ type some_set : set of 1 .. 5
 
         let mut parser = make_test_parser("var a : false");
         assert!(!parser.parse());
+    }
+
+    #[test]
+    fn test_array_invalids() {
+        // Flexible array cannot have an implicit range
+        let mut parser = make_test_parser("var inv : flexible array 1 .. * of real");
+        assert!(!parser.parse());
+
+        // Array cannot have a flexible array as an element type
+        let mut parser =
+            make_test_parser("var inv : flexible array 1 .. 2 of flexible array 1 .. 2 of real");
+        assert!(!parser.parse());
+
+        let mut parser =
+            make_test_parser("var inv : array 1 .. 2 of flexible array 1 .. 2 of real");
+        assert!(!parser.parse());
+
+        let mut parser =
+            make_test_parser("var inv : array 1 .. * of flexible array 1 .. 2 of real");
+        assert!(!parser.parse());
+
+        // Array cannot have an implicit size array as an element type
+        let mut parser =
+            make_test_parser("var inv : flexible array 1 .. 2 array of 1 .. * of real");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var inv : array 1 .. 2 of array 1 .. * of real");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var inv : array 1 .. * of array 1 .. * of real");
+        assert!(!parser.parse());
+
+        // Implicit size array cannot have more than one range specifier
+        let mut parser = make_test_parser("var inv : array 1 .. *, char of real");
+        assert!(!parser.parse());
+        if let Some(Type::Array { ranges, .. }) = parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .types()
+            .type_from_ref(&get_ident_type(&parser, "inv"))
+        {
+            assert_eq!(ranges.len(), 1);
+        } else {
+            panic!("Not an array");
+        }
+
+        let mut parser = make_test_parser("var inv : array 1 .. *, 1 .. *, char of real");
+        assert!(!parser.parse());
+        if let Some(Type::Array { ranges, .. }) = parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .types()
+            .type_from_ref(&get_ident_type(&parser, "inv"))
+        {
+            assert_eq!(ranges.len(), 1);
+        } else {
+            panic!("Not an array");
+        }
+
+        // Implicit size range is only allowed for the first range specifier
+        let mut parser = make_test_parser("var inv : array 1 .. 2, 1 .. *, char of real");
+        assert!(!parser.parse());
+        if let Some(Type::Array { ranges, .. }) = parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .types()
+            .type_from_ref(&get_ident_type(&parser, "inv"))
+        {
+            assert_eq!(ranges.len(), 3);
+        } else {
+            panic!("Not an array");
+        }
     }
 
     #[test]

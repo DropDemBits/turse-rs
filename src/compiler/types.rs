@@ -137,9 +137,11 @@ pub enum Type {
         /// Ranges for the array
         ranges: Vec<TypeRef>,
         /// Element type of the array
-        elem_type: TypeRef,
+        element_type: TypeRef,
         /// If the array can be resized at runtime
         is_flexible: bool,
+        /// If the array has an upper bound based on the initializing expression
+        is_init_sized: bool,
     },
     /// Forward reference to the type with the given name
     Forward { name: String },
@@ -205,6 +207,15 @@ impl TypeTable {
         id
     }
 
+    /// Converts the `type_ref` into the corresponding type info
+    pub fn type_from_ref(&self, type_ref: &TypeRef) -> Option<&Type> {
+        if let TypeRef::Named(type_id) = type_ref {
+            Some(self.get_type(*type_id))
+        } else {
+            None
+        }
+    }
+
     /// Gets a reference to a defined type
     pub fn get_type(&self, type_id: usize) -> &Type {
         &self.types[type_id]
@@ -247,6 +258,20 @@ pub fn get_char_kind(s: &String) -> PrimitiveType {
 /// forwarded to the base type)
 pub fn is_error(type_ref: &TypeRef) -> bool {
     matches!(type_ref, TypeRef::TypeError)
+}
+
+/// Checks if the given `type_ref` is a primitive reference
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
+pub fn is_primitive(type_ref: &TypeRef) -> bool {
+    matches!(type_ref, TypeRef::Primitive(_))
+}
+
+/// Checks if the given `type_ref` is a named reference
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
+pub fn is_named(type_ref: &TypeRef) -> bool {
+    matches!(type_ref, TypeRef::Named(_))
 }
 
 /// Checks if the given `type_ref` references an unsized string type (String_)
