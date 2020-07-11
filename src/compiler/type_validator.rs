@@ -289,6 +289,9 @@ impl ASTVisitorMut<()> for TypeValidator {
             }
             Expr::Reference { ident } => {
                 if ident.is_declared {
+                    // Should either have a valid type, or TypeRef::Unknown
+                    assert_ne!(ident.type_spec, TypeRef::TypeError);
+
                     // Fetch the updated ident's `type_spec` from the type table
 
                     // tall boi

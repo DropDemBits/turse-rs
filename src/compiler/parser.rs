@@ -375,7 +375,7 @@ impl<'a> Parser<'a> {
 
         // Declare the identifiers
         let idents: Vec<Identifier> = ident_tokens
-            .iter()
+            .into_iter()
             .map(|token| self.declare_ident(token, type_spec, is_const, false))
             .collect();
 
@@ -740,7 +740,7 @@ impl<'a> Parser<'a> {
 
         if let TokenType::Identifier = &ident.token_type {
             Ok(Expr::Reference {
-                ident: self.use_ident(&ident),
+                ident: self.use_ident(ident),
             })
         } else {
             panic!(
@@ -1078,7 +1078,7 @@ impl<'a> Parser<'a> {
     fn type_ident(&mut self) -> TypeRef {
         // Get ident token
         let ident_tok = self.next_token();
-        let (ident, _) = self.use_ident_msg(&ident_tok);
+        let (ident, _) = self.use_ident_msg(ident_tok);
 
         // Postpone type resolution until later
         // The identifier may refer to an imported unqualified identifier,
@@ -1092,12 +1092,14 @@ impl<'a> Parser<'a> {
 
     /// Declares an identifer in the current scope, reporting the error message
     fn declare_ident(
-        &mut self,
-        ident: &Token,
+        &self,
+        ident: Token,
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
     ) -> Identifier {
+        let name = ident.location.get_lexeme(self.source).to_string();
+
         let (reference, err) = self
             .unit
             .as_ref()
@@ -1107,17 +1109,11 @@ impl<'a> Parser<'a> {
             .unwrap()
             .borrow_mut()
             .scope
-            .declare_ident(
-                ident,
-                ident.location.get_lexeme(self.source).to_string(),
-                type_spec,
-                is_const,
-                is_typedef,
-            );
+            .declare_ident(ident, name, type_spec, is_const, is_typedef);
 
         if let Some(msg) = err {
             self.reporter
-                .report_error(&ident.location, format_args!("{}", msg));
+                .report_error(&reference.token.location, format_args!("{}", msg));
         }
 
         reference
@@ -1125,7 +1121,7 @@ impl<'a> Parser<'a> {
 
     #[allow(dead_code)]
     fn resolve_ident(
-        &mut self,
+        &self,
         ident: &Token,
         type_spec: TypeRef,
         is_const: bool,
@@ -1148,7 +1144,9 @@ impl<'a> Parser<'a> {
     }
 
     /// Uses an identifer, providing the error message
-    fn use_ident_msg(&mut self, ident: &Token) -> (Identifier, Option<String>) {
+    fn use_ident_msg(&self, ident: Token) -> (Identifier, Option<String>) {
+        let name = ident.location.get_lexeme(self.source);
+
         self.unit
             .as_ref()
             .unwrap()
@@ -1157,16 +1155,16 @@ impl<'a> Parser<'a> {
             .unwrap()
             .borrow_mut()
             .scope
-            .use_ident(&ident, ident.location.get_lexeme(self.source))
+            .use_ident(ident, name)
     }
 
     /// Uses an identifer, reporting the error message
-    fn use_ident(&mut self, ident: &Token) -> Identifier {
+    fn use_ident(&mut self, ident: Token) -> Identifier {
         let (reference, err) = self.use_ident_msg(ident);
 
         if let Some(msg) = err {
             self.reporter
-                .report_error(&ident.location, format_args!("{}", msg));
+                .report_error(&reference.token.location, format_args!("{}", msg));
         }
 
         reference
@@ -1914,6 +1912,10 @@ var s : function _ (function a (function a : int ) : int, proc b (proc a (proc a
         begin
             var hey := 2
             begin
+                var yay : real := 5 + hey
+            end
+            begin
+                % Different scope!
                 var yay : real := 5 + hey
             end
             var yay : int := 6 - hey

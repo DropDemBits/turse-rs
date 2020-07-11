@@ -65,22 +65,12 @@ impl Scope {
     /// will be produced.
     pub fn declare_ident(
         &mut self,
-        ident: &Token,
+        ident: Token,
         name: String,
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
     ) -> (Identifier, Option<String>) {
-        let new_def = Identifier::new(
-            ident.clone(),
-            type_spec,
-            name.clone(),
-            is_const,
-            is_typedef,
-            true,
-            0, // Not imported
-        );
-
         // Check to see if the identifier exists in the current scope or within the import boundary
         let mut ident_exists = self.get_ident(&name).is_some();
 
@@ -97,8 +87,17 @@ impl Scope {
             ident_exists = block_ref.borrow().scope.get_ident(&name).is_some();
         }
 
-        // Always declare the identifier
-        // For error recovery purposes
+        let new_def = Identifier::new(
+            ident,
+            type_spec,
+            name.clone(),
+            is_const,
+            is_typedef,
+            true,
+            0, // Not imported
+        );
+
+        // Always declare the identifier for error recovery purposes
         let old_value = self.idents.insert(name.clone(), new_def.clone());
 
         if ident_exists {
@@ -149,11 +148,11 @@ impl Scope {
     /// If an identifer is found from one of the parent scopes, a new import entry is also created
     /// Should an identifier not be found, an error message is produced, and
     /// an identifier with the same name is declared in the current scope
-    pub fn use_ident(&mut self, ident: &Token, name: &str) -> (Identifier, Option<String>) {
+    pub fn use_ident(&mut self, ident: Token, name: &str) -> (Identifier, Option<String>) {
         if let Some(declared) = self.get_ident(name) {
             let mut reference = declared.clone();
             // Change the location to be that of the reference location
-            reference.token = ident.clone();
+            reference.token = ident;
 
             (reference, None)
         } else {
@@ -172,7 +171,7 @@ impl Scope {
                     let mut reference = declared.clone();
 
                     // Change the location to point to the reference location
-                    reference.token = ident.clone();
+                    reference.token = ident;
                     // Update the import index
                     reference.import_index.replace(index);
 
@@ -186,7 +185,7 @@ impl Scope {
 
             // None found, make a new one!
             let err_ident = Identifier::new(
-                ident.clone(),
+                ident,
                 TypeRef::TypeError, // Produce a type error to propagate the error
                 name.to_string(),
                 false,
@@ -269,7 +268,7 @@ mod test {
         let mut scope = root_block.scope;
 
         let (ident, declare_msg) = scope.declare_ident(
-            &make_ident_token(),
+            make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
@@ -278,7 +277,7 @@ mod test {
         assert!(declare_msg.is_none());
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
-        let (use_ident, use_msg) = scope.use_ident(&make_ident_token(), "a");
+        let (use_ident, use_msg) = scope.use_ident(make_ident_token(), "a");
         assert!(use_msg.is_none());
         assert_eq!(use_ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
     }
@@ -290,7 +289,7 @@ mod test {
 
         // First decl, pass
         let (ident, declare_msg) = scope.declare_ident(
-            &make_ident_token(),
+            make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
@@ -301,7 +300,7 @@ mod test {
 
         // Redecl, fail
         let (redeclare_ident, redeclare_msg) = scope.declare_ident(
-            &make_ident_token(),
+            make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::String_),
             false,
@@ -331,7 +330,7 @@ mod test {
             let root_scope = &mut blocks[0].borrow_mut().scope;
 
             let (declare_ident, declare_msg) = root_scope.declare_ident(
-                &make_ident_token(),
+                make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
@@ -348,7 +347,7 @@ mod test {
         {
             let inner_scope = &mut blocks[1].borrow_mut().scope;
             let (shadow_ident, shadow_msg) = inner_scope.declare_ident(
-                &make_ident_token(),
+                make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Real),
                 false,
@@ -378,7 +377,7 @@ mod test {
         {
             let inner_scope = &mut blocks[1].borrow_mut().scope;
             let (shadow_ident, shadow_msg) = inner_scope.declare_ident(
-                &make_ident_token(),
+                make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Real),
                 false,
@@ -396,7 +395,7 @@ mod test {
             let root_scope = &mut blocks[0].borrow_mut().scope;
 
             let (declare_ident, declare_msg) = root_scope.declare_ident(
-                &make_ident_token(),
+                make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
@@ -416,7 +415,7 @@ mod test {
         let mut scope = root_block.scope;
 
         let (ident, msg) = scope.declare_ident(
-            &make_ident_token(),
+            make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
@@ -450,7 +449,7 @@ mod test {
         let root_block = make_test_block(BlockKind::Main, &vec![]);
         let mut scope = root_block.scope;
 
-        let (ident, msg) = scope.use_ident(&make_ident_token(), "a");
+        let (ident, msg) = scope.use_ident(make_ident_token(), "a");
         assert!(msg.is_some());
         assert_eq!(ident.type_spec, TypeRef::TypeError);
     }
@@ -465,7 +464,7 @@ mod test {
             let root_scope = &mut blocks[1].borrow_mut().scope;
 
             let (declare_ident, declare_msg) = root_scope.declare_ident(
-                &make_ident_token(),
+                make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
@@ -481,7 +480,7 @@ mod test {
         // Inner use
         {
             let inner_scope = &mut blocks[2].borrow_mut().scope;
-            let (shadow_ident, shadow_msg) = inner_scope.use_ident(&make_ident_token(), "a");
+            let (shadow_ident, shadow_msg) = inner_scope.use_ident(make_ident_token(), "a");
             assert!(shadow_msg.is_none());
             assert_eq!(
                 shadow_ident.type_spec,
