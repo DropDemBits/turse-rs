@@ -126,10 +126,10 @@ impl Precedence {
     }
 }
 
-struct PrecedenceRule<'a> {
+struct PrecedenceRule<'a, 'b> {
     precedence: Precedence,
-    prefix_rule: Option<fn(&Parser<'a>) -> Result<Expr, ParsingStatus>>,
-    infix_rule: Option<fn(&Parser<'a>, Expr) -> Result<Expr, ParsingStatus>>,
+    prefix_rule: Option<fn(&'a mut Parser<'b>) -> Result<Expr, ParsingStatus>>,
+    infix_rule: Option<fn(&'a mut Parser<'b>, Expr) -> Result<Expr, ParsingStatus>>,
 }
 
 /// Main parser
@@ -144,9 +144,9 @@ pub struct Parser<'a> {
     /// Current token being parsed
     current: Cell<usize>,
     /// Parsed Code Unit
-    unit: RefCell<Option<CodeUnit>>,
+    unit: Option<CodeUnit>,
     /// Current types
-    types: RefCell<Option<TypeTable>>,
+    types: Option<TypeTable>,
 }
 
 #[derive(Debug)]
@@ -161,8 +161,8 @@ impl<'a> Parser<'a> {
             source,
             tokens,
             current: Cell::new(0),
-            unit: RefCell::new(None),
-            types: RefCell::new(None),
+            unit: None,
+            types: None,
         }
     }
 
@@ -170,8 +170,8 @@ impl<'a> Parser<'a> {
     /// Returns if the parse has no errors
     pub fn parse(&mut self) -> bool {
         // TODO: Check if the root block is a unit block
-        self.unit.replace(Some(CodeUnit::new(true)));
-        self.types.replace(Some(TypeTable::new()));
+        self.unit.replace(CodeUnit::new(true));
+        self.types.replace(TypeTable::new());
 
         // Parse the statements
         let mut stmts = vec![];
@@ -189,25 +189,20 @@ impl<'a> Parser<'a> {
         }
 
         // Transfer statements over to the CodeUnit
-        self.unit
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .stmts_mut()
-            .append(&mut stmts);
+        self.unit.as_mut().unwrap().stmts_mut().append(&mut stmts);
 
         !self.reporter.has_error()
     }
 
     /// Takes the unit from the parser
     pub fn take_unit(&mut self) -> CodeUnit {
-        let code_unit = self.unit.borrow_mut().take().unwrap();
+        let code_unit = self.unit.take().unwrap();
         code_unit
     }
 
     /// Takes the type table from the parser
     pub fn take_types(&mut self) -> TypeTable {
-        let type_table = self.types.borrow_mut().take().unwrap();
+        let type_table = self.types.take().unwrap();
         type_table
     }
 
@@ -227,13 +222,13 @@ impl<'a> Parser<'a> {
     }
 
     /// Advances to the next token, returning the previous token
-    fn next_token(&self) -> &Token {
+    fn next_token(&mut self) -> Token {
         if !self.is_at_end() {
             // Advance cursor
             self.current.set(self.current.get().saturating_add(1));
         }
 
-        self.previous()
+        self.previous().clone()
     }
 
     /// Checks if all of the tokens have been consumed yet
@@ -245,12 +240,12 @@ impl<'a> Parser<'a> {
     /// If the current token matches the expected token, the current token is consumed.
     /// Otherwise an error message is reported.
     fn expects(
-        &self,
+        &mut self,
         expected_type: TokenType,
         message: Arguments,
-    ) -> Result<&Token, ParsingStatus> {
+    ) -> Result<Token, ParsingStatus> {
         if self.current().token_type == expected_type {
-            Ok(self.next_token())
+            Ok(self.next_token().clone())
         } else {
             self.reporter
                 .report_error(&self.current().location, message);
@@ -262,7 +257,7 @@ impl<'a> Parser<'a> {
     /// If the current token matches the expected token, the current token is
     /// consumed and true is returned.
     /// Otherwise, false is returned.
-    fn optional(&self, optional_type: TokenType) -> bool {
+    fn optional(&mut self, optional_type: TokenType) -> bool {
         if self.current().token_type == optional_type {
             self.next_token();
             true
@@ -278,7 +273,7 @@ impl<'a> Parser<'a> {
 
     // --- Decl Parsing --- //
 
-    fn decl(&self) -> Result<Stmt, ParsingStatus> {
+    fn decl(&mut self) -> Result<Stmt, ParsingStatus> {
         let nom = self.current();
         match nom.token_type {
             TokenType::Var => self.decl_var(false),
@@ -287,7 +282,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn decl_var(&self, is_const: bool) -> Result<Stmt, ParsingStatus> {
+    fn decl_var(&mut self, is_const: bool) -> Result<Stmt, ParsingStatus> {
         let decl_name = if is_const { "const" } else { "var" };
 
         // Consume decl_tok
@@ -394,9 +389,8 @@ impl<'a> Parser<'a> {
 
     // --- Stmt Parsing --- //
 
-    fn stmt(&self) -> Result<Stmt, ParsingStatus> {
-        let nom = self.current();
-        match nom.token_type {
+    fn stmt(&mut self) -> Result<Stmt, ParsingStatus> {
+        match self.current().token_type {
             TokenType::Identifier | TokenType::Caret => self.stmt_reference(),
             TokenType::Begin => self.stmt_block(),
             _ => {
@@ -404,10 +398,10 @@ impl<'a> Parser<'a> {
                 self.next_token();
 
                 self.reporter.report_error(
-                    &nom.location,
+                    &self.previous().location,
                     format_args!(
                         "'{}' does not begin a statement or declaration",
-                        nom.location.get_lexeme(self.source)
+                        self.previous().location.get_lexeme(self.source)
                     ),
                 );
 
@@ -417,7 +411,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn stmt_reference(&self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_reference(&mut self) -> Result<Stmt, ParsingStatus> {
         // Identifiers & References can begin either an assignment or a procedure call
         // Both take references as the primary expression
 
@@ -430,7 +424,7 @@ impl<'a> Parser<'a> {
         if is_compound_assign || self.is_simple_assignment() {
             // Is a (compound) assignment or '='
             // '=' is checked for as it's a common mistake to have '=' instead of ':='
-            let mut assign_op = self.next_token().clone();
+            let mut assign_op = self.next_token();
 
             if is_compound_assign {
                 // Nom the other equ in the compound assignment
@@ -462,9 +456,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn stmt_block(&self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_block(&mut self) -> Result<Stmt, ParsingStatus> {
         // Nom begin
-        let begin_tok = self.next_token();
+        let begin_loc = self.next_token().location;
 
         self.push_block(BlockKind::InnerBlock);
 
@@ -483,7 +477,7 @@ impl<'a> Parser<'a> {
             // All of the statements have been absolved into this block
 
             self.reporter.report_error(
-                &begin_tok.location,
+                &begin_loc,
                 format_args!("'begin' block does not have a matching 'end'"),
             );
         } else {
@@ -501,16 +495,16 @@ impl<'a> Parser<'a> {
 
     // --- Expr Parsing --- //
 
-    fn expr(&self) -> Result<Expr, ParsingStatus> {
+    fn expr(&mut self) -> Result<Expr, ParsingStatus> {
         self.expr_precedence(Precedence::Imply)
     }
 
-    fn expr_precedence(&self, min_precedence: Precedence) -> Result<Expr, ParsingStatus> {
+    fn expr_precedence(&mut self, min_precedence: Precedence) -> Result<Expr, ParsingStatus> {
         // Keep track of last token
         let before_op = self.previous();
 
         // Get prefix side
-        let op = self.next_token();
+        let op = self.current();
 
         let prefix = self.get_rule(&op.token_type);
         let prefix_rule = prefix.prefix_rule.ok_or_else(|| {
@@ -529,7 +523,7 @@ impl<'a> Parser<'a> {
             };
 
             self.reporter.report_error(
-                &self.previous().location,
+                &self.current().location,
                 format_args!(
                     "Expected expression before '{}' {}",
                     self.previous().location.get_lexeme(self.source),
@@ -537,10 +531,14 @@ impl<'a> Parser<'a> {
                 ),
             );
 
+            // Consume the token
             ParsingStatus::Error
-        })?;
+        });
 
-        let mut expr = prefix_rule(self)?;
+        // Consume the token
+        self.next_token();
+
+        let mut expr = prefix_rule?(self)?;
 
         // Go over infix operators
         while !self.is_at_end()
@@ -570,7 +568,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn expr_grouping(&self) -> Result<Expr, ParsingStatus> {
+    fn expr_grouping(&mut self) -> Result<Expr, ParsingStatus> {
         let expr = self.expr()?;
         self.expects(
             TokenType::RightParen,
@@ -583,56 +581,56 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn expr_binary(&self, lhs: Expr) -> Result<Expr, ParsingStatus> {
-        let op = self.previous();
-        let rule = self.get_rule(&op.token_type);
+    fn expr_binary(&mut self, lhs: Expr) -> Result<Expr, ParsingStatus> {
+        let op = self.previous().clone();
+        let precedence = self.get_rule(&op.token_type).precedence.up();
         // Get rhs
-        let rhs = self.expr_precedence(rule.precedence.up())?;
+        let rhs = self.expr_precedence(precedence)?;
 
         Ok(Expr::BinaryOp {
             left: Box::new(lhs),
-            op: op.clone(),
+            op,
             right: Box::new(rhs),
             eval_type: TypeRef::Unknown,
         })
     }
 
-    fn expr_unary(&self) -> Result<Expr, ParsingStatus> {
-        let op = self.previous();
+    fn expr_unary(&mut self) -> Result<Expr, ParsingStatus> {
+        let op = self.previous().clone();
         let right = self.expr_precedence(Precedence::Unary)?;
 
         Ok(Expr::UnaryOp {
-            op: op.clone(),
+            op,
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
         })
     }
 
-    fn expr_unary_rule(&self) -> Result<Expr, ParsingStatus> {
-        let op = self.previous();
-        let rule = self.get_rule(&op.token_type);
-        let right = self.expr_precedence(rule.precedence)?;
+    fn expr_unary_rule(&mut self) -> Result<Expr, ParsingStatus> {
+        let op = self.previous().clone();
+        let precedence = self.get_rule(&op.token_type).precedence;
+        let right = self.expr_precedence(precedence)?;
 
         Ok(Expr::UnaryOp {
-            op: op.clone(),
+            op,
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
         })
     }
 
-    fn expr_call(&self, func_ref: Expr) -> Result<Expr, ParsingStatus> {
-        let op = self.previous();
+    fn expr_call(&mut self, func_ref: Expr) -> Result<Expr, ParsingStatus> {
+        let op = self.previous().clone();
         let arg_list = self.make_arg_list()?.unwrap();
 
         Ok(Expr::Call {
             left: Box::new(func_ref),
-            op: op.clone(),
+            op,
             arg_list,
             eval_type: TypeRef::Unknown,
         })
     }
 
-    fn expr_dot(&self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_dot(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
         // Get the ident
         let ident = self.expects(
             TokenType::Identifier,
@@ -642,61 +640,61 @@ impl<'a> Parser<'a> {
         // The actual identifier information will be resolved at type resolution time,
         // so we can just store the field name and location info
 
+        let name = ident.location.get_lexeme(self.source).to_string();
+
         Ok(Expr::Dot {
             left: Box::new(var_ref),
-            field: (
-                ident.clone(),
-                ident.location.get_lexeme(self.source).to_string(),
-            ),
+            field: (ident, name),
             eval_type: TypeRef::Unknown,
         })
     }
 
-    fn expr_deref(&self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
-        let op = self.previous();
+    fn expr_deref(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+        let op = self.previous().clone();
 
         // Wrap the var_ref in a deref
         self.expr_dot(Expr::UnaryOp {
             op: Token {
                 token_type: TokenType::Caret,
-                location: op.location.clone(),
+                location: op.location,
             },
             right: Box::new(var_ref),
             eval_type: TypeRef::Unknown,
         })
     }
 
-    fn expr_primary(&self) -> Result<Expr, ParsingStatus> {
-        let token = self.previous();
+    fn expr_primary(&mut self) -> Result<Expr, ParsingStatus> {
+        let token = self.previous().clone();
+        let token_type = token.token_type.clone();
 
-        match &token.token_type {
+        match token_type {
             TokenType::StringLiteral(s) => Ok(Expr::Literal {
-                value: token.clone(),
+                value: token,
                 eval_type: TypeRef::Primitive(types::get_string_kind(&s)),
             }),
             TokenType::CharLiteral(s) => Ok(Expr::Literal {
-                value: token.clone(),
+                value: token,
                 eval_type: TypeRef::Primitive(types::get_char_kind(&s)),
             }),
             TokenType::IntLiteral(_) => Ok(Expr::Literal {
-                value: token.clone(),
+                value: token,
                 eval_type: TypeRef::Primitive(PrimitiveType::Int),
             }),
             TokenType::RealLiteral(_) => Ok(Expr::Literal {
-                value: token.clone(),
+                value: token,
                 eval_type: TypeRef::Primitive(PrimitiveType::Real),
             }),
             TokenType::True => Ok(Expr::Literal {
                 value: Token {
                     token_type: TokenType::BoolLiteral(true),
-                    location: token.location.clone(),
+                    location: token.location,
                 },
                 eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
             }),
             TokenType::False => Ok(Expr::Literal {
                 value: Token {
                     token_type: TokenType::BoolLiteral(false),
-                    location: token.location.clone(),
+                    location: token.location,
                 },
                 eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
             }),
@@ -720,7 +718,7 @@ impl<'a> Parser<'a> {
                 }
 
                 Ok(Expr::Literal {
-                    value: token.clone(),
+                    value: token,
                     eval_type: TypeRef::Primitive(PrimitiveType::Nil),
                 })
             }
@@ -737,12 +735,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expr_ident(&self) -> Result<Expr, ParsingStatus> {
-        let ident = self.previous();
+    fn expr_ident(&mut self) -> Result<Expr, ParsingStatus> {
+        let ident = self.previous().clone();
 
         if let TokenType::Identifier = &ident.token_type {
             Ok(Expr::Reference {
-                ident: self.use_ident(ident),
+                ident: self.use_ident(&ident),
             })
         } else {
             panic!(
@@ -757,7 +755,7 @@ impl<'a> Parser<'a> {
     /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed \
     ///
     /// `parse_context`         The token type describing where the type is being parsed
-    fn parse_type(&self, parse_context: &TokenType) -> TypeRef {
+    fn parse_type(&mut self, parse_context: &TokenType) -> TypeRef {
         match &self.current().token_type {
             // Basic primitive types
             TokenType::Addressint => self.type_primitive(PrimitiveType::AddressInt),
@@ -812,51 +810,51 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a basic primitive type
-    fn type_primitive(&self, primitive: PrimitiveType) -> TypeRef {
+    fn type_primitive(&mut self, primitive: PrimitiveType) -> TypeRef {
         // Consume name
         self.next_token();
 
         TypeRef::Primitive(primitive)
     }
 
-    /// Parse character sequence (string, char, char(n))
-    fn type_char_seq(&self) -> TypeRef {
-        let get_size_specifier = || -> Result<usize, ()> {
-            match self.current().token_type {
-                TokenType::IntLiteral(size) if size > 0 => {
-                    if size as usize >= types::MAX_STRING_SIZE {
-                        self.reporter.report_error(
-                            &self.current().location,
-                            format_args!(
-                                "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
-                                size,
-                                types::MAX_STRING_SIZE
-                            ),
-                        );
-                        Err(())
-                    } else {
-                        // Consume parsed type
-                        self.next_token();
-                        Ok(size as usize)
-                    }
-                }
-                TokenType::Star => {
-                    // Consume parsed type
-                    self.next_token();
-                    Ok(0 as usize)
-                }
-                _ => {
+    fn get_size_specifier(&mut self) -> Result<usize, ()> {
+        match self.current().token_type {
+            TokenType::IntLiteral(size) if size > 0 => {
+                if size as usize >= types::MAX_STRING_SIZE {
                     self.reporter.report_error(
                         &self.current().location,
                         format_args!(
-                            "Length specifier is not a '*' or a non-zero compile time expression"
+                            "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
+                            size,
+                            types::MAX_STRING_SIZE
                         ),
                     );
                     Err(())
+                } else {
+                    // Consume parsed type
+                    self.next_token();
+                    Ok(size as usize)
                 }
             }
-        };
+            TokenType::Star => {
+                // Consume parsed type
+                self.next_token();
+                Ok(0 as usize)
+            }
+            _ => {
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!(
+                        "Length specifier is not a '*' or a non-zero compile time expression"
+                    ),
+                );
+                Err(())
+            }
+        }
+    }
 
+    /// Parse character sequence (string, char, char(n))
+    fn type_char_seq(&mut self) -> TypeRef {
         // Nom "string" / "char"
         let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
 
@@ -865,7 +863,7 @@ impl<'a> Parser<'a> {
             self.next_token();
 
             // Try to get the size
-            let parsed_size = get_size_specifier();
+            let parsed_size = self.get_size_specifier();
 
             // Missing ) is recoverable
             let _ = self.expects(
@@ -899,7 +897,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse pointer to another type
-    fn type_pointer(&self, parse_context: &TokenType) -> TypeRef {
+    fn type_pointer(&mut self, parse_context: &TokenType) -> TypeRef {
         // Consume "pointer" or '^'
         if let TokenType::Pointer = &self.next_token().token_type {
             // Consume the "to"
@@ -914,7 +912,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse procedure & function parameter specification & result type
-    fn type_function(&self, parse_context: &TokenType, has_result: bool) -> TypeRef {
+    fn type_function(&mut self, parse_context: &TokenType, has_result: bool) -> TypeRef {
         let param_decl = if let TokenType::LeftParen = self.current().token_type {
             // Parameter Declaration
 
@@ -930,7 +928,11 @@ impl<'a> Parser<'a> {
                         TokenType::Function | TokenType::Procedure => {
                             // Parse in the context of a function/procedure, as those allow omission of '()'
                             // for function subprograms
-                            params.push(self.type_subprogram_param(&self.current().token_type))
+                            params.push(self.type_subprogram_param(if has_result {
+                                &TokenType::Function
+                            } else {
+                                &TokenType::Procedure
+                            }))
                         }
                         _ => params.append(&mut self.type_var_param(parse_context)),
                     }
@@ -1000,7 +1002,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses a sequence of function variable-type parameters, producing one or more parameter definitions
-    fn type_var_param(&self, parse_context: &TokenType) -> Vec<ParamDef> {
+    fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<ParamDef> {
         // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
 
         // Attributes apply to all idents
@@ -1047,7 +1049,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses a single function subprogram-type parameter, producing one parameter definition
-    fn type_subprogram_param(&self, parse_context: &TokenType) -> ParamDef {
+    fn type_subprogram_param(&mut self, parse_context: &TokenType) -> ParamDef {
         // "function" | "procedure" identifier param_list
 
         // Consume "function" or "procedure"
@@ -1073,10 +1075,10 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse an identifier
-    fn type_ident(&self) -> TypeRef {
+    fn type_ident(&mut self) -> TypeRef {
         // Get ident token
         let ident_tok = self.next_token();
-        let (ident, _) = self.use_ident_msg(ident_tok);
+        let (ident, _) = self.use_ident_msg(&ident_tok);
 
         // Postpone type resolution until later
         // The identifier may refer to an imported unqualified identifier,
@@ -1090,7 +1092,7 @@ impl<'a> Parser<'a> {
 
     /// Declares an identifer in the current scope, reporting the error message
     fn declare_ident(
-        &self,
+        &mut self,
         ident: &Token,
         type_spec: TypeRef,
         is_const: bool,
@@ -1098,7 +1100,6 @@ impl<'a> Parser<'a> {
     ) -> Identifier {
         let (reference, err) = self
             .unit
-            .borrow()
             .as_ref()
             .unwrap()
             .blocks()
@@ -1124,14 +1125,13 @@ impl<'a> Parser<'a> {
 
     #[allow(dead_code)]
     fn resolve_ident(
-        &self,
+        &mut self,
         ident: &Token,
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
     ) -> Identifier {
         self.unit
-            .borrow()
             .as_ref()
             .unwrap()
             .blocks()
@@ -1148,9 +1148,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Uses an identifer, providing the error message
-    fn use_ident_msg(&self, ident: &Token) -> (Identifier, Option<String>) {
+    fn use_ident_msg(&mut self, ident: &Token) -> (Identifier, Option<String>) {
         self.unit
-            .borrow()
             .as_ref()
             .unwrap()
             .blocks()
@@ -1162,7 +1161,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Uses an identifer, reporting the error message
-    fn use_ident(&self, ident: &Token) -> Identifier {
+    fn use_ident(&mut self, ident: &Token) -> Identifier {
         let (reference, err) = self.use_ident_msg(ident);
 
         if let Some(msg) = err {
@@ -1174,12 +1173,11 @@ impl<'a> Parser<'a> {
     }
 
     /// Pushes a new block onto the block list
-    fn push_block(&self, block_kind: BlockKind) {
-        let block = CodeBlock::new(block_kind, self.unit.borrow().as_ref().unwrap().blocks());
+    fn push_block(&mut self, block_kind: BlockKind) {
+        let block = CodeBlock::new(block_kind, self.unit.as_ref().unwrap().blocks());
 
         // Add the block to the list
         self.unit
-            .borrow_mut()
             .as_mut()
             .unwrap()
             .blocks_mut()
@@ -1188,29 +1186,16 @@ impl<'a> Parser<'a> {
 
     /// Pops a block off of the block list, and moving the given statement list
     /// into the block
-    fn pop_block(&self, stmts: &mut Vec<Stmt>) -> Rc<RefCell<CodeBlock>> {
-        let block = self
-            .unit
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .blocks_mut()
-            .pop()
-            .unwrap();
+    fn pop_block(&mut self, stmts: &mut Vec<Stmt>) -> Rc<RefCell<CodeBlock>> {
+        let block = self.unit.as_mut().unwrap().blocks_mut().pop().unwrap();
         block.borrow_mut().stmts.append(stmts);
 
         block
     }
 
     // -- Wrappers around the type table -- //
-    fn declare_type(&self, type_info: Type) -> TypeRef {
-        TypeRef::Named(
-            self.types
-                .borrow_mut()
-                .as_mut()
-                .unwrap()
-                .declare_type(type_info),
-        )
+    fn declare_type(&mut self, type_info: Type) -> TypeRef {
+        TypeRef::Named(self.types.as_mut().unwrap().declare_type(type_info))
     }
 
     // --- Helpers --- //
@@ -1250,7 +1235,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Builds an argument list for an expression
-    fn make_arg_list(&self) -> Result<Option<Vec<Expr>>, ParsingStatus> {
+    fn make_arg_list(&mut self) -> Result<Option<Vec<Expr>>, ParsingStatus> {
         if self.previous().token_type != TokenType::LeftParen {
             // No arg_list to be found
             return Ok(None);
@@ -1281,7 +1266,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Gets the precedence rule for the given token
-    fn get_rule(&self, token_type: &TokenType) -> &PrecedenceRule {
+    fn get_rule<'b>(&self, token_type: &'b TokenType) -> &PrecedenceRule<'b, 'a> {
         match token_type {
             TokenType::LeftParen => &PrecedenceRule {
                 precedence: Precedence::Call,
@@ -1405,7 +1390,7 @@ mod test {
     }
 
     fn get_ident_type(parser: &Parser, name: &str) -> TypeRef {
-        parser.unit.borrow().as_ref().unwrap().blocks()[0]
+        parser.unit.as_ref().unwrap().blocks()[0]
             .borrow()
             .scope
             .get_ident(name)
@@ -1419,9 +1404,9 @@ mod test {
 
     fn is_ident_type_equivalent_to(parser: &Parser, lhs: &str, rhs: &str) -> bool {
         types::is_equivalent_to(
-            &get_ident_type(&parser, "n"),
-            &get_ident_type(&parser, "o"),
-            parser.types.borrow().as_ref().unwrap(),
+            &get_ident_type(&parser, lhs),
+            &get_ident_type(&parser, rhs),
+            parser.types.as_ref().unwrap(),
         )
     }
 
@@ -1608,8 +1593,7 @@ mod test {
             TokenType::Assign,
         ];
 
-        let unit = parser.unit.borrow();
-        let root_stmts = unit.as_ref().unwrap().stmts();
+        let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts[2..].iter().zip(expected_ops.iter()) {
             if let Stmt::Assign {
@@ -1643,8 +1627,7 @@ mod test {
         assert!(!parser.reporter.has_error());
         let expected_ops = [TokenType::Imply, TokenType::And, TokenType::Or];
 
-        let unit = parser.unit.borrow();
-        let root_stmts = unit.as_ref().unwrap().stmts();
+        let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts[1..].iter().zip(expected_ops.iter()) {
             if let Stmt::Assign {
@@ -1712,8 +1695,7 @@ mod test {
             TypeRef::Primitive(PrimitiveType::AddressInt),
         ];
 
-        let unit = parser.unit.borrow();
-        let root_stmts = unit.as_ref().unwrap().stmts();
+        let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
             if let Stmt::VarDecl { ref idents, .. } = test_stmt.0 {
