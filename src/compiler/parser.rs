@@ -2,7 +2,7 @@
 use crate::compiler::ast::{Expr, Identifier, Stmt};
 use crate::compiler::block::{BlockKind, CodeBlock, CodeUnit};
 use crate::compiler::token::{Token, TokenType};
-use crate::compiler::types::{self, FuncParam, PrimitiveType, Type, TypeRef, TypeTable};
+use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::{Cell, RefCell};
@@ -241,8 +241,9 @@ impl<'a> Parser<'a> {
         self.current().token_type == TokenType::Eof
     }
 
-    /// If the current token matches the expected token, the current token is consumed \
-    /// Otherwise an error messag is reported
+    /// Expects a certain token to be next in the stream. \
+    /// If the current token matches the expected token, the current token is consumed.
+    /// Otherwise an error message is reported.
     fn expects(
         &self,
         expected_type: TokenType,
@@ -254,6 +255,19 @@ impl<'a> Parser<'a> {
             self.reporter
                 .report_error(&self.current().location, message);
             Err(ParsingStatus::Error)
+        }
+    }
+
+    /// Optionally expects a certain token to be next in the stream. \
+    /// If the current token matches the expected token, the current token is
+    /// consumed and true is returned.
+    /// Otherwise, false is returned.
+    fn optional(&self, optional_type: TokenType) -> bool {
+        if self.current().token_type == optional_type {
+            self.next_token();
+            true
+        } else {
+            false
         }
     }
 
@@ -911,22 +925,15 @@ impl<'a> Parser<'a> {
 
             if self.current().token_type != TokenType::RightParen {
                 loop {
-                    let ident = self
-                        .expects(
-                            TokenType::Identifier,
-                            format_args!("Expected identifier for parameter name"),
-                        )
-                        .map(|tok| tok.location.get_lexeme(self.source).to_string())
-                        .unwrap_or(String::from("<invalid>"));
-
-                    let _ = self.expects(
-                        TokenType::Colon,
-                        format_args!("Expected ':' after parameter name"),
-                    );
-
-                    let param_type = self.parse_type(parse_context);
-
-                    params.push(FuncParam(ident, param_type));
+                    // Parse a parameter type
+                    match self.current().token_type {
+                        TokenType::Function | TokenType::Procedure => {
+                            // Parse in the context of a function/procedure, as those allow omission of '()'
+                            // for function subprograms
+                            params.push(self.type_subprogram_param(&self.current().token_type))
+                        }
+                        _ => params.append(&mut self.type_var_param(parse_context)),
+                    }
 
                     if self.current().token_type != TokenType::Comma {
                         // No more things to parse, or invalid token
@@ -949,6 +956,31 @@ impl<'a> Parser<'a> {
             None
         };
 
+        if has_result
+            && param_decl.is_none()
+            && matches!(
+                parse_context,
+                TokenType::Const | TokenType::Var | TokenType::Type
+            )
+        {
+            // In the context of a function type declaration, which requires the '()'
+            if matches!(self.previous().token_type, TokenType::Identifier) {
+                self.reporter.report_error(
+                    &self.previous().location,
+                    format_args!(
+                        "Function type declarations must specifiy '()' after the identifier"
+                    ),
+                );
+            } else {
+                // Identifier is not really needed in these situations, though
+                // we still do so for compatibility
+                self.reporter.report_error(
+                    &self.previous().location,
+                    format_args!("Function type declarations must specifiy '()' after 'function'"),
+                );
+            }
+        }
+
         let result_type = if has_result {
             let _ = self.expects(
                 TokenType::Colon,
@@ -965,6 +997,79 @@ impl<'a> Parser<'a> {
             params: param_decl,
             result: result_type,
         })
+    }
+
+    /// Parses a sequence of function variable-type parameters, producing one or more parameter definitions
+    fn type_var_param(&self, parse_context: &TokenType) -> Vec<ParamDef> {
+        // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
+
+        // Attributes apply to all idents
+        let pass_by_ref = self.optional(TokenType::Var);
+        let bind_to_register = self.optional(TokenType::Register);
+        let mut idents = vec![];
+
+        // Gather all identifiers
+        loop {
+            let ident = self
+                .expects(
+                    TokenType::Identifier,
+                    format_args!("Expected identifier for parameter name"),
+                )
+                .map(|tok| tok.location.get_lexeme(self.source).to_string())
+                .unwrap_or(String::from("<invalid>"));
+
+            idents.push(ident);
+
+            if !self.optional(TokenType::Comma) {
+                break;
+            }
+        }
+
+        let _ = self.expects(
+            TokenType::Colon,
+            format_args!("Expected ':' after parameter name"),
+        );
+
+        let force_type = self.optional(TokenType::Cheat);
+        let type_spec = self.parse_type(parse_context);
+
+        // Unfold the ident list into the individual parameter types
+        idents
+            .into_iter()
+            .map(|name| ParamDef {
+                name,
+                type_spec,
+                pass_by_ref,
+                bind_to_register,
+                force_type,
+            })
+            .collect()
+    }
+
+    /// Parses a single function subprogram-type parameter, producing one parameter definition
+    fn type_subprogram_param(&self, parse_context: &TokenType) -> ParamDef {
+        // "function" | "procedure" identifier param_list
+
+        // Consume "function" or "procedure"
+        let has_result = matches!(self.next_token().token_type, TokenType::Function);
+
+        let name = self
+            .expects(
+                TokenType::Identifier,
+                format_args!("Expected identifier for parameter name"),
+            )
+            .map(|tok| tok.location.get_lexeme(self.source).to_string())
+            .unwrap_or(String::from("<invalid>"));
+
+        let type_spec = self.type_function(parse_context, has_result);
+
+        ParamDef {
+            name,
+            type_spec,
+            pass_by_ref: false,
+            bind_to_register: false,
+            force_type: false,
+        }
     }
 
     /// Parse an identifier
@@ -1290,6 +1395,7 @@ impl<'a> Parser<'a> {
 mod test {
     use super::*;
     use crate::compiler::scanner::Scanner;
+    use crate::compiler::types;
 
     fn make_test_parser(source: &str) -> Parser {
         let mut scanner = Scanner::new(source);
@@ -1298,16 +1404,25 @@ mod test {
         Parser::new(scanner.tokens, source)
     }
 
+    fn get_ident_type(parser: &Parser, name: &str) -> TypeRef {
+        parser.unit.borrow().as_ref().unwrap().blocks()[0]
+            .borrow()
+            .scope
+            .get_ident(name)
+            .unwrap()
+            .type_spec
+    }
+
     fn check_ident_expected_type(parser: &Parser, name: &str, expected: TypeRef) {
-        assert_eq!(
-            parser.unit.borrow().as_ref().unwrap().blocks()[0]
-                .borrow()
-                .scope
-                .get_ident(name)
-                .unwrap()
-                .type_spec,
-            expected
-        );
+        assert_eq!(get_ident_type(parser, name), expected);
+    }
+
+    fn is_ident_type_equivalent_to(parser: &Parser, lhs: &str, rhs: &str) -> bool {
+        types::is_equivalent_to(
+            &get_ident_type(&parser, "n"),
+            &get_ident_type(&parser, "o"),
+            parser.types.borrow().as_ref().unwrap(),
+        )
     }
 
     #[test]
@@ -1682,14 +1797,27 @@ var e : procedure np   ()
 var f : procedure p1   (a : int)
 var g : procedure p2   (a : int, b : string)
 var h : procedure pisp (a : int, b : string, c : procedure _ ())
-var i : function nps : int
 var j : function np   () : real
 var k : function p1   (a : int) : string
 var l : function p2   (a : int, b : string) : addressint
 var m : function pisp (a : int, b : string, c : procedure _ ()) : boolean
+
+% Pairs are to be equivalent
+var n : function _ (a, b : int, c : real) : int
+var o : function _ (a : int, b : int, c : real) : int
+var p : function _ (var a, b : int, c : string) : int
+var q : function _ (var a : int, var b : int, c : string) : int
+
+% Other variations
+var r : function _ (var a : cheat int, var register b : cheat int, proc c) : int
+% Nesting fun!
+% While not valid in TProlog, it should still be valid syntax as inner parameter names are ignored
+var s : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int
         ",
         );
         assert!(parser.parse());
+        assert!(is_ident_type_equivalent_to(&parser, "n", "o"));
+        assert!(is_ident_type_equivalent_to(&parser, "p", "q"));
 
         // Pointer type expects "to"
         let mut parser = make_test_parser("var a : pointer int");
@@ -1709,6 +1837,10 @@ var m : function pisp (a : int, b : string, c : procedure _ ()) : boolean
 
         // Function expects type after ':'
         let mut parser = make_test_parser("var a : function a :");
+        assert!(!parser.parse());
+
+        // Function type declaration expects '()' if there are no parameters
+        let mut parser = make_test_parser("var a : function amphy : int");
         assert!(!parser.parse());
 
         // Function / procedure expects identifier after keyword (this can be made optional in the future)

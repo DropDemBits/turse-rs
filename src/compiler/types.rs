@@ -97,8 +97,30 @@ pub enum PrimitiveType {
 }
 
 /// Parameter definition
+/// Two parameter definitions (ParamDef's) are equivalent if, and only if, all
+/// fields except for name are equivalent.
 #[derive(Debug)]
-pub struct FuncParam(pub String, pub TypeRef);
+pub struct ParamDef {
+    /// The name of the parameter
+    pub name: String,
+    /// The type_spec for the parameter
+    pub type_spec: TypeRef,
+    // Whether to pass the parameter by reference, allowing the function to modify the value (specified by "var")
+    pub pass_by_ref: bool,
+    // Whether to bind the parameter into a register (specified by "register")
+    pub bind_to_register: bool,
+    /// Whether to coerece the type of the input argument into binding the declared type
+    pub force_type: bool,
+}
+
+impl PartialEq for ParamDef {
+    fn eq(&self, other: &Self) -> bool {
+        self.type_spec == other.type_spec
+            && self.pass_by_ref == other.pass_by_ref
+            && self.bind_to_register == other.bind_to_register
+            && self.force_type == other.force_type
+    }
+}
 
 /// Base Type Root
 #[derive(Debug)]
@@ -126,12 +148,12 @@ pub enum Type {
     /// parameterless declarations, and between functions and procedures
     Function {
         /// Parameter specification for the function
-        params: Option<Vec<FuncParam>>,
+        params: Option<Vec<ParamDef>>,
         /// Result type for the function
         result: Option<TypeRef>,
     },
     /// A named type.
-    /// This type is resolved into the real type at type resolution stage,
+    /// This type is resolved into the corresponding type at type resolution stage,
     /// as imports are resovled before type resolution
     Named { ident: Identifier },
     /// Pointer to a given TypeRef
@@ -481,6 +503,64 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // `char` is assignable into string-class types
         true
     } else {
-        false
+        // This check is last as it performs very heavy type checking
+        is_equivalent_to(lvalue, rvalue, type_table)
+    }
+}
+
+/// Checks if the types are equivalent
+pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) -> bool {
+    if lhs == rhs {
+        // Quick escape for simple equivalent types (e.g. primitives)
+        // Smaller kinds of char sequences are not equivalent to larger kinds
+        return true;
+    }
+
+    // Perform equivalence testing based on the type info
+    // TODO: None of this is finished
+    // Unions, Records, Enums, and Collections have equivalency based on the type_id, so they will always fail this check
+    if let TypeRef::Named(left_id) = lhs {
+        if let TypeRef::Named(right_id) = rhs {
+            let left_info = type_table.get_type(*left_id);
+            let right_info = type_table.get_type(*right_id);
+
+            match left_info {
+                Type::Function { params, result } => {
+                    if let Type::Function {
+                        params: other_params,
+                        result: other_result,
+                    } = right_info
+                    {
+                        return params == other_params && result == other_result;
+                    }
+                }
+                _ => todo!(),
+            }
+        }
+    }
+
+    false
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_typeref_eq() {
+        // PartialEq is a type-wise comparison
+        assert_eq!(TypeRef::TypeError, TypeRef::TypeError);
+        assert_eq!(TypeRef::Unknown, TypeRef::Unknown);
+        assert_eq!(
+            TypeRef::Primitive(PrimitiveType::LongInt),
+            TypeRef::Primitive(PrimitiveType::LongInt)
+        );
+        assert_eq!(TypeRef::Named(0), TypeRef::Named(0));
+
+        assert_ne!(
+            TypeRef::Primitive(PrimitiveType::LongInt),
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
+        assert_ne!(TypeRef::Named(1), TypeRef::Named(5));
     }
 }
