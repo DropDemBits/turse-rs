@@ -266,6 +266,16 @@ impl<'s> Parser<'s> {
             .report_warning(&at, format_args!("'=' found, assumed it to be ':='"));
     }
 
+    fn get_token_lexeme(&self, token: &Token) -> &str {
+        let token_content = token.location.get_lexeme(self.source);
+
+        if !token_content.is_empty() {
+            token_content
+        } else {
+            "<end of file>"
+        }
+    }
+
     // --- Decl Parsing --- //
 
     fn decl(&mut self) -> Result<Stmt, ParsingStatus> {
@@ -273,6 +283,7 @@ impl<'s> Parser<'s> {
         match nom.token_type {
             TokenType::Var => self.decl_var(false),
             TokenType::Const => self.decl_var(true),
+            TokenType::Type => self.decl_type(),
             _ => self.stmt(),
         }
     }
@@ -381,6 +392,45 @@ impl<'s> Parser<'s> {
         })
     }
 
+    fn decl_type(&mut self) -> Result<Stmt, ParsingStatus> {
+        // Nom "type"
+        let type_tok = self.next_token();
+
+        // Expect identifier (continue parsing after the identifier)
+        let ident = self
+            .expects(
+                TokenType::Identifier,
+                format_args!("Expected identifier after 'type'"),
+            )
+            .ok();
+
+        if ident.is_some() {
+            // Only require a colon if there was an identifier
+            let _ = self.expects(
+                TokenType::Colon,
+                format_args!("Expected ':' after identifier"),
+            );
+        } else {
+            // If there is a ':', consume it
+            // Otherwise, continue onwards
+            let _ = self.optional(TokenType::Colon);
+        }
+
+        // Get the type spec (in the type declaration context)
+        let type_spec = self.parse_type(&type_tok.token_type);
+
+        if ident.is_none() {
+            // Cannot declare a named type without an identifier
+            return Err(ParsingStatus::Error);
+        }
+
+        let ident_tok = ident.unwrap();
+
+        Ok(Stmt::TypeDecl {
+            ident: self.declare_ident(ident_tok, type_spec, true, true),
+        })
+    }
+
     // --- Stmt Parsing --- //
 
     fn stmt(&mut self) -> Result<Stmt, ParsingStatus> {
@@ -395,7 +445,7 @@ impl<'s> Parser<'s> {
                     &self.previous().location,
                     format_args!(
                         "'{}' does not begin a statement or declaration",
-                        self.previous().location.get_lexeme(self.source)
+                        self.get_token_lexeme(self.previous())
                     ),
                 );
 
@@ -727,10 +777,7 @@ impl<'s> Parser<'s> {
             _ => {
                 self.reporter.report_error(
                     &token.location,
-                    format_args!(
-                        "Unexpected token '{}'",
-                        token.location.get_lexeme(self.source)
-                    ),
+                    format_args!("Unexpected token '{}'", self.get_token_lexeme(&token)),
                 );
                 Err(ParsingStatus::Error)
             }
@@ -753,8 +800,8 @@ impl<'s> Parser<'s> {
     }
 
     // --- Type Parsing --- //
-    /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged \
-    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed \
+    /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged.
+    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed
     ///
     /// `parse_context`         The token type describing where the type is being parsed
     fn parse_type(&mut self, parse_context: &TokenType) -> TypeRef {
@@ -776,11 +823,12 @@ impl<'s> Parser<'s> {
             TokenType::String_ | TokenType::Char => self.type_char_seq(parse_context),
 
             // Compound primitives
-            TokenType::Flexible | TokenType::Array => unimplemented!(),
+            TokenType::Flexible | TokenType::Array => self.type_array(parse_context),
             TokenType::Pointer | TokenType::Caret => self.type_pointer(parse_context),
-            TokenType::Set => unimplemented!(), // Only in "type" decls
-            // subprogram_header
+            TokenType::Set => self.type_set(parse_context),
             TokenType::Function | TokenType::Procedure => {
+                // subprogram_header
+
                 // Consume function & the identifier (don't care about those)
                 // "function" / "procedure"
                 let is_function = matches!(self.next_token().token_type, TokenType::Function);
@@ -797,16 +845,24 @@ impl<'s> Parser<'s> {
             TokenType::Union => unimplemented!(),
             TokenType::Identifier => self.type_ident(),
             _ => {
-                self.reporter.report_error(
-                    &self.current().location,
-                    format_args!(
-                        "Unexpected '{}', expected a type specifier",
-                        self.current().location.get_lexeme(self.source)
-                    ),
-                );
+                // Try to parse the current type as an expression
+                let left_expr = self.expr();
 
-                // Return a type error
-                TypeRef::TypeError
+                if left_expr.is_err() || self.current().token_type != TokenType::Range {
+                    self.reporter.report_error(
+                        &self.current().location,
+                        format_args!(
+                            "Unexpected '{}', expected a type specifier",
+                            self.get_token_lexeme(self.current())
+                        ),
+                    );
+
+                    // Return a type error
+                    TypeRef::TypeError
+                } else {
+                    // Produce a range expression
+                    self.type_range(left_expr.ok().unwrap(), parse_context)
+                }
             }
         }
     }
@@ -819,6 +875,7 @@ impl<'s> Parser<'s> {
         TypeRef::Primitive(primitive)
     }
 
+    /// Gets the size specifier for a char(n) or string(n)
     fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<usize, ()> {
         match self.current().token_type {
             TokenType::IntLiteral(size) if size > 0 => {
@@ -994,7 +1051,10 @@ impl<'s> Parser<'s> {
                 // we still do so for compatibility
                 self.reporter.report_error(
                     &self.previous().location,
-                    format_args!("Function type declarations must specifiy '()' after 'function'"),
+                    format_args!(
+                        "Function type declarations must specifiy '()' after '{}'",
+                        &self.previous().token_type
+                    ),
                 );
             }
         }
@@ -1101,6 +1161,89 @@ impl<'s> Parser<'s> {
         // which are not resolved until after AST building. The error message
         // is therefore ignored, as the identifier may be resolved later.
         self.declare_type(Type::Named { ident })
+    }
+
+    /// Parse a range type
+    fn type_range(&mut self, start_range: Expr, parse_context: &TokenType) -> TypeRef {
+        // A None for the range is only acceptable in array decls
+        // Everywhere else is invalid
+        let is_inferred_valid = *parse_context == TokenType::Array;
+
+        // Consume range dots
+        let range_tok = self.next_token();
+
+        // Parse the end range
+        let end_range = match self.current().token_type {
+            // Inferred range
+            TokenType::Star => {
+                let star_tok = self.next_token();
+
+                if is_inferred_valid {
+                    Ok(None)
+                } else {
+                    self.reporter.report_error(
+                        &star_tok.location,
+                        format_args!("'*' as a range end is only valid in array ranges"),
+                    );
+                    return TypeRef::TypeError;
+                }
+            }
+            // Explicit range
+            _ => self.expr().map(|expr| Some(expr)),
+        };
+
+        match end_range {
+            Err(_) => {
+                self.reporter.report_error(
+                    &range_tok.location,
+                    if is_inferred_valid {
+                        format_args!("Expected expression or '*' after '..'")
+                    } else {
+                        format_args!("Expected expression after '..'")
+                    },
+                );
+                TypeRef::TypeError
+            }
+            Ok(end_range) => self.declare_type(Type::Range {
+                start: start_range,
+                end: end_range,
+                base_type: TypeRef::Unknown,
+            }),
+        }
+    }
+
+    /// Parse an array type
+    fn type_array(&mut self, parse_context: &TokenType) -> TypeRef {
+        todo!()
+    }
+
+    /// Parse a set type
+    fn type_set(&mut self, parse_context: &TokenType) -> TypeRef {
+        // Parse the entire set declaration
+        let set_tok = self.next_token();
+        // nab 'of'
+        let _ = self.expects(TokenType::Of, format_args!("Expected 'of' after 'set'"));
+
+        // Parse the range!
+        let range = {
+            let expr = self.expr();
+
+            match expr {
+                Err(_) => TypeRef::TypeError,
+                Ok(start) => self.type_range(start, &TokenType::Set),
+            }
+        };
+
+        if *parse_context != TokenType::Type {
+            // Only allowed in "type" statements
+            self.reporter.report_error(
+                &set_tok.location,
+                format_args!("Set types can only be declared inside of 'type' statements"),
+            );
+            TypeRef::TypeError
+        } else {
+            self.declare_type(Type::Set { range })
+        }
     }
 
     // -- Wrappers around the scope list -- //
@@ -1373,6 +1516,18 @@ mod test {
         scanner.scan_tokens();
 
         Parser::new(scanner.tokens, source, CodeUnit::new(true))
+    }
+
+    fn get_ident(parser: &Parser, name: &str) -> Option<Identifier> {
+        parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .root_block()
+            .borrow()
+            .scope
+            .get_ident(name)
+            .map(|i| i.clone())
     }
 
     fn get_ident_type(parser: &Parser, name: &str) -> TypeRef {
@@ -1800,6 +1955,12 @@ var r : function _ (var a : cheat int, var register b : cheat int, proc c) : int
 % Nesting fun!
 % While not valid in TProlog, it should still be valid syntax as inner parameter names are ignored
 var s : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int
+
+% Range parsing
+var a_range : (1 - 3 shl 5) .. (2 * 50 - 8 * 4)
+
+% Set parsing (only valid in type statements)
+type some_set : set of 1 .. 5
         ",
         );
         assert!(parser.parse());
@@ -1835,6 +1996,48 @@ var s : function _ (function a (function a : int ) : int, proc b (proc a (proc a
         assert!(!parser.parse());
 
         let mut parser = make_test_parser("var a : function : int");
+        assert!(!parser.parse());
+
+        // Inferred range end is only valid in array range contexts
+        let mut parser = make_test_parser("var a : 1 .. *");
+        assert!(!parser.parse());
+
+        // No range end
+        let mut parser = make_test_parser("var a : 1 .. ");
+        assert!(!parser.parse());
+
+        // Set type declarations are only valid in type statements
+        let mut parser = make_test_parser("var a : set of 1 .. 3");
+        assert!(!parser.parse());
+
+        // Set type declarations expect 'of'
+        let mut parser = make_test_parser("var a : int \n type a : set 1 .. 3");
+        assert!(!parser.parse());
+        assert!(get_ident(&parser, "a").unwrap().is_declared);
+        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+
+        let mut parser = make_test_parser("type a : set");
+        assert!(!parser.parse());
+        assert!(get_ident(&parser, "a").unwrap().is_declared);
+        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+
+        // Set type declarations expect a range
+        let mut parser = make_test_parser("type a : set of ");
+        assert!(!parser.parse());
+        assert!(get_ident(&parser, "a").unwrap().is_declared);
+        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+
+        // Arbitrary expressions are not valid types
+        let mut parser = make_test_parser("var a : 1");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : 1 ** 2");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : (1 * 6 - 1 + 4 = 1)");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : false");
         assert!(!parser.parse());
     }
 
@@ -1966,5 +2169,37 @@ var s : function _ (function a (function a : int ) : int, proc b (proc a (proc a
         ",
         );
         assert!(!parser.parse());
+    }
+
+    #[test]
+    fn test_type_decl() {
+        let mut parser = make_test_parser("type a : int");
+        assert!(parser.parse());
+
+        // Requires identifer, will consume the type and colon
+        let mut parser = make_test_parser("type : a := 1");
+        assert!(!parser.parse());
+        // The a := 1 should not produce a statement (the a should be consumed by "type")
+        assert_eq!(parser.unit.unwrap().stmts().len(), 0);
+
+        // Requires colon, will parse the rest and produce a declaration
+        let mut parser = make_test_parser("var a : string\ntype a");
+        assert!(!parser.parse());
+        assert!(get_ident(&parser, "a").is_some());
+        assert_eq!(
+            get_ident(&parser, "a").unwrap().type_spec,
+            TypeRef::TypeError
+        );
+        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+
+        let mut parser = make_test_parser("var a : string\ntype a int");
+        assert!(!parser.parse());
+        assert!(get_ident(&parser, "a").is_some());
+        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+        assert_eq!(
+            get_ident(&parser, "a").unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
     }
 }

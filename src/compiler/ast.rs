@@ -187,6 +187,9 @@ pub enum Stmt {
         value: Option<Box<Expr>>,
         is_const: bool,
     },
+    TypeDecl {
+        ident: Identifier,
+    },
     // Stmts
     Assign {
         var_ref: Box<Expr>,

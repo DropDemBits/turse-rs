@@ -168,7 +168,13 @@ pub enum Type {
         /// End of the range
         /// None is equivalent to specifiying *
         end: Option<Expr>,
+        /// Base type for the range.
+        /// Can be an int, enum type, char, or boolean, depending on the range evaluation.
+        base_type: TypeRef,
     },
+    /// Set of values in a given range.
+    /// The start and end expressions of the range must be compile-time evaluable.
+    Set { range: TypeRef },
 }
 
 /// Table of all named references defined in the scope

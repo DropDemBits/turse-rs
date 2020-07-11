@@ -93,6 +93,9 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                         .resolve_ident(&ident.name, &ident);
                 }
             }
+            Stmt::TypeDecl { ident: _ } => {
+                // TODO: Verify that the ident refers to a valid type
+            }
             Stmt::Assign {
                 var_ref,
                 op,
@@ -230,6 +233,12 @@ impl ASTVisitorMut<()> for TypeValidator<'_> {
                 arg_list.iter_mut().for_each(|expr| self.visit_expr(expr));
 
                 // Validate that 'left' is "callable"
+                // 3 things that fall under this expression
+                // - set cons
+                // - array subscript
+                // - fcn / proc call
+                // Distinguished by the identifier type
+
                 // Validate that the argument types match the type_spec using the given reference
                 // eval_type is the result of the call expr
 
