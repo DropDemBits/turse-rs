@@ -204,11 +204,13 @@ pub enum Stmt {
     },
 }
 
-/// Mutable Visitor for a generated AST
-pub trait ASTVisitorMut<T> {
+/// Mutable Visitor for a generated AST.
+/// `T` is the type returned from visiting statements, and `U` is the type
+/// returned from visiting expressions.
+pub trait ASTVisitorMut<T, U> {
     /// Visit a single statement in the tree
     fn visit_stmt(&mut self, stmt: &mut Stmt) -> T;
 
     /// Visit an expression in the tree
-    fn visit_expr(&mut self, expr: &mut Expr) -> T;
+    fn visit_expr(&mut self, expr: &mut Expr) -> U;
 }

@@ -28,7 +28,7 @@ impl<'a> Validator<'a> {
     }
 }
 
-impl ASTVisitorMut<()> for Validator<'_> {
+impl ASTVisitorMut<(), ()> for Validator<'_> {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match visit_stmt {
             Stmt::VarDecl {
@@ -49,30 +49,42 @@ impl ASTVisitorMut<()> for Validator<'_> {
                         0
                     );
                     return;
-                } else if *type_spec == TypeRef::Unknown {
-                    // Unknown type, use the type of the expr
-                    // Safe to unwrap as if no expr was provided, the type_spec would be TypeError
+                }
+
+                // Visit the expression to update the eval type
+                if value.is_some() || *type_spec == TypeRef::Unknown {
                     let expr = value.as_mut().unwrap();
                     self.visit_expr(expr);
-
-                    *type_spec = expr.get_eval_type();
                     is_compile_eval = expr.is_compile_eval();
+                }
+
+                
+                if *type_spec == TypeRef::Unknown {
+                    // Unknown type, use the type of the expr
+                    // Safe to unwrap as if no expr was provided, the type_spec would be TypeError    
+
+                    let expr = value.as_ref().unwrap();
+                    *type_spec = expr.get_eval_type();
                 } else if value.is_some() {
-                    let asn_type = &value.as_ref().unwrap().get_eval_type();
-                    let resolved_spec = &type_spec;
+                    // Validate that the types are assignable
+                    let expr = value.as_ref().unwrap();
 
-                    // TODO: Resolve & De-alias type refs
-                    debug_assert!(types::is_base_type(asn_type, &self.type_table));
-                    debug_assert!(types::is_base_type(resolved_spec, &self.type_table));
+                    let left_type = &type_spec;
+                    let right_type = &expr.get_eval_type();
 
-                    if !types::is_error(asn_type) {
+                    if !types::is_error(right_type) {
+                        // TODO: Resolve & De-alias type refs
+                        debug_assert!(types::is_base_type(left_type, &self.type_table), "Of type {:?}", left_type);
+                        debug_assert!(types::is_base_type(right_type, &self.type_table), "Of type {:?}", right_type);
+
                         // Validate that the types are assignable
-                        if !types::is_assignable_to(resolved_spec, &asn_type, &self.type_table) {
+                        if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
                             // Value to assign is the wrong type
                             self.reporter.report_error(
                                 &idents.last().as_ref().unwrap().token.location,
                                 format_args!("Initialization value is the wrong type"),
                             );
+
                             *type_spec = TypeRef::TypeError;
                         } else {
                             is_compile_eval = value.as_ref().unwrap().is_compile_eval();
@@ -108,21 +120,21 @@ impl ASTVisitorMut<()> for Validator<'_> {
                 self.visit_expr(var_ref);
                 self.visit_expr(value);
 
-                let ref_type = &var_ref.get_eval_type();
-                let value_type = &value.get_eval_type();
+                let left_type = &var_ref.get_eval_type();
+                let right_type = &value.get_eval_type();
 
                 // Validate that the types are assignable for the given operation
-                if types::is_error(value_type) {
+                if types::is_error(right_type) {
                     // Silently drop propogated TypeErrors
                     return;
                 }
 
                 // TODO: Resolve & De-alias type refs
-                debug_assert!(types::is_base_type(ref_type, &self.type_table));
-                debug_assert!(types::is_base_type(value_type, &self.type_table));
+                debug_assert!(types::is_base_type(left_type, &self.type_table));
+                debug_assert!(types::is_base_type(right_type, &self.type_table));
                 
                 if op.token_type == TokenType::Assign {
-                    if !types::is_assignable_to(ref_type, value_type, &self.type_table) {
+                    if !types::is_assignable_to(left_type, right_type, &self.type_table) {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
                             &op.location,
@@ -130,7 +142,8 @@ impl ASTVisitorMut<()> for Validator<'_> {
                         );
                     }
                 } else {
-                    if check_binary_operands((&var_ref, ref_type), &op.token_type, (&value, value_type), &self.type_table).is_err() {
+                    let produce_type = check_binary_operands((&var_ref, left_type), &op.token_type, (&value, right_type), &self.type_table);
+                    if produce_type.is_err() || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table) {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
                             &op.location,
@@ -141,11 +154,11 @@ impl ASTVisitorMut<()> for Validator<'_> {
             }
             Stmt::ProcedureCall { proc_ref } => self.visit_expr(proc_ref),
             Stmt::Block { block } => {
-                // Change our active scope
+                // TODO: Change our active scope
                 for stmt in block.borrow_mut().stmts.iter_mut() {
                     self.visit_stmt(stmt);
                 }
-                // Revert to previous scope
+                // TODO: Revert to previous scope
             }
         }
     }
@@ -206,6 +219,10 @@ impl ASTVisitorMut<()> for Validator<'_> {
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
                             TokenType::Slash | TokenType::Div | TokenType::Mod | TokenType::Rem | TokenType::Exp => 
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
+                            TokenType::And | TokenType::Or | TokenType::Xor =>
+                                self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
+                            TokenType::Imply =>
+                                self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                             _ => todo!(),
                         }
                     }
@@ -425,4 +442,338 @@ fn check_binary_operands(
     }
 
     Err(binary_default(op))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::compiler::block::CodeUnit;
+    use crate::compiler::scanner::Scanner;
+    use crate::compiler::parser::Parser;
+
+    /// Runs the validator on the given source
+    /// Parsing & scanning must complete successfully
+    /// Returns true if the AST is valid
+    fn run_validator(source: &str) -> bool {
+        // Taken from main.rs
+        // Build the main unit
+        let code_unit = CodeUnit::new(true);
+        
+        let mut scanner = Scanner::new(&source);
+        assert!(scanner.scan_tokens(), "Scanner failed to scan the source");
+        
+        let mut parser = Parser::new(scanner.tokens, &source, code_unit);
+        assert!(parser.parse(), "Parser failed to parse the source");
+        
+        // Take the unit back from the parser
+        let mut code_unit = parser.take_unit();
+        let mut type_table = code_unit.take_types();
+        
+        // Validate AST
+        let mut validator = Validator::new(code_unit.root_block(), &mut type_table);
+        code_unit.visit_ast_mut(&mut validator);
+        let successful_validate = !validator.reporter.has_error();
+
+        code_unit.put_types(type_table);
+        
+        successful_validate
+    }
+
+    #[test]
+    fn test_empty_file() {
+        assert!(run_validator(""));
+    }
+
+    #[test]
+    fn test_simple_asn_typecheck() {
+        // Also tests type compatibility
+        // Basic, unsized types
+        assert_eq!(true, run_validator("var a : int  := 1"));
+        assert_eq!(true, run_validator("var a : nat  := 1"));
+        assert_eq!(true, run_validator("var a : real := 1.0"));
+        assert_eq!(true, run_validator("var a : string := \"Some text\""));
+
+        // Compatibility between char and char(1)
+        assert_eq!(true, run_validator("var a : char := 'a'"));
+        assert_eq!(true, run_validator("var a : char(1) := 'a'"));
+        assert_eq!(true, run_validator("var c : char := 'c'\nvar a : char(1) := c"));
+        assert_eq!(true, run_validator("var c : char(1) := 'c'\nvar a : char := c"));
+
+        // Compatibility between char and string(1)
+        assert_eq!(true, run_validator("var a : char := 'a'"));
+        assert_eq!(true, run_validator("var a : string(1) := 'a'"));
+        assert_eq!(true, run_validator("var c : char := 'c'\nvar a : string(1) := c"));
+        assert_eq!(true, run_validator("var c : string(1) := 'c'\nvar a : char := c"));
+
+        // Compatibility between char and string
+        assert_eq!(true, run_validator("var a : char := \"a\""));
+        assert_eq!(true, run_validator("var a : string := 'a'"));
+        assert_eq!(true, run_validator("var c : char := 'c'\nvar a : string := c"));
+        assert_eq!(true, run_validator("var c : string := 'c'\nvar a : char := c"));
+
+        // Incompatibility between char with char(n) and string(n)
+        assert_eq!(false, run_validator("var c : char(2) := 'ce'\nvar a : char := c"));
+        assert_eq!(false, run_validator("var c : string(2) := 'ce'\nvar a : char := c"));
+
+        // Compatibility with char into char(n) and string(n) 
+        eprintln!("here:");
+        assert_eq!(true, run_validator("var c : char := 'c'\nvar a : char(6) := c"));
+        assert_eq!(true, run_validator("var c : char := 'c'\nvar a : string(6) := c"));
+
+        // Compatibility between char(n) and string
+        // char(n) <- string is only checked at runtime
+        assert_eq!(true, run_validator("var s : string := \"abcd\"\nvar a : char(6) := s"));
+        assert_eq!(true, run_validator("var c : char(6) := 'abcd'\nvar a : string := c"));
+
+        // (In)compatibility between char(n) of same or different size
+        assert_eq!(true, run_validator("var a : char(6) := 'abcd'"));
+        assert_eq!(true, run_validator("var a : char(6) := 'abcdaa'"));
+        assert_eq!(false, run_validator("var a : char(6) := 'abcdaaa'"));
+
+        // (In)compatibility between string(n) of same or different size
+        assert_eq!(true, run_validator("var s : string(4) := 'abcd'    \nvar a : string(6) := s"));
+        assert_eq!(true, run_validator("var s : string(6) := 'abcdaa'  \nvar a : string(6) := s"));
+        assert_eq!(false, run_validator("var s : string(7) := 'abcdaaa'\nvar a : string(6) := s"));
+
+        // Compatibility between real and number types
+        assert_eq!(true, run_validator("var i : int := 1   \nvar a : real := i"));
+        assert_eq!(true, run_validator("var i : nat := 1   \nvar a : real := i"));
+        assert_eq!(true, run_validator("var i : real := 1.0\nvar a : real := i"));
+    }
+
+    #[test]
+    fn test_add_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 + 1  \na +=   1 + 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 + 1  \na +=   1 + 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 + 1  \na +=   1 + 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 + 1  \na += 1.0 + 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 + 1.0\na +=   1 + 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 + 1.0\na += 1.0 + 1.0"));
+        assert_eq!(true, run_validator("var a : string := \"Hello, \" + \"World!\"\na += \"Hello, \" + \"World!\""));
+
+        // real cannot be assigned into int
+        assert_eq!(false, run_validator("var a : int := 1 + 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na += 1.0"));
+
+        // string cannot be assigned into number
+        assert_eq!(false, run_validator("var a : int := \"str\" + \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na += \"str\""));
+
+        // number cannot be assigned into string
+        assert_eq!(false, run_validator("var a : string := 1 + 1.0"));
+        assert_eq!(false, run_validator("var a : string := \"str\"\na += 1.0"));
+
+        // TODO: Remaining cases for set types
+    }
+
+    #[test]
+    fn test_sub_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 - 1  \na -=   1 - 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 - 1  \na -=   1 - 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 - 1  \na -=   1 - 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 - 1  \na -= 1.0 - 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 - 1.0\na -=   1 - 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 - 1.0\na -= 1.0 - 1.0"));
+
+        // real cannot be assigned into int
+        assert_eq!(false, run_validator("var a : int := 1 - 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na -= 1.0"));
+
+        // TODO: Remaining cases for set types
+
+        // Not scalars or sets
+        assert_eq!(false, run_validator("var a : int := \"str\" - \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    -= \"str\""));
+    }
+
+    #[test]
+    fn test_mul_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 * 1  \na *=   1 * 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 * 1  \na *=   1 * 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 * 1  \na *=   1 * 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 * 1  \na *= 1.0 * 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 * 1.0\na *=   1 * 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 * 1.0\na *= 1.0 * 1.0"));
+
+        // real cannot be assigned into int
+        assert_eq!(false, run_validator("var a : int := 1 * 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na *= 1.0"));
+
+        // TODO: Remaining cases for set types
+
+        // Not scalars or sets
+        assert_eq!(false, run_validator("var a : int := \"str\" * \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    *= \"str\""));
+    }
+
+    #[test]
+    fn test_idiv_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 div 1  \na div=   1 div 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 div 1  \na div=   1 div 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 div 1  \na div=   1 div 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 div 1  \na div= 1.0 div 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 div 1.0\na div=   1 div 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 div 1.0\na div= 1.0 div 1.0"));
+
+        // Result of idiv can be assigned to an int
+        assert_eq!(true, run_validator("var a : int := 1 div 1.0"));
+        assert_eq!(true, run_validator("var a : int := 1\na div= 1.0"));
+
+        // Not scalars
+        assert_eq!(false, run_validator("var a : int := \"str\" div \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    div= \"str\""));
+    }
+
+    #[test]
+    fn test_rdiv_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : real :=   1 / 1  \na /=   1 / 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 / 1  \na /= 1.0 / 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 / 1.0\na /=   1 / 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 / 1.0\na /= 1.0 / 1.0"));
+
+        // Result of rdiv cannot be assigned to an int
+        assert_eq!(false, run_validator("var a : int := 1 / 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na /= 1.0"));
+
+        // Not scalars
+        assert_eq!(false, run_validator("var a : int := \"str\" / \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    /= \"str\""));
+    }
+
+    #[test]
+    fn test_mod_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 mod 1  \na mod=   1 mod 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 mod 1  \na mod=   1 mod 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 mod 1  \na mod=   1 mod 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 mod 1  \na mod= 1.0 mod 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 mod 1.0\na mod=   1 mod 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 mod 1.0\na mod= 1.0 mod 1.0"));
+
+        // real cannot be assigned into int
+        assert_eq!(false, run_validator("var a : int := 1    mod 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na mod= 1.0"));
+
+        // Not scalars
+        assert_eq!(false, run_validator("var a : int := \"str\" mod \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    mod= \"str\""));
+    }
+
+    #[test]
+    fn test_rem_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 rem 1  \na rem=   1 rem 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 rem 1  \na rem=   1 rem 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 rem 1  \na rem=   1 rem 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 rem 1  \na rem= 1.0 rem 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 rem 1.0\na rem=   1 rem 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 rem 1.0\na rem= 1.0 rem 1.0"));
+
+        // real cannot be assigned into int
+        assert_eq!(false, run_validator("var a : int := 1    rem 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na rem= 1.0"));
+    }
+
+    #[test]
+    fn test_exp_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=   1 ** 1  \na **=   1 ** 1  "));
+        assert_eq!(true, run_validator("var a : nat  :=   1 ** 1  \na **=   1 ** 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 ** 1  \na **=   1 ** 1  "));
+        assert_eq!(true, run_validator("var a : real := 1.0 ** 1  \na **= 1.0 ** 1  "));
+        assert_eq!(true, run_validator("var a : real :=   1 ** 1.0\na **=   1 ** 1.0"));
+        assert_eq!(true, run_validator("var a : real := 1.0 ** 1.0\na **= 1.0 ** 1.0"));
+
+        // real cannot be assigned into int
+        assert_eq!(false, run_validator("var a : int := 1    ** 1.0"));
+        assert_eq!(false, run_validator("var a : int := 1\na **= 1.0"));
+
+        // Not scalars
+        assert_eq!(false, run_validator("var a : int := \"str\" ** \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    **= \"str\""));
+    }
+
+    #[test]
+    fn test_and_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=        1 and 1       \na and=    1 and 1   "));
+        assert_eq!(true, run_validator("var a : nat  :=        1 and 1       \na and=    1 and 1   "));
+        assert_eq!(true, run_validator("var a : boolean := false and true    \na and= true and true"));
+
+        // Not integers
+        assert_eq!(false, run_validator("var a : int := \"str\" and \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    and= \"str\""));
+
+        assert_eq!(false, run_validator("var a : real := 1      and  1.0"));
+        assert_eq!(false, run_validator("var a : real := 1\na   and= 1.0"));
+
+        // Not matching types
+        assert_eq!(false, run_validator("var a : boolean := 1       and  1"));
+        assert_eq!(false, run_validator("var a : boolean := true\na and= 1    "));
+        assert_eq!(false, run_validator("var a : nat     := true    and  false"));
+        assert_eq!(false, run_validator("var a : nat     := 1\na    and= true "));
+    }
+
+    #[test]
+    fn test_or_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=        1 or 1       \na or=    1 or 1   "));
+        assert_eq!(true, run_validator("var a : nat  :=        1 or 1       \na or=    1 or 1   "));
+        assert_eq!(true, run_validator("var a : boolean := false or true    \na or= true or true"));
+
+        // Not integers
+        assert_eq!(false, run_validator("var a : int := \"str\" or \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    or= \"str\""));
+
+        assert_eq!(false, run_validator("var a : real := 1      or  1.0"));
+        assert_eq!(false, run_validator("var a : real := 1\na   or= 1.0"));
+
+        // Not matching types
+        assert_eq!(false, run_validator("var a : boolean := 1       or  1    "));
+        assert_eq!(false, run_validator("var a : boolean := true\na or= 1    "));
+        assert_eq!(false, run_validator("var a : nat     := true    or  false"));
+        assert_eq!(false, run_validator("var a : nat     := 1\na    or= true "));
+    }
+
+    #[test]
+    fn test_xor_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=        1 xor 1       \na xor=    1 xor 1   "));
+        assert_eq!(true, run_validator("var a : nat  :=        1 xor 1       \na xor=    1 xor 1   "));
+        assert_eq!(true, run_validator("var a : boolean := false xor true    \na xor= true xor true"));
+
+        // Not integers
+        assert_eq!(false, run_validator("var a : int := \"str\" xor \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    xor= \"str\""));
+
+        assert_eq!(false, run_validator("var a : real := 1      xor  1.0"));
+        assert_eq!(false, run_validator("var a : real := 1\na   xor= 1.0"));
+
+        // Not matching types
+        assert_eq!(false, run_validator("var a : boolean := 1       xor  1    "));
+        assert_eq!(false, run_validator("var a : boolean := true\na xor= 1    "));
+        assert_eq!(false, run_validator("var a : nat     := true    xor  false"));
+        assert_eq!(false, run_validator("var a : nat     := 1\na    xor= true "));
+    }
+
+    #[test]
+    fn test_imply_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : boolean := false => true    \na =>= true => true"));
+
+        // Not booleans
+        assert_eq!(false, run_validator("var a : int := \"str\" => \"str\""));
+        assert_eq!(false, run_validator("var a : int := 1\na    =>= \"str\""));
+
+        assert_eq!(false, run_validator("var a : real := 1      =>  1.0"));
+        assert_eq!(false, run_validator("var a : real := 1\na   =>= 1.0"));
+
+        assert_eq!(false, run_validator("var a : nat     := true    =>  false"));
+        assert_eq!(false, run_validator("var a : nat     := 1\na    =>= true "));
+    }
 }

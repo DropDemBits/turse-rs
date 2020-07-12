@@ -82,9 +82,9 @@ impl CodeUnit {
     }
 
     /// Visits the AST using the given ASTVisitorMut, providing mutable access
-    pub fn visit_ast_mut<T, U>(&mut self, visitor: &mut T)
+    pub fn visit_ast_mut<T, U, V>(&mut self, visitor: &mut T)
     where
-        T: ASTVisitorMut<U>,
+        T: ASTVisitorMut<U, V>,
     {
         for stmt in self.stmts.iter_mut() {
             visitor.visit_stmt(stmt);

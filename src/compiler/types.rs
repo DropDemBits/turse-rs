@@ -304,7 +304,7 @@ pub fn is_char(type_ref: &TypeRef) -> bool {
     }
 }
 
-/// Checks if the given `type_ref` references a string-class type (String_ & StringN(x))
+/// Checks if the given `type_ref` references a string-class type (String_ & StringN(x)).
 /// Requires that `type_ref` is de-aliased (i.e. all aliased references are
 /// forwarded to the base type)
 pub fn is_string_type(type_ref: &TypeRef) -> bool {
@@ -504,6 +504,11 @@ pub fn common_type<'a>(
 /// - If `lvalue` is a string-class type and `rvalue` is a `char` (producing a string of length 1)
 /// - If `lvalue` is a `char(n)` and `rvalue` is a `string(n)` (`rvalue` gets converted into a `string(n)`)
 /// - If `lvalue` and `rvalue` are pointers to classes and they are the same class or share a common ancestor
+/// As well as:
+/// - If `lvalue` is a string(x) and `rvalue` is a char
+/// - If `lvalue` is a char(x) and `rvalue` is a char
+/// - If `lvalue` is a string(x) and `rvalue` is a char(y), and if x >= y
+/// - If `lvalue` is a string(n) or a char(n) and `rvalue` is a `string` (the assignment is checked at runtime)
 pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTable) -> bool {
     // TODO: Not all of the assignability rules listed above are checked yet, still need to do
     // - Other equivalencies
@@ -535,20 +540,25 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
     } else if is_string(lvalue) && is_char_seq_type(rvalue) {
         // Char Sequence types are assignable into unsized 'string's
         true
-    } else if is_charn(lvalue) && is_char_seq_type(rvalue) {
+    } else if is_sized_char_seq_type(lvalue) && is_sized_char_seq_type(rvalue) {
         // Must check length
         let lvalue_len = get_sized_len(lvalue).unwrap();
         let rvalue_len = get_sized_len(rvalue).unwrap();
 
         // Assignable if lvalue is a char(*), string(*) or if the rvalue can be contained inside of the lvalue
         lvalue_len == 0 || lvalue_len >= rvalue_len
-    } else if (is_charn(lvalue) && is_char(rvalue)) || (is_char(lvalue) && is_char_seq_type(rvalue))
+    } else if is_sized_char_seq_type(lvalue) && is_string(rvalue) {
+        // String assignment into char(x) or string(y) is checked at runtime
+        true
+    } else if (is_char_seq_type(lvalue) && is_char(rvalue))
+        || (is_char(lvalue) && is_char_seq_type(rvalue))
     {
         // Must check length
         let lvalue_len = get_sized_len(lvalue).unwrap_or(1);
         let rvalue_len = get_sized_len(rvalue).unwrap_or(1);
 
-        // `char` is only assignable into `char(n)` iff `char(n)` is of length 1
+        // `char` is only assignable into `char(n)` iff `char(n)` is of length 1 or greater
+        // `char` is only assignable into `string(n)` iff `string(n)` is of length 1 or greater
         // `charn(n)` is only assignable into `char` iff `char(n)` is of length 1
         // `string(n)` is only assignable into `char` iff `string(n)` is of length 1
         // `char` is not assignable into `char(*)`
@@ -556,10 +566,7 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
 
         // For the `char` <- `string` case, we have to default to true,
         // as the value of an unsized `string` can only be checked at runtime
-        lvalue_len == rvalue_len
-    } else if is_string_type(lvalue) && is_char(rvalue) {
-        // `char` is assignable into string-class types
-        true
+        lvalue_len >= rvalue_len
     } else {
         // This check is last as it performs very heavy type checking
         is_equivalent_to(lvalue, rvalue, type_table)
