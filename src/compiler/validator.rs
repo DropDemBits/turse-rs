@@ -539,6 +539,36 @@ mod test {
         assert_eq!(true, run_validator("var i : int := 1   \nvar a : real := i"));
         assert_eq!(true, run_validator("var i : nat := 1   \nvar a : real := i"));
         assert_eq!(true, run_validator("var i : real := 1.0\nvar a : real := i"));
+
+        // Incompatibility between real and integers
+        assert_eq!(false, run_validator("var i : int := 1.0"));
+        assert_eq!(false, run_validator("var i : nat := 1.0"));
+
+        // Incompatibility between numbers and strings
+        assert_eq!(false, run_validator("var i : int  := \"text\""));
+        assert_eq!(false, run_validator("var i : nat  := \"text\""));
+        assert_eq!(false, run_validator("var i : real := \"text\""));
+        assert_eq!(false, run_validator("var i : int  := 'text'"));
+        assert_eq!(false, run_validator("var i : nat  := 'text'"));
+        assert_eq!(false, run_validator("var i : real := 'text'"));
+        assert_eq!(false, run_validator("var i : int  := 't'"));
+        assert_eq!(false, run_validator("var i : nat  := 't'"));
+        assert_eq!(false, run_validator("var i : real := 't'"));
+
+        // Incompatibility between numbers and booleans
+        assert_eq!(false, run_validator("var i : int  := false"));
+        assert_eq!(false, run_validator("var i : nat  := false"));
+        assert_eq!(false, run_validator("var i : real := false"));
+
+        // Compatibility between booleans
+        assert_eq!(true, run_validator("var i : boolean := false"));
+
+        // Incompatibility between booleans and non-booleans
+        assert_eq!(false, run_validator("var i : boolean := 1"));
+        assert_eq!(false, run_validator("var i : boolean := 1.0"));
+        assert_eq!(false, run_validator("var i : boolean := \"h\""));
+        assert_eq!(false, run_validator("var i : boolean := 'ha'"));
+        assert_eq!(false, run_validator("var i : boolean := 'h'"));
     }
 
     #[test]
