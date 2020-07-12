@@ -221,6 +221,8 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
                             TokenType::And | TokenType::Or | TokenType::Xor =>
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
+                            TokenType::Shl | TokenType::Shr => 
+                                self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
                             TokenType::Imply =>
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                             _ => todo!(),
@@ -789,6 +791,40 @@ mod test {
         assert_eq!(false, run_validator("var a : boolean := true\na xor= 1    "));
         assert_eq!(false, run_validator("var a : nat     := true    xor  false"));
         assert_eq!(false, run_validator("var a : nat     := 1\na    xor= true "));
+    }
+
+    #[test]
+    fn test_shl_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=        1 shl 1       \na shl=    1 shl 1   "));
+        assert_eq!(true, run_validator("var a : nat  :=        1 shl 1       \na shl=    1 shl 1   "));
+
+        // Not integers
+        assert_eq!(false, run_validator("var a : int    := \"str\"  shl \"str\""));
+        assert_eq!(false, run_validator("var a : int    := 1\na     shl= \"str\""));
+
+        assert_eq!(false, run_validator("var a : real    := 1       shl  1.0"));
+        assert_eq!(false, run_validator("var a : real    := 1\na    shl= 1.0"));
+
+        assert_eq!(false, run_validator("var a : boolean := true    shl  true"));
+        assert_eq!(false, run_validator("var a : boolean := true\na shl= true"));
+    }
+
+    #[test]
+    fn test_shr_typecheck() {
+        // Tests typechecking for both the binary operator and the combined assignment
+        assert_eq!(true, run_validator("var a : int  :=        1 shr 1       \na shr=    1 shr 1   "));
+        assert_eq!(true, run_validator("var a : nat  :=        1 shr 1       \na shr=    1 shr 1   "));
+
+        // Not integers
+        assert_eq!(false, run_validator("var a : int    := \"str\"  shr \"str\""));
+        assert_eq!(false, run_validator("var a : int    := 1\na     shr= \"str\""));
+
+        assert_eq!(false, run_validator("var a : real    := 1       shr  1.0"));
+        assert_eq!(false, run_validator("var a : real    := 1\na    shr= 1.0"));
+
+        assert_eq!(false, run_validator("var a : boolean := true    shr  true"));
+        assert_eq!(false, run_validator("var a : boolean := true\na shr= true"));
     }
 
     #[test]

@@ -161,7 +161,7 @@ impl fmt::Debug for Expr {
             Literal { value, .. } => match &value.token_type {
                 TokenType::StringLiteral(s) => f.write_fmt(format_args!("\"{}\"", s)),
                 TokenType::CharLiteral(s) => f.write_fmt(format_args!("'{}'", s)),
-                TokenType::IntLiteral(n) => f.write_fmt(format_args!("int({})", n)),
+                TokenType::NatLiteral(n) => f.write_fmt(format_args!("int({})", n)),
                 TokenType::RealLiteral(n) => f.write_fmt(format_args!("real({})", n)),
                 TokenType::BoolLiteral(b) => f.write_fmt(format_args!("bool({})", b)),
                 TokenType::Nil => f.write_fmt(format_args!("nil")),

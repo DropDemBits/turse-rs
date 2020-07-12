@@ -24,7 +24,7 @@ param_list:
     expr (',' expr)*
 
 literal:
-    IntLiteral
+    NatLiteral
     RealLiteral
     StringLiteral
     CharLiteral
@@ -729,7 +729,7 @@ impl<'s> Parser<'s> {
                 value: token,
                 eval_type: TypeRef::Primitive(types::get_char_kind(&s)),
             }),
-            TokenType::IntLiteral(_) => Ok(Expr::Literal {
+            TokenType::NatLiteral(_) => Ok(Expr::Literal {
                 value: token,
                 eval_type: TypeRef::Primitive(PrimitiveType::Int),
             }),
@@ -884,7 +884,7 @@ impl<'s> Parser<'s> {
     /// Gets the size specifier for a char(n) or string(n)
     fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<usize, ()> {
         match self.current().token_type {
-            TokenType::IntLiteral(size) if size > 0 => {
+            TokenType::NatLiteral(size) if size > 0 => {
                 if size as usize >= types::MAX_STRING_SIZE {
                     self.reporter.report_error(
                         &self.current().location,
@@ -1637,7 +1637,7 @@ impl<'s> Parser<'s> {
                 prefix_rule: None,
                 infix_rule: Some(Parser::expr_dot),
             },
-            TokenType::IntLiteral(_)
+            TokenType::NatLiteral(_)
             | TokenType::RealLiteral(_)
             | TokenType::CharLiteral(_)
             | TokenType::StringLiteral(_)

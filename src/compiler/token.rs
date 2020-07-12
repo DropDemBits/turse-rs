@@ -201,7 +201,8 @@ pub enum TokenType {
     Identifier,
     CharLiteral(String),
     StringLiteral(String),
-    IntLiteral(u64),
+    NatLiteral(u64),
+    IntLiteral(i64),
     RealLiteral(f64),
     BoolLiteral(bool),
 

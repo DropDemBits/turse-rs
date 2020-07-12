@@ -6,6 +6,7 @@ pub(crate) mod scope;
 pub(crate) mod token;
 pub(crate) mod types;
 pub(crate) mod validator;
+pub(crate) mod value;
 
 extern crate unicode_segmentation;
 

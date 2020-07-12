@@ -310,14 +310,14 @@ impl<'s> Scanner<'s> {
     }
 
     fn make_number_basic(&mut self) {
-        // End normal IntLiteral
+        // End normal NatLiteral
         let numerals = self.cursor.get_lexeme(self.source);
         let numerals_len = numerals.len();
         //let value = numerals.parse::<u64>();
 
         match try_parse_int(numerals, 10) {
             Ok(num) => {
-                self.make_token(TokenType::IntLiteral(num), numerals_len);
+                self.make_token(TokenType::NatLiteral(num), numerals_len);
             }
             Err(e) => {
                 match e {
@@ -335,7 +335,7 @@ impl<'s> Scanner<'s> {
                 }
 
                 // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-                self.make_token(TokenType::IntLiteral(0), numerals_len);
+                self.make_token(TokenType::NatLiteral(0), numerals_len);
             }
         }
 
@@ -408,7 +408,7 @@ impl<'s> Scanner<'s> {
         // Check if the base is in range
         if base.is_none() {
             // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-            self.make_token(TokenType::IntLiteral(0), base_numerals.len());
+            self.make_token(TokenType::NatLiteral(0), base_numerals.len());
             return;
         }
 
@@ -422,7 +422,7 @@ impl<'s> Scanner<'s> {
             );
 
             // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-            self.make_token(TokenType::IntLiteral(0), base_numerals.len());
+            self.make_token(TokenType::NatLiteral(0), base_numerals.len());
             return;
         }
 
@@ -431,7 +431,7 @@ impl<'s> Scanner<'s> {
         match try_parse_int(&radix_numerals, base as u32) {
             Ok(num) => {
                 let literal_len = self.cursor.get_lexeme(self.source).len();
-                self.make_token(TokenType::IntLiteral(num), literal_len);
+                self.make_token(TokenType::NatLiteral(num), literal_len);
             }
             Err(k) => {
                 match k {
@@ -453,7 +453,7 @@ impl<'s> Scanner<'s> {
                     ),
                 }
                 // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-                self.make_token(TokenType::IntLiteral(0), base_numerals.len());
+                self.make_token(TokenType::NatLiteral(0), base_numerals.len());
             }
         }
     }
@@ -1066,18 +1066,18 @@ mod test {
         // Basic integer literal
         let mut scanner = Scanner::new("01234560");
         assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(1234560));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(1234560));
 
         // Overflow
         let mut scanner = Scanner::new("99999999999999999999");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
         // Digit cutoff
         let mut scanner = Scanner::new("999a999");
         assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(999));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(999));
     }
 
     #[test]
@@ -1085,43 +1085,43 @@ mod test {
         // Integer literal with base
         let mut scanner = Scanner::new("16#EABC");
         assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0xEABC));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0xEABC));
 
         // Overflow
         let mut scanner = Scanner::new("10#99999999999999999999");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
         // No digits
         let mut scanner = Scanner::new("30#");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
         // Out of range (> 36)
         let mut scanner = Scanner::new("37#asda");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
         // Out of range (= 0)
         let mut scanner = Scanner::new("0#0000");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
         // Out of range (= 1)
         let mut scanner = Scanner::new("1#0000");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
         // Invalid digit
         let mut scanner = Scanner::new("10#999a999");
         assert!(!scanner.scan_tokens());
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::IntLiteral(0));
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
     }
 
     #[test]
