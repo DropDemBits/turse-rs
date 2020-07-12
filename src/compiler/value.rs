@@ -3,6 +3,7 @@ use crate::compiler::ast::Expr;
 use crate::compiler::token::{Token, TokenType};
 use crate::compiler::types::{PrimitiveType, TypeRef};
 use crate::compiler::Location;
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 
 /// A single compile-time value
@@ -50,6 +51,12 @@ impl From<bool> for Value {
 impl From<String> for Value {
     fn from(v: String) -> Value {
         Value::StringValue(v)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(v: &str) -> Value {
+        Value::StringValue(String::from(v))
     }
 }
 
@@ -191,41 +198,24 @@ impl TryFrom<Value> for Expr {
 pub enum ValueApplyError {
     Overflow,
     DivisionByZero,
+    InvalidOperand,
+    WrongTypes,
 }
 
-// Remaining operations to apply
+// Remaining operations to apply (>= <= < > = ~=)
 
-// i/n mod n/i -> i
-//   n mod n   -> n
-// num mod num -> r
-
-// i/n rem n/i -> i
-//   n rem n   -> n
-// num rem num -> r
-
-// i/n ** n/i -> i
-//   n ** n   -> n
-// num ** num -> r
-
-// i/n and n/i -> n
-//   n and n   -> n
-//   b and b   -> b
-
-// i/n or n/i -> n
-//   n or n   -> n
-//   b or b   -> b
-
-// i/n xor n/i -> n
-//   n xor n   -> n
-//   b xor b   -> b
-
-// i/n shl n/i -> n
-//   n shl n   -> n
-
-// i/n shr n/i -> n
-//   n shr n   -> n
-
-//   b => b   -> b
+/// Tries to convert the value into the corresponding u64 byte representation.
+/// Only used for bitwise operators
+fn value_into_u64_bytes(v: Value) -> Result<u64, ValueApplyError> {
+    match v {
+        Value::NatValue(v) => Ok(v),
+        Value::IntValue(v) => {
+            // Into u64
+            Ok(u64::from_ne_bytes(v.to_ne_bytes()))
+        }
+        _ => panic!("Tried to convert {:?} into a u64", v),
+    }
+}
 
 /// Tries to convert the value into an i64. Consumes the value.
 fn value_into_i64(v: Value) -> Result<i64, ValueApplyError> {
@@ -255,6 +245,57 @@ fn value_into_f64(v: Value) -> Result<f64, ValueApplyError> {
     }
 }
 
+fn compare_values(
+    lhs: Value,
+    rhs: Value,
+    equality_only: bool,
+) -> Result<Ordering, ValueApplyError> {
+    if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+        let lvalue: bool = lhs.into();
+        let rvalue: bool = rhs.into();
+
+        if equality_only {
+            lvalue
+                .partial_cmp(&rvalue)
+                .ok_or(ValueApplyError::InvalidOperand)
+        } else {
+            Err(ValueApplyError::InvalidOperand)
+        }
+    } else if is_string_value(&lhs) && is_string_value(&rhs) {
+        let lvalue: String = lhs.into();
+        let rvalue: String = rhs.into();
+
+        lvalue
+            .partial_cmp(&rvalue)
+            .ok_or(ValueApplyError::InvalidOperand)
+    } else if is_nat_value(&lhs) && is_nat_value(&rhs) {
+        let lvalue: u64 = lhs.into();
+        let rvalue: u64 = rhs.into();
+
+        lvalue
+            .partial_cmp(&rvalue)
+            .ok_or(ValueApplyError::InvalidOperand)
+    } else if is_integer(&lhs) && is_integer(&rhs) {
+        let lvalue: i64 = value_into_i64(lhs)?;
+        let rvalue: i64 = value_into_i64(rhs)?;
+
+        lvalue
+            .partial_cmp(&rvalue)
+            .ok_or(ValueApplyError::InvalidOperand)
+    } else if is_number(&lhs) && is_number(&rhs) {
+        let lvalue: f64 = value_into_f64(lhs)?;
+        let rvalue: f64 = value_into_f64(rhs)?;
+
+        // Floating point equality in Turing is also a simple
+        // bit-for-bit test
+        lvalue
+            .partial_cmp(&rvalue)
+            .ok_or(ValueApplyError::InvalidOperand)
+    } else {
+        Err(ValueApplyError::WrongTypes)
+    }
+}
+
 fn apply_binary_integer<N, I>(
     lhs: Value,
     rhs: Value,
@@ -276,7 +317,7 @@ where
 
         Ok(Value::from(int_apply(lvalue, rvalue)?))
     } else {
-        unreachable!()
+        Err(ValueApplyError::WrongTypes)
     }
 }
 
@@ -308,7 +349,23 @@ where
 
         Ok(Value::from(real_apply(lvalue, rvalue)?))
     } else {
-        unreachable!()
+        Err(ValueApplyError::WrongTypes)
+    }
+}
+
+/// Performs floored modular arithmetic.
+/// Computes `lhs - rhs * floor(lhs / rhs)`,
+/// returning `ValueApplyError::DivisionByZero` if `rhs <= f64::EPSILON`
+/// or `ValueApplyError::Overflow` if the result overflows.
+fn mod_floor(lhs: f64, rhs: f64) -> Result<f64, ValueApplyError> {
+    let result = lhs - rhs * f64::floor(lhs / rhs);
+
+    if rhs.abs() <= f64::EPSILON {
+        Err(ValueApplyError::DivisionByZero)
+    } else if result.is_infinite() {
+        Err(ValueApplyError::Overflow)
+    } else {
+        Ok(result)
     }
 }
 
@@ -357,13 +414,15 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                 let rvalue = value_into_f64(rhs)?;
                 let res = lvalue / rvalue;
 
-                if res.is_infinite() {
+                if rvalue.abs() <= f64::EPSILON {
                     Err(ValueApplyError::DivisionByZero)
+                } else if res.is_infinite() {
+                    Err(ValueApplyError::Overflow)
                 } else {
                     Ok(Value::from(res))
                 }
             } else {
-                unreachable!()
+                Err(ValueApplyError::WrongTypes)
             }
         }
         TokenType::Div => {
@@ -373,49 +432,209 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                     lhs,
                     rhs,
                     |l, r| {
-                        if r == 0 {
-                            Err(ValueApplyError::DivisionByZero)
-                        } else {
-                            Ok(l / r)
-                        }
+                        l.checked_div(r)
+                            .ok_or(ValueApplyError::DivisionByZero)
+                            .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
                     },
                     |l, r| {
-                        if r == 0 {
-                            Err(ValueApplyError::DivisionByZero)
-                        } else {
-                            Ok(l / r)
-                        }
+                        l.checked_div(r)
+                            .ok_or(ValueApplyError::DivisionByZero)
+                            .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
                     },
                 )
             } else if is_number(&lhs) && is_number(&rhs) {
                 let lvalue = value_into_f64(lhs)?;
                 let rvalue = value_into_f64(rhs)?;
-                let res = lvalue.div_euclid(rvalue);
+                let res = lvalue / rvalue;
 
-                if rvalue.abs() < f64::EPSILON || res.is_infinite() {
+                if rvalue.abs() <= f64::EPSILON {
                     Err(ValueApplyError::DivisionByZero)
+                } else if res.is_infinite() {
+                    Err(ValueApplyError::Overflow)
                 } else {
                     Ok(Value::from(res as i64))
                 }
             } else {
-                unreachable!()
+                Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Mod => todo!(),
-        TokenType::Rem => todo!(),
-        TokenType::Exp => todo!(),
-        TokenType::And => todo!(),
-        TokenType::Or => todo!(),
-        TokenType::Xor => todo!(),
-        TokenType::Shl => todo!(),
-        TokenType::Shr => todo!(),
-        TokenType::Imply => todo!(),
-        TokenType::Less => todo!(),
-        TokenType::LessEqu => todo!(),
-        TokenType::Greater => todo!(),
-        TokenType::GreaterEqu => todo!(),
-        TokenType::Equ => todo!(),
-        TokenType::NotEq => todo!(),
+        TokenType::Mod => apply_binary_number(
+            lhs,
+            rhs,
+            |l, r| mod_floor(l as f64, r as f64).map(|f| f as u64),
+            |l, r| mod_floor(l as f64, r as f64).map(|f| f as i64),
+            |l, r| mod_floor(l as f64, r as f64),
+        ),
+        TokenType::Rem => apply_binary_number(
+            lhs,
+            rhs,
+            |l, r| {
+                l.checked_rem(r)
+                    .ok_or(ValueApplyError::DivisionByZero)
+                    .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
+            },
+            |l, r| {
+                l.checked_rem(r)
+                    .ok_or(ValueApplyError::DivisionByZero)
+                    .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
+            },
+            |l, r| {
+                let res = l % r;
+
+                if r.abs() <= f64::EPSILON {
+                    Err(ValueApplyError::DivisionByZero)
+                } else if res.is_infinite() {
+                    Err(ValueApplyError::Overflow)
+                } else {
+                    Ok(res)
+                }
+            },
+        ),
+        TokenType::Exp => apply_binary_number(
+            lhs,
+            rhs,
+            |l, r| {
+                if r >= (u32::MAX as u64) {
+                    Err(ValueApplyError::Overflow)
+                } else {
+                    l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)
+                }
+            },
+            |l, r| {
+                if r < 0 {
+                    Err(ValueApplyError::InvalidOperand)
+                } else if r >= (u32::MAX as i64) {
+                    Err(ValueApplyError::Overflow)
+                } else {
+                    l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)
+                }
+            },
+            |l, r| {
+                let res = l.powf(r);
+
+                if res.is_infinite() {
+                    Err(ValueApplyError::Overflow)
+                } else {
+                    Ok(res)
+                }
+            },
+        ),
+        TokenType::And => {
+            if is_integer(&lhs) && is_integer(&rhs) {
+                // Bitwise And
+                let lvalue = value_into_u64_bytes(lhs)?;
+                let rvalue = value_into_u64_bytes(rhs)?;
+
+                Ok(Value::from(lvalue & rvalue))
+            } else if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+                // Boolean And
+                let lvalue: bool = lhs.into();
+                let rvalue: bool = rhs.into();
+
+                Ok(Value::from(lvalue && rvalue))
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Or => {
+            if is_integer(&lhs) && is_integer(&rhs) {
+                // Bitwise Or
+                let lvalue = value_into_u64_bytes(lhs)?;
+                let rvalue = value_into_u64_bytes(rhs)?;
+
+                Ok(Value::from(lvalue | rvalue))
+            } else if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+                // Boolean Or
+                let lvalue: bool = lhs.into();
+                let rvalue: bool = rhs.into();
+
+                Ok(Value::from(lvalue || rvalue))
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Xor => {
+            if is_integer(&lhs) && is_integer(&rhs) {
+                // Bitwise Xor
+                let lvalue = value_into_u64_bytes(lhs)?;
+                let rvalue = value_into_u64_bytes(rhs)?;
+
+                Ok(Value::from(lvalue ^ rvalue))
+            } else if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+                // Boolean Xor
+                let lvalue: bool = lhs.into();
+                let rvalue: bool = rhs.into();
+
+                Ok(Value::from(lvalue ^ rvalue))
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Shl => {
+            // Bitshift left
+            // For compatibility reasons, 'r' is masked into the 0 - 31 range
+            // as TProlog only works with 32-bit integers
+            if is_integer(&lhs) && is_integer(&rhs) {
+                let lvalue = value_into_i64(lhs)?;
+                let rvalue = value_into_i64(rhs)?;
+
+                Ok(Value::from(
+                    lvalue.overflowing_shl((rvalue as u32) & 0x1F).0 as u64,
+                ))
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Shr => {
+            // Bitshift right
+            // For compatibility reasons, 'r' is masked into the 0 - 31 range
+            // as TProlog only works with 32-bit integers
+            if is_integer(&lhs) && is_integer(&rhs) {
+                let lvalue = value_into_i64(lhs)?;
+                let rvalue = value_into_i64(rhs)?;
+
+                Ok(Value::from(
+                    lvalue.overflowing_shr((rvalue as u32) & 0x1F).0 as u64,
+                ))
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Imply => {
+            if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+                // Boolean Imply
+                let lvalue: bool = lhs.into();
+                let rvalue: bool = rhs.into();
+
+                Ok(Value::from((!lvalue) || rvalue))
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Less => Ok(Value::from(matches!(
+            compare_values(lhs, rhs, false)?,
+            Ordering::Less
+        ))),
+        TokenType::LessEqu => Ok(Value::from(matches!(
+            compare_values(lhs, rhs, false)?,
+            Ordering::Less | Ordering::Equal
+        ))),
+        TokenType::Greater => Ok(Value::from(matches!(
+            compare_values(lhs, rhs, false)?,
+            Ordering::Greater
+        ))),
+        TokenType::GreaterEqu => Ok(Value::from(matches!(
+            compare_values(lhs, rhs, false)?,
+            Ordering::Greater | Ordering::Equal
+        ))),
+        TokenType::Equ => Ok(Value::from(matches!(
+            compare_values(lhs, rhs, true)?,
+            Ordering::Equal
+        ))),
+        TokenType::NotEq => Ok(Value::from(!matches!(
+            compare_values(lhs, rhs, true)?,
+            Ordering::Equal
+        ))),
         _ => unreachable!(),
     }
 }
@@ -437,59 +656,180 @@ mod test {
 				res
 			}
 		};
-	}
-
-    #[test]
-    fn test_str_concat() {
-        assert_eq!(
-            apply_binary(
-                Value::from(String::from("Hello ")),
-                &TokenType::Plus,
-                Value::from(String::from("World!"))
-            )
-            .unwrap(),
-            Value::from(String::from("Hello World!"))
-        );
     }
 
     #[test]
-    fn test_basic_arithmetic() {
+    fn test_binary_ops() {
         // Binary operations on
-        // + - * / div
+        // + - * / div mod rem ** and or xor shl shr =>
+        // < > <= >= = ~=
 
         let arithmetics = make_bops![
             // Add
             1u64 Plus 1u64 == 2u64;
             1i64 Plus 1u64 == 2i64;
             1i64 Plus 1.5f64 == 2.5f64;
+            "Hello " Plus "World!" == "Hello World!";
+
             // Subtraction
-            2u64 Minus 1u64 == 1u64;
+             2u64 Minus 1u64 == 1u64;
             21i64 Minus 1u64 == 20i64;
-            2u64 Minus 0.5f64 == 1.5f64;
+             2u64 Minus 0.5f64 == 1.5f64;
+
             // Multiply
-            3u64 Star 2u64 == 6u64;
-            3u64 Star 2i64 == 6i64;
+              3u64 Star 2u64 == 6u64;
+              3u64 Star 2i64 == 6i64;
             3.2f64 Star 2.0f64 == 6.4f64;
             3.2f64 Star 2u64 == 6.4f64;
             // Integer division
             4u64 Div 2u64 == 2u64;
-            3i64 Div 2i64 == 1i64;
+            3i64 Div -2i64 == -1i64;
             3f64 Div 2i64 == 1i64;
+
             // Real division
             3u64 Slash 2u64 == 1.5f64;
             3i64 Slash 2i64 == 1.5f64;
             3f64 Slash 2f64 == 1.5f64;
+
+            // Modulo (mod_floor)
+               5u64 Mod 2u64 == 1u64;
+
+               5i64 Mod  2i64 ==  1i64;
+               5i64 Mod -2i64 == -1i64;
+              -5i64 Mod  2i64 ==  1i64;
+              -5i64 Mod -2i64 == -1i64;
+
+             5.3f64 Mod  2f64 ==  1.3f64;
+             5.3f64 Mod -2f64 == -0.7f64;
+            -5.3f64 Mod  2f64 ==  0.7f64;
+            -5.3f64 Mod -2f64 == -1.3f64;
+
+            // Remainder
+               5u64 Rem 2u64 == 1u64;
+
+               5i64 Rem  2i64 ==  1i64;
+               5i64 Rem -2i64 ==  1i64;
+              -5i64 Rem  2i64 == -1i64;
+              -5i64 Rem -2i64 == -1i64;
+
+             5.3f64 Rem  2f64 ==  1.3f64;
+             5.3f64 Rem -2f64 ==  1.3f64;
+            -5.3f64 Rem  2f64 == -1.3f64;
+            -5.3f64 Rem -2f64 == -1.3f64;
+
+            // Exponentiation
+             2u64 Exp 3u64 == 8u64;
+
+             3i64 Exp 3u64 ==  27i64;
+            -3i64 Exp 3i64 == -27i64;
+            -3i64 Exp 2i64 ==   9i64;
+
+            -2f64 Exp  3f64 == -8f64;
+            -2f64 Exp -3f64 == -0.125f64;
+
+            // Bitwise And
+             3u64 And 1u64 == 1u64;
+            -3i64 And 2i64 == 0u64;
+
+            // Boolean And
+             true And true == true;
+            false And true == false;
+            false And false == false;
+
+            // Bitwise Or
+            2u64 Or 1i64 == 3u64;
+            2u64 Or 4u64 == 6u64;
+
+            // Boolean Or
+            true Or true == true;
+            true Or false == true;
+            false Or false == false;
+
+            // Bitwise Xor
+            2u64 Xor 1i64 == 3u64;
+            6u64 Xor 4u64 == 2u64;
+
+            // Boolean Xor
+            true Xor true == false;
+            true Xor false == true;
+            false Xor false == false;
+
+            // Bitshift left
+            1u64 Shl 33u64 == 2u64;
+            3i64 Shl 33i64 == 6u64;
+
+            // Bitshift right
+            1u64 Shr 32u64 == 1u64;
+            2i64 Shr 1i64 == 1u64;
+
+            // Imply
+            true Imply true == true;
+            true Imply false == false;
+            false Imply true == true;
+            false Imply false == true;
+
+            // Equality
+            true Equ true == true;
+            true Equ false == false;
+
+            10u64 Equ 10i64 == true;
+            -1i64 Equ -1f64 == true;
+
+            "Hello!" Equ "Hello!" == true;
+            "Hello!" Equ "World!" == false;
+
+            // Inequality
+            true NotEq false == true;
+            true NotEq true == false;
+
+            "Hello!" NotEq "Hello!" == false;
+            "Hello!" NotEq "World!" == true;
+
+            // Less Than
+            1f64 Less 10u64 == true;
+            "H" Less "L" == true;
+
+            45f64 Less 1i64 == false;
+            "Z" Less "A" == false;
+
+            // Greater Than
+            1f64 Greater 10u64 == false;
+            "H" Greater "L" == false;
+
+            45f64 Greater 1i64 == true;
+            "Z" Greater "A" == true;
+
+            // Greater Equal
+            45f64 GreaterEqu 44.9f64 == true;
+            "Z" GreaterEqu "Z" == true;
+
+            // Less Equal
+            21f64 LessEqu 45i64 == true;
+            45f64 LessEqu 45i64 == true;
+            "A" LessEqu "Z" == true;
+            "Z" LessEqu "Z" == true;
         ];
 
         for (test_num, validate) in arithmetics.into_iter().enumerate() {
             let (lhs, op, rhs, result) = validate;
 
-            assert_eq!(
-                apply_binary(lhs, &op, rhs).unwrap(),
-                result,
-                "Test #{} failed",
-                (test_num + 1)
-            );
+            let eval = apply_binary(lhs, &op, rhs).unwrap();
+
+            if is_real_value(&eval) && is_real_value(&result) {
+                // Use epsilon
+                let eval: f64 = eval.into();
+                let result: f64 = result.into();
+
+                assert!(
+                    (eval - result).abs() <= f64::EPSILON,
+                    "FP Test #{} failed ({} > {})",
+                    (test_num + 1),
+                    (eval - result).abs(),
+                    f64::EPSILON,
+                );
+            } else {
+                assert_eq!(eval, result, "Test #{} failed", (test_num + 1));
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
+#[allow(unused_variables, dead_code)]
 pub enum BlockKind {
     /// Main block, root for all blocks, can be an execution block
     Main,

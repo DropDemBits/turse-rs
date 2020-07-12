@@ -124,6 +124,7 @@ impl PartialEq for ParamDef {
 
 /// Base Type Root
 #[derive(Debug)]
+#[allow(unused_variables, dead_code)]
 pub enum Type {
     /// Alias to another Type
     Alias {
@@ -456,7 +457,7 @@ pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
 pub fn common_type<'a>(
     lhs: &'a TypeRef,
     rhs: &'a TypeRef,
-    type_table: &'_ TypeTable,
+    _type_table: &'_ TypeTable,
 ) -> Option<&'a TypeRef> {
     // TODO: Between strings, stringNs, charNs, chars, sets, classes, pointers, etc.
     if lhs == rhs {
