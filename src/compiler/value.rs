@@ -194,7 +194,7 @@ impl TryFrom<Value> for Expr {
 }
 
 /// Errors returned from value folding
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ValueApplyError {
     Overflow,
     DivisionByZero,
@@ -259,7 +259,8 @@ fn compare_values(
                 .partial_cmp(&rvalue)
                 .ok_or(ValueApplyError::InvalidOperand)
         } else {
-            Err(ValueApplyError::InvalidOperand)
+            // Cannot perform ordering comparisons on boolean values
+            Err(ValueApplyError::WrongTypes)
         }
     } else if is_string_value(&lhs) && is_string_value(&rhs) {
         let lvalue: String = lhs.into();
@@ -578,9 +579,13 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                 let lvalue = value_into_i64(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
 
-                Ok(Value::from(
-                    lvalue.overflowing_shl((rvalue as u32) & 0x1F).0 as u64,
-                ))
+                if rvalue < 0 {
+                    Err(ValueApplyError::InvalidOperand)
+                } else {
+                    Ok(Value::from(
+                        lvalue.overflowing_shl((rvalue as u32) & 0x1F).0 as u64,
+                    ))
+                }
             } else {
                 Err(ValueApplyError::WrongTypes)
             }
@@ -593,9 +598,13 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                 let lvalue = value_into_i64(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
 
-                Ok(Value::from(
-                    lvalue.overflowing_shr((rvalue as u32) & 0x1F).0 as u64,
-                ))
+                if rvalue < 0 {
+                    Err(ValueApplyError::InvalidOperand)
+                } else {
+                    Ok(Value::from(
+                        lvalue.overflowing_shr((rvalue as u32) & 0x1F).0 as u64,
+                    ))
+                }
             } else {
                 Err(ValueApplyError::WrongTypes)
             }
@@ -651,6 +660,22 @@ mod test {
 
 				$(
 					res.push((Value::from($l), $op, Value::from($r), Value::from($exp)));
+				)*
+
+				res
+			}
+		};
+    }
+
+    macro_rules! make_error_bops {
+		($( $l:literal $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
+			{
+                use TokenType::*;
+                use ValueApplyError::*;
+				let mut res = vec![];
+
+				$(
+					res.push((Value::from($l), $op, Value::from($r), $exp));
 				)*
 
 				res
@@ -830,6 +855,104 @@ mod test {
             } else {
                 assert_eq!(eval, result, "Test #{} failed", (test_num + 1));
             }
+        }
+    }
+
+    #[test]
+    fn test_binary_op_errors() {
+        let error_tests = make_error_bops![
+            // Invalid operands for shift
+            1u64 Shl -1i64 causes InvalidOperand;
+            1u64 Shr -1i64 causes InvalidOperand;
+
+            // Division by 0
+            1u64 Div 0u64 causes DivisionByZero;
+            1f64 Div 0f64 causes DivisionByZero;
+            1u64 Slash 0u64 causes DivisionByZero;
+            1f64 Slash 0f64 causes DivisionByZero;
+            1u64 Mod 0u64 causes DivisionByZero;
+            1f64 Mod 0f64 causes DivisionByZero;
+            1u64 Rem 0u64 causes DivisionByZero;
+            1f64 Rem 0f64 causes DivisionByZero;
+
+            // Exp cannot produce real values in int expression
+            1i64 Exp -1i64 causes InvalidOperand;
+            1u64 Exp -1i64 causes InvalidOperand;
+
+            // Overflow
+            0xFFFFFFFF_FFFFFFFFu64 Plus 1u64 causes Overflow;
+            0xFFFFFFFF_FFFFFFFFu64 Minus 1i64 causes Overflow; // Conversion overflow
+            -9223372036854775808i64 Minus 1u64 causes Overflow;
+            0xFFFFFFFF_FFFFFFFFu64 Star 0xFFFFFFFF_FFFFFFFFu64 causes Overflow;
+            -9223372036854775808i64 Star -1i64 causes Overflow;
+            10e303f64 Div 0.00000001f64 causes Overflow;
+            // Mod and Rem can't be easily checked for overflow as those capture 0 as a division by zero
+
+            // Mismatched types
+            "1" Plus 1u64 causes WrongTypes;
+            true Plus 1u64 causes WrongTypes;
+
+            "1" Minus 1u64 causes WrongTypes;
+            true Minus 1u64 causes WrongTypes;
+
+            "1" Star 1u64 causes WrongTypes;
+            true Star 1u64 causes WrongTypes;
+
+            "1" Div 1u64 causes WrongTypes;
+            true Div 1u64 causes WrongTypes;
+
+            "1" Slash 1u64 causes WrongTypes;
+            true Slash 1u64 causes WrongTypes;
+
+            "1" Mod 1u64 causes WrongTypes;
+            true Mod 1u64 causes WrongTypes;
+
+            "1" Rem 1u64 causes WrongTypes;
+            true Rem 1u64 causes WrongTypes;
+
+            "1" Exp 1u64 causes WrongTypes;
+            true Exp 1u64 causes WrongTypes;
+
+            "1" And 1u64 causes WrongTypes;
+            true And 1u64 causes WrongTypes;
+            1.0f64 And 1u64 causes WrongTypes;
+
+            "1" Or 1u64 causes WrongTypes;
+            true Or 1u64 causes WrongTypes;
+            1.0f64 Or 1u64 causes WrongTypes;
+
+            "1" Xor 1u64 causes WrongTypes;
+            true Xor 1u64 causes WrongTypes;
+            1.0f64 Xor 1u64 causes WrongTypes;
+
+            "1" Shl 1u64 causes WrongTypes;
+            true Shl 1u64 causes WrongTypes;
+            1.0f64 Shl 1u64 causes WrongTypes;
+
+            "1" Shr 1u64 causes WrongTypes;
+            true Shr 1u64 causes WrongTypes;
+            1.0f64 Shr 1u64 causes WrongTypes;
+
+            "1" Imply true causes WrongTypes;
+            true Imply 1u64 causes WrongTypes;
+            1.0f64 Imply true causes WrongTypes;
+
+            // Cannot compare ordering with booleans
+            true Less true causes WrongTypes;
+            true LessEqu true causes WrongTypes;
+            true Greater true causes WrongTypes;
+            true GreaterEqu true causes WrongTypes;
+        ];
+
+        for (test_num, validate) in error_tests.into_iter().enumerate() {
+            let (lhs, op, rhs, expect_error) = validate;
+
+            let error = apply_binary(lhs, &op, rhs).expect_err(&format!(
+                "Test #{} did not produce an error",
+                (test_num + 1)
+            ));
+
+            assert_eq!(error, expect_error, "Test #{} failed", (test_num + 1));
         }
     }
 }
