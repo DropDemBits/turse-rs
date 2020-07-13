@@ -151,18 +151,16 @@ impl fmt::Debug for Expr {
         match self {
             BinaryOp {
                 left, op, right, ..
-            } => f.write_fmt(format_args!(
-                "({:?} {:?} {:?})",
-                &op.token_type, left, right
-            )),
+            } => f.write_fmt(format_args!("({} {:?} {:?})", &op.token_type, left, right)),
             UnaryOp { op, right, .. } => {
-                f.write_fmt(format_args!("({:?} {:?})", &op.token_type, right))
+                f.write_fmt(format_args!("({} {:?})", &op.token_type, right))
             }
             Grouping { expr, .. } => f.write_fmt(format_args!("({:?})", expr)),
             Literal { value, .. } => match &value.token_type {
                 TokenType::StringLiteral(s) => f.write_fmt(format_args!("\"{}\"", s)),
                 TokenType::CharLiteral(s) => f.write_fmt(format_args!("'{}'", s)),
-                TokenType::NatLiteral(n) => f.write_fmt(format_args!("int({})", n)),
+                TokenType::NatLiteral(n) => f.write_fmt(format_args!("nat({})", n)),
+                TokenType::IntLiteral(n) => f.write_fmt(format_args!("int({})", n)),
                 TokenType::RealLiteral(n) => f.write_fmt(format_args!("real({})", n)),
                 TokenType::BoolLiteral(b) => f.write_fmt(format_args!("bool({})", b)),
                 TokenType::Nil => f.write_fmt(format_args!("nil")),
@@ -179,7 +177,7 @@ impl fmt::Debug for Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     // Decls
     VarDecl {

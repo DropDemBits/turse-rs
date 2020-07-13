@@ -311,8 +311,8 @@ fn apply_binary_integer<N, I>(
     int_apply: I,
 ) -> Result<Value, ValueApplyError>
 where
-    N: FnOnce(u64, u64) -> Result<u64, ValueApplyError>,
-    I: FnOnce(i64, i64) -> Result<i64, ValueApplyError>,
+    N: FnOnce(u64, u64) -> Result<Value, ValueApplyError>,
+    I: FnOnce(i64, i64) -> Result<Value, ValueApplyError>,
 {
     if is_nat_value(&lhs) && is_nat_value(&rhs) {
         let lvalue: u64 = lhs.into();
@@ -337,9 +337,9 @@ fn apply_binary_number<N, I, R>(
     real_apply: R,
 ) -> Result<Value, ValueApplyError>
 where
-    N: FnOnce(u64, u64) -> Result<u64, ValueApplyError>,
-    I: FnOnce(i64, i64) -> Result<i64, ValueApplyError>,
-    R: FnOnce(f64, f64) -> Result<f64, ValueApplyError>,
+    N: FnOnce(u64, u64) -> Result<Value, ValueApplyError>,
+    I: FnOnce(i64, i64) -> Result<Value, ValueApplyError>,
+    R: FnOnce(f64, f64) -> Result<Value, ValueApplyError>,
 {
     if is_nat_value(&lhs) && is_nat_value(&rhs) {
         let lvalue: u64 = lhs.into();
@@ -377,6 +377,16 @@ fn mod_floor(lhs: f64, rhs: f64) -> Result<f64, ValueApplyError> {
     }
 }
 
+/// Checks if the given value is infinite.
+/// Produces the value if there is no error, otherwise produces an Overflow error.
+fn check_inf(v: f64) -> Result<f64, ValueApplyError> {
+    if v.is_infinite() {
+        Err(ValueApplyError::Overflow)
+    } else {
+        Ok(v)
+    }
+}
+
 // Remaining operators
 // mod, rem -> num
 // >, >=, <, <=, =, ~= -> b
@@ -395,25 +405,58 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                 apply_binary_number(
                     lhs,
                     rhs,
-                    |l, r| l.checked_add(r).ok_or(ValueApplyError::Overflow),
-                    |l, r| l.checked_add(r).ok_or(ValueApplyError::Overflow),
-                    |l, r| Ok(l + r),
+                    |l, r| {
+                        Ok(Value::from(
+                            l.checked_add(r).ok_or(ValueApplyError::Overflow)?,
+                        ))
+                    },
+                    |l, r| {
+                        Ok(Value::from(
+                            l.checked_add(r).ok_or(ValueApplyError::Overflow)?,
+                        ))
+                    },
+                    |l, r| Ok(Value::from(check_inf(l + r)?)),
                 )
             }
         }
         TokenType::Minus => apply_binary_number(
             lhs,
             rhs,
-            |l, r| l.checked_sub(r).ok_or(ValueApplyError::Overflow),
-            |l, r| l.checked_sub(r).ok_or(ValueApplyError::Overflow),
-            |l, r| Ok(l - r),
+            |l, r| {
+                if l < r {
+                    // Convert into an integer value
+                    Ok(Value::from(
+                        (l as i64)
+                            .checked_sub(r as i64)
+                            .ok_or(ValueApplyError::Overflow)?,
+                    ))
+                } else {
+                    Ok(Value::from(
+                        l.checked_sub(r).ok_or(ValueApplyError::Overflow)?,
+                    ))
+                }
+            },
+            |l, r| {
+                Ok(Value::from(
+                    l.checked_sub(r).ok_or(ValueApplyError::Overflow)?,
+                ))
+            },
+            |l, r| Ok(Value::from(check_inf(l - r)?)),
         ),
         TokenType::Star => apply_binary_number(
             lhs,
             rhs,
-            |l, r| l.checked_mul(r).ok_or(ValueApplyError::Overflow),
-            |l, r| l.checked_mul(r).ok_or(ValueApplyError::Overflow),
-            |l, r| Ok(l * r),
+            |l, r| {
+                Ok(Value::from(
+                    l.checked_mul(r).ok_or(ValueApplyError::Overflow)?,
+                ))
+            },
+            |l, r| {
+                Ok(Value::from(
+                    l.checked_mul(r).ok_or(ValueApplyError::Overflow)?,
+                ))
+            },
+            |l, r| Ok(Value::from(check_inf(l * r)?)),
         ),
         TokenType::Slash => {
             // Real division
@@ -424,10 +467,8 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
 
                 if rvalue.abs() <= f64::EPSILON {
                     Err(ValueApplyError::DivisionByZero)
-                } else if res.is_infinite() {
-                    Err(ValueApplyError::Overflow)
                 } else {
-                    Ok(Value::from(res))
+                    Ok(Value::from(check_inf(res)?))
                 }
             } else {
                 Err(ValueApplyError::WrongTypes)
@@ -440,14 +481,18 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                     lhs,
                     rhs,
                     |l, r| {
-                        l.checked_div(r)
-                            .ok_or(ValueApplyError::DivisionByZero)
-                            .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
+                        Ok(Value::from(
+                            l.checked_div(r)
+                                .ok_or(ValueApplyError::DivisionByZero)
+                                .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
+                        ))
                     },
                     |l, r| {
-                        l.checked_div(r)
-                            .ok_or(ValueApplyError::DivisionByZero)
-                            .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
+                        Ok(Value::from(
+                            l.checked_div(r)
+                                .ok_or(ValueApplyError::DivisionByZero)
+                                .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
+                        ))
                     },
                 )
             } else if is_number(&lhs) && is_number(&rhs) {
@@ -457,7 +502,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
 
                 if rvalue.abs() <= f64::EPSILON {
                     Err(ValueApplyError::DivisionByZero)
-                } else if res.is_infinite() {
+                } else if res.is_infinite() || res > i64::MAX as f64 {
                     Err(ValueApplyError::Overflow)
                 } else {
                     Ok(Value::from(res as i64))
@@ -469,32 +514,42 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         TokenType::Mod => apply_binary_number(
             lhs,
             rhs,
-            |l, r| mod_floor(l as f64, r as f64).map(|f| f as u64),
-            |l, r| mod_floor(l as f64, r as f64).map(|f| f as i64),
-            |l, r| mod_floor(l as f64, r as f64),
+            |l, r| {
+                Ok(Value::from(
+                    mod_floor(l as f64, r as f64).map(|f| f as u64)?,
+                ))
+            },
+            |l, r| {
+                Ok(Value::from(
+                    mod_floor(l as f64, r as f64).map(|f| f as i64)?,
+                ))
+            },
+            |l, r| Ok(Value::from(mod_floor(l as f64, r as f64)?)),
         ),
         TokenType::Rem => apply_binary_number(
             lhs,
             rhs,
             |l, r| {
-                l.checked_rem(r)
-                    .ok_or(ValueApplyError::DivisionByZero)
-                    .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
+                Ok(Value::from(
+                    l.checked_rem(r)
+                        .ok_or(ValueApplyError::DivisionByZero)
+                        .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
+                ))
             },
             |l, r| {
-                l.checked_rem(r)
-                    .ok_or(ValueApplyError::DivisionByZero)
-                    .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })
+                Ok(Value::from(
+                    l.checked_rem(r)
+                        .ok_or(ValueApplyError::DivisionByZero)
+                        .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
+                ))
             },
             |l, r| {
                 let res = l % r;
 
                 if r.abs() <= f64::EPSILON {
                     Err(ValueApplyError::DivisionByZero)
-                } else if res.is_infinite() {
-                    Err(ValueApplyError::Overflow)
                 } else {
-                    Ok(res)
+                    Ok(Value::from(check_inf(res)?))
                 }
             },
         ),
@@ -505,7 +560,9 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                 if r >= (u32::MAX as u64) {
                     Err(ValueApplyError::Overflow)
                 } else {
-                    l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)
+                    Ok(Value::from(
+                        l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)?,
+                    ))
                 }
             },
             |l, r| {
@@ -514,18 +571,12 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                 } else if r >= (u32::MAX as i64) {
                     Err(ValueApplyError::Overflow)
                 } else {
-                    l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)
+                    Ok(Value::from(
+                        l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)?,
+                    ))
                 }
             },
-            |l, r| {
-                let res = l.powf(r);
-
-                if res.is_infinite() {
-                    Err(ValueApplyError::Overflow)
-                } else {
-                    Ok(res)
-                }
-            },
+            |l, r| Ok(Value::from(check_inf(l.powf(r))?)),
         ),
         TokenType::And => {
             if is_integer(&lhs) && is_integer(&rhs) {
@@ -894,6 +945,8 @@ mod test {
             -9223372036854775808i64 Star -1i64 causes Overflow;
             10e303f64 Div 0.00000001f64 causes Overflow;
             // Mod and Rem can't be easily checked for overflow as those capture 0 as a division by zero
+            -3i64 Exp 128u64 causes Overflow;
+            10f64 Exp 310i64 causes Overflow;
 
             // Mismatched types
             "1" Plus 1u64 causes WrongTypes;

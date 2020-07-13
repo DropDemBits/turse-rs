@@ -180,10 +180,13 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let eval = self.visit_expr(expr);
 
                 // Try to replace the inner expression with the folded value
-                if eval.is_some() { *expr = Box::new(Expr::try_from(eval.unwrap()).unwrap()); }
+                if eval.is_some() { *expr = Box::new(Expr::try_from(eval.clone().unwrap()).unwrap()); }
 
                 *eval_type = expr.get_eval_type();
                 *is_compile_eval = expr.is_compile_eval();
+
+                // Propogate the folded value
+                return eval;
             }
             Expr::BinaryOp {
                 left,
@@ -208,10 +211,6 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let left_type = &left.get_eval_type();
                 let right_type = &right.get_eval_type();
 
-                // TODO: Resolve & De-alias type refs
-                debug_assert!(types::is_base_type(left_type, &self.type_table));
-                debug_assert!(types::is_base_type(right_type, &self.type_table));
-
                 if types::is_error(left_type) || types::is_error(right_type) {
                     // Either one is a type error
                     // Set default type & return no value (no need to report an error as this is just propoagtion)
@@ -219,6 +218,10 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     *is_compile_eval = false;
                     return None;
                 }
+
+                // TODO: Resolve & De-alias type refs
+                debug_assert!(types::is_base_type(left_type, &self.type_table));
+                debug_assert!(types::is_base_type(right_type, &self.type_table));
 
                 match check_binary_operands((&left, left_type), op, (&right, right_type), &self.type_table) {
                     Ok(good_eval) => {
@@ -228,8 +231,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
 
                         if *is_compile_eval {
                             // Try to fold the current expression
-                            let lvalue = Value::try_from(*left.clone()).expect("Left operand is not a compile-time value");
-                            let rvalue = Value::try_from(*right.clone()).expect("Right operand is not a compile-time value");
+                            let lvalue = Value::try_from(*left.clone()).expect(&format!("Left operand is not a compile-time value {:?}", left));
+                            let rvalue = Value::try_from(*right.clone()).expect(&format!("Right operand is not a compile-time value {:?}", right));
 
                             let result = value::apply_binary(lvalue, op, rvalue);
                             
@@ -242,6 +245,9 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                                     // Report the error message!
                                     // TODO: Produce an appropriate error message for the current operand
                                     self.reporter.report_error(&loc, format_args!("Error in folding compile-time expression: {:?}", msg));
+
+                                    // Remove the compile-time evaluability status
+                                    *is_compile_eval = false;
                                     None
                                 }
                             }
@@ -515,10 +521,10 @@ mod test {
     use crate::compiler::scanner::Scanner;
     use crate::compiler::parser::Parser;
 
-    /// Runs the validator on the given source
+    /// Makes and runs a validator
     /// Parsing & scanning must complete successfully
-    /// Returns true if the AST is valid
-    fn run_validator(source: &str) -> bool {
+    /// Returns true if the AST is valid, and the validated code unit
+    fn make_validator(source: &str) -> (bool, CodeUnit) {
         // Taken from main.rs
         // Build the main unit
         let code_unit = CodeUnit::new(true);
@@ -539,10 +545,15 @@ mod test {
         let successful_validate = !validator.reporter.has_error();
 
         code_unit.put_types(type_table);
-
-        eprintln!("Full tree: {:?}", code_unit.stmts());
         
-        successful_validate
+        (successful_validate, code_unit)
+    }
+
+    /// Runs the validator on the given source
+    /// Parsing & scanning must complete successfully
+    /// Returns true if the AST is valid
+    fn run_validator(source: &str) -> bool {
+        make_validator(source).0
     }
 
     #[test]
@@ -904,5 +915,31 @@ mod test {
 
         assert_eq!(false, run_validator("var a : nat     := true    =>  false"));
         assert_eq!(false, run_validator("var a : nat     := 1\na    =>= true "));
+    }
+
+    #[test]
+    fn test_constant_folder() {
+        // Folds should chain together
+        let (success, unit) = make_validator("var a : int := 1 - 1 - 1 - 1 - 1");
+        assert_eq!(true, success);
+        if let Stmt::VarDecl { value: Some(expr), .. } = unit.stmts()[0].clone() {
+            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::IntValue(-3));
+        } else {
+            panic!("Fold failed");
+        }
+
+        // Stop folding in an error
+        assert_eq!(false, run_validator("var a : int := 1 - 1 - \"bad\" - 1 - 1"));
+        assert_eq!(false, run_validator("var a : int := 1 - 1 ** (0 - 1) - 1 - 1"));
+        assert_eq!(false, run_validator("var a : real := 10.0 ** (300 + 7) * 100"));
+        assert_eq!(false, run_validator("var a : real := 10.0 ** (300 + 10)"));
+        // Preserve types
+        assert_eq!(false, run_validator("var a : int := 1 + 0.1 - 1 - 0.1 - 1 - 1"));
+
+        // Ensure that the constant folder preserves assignment semantics
+        assert_eq!(false, run_validator("var a : char(6) := 'abcd' + 'aaa'"));
+
+        // Valid type check, checked at runtime
+        assert_eq!(true, run_validator("var a : nat := (0 - 1)"));
     }
 }
