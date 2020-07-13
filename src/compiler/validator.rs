@@ -6,7 +6,7 @@
 use crate::compiler::ast::{ASTVisitorMut, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
-use crate::compiler::types::{self, PrimitiveType, TypeRef, TypeTable};
+use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::value::{self, Value};
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
@@ -152,7 +152,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                         );
                     }
                 } else {
-                    let produce_type = check_binary_operands((&var_ref, left_type), &op.token_type, (&value, right_type), &self.type_table);
+                    let produce_type = check_binary_operands(left_type, &op.token_type, right_type, &self.type_table);
                     if produce_type.is_err() || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table) {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
@@ -223,7 +223,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 debug_assert!(types::is_base_type(left_type, &self.type_table));
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
 
-                match check_binary_operands((&left, left_type), op, (&right, right_type), &self.type_table) {
+                match check_binary_operands(left_type, op, right_type, &self.type_table) {
                     Ok(good_eval) => {
                         // Only evaluable if the operands are not type errors and are applicable to the current op
                         *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
@@ -282,19 +282,69 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 }
             }
             Expr::UnaryOp {
-                op: _,
+                op,
                 right,
                 eval_type,
                 is_compile_eval,
             } => {
-                self.visit_expr(right);
+                let right_eval = self.visit_expr(right);
+
+                // Try to replace operand with the folded value
+                if right_eval.is_some() { *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap()); }
 
                 // Validate that the unary operator can be applied to the rhs
-                // eval_type is the usually same type as the rhs
-                *eval_type = right.get_eval_type();
+                // eval_type is the result of the operation (usually the same
+                // as rhs)
 
-                // is_compile_eval is the usually same type as the rhs
-                *is_compile_eval = right.is_compile_eval();
+                let loc = &op.location;
+                let op = &op.token_type;
+
+                let right_type = &right.get_eval_type();
+
+                if types::is_error(right_type) {
+                    // Right operand is a type error
+
+                    // Propogate error
+                    *eval_type = binary_default(op);
+                    *is_compile_eval = false;
+                    return None;
+                }
+
+                // TODO: Resolve & De-alias type refs
+                debug_assert!(types::is_base_type(right_type, &self.type_table));
+
+                match check_unary_operand(op, right_type, &self.type_table) {
+                    Ok(good_eval) => {
+                        *eval_type = good_eval;
+                        // Compile-time evaluability is dependend on the right operand
+                        // Forced to false as we currently don't fold unary expressions
+                        *is_compile_eval = right.is_compile_eval() && false;
+
+                        if *op == TokenType::Caret {
+                            // Pointers are never compile-time evaluable
+                            *is_compile_eval = false;
+                        }
+
+                        // Produce no value
+                        return None;
+                    }
+                    Err(bad_eval) => {
+                        *eval_type = bad_eval;
+                        *is_compile_eval = false;
+
+                        match op {
+                            TokenType::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
+                            TokenType::Plus => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
+                            TokenType::Minus => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
+                            TokenType::Caret => self.reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
+                            TokenType::Pound => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
+                            _ => unreachable!()
+                        }
+
+                        // Produce no value
+                        return None;
+                    }
+                }
             }
             Expr::Call {
                 left,
@@ -398,29 +448,34 @@ fn binary_default(op: &TokenType) -> TypeRef {
     }
 }
 
+/// Default type in a unary expression
+fn unary_default(op: &TokenType) -> TypeRef {
+    match op {
+        TokenType::Not => TypeRef::Primitive(PrimitiveType::Boolean),
+        TokenType::Pound => TypeRef::Primitive(PrimitiveType::Nat4),
+        TokenType::Plus | TokenType::Minus | TokenType::Caret => TypeRef::TypeError,
+        _ => unreachable!(),
+    }
+}
+
 /// Check if the binary operands are valid for the given operation
 /// Assumes that the left and right types are de-aliased and resolved (i.e.
 /// they are the base types) \
-/// `left`                  Tuple containing the left expression and the left
-///                         base type
+/// `left`                  The base type of the right operand \
 /// `op`                    The operator to check for \
-/// `right`                 Tuple containing the left expression and the left
-///                         base type \
+/// `right`                 The base type of the left operand \
 /// `type_table`            Type table to resolve named types \
 /// `check_compile_eval`    Whether to check for compile-time evaluability for
 ///                         certain operations (e.g. shl, shr)
 fn check_binary_operands(
-    left: (&Expr, &TypeRef),
+    left_type: &TypeRef,
     op: &TokenType,
-    right: (&Expr, &TypeRef),
+    right_type: &TypeRef,
     type_table: &TypeTable,
 ) -> Result<TypeRef, TypeRef> {
     // TODO: (>, >=, <, <=) -> boolean, (=, ~=) -> boolean, (>, >=, <, <=, =, ~=) -> boolean, (+, *, -, in, ~in) -> (default) for sets
     // Ordering comparisons require sets, enums, and objectclass types
     // Equality comparisons require the above and full equivalence checking
-
-    let (_, left_type) = left;
-    let (_, right_type) = right;
 
     debug_assert!(types::is_base_type(left_type, &type_table));
     debug_assert!(types::is_base_type(right_type, &type_table));
@@ -512,6 +567,51 @@ fn check_binary_operands(
     }
 
     Err(binary_default(op))
+}
+
+fn check_unary_operand(op: &TokenType, right_type: &TypeRef, type_table: &TypeTable) -> Result<TypeRef, TypeRef> {
+    debug_assert!(types::is_base_type(right_type, &type_table));
+
+    match op {
+        TokenType::Not => {
+            // Valid conditions:
+            // - Operand is an integer (int, nat)
+            // - Operand is a boolean
+            // Otherwise, boolean is produced (as an error)
+            if types::is_integer_type(right_type) {
+                // Produce an unsized nat
+                return Ok(TypeRef::Primitive(PrimitiveType::Nat));
+            } else if types::is_boolean(right_type) {
+                // Produce a boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            }
+        }
+        TokenType::Pound => {
+            // Pound type cheat always forces the current operand into a nat4
+            return Ok(TypeRef::Primitive(PrimitiveType::Nat4));
+        }
+        TokenType::Plus | TokenType::Minus => {
+            // Valid conditions:
+            // - Operand is a numeric (real, int, nat)
+            // Otherwise, TypeError is produced (as an error)
+            if types::is_number_type(right_type) {
+                // Produce the same type as the operand
+                return Ok(*right_type);
+            }
+        }
+        TokenType::Caret => {
+            // Valid conditions:
+            // - Operand is a pointer type (produces the pointer's type)
+            // Otherwise, TypeError is produced (as an error)
+            if let Some(Type::Pointer { to }) = type_table.type_from_ref(right_type) {
+                // Produce the type pointed to by the type ref
+                return Ok(*to);
+            }
+        }
+        _ => unreachable!(),
+    }
+
+    Err(unary_default(op))
 }
 
 #[cfg(test)]
@@ -915,6 +1015,120 @@ mod test {
 
         assert_eq!(false, run_validator("var a : nat     := true    =>  false"));
         assert_eq!(false, run_validator("var a : nat     := 1\na    =>= true "));
+    }
+
+    #[test]
+    fn test_unary_plus_typecheck() {
+        // Tests typechecking for the unary operator
+        assert_eq!(true, run_validator("var a : int  := +1"));
+        assert_eq!(true, run_validator("var a : nat  := +1"));
+        assert_eq!(true, run_validator("var a : real := +1"));
+        assert_eq!(true, run_validator("var a : real := +1.0"));
+
+        // Arbitrary applications of unary plus
+        assert_eq!(true, run_validator("var a : real := +++++++++++++++1"));
+
+        // real cannot be assigned into integers
+        assert_eq!(false, run_validator("var a : int  := +1.0"));
+        assert_eq!(false, run_validator("var a : nat  := +1.0"));
+
+        // strings and chars cannot be applied to the unary plus
+        assert_eq!(false, run_validator("var a : string  := +\"a\""));
+        assert_eq!(false, run_validator("var a : string  := +'aa'"));
+        assert_eq!(false, run_validator("var a : string  := +'a'"));
+
+        // boolean cannot be applied to the unary plus
+        assert_eq!(false, run_validator("var a : boolean  := +false"));
+    }
+
+    #[test]
+    fn test_unary_minus_typecheck() {
+        // Tests typechecking for the unary operator
+        assert_eq!(true, run_validator("var a : int  := -1"));
+        assert_eq!(true, run_validator("var a : nat  := -1")); // Invalid, checked at runtime
+        assert_eq!(true, run_validator("var a : real := -1"));
+        assert_eq!(true, run_validator("var a : real := -1.0"));
+
+        // Arbitrary applications of unary minus
+        assert_eq!(true, run_validator("var a : real := ---------------1"));
+
+        // real cannot be assigned into integers
+        assert_eq!(false, run_validator("var a : int  := -1.0"));
+        assert_eq!(false, run_validator("var a : nat  := -1.0"));
+
+        // strings and chars cannot be applied to the unary minus
+        assert_eq!(false, run_validator("var a : string  := -\"a\""));
+        assert_eq!(false, run_validator("var a : string  := -'aa'"));
+        assert_eq!(false, run_validator("var a : string  := -'a'"));
+
+        // boolean cannot be applied to the unary minus
+        assert_eq!(false, run_validator("var a : boolean  := -false"));
+    }
+
+    #[test]
+    fn test_not_typecheck() {
+        // Tests typechecking for the unary operator
+        assert_eq!(true, run_validator("var a : boolean := not true"));
+        assert_eq!(true, run_validator("var a : int     := not 1"));
+        assert_eq!(true, run_validator("var a : nat     := not 1"));
+
+        // Arbitrary applications of not
+        assert_eq!(true, run_validator("var a : boolean := ~~~~~~~~~~~~~true"));
+
+        // reals cannot be applied to 'not'
+        assert_eq!(false, run_validator("var a : real  := not 1.0"));
+
+        // strings and chars cannot be applied to 'not'
+        assert_eq!(false, run_validator("var a : string  := not\"a\""));
+        assert_eq!(false, run_validator("var a : string  := not'aa'"));
+        assert_eq!(false, run_validator("var a : string  := not'a'"));
+    }
+
+    #[test]
+    fn test_deref_typecheck() {
+        // Tests typechecking for the unary operator
+        assert_eq!(true, run_validator("var a : ^int\nvar b : int := ^a"));
+
+        // Arbitrary applications of deref
+        assert_eq!(true, run_validator("var a : ^^^^^^^^^^^^^int\nvar b : int := ^^^^^^^^^^^^^a"));
+
+        // Deref propogates the pointed to type
+        assert_eq!(false, run_validator("var a : ^^int\nvar b : int := ^a"));
+        assert_eq!(false, run_validator("var a : ^^string\nvar b : int := ^^a"));
+
+        // Deref cannot be applied to non-pointers
+        assert_eq!(false, run_validator("var a : boolean := ^true"));
+        assert_eq!(false, run_validator("var a : int     := ^1"));
+        assert_eq!(false, run_validator("var a : nat     := ^1"));
+        assert_eq!(false, run_validator("var a : real    := ^1.0"));
+
+        // strings and chars cannot be applied to deref
+        assert_eq!(false, run_validator("var a : string  := ^\"a\""));
+        assert_eq!(false, run_validator("var a : string  := ^'aa'"));
+        assert_eq!(false, run_validator("var a : string  := ^'a'"));
+    }
+
+    #[test]
+    fn test_poundcheat_typecheck() {
+        // Tests typechecking for the unary operator
+        // nat cheat can be applied to anything var/const reference or literal,
+        // as long as the destination operand is a nat
+        assert_eq!(true, run_validator("var a : nat := #true"));
+        assert_eq!(true, run_validator("var a : nat := #1"));
+        assert_eq!(true, run_validator("var a : nat := #1"));
+        assert_eq!(true, run_validator("var a : nat := #1.0"));
+        assert_eq!(true, run_validator("var a : nat := #\"a\""));
+        assert_eq!(true, run_validator("var a : nat := #'aa'"));
+        assert_eq!(true, run_validator("var a : nat := #'a'"));
+        assert_eq!(true, run_validator("var a : function a() : int\nvar b : nat := #a"));
+
+        // nat cheat cannot be applied to direct typedefs (not checked yet)
+        //assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #a"));
+        // nat cheat cannot be applied to typedefs hidden behind '.'s (not checked yet)
+        // TODO: flesh this out once types with fields are parsed
+
+        // Arbitrary applications of nat cheat
+        assert_eq!(true, run_validator("var a : int := ###############'kemp'"));
     }
 
     #[test]
