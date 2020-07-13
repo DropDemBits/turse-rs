@@ -7,31 +7,44 @@ use std::fmt;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 
+/// Type of the identifier instance
+pub type IdentInstance = u16;
+
 /// Definition of an identifier
 #[derive(Debug, Clone)]
 pub struct Identifier {
-    /// The token associated with the name
+    /// The token associated with the name.
     pub token: Token,
-    /// The name of the identifier
+    /// The name of the identifier.
     pub name: String,
-    /// The type for this identifier
+    /// The type for this identifier.
     pub type_spec: TypeRef,
-    /// If the identifier backs a storage unit not mutable at runtime
+    /// If the identifier backs a storage unit not mutable at runtime.
     pub is_const: bool,
     /// If the identifier is the name for the type definition pointed to by
-    /// `type_spec`
+    /// `type_spec`.
     pub is_typedef: bool,
     /// If the identifier has been declared in a declaration statement, or
     /// has been defined by reference to the name (used to keep track of undefined
-    /// identifiers)
+    /// identifiers).
     pub is_declared: bool,
-    /// If the identifier references a value that can be evaluated at compile time
+    /// If the identifier references a value that can be evaluated at compile time.
     pub is_compile_eval: bool,
-    /// The import index of the identifier
-    /// If None, the identifier is local to the scope
+    /// The import index of the identifier.
+    /// If None, the identifier is local to the scope.
     /// If Some, this is the index (plus one) to the corresponding entry into the
-    /// current scope's import table
+    /// current scope's import table.
     pub import_index: Option<NonZeroU32>,
+    /// The instance of the identifier.
+    ///
+    /// Each redeclaration of an identifier or usage before declaration creates
+    /// a new instance of the identifier, and this field distinguishes between
+    /// the versions.
+    ///
+    /// The current scope stores all instances of the identifier so that the
+    /// validator can grab the correct instance of the identifier, instead of
+    /// always grabbing the latest declaration of the identifier.
+    pub instance: IdentInstance,
 }
 
 impl Identifier {
@@ -55,6 +68,7 @@ impl Identifier {
             is_declared,
             import_index: NonZeroU32::new(import_index),
             is_compile_eval: false,
+            instance: 0, // All identifiers start with instance 0
         }
     }
 }

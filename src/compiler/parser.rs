@@ -796,16 +796,20 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_ident(&mut self) -> Result<Expr, ParsingStatus> {
-        let ident = self.previous().clone();
+        let ident_tok = self.previous().clone();
 
-        if let TokenType::Identifier = &ident.token_type {
-            Ok(Expr::Reference {
-                ident: self.use_ident(ident),
-            })
+        if let TokenType::Identifier = &ident_tok.token_type {
+            // Ignore the error right now, as the identifier may reference
+            // something imported unqualified from another file. These
+            // references will be resolved at validator time, and that
+            // is where the error will be reported
+            let (ident, _) = self.use_ident_msg(ident_tok);
+
+            Ok(Expr::Reference { ident })
         } else {
             panic!(
                 "Identifier found but also not found (at {:?})",
-                ident.location
+                ident_tok.location
             )
         }
     }
@@ -1675,6 +1679,7 @@ impl<'s> Parser<'s> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::compiler::ast;
     use crate::compiler::scanner::Scanner;
     use crate::compiler::types;
 
@@ -1685,6 +1690,7 @@ mod test {
         Parser::new(scanner.tokens, source, CodeUnit::new(true))
     }
 
+    // Get the latest version of the identifier
     fn get_ident(parser: &Parser, name: &str) -> Option<Identifier> {
         parser
             .unit
@@ -1694,6 +1700,23 @@ mod test {
             .borrow()
             .scope
             .get_ident(name)
+            .map(|i| i.clone())
+    }
+
+    // Gets the identifier with the specified instance
+    fn get_ident_instance(
+        parser: &Parser,
+        name: &str,
+        instance: ast::IdentInstance,
+    ) -> Option<Identifier> {
+        parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .root_block()
+            .borrow()
+            .scope
+            .get_ident_instance(name, instance)
             .map(|i| i.clone())
     }
 
@@ -2354,8 +2377,9 @@ var runtime_size : array 1 .. up_size of real
         a := a + 1 % final type
         ",
         );
-        assert!(!parser.parse());
+        assert!(parser.parse()); // Checked at validator time
         check_ident_expected_type(&parser, "a", TypeRef::TypeError);
+        assert_eq!(get_ident(&parser, "a").unwrap().is_declared, false);
 
         // x usage decl
         let mut parser = make_test_parser(
@@ -2364,8 +2388,13 @@ var runtime_size : array 1 .. up_size of real
         var a : int % final type
         ",
         );
-        assert!(!parser.parse());
+        assert!(!parser.parse()); // Should still fail even though undeclared uses are checked at validator time
         check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
+        // First should not be declared
+        assert_eq!(
+            get_ident_instance(&parser, "a", 0).unwrap().is_declared,
+            false
+        );
 
         // x usage decl decl
         let mut parser = make_test_parser(
@@ -2377,6 +2406,20 @@ var runtime_size : array 1 .. up_size of real
         );
         assert!(!parser.parse());
         check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
+        // First should not be declared
+        assert_eq!(
+            get_ident_instance(&parser, "a", 0).unwrap().is_declared,
+            false
+        );
+        // Second should be declared, and have int type
+        assert_eq!(
+            get_ident_instance(&parser, "a", 1).unwrap().is_declared,
+            true
+        );
+        assert_eq!(
+            get_ident_instance(&parser, "a", 1).unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
 
         // x decl decl
         let mut parser = make_test_parser(
@@ -2387,6 +2430,11 @@ var runtime_size : array 1 .. up_size of real
         );
         assert!(!parser.parse());
         check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Real8));
+        // First should have a string type
+        assert_eq!(
+            get_ident_instance(&parser, "a", 0).unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
 
         // x decl usage-in-asn
         let mut parser = make_test_parser(
@@ -2396,6 +2444,16 @@ var runtime_size : array 1 .. up_size of real
         );
         assert!(!parser.parse());
         check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
+        // First should be a type error
+        assert_eq!(
+            get_ident_instance(&parser, "a", 0).unwrap().type_spec,
+            TypeRef::TypeError
+        );
+        // Second should be a string
+        assert_eq!(
+            get_ident_instance(&parser, "a", 1).unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
     }
 
     #[test]
