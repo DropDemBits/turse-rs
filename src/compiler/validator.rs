@@ -7,9 +7,11 @@ use crate::compiler::ast::{ASTVisitorMut, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, TypeRef, TypeTable};
+use crate::compiler::value::{self, Value};
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+use std::convert::TryFrom;
 
 pub struct Validator<'a> {
     /// Status reporter for the type validator
@@ -28,7 +30,7 @@ impl<'a> Validator<'a> {
     }
 }
 
-impl ASTVisitorMut<(), ()> for Validator<'_> {
+impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match visit_stmt {
             Stmt::VarDecl {
@@ -54,7 +56,11 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                 // Visit the expression to update the eval type
                 if value.is_some() || *type_spec == TypeRef::Unknown {
                     let expr = value.as_mut().unwrap();
-                    self.visit_expr(expr);
+                    let init_eval = self.visit_expr(expr);
+
+                    // Try to replace the initializer value with the folded value
+                    if init_eval.is_some() { *expr = Box::new(Expr::try_from(init_eval.unwrap()).unwrap()); }
+
                     is_compile_eval = expr.is_compile_eval();
                 }
 
@@ -117,8 +123,12 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                 op,
                 value,
             } => {
-                self.visit_expr(var_ref);
-                self.visit_expr(value);
+                let ref_eval = self.visit_expr(var_ref);
+                let value_eval = self.visit_expr(value);
+
+                // Try to replace the operands with the folded values
+                if ref_eval.is_some() { *var_ref = Box::new(Expr::try_from(ref_eval.unwrap()).unwrap()); }
+                if value_eval.is_some() { *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap()); }
 
                 let left_type = &var_ref.get_eval_type();
                 let right_type = &value.get_eval_type();
@@ -152,7 +162,7 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                     }
                 }
             }
-            Stmt::ProcedureCall { proc_ref } => self.visit_expr(proc_ref),
+            Stmt::ProcedureCall { proc_ref } => { let _ = self.visit_expr(proc_ref); },
             Stmt::Block { block } => {
                 // TODO: Change our active scope
                 for stmt in block.borrow_mut().stmts.iter_mut() {
@@ -164,10 +174,14 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
     }
 
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
-    fn visit_expr(&mut self, visit_expr: &mut Expr) {
+    fn visit_expr(&mut self, visit_expr: &mut Expr) -> Option<Value> {
         match visit_expr {
             Expr::Grouping { expr, eval_type, is_compile_eval } => {
-                self.visit_expr(expr);
+                let eval = self.visit_expr(expr);
+
+                // Try to replace the inner expression with the folded value
+                if eval.is_some() { *expr = Box::new(Expr::try_from(eval.unwrap()).unwrap()); }
+
                 *eval_type = expr.get_eval_type();
                 *is_compile_eval = expr.is_compile_eval();
             }
@@ -178,8 +192,12 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                 eval_type,
                 is_compile_eval,
             } => {
-                self.visit_expr(left);
-                self.visit_expr(right);
+                let left_eval = self.visit_expr(left);
+                let right_eval = self.visit_expr(right);
+
+                // Try to replace the operands with the folded values
+                if left_eval.is_some() { *left = Box::new(Expr::try_from(left_eval.unwrap()).unwrap()); }
+                if right_eval.is_some() { *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap()); }
 
                 // Validate that the types are assignable with the given operation
                 // eval_type is the type of the expr result
@@ -196,17 +214,41 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
 
                 if types::is_error(left_type) || types::is_error(right_type) {
                     // Either one is a type error
-                    // Set default type & return (no need to report an error as this is just propoagtion)
+                    // Set default type & return no value (no need to report an error as this is just propoagtion)
                     *eval_type = binary_default(op);
                     *is_compile_eval = false;
-                    return;
+                    return None;
                 }
 
                 match check_binary_operands((&left, left_type), op, (&right, right_type), &self.type_table) {
                     Ok(good_eval) => {
-                        // Only evaluable if the operands are not type errors and are applicable
+                        // Only evaluable if the operands are not type errors and are applicable to the current op
                         *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
-                        *eval_type = good_eval
+                        *eval_type = good_eval;
+
+                        if *is_compile_eval {
+                            // Try to fold the current expression
+                            let lvalue = Value::try_from(*left.clone()).expect("Left operand is not a compile-time value");
+                            let rvalue = Value::try_from(*right.clone()).expect("Right operand is not a compile-time value");
+
+                            let result = value::apply_binary(lvalue, op, rvalue);
+                            
+                            return match result {
+                                Ok(v) => {
+                                    eprintln!("Folded {:?} into {:?}", visit_expr, v);
+                                    Some(v)
+                                },
+                                Err(msg) => {
+                                    // Report the error message!
+                                    // TODO: Produce an appropriate error message for the current operand
+                                    self.reporter.report_error(&loc, format_args!("Error in folding compile-time expression: {:?}", msg));
+                                    None
+                                }
+                            }
+                        } else {
+                            // Can't fold the current expression
+                            return None;
+                        }
                     },
                     Err(bad_eval) => {
                         *eval_type = bad_eval;
@@ -227,6 +269,9 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                             _ => todo!(),
                         }
+
+                        // Produce no value
+                        return None;
                     }
                 }
             }
@@ -253,7 +298,14 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                 is_compile_eval,
             } => {
                 self.visit_expr(left);
-                arg_list.iter_mut().for_each(|expr| self.visit_expr(expr));
+                arg_list.iter_mut().for_each(|expr| {
+                    let value = self.visit_expr(expr);
+
+                    if value.is_some() {
+                        // Substitute value with folded expression
+                        *expr = Expr::try_from(value.unwrap()).unwrap();
+                    }
+                });
 
                 // Validate that 'left' is "callable"
                 // 3 things that fall under this expression
@@ -285,6 +337,7 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                 *is_compile_eval = false;
             }
             Expr::Reference { ident } => {
+                // TODO: If compile-time & const, produce the given value
                 if ident.is_declared {
                     // Should either have a valid type, or TypeRef::Unknown
                     assert_ne!(ident.type_spec, TypeRef::TypeError);
@@ -303,12 +356,21 @@ impl ASTVisitorMut<(), ()> for Validator<'_> {
                         .unwrap()
                         .clone();
                     *ident = new_ident.clone();
+
+                    // TODO: Keep track of compile-time values
+                    // Force it so that a reference does not resolve into the given type
+                    ident.is_compile_eval = false;
                 } else {
                     // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
                 }
             }
-            Expr::Literal { .. } => {} // Literal values already have the type resolved
+            Expr::Literal { .. } => {
+                // Literal values already have the type resolved
+                // No need to produce a value as the current literal can produce the required value
+            }
         }
+
+        None
     }
 }
 
@@ -477,6 +539,8 @@ mod test {
         let successful_validate = !validator.reporter.has_error();
 
         code_unit.put_types(type_table);
+
+        eprintln!("Full tree: {:?}", code_unit.stmts());
         
         successful_validate
     }
@@ -518,7 +582,6 @@ mod test {
         assert_eq!(false, run_validator("var c : string(2) := 'ce'\nvar a : char := c"));
 
         // Compatibility with char into char(n) and string(n) 
-        eprintln!("here:");
         assert_eq!(true, run_validator("var c : char := 'c'\nvar a : char(6) := c"));
         assert_eq!(true, run_validator("var c : char := 'c'\nvar a : string(6) := c"));
 

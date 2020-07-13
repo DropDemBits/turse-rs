@@ -40,6 +40,42 @@ impl TryFrom<Expr> for Value {
     }
 }
 
+impl TryFrom<Value> for Expr {
+    type Error = &'static str;
+
+    fn try_from(v: Value) -> Result<Expr, Self::Error> {
+        use super::value;
+
+        match v {
+            Value::BooleanValue(v) => Ok(value::make_literal(
+                TokenType::BoolLiteral(v),
+                TypeRef::Primitive(PrimitiveType::Boolean),
+            )),
+            Value::IntValue(v) => Ok(value::make_literal(
+                TokenType::IntLiteral(v),
+                TypeRef::Primitive(PrimitiveType::Int),
+            )),
+            Value::NatValue(v) => Ok(value::make_literal(
+                TokenType::NatLiteral(v),
+                TypeRef::Primitive(PrimitiveType::Nat),
+            )),
+            Value::RealValue(v) => Ok(value::make_literal(
+                TokenType::RealLiteral(v),
+                TypeRef::Primitive(PrimitiveType::Real),
+            )),
+            Value::StringValue(v) => {
+                // Convert into a string(n) to preserve char(n) assignment semantics
+                let size = v.bytes().len();
+
+                Ok(value::make_literal(
+                    TokenType::StringLiteral(v),
+                    TypeRef::Primitive(PrimitiveType::StringN(size)),
+                ))
+            }
+        }
+    }
+}
+
 // 'From's
 
 impl From<bool> for Value {
@@ -124,6 +160,8 @@ impl Into<f64> for Value {
     }
 }
 
+// Type checks
+
 fn is_boolean_value(value: &Value) -> bool {
     matches!(value, Value::BooleanValue(_))
 }
@@ -159,37 +197,6 @@ fn make_literal(kind: TokenType, eval_type: TypeRef) -> Expr {
             token_type: kind,
         },
         eval_type,
-    }
-}
-
-impl TryFrom<Value> for Expr {
-    type Error = &'static str;
-
-    fn try_from(v: Value) -> Result<Expr, Self::Error> {
-        use super::value;
-
-        match v {
-            Value::BooleanValue(v) => Ok(value::make_literal(
-                TokenType::BoolLiteral(v),
-                TypeRef::Primitive(PrimitiveType::Boolean),
-            )),
-            Value::IntValue(v) => Ok(value::make_literal(
-                TokenType::IntLiteral(v),
-                TypeRef::Primitive(PrimitiveType::Int),
-            )),
-            Value::NatValue(v) => Ok(value::make_literal(
-                TokenType::NatLiteral(v),
-                TypeRef::Primitive(PrimitiveType::Nat),
-            )),
-            Value::RealValue(v) => Ok(value::make_literal(
-                TokenType::RealLiteral(v),
-                TypeRef::Primitive(PrimitiveType::Real),
-            )),
-            Value::StringValue(v) => Ok(value::make_literal(
-                TokenType::StringLiteral(v),
-                TypeRef::Primitive(PrimitiveType::String_),
-            )),
-        }
     }
 }
 

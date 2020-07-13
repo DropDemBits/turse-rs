@@ -59,6 +59,7 @@ impl Identifier {
     }
 }
 
+#[derive(Clone)]
 pub enum Expr {
     BinaryOp {
         left: Box<Self>,
