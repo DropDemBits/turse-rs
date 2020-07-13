@@ -71,8 +71,7 @@ impl<'s> Scanner<'s> {
 
     // Checks if the end of the stream has been reached
     fn is_at_end(&self) -> bool {
-        (!self.tokens.is_empty() && self.tokens.last().unwrap().token_type == TokenType::Eof)
-            || self.cursor.end >= self.source.len()
+        self.cursor.end >= self.source.len()
     }
 
     /// Grabs the next char in the text stream
