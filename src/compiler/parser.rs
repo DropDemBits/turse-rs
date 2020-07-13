@@ -213,7 +213,12 @@ impl<'s> Parser<'s> {
 
     /// Peeks at the next token in the stream
     fn peek(&self) -> &Token {
-        &self.tokens[self.current.saturating_add(1)]
+        if self.is_at_end() {
+            // At the end of file, return the Eof token
+            self.tokens.last().as_ref().unwrap()
+        } else {
+            &self.tokens[self.current.saturating_add(1)]
+        }
     }
 
     /// Advances to the next token, returning the previous token
@@ -573,7 +578,7 @@ impl<'s> Parser<'s> {
                 &self.current().location,
                 format_args!(
                     "Expected expression before '{}' {}",
-                    self.previous().location.get_lexeme(self.source),
+                    self.current().location.get_lexeme(self.source),
                     hint
                 ),
             );
@@ -656,9 +661,14 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_unary_rule(&mut self) -> Result<Expr, ParsingStatus> {
-        let op = self.previous().clone();
+        let mut op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence;
         let right = self.expr_precedence(precedence)?;
+
+        if op.token_type == TokenType::Tilde {
+            // Convert '~'s into 'not's
+            op.token_type = TokenType::Not;
+        }
 
         Ok(Expr::UnaryOp {
             op,
@@ -1574,7 +1584,7 @@ impl<'s> Parser<'s> {
                 prefix_rule: None,
                 infix_rule: Some(Parser::expr_binary),
             },
-            TokenType::Not => &PrecedenceRule {
+            TokenType::Tilde | TokenType::Not => &PrecedenceRule {
                 precedence: Precedence::BitNot,
                 prefix_rule: Some(Parser::expr_unary_rule),
                 infix_rule: None,
@@ -1945,6 +1955,12 @@ mod test {
                 }
             }
         }
+
+        // The forbidden not expression is invalid in RsProlog
+        let mut parser = make_test_parser("var a : boolean := true\na ~==~ a");
+        assert!(!parser.parse());
+        let mut parser = make_test_parser("var a : boolean := true\na not==not a");
+        assert!(!parser.parse());
     }
 
     #[test]
