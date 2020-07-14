@@ -155,10 +155,6 @@ pub enum Type {
         /// Result type for the function
         result: Option<TypeRef>,
     },
-    /// A named type.
-    /// This type is resolved into the corresponding type at the validation stage,
-    /// as imports are resovled before validation
-    Named { ident: Identifier },
     /// Pointer to a given TypeRef
     Pointer { to: TypeRef },
     /// Inclusive range type, encoding `start` .. `end` and `start` .. * \
@@ -175,6 +171,10 @@ pub enum Type {
         /// Can be an int, enum type, char, or boolean, depending on the range evaluation.
         base_type: TypeRef,
     },
+    /// A reference to a named type.
+    /// This type is resolved into the corresponding type at the validation stage,
+    /// as imports are resovled before validation
+    Reference { expr: Box<Expr> },
     /// Set of values in a given range.
     /// The start and end expressions of the range must be compile-time evaluable.
     Set { range: TypeRef },
@@ -448,7 +448,7 @@ pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
         TypeRef::Primitive(_) => true,
         TypeRef::Named(type_id) => !matches!(
             type_table.get_type(*type_id),
-            Type::Alias { .. } | Type::Named { .. } | Type::Forward { .. }
+            Type::Alias { .. } | Type::Reference { .. } | Type::Forward { .. }
         ),
     }
 }

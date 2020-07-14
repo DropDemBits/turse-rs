@@ -861,27 +861,26 @@ impl<'s> Parser<'s> {
             TokenType::Enum => unimplemented!(),
             TokenType::Record => unimplemented!(),
             TokenType::Union => unimplemented!(),
-            TokenType::Identifier if self.peek().token_type != TokenType::Range => {
-                // TODO: Handle field references in conjunction with range parsing
-                self.type_ident()
-            }
             _ => {
-                // Try to parse a range type
-                let range = self.type_range(parse_context);
+                // Try to parse either a reference, or a range type
+                let ref_or_range = self.type_reference_or_range(parse_context);
 
-                if range.is_err() {
-                    self.reporter.report_error(
-                        &self.current().location,
-                        format_args!(
-                            "Unexpected '{}', expected a type specifier",
-                            self.get_token_lexeme(self.current())
-                        ),
-                    );
+                if ref_or_range.is_err() {
+                    if !ref_or_range.unwrap_err() {
+                        // No parsing has been done yet, report at the current location
+                        self.reporter.report_error(
+                            &self.current().location,
+                            format_args!(
+                                "Unexpected '{}', expected a type specifier",
+                                self.get_token_lexeme(self.current())
+                            ),
+                        );
+                    }
 
                     // Return a type error
                     TypeRef::TypeError
                 } else {
-                    range.ok().unwrap()
+                    ref_or_range.ok().unwrap()
                 }
             }
         }
@@ -1170,17 +1169,43 @@ impl<'s> Parser<'s> {
         }
     }
 
-    /// Parse an identifier
-    fn type_ident(&mut self) -> TypeRef {
-        // Get ident token
-        let ident_tok = self.next_token();
-        let (ident, _) = self.use_ident_msg(ident_tok);
+    /// Try to parse either a reference, or a range.
+    /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(bool)`, with
+    /// the `bool` indicating whether any type parsing has been attempted
+    fn type_reference_or_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, bool> {
+        // Bail out on err
+        let primary_expr = self.expr().map_err(|_| false)?;
 
-        // Postpone type resolution until the validation stage
-        // The identifier may refer to an imported unqualified identifier,
-        // which are not resolved until after AST building. The error message
-        // is therefore ignored, as the identifier may be resolved later.
-        self.declare_type(Type::Named { ident })
+        if self.current().token_type == TokenType::Range {
+            // Pass off to the range parser
+            Ok(self.type_range_rest(primary_expr, parse_context))
+        } else {
+            // Parse as a reference type (resolved at validator time)
+            // Validate that the expression only contains dot expressions or a reference
+            let mut current_expr = &primary_expr;
+
+            loop {
+                match current_expr {
+                    Expr::Dot { left, .. } => current_expr = &left, // Move through the chain
+                    Expr::Reference { .. } => break, // Reached the end of the dot expression
+                    _ => {
+                        // Not completely a dot expression
+                        // TODO: Location is incorrect, use expr span?
+                        self.reporter.report_error(
+                            &self.previous().location,
+                            format_args!("Expression is not a valid type reference"),
+                        );
+
+                        // Indicate that the error has been reported
+                        return Err(true);
+                    }
+                }
+            }
+
+            Ok(self.declare_type(Type::Reference {
+                expr: Box::new(primary_expr),
+            }))
+        }
     }
 
     /// Parse a range type
@@ -1253,10 +1278,9 @@ impl<'s> Parser<'s> {
     /// Parse a single index specificier
     fn type_index(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
         // "boolean" | "char" | type_ident | type_range
-        // TODO: Identifiers aren't properly parsed yet as they may be part of a range expression
         match self.current().token_type {
             TokenType::Boolean | TokenType::Char => Ok(self.parse_type(parse_context)),
-            _ => self.type_range(parse_context),
+            _ => self.type_reference_or_range(parse_context).map_err(|_| ()),
         }
     }
 
@@ -2179,6 +2203,11 @@ var flexi : flexible array 1 .. 0 of real
 
 var up_size := 5
 var runtime_size : array 1 .. up_size of real
+
+% Identifier reference (resolved at validation time)
+var some_external_use : some.thing.with.these.given.fields := 3
+var ranged_external : some.thing.with.start .. some.thing.with.end_thing := 5
+var implicit_external : array 1 .. some.thing.with.end_thing of int
         ",
         );
         assert!(parser.parse());
@@ -2244,6 +2273,10 @@ var runtime_size : array 1 .. up_size of real
 
         // No range end
         let mut parser = make_test_parser("var a : 1 .. ");
+        assert!(!parser.parse());
+
+        // No range end in function parameter
+        let mut parser = make_test_parser("var a : function _ (a : array 1 .. )");
         assert!(!parser.parse());
     }
 
@@ -2346,6 +2379,17 @@ var runtime_size : array 1 .. up_size of real
         } else {
             panic!("Not an array");
         }
+    }
+
+    #[test]
+    fn test_ident_ref_invalids() {
+        // Missing identifier after '.'
+        let mut parser = make_test_parser("var inv : an.ident.list.");
+        assert!(!parser.parse());
+
+        // Expression does not contain only field refs
+        let mut parser = make_test_parser("var inv : an.ident.list.of(1, 2, 3)");
+        assert!(!parser.parse());
     }
 
     #[test]
