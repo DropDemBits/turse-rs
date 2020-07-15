@@ -90,7 +90,28 @@ impl ScopeInfo {
         self.local_idents.entry(ident.name.clone()).and_modify(|_| {
             // Notify of redeclare
             is_redeclare = true
-        }).or_insert(vec![]).push(IdentInfo {
+        }).or_insert_with(|| {
+            if ident.instance == 0 {
+                // Give back an empty vec, populated on next insert
+                vec![]
+            } else {
+                // Ensure that this usage is the first of the instance
+                assert_eq!(ident.instance, 1);
+
+                // Insert a dummy info entry into the returned vec
+                let mut dummy_ident = ident.clone();
+                dummy_ident.name = String::from("<not a real entry>");
+                dummy_ident.is_declared = false;
+                dummy_ident.type_spec = TypeRef::TypeError;
+                dummy_ident.instance = 0;
+
+                vec![IdentInfo {
+                    ident: dummy_ident,
+                    uses: 0,
+                    compile_value: None,
+                }]
+            }
+        }).push(IdentInfo {
             ident: ident.clone(),
             uses: 0,
             compile_value,

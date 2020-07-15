@@ -2440,7 +2440,6 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         ",
         );
         assert!(!parser.parse());
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
         // First should not be declared
         assert_eq!(
             get_ident_instance(&parser, "a", 0).unwrap().is_declared,
@@ -2449,12 +2448,18 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         // Second should be declared, and have int type
         assert_eq!(
             get_ident_instance(&parser, "a", 1).unwrap().is_declared,
-            true
+            true,
+            "At {:?}",
+            get_ident_instance(&parser, "a", 1)
         );
         assert_eq!(
             get_ident_instance(&parser, "a", 1).unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::Int)
+            TypeRef::Primitive(PrimitiveType::Int),
+            "At {:?}",
+            get_ident_instance(&parser, "a", 1)
         );
+        // Third should have string type
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
 
         // x decl decl
         let mut parser = make_test_parser(
@@ -2464,12 +2469,13 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         ",
         );
         assert!(!parser.parse());
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Real8));
         // First should have a string type
         assert_eq!(
-            get_ident_instance(&parser, "a", 0).unwrap().type_spec,
+            get_ident_instance(&parser, "a", 1).unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
+        // Second should have a real8 type
+        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Real8));
 
         // x decl usage-in-asn
         let mut parser = make_test_parser(
@@ -2479,12 +2485,12 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         );
         assert!(!parser.parse());
         check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
-        // First should be a type error
+        // Initial should be a type error (use-before-declare)
         assert_eq!(
             get_ident_instance(&parser, "a", 0).unwrap().type_spec,
             TypeRef::TypeError
         );
-        // Second should be a string
+        // Declared should be a string
         assert_eq!(
             get_ident_instance(&parser, "a", 1).unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)

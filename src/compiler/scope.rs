@@ -106,7 +106,7 @@ impl Scope {
             external_declaration = true;
         }
 
-        let mut new_def = Identifier::new(
+        let mut new_ident = Identifier::new(
             ident.clone(),
             type_spec,
             name.clone(),
@@ -115,6 +115,10 @@ impl Scope {
             true,
             0, // Not imported
         );
+
+        // Make a declared identifier start from instance 1
+        // Instance 0 is reserved for usage by unqualified imports and usage-before-declare
+        new_ident.instance = 1;
 
         if ident_exists {
             // Old identifier has already been declared, either within the current
@@ -125,21 +129,15 @@ impl Scope {
             // redecl
             // - has entry
 
-            // let old_value = self
-            // .idents
-            // .insert(name.clone(), IdentEntry::Single(new_def.clone()));
-
-            //let entry = self.idents.entry(name.clone());
-
             if external_declaration {
                 // Declaration is from an above scope and has not been imported,
                 // import the entry for consistency
                 let imported = self.import_ident(ident, &name).unwrap();
 
                 // This identifier is now the second instance (first after import)
-                new_def.instance = 1;
+                new_ident.instance = 1;
 
-                let all_idents = vec![imported, new_def.clone()];
+                let all_idents = vec![imported, new_ident.clone()];
 
                 let old_value = self
                     .idents
@@ -152,16 +150,47 @@ impl Scope {
                     .entry(name.clone())
                     .and_modify(|old_entry| match old_entry {
                         IdentEntry::Single(old_ident) => {
-                            // Create a new identifier list
-                            new_def.instance = 1;
+                            // 2 situations:
+                            // - old_ident is an import or is not declared
+                            //   - new_def is still instance 1, can do existing
+                            // - old_ident is a local declare, and not a use-before declare
+                            //   - new_def is instance 2
+                            //   - need to create a dummy entry
 
-                            // Replace the single with a multiple
-                            *old_entry =
-                                IdentEntry::Multiple(vec![old_ident.clone(), new_def.clone()]);
+                            if old_ident.import_index.is_some() || !old_ident.is_declared {
+                                // Old identifier is either an import, or an undeclared identifier
+                                // Can create a simple list of the two
+                                new_ident.instance = 1;
+
+                                // Replace the single with a multiple
+                                *old_entry = IdentEntry::Multiple(vec![
+                                    old_ident.clone(),
+                                    new_ident.clone(),
+                                ]);
+                            } else {
+                                // Old identifier is a local declare, need to create a dummy entry
+                                // New ident is the second instance (after dummy)
+                                new_ident.instance = old_ident.instance.checked_add(1).unwrap();
+                                assert_eq!(new_ident.instance, 2, "With old ident {:?}", old_ident);
+
+                                // Create a dummy entry
+                                let mut dummy_ident = old_ident.clone();
+                                dummy_ident.name = String::from("<not a real entry>");
+                                dummy_ident.instance = 0;
+                                dummy_ident.is_declared = false;
+                                dummy_ident.type_spec = TypeRef::TypeError;
+
+                                // Replace the single with a multiple containing dummy, old, and new
+                                *old_entry = IdentEntry::Multiple(vec![
+                                    dummy_ident,
+                                    old_ident.clone(),
+                                    new_ident.clone(),
+                                ]);
+                            }
                         }
                         IdentEntry::Multiple(all_idents) => {
                             // Update the instance id
-                            new_def.instance = all_idents
+                            new_ident.instance = all_idents
                                 .last()
                                 .unwrap()
                                 .instance
@@ -169,7 +198,7 @@ impl Scope {
                                 .expect(&format!("Too many redeclarations of '{}'", name));
 
                             // Add to the existing ident list
-                            all_idents.push(new_def.clone());
+                            all_idents.push(new_ident.clone());
                         }
                     });
             }
@@ -177,19 +206,19 @@ impl Scope {
             // TODO: Check if the identifier is across an import boundary, to
             // see if it can be overwritten
             (
-                new_def,
+                new_ident,
                 Some(format!("'{}' has already been declared", name)),
             )
         } else {
             // Declare the identifier
             let old_value = self
                 .idents
-                .insert(name.clone(), IdentEntry::Single(new_def.clone()));
+                .insert(name.clone(), IdentEntry::Single(new_ident.clone()));
 
             assert!(old_value.is_none());
 
             // Defining a new identifier
-            (new_def, None)
+            (new_ident, None)
         }
     }
 
@@ -240,6 +269,8 @@ impl Scope {
                 reference.token = ident;
                 // Update the import index
                 reference.import_index.replace(index);
+                // Instance is 0 in the local scope
+                reference.instance = 0;
 
                 // Add to the local definition table
                 let old_value = self
@@ -277,7 +308,7 @@ impl Scope {
             }
 
             // None found, make a new one!
-            let err_ident = Identifier::new(
+            let mut err_ident = Identifier::new(
                 ident,
                 TypeRef::TypeError, // Produce a type error to propagate the error
                 name.to_string(),
@@ -286,6 +317,9 @@ impl Scope {
                 false,
                 0, // Not imported, just creating a new definition
             );
+
+            // Usages before define always use instance 0
+            err_ident.instance = 0;
 
             // Define the error entry
             let old_value = self
@@ -327,8 +361,11 @@ impl Scope {
         if let Some(ident_store) = self.idents.get(name) {
             match ident_store {
                 IdentEntry::Single(ident) => {
+                    // Undeclared identifiers start from instance 0
+                    // Declared identifiers start from instance 1
                     assert!(
-                        instance == 0,
+                        (!ident.is_declared && instance == 0)
+                            || (ident.is_declared && instance == 1),
                         "No additional declarations for the given identifier '{}' (instance #{})",
                         name,
                         instance
@@ -441,11 +478,11 @@ mod test {
         );
         // Ensure that we're keeping track of the identifiers
         assert_eq!(
-            scope.get_ident_instance("a", 1).unwrap().type_spec,
+            scope.get_ident_instance("a", 2).unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
         assert_eq!(
-            scope.get_ident_instance("a", 0).unwrap().type_spec,
+            scope.get_ident_instance("a", 1).unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
     }
@@ -507,6 +544,14 @@ mod test {
                 inner_scope.get_ident_instance("a", 0).unwrap().type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
             );
+            assert_eq!(
+                inner_scope
+                    .get_ident_instance("a", 0)
+                    .unwrap()
+                    .import_index
+                    .is_some(),
+                true
+            );
         }
     }
 
@@ -539,7 +584,9 @@ mod test {
             );
 
             // No importing should be done
-            assert_eq!(inner_scope.get_ident("a").unwrap().instance, 0);
+            let fetched_ident = inner_scope.get_ident("a").unwrap();
+            assert_eq!(fetched_ident.instance, 1);
+            assert_eq!(fetched_ident.import_index.is_none(), true);
         }
 
         // Outer declare
@@ -646,7 +693,7 @@ mod test {
                 declare_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
             );
-            assert_eq!(declare_ident.instance, 0);
+            assert_eq!(declare_ident.instance, 1);
         }
 
         // Inner use
@@ -660,8 +707,9 @@ mod test {
             );
             // Going down 1 scope from root/import boundary
             assert_eq!(inner_scope.import_table[0].downscopes, 1);
-            // First declaration in the local scope
+            // First declaration in the local scope, is an import
             assert_eq!(import_ident.instance, 0);
+            assert_eq!(import_ident.import_index.is_some(), true);
         }
     }
 }
