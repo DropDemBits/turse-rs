@@ -1445,6 +1445,8 @@ impl<'s> Parser<'s> {
     // See `Scope` for the documentation of these functions
 
     /// Declares an identifer in the current scope, reporting the error message
+    /// It is most likely an error to redeclare an identifier within the scope,
+    /// so the message is reported here
     fn declare_ident(
         &self,
         ident: Token,
@@ -1471,6 +1473,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Uses an identifer, providing the error message
+    /// Allows ignoring the error message
     fn use_ident_msg(&self, ident: Token) -> (Identifier, Option<String>) {
         let name = ident.location.get_lexeme(self.source);
 
@@ -1480,18 +1483,6 @@ impl<'s> Parser<'s> {
             .borrow_mut()
             .scope
             .use_ident(ident, name)
-    }
-
-    /// Uses an identifer, reporting the error message
-    fn use_ident(&mut self, ident: Token) -> Identifier {
-        let (reference, err) = self.use_ident_msg(ident);
-
-        if let Some(msg) = err {
-            self.reporter
-                .report_error(&reference.token.location, format_args!("{}", msg));
-        }
-
-        reference
     }
 
     /// Pushes a new block onto the block list

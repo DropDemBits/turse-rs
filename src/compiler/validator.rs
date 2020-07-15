@@ -3,7 +3,7 @@
 //! - Propogates and checks expressions for type correctness
 //! - Resolves identifiers into their final types
 //! - Checks and evaluates compile-time expressions
-use crate::compiler::ast::{ASTVisitorMut, Expr, Stmt};
+use crate::compiler::ast::{ASTVisitorMut, Identifier, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
@@ -12,12 +12,104 @@ use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use std::convert::TryFrom;
+use std::collections::HashMap;
 
+// An identifier info entry associated with one instance of an identifier
+struct IdentInfo {
+    /// The identifier associated with this info
+    ident: Identifier,
+    /// How many uses (for the current instance) of the identfier
+    uses: usize,
+    /// The associated compile-time value of the identifier, if it
+    /// is compile-time evaluable
+    compile_value: Option<Value>,
+}
+
+/// Info for a scope
+struct ScopeInfo {
+    /// All identifiers used within the scope,
+    /// with all identifier name conflicts tracked
+    local_idents: HashMap<String, Vec<IdentInfo>>,
+}
+
+impl ScopeInfo {
+    pub fn new() -> Self {
+        Self {
+            local_idents: HashMap::new()
+        }
+    }
+
+    /// Uses an identifier declared in the current scope.
+    /// Any imported identifiers in the current scope must refer to the ScopeInfo
+    /// where the imported identifier is declared in.
+    /// 
+    /// `Option<Value>`     Associated compile-time value
+    /// `bool`              True if the identifier was never declared
+    pub fn use_ident(&mut self, ident: &Identifier) -> (Option<Value>, bool) {
+        let mut is_never_declared = false;
+
+        // Grab the compile-time value
+        let compile_value = self.local_idents.entry(ident.name.clone()).and_modify(|all_idents| {
+            // Increment use of the associated identifier
+            // The given instance must exist already, otherwise a declaration
+            // was skipped or the instance counter is not being incremented properly
+            let entry = &mut all_idents[ident.instance as usize];
+            entry.uses = entry.uses.saturating_add(1);
+        }).or_insert_with(|| {
+            // Notify of the identifer never being declared
+            is_never_declared = true;
+
+            // Make sure this is the first time we're seeing this identifer
+            assert_eq!(ident.instance, 0, "Not the first time seeing the identifier");
+
+            // Create a new identifier info group
+            vec![IdentInfo {
+                ident: ident.clone(),
+                uses: 1,
+                compile_value: None,
+            }]
+        })[ident.instance as usize].compile_value.clone();
+
+        (compile_value, is_never_declared)
+    }
+
+    /// Declares an identifier, creating the associated IdentInfo entry.
+    ///
+    /// `bool`  If the current declaration is redeclaring an identifier
+    pub fn decl_ident(&mut self, ident: Identifier) -> bool {
+        self.decl_ident_with(ident, None)
+    }
+
+    /// Declares an identifier, creating the associated IdentInfo entry and
+    /// associating a compile-time value with the identifier.
+    ///
+    /// `bool`  If the current declaration is redeclaring an identifier
+    pub fn decl_ident_with(&mut self, ident: Identifier, compile_value: Option<Value>)  -> bool {
+        let mut is_redeclare = false;
+
+        self.local_idents.entry(ident.name.clone()).and_modify(|_| {
+            // Notify of redeclare
+            is_redeclare = true
+        }).or_insert(vec![]).push(IdentInfo {
+            ident: ident.clone(),
+            uses: 0,
+            compile_value,
+        });
+
+        is_redeclare
+    }
+}
+
+/// Validator Instance
 pub struct Validator<'a> {
     /// Status reporter for the type validator
     reporter: StatusReporter,
+    /// Type table to use
     type_table: &'a mut TypeTable,
+    /// Actively parsed scope
     active_scope: Weak<RefCell<CodeBlock>>,
+    /// Associated scope info
+    scope_infos: Vec<ScopeInfo>,
 }
 
 impl<'a> Validator<'a> {
@@ -26,6 +118,7 @@ impl<'a> Validator<'a> {
             reporter: StatusReporter::new(),
             type_table,
             active_scope: Rc::downgrade(root_block),
+            scope_infos: vec![ScopeInfo::new()]
         }
     }
 }
@@ -37,7 +130,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 idents,
                 type_spec,
                 value,
-                ..
+                is_const
             } => {
                 let mut is_compile_eval = false;
 
@@ -102,7 +195,16 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 }
                 // Variable declarations with no assignment value will have the type already given
 
-                // Update the identifiers to the new assignment value
+                // Grab the compile-time value
+                let const_val = if is_compile_eval && *is_const {
+                    // Create a value to clone from
+                    Some(Value::try_from(*value.as_ref().unwrap().clone()).expect("Initializer value is not a compile-time expression"))
+                } else {
+                    // No compile-time value is produced
+                    None
+                };
+
+                // Update the identifiers to the new identifier type
                 for ident in idents.iter_mut() {
                     ident.type_spec = *type_spec;
                     // Only compile-time evaluable if the identifier referencences a constant
@@ -113,10 +215,19 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                         .borrow_mut()
                         .scope
                         .resolve_ident(&ident.name, &ident);
+
+                    // Add identifier to the scope info (including the compile-time value)
+                    self.scope_infos.last_mut().unwrap().decl_ident_with(ident.clone(), const_val.clone());
                 }
             }
-            Stmt::TypeDecl { ident: _ } => {
+            Stmt::TypeDecl { ident } => {
                 // TODO: Verify that the ident refers to a valid type
+                // Validate identifier stuff
+
+                // Declare the identifier (and check for redeclaration errors?)
+                if self.scope_infos.last_mut().unwrap().decl_ident(ident.clone()) {
+                    self.reporter.report_error(&ident.token.location, format_args!("'{}' has already been declared", ident.name));
+                }
             }
             Stmt::Assign {
                 var_ref,
@@ -134,7 +245,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let right_type = &value.get_eval_type();
 
                 // Validate that the types are assignable for the given operation
-                if types::is_error(right_type) {
+                if types::is_error(left_type) || types::is_error(right_type) {
                     // Silently drop propogated TypeErrors
                     return;
                 }
@@ -164,11 +275,11 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
             }
             Stmt::ProcedureCall { proc_ref } => { let _ = self.visit_expr(proc_ref); },
             Stmt::Block { block } => {
-                // TODO: Change our active scope
+                // TODO: Change our active scope and push a new scope info
                 for stmt in block.borrow_mut().stmts.iter_mut() {
                     self.visit_stmt(stmt);
                 }
-                // TODO: Revert to previous scope
+                // TODO: Revert to previous scope and pop the last scope info
             }
         }
     }
@@ -393,14 +504,22 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 *is_compile_eval = false;
             }
             Expr::Reference { ident } => {
-                // TODO: If compile-time & const, produce the given value
+                // TODO: Check if the reference is imported, and grab info from the correct scope info
+                // Use the identifier and grab the associated value
+                let (compile_value, is_never_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
+
+                if is_never_declared {
+                    // Identifier has not been declared at all before this point, report it
+                    // Only reported once everytime something is declared
+                    self.reporter.report_error(&ident.token.location, format_args!("'{}' has not been declared yet", ident.name));
+                }
+
                 if ident.is_declared {
                     // Should either have a valid type, or TypeRef::Unknown
                     assert_ne!(ident.type_spec, TypeRef::TypeError);
 
-                    // Fetch the updated ident's `type_spec` from the type table
-
-                    // tall boi
+                    // Grab the correct identifier information (including the
+                    // type_spec) in the scope table
                     let new_ident = self
                         .active_scope
                         .upgrade()
@@ -408,21 +527,24 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                         .unwrap()
                         .borrow()
                         .scope
-                        .get_ident(&ident.name)
+                        .get_ident_instance(&ident.name, ident.instance)
                         .unwrap()
                         .clone();
                     *ident = new_ident.clone();
 
-                    // TODO: Keep track of compile-time values
-                    // Force it so that a reference does not resolve into the given type
-                    ident.is_compile_eval = false;
+                    // An identifier is compile-time evaluable if and only if there is an associated expression
+                    ident.is_compile_eval = compile_value.is_some();
                 } else {
                     // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
                 }
+
+                // Return the reference's associated compile-time value
+                return compile_value;
             }
             Expr::Literal { .. } => {
                 // Literal values already have the type resolved
                 // No need to produce a value as the current literal can produce the required value
+                return None;
             }
         }
 
@@ -1136,7 +1258,7 @@ mod test {
         // Folds should chain together
         let (success, unit) = make_validator("var a : int := 1 - 1 - 1 - 1 - 1");
         assert_eq!(true, success);
-        if let Stmt::VarDecl { value: Some(expr), .. } = unit.stmts()[0].clone() {
+        if let Stmt::VarDecl { value: Some(expr), .. } = &unit.stmts()[0] {
             assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::IntValue(-3));
         } else {
             panic!("Fold failed");
@@ -1155,5 +1277,68 @@ mod test {
 
         // Valid type check, checked at runtime
         assert_eq!(true, run_validator("var a : nat := (0 - 1)"));
+    }
+
+    #[test]
+    fn test_constant_prop() {
+        // Test constant propogation
+
+        // Fold constants together
+        let (success, unit) = make_validator("
+const a := 4
+const b := a + 1        % (4 + 1)
+const c := b + 1 + a    % (4 + 1) + 1 + 4
+const d := a + b + c    % 4*4 + 1 + 1 + 1
+        ");
+        assert_eq!(true, success);
+        if let Stmt::VarDecl { value: Some(expr), .. } = &unit.stmts().last().unwrap() {
+            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::NatValue(19));
+        } else {
+            panic!("Fold failed");
+        }
+
+        // Stop folding constants in the event of an error
+        let (success, unit) = make_validator("
+const a := 4
+const b := a + 1        % (4 + 1)
+const c := b + 1 + a + \"beep beep\"
+const d := a + b + c    % 4*4 + 1 + 1 + 1
+        ");
+        assert_eq!(false, success);
+        if let Stmt::VarDecl { value: Some(expr), .. } = &unit.stmts().last().unwrap() {
+            if let Expr::BinaryOp { left, right, ..} = *expr.clone() {
+                // Check that (a + b) was folded, but not the + c
+                assert!(!matches!(*left.clone(), Expr::BinaryOp { .. }));
+                assert!(matches!(*right.clone(), Expr::Reference { .. }));
+            } else {
+                panic!("Something wrong happened! (folding did weird things!)");
+            }
+        } else {
+            panic!("Something wrong happened! (not a var_decl!)");
+        }
+
+        // TODO: Check that constant propogation still works in the case of
+        // nested inner scopes
+    }
+
+    #[test]
+    fn test_ident_resolution() {
+        // Errors reported here, most checks done in parser
+        // v decl use
+        assert_eq!(true, run_validator("var a : int := 1\na += 1"));
+
+        // x use decl
+        assert_eq!(false, run_validator("a += 1\nvar b : int := 1"));
+
+        // x use use decl (only 1 error produced)
+        assert_eq!(false, run_validator("a += 1\na += 1\nvar b : int := 1"));
+
+        // Most errors here are just capturing errors skipped over in the parser,
+        // so a majority of identifier resolution tests are over there, excluding
+        // resolutions from external units (which there is not interface to)
+        // 
+        // The job of the validator is to ensure inter-unit (i.e. external)
+        // consistency, while the parser can ensure a minimal amount of
+        // intra-unit (i.e. local) consistency
     }
 }
