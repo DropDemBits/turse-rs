@@ -3,7 +3,6 @@ use crate::compiler::Location;
 use std::cell::Cell;
 use std::fmt::{self, Arguments, Display, Formatter};
 
-#[allow(dead_code)]
 pub enum ReportKind {
     Error,
     Warning,
@@ -56,7 +55,6 @@ impl StatusReporter {
         self.has_error.set(true);
     }
 
-    #[allow(dead_code)]
     pub fn report_warning(&self, at: &Location, message: Arguments) {
         self.report_at(ReportMessage {
             kind: ReportKind::Warning,
