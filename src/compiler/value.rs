@@ -947,6 +947,10 @@ mod test {
             // Mod and Rem can't be easily checked for overflow as those capture 0 as a division by zero
             -3i64 Exp 128u64 causes Overflow;
             10f64 Exp 310i64 causes Overflow;
+            // Power overflow
+            1u64 Exp 0x1_00000000u64 causes Overflow;
+            -1i64 Exp 0x1_00000000i64 causes Overflow;
+            10i64 Exp 310f64 causes Overflow;
 
             // Mismatched types
             "1" Plus 1u64 causes WrongTypes;
