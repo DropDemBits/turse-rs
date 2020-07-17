@@ -2,7 +2,12 @@
 //! Performs the majority of the semantic validation pass
 //! - Propogates and checks expressions for type correctness
 //! - Resolves identifiers into their final types
+//! - Validates and resolves types into their final forms
 //! - Checks and evaluates compile-time expressions
+//!
+//! Types are resolved before the expression that use them are visited by only
+//! resolving types in declaration statements
+use crate::compiler::Location;
 use crate::compiler::ast::{ASTVisitorMut, Identifier, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
@@ -142,6 +147,168 @@ impl<'a> Validator<'a> {
             scope_infos: vec![ScopeInfo::new()]
         }
     }
+
+    /// Resolves the given type, validating that the type is a valid type
+    /// `require_compile_time` indicates that the resolved type needs to be compile time
+    /// Returns the resolved typedef
+    fn resolve_type(&mut self, base_ref: TypeRef, require_compile_time: bool) -> TypeRef {
+        if !types::is_named(&base_ref) {
+            // Not a named ref, no resolving needs to be done
+            return base_ref;
+        }
+
+        let type_id = if let TypeRef::Named(id) = base_ref {
+            id
+        } else {
+            unreachable!()
+        };
+
+        // Clone is used to appease the borrow checker so that `self` and
+        // `self.type_table` aren't borrowed, allowing nested exprs
+        let mut type_info = self.type_table.get_type(type_id).clone();
+
+        match &mut type_info {
+            Type::Alias { .. } => {
+                // Aliasing will require handling chains, cycles, and assigning the correct base_type reference
+                todo!()
+            }
+            Type::Array { ranges, element_type, ..} => {
+                // Resolve the ranges
+                for range in ranges.iter_mut() {
+                    // Not required to be compile-time, unless we are in a compile-time context
+                    *range = self.resolve_type(*range, require_compile_time);
+                }
+
+                // Resolve the element type
+                // Required to be compile-time as the element size must be known
+                *element_type = self.resolve_type(*element_type, true);
+            }
+            Type::Forward { ident } => {
+                // Type has not been resolved in the unit
+                self.reporter.report_error(&ident.token.location, format_args!("Type '{}' has not been resolved", ident.name));
+
+                // Replace with a type error
+                return TypeRef::TypeError;
+            }
+            Type::Function { params, result } => {
+                // Resolve each of the parameters
+                if params.is_some() {
+                    for param in params.as_mut().unwrap().iter_mut() {
+                        param.type_spec = self.resolve_type(param.type_spec, true);
+                    }
+                }
+
+                // Resolve the result type
+                if result.is_some() {
+                    *result = Some(self.resolve_type(result.unwrap(), true));
+                }
+            }
+            Type::Pointer { to } => {
+                // Resolve the 'to' type
+                *to = self.resolve_type(*to, true);
+            }
+            Type::Range { start, end, base_type } => {
+                // Visit & fold the bound expressions
+                if let Some(value) = self.visit_expr(start) {
+                    *start = Expr::try_from(value).expect("Cannot convert start bound into a value");
+                }
+
+                if end.is_some() {
+                    if let Some(value) = self.visit_expr(end.as_mut().unwrap()) {
+                        *end = Some(Expr::try_from(value).expect("Cannot convert end bound into a value"));
+                    }
+                }
+
+                if !start.is_compile_eval() {
+                    // The start range must be a compile-time expression
+                    // TODO: Use the token span of the expression
+                    self.reporter.report_error(&Location::new(), format_args!("Start bound must be a compile-time expression"));
+
+                    // Produce a type error as this is not a valid expression
+                    return TypeRef::TypeError;
+                }
+
+                if require_compile_time {
+                    // All type info must be known at compile-time
+
+                    // Validate that the range type ref references a range that
+                    // has the end bound as a compile-time expression
+                    // Don't need to worry about checking * (checked by the parser)
+                    if let Some(end) = end {
+                        if !end.is_compile_eval() {
+                            // Right-hand side is not a compile-time expression
+                            // TODO: Use end expr span
+                            self.reporter.report_error(&Location::new(), format_args!("End bound must be a compile-time expression"));
+
+                            // Range is not a valid type
+                            return TypeRef::TypeError;
+                        }
+                    }
+                }
+
+                // Try to derive a base copy from the given types
+                let start_type = start.get_eval_type();
+                let end_type = if end.is_some() {
+                    end.as_ref().unwrap().get_eval_type()
+                } else {
+                    // No specified end range, use the start type
+                    start_type
+                };
+
+                if !types::is_equivalent_to(&start_type, &end_type, &self.type_table) {
+                    // Range eval types do not match
+                    // TODO: Use the token span of the expressions
+                    self.reporter.report_error(&Location::new(), format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
+
+                    return TypeRef::TypeError;
+                }
+
+                // Update the base type
+                // Either `start_type` or `end_type` could be used
+                *base_type = start_type;
+            }
+            Type::Reference { expr } => {
+                // Reference will produce a reference to the associated type_spec
+                // If there is no reference to a type, a TypeError is produced
+
+                // Evaluate expression
+                self.visit_expr(expr);
+
+                // Ensure that the top-most expression resolves to a type
+                match &**expr {
+                    Expr::Dot { field: (token, name, is_typedef), .. } => {
+                        if !is_typedef {
+                            self.reporter.report_error(&token.location, format_args!("Field '{}' is not a reference to a type", name));
+
+                            // Produce a type error
+                            return TypeRef::TypeError;
+                        }
+                    }
+                    Expr::Reference { ident } => {
+                        if !ident.is_typedef {
+                            self.reporter.report_error(&ident.token.location, format_args!("Identifier is not a reference to a type"));
+
+                            // Produce a type error
+                            return TypeRef::TypeError;
+                        }
+                    }
+                    _ => unreachable!(), // No other expressions allowed, handled by the parser
+                }
+
+                // Produce the resolved type
+                return expr.get_eval_type();
+            }
+            Type::Set { range } => {
+                // Doesn't matter if the range is a type error or not, will be
+                // ignored during equivalence checking
+                *range = self.resolve_type(*range, true);
+            }
+        }
+
+        // Replace the type with the updated type
+        self.type_table.replace_type(type_id, type_info);
+        return base_ref;
+    }
 }
 
 impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
@@ -178,7 +345,15 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     is_compile_eval = expr.is_compile_eval();
                 }
 
+                // Resolve the left type, if possible
+                if types::is_named(type_spec) {
+                    // Only required to be compile-time if the decl is a const decl, or if the type spec
+                    // is not directly an array
+                    let require_compile_time = *is_const || !matches!(self.type_table.type_from_ref(type_spec), Some(Type::Array{ .. }));
+                    *type_spec = self.resolve_type(*type_spec, require_compile_time);
+                }
                 
+                // Handle the type spec propogation
                 if *type_spec == TypeRef::Unknown {
                     // Unknown type, use the type of the expr
                     // Safe to unwrap as if no expr was provided, the type_spec would be TypeError    
@@ -192,8 +367,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     let left_type = &type_spec;
                     let right_type = &expr.get_eval_type();
 
-                    if !types::is_error(right_type) {
-                        // TODO: Resolve & De-alias type refs
+                    if !types::is_error(left_type) && !types::is_error(right_type) {
+                        // TODO: De-alias type refs
                         debug_assert!(types::is_base_type(left_type, &self.type_table), "Of type {:?}", left_type);
                         debug_assert!(types::is_base_type(right_type, &self.type_table), "Of type {:?}", right_type);
 
@@ -242,10 +417,10 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 }
             }
             Stmt::TypeDecl { ident } => {
-                // TODO: Verify that the ident refers to a valid type
-                // Validate identifier stuff
+                // Resolve the associated type
+                ident.type_spec = self.resolve_type(ident.type_spec, true);
 
-                // Declare the identifier (and check for redeclaration errors?)
+                // Declare the identifier and check for redeclaration errors
                 if self.scope_infos.last_mut().unwrap().decl_ident(ident.clone()) {
                     self.reporter.report_error(&ident.token.location, format_args!("'{}' has already been declared", ident.name));
                 }
@@ -271,7 +446,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     return;
                 }
 
-                // TODO: Resolve & De-alias type refs
+                // TODO: De-alias type refs
                 debug_assert!(types::is_base_type(left_type, &self.type_table));
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
                 
@@ -351,7 +526,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     return None;
                 }
 
-                // TODO: Resolve & De-alias type refs
+                // TODO: De-alias type refs
                 debug_assert!(types::is_base_type(left_type, &self.type_table));
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
 
@@ -442,7 +617,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     return None;
                 }
 
-                // TODO: Resolve & De-alias type refs
+                // TODO: De-alias type refs
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
 
                 match check_unary_operand(op, right_type, &self.type_table) {
@@ -551,7 +726,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                         .get_ident_instance(&ident.name, ident.instance)
                         .unwrap()
                         .clone();
-                    *ident = new_ident.clone();
+                    *ident = new_ident;
 
                     // An identifier is compile-time evaluable if and only if there is an associated expression
                     ident.is_compile_eval = compile_value.is_some();
@@ -1361,5 +1536,37 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         // The job of the validator is to ensure inter-unit (i.e. external)
         // consistency, while the parser can ensure a minimal amount of
         // intra-unit (i.e. local) consistency
+    }
+
+    #[test]
+    fn test_type_resolution() {
+        // Aliases to aliases are allowed
+        assert_eq!(true, run_validator("type a : int\ntype b : a\ntype c : b"));
+
+        // Aliases are equivalent to their base types
+        // TODO: Requires type de-aliasing
+
+        // Range bounds types do not match
+        assert_eq!(false, run_validator("type a : true .. 'c'"));
+        assert_eq!(false, run_validator("type a : 1 .. 'c'"));
+        assert_eq!(false, run_validator("type a : 'c' .. true"));
+
+        // Identifier is not a reference to a type
+        // TODO: Test dot references once those are valid & resolvable
+        assert_eq!(false, run_validator("var a : int := 1\ntype b : a"));
+        assert_eq!(false, run_validator("var a : int := 1\nvar b : a := 2"));
+
+        // Range end bound must be a compile-time expression (in theses contexts)
+        assert_eq!(true, run_validator("type b : set of 1 .. (8 + 20 - 3)"));
+        assert_eq!(true, run_validator("type b : 1 .. (8 + 20 - 3)"));
+        assert_eq!(true, run_validator(" var b : 1 .. (8 + 20 - 3)"));
+
+        assert_eq!(false, run_validator("var a : int := 1\ntype b : set of 1 .. a"));
+        assert_eq!(false, run_validator("var a : int := 1\ntype b : 1 .. a"));
+        assert_eq!(false, run_validator("var a : int := 1\n var b : 1 .. a"));
+        assert_eq!(false, run_validator("var a : int := 1\ntype b : array 1 .. a of int"));
+
+        // Range end bound is allowed to be a runtime expression (in this context)
+        assert_eq!(true, run_validator("var a : int := 1\n var b : array 1 .. a of int"));
     }
 }

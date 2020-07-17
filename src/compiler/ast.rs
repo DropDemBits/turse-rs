@@ -113,7 +113,8 @@ pub enum Expr {
         left: Box<Self>,
         // Token is provided in case an error wants to be reported at the token location
         // String is provided as type information is only needed during type validation & compilation
-        field: (Token, String),
+        // bool indicates whether this field is a type reference or a variable / const reference
+        field: (Token, String, bool),
         eval_type: TypeRef,
         is_compile_eval: bool,
     },
@@ -184,7 +185,7 @@ impl fmt::Debug for Expr {
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot {
                 left,
-                field: (_tok, name),
+                field: (_, name, _),
                 ..
             } => f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
         }

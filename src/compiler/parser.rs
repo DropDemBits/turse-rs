@@ -705,7 +705,7 @@ impl<'s> Parser<'s> {
 
         Ok(Expr::Dot {
             left: Box::new(var_ref),
-            field: (ident, name),
+            field: (ident, name, false),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
         })

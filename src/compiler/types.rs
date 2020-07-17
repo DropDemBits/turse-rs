@@ -5,7 +5,7 @@
 //!   - Any type including a range (e.g. 'set', 'array')
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
-use crate::compiler::ast::Expr;
+use crate::compiler::ast::{Expr, Identifier};
 
 /// Default string size, in bytes
 /// This is the default size for a string if it is not specified
@@ -99,7 +99,7 @@ pub enum PrimitiveType {
 /// Parameter definition
 /// Two parameter definitions (ParamDef's) are equivalent if, and only if, all
 /// fields except for name are equivalent.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParamDef {
     /// The name of the parameter
     pub name: String,
@@ -123,7 +123,7 @@ impl PartialEq for ParamDef {
 }
 
 /// Base Type Root
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(unused_variables, dead_code)]
 pub enum Type {
     /// Alias to another Type
@@ -144,8 +144,11 @@ pub enum Type {
         /// If the array has an upper bound based on the initializing expression
         is_init_sized: bool,
     },
-    /// Forward reference to the type with the given name
-    Forward { name: String },
+    /// Forward reference to the type with the given identifier
+    Forward {
+        // The associated identifier of the forward declare
+        ident: Identifier,
+    },
     /// Function / Procedure definition \
     /// Having both as Options allows differentiation between parameter and
     /// parameterless declarations, and between functions and procedures
@@ -208,6 +211,11 @@ impl TypeTable {
         id
     }
 
+    /// Replaces an existing type in the unit with the given type info
+    pub fn replace_type(&mut self, replace_id: usize, type_info: Type) {
+        self.types[replace_id] = type_info;
+    }
+
     /// Converts the `type_ref` into the corresponding type info
     pub fn type_from_ref(&self, type_ref: &TypeRef) -> Option<&Type> {
         if let TypeRef::Named(type_id) = type_ref {
@@ -229,11 +237,7 @@ impl TypeTable {
 
     /// Checks if the given type is an alias for another type
     pub fn is_alias(&self, type_id: usize) -> bool {
-        if let Type::Alias { .. } = self.get_type(type_id) {
-            true
-        } else {
-            false
-        }
+        matches!(self.get_type(type_id), Type::Alias{ .. })
     }
 }
 
@@ -579,6 +583,12 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
     if lhs == rhs {
         // Quick escape for simple equivalent types (e.g. primitives)
         // Smaller kinds of char sequences are not equivalent to larger kinds
+        return true;
+    }
+
+    // Other primitives
+    if is_integer_type(lhs) && is_integer_type(rhs) {
+        // Integer types are equivalent
         return true;
     }
 
