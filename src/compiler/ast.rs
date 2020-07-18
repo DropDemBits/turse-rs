@@ -2,6 +2,7 @@
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::Token;
 use crate::compiler::types::TypeRef;
+use crate::compiler::Location;
 use std::cell::RefCell;
 use std::fmt;
 use std::num::NonZeroU32;
@@ -73,50 +74,93 @@ impl Identifier {
     }
 }
 
+/// Common expression node
 #[derive(Clone)]
 pub enum Expr {
+    /// Binary expression
     BinaryOp {
+        /// Left operand for the binary operation
         left: Box<Self>,
+        /// Operator of the binary expression
         op: Token,
+        /// Right operand for the binary operation
         right: Box<Self>,
+        /// The expression evaluation type
         eval_type: TypeRef,
+        /// If the expression is compile-time evaluable
         is_compile_eval: bool,
+        /// The span of the expression
+        span: Location,
     },
+    /// Unary expression
     UnaryOp {
+        /// Operator of the unary expression
         op: Token,
+        /// Operand for the unary operation
         right: Box<Self>,
+        /// The expression evaluation type
         eval_type: TypeRef,
+        /// If the expression is compile-time evaluable
         is_compile_eval: bool,
+        /// The span of the expression
+        span: Location,
     },
+    /// Parenthetical expression
     Grouping {
+        /// The inner grouping expression
         expr: Box<Self>,
         // The following are for caching purposes
+        /// The expression evaluation type
         eval_type: TypeRef,
+        /// If the expression is compile-time evaluable
         is_compile_eval: bool,
+        /// The span of the expression
+        span: Location,
     },
+    /// Common literal value
     Literal {
+        /// The literal value
         value: Token,
+        /// The evaluation type
         eval_type: TypeRef,
     },
     // Note: Some functions & procedures may be in the AST as pure references (in the middle of expressions)
+    // This is checked in the validator stage
     Reference {
+        /// The identifier associated with this referenece
         ident: Identifier,
     },
+    /// Funcion call expression
     Call {
+        /// Expression evaluating to a reference
         left: Box<Self>,
+        /// Token location
         op: Token,
-        arg_list: Vec<Self>, // Parens may be omitted
+        /// The argument list for the call
+        arg_list: Vec<Self>, // Parens may be omitted, indicated by left's eval type
+        /// The expression evaluation type
         eval_type: TypeRef,
+        /// If the expression is compile-time evaluable
         is_compile_eval: bool,
+        /// The span of the expression
+        span: Location,
     },
+    /// Dot/field expression
     Dot {
+        /// Expression evaluating to a reference
         left: Box<Self>,
+        /// Field to be referenced
         // Token is provided in case an error wants to be reported at the token location
         // String is provided as type information is only needed during type validation & compilation
         // bool indicates whether this field is a type reference or a variable / const reference
+        // ???: Just use an identifier?
         field: (Token, String, bool),
+        /// The expression evaluation type
         eval_type: TypeRef,
+        /// If the expression is compile-time evaluable
         is_compile_eval: bool,
+        /// The span of the expression
+        span: Location,
     },
 }
 
@@ -131,6 +175,19 @@ impl Expr {
             Expr::Call { eval_type, .. } => *eval_type,
             Expr::Dot { eval_type, .. } => *eval_type,
             Expr::Reference { ident } => ident.type_spec,
+        }
+    }
+
+    /// Gets the span of the location
+    pub fn get_span(&self) -> &Location {
+        match self {
+            Expr::BinaryOp { span, .. } => span,
+            Expr::UnaryOp { span, .. } => span,
+            Expr::Grouping { span, .. } => span,
+            Expr::Literal { value, .. } => &value.location,
+            Expr::Call { span, .. } => span,
+            Expr::Dot { span, .. } => span,
+            Expr::Reference { ident, .. } => &ident.token.location,
         }
     }
 
@@ -192,31 +249,48 @@ impl fmt::Debug for Expr {
     }
 }
 
+/// Common statement node
 #[derive(Debug, Clone)]
 pub enum Stmt {
     // Decls
+    /// Variable & Constant declaration
     VarDecl {
+        /// The identifier(s) declared
         idents: Vec<Identifier>,
+        /// The type spec for all of the identifiers
         type_spec: TypeRef,
+        /// The (semi-optional) initialization value
         value: Option<Box<Expr>>,
+        /// If the declare is for a const declaration
         is_const: bool,
     },
+    /// `type` statement declaration
     TypeDecl {
+        /// The identifier associated with this type declare
         ident: Identifier,
-        /// Resolved type for a forward type decl
+        /// Resolved type for a forward type declare
         resolved_type: Option<TypeRef>,
+        /// If the identifier actually declares a new identifier
         is_new_def: bool,
     },
     // Stmts
+    /// Simple & Compound assignment expression
     Assign {
+        /// The variable reference expression
         var_ref: Box<Expr>,
+        /// The assignment operation
         op: Token,
+        /// The value to assign
         value: Box<Expr>,
     },
+    /// Procedure or function call
     ProcedureCall {
+        /// The reference to the procedure or function variable
         proc_ref: Box<Expr>,
     },
+    /// Block of statements
     Block {
+        /// The associated code block
         block: Rc<RefCell<CodeBlock>>,
     },
 }

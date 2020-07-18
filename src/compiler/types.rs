@@ -5,7 +5,7 @@
 //!   - Any type including a range (e.g. 'set', 'array')
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
-use crate::compiler::ast::{Expr, Identifier};
+use crate::compiler::ast::Expr;
 
 /// Default string size, in bytes
 /// This is the default size for a string if it is not specified
@@ -124,7 +124,6 @@ impl PartialEq for ParamDef {
 
 /// Base Type Root
 #[derive(Debug, Clone)]
-#[allow(unused_variables, dead_code)]
 pub enum Type {
     /// Alias to another Type
     Alias {

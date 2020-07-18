@@ -1355,7 +1355,7 @@ mod test {
     #[test]
     fn test_block_comment() {
         // Block comments
-        let mut scanner = Scanner::new("/* /* abcd % * / */ */ asd");
+        let mut scanner = Scanner::new("/* /* abcd % * / \n\n\r\n */ */ asd");
         assert!(scanner.scan_tokens());
         assert_eq!(scanner.tokens.len(), 2);
         assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);

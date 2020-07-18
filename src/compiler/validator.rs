@@ -7,7 +7,6 @@
 //!
 //! Types are resolved before the expression that use them are visited by only
 //! resolving types in declaration statements
-use crate::compiler::Location;
 use crate::compiler::ast::{ASTVisitorMut, Identifier, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
@@ -239,8 +238,8 @@ impl<'a> Validator<'a> {
 
                 if !start.is_compile_eval() {
                     // The start range must be a compile-time expression
-                    // TODO: Use the token span of the expression
-                    self.reporter.report_error(&Location::new(), format_args!("Start bound must be a compile-time expression"));
+                    // Span over the start bound
+                    self.reporter.report_error(start.get_span(), format_args!("Start bound must be a compile-time expression"));
 
                     // Produce a type error as this is not a valid expression
                     return TypeRef::TypeError;
@@ -255,8 +254,8 @@ impl<'a> Validator<'a> {
                     if let Some(end) = end {
                         if !end.is_compile_eval() {
                             // Right-hand side is not a compile-time expression
-                            // TODO: Use end expr span
-                            self.reporter.report_error(&Location::new(), format_args!("End bound must be a compile-time expression"));
+                            // Span over the end bound
+                            self.reporter.report_error(end.get_span(), format_args!("End bound must be a compile-time expression"));
 
                             // Range is not a valid type
                             return TypeRef::TypeError;
@@ -275,8 +274,14 @@ impl<'a> Validator<'a> {
 
                 if !types::is_equivalent_to(&start_type, &end_type, &self.type_table) {
                     // Range eval types do not match
-                    // TODO: Use the token span of the expressions
-                    self.reporter.report_error(&Location::new(), format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
+                    // Span the entire range
+                    let span = if end.is_some() {
+                        start.get_span().span_to(end.as_ref().unwrap().get_span())
+                    } else {
+                        start.get_span().clone()
+                    };
+
+                    self.reporter.report_error(&span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
 
                     return TypeRef::TypeError;
                 }
@@ -552,7 +557,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
     fn visit_expr(&mut self, visit_expr: &mut Expr) -> Option<Value> {
         match visit_expr {
-            Expr::Grouping { expr, eval_type, is_compile_eval } => {
+            Expr::Grouping { expr, eval_type, is_compile_eval, .. } => {
                 let eval = self.visit_expr(expr);
 
                 // Try to replace the inner expression with the folded value
@@ -570,6 +575,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 right,
                 eval_type,
                 is_compile_eval,
+                ..
             } => {
                 let left_eval = self.visit_expr(left);
                 let right_eval = self.visit_expr(right);
@@ -662,6 +668,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 right,
                 eval_type,
                 is_compile_eval,
+                ..
             } => {
                 let right_eval = self.visit_expr(right);
 
@@ -728,6 +735,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 arg_list,
                 eval_type: _,
                 is_compile_eval,
+                ..
             } => {
                 self.visit_expr(left);
                 arg_list.iter_mut().for_each(|expr| {
@@ -759,6 +767,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 field: _,
                 eval_type: _,
                 is_compile_eval,
+                ..
             } => {
                 self.visit_expr(left);
 

@@ -696,16 +696,21 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_grouping(&mut self) -> Result<Expr, ParsingStatus> {
+        let span = self.previous().location;
+
         let expr = self.expr()?;
         self.expects(
             TokenType::RightParen,
             format_args!("Expected ')' to close off parenthetical grouping"),
         )?;
 
+        let span = span.span_to(&self.previous().location);
+
         Ok(Expr::Grouping {
             expr: Box::new(expr),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
@@ -715,24 +720,29 @@ impl<'s> Parser<'s> {
         // Get rhs
         let rhs = self.expr_precedence(precedence)?;
 
+        let span = lhs.get_span().span_to(&self.previous().location);
+
         Ok(Expr::BinaryOp {
             left: Box::new(lhs),
             op,
             right: Box::new(rhs),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
     fn expr_unary(&mut self) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
         let right = self.expr_precedence(Precedence::Unary)?;
+        let span = op.location.span_to(&self.previous().location);
 
         Ok(Expr::UnaryOp {
             op,
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
@@ -740,6 +750,7 @@ impl<'s> Parser<'s> {
         let mut op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence;
         let right = self.expr_precedence(precedence)?;
+        let span = op.location.span_to(&self.previous().location);
 
         if op.token_type == TokenType::Tilde {
             // Convert '~'s into 'not's
@@ -751,12 +762,14 @@ impl<'s> Parser<'s> {
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
     fn expr_call(&mut self, func_ref: Expr) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
         let arg_list = self.make_arg_list()?.unwrap();
+        let span = func_ref.get_span().span_to(&self.previous().location);
 
         Ok(Expr::Call {
             left: Box::new(func_ref),
@@ -764,6 +777,7 @@ impl<'s> Parser<'s> {
             arg_list,
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
@@ -778,17 +792,21 @@ impl<'s> Parser<'s> {
         // so we can just store the field name and location info
 
         let name = ident.location.get_lexeme(self.source).to_string();
+        let span = var_ref.get_span().span_to(&self.previous().location);
 
         Ok(Expr::Dot {
             left: Box::new(var_ref),
             field: (ident, name, false),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
     fn expr_deref(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
+        // Span starts from the var_ref, all the way to the deref token
+        let span = var_ref.get_span().span_to(&self.previous().location);
 
         // Wrap the var_ref in a deref
         self.expr_dot(Expr::UnaryOp {
@@ -799,6 +817,7 @@ impl<'s> Parser<'s> {
             right: Box::new(var_ref),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
+            span,
         })
     }
 
