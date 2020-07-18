@@ -376,7 +376,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 }
 
                 // Visit the expression to update the eval type
-                if value.is_some() || *type_spec == TypeRef::Unknown {
+                if value.is_some() {
                     let expr = value.as_mut().unwrap();
                     let init_eval = self.visit_expr(expr);
 
@@ -386,7 +386,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     is_compile_eval = expr.is_compile_eval();
                 }
 
-                // Resolve the left type, if possible
+                // Resolve the identifier type spec, if possible
                 if types::is_named(type_spec) {
                     // Only required to be compile-time if the decl is a const decl, or if the type spec
                     // is not directly an array
@@ -407,12 +407,13 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     let expr = value.as_ref().unwrap();
                     *type_spec = expr.get_eval_type();
                 } else if value.is_some() {
-                    // Validate that the types are assignable
+                    // Type of the identifier is known, validate that the types are assignable
                     let expr = value.as_ref().unwrap();
 
                     let left_type = &type_spec;
                     let right_type = &expr.get_eval_type();
 
+                    // If both of the types are not an error, check for assignability
                     if !types::is_error(left_type) && !types::is_error(right_type) {
                         // TODO: De-alias type refs
                         debug_assert!(types::is_base_type(left_type, &self.type_table), "Of type {:?}", left_type);
@@ -420,19 +421,15 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
 
                         // Validate that the types are assignable
                         if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
-                            // Value to assign is the wrong type
+                            // Value to assign is the wrong type, just report the error
                             self.reporter.report_error(
                                 &idents.last().as_ref().unwrap().token.location,
                                 format_args!("Initialization value is the wrong type"),
                             );
-
-                            *type_spec = TypeRef::TypeError;
                         } else {
+                            // Update compile-time evaluability status
                             is_compile_eval = value.as_ref().unwrap().is_compile_eval();
                         }
-                    } else {
-                        // Silently propogate type error (error has been reported)
-                        *type_spec = TypeRef::TypeError;
                     }
                 }
                 // Variable declarations with no assignment value will have the type already given
@@ -459,7 +456,10 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                         .resolve_ident(&ident.name, &ident);
 
                     // Add identifier to the scope info (including the compile-time value)
-                    self.scope_infos.last_mut().unwrap().decl_ident_with(ident.clone(), const_val.clone());
+                    if self.scope_infos.last_mut().unwrap().decl_ident_with(ident.clone(), const_val.clone()) {
+                        // Report the error
+                        self.reporter.report_error(&ident.token.location, format_args!("'{}' has already been declared", ident.name));
+                    }
                 }
             }
             Stmt::TypeDecl { ident, resolved_type, is_new_def } => {
@@ -1588,23 +1588,60 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
 
     #[test]
     fn test_ident_resolution() {
-        // Errors reported here, most checks done in parser
+        // All errors reported here, including undeclared uses
         // v decl use
-        assert_eq!(true, run_validator("var a : int := 1\na += 1"));
+        let (success, unit) = make_validator("var a : int := 1\na += 1");
+        assert_eq!(true, success);
+        assert_eq!(true, unit.root_block().borrow().scope.get_ident("a").unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
         // x use decl
-        assert_eq!(false, run_validator("a += 1\nvar b : int := 1"));
+        let (success, unit) = make_validator("a += 1\nvar b : int := 1");
+        assert_eq!(false, success);
+        assert_eq!(false, unit.root_block().borrow().scope.get_ident("a").unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::TypeError);
 
         // x use use decl (only 1 error produced)
-        assert_eq!(false, run_validator("a += 1\na += 1\nvar b : int := 1"));
+        let (success, unit) = make_validator("a += 1\na += 1\nvar b : int := 1");
+        assert_eq!(false, success);
+        assert_eq!(false, unit.root_block().borrow().scope.get_ident("a").unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::TypeError);
 
-        // Most errors here are just capturing errors skipped over in the parser,
-        // so a majority of identifier resolution tests are over there, excluding
-        // resolutions from external units (which there is not interface to)
-        // 
-        // The job of the validator is to ensure inter-unit (i.e. external)
-        // consistency, while the parser can ensure a minimal amount of
-        // intra-unit (i.e. local) consistency
+        // x use
+        let (success, unit) = make_validator("a += 1\n");
+        assert_eq!(false, success);
+        assert_eq!(false, unit.root_block().borrow().scope.get_ident("a").unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::TypeError);
+
+        // x use decl decl
+        let (success, unit) = make_validator("a := a + 1\nvar a : int\nvar a : string % final type\n");
+        assert_eq!(false, success);
+        assert_eq!(false, unit.root_block().borrow().scope.get_ident_instance("a", 0).unwrap().is_declared);
+        assert_eq!(true, unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().is_declared);
+        assert_eq!(true, unit.root_block().borrow().scope.get_ident_instance("a", 2).unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 0).unwrap().type_spec, TypeRef::TypeError);
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Int));
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 2).unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_)); // Final type
+
+        // x decl decl
+        let (success, unit) = make_validator("var a : string\nvar a : real8 % final type");
+        assert_eq!(false, success);
+        assert_eq!(true, unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().is_declared);
+        assert_eq!(true, unit.root_block().borrow().scope.get_ident_instance("a", 2).unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 2).unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Real8));
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Real8)); // Final type
+
+        // x use-in-init decl
+        let (success, unit) = make_validator("var a : string := a + \"oops\"");
+        eprintln!("??: {:#?}", unit);
+        assert_eq!(false, success);
+        assert_eq!(false, unit.root_block().borrow().scope.get_ident_instance("a", 0).unwrap().is_declared);
+        assert_eq!(true, unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().is_declared);
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 0).unwrap().type_spec, TypeRef::TypeError);
+        assert_eq!(unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_)); // Final type
     }
 
     #[test]

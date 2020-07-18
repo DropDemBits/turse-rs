@@ -386,7 +386,7 @@ impl<'s> Parser<'s> {
         // Declare the identifiers
         let idents: Vec<Identifier> = ident_tokens
             .into_iter()
-            .map(|token| self.declare_ident(token, type_spec, is_const, false))
+            .map(|token| self.declare_ident(token, type_spec, is_const, false).0)
             .collect();
 
         Ok(Stmt::VarDecl {
@@ -493,7 +493,7 @@ impl<'s> Parser<'s> {
 
                     // Normal declare
                     Ok(Stmt::TypeDecl {
-                        ident: self.declare_ident(ident_tok, alias_type, true, true),
+                        ident: self.declare_ident(ident_tok, alias_type, true, true).0,
                         resolved_type: Some(alias_type),
                         is_new_def: true,
                     })
@@ -503,7 +503,7 @@ impl<'s> Parser<'s> {
 
                     // Forward declare
                     Ok(Stmt::TypeDecl {
-                        ident: self.declare_ident(ident_tok, forward_type, true, true),
+                        ident: self.declare_ident(ident_tok, forward_type, true, true).0,
                         resolved_type: None,
                         is_new_def: true,
                     })
@@ -879,9 +879,9 @@ impl<'s> Parser<'s> {
             // something imported unqualified from another file. These
             // references will be resolved at validator time, and that
             // is where the error will be reported
-            let (ident, _) = self.use_ident_msg(ident_tok);
-
-            Ok(Expr::Reference { ident })
+            Ok(Expr::Reference {
+                ident: self.use_ident(ident_tok).0,
+            })
         } else {
             panic!(
                 "Identifier found but also not found (at {:?})",
@@ -1520,37 +1520,28 @@ impl<'s> Parser<'s> {
     // -- Wrappers around the scope list -- //
     // See `Scope` for the documentation of these functions
 
-    /// Declares an identifer in the current scope, reporting the error message
-    /// It is most likely an error to redeclare an identifier within the scope,
-    /// so the message is reported here
+    /// Declares an identifer in the current scope, providing the error message
+    /// Allows ignoring the error message, which is all cases
     fn declare_ident(
         &self,
         ident: Token,
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
-    ) -> Identifier {
+    ) -> (Identifier, Option<String>) {
         let name = ident.location.get_lexeme(self.source).to_string();
 
-        let (reference, err) = self
-            .blocks
+        self.blocks
             .last()
             .unwrap()
             .borrow_mut()
             .scope
-            .declare_ident(ident, name, type_spec, is_const, is_typedef);
-
-        if let Some(msg) = err {
-            self.reporter
-                .report_error(&reference.token.location, format_args!("{}", msg));
-        }
-
-        reference
+            .declare_ident(ident, name, type_spec, is_const, is_typedef)
     }
 
     /// Uses an identifer, providing the error message
-    /// Allows ignoring the error message
-    fn use_ident_msg(&self, ident: Token) -> (Identifier, Option<String>) {
+    /// Allows ignoring the error message, which is all cases
+    fn use_ident(&self, ident: Token) -> (Identifier, Option<String>) {
         let name = ident.location.get_lexeme(self.source);
 
         self.blocks
@@ -1570,16 +1561,6 @@ impl<'s> Parser<'s> {
             .scope
             .get_ident(name)
             .map(|i| i.clone())
-    }
-
-    /// Updates the identifier with the specified info
-    fn resolve_ident(&self, name: &str, ident_info: &Identifier) -> Identifier {
-        self.blocks
-            .last()
-            .unwrap()
-            .borrow_mut()
-            .scope
-            .resolve_ident(name, &ident_info)
     }
 
     // -- Wrappers around the type table -- //
@@ -2495,120 +2476,6 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
     }
 
     #[test]
-    fn test_identifier_resolution() {
-        // v decl usage
-        let mut parser = make_test_parser(
-            "
-        var a : int
-        a := a + 1
-        ",
-        );
-        assert!(parser.parse());
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
-
-        // v decl usage usage
-        let mut parser = make_test_parser(
-            "
-        var a : int
-        a := a + 1
-        var b := a + 1
-        ",
-        );
-        assert!(parser.parse());
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
-
-        // x usage
-        let mut parser = make_test_parser(
-            "
-        a := a + 1 % final type
-        ",
-        );
-        assert!(parser.parse()); // Checked at validator time
-        check_ident_expected_type(&parser, "a", TypeRef::TypeError);
-        assert_eq!(get_ident(&parser, "a").unwrap().is_declared, false);
-
-        // x usage decl
-        let mut parser = make_test_parser(
-            "
-        a := a + 1
-        var a : int % final type
-        ",
-        );
-        assert!(!parser.parse()); // Should still fail even though undeclared uses are checked at validator time
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Int));
-        // First should not be declared
-        assert_eq!(
-            get_ident_instance(&parser, "a", 0).unwrap().is_declared,
-            false
-        );
-
-        // x usage decl decl
-        let mut parser = make_test_parser(
-            "
-        a := a + 1
-        var a : int
-        var a : string % final type
-        ",
-        );
-        assert!(!parser.parse());
-        // First should not be declared
-        assert_eq!(
-            get_ident_instance(&parser, "a", 0).unwrap().is_declared,
-            false
-        );
-        // Second should be declared, and have int type
-        assert_eq!(
-            get_ident_instance(&parser, "a", 1).unwrap().is_declared,
-            true,
-            "At {:?}",
-            get_ident_instance(&parser, "a", 1)
-        );
-        assert_eq!(
-            get_ident_instance(&parser, "a", 1).unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::Int),
-            "At {:?}",
-            get_ident_instance(&parser, "a", 1)
-        );
-        // Third should have string type
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
-
-        // x decl decl
-        let mut parser = make_test_parser(
-            "
-        var a : string
-        var a : real8 % final type
-        ",
-        );
-        assert!(!parser.parse());
-        // First should have a string type
-        assert_eq!(
-            get_ident_instance(&parser, "a", 1).unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::String_)
-        );
-        // Second should have a real8 type
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::Real8));
-
-        // x decl usage-in-asn
-        let mut parser = make_test_parser(
-            "
-        var a : string := a + \"oops\"
-        ",
-        );
-        assert!(!parser.parse());
-        check_ident_expected_type(&parser, "a", TypeRef::Primitive(PrimitiveType::String_));
-        // Initial should be a type error (use-before-declare)
-        assert_eq!(
-            get_ident_instance(&parser, "a", 0).unwrap().type_spec,
-            TypeRef::TypeError
-        );
-        // Declared should be a string
-        assert_eq!(
-            get_ident_instance(&parser, "a", 1).unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::String_)
-        );
-    }
-
-    #[test]
     fn test_block_stmt() {
         let mut parser = make_test_parser(
             "
@@ -2648,7 +2515,30 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         end
         ",
         );
-        assert!(!parser.parse());
+        assert!(parser.parse()); // Checked at validator time
+
+        // Validate the types
+        if let Stmt::Block { block } = &parser.unit.as_ref().unwrap().stmts()[1] {
+            // Inner scope is still int
+            assert_eq!(
+                block
+                    .as_ref()
+                    .borrow()
+                    .scope
+                    .get_ident("yay")
+                    .unwrap()
+                    .type_spec,
+                TypeRef::Primitive(PrimitiveType::Int)
+            );
+        } else {
+            unreachable!();
+        }
+
+        // Outer scope is still string
+        assert_eq!(
+            get_ident(&parser, "yay").unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
 
         // Redeclaration of declared - inner - inner
         let mut parser = make_test_parser(
@@ -2662,7 +2552,30 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         var yay : string := \"hello!\"
         ",
         );
-        assert!(!parser.parse());
+        assert!(parser.parse()); // Checked at validator time
+
+        // Validate the types
+        if let Stmt::Block { block } = &parser.unit.as_ref().unwrap().stmts()[0] {
+            // Innermost scope is still int
+            assert_eq!(
+                block
+                    .as_ref()
+                    .borrow()
+                    .scope
+                    .get_ident("yay")
+                    .unwrap()
+                    .type_spec,
+                TypeRef::Primitive(PrimitiveType::Int)
+            );
+        } else {
+            unreachable!();
+        }
+
+        // Outermost scope is still string
+        assert_eq!(
+            get_ident(&parser, "yay").unwrap().type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
     }
 
     #[test]
@@ -2752,7 +2665,7 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
 
         // Forward refs after resolves create a new type
         let mut parser = make_test_parser("type a : forward\ntype a : int\ntype a : forward");
-        assert!(!parser.parse());
+        assert!(parser.parse()); // Checked at validator time
         assert_eq!(
             true,
             matches!(
