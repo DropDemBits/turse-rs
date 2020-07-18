@@ -176,14 +176,12 @@ impl<'a> Validator<'a> {
         let mut type_info = self.type_table.get_type(type_id).clone();
 
         match &mut type_info {
-            Type::Alias { to, derived } => {
+            Type::Alias { to } => {
                 if types::is_error(to) {
-                    // Apply type error to both `to` and `derived`
+                    // Apply type error to `to`
                     *to = TypeRef::TypeError;
-                    *derived = TypeRef::TypeError;
                 } else {
-                    // TODO: Aliasing will require handling chains, cycles, and assigning the correct base_type reference
-                    // For now, just resolve the `to` as-is
+                    // Resolve the `to`
                     *to = self.resolve_type(*to, resolving_context);
                 }
             }
@@ -326,8 +324,7 @@ impl<'a> Validator<'a> {
                 }
 
                 // Check if the eval type de-aliases to a forward
-                // TODO: De-alias type ref
-                let type_ref = expr.get_eval_type();
+                let type_ref = self.dealias_type(expr.get_eval_type());
 
                 if let Some(Type::Forward { is_resolved }) = self.type_table.type_from_ref(&type_ref) {
                     if !*is_resolved {
@@ -345,15 +342,104 @@ impl<'a> Validator<'a> {
                 return type_ref;
             }
             Type::Set { range } => {
+                // Keep track of the old type ref for error reporting
+                let old_range_ref = *range;
+
                 // Doesn't matter if the range is a type error or not, will be
                 // ignored during equivalence checking
                 *range = self.resolve_type(*range, ResolveContext::CompileTime(false));
+
+                if types::is_named(&range) {
+                    // Check that the range reference is actually a range and not a reference
+                    // Other cases are handled by the parser
+                    let real_range = self.dealias_type(*range);
+
+                    if !matches!(self.type_table.type_from_ref(&real_range), Some(Type::Range { .. })) {
+                        // Not a real range type, change it to point to a type error
+                        *range = TypeRef::TypeError;
+
+                        // Report the error based on the reference location
+                        if let Some(Type::Reference { expr }) = self.type_table.type_from_ref(&old_range_ref) {
+                            self.reporter.report_error(expr.get_span(), format_args!("Set index is not a range, char, boolean, or enumerated type"));
+                        } else {
+                            // Other cases should be handled by the parser
+                            unreachable!();
+                        }
+                    }
+                } else {
+                    // Ensure that the range is really a type error
+                    // Don't need to report, as it is covered by a previous error
+                    *range = TypeRef::TypeError;
+                }
             }
         }
 
         // Replace the type with the updated type
         self.type_table.replace_type(type_id, type_info);
         return base_ref;
+    }
+
+    /// De-aliases a type ref, following through Alias types and resolving Reference types.
+    fn dealias_type(&mut self, type_ref: TypeRef) -> TypeRef {
+        let type_id = if let Some(id) = types::get_type_id(&type_ref) {
+            id
+        } else {
+            // Non-named types don't need to be dealiased (already at the base type)
+            return type_ref;
+        };
+
+        if !self.type_table.is_indirect_alias(type_id) {
+            // Any compound types that aren't Alias or Reference do not need to be
+            // dealiased (already pointing to the base types)
+            return type_ref;
+        }
+
+        // Type is either an alias, or a reference (to resolve)
+        // Walk the alias tree
+        let mut current_ref = type_ref;
+
+        if matches!(self.type_table.get_type(type_id), Type::Reference { .. }) {
+            // Resolve an immediate reference
+            current_ref = self.resolve_type(current_ref, ResolveContext::CompileTime(false));
+        }
+
+        // Walk the aliasing list
+        //
+        // We do not have to worry about a cyclic chain of aliases as the
+        // parser should not produce such a alias cyclic chain, and when using
+        // external libraries, the type references should be validated to not
+        // produce a cyclic reference chain.
+        loop {
+            let current_id  = if let Some(type_id) = types::get_type_id(&current_ref) {
+                type_id
+            } else {
+                // Most likely at the end of the chain, so break
+                break; 
+            };
+
+            // Reference types should already be resolved
+            let mut type_info = self.type_table.get_type(current_id).clone();
+            debug_assert!(!matches!(type_info, Type::Reference { .. }));
+
+            match &mut type_info {
+                Type::Alias { to } => {
+                    if let Some(Type::Reference { .. }) = self.type_table.type_from_ref(&to) {
+                        *to = self.resolve_type(*to, ResolveContext::CompileTime(false));
+                    }
+
+                    // Walk to the next id
+                    current_ref = *to;
+                }
+                Type::Reference { .. } => panic!("Unresolved reference type"),
+                _ => break, // Not either of the above, can stop
+            }
+
+            // Update the alias reference
+            self.type_table.replace_type(current_id, type_info);
+        }
+
+        // At the end of the aliasing chain
+        return current_ref;
     }
 }
 
@@ -415,12 +501,11 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     // Type of the identifier is known, validate that the types are assignable
                     let expr = value.as_ref().unwrap();
 
-                    let left_type = &type_spec;
-                    let right_type = &expr.get_eval_type();
+                    let left_type = &self.dealias_type(*type_spec);
+                    let right_type = &self.dealias_type(expr.get_eval_type());
 
                     // If both of the types are not an error, check for assignability
                     if !types::is_error(left_type) && !types::is_error(right_type) {
-                        // TODO: De-alias type refs
                         debug_assert!(types::is_base_type(left_type, &self.type_table), "Of type {:?}", left_type);
                         debug_assert!(types::is_base_type(right_type, &self.type_table), "Of type {:?}", right_type);
 
@@ -488,7 +573,6 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                             // Make an alias to the resolved type
                             self.type_table.replace_type(replace_id, Type::Alias{
                                 to: *resolve_ref,
-                                derived: TypeRef::Unknown,
                             });
                         }
                         
@@ -511,8 +595,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 if ref_eval.is_some() { *var_ref = Box::new(Expr::try_from(ref_eval.unwrap()).unwrap()); }
                 if value_eval.is_some() { *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap()); }
 
-                let left_type = &var_ref.get_eval_type();
-                let right_type = &value.get_eval_type();
+                let left_type = &self.dealias_type(var_ref.get_eval_type());
+                let right_type = &self.dealias_type(value.get_eval_type());
 
                 // Validate that the types are assignable for the given operation
                 if types::is_error(left_type) || types::is_error(right_type) {
@@ -520,7 +604,6 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     return;
                 }
 
-                // TODO: De-alias type refs
                 debug_assert!(types::is_base_type(left_type, &self.type_table));
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
                 
@@ -590,8 +673,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let loc = &op.location;
                 let op = &op.token_type;
 
-                let left_type = &left.get_eval_type();
-                let right_type = &right.get_eval_type();
+                let left_type = &self.dealias_type(left.get_eval_type());
+                let right_type = &self.dealias_type(right.get_eval_type());
 
                 if types::is_error(left_type) || types::is_error(right_type) {
                     // Either one is a type error
@@ -601,7 +684,6 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     return None;
                 }
 
-                // TODO: De-alias type refs
                 debug_assert!(types::is_base_type(left_type, &self.type_table));
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
 
@@ -682,7 +764,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let loc = &op.location;
                 let op = &op.token_type;
 
-                let right_type = &right.get_eval_type();
+                let right_type = &self.dealias_type(right.get_eval_type());
 
                 if types::is_error(right_type) {
                     // Right operand is a type error
@@ -693,7 +775,6 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     return None;
                 }
 
-                // TODO: De-alias type refs
                 debug_assert!(types::is_base_type(right_type, &self.type_table));
 
                 match check_unary_operand(op, right_type, &self.type_table) {
@@ -1659,15 +1740,17 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         assert_eq!(true, run_validator("type a : int\ntype b : a\ntype c : b"));
 
         // Aliases are equivalent to their base types
-        // TODO: Requires type de-aliasing
+        assert_eq!(true, run_validator("type a : 1 .. 5\ntype b : set of a"));
+        assert_eq!(true, run_validator("type a : int\ntype b : a\nvar c : int := 1\nvar d : b := c"));
 
-        // Forwad aliases are equivalent to their base types
-        // TODO: Requires type de-aliasing
+        // Aliases of resolved forward types are equivalent to their base types
+        assert_eq!(true, run_validator("type a : forward\ntype a : int\ntype b : a\nvar c : a := 2"));
 
         // Forward refs are only allowed in pointer type definitions
         assert_eq!(true, run_validator("type a : forward\nvar k : ^a\ntype a : int"));
         assert_eq!(true, run_validator("type a : forward\ntype k : ^a\ntype a : int"));
         assert_eq!(false, run_validator("type a : forward\ntype k : a\ntype a : int"));
+        assert_eq!(false, run_validator("type a : forward\ntype k : set of a\ntype a : int"));
 
         // Range bounds types do not match
         assert_eq!(false, run_validator("type a : true .. 'c'"));

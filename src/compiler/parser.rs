@@ -486,10 +486,7 @@ impl<'s> Parser<'s> {
             // Normal declaration
             match type_spec {
                 Some(type_spec) => {
-                    let alias_type = self.declare_type(Type::Alias {
-                        to: type_spec,
-                        derived: TypeRef::Unknown,
-                    });
+                    let alias_type = self.declare_type(Type::Alias { to: type_spec });
 
                     // Normal declare
                     Ok(Stmt::TypeDecl {
@@ -1303,20 +1300,6 @@ impl<'s> Parser<'s> {
         }
     }
 
-    /// Parse a range type
-    fn type_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
-        // Try to parse the start range
-        let start_range = self.expr().map_err(|_| ())?;
-
-        if self.current().token_type != TokenType::Range {
-            // Not a range expression
-            // Propogate the error up
-            return Err(());
-        }
-
-        Ok(self.type_range_rest(start_range, parse_context))
-    }
-
     // Parse the rest of a range type
     // Will always produce a range
     fn type_range_rest(&mut self, start_range: Expr, parse_context: &TokenType) -> TypeRef {
@@ -1519,7 +1502,7 @@ impl<'s> Parser<'s> {
         let _ = self.expects(TokenType::Of, format_args!("Expected 'of' after 'set'"));
 
         // Parse the range!
-        let range = match self.type_range(&TokenType::Set) {
+        let range = match self.type_reference_or_range(&TokenType::Set) {
             Err(_) => TypeRef::TypeError,
             Ok(range) => range,
         };
@@ -2623,7 +2606,6 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
                 Some(Type::Alias {
                     to: TypeRef::TypeError,
-                    derived: TypeRef::Unknown,
                 })
             )
         );
@@ -2644,7 +2626,6 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
                 Some(Type::Alias {
                     to: TypeRef::Primitive(PrimitiveType::Int),
-                    derived: TypeRef::Unknown,
                 })
             )
         );

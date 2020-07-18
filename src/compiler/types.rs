@@ -129,8 +129,6 @@ pub enum Type {
     Alias {
         /// other Type aliased by the current Type
         to: TypeRef,
-        /// TypeRef to the end of the aliasing chain
-        derived: TypeRef,
     },
     /// Array Type
     Array {
@@ -234,9 +232,10 @@ impl TypeTable {
         &mut self.types[type_id]
     }
 
-    /// Checks if the given type is an alias for another type
-    pub fn is_alias(&self, type_id: usize) -> bool {
-        matches!(self.get_type(type_id), Type::Alias{ .. })
+    /// Checks if the given type is an indirect alias for another type.
+    /// This includes both Alias and Reference types.
+    pub fn is_indirect_alias(&self, type_id: usize) -> bool {
+        matches!(self.get_type(type_id), Type::Alias{ .. } | Type::Reference { .. })
     }
 }
 
@@ -351,6 +350,16 @@ pub fn get_sized_len(type_ref: &TypeRef) -> Option<usize> {
             _ => None,
         },
         _ => None,
+    }
+}
+
+/// Gets a type id from a type reference
+/// Returns `None` if the type is not named
+pub fn get_type_id(type_ref: &TypeRef) -> Option<usize> {
+    if let TypeRef::Named(type_id) = type_ref {
+        Some(*type_id)
+    } else {
+        None
     }
 }
 
