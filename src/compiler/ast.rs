@@ -203,6 +203,9 @@ pub enum Stmt {
     },
     TypeDecl {
         ident: Identifier,
+        /// Resolved type for a forward type decl
+        resolved_type: Option<TypeRef>,
+        is_new_def: bool,
     },
     // Stmts
     Assign {

@@ -144,10 +144,10 @@ pub enum Type {
         /// If the array has an upper bound based on the initializing expression
         is_init_sized: bool,
     },
-    /// Forward reference to the type with the given identifier
+    /// Forward reference to a type
     Forward {
-        // The associated identifier of the forward declare
-        ident: Identifier,
+        /// If the reference has been resolved in the current unit
+        is_resolved: bool,
     },
     /// Function / Procedure definition \
     /// Having both as Options allows differentiation between parameter and

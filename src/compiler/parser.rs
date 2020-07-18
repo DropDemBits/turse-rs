@@ -402,14 +402,14 @@ impl<'s> Parser<'s> {
         let type_tok = self.next_token();
 
         // Expect identifier (continue parsing after the identifier)
-        let ident = self
+        let ident_tok = self
             .expects(
                 TokenType::Identifier,
                 format_args!("Expected identifier after 'type'"),
             )
             .ok();
 
-        if ident.is_some() {
+        if ident_tok.is_some() {
             // Only require a colon if there was an identifier
             let _ = self.expects(
                 TokenType::Colon,
@@ -421,19 +421,95 @@ impl<'s> Parser<'s> {
             let _ = self.optional(TokenType::Colon);
         }
 
-        // Get the type spec (in the type declaration context)
-        let type_spec = self.parse_type(&type_tok.token_type);
+        // Get either the type spec, or the forward keyword
+        let type_spec = if self.optional(TokenType::Forward) {
+            None
+        } else {
+            // Get the type spec (in the type declaration context)
+            Some(self.parse_type(&type_tok.token_type))
+        };
 
-        if ident.is_none() {
+        if ident_tok.is_none() {
             // Cannot declare a named type without an identifier
             return Err(ParsingStatus::Error);
         }
 
-        let ident_tok = ident.unwrap();
+        // Declare the actual type
+        let ident_tok = ident_tok.unwrap();
+        let old_ident = self.get_ident(self.get_token_lexeme(&ident_tok));
 
-        Ok(Stmt::TypeDecl {
-            ident: self.declare_ident(ident_tok, type_spec, true, true),
-        })
+        if let Some(Type::Forward { is_resolved: false }) = old_ident.as_ref().and_then(|ident| {
+            self.unit
+                .as_ref()
+                .unwrap()
+                .types()
+                .type_from_ref(&ident.type_spec)
+        }) {
+            // Resolve forwards (otherwise `is_resolved` would be false)
+
+            // We known that the old ident is valid (from above condtion)
+            let old_ident = old_ident.unwrap();
+
+            match type_spec {
+                Some(resolve_type) => {
+                    // Resolving forward, update old resolving type
+                    self.replace_type(&old_ident.type_spec, Type::Forward { is_resolved: true });
+
+                    // Use the resolved type in the type decl
+                    let mut ident = old_ident.clone();
+                    ident.token = ident_tok;
+
+                    Ok(Stmt::TypeDecl {
+                        ident: ident,
+                        resolved_type: Some(resolve_type),
+                        is_new_def: false,
+                    })
+                }
+                None => {
+                    // Redeclaring forward, keep the same type
+                    self.reporter.report_error(
+                        &ident_tok.location,
+                        format_args!("Duplicate forward type declaration"),
+                    );
+
+                    let mut ident = old_ident.clone();
+                    ident.token = ident_tok;
+
+                    Ok(Stmt::TypeDecl {
+                        ident: ident,
+                        resolved_type: None,
+                        is_new_def: false,
+                    })
+                }
+            }
+        } else {
+            // Normal declaration
+            match type_spec {
+                Some(type_spec) => {
+                    let alias_type = self.declare_type(Type::Alias {
+                        to: type_spec,
+                        derived: TypeRef::Unknown,
+                    });
+
+                    // Normal declare
+                    Ok(Stmt::TypeDecl {
+                        ident: self.declare_ident(ident_tok, alias_type, true, true),
+                        resolved_type: Some(alias_type),
+                        is_new_def: true,
+                    })
+                }
+                None => {
+                    let forward_type = self.declare_type(Type::Forward { is_resolved: false });
+
+                    // Forward declare
+                    Ok(Stmt::TypeDecl {
+                        ident: self.declare_ident(ident_tok, forward_type, true, true),
+                        resolved_type: None,
+                        is_new_def: true,
+                    })
+                }
+            }
+        }
     }
 
     // --- Stmt Parsing --- //
@@ -1485,6 +1561,52 @@ impl<'s> Parser<'s> {
             .use_ident(ident, name)
     }
 
+    /// Gets the identifier from the current scope
+    fn get_ident(&self, name: &str) -> Option<Identifier> {
+        self.blocks
+            .last()
+            .unwrap()
+            .borrow_mut()
+            .scope
+            .get_ident(name)
+            .map(|i| i.clone())
+    }
+
+    /// Updates the identifier with the specified info
+    fn resolve_ident(&self, name: &str, ident_info: &Identifier) -> Identifier {
+        self.blocks
+            .last()
+            .unwrap()
+            .borrow_mut()
+            .scope
+            .resolve_ident(name, &ident_info)
+    }
+
+    // -- Wrappers around the type table -- //
+    fn declare_type(&mut self, type_info: Type) -> TypeRef {
+        TypeRef::Named(
+            self.unit
+                .as_mut()
+                .unwrap()
+                .types_mut()
+                .declare_type(type_info),
+        )
+    }
+
+    fn replace_type(&mut self, type_ref: &TypeRef, new_info: Type) {
+        if let TypeRef::Named(replace_id) = type_ref {
+            self.unit
+                .as_mut()
+                .unwrap()
+                .types_mut()
+                .replace_type(*replace_id, new_info);
+        } else {
+            panic!("Not a named type ref");
+        }
+    }
+
+    // -- Block Helpers -- //
+
     /// Pushes a new block onto the block list
     fn push_block(&mut self, block_kind: BlockKind) {
         let block = CodeBlock::new(block_kind, &self.blocks);
@@ -1500,17 +1622,6 @@ impl<'s> Parser<'s> {
         block.borrow_mut().stmts.append(stmts);
 
         block
-    }
-
-    // -- Wrappers around the type table -- //
-    fn declare_type(&mut self, type_info: Type) -> TypeRef {
-        TypeRef::Named(
-            self.unit
-                .as_mut()
-                .unwrap()
-                .types_mut()
-                .declare_type(type_info),
-        )
     }
 
     // --- Helpers --- //
@@ -2570,8 +2681,19 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         assert!(!parser.parse());
         assert!(get_ident(&parser, "a").is_some());
         assert_eq!(
-            get_ident(&parser, "a").unwrap().type_spec,
-            TypeRef::TypeError
+            true,
+            matches!(
+                parser
+                    .unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
+                Some(Type::Alias {
+                    to: TypeRef::TypeError,
+                    derived: TypeRef::Unknown,
+                })
+            )
         );
         assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 
@@ -2580,9 +2702,84 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         assert!(get_ident(&parser, "a").is_some());
         assert!(get_ident(&parser, "a").unwrap().is_typedef);
         assert_eq!(
-            get_ident(&parser, "a").unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::Int)
+            true,
+            matches!(
+                parser
+                    .unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
+                Some(Type::Alias {
+                    to: TypeRef::Primitive(PrimitiveType::Int),
+                    derived: TypeRef::Unknown,
+                })
+            )
         );
         assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+
+        // Check that the forward reference is updated
+        let mut parser = make_test_parser("type a : forward");
+        assert!(parser.parse()); // Checked by the validator
+        assert_eq!(
+            true,
+            matches!(
+                parser
+                    .unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
+                Some(Type::Forward { is_resolved: false })
+            )
+        );
+
+        // Check that the forward reference is updated
+        let mut parser = make_test_parser("type a : forward\ntype a : int");
+        assert!(parser.parse()); // Checked by the validator
+        assert_eq!(
+            true,
+            matches!(
+                parser
+                    .unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
+                Some(Type::Forward { is_resolved: true })
+            )
+        );
+
+        // Forward refs after resolves create a new type
+        let mut parser = make_test_parser("type a : forward\ntype a : int\ntype a : forward");
+        assert!(!parser.parse());
+        assert_eq!(
+            true,
+            matches!(
+                parser
+                    .unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&get_ident_instance(&parser, "a", 2).unwrap().type_spec),
+                Some(Type::Forward { is_resolved: false })
+            )
+        );
+
+        // Duplicate forward refs should not affect resolved state
+        let mut parser = make_test_parser("type a : forward\ntype a : forward\ntype a : int");
+        assert!(!parser.parse());
+        assert_eq!(
+            true,
+            matches!(
+                parser
+                    .unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&get_ident_instance(&parser, "a", 1).unwrap().type_spec),
+                Some(Type::Forward { is_resolved: true })
+            )
+        );
     }
 }

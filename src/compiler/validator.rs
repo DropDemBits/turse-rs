@@ -126,6 +126,16 @@ impl ScopeInfo {
     }
 }
 
+/// Type resolving context
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+enum ResolveContext {
+    /// Any resolution phase (runtime/compile-time) is valid
+    Any,
+    /// Everything must be resolved at compile time
+    /// `bool` is for whether 'forward' unnamed types is allowed
+    CompileTime(bool),
+}
+
 /// Validator Instance
 pub struct Validator<'a> {
     /// Status reporter for the type validator
@@ -149,9 +159,8 @@ impl<'a> Validator<'a> {
     }
 
     /// Resolves the given type, validating that the type is a valid type
-    /// `require_compile_time` indicates that the resolved type needs to be compile time
     /// Returns the resolved typedef
-    fn resolve_type(&mut self, base_ref: TypeRef, require_compile_time: bool) -> TypeRef {
+    fn resolve_type(&mut self, base_ref: TypeRef, resolving_context: ResolveContext) -> TypeRef {
         if !types::is_named(&base_ref) {
             // Not a named ref, no resolving needs to be done
             return base_ref;
@@ -168,44 +177,53 @@ impl<'a> Validator<'a> {
         let mut type_info = self.type_table.get_type(type_id).clone();
 
         match &mut type_info {
-            Type::Alias { .. } => {
-                // Aliasing will require handling chains, cycles, and assigning the correct base_type reference
-                todo!()
+            Type::Alias { to, derived } => {
+                if types::is_error(to) {
+                    // Apply type error to both `to` and `derived`
+                    *to = TypeRef::TypeError;
+                    *derived = TypeRef::TypeError;
+                } else {
+                    // TODO: Aliasing will require handling chains, cycles, and assigning the correct base_type reference
+                    // For now, just resolve the `to` as-is
+                    *to = self.resolve_type(*to, resolving_context);
+                }
             }
             Type::Array { ranges, element_type, ..} => {
                 // Resolve the ranges
                 for range in ranges.iter_mut() {
                     // Not required to be compile-time, unless we are in a compile-time context
-                    *range = self.resolve_type(*range, require_compile_time);
+                    *range = self.resolve_type(*range, resolving_context);
                 }
 
                 // Resolve the element type
                 // Required to be compile-time as the element size must be known
-                *element_type = self.resolve_type(*element_type, true);
+                *element_type = self.resolve_type(*element_type, ResolveContext::CompileTime(false));
             }
-            Type::Forward { ident } => {
-                // Type has not been resolved in the unit
-                self.reporter.report_error(&ident.token.location, format_args!("Type '{}' has not been resolved", ident.name));
+            Type::Forward { is_resolved } => {
+                if !*is_resolved {
+                    // Type has not been resolved in the unit
+                    // Replace with a type error
+                    return TypeRef::TypeError;
+                }
 
-                // Replace with a type error
-                return TypeRef::TypeError;
+                // Type has been resolved in the unit, but will be replaced with the real type later
             }
             Type::Function { params, result } => {
                 // Resolve each of the parameters
                 if params.is_some() {
                     for param in params.as_mut().unwrap().iter_mut() {
-                        param.type_spec = self.resolve_type(param.type_spec, true);
+                        param.type_spec = self.resolve_type(param.type_spec, ResolveContext::CompileTime(false));
                     }
                 }
 
                 // Resolve the result type
                 if result.is_some() {
-                    *result = Some(self.resolve_type(result.unwrap(), true));
+                    *result = Some(self.resolve_type(result.unwrap(), ResolveContext::CompileTime(false)));
                 }
             }
             Type::Pointer { to } => {
-                // Resolve the 'to' type
-                *to = self.resolve_type(*to, true);
+                // Resolve the 'to' type (allow forward references)
+                *to = self.resolve_type(*to, ResolveContext::CompileTime(true));
             }
             Type::Range { start, end, base_type } => {
                 // Visit & fold the bound expressions
@@ -228,7 +246,7 @@ impl<'a> Validator<'a> {
                     return TypeRef::TypeError;
                 }
 
-                if require_compile_time {
+                if matches!(resolving_context, ResolveContext::CompileTime(_)) {
                     // All type info must be known at compile-time
 
                     // Validate that the range type ref references a range that
@@ -274,6 +292,9 @@ impl<'a> Validator<'a> {
                 // Evaluate expression
                 self.visit_expr(expr);
 
+                // Error reporting purposes
+                let reference_locate;
+                
                 // Ensure that the top-most expression resolves to a type
                 match &**expr {
                     Expr::Dot { field: (token, name, is_typedef), .. } => {
@@ -283,25 +304,45 @@ impl<'a> Validator<'a> {
                             // Produce a type error
                             return TypeRef::TypeError;
                         }
+
+                        reference_locate = token.location.clone();
                     }
                     Expr::Reference { ident } => {
                         if !ident.is_typedef {
-                            self.reporter.report_error(&ident.token.location, format_args!("Identifier is not a reference to a type"));
+                            self.reporter.report_error(&ident.token.location, format_args!("'{}' is not a reference to a type", ident.name));
 
                             // Produce a type error
                             return TypeRef::TypeError;
                         }
+
+                        reference_locate = ident.token.location.clone();
                     }
                     _ => unreachable!(), // No other expressions allowed, handled by the parser
                 }
 
+                // Check if the eval type de-aliases to a forward
+                // TODO: De-alias type ref
+                let type_ref = expr.get_eval_type();
+
+                if let Some(Type::Forward { is_resolved }) = self.type_table.type_from_ref(&type_ref) {
+                    if !*is_resolved {
+                        // The type is not resolved at all, replace with TypeError
+                        self.reporter.report_error(&reference_locate, format_args!("Type reference is not resolved in the current unit"));
+                        return TypeRef::TypeError;
+                    } else if matches!(resolving_context, ResolveContext::CompileTime(false)) {
+                        // The type ref is required to be resolved at this point, replace with TypeError
+                        self.reporter.report_error(&reference_locate, format_args!("Type reference is required to be resolved at this point"));
+                        return TypeRef::TypeError;
+                    }
+                }
+
                 // Produce the resolved type
-                return expr.get_eval_type();
+                return type_ref;
             }
             Type::Set { range } => {
                 // Doesn't matter if the range is a type error or not, will be
                 // ignored during equivalence checking
-                *range = self.resolve_type(*range, true);
+                *range = self.resolve_type(*range, ResolveContext::CompileTime(false));
             }
         }
 
@@ -349,8 +390,13 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 if types::is_named(type_spec) {
                     // Only required to be compile-time if the decl is a const decl, or if the type spec
                     // is not directly an array
-                    let require_compile_time = *is_const || !matches!(self.type_table.type_from_ref(type_spec), Some(Type::Array{ .. }));
-                    *type_spec = self.resolve_type(*type_spec, require_compile_time);
+                    let resolving_context = if *is_const || !matches!(self.type_table.type_from_ref(type_spec), Some(Type::Array{ .. })) {
+                        ResolveContext::CompileTime(false)
+                    } else {
+                        ResolveContext::Any
+                    };
+
+                    *type_spec = self.resolve_type(*type_spec, resolving_context);
                 }
                 
                 // Handle the type spec propogation
@@ -416,13 +462,36 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     self.scope_infos.last_mut().unwrap().decl_ident_with(ident.clone(), const_val.clone());
                 }
             }
-            Stmt::TypeDecl { ident } => {
-                // Resolve the associated type
-                ident.type_spec = self.resolve_type(ident.type_spec, true);
+            Stmt::TypeDecl { ident, resolved_type, is_new_def } => {
+                if *is_new_def {
+                    if resolved_type.is_some() {
+                        // Resolve the associated type (do not allow forward references)
+                        ident.type_spec = self.resolve_type(ident.type_spec, ResolveContext::CompileTime(false));
+                    }
 
-                // Declare the identifier and check for redeclaration errors
-                if self.scope_infos.last_mut().unwrap().decl_ident(ident.clone()) {
-                    self.reporter.report_error(&ident.token.location, format_args!("'{}' has already been declared", ident.name));
+                    // Declare the identifier and check for redeclaration errors
+                    if self.scope_infos.last_mut().unwrap().decl_ident(ident.clone()) {
+                        self.reporter.report_error(&ident.token.location, format_args!("'{}' has already been declared", ident.name));
+                    }
+                } else {
+                    // Use the identifier
+                    assert!(!self.scope_infos.last_mut().unwrap().use_ident(&ident).1);
+
+                    if let Some(resolve_ref) = resolved_type {
+                        // This is a type resolution statement, update the associated type reference
+                        if let TypeRef::Named(replace_id) = ident.type_spec{
+                            // Make an alias to the resolved type
+                            self.type_table.replace_type(replace_id, Type::Alias{
+                                to: *resolve_ref,
+                                derived: TypeRef::Unknown,
+                            });
+                        }
+                        
+                        // Resolve the rest of the type
+                        ident.type_spec = self.resolve_type(ident.type_spec, ResolveContext::CompileTime(false));
+                    } else {
+                        // This is a redeclared forward, and is safe to ignore
+                    }
                 }
             }
             Stmt::Assign {
@@ -1545,6 +1614,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
 
         // Aliases are equivalent to their base types
         // TODO: Requires type de-aliasing
+
+        // Forwad aliases are equivalent to their base types
+        // TODO: Requires type de-aliasing
+
+        // Forward refs are only allowed in pointer type definitions
+        assert_eq!(true, run_validator("type a : forward\nvar k : ^a\ntype a : int"));
+        assert_eq!(true, run_validator("type a : forward\ntype k : ^a\ntype a : int"));
+        assert_eq!(false, run_validator("type a : forward\ntype k : a\ntype a : int"));
 
         // Range bounds types do not match
         assert_eq!(false, run_validator("type a : true .. 'c'"));

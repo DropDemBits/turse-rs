@@ -222,7 +222,8 @@ impl Scope {
         }
     }
 
-    /// Resolves the given identifier in the given scope, by modifying the latest identifier
+    /// Resolves the given identifier in the given scope, by modifying the
+    /// identifier with the same instance
     /// If the given identifier has not been declared in the current scope
     /// (either by importing from an external scope or by local declaration), a panic is done
     /// An identifier should already be declared by the time this is executed
@@ -235,7 +236,7 @@ impl Scope {
         // Grab the identifier reference
         let ident = match ident_store {
             IdentEntry::Single(ident) => ident,
-            IdentEntry::Multiple(all_defs) => all_defs.last_mut().unwrap(),
+            IdentEntry::Multiple(all_defs) => &mut all_defs[new_info.instance as usize],
         };
 
         ident.type_spec = new_info.type_spec;
