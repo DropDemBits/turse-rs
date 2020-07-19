@@ -191,6 +191,18 @@ impl Expr {
         }
     }
 
+    pub fn set_span(&mut self, at: Location) {
+        match self {
+            Expr::BinaryOp { span, .. } => *span = at,
+            Expr::UnaryOp { span, .. } => *span = at,
+            Expr::Grouping { span, .. } => *span = at,
+            Expr::Literal { value, .. } => value.location = at,
+            Expr::Call { span, .. } => *span = at,
+            Expr::Dot { span, .. } => *span = at,
+            Expr::Reference { ident } => ident.token.location = at,
+        }
+    }
+
     /// Gets the compile evaluability status of the expression
     pub fn is_compile_eval(&self) -> bool {
         match self {

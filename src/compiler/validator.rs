@@ -11,7 +11,7 @@ use crate::compiler::ast::{ASTVisitorMut, Identifier, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
-use crate::compiler::value::{self, Value};
+use crate::compiler::value::{self, Value, ValueApplyError};
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -479,7 +479,11 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     let init_eval = self.visit_expr(expr);
 
                     // Try to replace the initializer value with the folded value
-                    if init_eval.is_some() { *expr = Box::new(Expr::try_from(init_eval.unwrap()).unwrap()); }
+                    if init_eval.is_some() {
+                        let span = expr.get_span().clone();
+                        *expr = Box::new(Expr::try_from(init_eval.unwrap()).unwrap());
+                        expr.set_span(span);
+                    }
 
                     is_compile_eval = expr.is_compile_eval();
                 }
@@ -599,8 +603,16 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let value_eval = self.visit_expr(value);
 
                 // Try to replace the operands with the folded values
-                if ref_eval.is_some() { *var_ref = Box::new(Expr::try_from(ref_eval.unwrap()).unwrap()); }
-                if value_eval.is_some() { *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap()); }
+                if ref_eval.is_some() {
+                    let span = var_ref.get_span().clone();
+                    *var_ref = Box::new(Expr::try_from(ref_eval.unwrap()).unwrap());
+                    var_ref.set_span(span);
+                }
+                if value_eval.is_some() {
+                    let span = value.get_span().clone();
+                    *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap());
+                    value.set_span(span);
+                }
 
                 let left_type = &self.dealias_resolve_type(var_ref.get_eval_type());
                 let right_type = &self.dealias_resolve_type(value.get_eval_type());
@@ -685,7 +697,11 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let eval = self.visit_expr(expr);
 
                 // Try to replace the inner expression with the folded value
-                if eval.is_some() { *expr = Box::new(Expr::try_from(eval.clone().unwrap()).unwrap()); }
+                if eval.is_some() {
+                    let span = expr.get_span().clone();
+                    *expr = Box::new(Expr::try_from(eval.clone().unwrap()).unwrap());
+                    expr.set_span(span);
+                }
 
                 *eval_type = expr.get_eval_type();
                 *is_compile_eval = expr.is_compile_eval();
@@ -705,8 +721,16 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let right_eval = self.visit_expr(right);
 
                 // Try to replace the operands with the folded values
-                if left_eval.is_some() { *left = Box::new(Expr::try_from(left_eval.unwrap()).unwrap()); }
-                if right_eval.is_some() { *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap()); }
+                if left_eval.is_some() {
+                    let span = left.get_span().clone();
+                    *left = Box::new(Expr::try_from(left_eval.unwrap()).unwrap());
+                    left.set_span(span);
+                }
+                if right_eval.is_some() {
+                    let span = right.get_span().clone();
+                    *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
+                    right.set_span(span);
+                }
 
                 // Validate that the types are assignable with the given operation
                 // eval_type is the type of the expr result
@@ -748,8 +772,19 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                                 },
                                 Err(msg) => {
                                     // Report the error message!
-                                    // TODO: Produce an appropriate error message for the current operand
-                                    self.reporter.report_error(&loc, format_args!("Error in folding compile-time expression: {:?}", msg));
+                                    match msg {
+                                        ValueApplyError::Overflow =>
+                                            self.reporter.report_error(&loc, format_args!("Overflow in compile-time expression")),
+                                        ValueApplyError::InvalidOperand => match op {
+                                            TokenType::Shl | TokenType::Shr => self.reporter.report_error(right.get_span(), format_args!("Negative shift amount in compile-time '{}' expression", op)),
+                                            _ => self.reporter.report_error(right.get_span(), format_args!("Invalid operand in compile-time expression")),
+                                        },
+                                        ValueApplyError::DivisionByZero => {
+                                            // Recoverable
+                                            self.reporter.report_warning(&loc, format_args!("Compile-time '{}' by zero", op));
+                                        },
+                                        ValueApplyError::WrongTypes => unreachable!() // Types are guarranteed to be compatible
+                                    }
 
                                     // Remove the compile-time evaluability status
                                     *is_compile_eval = false;
@@ -812,7 +847,11 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let right_eval = self.visit_expr(right);
 
                 // Try to replace operand with the folded value
-                if right_eval.is_some() { *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap()); }
+                if right_eval.is_some() {
+                    let span = right.get_span().clone();
+                    *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
+                    right.set_span(span);
+                }
 
                 // Validate that the unary operator can be applied to the rhs
                 // eval_type is the result of the operation (usually the same
@@ -899,6 +938,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 // A call expression would be compile-time evaluable if it had no side effects,
                 // but we don't check that right now
                 *is_compile_eval = false;
+                // TODO: Type check call expressions
             }
             Expr::Dot {
                 left,
@@ -908,12 +948,12 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 ..
             } => {
                 self.visit_expr(left);
-
                 // Validate that the field exists in the given type
                 // eval_type is the field type
 
                 // For now, dot expressions default to runtime-time only
                 *is_compile_eval = false;
+                // TODO: Type check dot expressions
             }
             Expr::Reference { ident } => {
                 // Use the identifier and grab the associated value
@@ -1984,6 +2024,18 @@ mod test {
 
         // Valid type check, checked at runtime
         assert_eq!(true, run_validator("var a : nat := (0 - 1)"));
+    }
+
+    #[test]
+    fn test_folding_reporting() {
+        // All of these should produce errors (except for const setup)
+        assert_eq!(false, run_validator("const amt := 0 - 1
+        var beebee := 1 shl amt
+        beebee := 1 shr amt
+        beebee := 1 div 0
+        beebee := 1 / 0
+        beebee := 1 rem 0
+        beebee := 1 mod 0"));
     }
 
     #[test]
