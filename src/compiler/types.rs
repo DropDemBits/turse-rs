@@ -476,6 +476,13 @@ pub fn is_set(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     matches!(type_table.type_from_ref(type_ref), Some(Type::Set { .. }))
 }
 
+pub fn is_index_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    matches!(
+        type_ref,
+        TypeRef::Primitive(PrimitiveType::Char) | TypeRef::Primitive(PrimitiveType::Boolean)
+    ) || matches!(type_table.type_from_ref(type_ref), Some(Type::Range { .. })) // Don't forget about enum types!
+}
+
 /// Gets the common type between the two given type refs
 pub fn common_type<'a>(
     lhs: &'a TypeRef,
@@ -599,9 +606,13 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
 
 /// Checks if the types are equivalent
 pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) -> bool {
+    if is_error(lhs) || is_error(rhs) {
+        // Quick escape for type errors
+        return false;
+    }
+
     if lhs == rhs {
         // Quick escape for simple equivalent types (e.g. primitives)
-        // Smaller kinds of char sequences are not equivalent to larger kinds
         return true;
     }
 
@@ -615,6 +626,13 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
     } else if is_char(lhs) && is_char(rhs) {
         // Char types are equivalent
         return true;
+    } else if (is_char(lhs) && is_charn(rhs)) || (is_charn(lhs) && is_char(rhs)) {
+        // Must check length
+        let lvalue_len = get_sized_len(lhs).unwrap_or(1);
+        let rvalue_len = get_sized_len(rhs).unwrap_or(1);
+
+        // char is equivalent to char(1), but not general char(n)
+        return lvalue_len == rvalue_len;
     }
 
     // Perform equivalence testing based on the type info
@@ -705,6 +723,34 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
     }
 
     false
+}
+
+/// Dealiases the given ref, using the given type table.
+/// Does not perform resolving of any types, and requires the previous
+/// resolution of any Type::Reference found along the chain.
+pub fn dealias_ref(type_ref: &TypeRef, type_table: &TypeTable) -> TypeRef {
+    let mut current_ref = type_ref;
+
+    loop {
+        let type_id = if let Some(id) = get_type_id(current_ref) {
+            id
+        } else {
+            // Reached a primitive type
+            break *current_ref;
+        };
+
+        if let Type::Alias { to } = type_table.get_type(type_id) {
+            // Advance the chain
+            current_ref = to;
+        } else {
+            // Reached a non alias type
+            debug_assert!(
+                !matches!(type_table.get_type(type_id), Type::Reference { .. }),
+                "A reference was not resolved at this point"
+            );
+            break *current_ref;
+        }
+    }
 }
 
 #[cfg(test)]

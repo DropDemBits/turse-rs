@@ -286,7 +286,7 @@ impl<'a> Validator<'a> {
 
                 // Update the base type
                 // Either `start_type` or `end_type` could be used
-                *base_type = self.dealias_type(start_type);
+                *base_type = self.dealias_resolve_type(start_type);
             }
             Type::Reference { expr } => {
                 // Reference will produce a reference to the associated type_spec
@@ -324,7 +324,7 @@ impl<'a> Validator<'a> {
                 }
 
                 // Check if the eval type de-aliases to a forward
-                let type_ref = self.dealias_type(expr.get_eval_type());
+                let type_ref = self.dealias_resolve_type(expr.get_eval_type());
 
                 if let Some(Type::Forward { is_resolved }) = self.type_table.type_from_ref(&type_ref) {
                     if !*is_resolved {
@@ -341,35 +341,37 @@ impl<'a> Validator<'a> {
                 // Produce the resolved type
                 return type_ref;
             }
-            Type::Set { range } => {
+            Type::Set { range: index } => {
                 // Keep track of the old type ref for error reporting
-                let old_range_ref = *range;
+                let old_index_ref = *index;
 
                 // Doesn't matter if the range is a type error or not, will be
                 // ignored during equivalence checking
-                *range = self.resolve_type(*range, ResolveContext::CompileTime(false));
+                *index = self.resolve_type(*index, ResolveContext::CompileTime(false));
 
-                if types::is_named(&range) {
-                    // Check that the range reference is actually a range and not a reference
+                if types::is_named(&index) {
+                    // Check that the index reference is actually an index type and not a reference to a non-index type
                     // Other cases are handled by the parser
-                    let real_range = self.dealias_type(*range);
+                    let real_index = self.dealias_resolve_type(*index);
 
-                    if !matches!(self.type_table.type_from_ref(&real_range), Some(Type::Range { .. })) {
-                        // Not a real range type, change it to point to a type error
-                        *range = TypeRef::TypeError;
+                    if !types::is_index_type(&real_index, self.type_table) {
+                        // Not a real index type, change it to point to a type error
+                        *index = TypeRef::TypeError;
 
                         // Report the error based on the reference location
-                        if let Some(Type::Reference { expr }) = self.type_table.type_from_ref(&old_range_ref) {
+                        if let Some(Type::Reference { expr }) = self.type_table.type_from_ref(&old_index_ref) {
                             self.reporter.report_error(expr.get_span(), format_args!("Set index is not a range, char, boolean, or enumerated type"));
                         } else {
-                            // Other cases should be handled by the parser
-                            unreachable!();
+                            // Other cases should be reported by the parser (e.g. wrong primitive type)
                         }
                     }
+                } else if types::is_primitive(&index) && types::is_index_type(&index, self.type_table) {
+                    // Is a primitive, either a 'char' or 'boolean'
+                    // Keep as is
                 } else {
                     // Ensure that the range is really a type error
                     // Don't need to report, as it is covered by a previous error
-                    *range = TypeRef::TypeError;
+                    *index = TypeRef::TypeError;
                 }
             }
         }
@@ -380,7 +382,7 @@ impl<'a> Validator<'a> {
     }
 
     /// De-aliases a type ref, following through Alias types and resolving Reference types.
-    fn dealias_type(&mut self, type_ref: TypeRef) -> TypeRef {
+    fn dealias_resolve_type(&mut self, type_ref: TypeRef) -> TypeRef {
         let type_id = if let Some(id) = types::get_type_id(&type_ref) {
             id
         } else {
@@ -501,8 +503,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     // Type of the identifier is known, validate that the types are assignable
                     let expr = value.as_ref().unwrap();
 
-                    let left_type = &self.dealias_type(*type_spec);
-                    let right_type = &self.dealias_type(expr.get_eval_type());
+                    let left_type = &self.dealias_resolve_type(*type_spec);
+                    let right_type = &self.dealias_resolve_type(expr.get_eval_type());
 
                     // If both of the types are not an error, check for assignability
                     if !types::is_error(left_type) && !types::is_error(right_type) {
@@ -595,8 +597,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 if ref_eval.is_some() { *var_ref = Box::new(Expr::try_from(ref_eval.unwrap()).unwrap()); }
                 if value_eval.is_some() { *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap()); }
 
-                let left_type = &self.dealias_type(var_ref.get_eval_type());
-                let right_type = &self.dealias_type(value.get_eval_type());
+                let left_type = &self.dealias_resolve_type(var_ref.get_eval_type());
+                let right_type = &self.dealias_resolve_type(value.get_eval_type());
 
                 // Validate that the types are assignable for the given operation
                 if types::is_error(left_type) || types::is_error(right_type) {
@@ -673,8 +675,8 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let loc = &op.location;
                 let op = &op.token_type;
 
-                let left_type = &self.dealias_type(left.get_eval_type());
-                let right_type = &self.dealias_type(right.get_eval_type());
+                let left_type = &self.dealias_resolve_type(left.get_eval_type());
+                let right_type = &self.dealias_resolve_type(right.get_eval_type());
 
                 if types::is_error(left_type) || types::is_error(right_type) {
                     // Either one is a type error
@@ -780,7 +782,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 let loc = &op.location;
                 let op = &op.token_type;
 
-                let right_type = &self.dealias_type(right.get_eval_type());
+                let right_type = &self.dealias_resolve_type(right.get_eval_type());
 
                 if types::is_error(right_type) {
                     // Right operand is a type error
@@ -1114,11 +1116,15 @@ fn check_binary_operands(
             // - Right type is a set
             // Otherwise, Boolean (as error) is produced
             if let Some(Type::Set { range }) = type_table.type_from_ref(right_type) {
+                // ???: Use 'assignable to' to reuse range check?
                 if let Some(Type::Range { base_type, .. }) = type_table.type_from_ref(range) {
                     if types::is_equivalent_to(left_type, base_type, type_table) {
-                        // Element test with equivalent types produces boolean
+                        // Element test with equivalent/compatible types produces boolean
                         return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
                     }
+                } else if types::is_equivalent_to(left_type, range, type_table) {
+                    // Element test with equivalent primitive types produces boolean
+                    return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
                 }
             }
         }
@@ -1327,6 +1333,8 @@ mod test {
         assert_eq!(true, run_validator("var a : real := 1.0 + 1.0\na += 1.0 + 1.0"));
         assert_eq!(true, run_validator("var a : string := \"Hello, \" + \"World!\"\na += \"Hello, \" + \"World!\""));
         assert_eq!(true, run_validator("type s : set of 1 .. 3\nvar a : s\nvar b : s\nvar c : s := a + b\nc += a"));
+        assert_eq!(true, run_validator("type s : set of char\nvar a : s\nvar b : s\nvar c : s := a + b\nc += a"));
+        assert_eq!(true, run_validator("type s : set of boolean\nvar a : s\nvar b : s\nvar c : s := a + b\nc += a"));
 
         // real cannot be assigned into int
         assert_eq!(false, run_validator("var a : int := 1 + 1.0"));
@@ -1341,11 +1349,14 @@ mod test {
         assert_eq!(false, run_validator("var a : string := \"str\"\na += 1.0"));
 
         // Set union not applicable to non-equivalent ranges / indexes
-        // TODO: Test the other set index types
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar b : t\nvar c := a + b"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar c : t\nc += a"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar b : t\nvar c := a + b"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar c : t\nc += a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of char\nvar a : s\nvar b : t\nvar c := a + b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of char\nvar a : s\nvar c : t\nc += a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar b : t\nvar c := a + b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar c : t\nc += a"));
     }
 
     #[test]
@@ -1358,17 +1369,22 @@ mod test {
         assert_eq!(true, run_validator("var a : real :=   1 - 1.0\na -=   1 - 1.0"));
         assert_eq!(true, run_validator("var a : real := 1.0 - 1.0\na -= 1.0 - 1.0"));
         assert_eq!(true, run_validator("type s : set of 1 .. 3\nvar a : s\nvar b : s\nvar c : s := a - b\nc -= a"));
+        assert_eq!(true, run_validator("type s : set of char\nvar a : s\nvar b : s\nvar c : s := a - b\nc -= a"));
+        assert_eq!(true, run_validator("type s : set of boolean\nvar a : s\nvar b : s\nvar c : s := a - b\nc -= a"));
 
         // real cannot be assigned into int
         assert_eq!(false, run_validator("var a : int := 1 - 1.0"));
         assert_eq!(false, run_validator("var a : int := 1\na -= 1.0"));
 
         // Set difference not applicable to non-equivalent ranges / indexes
-        // TODO: Test the other set index types
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar b : t\nvar c := a - b"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar c : t\nc -= a"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar b : t\nvar c := a - b"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar c : t\nc -= a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of char\nvar a : s\nvar b : t\nvar c := a - b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of char\nvar a : s\nvar c : t\nc -= a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar b : t\nvar c := a - b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar c : t\nc -= a"));
 
         // Not scalars or sets
         assert_eq!(false, run_validator("var a : int := \"str\" - \"str\""));
@@ -1385,17 +1401,22 @@ mod test {
         assert_eq!(true, run_validator("var a : real :=   1 * 1.0\na *=   1 * 1.0"));
         assert_eq!(true, run_validator("var a : real := 1.0 * 1.0\na *= 1.0 * 1.0"));
         assert_eq!(true, run_validator("type s : set of 1 .. 3\nvar a : s\nvar b : s\nvar c : s := a * b\nc *= a"));
+        assert_eq!(true, run_validator("type s : set of char\nvar a : s\nvar b : s\nvar c : s := a * b\nc *= a"));
+        assert_eq!(true, run_validator("type s : set of boolean\nvar a : s\nvar b : s\nvar c : s := a * b\nc *= a"));
 
         // real cannot be assigned into int
         assert_eq!(false, run_validator("var a : int := 1 * 1.0"));
         assert_eq!(false, run_validator("var a : int := 1\na *= 1.0"));
 
         // Set intersection not applicable to non-equivalent ranges / indexes
-        // TODO: Test the other set index types
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar b : t\nvar c := a * b"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar c : t\nc *= a"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar b : t\nvar c := a * b"));
         assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar c : t\nc *= a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of char\nvar a : s\nvar b : t\nvar c := a * b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of char\nvar a : s\nvar c : t\nc *= a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar b : t\nvar c := a * b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar c : t\nc *= a"));
 
         // Not scalars or sets
         assert_eq!(false, run_validator("var a : int := \"str\" * \"str\""));
@@ -1605,7 +1626,7 @@ mod test {
         let type_variants = [
             (false, vec![ "int := 1", "nat := 1", "real := 1.0", "real := 1" ]),
             (false, vec![ "string := \"Hello!\"", "char := 'c'", "char(3) := 'cd'", "string(5) := 'cdefg'" ]),
-            (false, vec![ "s0", "s1" ]),
+            (false, vec![ "s0", "s1", "s2", "s3" ]),
             (true,  vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
             (true,  vec![ "alt" ]),
         ];
@@ -1618,7 +1639,14 @@ mod test {
             let right_variant_class = rng.gen_range(0, type_variants.len());
             let accept = left_variant_class == right_variant_class && !type_variants[left_variant_class].0 && !type_variants[right_variant_class].0;
             let test_code = format!(
-                "type alt : proc _ ()\ntype s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : {}\nvar b : {}\nvar c : boolean := a {} b",
+                "type alt : proc _ ()
+                type s0 : set of 1 .. 3
+                type s1 : set of 1 .. 3
+                type s2 : set of char
+                type s3 : set of boolean
+                var a : {}
+                var b : {}
+                var c : boolean := a {} b",
                 type_variants[left_variant_class].1.iter().choose(&mut rng).unwrap(),
                 type_variants[right_variant_class].1.iter().choose(&mut rng).unwrap(),
                 compare_op
@@ -1646,7 +1674,7 @@ mod test {
         let type_variants = [
             (false, vec![ "int := 1", "nat := 1", "real := 1.0", "real := 1" ]),
             (false, vec![ "string := \"Hello!\"", "char := 'c'", "char(3) := 'cd'", "string(5) := 'cdefg'" ]),
-            (false, vec![ "s0", "s1" ]),
+            (false, vec![ "s0", "s1", "s2", "s3" ]),
             (false, vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
             (true,  vec![ "alt" ]),
         ];
@@ -1659,7 +1687,14 @@ mod test {
             let right_variant_class = rng.gen_range(0, type_variants.len());
             let accept = left_variant_class == right_variant_class && !type_variants[left_variant_class].0 && !type_variants[right_variant_class].0;
             let test_code = format!(
-                "type alt : proc _ ()\ntype s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : {}\nvar b : {}\nvar c : boolean := a {} b",
+                "type alt : proc _ ()
+                type s0 : set of 1 .. 3
+                type s1 : set of 1 .. 3
+                type s2 : set of char
+                type s3 : set of boolean
+                var a : {}
+                var b : {}
+                var c : boolean := a {} b",
                 type_variants[left_variant_class].1.iter().choose(&mut rng).unwrap(),
                 type_variants[right_variant_class].1.iter().choose(&mut rng).unwrap(),
                 compare_op
@@ -1712,6 +1747,49 @@ mod test {
     #[test]
     fn test_ne_tilde_spacing_typecheck() {
         test_equality_operator_typecheck("~ =");
+    }
+
+    fn test_set_in_typecheck(variant: &str) {
+        // Tests typechecking for the binary operatory
+        // TODO: add remaining enum type (and range)
+        assert_eq!(true, run_validator(&format!("type s : set of 1 .. 3 \nvar a : s\nvar b := 1 {} a", variant)));
+        assert_eq!(true, run_validator(&format!("type s : set of char   \nvar a : s\nvar b := 'a' {} a", variant)));
+        assert_eq!(true, run_validator(&format!("type s : set of char   \nvar a : s\nvar c : char := 'c'\nvar b := c {} a", variant)));
+        assert_eq!(true, run_validator(&format!("type s : set of boolean\nvar a : s\nvar b := true {} a", variant)));
+
+        // Right operand must be a set
+        assert_eq!(false, run_validator(&format!("type s : set of 1 .. 3 \nvar a : int\nvar b := 1 {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type s : set of char   \nvar a : string\nvar b := 'a' {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type s : set of boolean\nvar a : char\nvar b := true {} a", variant)));
+
+        // Left operand must be compatible with the set index
+        assert_eq!(false, run_validator(&format!("type s : set of 1 .. 3 \nvar a : s\nvar b := true {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type s : set of char   \nvar a : s\nvar b := 1 {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type s : set of boolean\nvar a : s\nvar b := 'a' {} a", variant)));
+    }
+
+    #[test]
+    fn test_in_typecheck() {
+        // Tests typechecking for the binary operatory
+        test_set_in_typecheck("in");
+    }
+
+    #[test]
+    fn test_tilde_in_typecheck() {
+        // Tests typechecking for the binary operatory
+        test_set_in_typecheck("~in");
+    }
+
+    #[test]
+    fn test_tilde_space_in_typecheck() {
+        // Tests typechecking for the binary operatory
+        test_set_in_typecheck("~ in");
+    }
+
+    #[test]
+    fn test_not_in_typecheck() {
+        // Tests typechecking for the binary operatory
+        test_set_in_typecheck("not in");
     }
 
     #[test]

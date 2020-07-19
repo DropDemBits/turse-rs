@@ -1501,8 +1501,8 @@ impl<'s> Parser<'s> {
         // nab 'of'
         let _ = self.expects(TokenType::Of, format_args!("Expected 'of' after 'set'"));
 
-        // Parse the range!
-        let range = match self.type_reference_or_range(&TokenType::Set) {
+        // Parse the index type!
+        let range = match self.type_index(&TokenType::Set) {
             Err(_) => TypeRef::TypeError,
             Ok(range) => range,
         };
@@ -2266,6 +2266,8 @@ var a_range : (1 - 3 shl 5) .. (2 * 50 - 8 * 4)
 
 % Set parsing (only valid in type statements)
 type some_set : set of 1 .. 5
+type some_set_c : set of char
+type some_set_b : set of boolean
 
 % Array parsing setup
 var start_range := 1
