@@ -36,15 +36,12 @@ pub struct CodeBlock {
     pub scope: Scope,
     /// Blocks that enclose the current ont
     pub enclosing_blocks: Vec<Weak<RefCell<Self>>>,
-    /// Statements associated with this block
-    pub stmts: Vec<Stmt>,
 }
 
 impl CodeBlock {
     pub fn new(block_kind: BlockKind, enclosing_blocks: &Vec<Rc<RefCell<Self>>>) -> Self {
         Self {
             block_kind,
-            stmts: vec![],
             scope: Scope::new(enclosing_blocks),
             enclosing_blocks: enclosing_blocks
                 .iter()

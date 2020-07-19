@@ -47,10 +47,11 @@ impl ScopeInfo {
     /// Any imported identifiers in the current scope must refer to the ScopeInfo
     /// where the imported identifier is declared in.
     /// 
-    /// `Option<Value>`     Associated compile-time value
-    /// `bool`              True if the identifier was never declared
+    /// # Return Values
+    /// `Option<Value>`     Associated compile-time value. \
+    /// `bool`              True if the identifier has been declared before.
     pub fn use_ident(&mut self, ident: &Identifier) -> (Option<Value>, bool) {
-        let mut is_never_declared = false;
+        let mut is_already_declared = true;
 
         // Grab the compile-time value
         let compile_value = self.local_idents.entry(ident.name.clone()).and_modify(|all_idents| {
@@ -61,7 +62,7 @@ impl ScopeInfo {
             entry.uses = entry.uses.saturating_add(1);
         }).or_insert_with(|| {
             // Notify of the identifer never being declared
-            is_never_declared = true;
+            is_already_declared = false;
 
             // Make sure this is the first time we're seeing this identifer
             assert_eq!(ident.instance, 0, "Not the first time seeing the identifier");
@@ -74,12 +75,14 @@ impl ScopeInfo {
             }]
         })[ident.instance as usize].compile_value.clone();
 
-        (compile_value, is_never_declared)
+        (compile_value, is_already_declared)
     }
 
     /// Declares an identifier, creating the associated IdentInfo entry.
     ///
-    /// `bool`  If the current declaration is redeclaring an identifier
+    /// # Return Values
+    /// `bool`  If the current declaration is redeclaring an identifier (i.e.
+    /// the identifier has already been declared)
     pub fn decl_ident(&mut self, ident: Identifier) -> bool {
         self.decl_ident_with(ident, None)
     }
@@ -87,7 +90,9 @@ impl ScopeInfo {
     /// Declares an identifier, creating the associated IdentInfo entry and
     /// associating a compile-time value with the identifier.
     ///
-    /// `bool`  If the current declaration is redeclaring an identifier
+    /// # Return Values
+    /// `bool`  If the current declaration is redeclaring an identifier (i.e.
+    /// the identifier has already been declared)
     pub fn decl_ident_with(&mut self, ident: Identifier, compile_value: Option<Value>)  -> bool {
         let mut is_redeclare = false;
 
@@ -142,7 +147,7 @@ pub struct Validator<'a> {
     /// Type table to use
     type_table: &'a mut TypeTable,
     /// Actively parsed scope
-    active_scope: Weak<RefCell<CodeBlock>>,
+    active_block: Option<Weak<RefCell<CodeBlock>>>,
     /// Associated scope info
     scope_infos: Vec<ScopeInfo>,
 }
@@ -152,7 +157,7 @@ impl<'a> Validator<'a> {
         Self {
             reporter: StatusReporter::new(),
             type_table,
-            active_scope: Rc::downgrade(root_block),
+            active_block: Some(Rc::downgrade(root_block)),
             scope_infos: vec![ScopeInfo::new()]
         }
     }
@@ -540,7 +545,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     ident.type_spec = *type_spec;
                     // Only compile-time evaluable if the identifier referencences a constant
                     ident.is_compile_eval = is_compile_eval && ident.is_const;
-                    self.active_scope
+                    self.active_block.as_ref().unwrap()
                         .upgrade()
                         .unwrap()
                         .borrow_mut()
@@ -567,7 +572,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     }
                 } else {
                     // Use the identifier
-                    assert!(!self.scope_infos.last_mut().unwrap().use_ident(&ident).1);
+                    assert!(self.scope_infos.last_mut().unwrap().use_ident(&ident).1);
 
                     if let Some(resolve_ref) = resolved_type {
                         // This is a type resolution statement, update the associated type reference
@@ -629,12 +634,46 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 }
             }
             Stmt::ProcedureCall { proc_ref } => { let _ = self.visit_expr(proc_ref); },
-            Stmt::Block { block } => {
-                // TODO: Change our active scope and push a new scope info
-                for stmt in block.borrow_mut().stmts.iter_mut() {
+            Stmt::Block { block, stmts } => {
+                let mut scope_info = ScopeInfo::new();
+                
+                // Import all of the identifiers from above scopes
+                // Don't need to worry about the "pervasive" import attribute,
+                // as that is handled by the parser
+                // An identifier is only in the import table if and only if it
+                // has been used
+                {
+                    // Drop the scope ref after importing everything
+                    let scope = &block.borrow().scope;
+
+                    for import in scope.import_table() {
+                        // Fetch ident from the new scope
+                        let ident = scope.get_ident_instance(&import.name, 0).expect("Import does not have a corresponding identifier entry");
+
+                        // Build the imported identifier
+                        let mut imported_ident = ident.clone();
+                        imported_ident.instance = import.instance;
+
+                        // Get info from the imported scope info
+                        let (compile_value, is_declared) = self.scope_infos[import.downscopes].use_ident(&imported_ident);
+                        assert!(is_declared, "Imported identifier was never declared");
+
+                        // Import into the new scope info
+                        assert!(!scope_info.decl_ident_with(ident.clone(), compile_value), "Duplicate import identifier?");
+                    }
+                }
+
+                // Change the active block and push the new scope info
+                let previous_scope = self.active_block.replace(Rc::downgrade(block));
+                self.scope_infos.push(scope_info);
+
+                for stmt in stmts.iter_mut() {
                     self.visit_stmt(stmt);
                 }
-                // TODO: Revert to previous scope and pop the last scope info
+
+                // Revert to previous scope and pop the last scope info
+                self.active_block.replace(previous_scope.unwrap());
+                self.scope_infos.pop();
             }
         }
     }
@@ -877,13 +916,12 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 *is_compile_eval = false;
             }
             Expr::Reference { ident } => {
-                // TODO: Check if the reference is imported, and grab info from the correct scope info
                 // Use the identifier and grab the associated value
-                let (compile_value, is_never_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
+                let (compile_value, is_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
 
-                if is_never_declared {
+                if !is_declared {
                     // Identifier has not been declared at all before this point, report it
-                    // Only reported once everytime something is declared
+                    // Only reported once everytime something is not declared
                     self.reporter.report_error(&ident.token.location, format_args!("'{}' has not been declared yet", ident.name));
                 }
 
@@ -894,7 +932,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     // Grab the correct identifier information (including the
                     // type_spec) in the scope table
                     let new_ident = self
-                        .active_scope
+                        .active_block.as_ref().unwrap()
                         .upgrade()
                         .as_ref()
                         .unwrap()
@@ -2088,5 +2126,64 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
 
         // Range end bound is allowed to be a runtime expression (in this context)
         assert_eq!(true, run_validator("var a : int := 1\n var b : array 1 .. a of int"));
+    }
+
+    #[test]
+    fn test_resolve_block_stmt() {
+        // Local scope identifiers don't leak out of scope boundaries
+        assert_eq!(true, run_validator(
+            "begin
+                const cant_see_mee : int := 3
+            end
+            const cant_see_mee : string := 'heehee'"
+        ));
+
+        // Importing consts should work
+        assert_eq!(true, run_validator(
+            "const outer_see : int := 5
+            begin
+                const middle_see : int := 262
+                begin
+                    var inner_see : outer_see .. middle_see + outer_see
+                end
+                begin
+                    var and_here_too : int := middle_see + outer_see
+                end
+            end"
+        ));
+        
+        // Inner scopes can't shadow an outer scope's variables
+        assert_eq!(false, run_validator(
+            "var cant_shadow := 'eep'
+            begin
+                var cant_shadow := 'eep'
+            end"
+        ));
+
+        assert_eq!(false, run_validator(
+            "begin
+                var cant_shadow := 'eep'
+                begin
+                    var cant_shadow := 'eep'
+                end
+            end"
+        ));
+
+        // Inner scope can't access identifiers declared after it
+        assert_eq!(false, run_validator(
+            "begin
+                var fail_to_use := cant_see_me
+            end
+            var cant_see_me := 'eep'"
+        ));
+
+        assert_eq!(false, run_validator(
+            "begin
+                begin
+                    var fail_to_use := cant_see_me
+                end
+                var cant_see_me := 'eep'
+            end"
+        ));
     }
 }

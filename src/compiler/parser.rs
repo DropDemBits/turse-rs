@@ -611,9 +611,9 @@ impl<'s> Parser<'s> {
         }
 
         // Close the block
-        let block = self.pop_block(&mut stmts);
+        let block = self.pop_block();
 
-        Ok(Stmt::Block { block })
+        Ok(Stmt::Block { block, stmts })
     }
 
     // --- Expr Parsing --- //
@@ -1600,9 +1600,8 @@ impl<'s> Parser<'s> {
 
     /// Pops a block off of the block list, and moving the given statement list
     /// into the block
-    fn pop_block(&mut self, stmts: &mut Vec<Stmt>) -> Rc<RefCell<CodeBlock>> {
+    fn pop_block(&mut self) -> Rc<RefCell<CodeBlock>> {
         let block = self.blocks.pop().unwrap();
-        block.borrow_mut().stmts.append(stmts);
 
         block
     }
@@ -2522,7 +2521,7 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let Stmt::Block { block } = &parser.unit.as_ref().unwrap().stmts()[1] {
+        if let Stmt::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[1] {
             // Inner scope is still int
             assert_eq!(
                 block
@@ -2559,7 +2558,7 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let Stmt::Block { block } = &parser.unit.as_ref().unwrap().stmts()[0] {
+        if let Stmt::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[0] {
             // Innermost scope is still int
             assert_eq!(
                 block

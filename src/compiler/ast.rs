@@ -292,6 +292,8 @@ pub enum Stmt {
     Block {
         /// The associated code block
         block: Rc<RefCell<CodeBlock>>,
+        /// Statements as part of the block
+        stmts: Vec<Self>,
     },
 }
 

@@ -1,4 +1,4 @@
-use crate::compiler::ast::{self, Identifier};
+use crate::compiler::ast::{self, IdentInstance, Identifier};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::token::Token;
 use crate::compiler::types::TypeRef;
@@ -9,9 +9,13 @@ use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
 pub struct ImportInfo {
+    /// The name of the imported identifier
+    pub name: String,
+    /// The instance of the imported identifier, from the imported scope
+    pub instance: IdentInstance,
     /// How many scopes down, relative to the global scope, the identifier was imported from
     /// Starts from 0
-    downscopes: usize,
+    pub downscopes: usize,
 }
 
 /// Common storage unit for identifiers
@@ -261,10 +265,14 @@ impl Scope {
             let parent_ident = block.scope.get_ident(name);
 
             if let Some(declared) = parent_ident {
-                // Add import info entry
-                let index = self.add_import_entry(ImportInfo { downscopes });
-
                 let mut reference = declared.clone();
+
+                // Add import info entry
+                let index = self.add_import_entry(ImportInfo {
+                    name: name.to_string(),
+                    instance: reference.instance,
+                    downscopes,
+                });
 
                 // Change the location to point to the reference location
                 reference.token = ident;
@@ -362,10 +370,10 @@ impl Scope {
         if let Some(ident_store) = self.idents.get(name) {
             match ident_store {
                 IdentEntry::Single(ident) => {
-                    // Undeclared identifiers start from instance 0
+                    // Undeclared/imported identifiers start from instance 0
                     // Declared identifiers start from instance 1
                     assert!(
-                        (!ident.is_declared && instance == 0)
+                        ((!ident.is_declared || ident.import_index.is_some()) && instance == 0)
                             || (ident.is_declared && instance == 1),
                         "No additional declarations for the given identifier '{}' (instance #{})",
                         name,
@@ -388,6 +396,11 @@ impl Scope {
         self.next_import_index += 1;
         // Import index is +1 of regular index
         NonZeroU32::new(self.next_import_index).unwrap()
+    }
+
+    /// Gets the scope's import table
+    pub fn import_table(&self) -> &Vec<ImportInfo> {
+        &self.import_table
     }
 }
 
