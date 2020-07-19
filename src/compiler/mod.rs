@@ -8,6 +8,8 @@ pub(crate) mod types;
 pub(crate) mod validator;
 pub(crate) mod value;
 
+#[cfg(test)]
+extern crate rand;
 extern crate unicode_segmentation;
 
 /// Location of a token in a file/text stream

@@ -6,6 +6,9 @@
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
 use crate::compiler::ast::Expr;
+use crate::compiler::token::TokenType;
+use crate::compiler::value::{self, Value};
+use std::convert::TryFrom;
 
 /// Default string size, in bytes
 /// This is the default size for a string if it is not specified
@@ -169,6 +172,7 @@ pub enum Type {
         end: Option<Expr>,
         /// Base type for the range.
         /// Can be an int, enum type, char, or boolean, depending on the range evaluation.
+        /// This is always a de-aliased type.
         base_type: TypeRef,
     },
     /// A reference to a named type.
@@ -451,7 +455,7 @@ pub fn is_boolean(type_ref: &TypeRef) -> bool {
     }
 }
 
-/// Checks if the given `type_ref` is references a base type (i.e. the
+/// Checks if the given `type_ref` references a base type (i.e. the
 /// reference does not point to a Type::Alias, Type::Named, Type::Forward,
 /// TypeRef::Unknown, or TypeRef::TypeError)
 pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
@@ -463,6 +467,13 @@ pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
             Type::Alias { .. } | Type::Reference { .. } | Type::Forward { .. }
         ),
     }
+}
+
+/// Checks if the given `type_ref` references a set type (Type::Set)
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
+pub fn is_set(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    matches!(type_table.type_from_ref(type_ref), Some(Type::Set { .. }))
 }
 
 /// Gets the common type between the two given type refs
@@ -596,7 +607,13 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
     // Other primitives
     if is_integer_type(lhs) && is_integer_type(rhs) {
-        // Integer types are equivalent
+        // Integer class types are equivalent
+        return true;
+    } else if is_real(lhs) && is_real(rhs) {
+        // Real types are equivalent
+        return true;
+    } else if is_char(lhs) && is_char(rhs) {
+        // Char types are equivalent
         return true;
     }
 
@@ -618,7 +635,71 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                         return params == other_params && result == other_result;
                     }
                 }
-                _ => todo!(),
+                Type::Set { range } => {
+                    if let Type::Set { range: other_range } = right_info {
+                        // Sets are equivalent if the range types are equivalent
+                        return is_equivalent_to(range, other_range, type_table);
+                    }
+                }
+                Type::Range {
+                    start,
+                    end,
+                    base_type,
+                } => {
+                    if let Type::Range {
+                        start: other_start,
+                        end: other_end,
+                        base_type: other_type,
+                    } = right_info
+                    {
+                        // Range type equivalency follows base type equivalency
+                        if !is_equivalent_to(base_type, other_type, type_table) {
+                            return false;
+                        }
+
+                        // Check the end range presence
+                        // If either is absent, the ranges are not equivalent
+                        if !end.is_none() && other_end.is_none() {
+                            return false;
+                        }
+
+                        // Compare the start ranges
+                        let is_start_eq = {
+                            let start_value = Value::try_from(start.clone()).ok();
+                            let other_start_value = Value::try_from(other_start.clone()).ok();
+
+                            start_value
+                                .and_then(|v| Some((v, other_start_value?)))
+                                .and_then(|(a, b)| value::apply_binary(a, &TokenType::Equ, b).ok())
+                                .map(|v| {
+                                    let is_eq: bool = v.into();
+                                    is_eq
+                                })
+                                .unwrap_or(false)
+                        };
+
+                        // Compare the end ranges
+                        let is_end_eq = if end.as_ref().and(other_end.as_ref()).is_some() {
+                            let end_value = Value::try_from(end.clone().unwrap()).ok();
+                            let other_end_value = Value::try_from(other_end.clone().unwrap()).ok();
+
+                            end_value
+                                .and_then(|v| Some((v, other_end_value?)))
+                                .and_then(|(a, b)| value::apply_binary(a, &TokenType::Equ, b).ok())
+                                .map(|v| {
+                                    let is_eq: bool = v.into();
+                                    is_eq
+                                })
+                                .unwrap_or(false)
+                        } else {
+                            // Mismatched sizes
+                            false
+                        };
+
+                        return is_start_eq && is_end_eq;
+                    }
+                }
+                _ => todo!("??? {:?} & {:?}", left_info, right_info),
             }
         }
     }

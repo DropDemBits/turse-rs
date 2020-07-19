@@ -286,7 +286,7 @@ impl<'a> Validator<'a> {
 
                 // Update the base type
                 // Either `start_type` or `end_type` could be used
-                *base_type = start_type;
+                *base_type = self.dealias_type(start_type);
             }
             Type::Reference { expr } => {
                 // Reference will produce a reference to the associated type_spec
@@ -735,6 +735,22 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
                             TokenType::Shl | TokenType::Shr => 
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
+                            TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu =>
+                                if !types::is_equivalent_to(left_type, right_type, self.type_table) {
+                                    self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
+                                } else {
+                                    self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
+                                },
+                            TokenType::NotEq | TokenType::Equ => if !types::is_equivalent_to(left_type, right_type, self.type_table) {
+                                    self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
+                                } else {
+                                    self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
+                                },
+                            TokenType::In | TokenType::NotIn => if !types::is_set(right_type, self.type_table) {
+                                self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
+                                } else {
+                                        self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
+                                },
                             TokenType::Imply =>
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                             _ => todo!(),
@@ -950,36 +966,47 @@ fn check_binary_operands(
     right_type: &TypeRef,
     type_table: &TypeTable,
 ) -> Result<TypeRef, TypeRef> {
-    // TODO: (>, >=, <, <=) -> boolean, (=, ~=) -> boolean, (>, >=, <, <=, =, ~=) -> boolean, (+, *, -, in, ~in) -> (default) for sets
-    // Ordering comparisons require sets, enums, and objectclass types
-    // Equality comparisons require the above and full equivalence checking
+    // Remaining ordering comparisons require sets, enums, and objectclass types
+    // Remaining equality comparisons require the above and full equivalence checking (includng pointers)
 
-    debug_assert!(types::is_base_type(left_type, &type_table));
-    debug_assert!(types::is_base_type(right_type, &type_table));
+    debug_assert!(types::is_base_type(left_type, type_table));
+    debug_assert!(types::is_base_type(right_type, type_table));
 
     match op {
         TokenType::Plus => {
             // Valid conditions:
             // - Both types are strings
             // - Both types are numerics (real, int, nat, etc)
-            // - Both types are sets (not checked right now)
+            // - Both types are equivalent sets (not checked right now)
             // Otherwise, TypeError is produced
             if types::is_char_seq_type(left_type) && types::is_char_seq_type(right_type) {
                 // String expr, concatenation
                 return Ok(TypeRef::Primitive(PrimitiveType::String_));
             } else if types::is_number_type(left_type) && types::is_number_type(right_type) {
                 // Number expr, sum
-                return Ok(*types::common_type(left_type, right_type, &type_table).unwrap());
+                return Ok(*types::common_type(left_type, right_type, type_table).unwrap());
+            } else if types::is_set(left_type, type_table) && types::is_set(right_type, type_table)
+                && types::is_equivalent_to(left_type, right_type, type_table)
+            {
+                // Set union, join
+                // Type doesn't matter, as they should be equivalent
+                return Ok(*left_type);
             }
         }
         TokenType::Minus | TokenType::Star => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
-            // - Both types are sets (not checked right now)
+            // - Both types are equivalent sets
             // Otherwise, TypeError is produced
             if types::is_number_type(left_type) && types::is_number_type(right_type) {
                 // Number expr, minus & mul
-                return Ok(*types::common_type(left_type, right_type, &type_table).unwrap());
+                return Ok(*types::common_type(left_type, right_type, type_table).unwrap());
+            } else if types::is_set(left_type, type_table) && types::is_set(right_type, type_table)
+                && types::is_equivalent_to(left_type, right_type, type_table)
+            {
+                // Set operation
+                // Type doesn't matter, as they should be equivalent
+                return Ok(*left_type);
             }
         }
         TokenType::Slash => {
@@ -1006,12 +1033,12 @@ fn check_binary_operands(
             // Otherwise, TypeError is produced
             if types::is_number_type(left_type) && types::is_number_type(right_type) {
                 // Number expr, mod, rem & exp
-                return Ok(*types::common_type(left_type, right_type, &type_table).unwrap());
+                return Ok(*types::common_type(left_type, right_type, type_table).unwrap());
             }
         }
         TokenType::And | TokenType::Or | TokenType::Xor => {
             // Valid conditions:
-            // - Both types are numerics (real, int, nat, etc)
+            // - Both types are integers (int, nat, etc)
             // - Both types are booleans
             // Otherwise, TypeError is produced
             if types::is_integer_type(left_type) && types::is_integer_type(right_type) {
@@ -1024,11 +1051,75 @@ fn check_binary_operands(
         }
         TokenType::Shl | TokenType::Shr => {
             // Valid conditions:
-            // - Both types are numerics (real, int, nat, etc)
+            // - Both types are integers (int, nat, etc)
             // Otherwise, TypeError is produced
             if types::is_integer_type(left_type) && types::is_integer_type(right_type) {
                 // Integer expr, produce nat
                 return Ok(TypeRef::Primitive(PrimitiveType::Nat));
+            }
+        }
+        TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu => {
+            // Valid conditions:
+            // - Both types are numerics (real, int, nat, etc)
+            // - Both types are char or strings/character sequence class types (string, string(n), char(n), or char)
+            // - Both types are sets (not necessarily equivalent)
+            // Valid, but not checked:
+            // - Both types are enums (not necessarily equivalent)
+            // - Both types are (object) classes (not necessarily equivalent)
+            // Otherwise, Boolean (as an error) is produced
+            if types::is_number_type(left_type) && types::is_number_type(right_type) {
+                // Number compare, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if (types::is_char_seq_type(left_type) || types::is_char(left_type))
+                    && (types::is_char_seq_type(right_type) || types::is_char(right_type)) {
+                // String/char seq or char class type, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if types::is_set(left_type, type_table) && types::is_set(right_type, type_table) {
+                // Set comparision, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            }
+            // TODO: Check remaining types (object class, enums)
+        }
+        TokenType::Equ | TokenType::NotEq => {
+            // Valid conditions:
+            // - Both types are numerics (real, int, nat, etc)
+            // - Both types are char or strings class types (string, string(n), char, char(n))
+            // - Both types are sets (not necessarily equivalent)
+            // - Both types are booleans
+            // Valid, but not checked:
+            // - Both types are enums (not necessarily equivalent)
+            // - Both types are (object) classes (not necessarily equivalent)
+            // - Both types are pointers (with equivalent types)
+            // - Both types are class pointers (not necessarily equivalent)
+            // Otherwise, Boolean (as an error) is produced
+            if types::is_number_type(left_type) && types::is_number_type(right_type) {
+                // Number equality, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if types::is_boolean(left_type) && types::is_boolean(right_type) {
+                // Boolean equality, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if (types::is_char_seq_type(left_type) || types::is_char(left_type))
+                    && (types::is_char_seq_type(right_type) || types::is_char(right_type)) {
+                // String/char seq or char class type, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if types::is_set(left_type, type_table) && types::is_set(right_type, type_table) {
+                // Set equality, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            }
+            // TODO: Check remaining types (pointer, object class, enums)
+        }
+        TokenType::In | TokenType::NotIn => {
+            // Valid conditions:
+            // - Left type matches the set's index type
+            // - Right type is a set
+            // Otherwise, Boolean (as error) is produced
+            if let Some(Type::Set { range }) = type_table.type_from_ref(right_type) {
+                if let Some(Type::Range { base_type, .. }) = type_table.type_from_ref(range) {
+                    if types::is_equivalent_to(left_type, base_type, type_table) {
+                        // Element test with equivalent types produces boolean
+                        return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+                    }
+                }
             }
         }
         TokenType::Imply => {
@@ -1097,6 +1188,7 @@ mod test {
     use crate::compiler::block::CodeUnit;
     use crate::compiler::scanner::Scanner;
     use crate::compiler::parser::Parser;
+    use rand::prelude::*;
 
     /// Makes and runs a validator
     /// Parsing & scanning must complete successfully
@@ -1234,6 +1326,7 @@ mod test {
         assert_eq!(true, run_validator("var a : real :=   1 + 1.0\na +=   1 + 1.0"));
         assert_eq!(true, run_validator("var a : real := 1.0 + 1.0\na += 1.0 + 1.0"));
         assert_eq!(true, run_validator("var a : string := \"Hello, \" + \"World!\"\na += \"Hello, \" + \"World!\""));
+        assert_eq!(true, run_validator("type s : set of 1 .. 3\nvar a : s\nvar b : s\nvar c : s := a + b\nc += a"));
 
         // real cannot be assigned into int
         assert_eq!(false, run_validator("var a : int := 1 + 1.0"));
@@ -1247,7 +1340,12 @@ mod test {
         assert_eq!(false, run_validator("var a : string := 1 + 1.0"));
         assert_eq!(false, run_validator("var a : string := \"str\"\na += 1.0"));
 
-        // TODO: Remaining cases for set types
+        // Set union not applicable to non-equivalent ranges / indexes
+        // TODO: Test the other set index types
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar b : t\nvar c := a + b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar c : t\nc += a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar b : t\nvar c := a + b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar c : t\nc += a"));
     }
 
     #[test]
@@ -1259,12 +1357,18 @@ mod test {
         assert_eq!(true, run_validator("var a : real := 1.0 - 1  \na -= 1.0 - 1  "));
         assert_eq!(true, run_validator("var a : real :=   1 - 1.0\na -=   1 - 1.0"));
         assert_eq!(true, run_validator("var a : real := 1.0 - 1.0\na -= 1.0 - 1.0"));
+        assert_eq!(true, run_validator("type s : set of 1 .. 3\nvar a : s\nvar b : s\nvar c : s := a - b\nc -= a"));
 
         // real cannot be assigned into int
         assert_eq!(false, run_validator("var a : int := 1 - 1.0"));
         assert_eq!(false, run_validator("var a : int := 1\na -= 1.0"));
 
-        // TODO: Remaining cases for set types
+        // Set difference not applicable to non-equivalent ranges / indexes
+        // TODO: Test the other set index types
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar b : t\nvar c := a - b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar c : t\nc -= a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar b : t\nvar c := a - b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar c : t\nc -= a"));
 
         // Not scalars or sets
         assert_eq!(false, run_validator("var a : int := \"str\" - \"str\""));
@@ -1280,12 +1384,18 @@ mod test {
         assert_eq!(true, run_validator("var a : real := 1.0 * 1  \na *= 1.0 * 1  "));
         assert_eq!(true, run_validator("var a : real :=   1 * 1.0\na *=   1 * 1.0"));
         assert_eq!(true, run_validator("var a : real := 1.0 * 1.0\na *= 1.0 * 1.0"));
+        assert_eq!(true, run_validator("type s : set of 1 .. 3\nvar a : s\nvar b : s\nvar c : s := a * b\nc *= a"));
 
         // real cannot be assigned into int
         assert_eq!(false, run_validator("var a : int := 1 * 1.0"));
         assert_eq!(false, run_validator("var a : int := 1\na *= 1.0"));
 
-        // TODO: Remaining cases for set types
+        // Set intersection not applicable to non-equivalent ranges / indexes
+        // TODO: Test the other set index types
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar b : t\nvar c := a * b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 1 .. 4\nvar a : s\nvar c : t\nc *= a"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar b : t\nvar c := a * b"));
+        assert_eq!(false, run_validator("type s : set of 1 .. 3\ntype t : set of 0 .. 3\nvar a : s\nvar c : t\nc *= a"));
 
         // Not scalars or sets
         assert_eq!(false, run_validator("var a : int := \"str\" * \"str\""));
@@ -1476,6 +1586,132 @@ mod test {
 
         assert_eq!(false, run_validator("var a : boolean := true    shr  true"));
         assert_eq!(false, run_validator("var a : boolean := true\na shr= true"));
+    }
+
+    fn test_compare_operator_typecheck(compare_op: &str) {
+        // Tests typechecking for the binary operator
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := 1.0 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1.0", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := 1.0 {} 1.0", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := \"Hello, \" {} \"World!\"", compare_op)));
+        assert_eq!(true, run_validator(&format!("type s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1\nvar c : boolean := a {} b", compare_op)));
+        // Missing: enum & objectclass compares
+
+        // Comparison operands must be the same type (class)
+        // bool is whether to always reject
+        let type_variants = [
+            (false, vec![ "int := 1", "nat := 1", "real := 1.0", "real := 1" ]),
+            (false, vec![ "string := \"Hello!\"", "char := 'c'", "char(3) := 'cd'", "string(5) := 'cdefg'" ]),
+            (false, vec![ "s0", "s1" ]),
+            (true,  vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
+            (true,  vec![ "alt" ]),
+        ];
+
+        let mut rng = thread_rng();
+
+        for _ in 0 .. 150 {
+            // stuff with randomness
+            let left_variant_class = rng.gen_range(0, type_variants.len());
+            let right_variant_class = rng.gen_range(0, type_variants.len());
+            let accept = left_variant_class == right_variant_class && !type_variants[left_variant_class].0 && !type_variants[right_variant_class].0;
+            let test_code = format!(
+                "type alt : proc _ ()\ntype s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : {}\nvar b : {}\nvar c : boolean := a {} b",
+                type_variants[left_variant_class].1.iter().choose(&mut rng).unwrap(),
+                type_variants[right_variant_class].1.iter().choose(&mut rng).unwrap(),
+                compare_op
+            );
+
+            assert_eq!(accept, run_validator(&test_code), "Failed on generated test '\n{}'", test_code);
+        }
+    }
+
+    fn test_equality_operator_typecheck(compare_op: &str) {
+        // Tests typechecking for the binary operator
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := 1.0 {} 1  ", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean :=   1 {} 1.0", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := 1.0 {} 1.0", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := \"Hello, \" {} \"World!\"", compare_op)));
+        assert_eq!(true, run_validator(&format!("type s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1\nvar c : boolean := a {} b", compare_op)));
+        assert_eq!(true, run_validator(&format!("var a : boolean := true {} true", compare_op)));
+        // Missing: enum, objectclass & ptr compares
+
+        // Equality operands must be the same type (class)
+        // bool is whether to always reject
+        let type_variants = [
+            (false, vec![ "int := 1", "nat := 1", "real := 1.0", "real := 1" ]),
+            (false, vec![ "string := \"Hello!\"", "char := 'c'", "char(3) := 'cd'", "string(5) := 'cdefg'" ]),
+            (false, vec![ "s0", "s1" ]),
+            (false, vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
+            (true,  vec![ "alt" ]),
+        ];
+
+        let mut rng = thread_rng();
+
+        for _ in 0 .. 150 {
+            // stuff with randomness
+            let left_variant_class = rng.gen_range(0, type_variants.len());
+            let right_variant_class = rng.gen_range(0, type_variants.len());
+            let accept = left_variant_class == right_variant_class && !type_variants[left_variant_class].0 && !type_variants[right_variant_class].0;
+            let test_code = format!(
+                "type alt : proc _ ()\ntype s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : {}\nvar b : {}\nvar c : boolean := a {} b",
+                type_variants[left_variant_class].1.iter().choose(&mut rng).unwrap(),
+                type_variants[right_variant_class].1.iter().choose(&mut rng).unwrap(),
+                compare_op
+            );
+
+            assert_eq!(accept, run_validator(&test_code), "Failed on generated test '\n{}'", test_code);
+        }
+    }
+
+    #[test]
+    fn test_lt_typecheck() {
+        test_compare_operator_typecheck("<");
+    }
+
+    #[test]
+    fn test_gt_typecheck() {
+        test_compare_operator_typecheck(">");
+    }
+
+    #[test]
+    fn test_le_typecheck() {
+        test_compare_operator_typecheck("<=");
+    }
+
+    #[test]
+    fn test_ge_typecheck() {
+        test_compare_operator_typecheck(">=");
+    }
+
+    #[test]
+    fn test_eq_typecheck() {
+        test_equality_operator_typecheck("=");
+    }
+
+    #[test]
+    fn test_ne_token_typecheck() {
+        test_equality_operator_typecheck("not=");
+    }
+
+    #[test]
+    fn test_ne_token_spacing_typecheck() {
+        test_equality_operator_typecheck("not =");
+    }
+
+    #[test]
+    fn test_ne_tilde_typecheck() {
+        test_equality_operator_typecheck("~=");
+    }
+
+    #[test]
+    fn test_ne_tilde_spacing_typecheck() {
+        test_equality_operator_typecheck("~ =");
     }
 
     #[test]
