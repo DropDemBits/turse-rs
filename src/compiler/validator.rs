@@ -1194,13 +1194,8 @@ fn check_binary_operands(
             // - Right type is a set
             // Otherwise, Boolean (as error) is produced
             if let Some(Type::Set { range }) = type_table.type_from_ref(right_type) {
-                // ???: Use 'assignable to' to reuse range check?
-                if let Some(Type::Range { base_type, .. }) = type_table.type_from_ref(range) {
-                    if types::is_equivalent_to(left_type, base_type, type_table) {
-                        // Element test with equivalent/compatible types produces boolean
-                        return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
-                    }
-                } else if types::is_equivalent_to(left_type, range, type_table) {
+                // Use 'is_assignable_to' is used for checking range compatibility with the left operand
+                if types::is_assignable_to(range, left_type, type_table) {
                     // Element test with equivalent primitive types produces boolean
                     return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
                 }
@@ -1398,6 +1393,20 @@ mod test {
         assert_eq!(false, run_validator("var i : boolean := \"h\""));
         assert_eq!(false, run_validator("var i : boolean := 'ha'"));
         assert_eq!(false, run_validator("var i : boolean := 'h'"));
+
+        // Compatibility with ranges
+        assert_eq!(true, run_validator("var i : false .. true := true"));
+        assert_eq!(true, run_validator("var i : 0 .. 8 := 5"));
+        assert_eq!(true, run_validator("var i : 'd' .. 'g' := 'f'"));
+        // TODO: add enum range case
+
+        // Comptibility with compatible sets
+        assert_eq!(true,  run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type s0 : set of 1 .. 4 \ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of 2 .. 3\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of char  \nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type s0 : set of boolean\ntype s1 : set of char  \nvar a : s0\nvar b : s1 := a"));
+        // TODO: add enum range case
     }
 
     #[test]

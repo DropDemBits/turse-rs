@@ -598,6 +598,10 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // For the `char` <- `string` case, we have to default to true,
         // as the value of an unsized `string` can only be checked at runtime
         lvalue_len >= rvalue_len
+    } else if let Some(Type::Range { base_type, .. }) = type_table.type_from_ref(lvalue) {
+        // A value is assignable inside of a range type if the value is equivalent to the
+        // range's base type
+        is_equivalent_to(base_type, rvalue, type_table)
     } else {
         // This check is last as it performs very heavy type checking
         is_equivalent_to(lvalue, rvalue, type_table)
