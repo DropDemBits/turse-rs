@@ -1,7 +1,7 @@
 //! Intermediate values for compile-time evaluation
 use crate::compiler::ast::Expr;
 use crate::compiler::token::{Token, TokenType};
-use crate::compiler::types::{PrimitiveType, TypeRef};
+use crate::compiler::types::{self, PrimitiveType, TypeRef};
 use crate::compiler::Location;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
@@ -53,15 +53,11 @@ impl TryFrom<Value> for Expr {
             )),
             Value::IntValue(v) => Ok(value::make_literal(
                 TokenType::IntLiteral(v),
-                TypeRef::Primitive(PrimitiveType::Int),
+                TypeRef::Primitive(types::get_int_kind(v)),
             )),
             Value::NatValue(v) => Ok(value::make_literal(
                 TokenType::NatLiteral(v),
-                TypeRef::Primitive(if v < i64::MAX as u64 {
-                    PrimitiveType::IntNat
-                } else {
-                    PrimitiveType::Nat
-                }),
+                TypeRef::Primitive(types::get_intnat_kind(v)),
             )),
             Value::RealValue(v) => Ok(value::make_literal(
                 TokenType::RealLiteral(v),
@@ -636,7 +632,8 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         TokenType::Shl => {
             // Bitshift left
             // For compatibility reasons, 'r' is masked into the 0 - 31 range
-            // as TProlog only works with 32-bit integers
+            // as TProlog only works with 32-bit integers. In the future,
+            // 'r' can be masked into the 0 - 63 range by a feature flag
             if is_integer(&lhs) && is_integer(&rhs) {
                 let lvalue = value_into_i64(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
@@ -655,7 +652,8 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         TokenType::Shr => {
             // Bitshift right
             // For compatibility reasons, 'r' is masked into the 0 - 31 range
-            // as TProlog only works with 32-bit integers
+            // as TProlog only works with 32-bit integers. In the future,
+            // 'r' can be masked into the 0 - 63 range by a feature flag
             if is_integer(&lhs) && is_integer(&rhs) {
                 let lvalue = value_into_i64(lhs)?;
                 let rvalue = value_into_i64(rhs)?;

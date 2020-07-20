@@ -511,6 +511,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
 
                     if types::is_intnat(type_spec) {
                         // Always convert IntNats into Ints
+                        // (larger sizes are automatically converted into the appropriate type)
                         *type_spec = TypeRef::Primitive(PrimitiveType::Int);
                     }
                 } else if value.is_some() {
@@ -2221,6 +2222,34 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
 
         // Range end bound is allowed to be a runtime expression (in this context)
         assert_eq!(true, run_validator("var a : int := 1\n var b : array 1 .. a of int"));
+    }
+
+    #[test]
+    fn test_default_types() {
+        // Test that the correct inferred types are being used
+        let (success, unit) = make_validator("var a := 16#7FFFFFFF");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        let (success, unit) = make_validator("var a := 16#80000000");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Nat));
+
+        let (success, unit) = make_validator("var a := 16#100000000");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::LongInt));
+
+        let (success, unit) = make_validator("var a := 16#100000000 + 16#100000000");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::LongInt));
+
+        let (success, unit) = make_validator("var a := 16#8000000000000000");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::LongNat));
+
+        let (success, unit) = make_validator("var a := 16#8000000000000000 + 1");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::LongNat));
     }
 
     #[test]

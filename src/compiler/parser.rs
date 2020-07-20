@@ -831,9 +831,9 @@ impl<'s> Parser<'s> {
                 value: token,
                 eval_type: TypeRef::Primitive(types::get_char_kind(&s)),
             }),
-            TokenType::NatLiteral(_) => Ok(Expr::Literal {
+            TokenType::NatLiteral(v) => Ok(Expr::Literal {
                 value: token,
-                eval_type: TypeRef::Primitive(PrimitiveType::IntNat),
+                eval_type: TypeRef::Primitive(types::get_intnat_kind(v)),
             }),
             TokenType::RealLiteral(_) => Ok(Expr::Literal {
                 value: token,

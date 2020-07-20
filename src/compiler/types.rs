@@ -67,15 +67,17 @@ pub enum PrimitiveType {
     LongInt,
     /// Basic, checked long natural type, equivalent to 'u64'
     LongNat,
-    /// Ambiguious int/nat type, produced by literals
-    /// Converts by default into the int or nat of the appropriate size
+    /// Ambiguious int/nat type, produced by literals.
+    /// Converts into the int or nat of the appropriate size, by default into
+    /// an int.
     IntNat,
     /// Basic real type, equivalent to 'f64'
     Real,
     /// Sized real type, equivalent to 'f32'
     Real4,
     /// Sized real type, equivalent to 'f64'
-    /// Allows for the assignment of the denormalized 0x800000000800000000, or UNINIT_REAL
+    /// Allows for the assignment of the denormalized 0x800000000_800000000, or
+    /// UNINIT_REAL
     Real8,
     /// Variable-sized string of ASCII characters (u8's)
     /// The default size of a string is `DEFAULT_STRING_SIZE`, but can grow to
@@ -259,6 +261,37 @@ pub fn get_char_kind(s: &String) -> PrimitiveType {
     let size = s.bytes().count();
 
     PrimitiveType::CharN(size)
+}
+
+/// Gets the appropriate int type for the given integer value
+pub fn get_int_kind(v: i64) -> PrimitiveType {
+    if i32::MIN as i64 >= v && v <= i32::MAX as i64 {
+        PrimitiveType::Int
+    } else {
+        PrimitiveType::LongInt
+    }
+}
+
+/// Gets the appropriate nat type for the given integer value
+pub fn get_nat_kind(v: u64) -> PrimitiveType {
+    if v <= u32::MAX as u64 {
+        PrimitiveType::Nat
+    } else {
+        PrimitiveType::LongNat
+    }
+}
+
+/// Gets the appropriate int/nat type for the given integer value
+pub fn get_intnat_kind(v: u64) -> PrimitiveType {
+    if v <= i32::MAX as u64 {
+        PrimitiveType::IntNat
+    } else if v <= u32::MAX as u64 {
+        PrimitiveType::Nat
+    } else if v <= i64::MAX as u64 {
+        PrimitiveType::LongInt
+    } else {
+        PrimitiveType::LongNat
+    }
 }
 
 // Helpers for comparing types
@@ -513,13 +546,21 @@ pub fn common_type<'a>(
         Some(&TypeRef::Primitive(PrimitiveType::Real))
     } else if (is_int(lhs) && is_integer_type(rhs)) || (is_integer_type(lhs) && is_int(rhs)) {
         // Integer types get promoted to int types if any 'int' exists
-        Some(&TypeRef::Primitive(PrimitiveType::Int))
+        if is_int(lhs) {
+            Some(lhs)
+        } else {
+            Some(rhs)
+        }
     } else if (is_intnat(lhs) && is_integer_type(rhs)) || (is_integer_type(lhs) && is_intnat(rhs)) {
         // Int/Nats get converted into Ints by default
-        Some(&TypeRef::Primitive(PrimitiveType::Int))
+        if !is_intnat(lhs) {
+            Some(lhs)
+        } else {
+            Some(rhs)
+        }
     } else if is_nat(lhs) && is_nat(rhs) {
         // Common nat types produce 'nat's
-        Some(&TypeRef::Primitive(PrimitiveType::Nat))
+        Some(lhs)
     } else {
         // No common type
         None
