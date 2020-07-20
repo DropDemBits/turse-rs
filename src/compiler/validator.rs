@@ -877,12 +877,33 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     Ok(good_eval) => {
                         *eval_type = good_eval;
                         // Compile-time evaluability is dependend on the right operand
-                        // Forced to false as we currently don't fold unary expressions
-                        *is_compile_eval = right.is_compile_eval() && false;
+                        *is_compile_eval = right.is_compile_eval();
 
                         if *op == TokenType::Caret {
                             // Pointers are never compile-time evaluable
                             *is_compile_eval = false;
+                        }
+
+                        if *is_compile_eval {
+                            // Try to fold the expression
+                            let rvalue = Value::try_from(*right.clone()).expect(&format!("Right operand is not a compile-time value {:?}", right));
+
+                            let result = value::apply_unary(&op, rvalue);
+
+                            return match result {
+                                Ok(v) => {
+                                    eprintln!("Folded {:?} into {:?}", visit_expr, v);
+                                    Some(v)
+                                }
+                                Err(msg) => {
+                                    match msg {
+                                        ValueApplyError::Overflow => self.reporter.report_error(&right.get_span(), format_args!("Overflow in compile-time expression")),
+                                        _ => unreachable!() // Overflow is the only error produced, WrongTypes captured by typecheck above
+                                    }
+
+                                    None
+                                }
+                            };
                         }
 
                         // Produce no value
@@ -2037,9 +2058,8 @@ mod test {
 
     #[test]
     fn test_folding_reporting() {
-        // All of these should produce errors (except for const setup)
-        assert_eq!(false, run_validator("const amt := 0 - 1
-        var beebee := 1 shl amt
+        // All of these should produce errors
+        assert_eq!(false, run_validator("var beebee := 1 shl -1
         beebee := 1 shr amt
         beebee := 1 div 0
         beebee := 1 / 0
@@ -2085,8 +2105,7 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             panic!("Something wrong happened! (not a var_decl!)");
         }
 
-        // TODO: Check that constant propogation still works in the case of
-        // nested inner scopes
+        // Constant folding tests with inner scopes are tested in the dedicated block stmt test
     }
 
     #[test]

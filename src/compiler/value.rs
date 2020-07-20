@@ -391,7 +391,7 @@ fn check_inf(v: f64) -> Result<f64, ValueApplyError> {
 // mod, rem -> num
 // >, >=, <, <=, =, ~= -> b
 
-/// Applies the specifies binary operation on the given value operands
+/// Applies the specified binary operation on the given value operands
 pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError> {
     match op {
         TokenType::Plus => {
@@ -706,6 +706,84 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
     }
 }
 
+/// Applies the specifies unary operation on the given value operand
+pub fn apply_unary(op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError> {
+    match op {
+        TokenType::Not => match rhs {
+            Value::IntValue(_) | Value::NatValue(_) => {
+                // Bitwise Not
+                Ok(Value::from(!value_into_u64_bytes(rhs)?))
+            }
+            Value::BooleanValue(v) => {
+                // Logical Not
+                Ok(Value::from(!v))
+            }
+            _ => Err(ValueApplyError::WrongTypes),
+        },
+        TokenType::Pound => match rhs {
+            // Coercion into Nat8
+            Value::IntValue(_) | Value::NatValue(_) => Ok(Value::from(value_into_u64_bytes(rhs)?)),
+            Value::RealValue(v) => {
+                // Real value is first coerced into ne bytes, then swaps the u32 halves
+                Ok(Value::from(
+                    u64::from_ne_bytes(v.to_ne_bytes()).rotate_left(32),
+                ))
+            }
+            Value::BooleanValue(v) => {
+                if v {
+                    Ok(Value::from(1u64))
+                } else {
+                    Ok(Value::from(0u64))
+                }
+            }
+            Value::StringValue(v) => {
+                // Pad & fold (big endian ordering) into a u64
+                let value: u64 = v
+                    .bytes()
+                    .chain(std::iter::once(0).cycle())
+                    .take(8)
+                    .fold(0u64, |acc, v| ((acc << 8) | v as u64));
+
+                // Produce the converted type (after swapping bytes)
+                Ok(Value::from(value.swap_bytes()))
+            }
+        },
+        TokenType::Plus => {
+            if is_number(&rhs) {
+                // Return the same value
+                Ok(rhs)
+            } else {
+                Err(ValueApplyError::WrongTypes)
+            }
+        }
+        TokenType::Minus => match rhs {
+            Value::NatValue(v) => {
+                if v <= (i64::MAX as u64) {
+                    Ok(Value::from(-(v as i64)))
+                } else {
+                    Err(ValueApplyError::Overflow)
+                }
+            }
+            Value::IntValue(v) => {
+                if v != i64::MIN {
+                    Ok(Value::from(-v))
+                } else {
+                    Err(ValueApplyError::Overflow)
+                }
+            }
+            Value::RealValue(v) => {
+                if !v.is_infinite() {
+                    Ok(Value::from(-v))
+                } else {
+                    Err(ValueApplyError::Overflow)
+                }
+            }
+            _ => Err(ValueApplyError::WrongTypes),
+        },
+        _ => unreachable!(),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -734,6 +812,37 @@ mod test {
 
 				$(
 					res.push((Value::from($l), $op, Value::from($r), $exp));
+				)*
+
+				res
+			}
+		};
+    }
+
+    macro_rules! make_uops {
+		($( $op:ident $r:literal == $exp:expr );* $( ; )?) => {
+			{
+				use TokenType::*;
+				let mut res = vec![];
+
+				$(
+					res.push(($op, Value::from($r), Value::from($exp)));
+				)*
+
+				res
+			}
+		};
+    }
+
+    macro_rules! make_error_uops {
+		($( $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
+			{
+                use TokenType::*;
+                use ValueApplyError::*;
+				let mut res = vec![];
+
+				$(
+					res.push(($op, Value::from($r), $exp));
 				)*
 
 				res
@@ -1012,6 +1121,97 @@ mod test {
             let (lhs, op, rhs, expect_error) = validate;
 
             let error = apply_binary(lhs, &op, rhs).expect_err(&format!(
+                "Test #{} did not produce an error",
+                (test_num + 1)
+            ));
+
+            assert_eq!(error, expect_error, "Test #{} failed", (test_num + 1));
+        }
+    }
+
+    #[test]
+    fn test_unary_ops() {
+        let arithmetics = make_uops![
+            Plus 1u64 == 1u64;
+            Plus -2i64 == -2i64;
+            Plus 1.5f64 == 1.5f64;
+
+            Minus 3u64 == -3i64;
+            Minus -2i64 == 2i64;
+            Minus 1.5f64 == -1.5f64;
+
+            Not 0xAAAAAAAA_AAAAAAAA_u64 == 0x55555555_55555555_u64;
+            Not 0x55555555_55555555_i64 == 0xAAAAAAAA_AAAAAAAA_u64;
+            Not true == false;
+            Not false == true;
+
+            Pound 1u64 == 1u64;
+            Pound -2i64 == 0xFFFFFFFF_FFFFFFFEu64;
+            // Halves are swapped around due to how Turing stores values on the operand stack
+            // Done here to also preserve compatibility
+            Pound -1f64 == 0x00000000_BFF00000u64;
+            Pound true == 1u64;
+            Pound false == 0u64;
+            // Take the bytewise UTF-8 representation of the string, padded with zeros
+            Pound "A" == 0x41u64;
+            Pound "AA" == 0x4141u64;
+            Pound "AAB" == 0x424141u64;
+            Pound "AABB" == 0x42424141u64;
+            Pound "AABBC" == 0x4342424141u64;
+            Pound "AABBCC" == 0x434342424141u64;
+            Pound "AABBCCD" == 0x44434342424141u64;
+            Pound "AABBCCDD" == 0x4444434342424141u64;
+            Pound "💛" == 0x9B929FF0u64; // U+1F49B -> F0 9F 92 9B
+        ];
+
+        for (test_num, validate) in arithmetics.into_iter().enumerate() {
+            let (op, rhs, result) = validate;
+
+            let eval = apply_unary(&op, rhs).unwrap();
+
+            if is_real_value(&eval) && is_real_value(&result) {
+                // Use epsilon
+                let eval: f64 = eval.into();
+                let result: f64 = result.into();
+
+                assert!(
+                    (eval - result).abs() <= f64::EPSILON,
+                    "FP Test #{} failed ({} > {})",
+                    (test_num + 1),
+                    (eval - result).abs(),
+                    f64::EPSILON,
+                );
+            } else {
+                assert_eq!(eval, result, "Test #{} failed", (test_num + 1));
+            }
+        }
+    }
+
+    #[test]
+    fn test_unary_op_errors() {
+        let error_tests = make_error_uops![
+            // Overflow
+            Minus 0x80000000_00000000_u64 causes Overflow;
+            Minus -0x80000000_00000000_i64 causes Overflow;
+            // Can't test Minus(f64) overflow, no way to make infs
+
+            // Wrong types
+            Plus true causes WrongTypes;
+            Plus "no" causes WrongTypes;
+
+            Minus false causes WrongTypes;
+            Minus "nada" causes WrongTypes;
+
+            Not "nada" causes WrongTypes;
+            Not 1f64 causes WrongTypes;
+
+            // Compile-time pound cheats are infallible
+        ];
+
+        for (test_num, validate) in error_tests.into_iter().enumerate() {
+            let (op, rhs, expect_error) = validate;
+
+            let error = apply_unary(&op, rhs).expect_err(&format!(
                 "Test #{} did not produce an error",
                 (test_num + 1)
             ));
