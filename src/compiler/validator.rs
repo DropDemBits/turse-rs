@@ -508,6 +508,11 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
 
                     let expr = value.as_ref().unwrap();
                     *type_spec = expr.get_eval_type();
+
+                    if types::is_intnat(type_spec) {
+                        // Always convert IntNats into Ints
+                        *type_spec = TypeRef::Primitive(PrimitiveType::Int);
+                    }
                 } else if value.is_some() {
                     // Type of the identifier is known, validate that the types are assignable
                     let expr = value.as_ref().unwrap();
@@ -2106,6 +2111,16 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         }
 
         // Constant folding tests with inner scopes are tested in the dedicated block stmt test
+
+        // Even though positive literals are NatValues, the transferred type should still
+        // allow implicit type variables to be assigned negative integers
+        let (success, unit) = make_validator("var a := 1 + 1\na := -1");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        let (success, unit) = make_validator("var a := 1\na := -1");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Int));
     }
 
     #[test]

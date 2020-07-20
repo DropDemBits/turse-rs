@@ -67,6 +67,9 @@ pub enum PrimitiveType {
     LongInt,
     /// Basic, checked long natural type, equivalent to 'u64'
     LongNat,
+    /// Ambiguious int/nat type, produced by literals
+    /// Converts by default into the int or nat of the appropriate size
+    IntNat,
     /// Basic real type, equivalent to 'f64'
     Real,
     /// Sized real type, equivalent to 'f32'
@@ -398,6 +401,7 @@ pub fn is_integer_type(type_ref: &TypeRef) -> bool {
                 | PrimitiveType::LongNat
                 | PrimitiveType::Nat8
                 | PrimitiveType::AddressInt
+                | PrimitiveType::IntNat
         ),
         _ => false,
     }
@@ -417,6 +421,16 @@ pub fn is_int(type_ref: &TypeRef) -> bool {
                 | PrimitiveType::LongInt
                 | PrimitiveType::Int8
         ),
+        _ => false,
+    }
+}
+
+/// Checks if the given `type_ref` references an int/nat convertable type (int & nat class types)
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type)
+pub fn is_intnat(type_ref: &TypeRef) -> bool {
+    match type_ref {
+        TypeRef::Primitive(kind) => matches!(kind, PrimitiveType::IntNat),
         _ => false,
     }
 }
@@ -490,26 +504,22 @@ pub fn common_type<'a>(
     _type_table: &'_ TypeTable,
 ) -> Option<&'a TypeRef> {
     // TODO: Between strings, stringNs, charNs, chars, sets, classes, pointers, etc.
-    if lhs == rhs {
+    if lhs == rhs && !(is_intnat(lhs) && is_intnat(rhs)) {
+        eprintln!("oop {:?} and {:?}", lhs, rhs);
         // Both are the same type, so they're both in common with eachother
         Some(lhs)
     } else if (is_real(lhs) && is_number_type(rhs)) || (is_number_type(lhs) && is_real(rhs)) {
         // Number types get promoted to real types if any 'real' exists
-        if is_real(lhs) {
-            Some(lhs)
-        } else {
-            Some(rhs)
-        }
+        Some(&TypeRef::Primitive(PrimitiveType::Real))
     } else if (is_int(lhs) && is_integer_type(rhs)) || (is_integer_type(lhs) && is_int(rhs)) {
         // Integer types get promoted to int types if any 'int' exists
-        if is_int(lhs) {
-            Some(lhs)
-        } else {
-            Some(rhs)
-        }
+        Some(&TypeRef::Primitive(PrimitiveType::Int))
+    } else if (is_intnat(lhs) && is_integer_type(rhs)) || (is_integer_type(lhs) && is_intnat(rhs)) {
+        // Int/Nats get converted into Ints by default
+        Some(&TypeRef::Primitive(PrimitiveType::Int))
     } else if is_nat(lhs) && is_nat(rhs) {
         // Common nat types produce 'nat's
-        Some(lhs)
+        Some(&TypeRef::Primitive(PrimitiveType::Nat))
     } else {
         // No common type
         None

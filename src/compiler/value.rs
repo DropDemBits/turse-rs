@@ -57,7 +57,11 @@ impl TryFrom<Value> for Expr {
             )),
             Value::NatValue(v) => Ok(value::make_literal(
                 TokenType::NatLiteral(v),
-                TypeRef::Primitive(PrimitiveType::Nat),
+                TypeRef::Primitive(if v < i64::MAX as u64 {
+                    PrimitiveType::IntNat
+                } else {
+                    PrimitiveType::Nat
+                }),
             )),
             Value::RealValue(v) => Ok(value::make_literal(
                 TokenType::RealLiteral(v),
