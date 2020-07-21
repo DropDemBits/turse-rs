@@ -190,11 +190,28 @@ impl<'a> Validator<'a> {
                     *to = self.resolve_type(*to, resolving_context);
                 }
             }
-            Type::Array { ranges, element_type, ..} => {
+            Type::Array { ranges, element_type, is_flexible, is_init_sized } => {
                 // Resolve the ranges
                 for range in ranges.iter_mut() {
                     // Not required to be compile-time, unless we are in a compile-time context
                     *range = self.resolve_type(*range, resolving_context);
+
+                    if matches!(resolving_context, ResolveContext::CompileTime(_)) && !*is_flexible && !*is_init_sized {
+                        // If the following holds true
+                        // - The index type is a range,
+                        // - We are in a compile-time context,
+                        // - This is an explict sized array (i.e. not `flexible` nor `init` sized)
+                        // Check if it is a not a zero sized range
+                        if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&range) {
+                            // Not being `flexible` nor `init`-sized guarrantees that end is a `Some`
+                            if !validate_range_size(&start, &end.as_ref().unwrap(), false) {
+                                // Zero sized ranges aren't allowed in compile-time array types
+                                let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
+                                self.reporter.report_error(&range_span, format_args!("Range bounds creates a zero-sized range"));
+                                *range = TypeRef::TypeError;
+                            }
+                        }
+                    }
                 }
 
                 // Resolve the element type
@@ -228,15 +245,28 @@ impl<'a> Validator<'a> {
                 *to = self.resolve_type(*to, ResolveContext::CompileTime(true));
             }
             Type::Range { start, end, base_type } => {
-                // Visit & fold the bound expressions
-                if let Some(value) = self.visit_expr(start) {
-                    *start = Expr::try_from(value).expect("Cannot convert start bound into a value");
+                // Base type starts out as a type error
+                *base_type = TypeRef::TypeError;
+
+                // Visit the bound expressions
+                let left_eval = self.visit_expr(start);
+                let right_eval = if end.is_some() {
+                    self.visit_expr(end.as_mut().unwrap())
+                } else {
+                    None
+                };
+
+                // Apply the folded values
+                if let Some(left) = left_eval {
+                    let span = start.get_span().clone();
+                    *start = Expr::try_from(left).expect("Cannot convert start bound into an expression");
+                    start.set_span(span);
                 }
 
-                if end.is_some() {
-                    if let Some(value) = self.visit_expr(end.as_mut().unwrap()) {
-                        *end = Some(Expr::try_from(value).expect("Cannot convert end bound into a value"));
-                    }
+                if let Some(right) = right_eval {
+                    let span = start.get_span().clone();
+                    end.replace(Expr::try_from(right).expect("Cannot convert end bound into an expression"));
+                    start.set_span(span);
                 }
 
                 if !start.is_compile_eval() {
@@ -266,6 +296,13 @@ impl<'a> Validator<'a> {
                     }
                 }
 
+                // Build a location spanning over the entire range
+                let range_span = if end.is_some() {
+                    start.get_span().span_to(end.as_ref().unwrap().get_span())
+                } else {
+                    start.get_span().clone()
+                };
+
                 // Try to derive a base copy from the given types
                 let start_type = start.get_eval_type();
                 let end_type = if end.is_some() {
@@ -277,16 +314,19 @@ impl<'a> Validator<'a> {
 
                 if !types::is_equivalent_to(&start_type, &end_type, &self.type_table) {
                     // Range eval types do not match
-                    // Span the entire range
-                    let span = if end.is_some() {
-                        start.get_span().span_to(end.as_ref().unwrap().get_span())
-                    } else {
-                        start.get_span().clone()
-                    };
-
-                    self.reporter.report_error(&span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
+                    self.reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
 
                     return TypeRef::TypeError;
+                }
+
+                // Check if the start and end bounds form a positive range size
+                if end.is_some() && start.is_compile_eval() && end.as_ref().unwrap().is_compile_eval() {
+                    let is_valid_size = validate_range_size(&start, &end.as_ref().unwrap(), true);
+
+                    if !is_valid_size {
+                        self.reporter.report_error(&range_span, format_args!("Range bounds creates a negative-sized range"));
+                        return TypeRef::TypeError;
+                    }
                 }
 
                 // Update the base type
@@ -368,6 +408,17 @@ impl<'a> Validator<'a> {
                             self.reporter.report_error(expr.get_span(), format_args!("Set index is not a range, char, boolean, or enumerated type"));
                         } else {
                             // Other cases should be reported by the parser (e.g. wrong primitive type)
+                        }
+                    }
+
+                    // If the index type is a range, check if it is a not a zero sized range
+                    if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&real_index) {
+                        // Compile-time enforcement guarrantees that end is a some
+                        if !validate_range_size(&start, &end.as_ref().unwrap(), false) {
+                            // Zero sized ranges aren't allowed in set types
+                            let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
+                            self.reporter.report_error(&range_span, format_args!("Range bounds creates a zero-sized range"));
+                            *index = TypeRef::TypeError;
                         }
                     }
                 } else if types::is_primitive(&index) && types::is_index_type(&index, self.type_table) {
@@ -499,6 +550,20 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     };
 
                     *type_spec = self.resolve_type(*type_spec, resolving_context);
+
+                    // If the `type_spec` is a range, verify it is not a zero sized range
+                    if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&type_spec) {
+                        // No guarrantess that end is a Some
+                        if end.is_none() {
+                            // Error should be reported by parser
+                            *type_spec = TypeRef::TypeError;
+                        } else if !validate_range_size(&start, &end.as_ref().unwrap(), false) {
+                            // Zero sized ranges aren't allowed in variable/constant range types
+                            let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
+                            self.reporter.report_error(&range_span, format_args!("Range bounds creates a zero-sized range"));
+                            *type_spec = TypeRef::TypeError;
+                        }
+                    }
                 }
                 
                 // Handle the type spec propogation
@@ -1288,6 +1353,74 @@ fn check_unary_operand(op: &TokenType, right_type: &TypeRef, type_table: &TypeTa
     Err(unary_default(op))
 }
 
+/// Validates the range size
+///
+/// Specifiying `allow_zero_size` as true allows zero-sized ranges to be
+/// captured as valid. Otherwise, zero-sized ranges are marked as invalid.
+fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bool) -> bool {
+    let start_value = Value::try_from(start_bound.clone()).expect("Cannot convert start bound into a value");
+    let end_value = Value::try_from(end_bound.clone()).expect("Cannot convert end bound into a value");
+
+    if value::is_nat_value(&start_value) && value::is_nat_value(&end_value) {
+        // Unsigned check
+        let start_value: u64 = start_value.into();
+        let end_value: u64 = end_value.into();
+
+        let (inclusive_end_value, overflowed) = end_value.overflowing_add(1);
+
+        // En - (St+1) = rs, rs < 0 is invalid, rs == 0 only valid if allowed
+
+        // Check for overflow
+        if overflowed {
+            // end_value is u64::MAX
+            // Nothing can be greater than u64::MAX, so this always forms a valid range
+            return true;
+        } else {
+            let (range_size, range_overflow) = inclusive_end_value.overflowing_sub(start_value);
+
+            // Overflow indicates a start bound greater than the adjusted end range
+            return !range_overflow && (allow_zero_size || range_size != 0);
+        }
+    } else {
+        // Check for char/int/boolean
+        let start_value = value::value_as_i64(start_value);
+        let end_value = value::value_as_i64(end_value);
+
+        if start_value.is_err() && matches!(start_value, Err(ValueApplyError::Overflow)) {
+            // Start value is definitely larger than the end bound, invalid
+            false
+        } else if end_value.is_err() && matches!(end_value, Err(ValueApplyError::Overflow)) {
+            // End value is definitely larger than the end bound, valid
+            true
+        } else if !start_value.is_err() && !end_value.is_err() {
+            // Values are in range, maybe
+            let start_value = start_value.unwrap();
+            let end_value = end_value.unwrap();
+            let (inclusive_end_value, overflowed) = end_value.overflowing_add(1);
+
+            // En - (St+1) = rs, rs < 0 is invalid, rs == 0 only valid if allowed
+
+            // Check for overflow
+            if overflowed {
+                // end_value is i64::MAX
+                // Any start bound less than `i64::MAX - 1` produces a negative sized range
+                // Any start bound less than `i64::MAX` produces a zero sized range
+                return start_value == i64::MAX || (start_value > i64::MAX - 1 && allow_zero_size);
+            } else {
+                let (range_size, range_overflow) = inclusive_end_value.overflowing_sub(start_value);
+
+                // Overflow indicates a start bound greater than the adjusted end range
+                // We check if the the range is not negative, as the zero-size
+                // case is handled by the 3rd conditional
+                return !range_overflow && !(range_size < 0) && (allow_zero_size || range_size != 0);
+            }
+        } else {
+            // Wrong types, should be captured by type checks before this call
+            return false;
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -2034,6 +2167,55 @@ mod test {
 
         // Arbitrary applications of nat cheat
         assert_eq!(true, run_validator("var a : int := ###############'kemp'"));
+    }
+
+    #[test]
+    fn test_range_size_checking() {
+        // Ranges in Turing are inclusive on both bounds
+        assert_eq!(true, run_validator("var a : 1 .. 16"));
+
+        // 1 sized ranges are valid
+        assert_eq!(true, run_validator("var a : 'a' .. 'a'"));
+        assert_eq!(true, run_validator("var a : 1 .. 1"));
+        assert_eq!(true, run_validator("var a : true .. true"));
+        assert_eq!(true, run_validator("var a : false .. false"));
+
+        // End range overflows constitute a valid range
+        assert_eq!(true, run_validator("var a : -8000 .. 16#8000000000000000"));
+        assert_eq!(true, run_validator("var a : -1 .. 16#ffffffffffffffff"));
+        assert_eq!(true, run_validator("var a : 0 .. 16#ffffffffffffffff"));
+        assert_eq!(true, run_validator("var a : 1 .. 16#ffffffffffffffff"));
+        assert_eq!(true, run_validator("var a : -16#7fffffffffffffff - 1 .. 16#ffffffffffffffff"));
+
+        // Start overflows constitute an invalid range
+        assert_eq!(false, run_validator("var a : 16#ffffffffffffffff .. -3"));
+        assert_eq!(false, run_validator("var a : 16#ffffffffffffffff .. 16#7fffffffffffffff"));
+
+        // 0 sized ranges are valid in some contexts (e.g. flexible arrays)
+        assert_eq!(true, run_validator("var a : flexible array 16#8000000000000000 .. 16#7fffffffffffffff of int"));
+        assert_eq!(true, run_validator("var a : flexible array true .. false of int"));
+        assert_eq!(true, run_validator("var a : flexible array 'D' .. 'C' of int"));
+
+        // 0 sized ranges aren't valid anywhere else
+        assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7fffffff"));
+        assert_eq!(false, run_validator("var a : true .. false"));
+        assert_eq!(false, run_validator("var a : 'D' .. 'C'"));
+        assert_eq!(false, run_validator("type a : set of 16#80000000 .. 16#7fffffff"));
+        assert_eq!(false, run_validator("type a : set of true .. false"));
+        assert_eq!(false, run_validator("type a : set of 'D' .. 'C'"));
+
+        // 0 sized ranges can't hide behind aliases
+        assert_eq!(false, run_validator("type a : 16#80000000 .. 16#7fffffff\nvar b : a"));
+        assert_eq!(false, run_validator("type a : true .. false             \nvar b : a"));
+        assert_eq!(false, run_validator("type a : 'D' .. 'C'                \nvar b : a"));
+        assert_eq!(false, run_validator("type a : 16#80000000 .. 16#7fffffff\ntype b : set of a"));
+        assert_eq!(false, run_validator("type a : true .. false             \ntype b : set of a"));
+        assert_eq!(false, run_validator("type a : 'D' .. 'C'                \ntype b : set of a"));
+
+        // Negative size ranges are invalid
+        assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7ffffffe"));
+        assert_eq!(false, run_validator("var a : 16#ffffffffffffffff .. 16#fffffffffffffffd"));
+        assert_eq!(false, run_validator("var a : 'D' .. 'B'"));
     }
 
     #[test]

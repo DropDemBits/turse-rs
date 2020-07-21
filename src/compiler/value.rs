@@ -162,31 +162,31 @@ impl Into<f64> for Value {
 
 // Type checks
 
-fn is_boolean_value(value: &Value) -> bool {
+pub fn is_boolean_value(value: &Value) -> bool {
     matches!(value, Value::BooleanValue(_))
 }
 
-fn is_string_value(value: &Value) -> bool {
+pub fn is_string_value(value: &Value) -> bool {
     matches!(value, Value::StringValue(_))
 }
 
-fn is_int_value(value: &Value) -> bool {
+pub fn is_int_value(value: &Value) -> bool {
     matches!(value, Value::IntValue(_))
 }
 
-fn is_nat_value(value: &Value) -> bool {
+pub fn is_nat_value(value: &Value) -> bool {
     matches!(value, Value::NatValue(_))
 }
 
-fn is_integer(value: &Value) -> bool {
+pub fn is_integer(value: &Value) -> bool {
     matches!(value, Value::IntValue(_) | Value::NatValue(_))
 }
 
-fn is_real_value(value: &Value) -> bool {
+pub fn is_real_value(value: &Value) -> bool {
     matches!(value, Value::RealValue(_))
 }
 
-fn is_number(value: &Value) -> bool {
+pub fn is_number(value: &Value) -> bool {
     matches!(value, Value::IntValue(_) | Value::NatValue(_) | Value::RealValue(_))
 }
 
@@ -209,7 +209,19 @@ pub enum ValueApplyError {
     WrongTypes,
 }
 
-// Remaining operations to apply (>= <= < > = ~=)
+/// Forcefully converts a value into an i64, performing the neccessary casts
+pub fn value_as_i64(v: Value) -> Result<i64, ValueApplyError> {
+    match v {
+        Value::NatValue(v) => i64::try_from(v).map_err(|_| ValueApplyError::Overflow),
+        Value::IntValue(v) => Ok(v),
+        Value::RealValue(v) => Ok(v as i64),
+        Value::BooleanValue(v) => Ok(v as i64),
+        Value::StringValue(v) => {
+            // Only convert the first char
+            v.chars().next().map(|c| Ok(c as i64)).unwrap_or(Ok(0))
+        }
+    }
+}
 
 /// Tries to convert the value into the corresponding u64 byte representation.
 /// Only used for bitwise operators
@@ -731,13 +743,7 @@ pub fn apply_unary(op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError>
                     u64::from_ne_bytes(v.to_ne_bytes()).rotate_left(32),
                 ))
             }
-            Value::BooleanValue(v) => {
-                if v {
-                    Ok(Value::from(1u64))
-                } else {
-                    Ok(Value::from(0u64))
-                }
-            }
+            Value::BooleanValue(v) => Ok(Value::from(v as u64)),
             Value::StringValue(v) => {
                 // Pad & fold (big endian ordering) into a u64
                 let value: u64 = v
