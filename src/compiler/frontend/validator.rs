@@ -8,8 +8,8 @@
 //! Types are resolved before the expression that use them are visited by only
 //! resolving types in declaration statements
 use crate::compiler::ast::{ASTVisitorMut, Identifier, Expr, Stmt};
-use crate::compiler::block::CodeBlock;
-use crate::compiler::token::TokenType;
+use crate::compiler::frontend::block::CodeBlock;
+use crate::compiler::frontend::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::value::{self, Value, ValueApplyError};
 use crate::status_reporter::StatusReporter;
@@ -701,7 +701,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     if !types::is_assignable_to(left_type, right_type, &self.type_table) {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
-                            &op.location,
+                            &value.get_span(),
                             format_args!("Assignment value is the wrong type"),
                         );
                     }
@@ -710,7 +710,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     if produce_type.is_err() || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table) {
                         // Value to assign is the wrong type
                         self.reporter.report_error(
-                            &op.location,
+                            &value.get_span(),
                             format_args!("Assignment value is the wrong type"),
                         );
                     }
@@ -888,7 +888,7 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                                 } else {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
                                 },
-                            TokenType::NotEq | TokenType::Equ => if !types::is_equivalent_to(left_type, right_type, self.type_table) {
+                            TokenType::NotEqu | TokenType::Equ => if !types::is_equivalent_to(left_type, right_type, self.type_table) {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
                                 } else {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
@@ -1103,7 +1103,7 @@ fn binary_default(op: &TokenType) -> TypeRef {
         | TokenType::LessEqu
         | TokenType::GreaterEqu
         | TokenType::Equ
-        | TokenType::NotEq
+        | TokenType::NotEqu
         | TokenType::In
         | TokenType::NotIn
         | TokenType::And
@@ -1252,7 +1252,7 @@ fn check_binary_operands(
             }
             // TODO: Check remaining types (object class, enums)
         }
-        TokenType::Equ | TokenType::NotEq => {
+        TokenType::Equ | TokenType::NotEqu => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // - Both types are char or strings class types (string, string(n), char, char(n))
@@ -1424,9 +1424,9 @@ fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bo
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::compiler::block::CodeUnit;
-    use crate::compiler::scanner::Scanner;
-    use crate::compiler::parser::Parser;
+    use crate::compiler::frontend::block::CodeUnit;
+    use crate::compiler::frontend::scanner::Scanner;
+    use crate::compiler::frontend::parser::Parser;
     use rand::prelude::*;
 
     /// Makes and runs a validator

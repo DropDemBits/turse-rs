@@ -17,7 +17,7 @@ pub enum TokenType {
     /// @
     At,
     /// ->
-    Deref,
+    Arrow,
     /// ^
     Caret,
     /// :
@@ -68,7 +68,7 @@ pub enum TokenType {
     /// not in | ~in | ~ in
     NotIn,
     /// not = | not= | ~= | ~ =
-    NotEq,
+    NotEqu,
 
     // Packed Operator-Assign
     // These are complicated by the fact that whitespace does not matter
@@ -214,7 +214,7 @@ impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             TokenType::At => "@",
-            TokenType::Deref => "->",
+            TokenType::Arrow => "->",
             TokenType::Caret => "^",
             TokenType::Colon => ":",
             TokenType::Assign => ":=",
@@ -238,7 +238,7 @@ impl fmt::Display for TokenType {
             TokenType::Exp => "**",
             TokenType::Tilde => "~",
             TokenType::NotIn => "~in",
-            TokenType::NotEq => "~=",
+            TokenType::NotEqu => "~=",
             TokenType::Addressint => "addressint",
             TokenType::All => "all",
             TokenType::And => "and",

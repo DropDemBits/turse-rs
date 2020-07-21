@@ -76,12 +76,13 @@ fn compile_run_file(path: &str) {
     };
 
     // Build the main unit
-    let code_unit = compiler::block::CodeUnit::new(true);
+    let code_unit = compiler::frontend::block::CodeUnit::new(true);
 
-    let mut scanner = compiler::scanner::Scanner::new(&file_contents);
+    let mut scanner = compiler::frontend::scanner::Scanner::new(&file_contents);
     scanner.scan_tokens();
 
-    let mut parser = compiler::parser::Parser::new(scanner.tokens, &file_contents, code_unit);
+    let mut parser =
+        compiler::frontend::parser::Parser::new(scanner.tokens, &file_contents, code_unit);
     parser.parse();
 
     // Take the unit back from the parser
@@ -93,7 +94,7 @@ fn compile_run_file(path: &str) {
 
     // Validate AST
     let mut validator =
-        compiler::validator::Validator::new(code_unit.root_block(), &mut type_table);
+        compiler::frontend::validator::Validator::new(code_unit.root_block(), &mut type_table);
     code_unit.visit_ast_mut(&mut validator);
     code_unit.put_types(type_table);
 

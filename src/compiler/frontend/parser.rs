@@ -1,7 +1,7 @@
 //! Main parser for tokens to build the AST
 use crate::compiler::ast::{Expr, Identifier, Stmt};
-use crate::compiler::block::{BlockKind, CodeBlock, CodeUnit};
-use crate::compiler::token::{Token, TokenType};
+use crate::compiler::frontend::block::{BlockKind, CodeBlock, CodeUnit};
+use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
@@ -89,8 +89,8 @@ enum Precedence {
     Exponent,
     /// Conversion Operator \ #
     Conversion,
-    /// Deref Operator \ ->
-    Deref,
+    /// Arrow Operator \ ->
+    Arrow,
     /// Calling & Get Operators \ ( .
     Call,
     /// Pointer Follow Operator \ ^
@@ -118,8 +118,8 @@ impl Precedence {
             Product => Unary,
             Unary => Exponent,
             Exponent => Conversion,
-            Conversion => Deref,
-            Deref => Call,
+            Conversion => Arrow,
+            Arrow => Call,
             Call => Follow,
             Follow => Primary,
         }
@@ -541,7 +541,7 @@ impl<'s> Parser<'s> {
         // Referring to an identifier (aside from checking if it's been declared)
         // does not have any side effects in an invalid parse and can be
         // safely ignored
-        let reference = self.expr_precedence(Precedence::Deref)?;
+        let reference = self.expr_precedence(Precedence::Arrow)?;
         let is_compound_assign = self.is_compound_assignment();
 
         if is_compound_assign || self.is_simple_assignment() {
@@ -800,9 +800,9 @@ impl<'s> Parser<'s> {
         })
     }
 
-    fn expr_deref(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_arrow(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
-        // Span starts from the var_ref, all the way to the deref token
+        // Span starts from the var_ref, all the way to the arrow token
         let span = var_ref.get_span().span_to(&self.previous().location);
 
         // Wrap the var_ref in a deref
@@ -1706,7 +1706,7 @@ impl<'s> Parser<'s> {
             | TokenType::Equ
             | TokenType::LessEqu
             | TokenType::GreaterEqu
-            | TokenType::NotEq
+            | TokenType::NotEqu
             | TokenType::In
             | TokenType::NotIn => &PrecedenceRule {
                 precedence: Precedence::Comparison,
@@ -1744,10 +1744,10 @@ impl<'s> Parser<'s> {
                 prefix_rule: Some(Parser::expr_unary_rule),
                 infix_rule: None,
             },
-            TokenType::Deref => &PrecedenceRule {
-                precedence: Precedence::Deref,
+            TokenType::Arrow => &PrecedenceRule {
+                precedence: Precedence::Arrow,
                 prefix_rule: None,
-                infix_rule: Some(Parser::expr_deref),
+                infix_rule: Some(Parser::expr_arrow),
             },
             TokenType::Exp => &PrecedenceRule {
                 precedence: Precedence::Exponent,
@@ -1788,7 +1788,7 @@ impl<'s> Parser<'s> {
 mod test {
     use super::*;
     use crate::compiler::ast;
-    use crate::compiler::scanner::Scanner;
+    use crate::compiler::frontend::scanner::Scanner;
     use crate::compiler::types;
 
     fn make_test_parser(source: &str) -> Parser {

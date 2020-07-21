@@ -1,5 +1,5 @@
 //! Scanner for tokens
-use crate::compiler::token::{Token, TokenType};
+use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::char;
@@ -134,7 +134,7 @@ impl<'s> Scanner<'s> {
                     let change = self.tokens.last_mut().unwrap();
 
                     // Adjust location & kind
-                    change.token_type = TokenType::NotEq;
+                    change.token_type = TokenType::NotEqu;
                     change.location.current_to_other(&end_loc);
                 }
                 _ => {}
@@ -237,7 +237,7 @@ impl<'s> Scanner<'s> {
                     self.next_char();
                 }
             }
-            '-' => self.make_or_default('>', TokenType::Deref, 2, TokenType::Minus, 1),
+            '-' => self.make_or_default('>', TokenType::Arrow, 2, TokenType::Minus, 1),
             '=' => self.make_or_default('>', TokenType::Imply, 2, TokenType::Equ, 1),
             ':' => self.make_or_default('=', TokenType::Assign, 2, TokenType::Colon, 1),
             '>' => self.make_or_default('=', TokenType::GreaterEqu, 2, TokenType::Greater, 1),
@@ -1421,10 +1421,10 @@ mod test {
                 .map(|tk| &tk.token_type)
                 .collect::<Vec<&TokenType>>(),
             vec![
-                &TokenType::NotEq,
-                &TokenType::NotEq,
-                &TokenType::NotEq,
-                &TokenType::NotEq,
+                &TokenType::NotEqu,
+                &TokenType::NotEqu,
+                &TokenType::NotEqu,
+                &TokenType::NotEqu,
                 &TokenType::Equ,
                 &TokenType::Equ,
                 &TokenType::Not,

@@ -1,5 +1,5 @@
 use crate::compiler::ast::{ASTVisitorMut, Stmt};
-use crate::compiler::scope::Scope;
+use crate::compiler::frontend::scope::Scope;
 use crate::compiler::types::TypeTable;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};

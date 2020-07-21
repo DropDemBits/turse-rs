@@ -6,7 +6,7 @@
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
 use crate::compiler::ast::Expr;
-use crate::compiler::token::TokenType;
+use crate::compiler::frontend::token::TokenType;
 use crate::compiler::value::{self, Value};
 use std::convert::TryFrom;
 

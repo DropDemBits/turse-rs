@@ -1,6 +1,6 @@
 //! AST structure definitions
-use crate::compiler::block::CodeBlock;
-use crate::compiler::token::Token;
+use crate::compiler::frontend::block::CodeBlock;
+use crate::compiler::frontend::token::Token;
 use crate::compiler::types::TypeRef;
 use crate::compiler::Location;
 use std::cell::RefCell;
@@ -229,7 +229,7 @@ impl Expr {
 
 impl fmt::Debug for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use crate::compiler::token::TokenType;
+        use crate::compiler::frontend::token::TokenType;
         use Expr::*;
 
         match self {

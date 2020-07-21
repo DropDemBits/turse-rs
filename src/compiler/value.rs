@@ -1,6 +1,6 @@
 //! Intermediate values for compile-time evaluation
 use crate::compiler::ast::Expr;
-use crate::compiler::token::{Token, TokenType};
+use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, TypeRef};
 use crate::compiler::Location;
 use std::cmp::Ordering;
@@ -712,7 +712,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             compare_values(lhs, rhs, true)?,
             Ordering::Equal
         ))),
-        TokenType::NotEq => Ok(Value::from(!matches!(
+        TokenType::NotEqu => Ok(Value::from(!matches!(
             compare_values(lhs, rhs, true)?,
             Ordering::Equal
         ))),
@@ -979,11 +979,11 @@ mod test {
             "Hello!" Equ "World!" == false;
 
             // Inequality
-            true NotEq false == true;
-            true NotEq true == false;
+            true NotEqu false == true;
+            true NotEqu true == false;
 
-            "Hello!" NotEq "Hello!" == false;
-            "Hello!" NotEq "World!" == true;
+            "Hello!" NotEqu "Hello!" == false;
+            "Hello!" NotEqu "World!" == true;
 
             // Less Than
             1f64 Less 10u64 == true;
