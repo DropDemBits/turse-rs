@@ -1063,12 +1063,9 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
 
                     // Grab the correct identifier information (including the
                     // type_spec) in the scope table
-                    let new_ident = self
-                        .active_block.as_ref().unwrap()
-                        .upgrade()
-                        .as_ref()
-                        .unwrap()
-                        .borrow()
+                    let block_ref = self.active_block.as_ref().unwrap().upgrade();
+                    let block = block_ref.as_ref().unwrap().borrow();
+                    let new_info = block
                         .scope
                         .get_ident_instance(&ident.name, ident.instance)
                         .unwrap()
@@ -1084,9 +1081,14 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                 // Return the reference's associated compile-time value
                 return compile_value;
             }
-            Expr::Literal { .. } => {
-                // Literal values already have the type resolved
+            Expr::Literal { eval_type, .. } => {
+                // Literal values already have the type resolved, unless the eval type is an IntNat
                 // No need to produce a value as the current literal can produce the required value
+
+                if matches!(eval_type, TypeRef::Primitive(PrimitiveType::IntNat)) {
+                    // Force IntNats into Ints
+                    *eval_type = TypeRef::Primitive(PrimitiveType::Int);
+                }
                 return None;
             }
         }
