@@ -1,10 +1,10 @@
-use crate::compiler::ast::{ASTVisitorMut, Stmt};
-use crate::compiler::frontend::scope::Scope;
+use crate::compiler::ast::{Stmt, Visitor, VisitorMut};
+use crate::compiler::scope::Scope;
 use crate::compiler::types::TypeTable;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[allow(unused_variables, dead_code)]
 pub enum BlockKind {
     /// Main block, root for all blocks, can be an execution block
@@ -53,7 +53,6 @@ impl CodeBlock {
 
 #[derive(Debug)]
 pub struct CodeUnit {
-    //blocks: Vec<Rc<RefCell<CodeBlock>>>,
     /// Root block of the unit
     root_block: Rc<RefCell<CodeBlock>>,
     /// Root statements
@@ -79,12 +78,22 @@ impl CodeUnit {
         }
     }
 
-    /// Visits the AST using the given ASTVisitorMut, providing mutable access
-    pub fn visit_ast_mut<T, U, V>(&mut self, visitor: &mut T)
+    /// Visits the AST using the given VisitorMut, providing mutable access
+    pub fn visit_ast_mut<T, St, Ex>(&mut self, visitor: &mut T)
     where
-        T: ASTVisitorMut<U, V>,
+        T: VisitorMut<St, Ex>,
     {
         for stmt in self.stmts.iter_mut() {
+            visitor.visit_stmt(stmt);
+        }
+    }
+
+    /// Visits the AST using the given Visitor, only providing immutable access
+    pub fn visit_ast<T, St, Ex>(&self, visitor: &mut T)
+    where
+        T: Visitor<St, Ex>,
+    {
+        for stmt in self.stmts.iter() {
             visitor.visit_stmt(stmt);
         }
     }

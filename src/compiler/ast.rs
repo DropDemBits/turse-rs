@@ -1,5 +1,5 @@
 //! AST structure definitions
-use crate::compiler::frontend::block::CodeBlock;
+use crate::compiler::block::CodeBlock;
 use crate::compiler::frontend::token::Token;
 use crate::compiler::types::TypeRef;
 use crate::compiler::Location;
@@ -310,12 +310,23 @@ pub enum Stmt {
 }
 
 /// Mutable Visitor for a generated AST.
-/// `T` is the type returned from visiting statements, and `U` is the type
+/// `St` is the type returned from visiting statements, and `Ex` is the type
 /// returned from visiting expressions.
-pub trait ASTVisitorMut<T, U> {
+pub trait VisitorMut<St, Ex> {
     /// Visit a single statement in the tree
-    fn visit_stmt(&mut self, stmt: &mut Stmt) -> T;
+    fn visit_stmt(&mut self, stmt: &mut Stmt) -> St;
 
     /// Visit an expression in the tree
-    fn visit_expr(&mut self, expr: &mut Expr) -> U;
+    fn visit_expr(&mut self, expr: &mut Expr) -> Ex;
+}
+
+/// Immutable Visitor for a generated AST.
+/// `St` is the type returned from visiting statements, and `Ex` is the type
+/// returned from visiting expressions.
+pub trait Visitor<St, Ex> {
+    /// Visit a single statement in the tree
+    fn visit_stmt(&mut self, stmt: &Stmt) -> St;
+
+    /// Visit an expression in the tree
+    fn visit_expr(&mut self, expr: &Expr) -> Ex;
 }

@@ -538,7 +538,6 @@ pub fn common_type<'a>(
 ) -> Option<&'a TypeRef> {
     // TODO: Between strings, stringNs, charNs, chars, sets, classes, pointers, etc.
     if lhs == rhs && !(is_intnat(lhs) && is_intnat(rhs)) {
-        eprintln!("oop {:?} and {:?}", lhs, rhs);
         // Both are the same type, so they're both in common with eachother
         Some(lhs)
     } else if (is_real(lhs) && is_number_type(rhs)) || (is_number_type(lhs) && is_real(rhs)) {

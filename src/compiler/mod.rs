@@ -1,5 +1,8 @@
+//! Root module for all compiler facilities
 pub(crate) mod ast;
+pub(crate) mod block;
 pub(crate) mod frontend;
+pub(crate) mod scope;
 pub(crate) mod types;
 pub(crate) mod value;
 

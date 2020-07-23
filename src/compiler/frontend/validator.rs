@@ -7,8 +7,8 @@
 //!
 //! Types are resolved before the expression that use them are visited by only
 //! resolving types in declaration statements
-use crate::compiler::ast::{ASTVisitorMut, Identifier, Expr, Stmt};
-use crate::compiler::frontend::block::CodeBlock;
+use crate::compiler::ast::{VisitorMut, Identifier, Expr, Stmt};
+use crate::compiler::block::CodeBlock;
 use crate::compiler::frontend::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::value::{self, Value, ValueApplyError};
@@ -141,25 +141,30 @@ enum ResolveContext {
 }
 
 /// Validator Instance
-pub struct Validator<'a> {
+pub struct Validator {
     /// Status reporter for the type validator
-    reporter: StatusReporter,
+    pub reporter: StatusReporter,
     /// Type table to use
-    type_table: &'a mut TypeTable,
+    type_table: TypeTable,
     /// Actively parsed scope
     active_block: Option<Weak<RefCell<CodeBlock>>>,
     /// Associated scope info
     scope_infos: Vec<ScopeInfo>,
 }
 
-impl<'a> Validator<'a> {
-    pub fn new(root_block: &Rc<RefCell<CodeBlock>>, type_table: &'a mut TypeTable) -> Self {
+impl Validator {
+    pub fn new(root_block: &Rc<RefCell<CodeBlock>>, type_table: TypeTable) -> Self {
         Self {
             reporter: StatusReporter::new(),
             type_table,
             active_block: Some(Rc::downgrade(root_block)),
             scope_infos: vec![ScopeInfo::new()]
         }
+    }
+
+    /// Takes the type_table from the validator
+    pub fn take_types(&mut self) -> TypeTable {
+        std::mem::replace(&mut self.type_table, TypeTable::new())
     }
 
     /// Resolves the given type, validating that the type is a valid type
@@ -399,7 +404,7 @@ impl<'a> Validator<'a> {
                     // Other cases are handled by the parser
                     let real_index = self.dealias_resolve_type(*index);
 
-                    if !types::is_index_type(&real_index, self.type_table) {
+                    if !types::is_index_type(&real_index, &self.type_table) {
                         // Not a real index type, change it to point to a type error
                         *index = TypeRef::TypeError;
 
@@ -421,7 +426,7 @@ impl<'a> Validator<'a> {
                             *index = TypeRef::TypeError;
                         }
                     }
-                } else if types::is_primitive(&index) && types::is_index_type(&index, self.type_table) {
+                } else if types::is_primitive(&index) && types::is_index_type(&index, &self.type_table) {
                     // Is a primitive, either a 'char' or 'boolean'
                     // Keep as is
                 } else {
@@ -501,7 +506,7 @@ impl<'a> Validator<'a> {
     }
 }
 
-impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
+impl VisitorMut<(), Option<Value>> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match visit_stmt {
             Stmt::VarDecl {
@@ -883,17 +888,17 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                             TokenType::Shl | TokenType::Shr => 
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
                             TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu =>
-                                if !types::is_equivalent_to(left_type, right_type, self.type_table) {
+                                if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
                                 } else {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
                                 },
-                            TokenType::NotEqu | TokenType::Equ => if !types::is_equivalent_to(left_type, right_type, self.type_table) {
+                            TokenType::NotEqu | TokenType::Equ => if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
                                 } else {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
                                 },
-                            TokenType::In | TokenType::NotIn => if !types::is_set(right_type, self.type_table) {
+                            TokenType::In | TokenType::NotIn => if !types::is_set(right_type, &self.type_table) {
                                 self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
                                 } else {
                                         self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
@@ -1068,9 +1073,13 @@ impl ASTVisitorMut<(), Option<Value>> for Validator<'_> {
                     let new_info = block
                         .scope
                         .get_ident_instance(&ident.name, ident.instance)
-                        .unwrap()
-                        .clone();
-                    *ident = new_ident;
+                        .unwrap();
+
+                    // Update the necessary info
+                    ident.import_index = new_info.import_index;
+                    ident.is_declared = new_info.is_declared;
+                    ident.is_typedef = new_info.is_typedef;
+                    ident.type_spec = new_info.type_spec;
 
                     // An identifier is compile-time evaluable if and only if there is an associated expression
                     ident.is_compile_eval = compile_value.is_some();
@@ -1426,7 +1435,7 @@ fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bo
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::compiler::frontend::block::CodeUnit;
+    use crate::compiler::block::CodeUnit;
     use crate::compiler::frontend::scanner::Scanner;
     use crate::compiler::frontend::parser::Parser;
     use rand::prelude::*;
@@ -1447,14 +1456,14 @@ mod test {
         
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
-        let mut type_table = code_unit.take_types();
+        let type_table = code_unit.take_types();
         
         // Validate AST
-        let mut validator = Validator::new(code_unit.root_block(), &mut type_table);
+        let mut validator = Validator::new(code_unit.root_block(), type_table);
         code_unit.visit_ast_mut(&mut validator);
-        let successful_validate = !validator.reporter.has_error();
+        code_unit.put_types(validator.take_types());
 
-        code_unit.put_types(type_table);
+        let successful_validate = !validator.reporter.has_error();
         
         (successful_validate, code_unit)
     }
@@ -2357,7 +2366,6 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
 
         // x use-in-init decl
         let (success, unit) = make_validator("var a : string := a + \"oops\"");
-        eprintln!("??: {:#?}", unit);
         assert_eq!(false, success);
         assert_eq!(false, unit.root_block().borrow().scope.get_ident_instance("a", 0).unwrap().is_declared);
         assert_eq!(true, unit.root_block().borrow().scope.get_ident_instance("a", 1).unwrap().is_declared);

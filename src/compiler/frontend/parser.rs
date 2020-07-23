@@ -1,6 +1,6 @@
 //! Main parser for tokens to build the AST
 use crate::compiler::ast::{Expr, Identifier, Stmt};
-use crate::compiler::frontend::block::{BlockKind, CodeBlock, CodeUnit};
+use crate::compiler::block::{BlockKind, CodeBlock, CodeUnit};
 use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef};
 use crate::compiler::Location;

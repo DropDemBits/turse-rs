@@ -1,5 +1,5 @@
 use crate::compiler::ast::{self, IdentInstance, Identifier};
-use crate::compiler::frontend::block::CodeBlock;
+use crate::compiler::block::CodeBlock;
 use crate::compiler::frontend::token::Token;
 use crate::compiler::types::TypeRef;
 use std::cell::RefCell;
@@ -407,7 +407,7 @@ impl Scope {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::compiler::frontend::block::BlockKind;
+    use crate::compiler::block::BlockKind;
     use crate::compiler::frontend::token::TokenType;
     use crate::compiler::types::PrimitiveType;
     use crate::compiler::Location;

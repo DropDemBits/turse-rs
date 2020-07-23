@@ -76,7 +76,7 @@ fn compile_run_file(path: &str) {
     };
 
     // Build the main unit
-    let code_unit = compiler::frontend::block::CodeUnit::new(true);
+    let code_unit = compiler::block::CodeUnit::new(true);
 
     let mut scanner = compiler::frontend::scanner::Scanner::new(&file_contents);
     scanner.scan_tokens();
@@ -87,16 +87,21 @@ fn compile_run_file(path: &str) {
 
     // Take the unit back from the parser
     let mut code_unit = parser.take_unit();
-    let mut type_table = code_unit.take_types();
+    let type_table = code_unit.take_types();
 
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
     // TODO: Provide external type resolution stage
 
     // Validate AST
     let mut validator =
-        compiler::frontend::validator::Validator::new(code_unit.root_block(), &mut type_table);
+        compiler::frontend::validator::Validator::new(code_unit.root_block(), type_table);
     code_unit.visit_ast_mut(&mut validator);
-    code_unit.put_types(type_table);
+    code_unit.put_types(validator.take_types());
+
+    // Validator must run successfully
+    if validator.reporter.has_error() {
+        return;
+    }
 
     println!("Unit:\n{:#?}", code_unit);
 }
