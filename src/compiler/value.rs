@@ -114,6 +114,24 @@ impl From<f64> for Value {
     }
 }
 
+impl From<TokenType> for Value {
+    fn from(token_type: TokenType) -> Value {
+        match token_type {
+            TokenType::BoolLiteral(v) => (Value::BooleanValue(v)),
+            TokenType::IntLiteral(v) => (Value::IntValue(v)),
+            TokenType::NatLiteral(v) => (Value::NatValue(v)),
+            TokenType::RealLiteral(v) => (Value::RealValue(v)),
+            TokenType::StringLiteral(v) => (Value::StringValue(v)),
+            TokenType::CharLiteral(v) => (Value::StringValue(v)),
+            TokenType::Nil => (Value::NatValue(0)), // Treat nil as 0
+            _ => panic!(
+                "Cannot convert complex literal into a value ({:?})",
+                token_type
+            ),
+        }
+    }
+}
+
 // 'Into's
 impl Into<bool> for Value {
     fn into(self) -> bool {
@@ -398,10 +416,6 @@ fn check_inf(v: f64) -> Result<f64, ValueApplyError> {
         Ok(v)
     }
 }
-
-// Remaining operators
-// mod, rem -> num
-// >, >=, <, <=, =, ~= -> b
 
 /// Applies the specified binary operation on the given value operands
 pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError> {

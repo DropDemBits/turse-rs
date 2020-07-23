@@ -2,10 +2,12 @@
 pub(crate) mod ast;
 pub(crate) mod block;
 pub(crate) mod frontend;
+pub mod ir;
 pub(crate) mod scope;
 pub(crate) mod types;
 pub(crate) mod value;
 
+extern crate petgraph;
 #[cfg(test)]
 extern crate rand;
 extern crate unicode_segmentation;
@@ -106,6 +108,9 @@ impl Location {
 /// All valid operators usable in Turing code
 #[derive(Debug)]
 pub enum Operator {
+    /// No Operation, used by simple assignment
+    NoOp,
+
     // Unary Operators
     /// Unary Plus/Identity (`+`)
     UnaryPlus,
@@ -163,7 +168,7 @@ pub enum Operator {
 
 impl Operator {
     /// Converts a `TokenType` into the corresponding unary `Operator`
-    fn from_unary(tok_type: frontend::token::TokenType) -> Self {
+    fn from_unary(tok_type: &frontend::token::TokenType) -> Self {
         use frontend::token::TokenType;
 
         match tok_type {
@@ -177,10 +182,11 @@ impl Operator {
     }
 
     /// Converts a `TokenType` into the corresponding binary `Operator`
-    fn from_binary(tok_type: frontend::token::TokenType) -> Self {
+    fn from_binary(tok_type: &frontend::token::TokenType) -> Self {
         use frontend::token::TokenType;
 
         match tok_type {
+            TokenType::Assign => Operator::NoOp,
             TokenType::Plus => Operator::Add,
             TokenType::Minus => Operator::Sub,
             TokenType::Star => Operator::Mul,
@@ -209,6 +215,7 @@ impl Operator {
 impl fmt::Display for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Operator::NoOp => f.write_str("nop"),
             Operator::UnaryPlus => f.write_str("+"),
             Operator::UnaryMinus => f.write_str("-"),
             Operator::NatCheat => f.write_str("#"),
