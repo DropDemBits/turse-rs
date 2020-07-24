@@ -1,31 +1,11 @@
 //! Builds an IR Control-Flow-Graph from a given CodeUnit
 use crate::compiler::ast;
 use crate::compiler::block::{BlockKind, CodeUnit};
-use crate::compiler::ir::*;
+use crate::compiler::ir::graph::*;
+use crate::compiler::ir::{AddressSpace, ReferenceNode};
 use crate::compiler::types;
 use crate::compiler::value;
-use crate::compiler::Operator;
-use petgraph::stable_graph::StableDiGraph;
-
-// From somewhere else
-#[derive(Debug)]
-pub struct IrGraph {
-    blocks: StableDiGraph<Block, (), BlockIndexType>,
-}
-
-impl IrGraph {
-    /// Creates a new IR graph
-    pub fn new() -> Self {
-        Self {
-            blocks: StableDiGraph::new(),
-        }
-    }
-
-    /// Creates a new block, returning the block index
-    pub fn create_block(&mut self) -> BlockIndex {
-        self.blocks.add_node(Block::new())
-    }
-}
+use crate::compiler::{Location, Operator};
 
 pub struct IrBuilder {
     /// The code unit to generate IR for
@@ -40,9 +20,21 @@ impl IrBuilder {
 
     /// Generates IR for the given IR, returning the IR representation
     pub fn generate_ir(&self) -> Option<IrGraph> {
-        let mut ir_visitor = IrVisitor::new(self.unit.root_block().borrow().block_kind);
-        self.unit.visit_ast(&mut ir_visitor);
-        let graph = ir_visitor.take_graph();
+        let mut visitor = IrVisitor::new(self.unit.root_block().borrow().block_kind);
+
+        // Prepare the visitor for building the IrGraph
+        // Create the root block
+        let graph = visitor.graph.as_mut().unwrap();
+        let root_block = graph.create_block();
+        visitor.insert_block = root_block;
+
+        // Create the init function
+        // No parent or function type
+        graph.create_function("<init>", None, None, root_block);
+
+        // Build the graph
+        self.unit.visit_ast(&mut visitor);
+        let graph = visitor.take_graph();
         Some(graph)
     }
 }
@@ -52,12 +44,16 @@ struct IrVisitor {
     graph: Option<IrGraph>,
     /// Next temporary identifier
     next_temporary: usize,
-    /// Block Context
+    /// Current insertion block context
     block_context: BlockKind,
     /// Current block being inserted into
     insert_block: BlockIndex,
     /// Current reference scope
     reference_scope: ReferenceNode,
+    /// Most recent line location from the last inserted instruction
+    line: u32,
+    /// Most recent unit location from the last inserted instruction
+    unit_id: u32,
 }
 
 impl IrVisitor {
@@ -65,15 +61,14 @@ impl IrVisitor {
     ///
     /// `block_context`: The starting context for the block
     pub fn new(block_context: BlockKind) -> Self {
-        let mut graph = IrGraph::new();
-        let root_block = graph.create_block();
-
         Self {
-            graph: Some(graph),
+            graph: Some(IrGraph::new()),
             next_temporary: 0,
             block_context,
-            insert_block: root_block,
+            insert_block: BlockIndex::end(),
             reference_scope: ReferenceNode::new(),
+            line: 0,
+            unit_id: 0,
         }
     }
 
@@ -87,9 +82,22 @@ impl IrVisitor {
         matches!(self.block_context, BlockKind::Main)
     }
 
+    /// Creates a location from the last inserted instruction
+    fn location_from_last(&self) -> Location {
+        let mut loc = Location::new();
+        loc.line = self.line as usize;
+        // TODO: track unit number in location information
+
+        loc
+    }
+
     /// Inserts an instruction into the current block,
     /// returning the insertion index for future modification.
     fn insert_instruction(&mut self, inst: Instruction) -> usize {
+        // Update the last locations
+        self.line = inst.line;
+        self.unit_id = inst.unit;
+
         let insert_block = &mut self.graph.as_mut().unwrap().blocks[self.insert_block];
         insert_block.insert_instruction(inst)
     }
@@ -101,9 +109,13 @@ impl IrVisitor {
         type_ref: &types::TypeRef,
         alloc_space: AddressSpace,
     ) -> Reference {
-        self.reference_scope.assign_ref(name, type_ref, alloc_space)
+        let new_ref = self.reference_scope.assign_ref(name, type_ref, alloc_space);
 
-        // TODO: Keep track of modified references inside of a block
+        // Keep track of modified references inside of a block
+        let insert_block = &mut self.graph.as_mut().unwrap().blocks[self.insert_block];
+        insert_block.modified_refs.insert(name.to_string());
+
+        new_ref
     }
 
     /// Uses an existsing reference from any reference scope
@@ -207,6 +219,32 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 );
 
                 self.insert_instruction(asn_inst);
+            }
+            ast::Stmt::Block { stmts, .. } => {
+                // As a test, split block up into other things
+                let inner_block = self.graph.as_mut().unwrap().create_block();
+
+                // Link the last insertion block into the new block
+                let br_inst = Instruction::new(
+                    &self.location_from_last(),
+                    InstructionOp::Branch { to: inner_block },
+                );
+                self.insert_instruction(br_inst);
+
+                // Link the blocks together
+                self.graph
+                    .as_mut()
+                    .unwrap()
+                    .blocks
+                    .add_edge(self.insert_block, inner_block, ());
+
+                // Change the block we're inserting into
+                self.insert_block = inner_block;
+
+                // Insert the rest statements into the block
+                for stmt in stmts {
+                    self.visit_stmt(stmt);
+                }
             }
             _ => todo!(),
         }
