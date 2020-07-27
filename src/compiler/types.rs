@@ -8,6 +8,7 @@
 use crate::compiler::ast::Expr;
 use crate::compiler::frontend::token::TokenType;
 use crate::compiler::value::{self, Value};
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 /// Default string size, in bytes
@@ -157,6 +158,19 @@ pub enum Type {
         is_flexible: bool,
         /// If the array has an upper bound based on the initializing expression
         is_init_sized: bool,
+    },
+    /// Enum Type
+    Enum {
+        /// Valid enumeration fields, and the associated enum field
+        fields: HashMap<String, TypeRef>,
+    },
+    /// Enum field type
+    EnumField {
+        /// Reference to the base enum type.
+        /// Always points to the dealiased type
+        enum_type: TypeRef,
+        /// The ordinal value of the field
+        ordinal: usize,
     },
     /// Forward reference to a type
     Forward {

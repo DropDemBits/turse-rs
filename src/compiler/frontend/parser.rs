@@ -6,6 +6,7 @@ use crate::compiler::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, 
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
@@ -950,7 +951,7 @@ impl<'s> Parser<'s> {
 
                 self.type_function(parse_context, is_function)
             }
-            TokenType::Enum => unimplemented!(),
+            TokenType::Enum => self.type_enum(parse_context),
             TokenType::Record => unimplemented!(),
             TokenType::Union => unimplemented!(),
             _ => {
@@ -1550,6 +1551,85 @@ impl<'s> Parser<'s> {
         } else {
             self.declare_type(Type::Set { range })
         }
+    }
+
+    // Parse an enumeration type
+    fn type_enum(&mut self, parse_context: &TokenType) -> TypeRef {
+        // Parse the entire enum declaration first
+        let enum_tok = self.next_token();
+        // nab '('
+        let _ = self.expects(
+            TokenType::LeftParen,
+            format_args!("Expected '(' after 'enum'"),
+        );
+
+        // Grab the enum fields
+        let mut fields = vec![];
+        loop {
+            let oops_text = self.get_token_lexeme(self.previous()).to_string();
+            let current_text = self.get_token_lexeme(self.current()).to_string();
+
+            let ident = self
+                .expects(
+                    TokenType::Identifier,
+                    format_args!(
+                        "Expected identifier after '{}' ('{}' is not an identifier)",
+                        oops_text, current_text
+                    ),
+                )
+                .map(|_| current_text)
+                .unwrap_or(String::from(""));
+
+            fields.push(ident);
+
+            // If there is no comma, there's no more identifiers to nab
+            if !self.optional(TokenType::Comma) {
+                // End of the value declarations
+                break;
+            }
+        }
+
+        // nab ')'
+        let _ = self.expects(
+            TokenType::RightParen,
+            format_args!("Expected ')' after enumeration field declarations"),
+        );
+
+        if *parse_context != TokenType::Type {
+            // Only allowed in "type" statements
+            self.reporter.report_error(
+                &enum_tok.location,
+                format_args!("Enumerated types can only be declared inside of 'type' statements"),
+            );
+
+            return TypeRef::TypeError;
+        }
+
+        // Build the type from the identifiers
+        // Create a dummy type
+        let enum_type = self.declare_type(Type::Alias {
+            to: TypeRef::Unknown,
+        });
+
+        // Create types for each of the fields and put them into a HashMap
+        let mut enum_fields = HashMap::new();
+        fields.into_iter().enumerate().for_each(|(ordinal, name)| {
+            if !name.is_empty() {
+                // Add all of the valid fields
+                let field = self.declare_type(Type::EnumField { enum_type, ordinal });
+                enum_fields.insert(name, field);
+            }
+        });
+
+        // Replace the enum type with the real type
+        self.replace_type(
+            &enum_type,
+            Type::Enum {
+                fields: enum_fields,
+            },
+        );
+
+        enum_type
     }
 
     // -- Wrappers around the scope list -- //
@@ -2216,24 +2296,6 @@ mod test {
 
         // Wrong types will be captured by the validator
 
-        /*
-        // Invalid: Wrong type (capture)
-        let mut parser = make_test_parser("var c : string(0.0)");
-        assert!(!parser.parse());
-        // Tried to parse as a "string"
-        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
-
-        let mut parser = make_test_parser("var c : char('a')");
-        assert!(!parser.parse());
-        // Tried to parse as a "char"
-        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::Char));
-
-        let mut parser = make_test_parser("var c : string(true)");
-        assert!(!parser.parse());
-        // Tried to parse as a "string"
-        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
-        */
-
         // Invalid: Bigger than the maximum size
         let mut parser = make_test_parser("var c : string(16#10000)");
         assert!(!parser.parse());
@@ -2351,6 +2413,9 @@ var runtime_size : array 1 .. up_size of real
 var some_external_use : some.thing.with.these.given.fields := 3
 var ranged_external : some.thing.with.start .. some.thing.with.end_thing := 5
 var implicit_external : array 1 .. some.thing.with.end_thing of int
+
+% Enum types
+type enumeration : enum (a, b, c, d, e, f)
         ",
         );
         assert!(parser.parse());
@@ -2532,6 +2597,80 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
 
         // Expression does not contain only field refs
         let mut parser = make_test_parser("var inv : an.ident.list.of(1, 2, 3)");
+        assert!(!parser.parse());
+    }
+
+    #[test]
+    fn test_enum_invalids() {
+        // Enums can have 1 or more fields
+        let mut parser = make_test_parser("type a : enum (a)");
+        assert!(parser.parse());
+
+        let mut parser = make_test_parser("type a : enum (a, b, c)");
+        assert!(parser.parse());
+
+        // At least one field must be specified
+        let mut parser = make_test_parser("type a : enum ()\nvar b : int");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+        // Ensure this gets parsed
+        assert_eq!(
+            get_ident_type(&parser, "b"),
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        let mut parser = make_test_parser("type a : enum )\nvar b : int");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+        // Ensure this gets parsed
+        assert_eq!(
+            get_ident_type(&parser, "b"),
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        let mut parser = make_test_parser("type a : enum \nvar b : int");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+        // Ensure this gets parsed
+        assert_eq!(
+            get_ident_type(&parser, "b"),
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        // Right paren is required, but should not create an error type
+        let mut parser = make_test_parser("type a : enum (a");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+
+        let mut parser = make_test_parser("type a : enum (a, b, c");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+
+        // Field identifiers must be separated by comma delimiters (ends the list otherwise)
+        let mut parser = make_test_parser("var c := 3\ntype a : enum (a, b c += 1");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+
+        // Non-identifiers terminate the list
+        let mut parser = make_test_parser("type a : enum (a, to\nvar b : int");
+        assert!(!parser.parse());
+        assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+        assert_eq!(
+            get_ident_type(&parser, "b"),
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        // Enums not in top-level type contexts are rejected (producing type errors)
+        // i.e. anonymous enums are not allowed
+        let mut parser = make_test_parser("var a : enum (a, b, c)");
+        assert!(!parser.parse());
+        assert_eq!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+
+        let mut parser = make_test_parser("const a : enum (a, b, c)");
+        assert!(!parser.parse());
+        assert_eq!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+
+        let mut parser = make_test_parser("type a : set of enum (a, b, c)");
         assert!(!parser.parse());
     }
 

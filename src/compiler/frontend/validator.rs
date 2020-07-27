@@ -315,6 +315,12 @@ impl Validator {
                 // Required to be compile-time as the element size must be known
                 *element_type = self.resolve_type(*element_type, ResolveContext::CompileTime(false));
             }
+            Type::Enum { .. } => {
+                // Already resolved, do nothing
+            }
+            Type::EnumField { .. } => {
+                // Already resolved, do nothing
+            }
             Type::Forward { is_resolved } => {
                 if !*is_resolved {
                     // Type has not been resolved in the unit
