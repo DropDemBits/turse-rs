@@ -107,7 +107,7 @@ fn compile_run_file(path: &str) {
     println!("Parsed Code Unit:\n{:#?}\n", code_unit);
 
     // Generate IR for the given unit
-    let ir_builder = compiler::ir::IrBuilder::new(code_unit);
+    /*let ir_builder = compiler::ir::IrBuilder::new(code_unit);
     let ir = ir_builder.generate_ir().unwrap();
 
     println!("Generated IR:\n{:#?}\n", ir);
@@ -117,5 +117,5 @@ fn compile_run_file(path: &str) {
 
     for edge in edge_iter {
         println!("ed {:?}", edge);
-    }
+    }*/
 }
