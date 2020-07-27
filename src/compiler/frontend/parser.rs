@@ -2,7 +2,7 @@
 use crate::compiler::ast::{Expr, Identifier, Stmt};
 use crate::compiler::block::{BlockKind, CodeBlock, CodeUnit};
 use crate::compiler::frontend::token::{Token, TokenType};
-use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef};
+use crate::compiler::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef};
 use crate::compiler::Location;
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
@@ -987,10 +987,21 @@ impl<'s> Parser<'s> {
     }
 
     /// Gets the size specifier for a char(n) or string(n)
-    fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<usize, ()> {
+    fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<SequenceSize, ()> {
         match self.current().token_type {
-            TokenType::NatLiteral(size) if size > 0 => {
-                if size as usize >= types::MAX_STRING_SIZE {
+            TokenType::NatLiteral(size)
+                if matches!(self.peek().token_type, TokenType::RightParen) =>
+            {
+                // Is only a literal, and not part of an expression
+                if size == 0 {
+                    // Empty length, never valid
+                    self.reporter.report_error(
+                        &self.current().location,
+                        format_args!("Invalid maximum string length of '0'"),
+                    );
+                    Err(())
+                } else if size as usize >= types::MAX_STRING_SIZE {
+                    // Greater than max length, never valid
                     self.reporter.report_error(
                         &self.current().location,
                         format_args!(
@@ -1003,15 +1014,16 @@ impl<'s> Parser<'s> {
                 } else {
                     // Consume parsed type
                     self.next_token();
-                    Ok(size as usize)
+                    Ok(SequenceSize::Size(size as usize))
                 }
             }
-            TokenType::Star => {
+            TokenType::Star if matches!(self.peek().token_type, TokenType::RightParen) => {
+                // Star is always by itself, nothing else
                 // Consume parsed type
                 self.next_token();
 
                 if matches!(parse_context, TokenType::Function | TokenType::Procedure) {
-                    Ok(0 as usize)
+                    Ok(SequenceSize::Size(0 as usize))
                 } else {
                     self.reporter.report_error(
                         &self.previous().location,
@@ -1024,13 +1036,34 @@ impl<'s> Parser<'s> {
                 }
             }
             _ => {
-                self.reporter.report_error(
-                    &self.current().location,
-                    format_args!(
+                // Try to parse as a compile-time expression
+                // Resolved at validator time
+                let size_expr = self.expr();
+
+                // Expect a right paren after the expression
+                if !matches!(self.current().token_type, TokenType::RightParen) {
+                    // Let the caller handle it
+                    return Err(());
+                }
+
+                // Put the parsed expression into a type table reference
+                match size_expr {
+                    Ok(expr) => Ok(SequenceSize::CompileExpr(
+                        types::get_type_id(&self.declare_type(Type::SizeExpr {
+                            expr: Box::new(expr),
+                        }))
+                        .unwrap(),
+                    )),
+                    Err(_) => {
+                        self.reporter.report_error(
+                            &self.current().location,
+                            format_args!(
                         "Length specifier is not a '*' or a non-zero compile time expression"
                     ),
-                );
-                Err(())
+                        );
+                        Err(())
+                    }
+                }
             }
         }
     }
@@ -2133,9 +2166,9 @@ mod test {
             TypeRef::Primitive(PrimitiveType::Real4),
             TypeRef::Primitive(PrimitiveType::Real8),
             TypeRef::Primitive(PrimitiveType::String_),
-            TypeRef::Primitive(PrimitiveType::StringN(300)),
+            TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(300))),
             TypeRef::Primitive(PrimitiveType::Char),
-            TypeRef::Primitive(PrimitiveType::CharN(768)),
+            TypeRef::Primitive(PrimitiveType::CharN(SequenceSize::Size(768))),
             TypeRef::Primitive(PrimitiveType::AddressInt),
         ];
 
@@ -2156,25 +2189,49 @@ mod test {
         );
         assert!(parser.parse());
 
-        // Compile time expr (we don't evaluate them yet)
-        /*
-        let mut parser = make_test_parser(
-            "
-        const c := 5 + 25 * 2 % 55
-        var str : string(c)
-        ",
-        );
+        // Expressions are allowed for string(n) and char(n), resolved at validator time
+        // They don't parse into to the base type
+        let mut parser = make_test_parser("var c : string(1 + 1 + 1 - 2 + 4 * 8 div 2)");
         assert!(parser.parse());
-        assert_eq!(
-            match parser.stmts[1] {
-                Stmt::VarDecl {
-                    ident: Identifier { type_spec, .. },
-                    ..
-                } => type_spec,
-                _ => unreachable!(),
-            },
-            TypeRef::Primitive(PrimitiveType::StringN(55))
+        assert_ne!(
+            get_ident_type(&parser, "c"),
+            TypeRef::Primitive(PrimitiveType::String_)
         );
+
+        let mut parser =
+            make_test_parser("const c := 1 + 1 + 1 - 2 + 4 * 8 div 2\nvar d : string(c)");
+        assert!(parser.parse());
+        assert_ne!(
+            get_ident_type(&parser, "d"),
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
+
+        let mut parser =
+            make_test_parser("const c := 1 + 1 + 1 - 2 + 4 * 8 div 2\nvar d : char(c + 4)");
+        assert!(parser.parse());
+        assert_ne!(
+            get_ident_type(&parser, "d"),
+            TypeRef::Primitive(PrimitiveType::Char)
+        );
+
+        // Wrong types will be captured by the validator
+
+        /*
+        // Invalid: Wrong type (capture)
+        let mut parser = make_test_parser("var c : string(0.0)");
+        assert!(!parser.parse());
+        // Tried to parse as a "string"
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
+
+        let mut parser = make_test_parser("var c : char('a')");
+        assert!(!parser.parse());
+        // Tried to parse as a "char"
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::Char));
+
+        let mut parser = make_test_parser("var c : string(true)");
+        assert!(!parser.parse());
+        // Tried to parse as a "string"
+        check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
         */
 
         // Invalid: Bigger than the maximum size
@@ -2211,13 +2268,6 @@ mod test {
         // Tried to parse as a "string"
         check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::String_));
 
-        // Invalid: Not a type specification (shouldn't parse the := "hee" nor the 'to' as it may cause
-        // phantom errors)
-        let mut parser = make_test_parser("var c : to := 'hee'");
-        assert!(!parser.parse());
-        // Failed to parse, as type error
-        check_ident_expected_type(&parser, "c", TypeRef::TypeError);
-
         // Invalid: '*' specifiec is only valid in subprogram parameter declarations
         let mut parser = make_test_parser("var c : string(*)");
         assert!(!parser.parse());
@@ -2228,6 +2278,13 @@ mod test {
         assert!(!parser.parse());
         // Failed to parse, as char
         check_ident_expected_type(&parser, "c", TypeRef::Primitive(PrimitiveType::Char));
+
+        // Invalid: Not a type specification (shouldn't parse the := "hee" nor the 'to' as it may cause
+        // phantom errors)
+        let mut parser = make_test_parser("var c : to := 'hee'");
+        assert!(!parser.parse());
+        // Failed to parse, as type error
+        check_ident_expected_type(&parser, "c", TypeRef::TypeError);
     }
 
     #[test]

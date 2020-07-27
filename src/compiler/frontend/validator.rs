@@ -10,7 +10,7 @@
 use crate::compiler::ast::{VisitorMut, Identifier, Expr, Stmt};
 use crate::compiler::block::CodeBlock;
 use crate::compiler::frontend::token::TokenType;
-use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
+use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable, SequenceSize};
 use crate::compiler::value::{self, Value, ValueApplyError};
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
@@ -167,10 +167,102 @@ impl Validator {
         std::mem::replace(&mut self.type_table, TypeTable::new())
     }
 
+    fn resolve_char_seq_size(&mut self, base_ref: TypeRef, resolving_context: ResolveContext) -> TypeRef {
+        match base_ref {
+            TypeRef::Primitive(PrimitiveType::CharN(seq_size)) | TypeRef::Primitive(PrimitiveType::StringN(seq_size)) => {
+                if let SequenceSize::CompileExpr(type_id) = seq_size {
+                    // Resolve the type id first
+                    let resolved_ref = self.resolve_type(TypeRef::Named(type_id), resolving_context);
+                    
+                    if types::is_error(&resolved_ref) {
+                        // Not a valid size
+                        // Convert to the corresponding base type (matching Turing behaviour)
+                        return types::get_char_seq_base_type(base_ref);
+                    }
+                    
+                    let expr_id = types::get_type_id(&resolved_ref).unwrap();
+                    
+                    // Grab the expression id, verify it's a literal, as well as being the correct type (int/nat/intnat)
+                    if let Type::SizeExpr { expr } = self.type_table.get_type(expr_id) {
+                        let computed_size = if let Expr::Literal { value, .. } = &**expr {
+                            match value.token_type {
+                                TokenType::NatLiteral(len) => Some(len), // Direct correspondence
+                                TokenType::IntLiteral(len) => {
+                                    if len < 0 {
+                                        // Negative length is invalid
+                                        self.reporter.report_error(&value.location, format_args!("Compile-time string length specifier is negative"));
+                                        None
+                                    } else {
+                                        Some(len as u64)
+                                    }
+                                }
+                                _ => {
+                                    // Wrong length type
+                                    self.reporter.report_error(&value.location, format_args!("Wrong type for a string length specifier"));
+                                    None
+                                }
+                            }
+                        } else {
+                            // Not a compile-time expression!
+                            self.reporter.report_error(&expr.get_span(), format_args!("String length specifier is not a compile-time expression"));
+                            None
+                        };
+                        
+                        if let Some(size) = computed_size {
+                            // Check if the size is within the correct range
+                            if size == 0 {
+                                // Is zero, not directly specified by star
+                                self.reporter.report_error(
+                                    &expr.get_span(),
+                                    format_args!("Invalid maximum string length of '0'"),
+                                );
+                                
+                                return types::get_char_seq_base_type(base_ref);
+                            } else if size as usize >= types::MAX_STRING_SIZE {
+                                // Greater than max length, never valid
+                                self.reporter.report_error(
+                                    &expr.get_span(),
+                                    format_args!(
+                                        "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
+                                        size,
+                                        types::MAX_STRING_SIZE
+                                    ),
+                                );
+                                
+                                return types::get_char_seq_base_type(base_ref);
+                            } else {
+                                // Return the correct size type
+                                if types::is_charn(&base_ref) {
+                                    return TypeRef::Primitive(PrimitiveType::CharN(SequenceSize::Size(size as usize)));
+                                } else {
+                                    return TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(size as usize)));
+                                }
+                            }
+                        } else {
+                            // Not a valid size, error reported previously
+                            return types::get_char_seq_base_type(base_ref);
+                        }
+                    } else {
+                        // There should always be a SizeExpr here, unless some bad input was fed through a pre-compiled library
+                        unreachable!()
+                    }
+                    
+                } else {
+                    // Already resolved, don't need to do anything
+                    return base_ref;
+                }
+            }
+            _ => unreachable!() // Invalid primitive type or type ref for length resolving, called on wrong path?
+        }
+    }
+
     /// Resolves the given type, validating that the type is a valid type
     /// Returns the resolved typedef
     fn resolve_type(&mut self, base_ref: TypeRef, resolving_context: ResolveContext) -> TypeRef {
-        if !types::is_named(&base_ref) {
+        if types::is_sized_char_seq_type(&base_ref) {
+            // Try and resolve the size of the char(n)
+            return self.resolve_char_seq_size(base_ref, resolving_context);
+        } else if !types::is_named(&base_ref) {
             // Not a named ref, no resolving needs to be done
             return base_ref;
         }
@@ -271,7 +363,7 @@ impl Validator {
                 if let Some(right) = right_eval {
                     let span = start.get_span().clone();
                     end.replace(Expr::try_from(right).expect("Cannot convert end bound into an expression"));
-                    start.set_span(span);
+                    end.as_mut().unwrap().set_span(span);
                 }
 
                 if !start.is_compile_eval() {
@@ -435,6 +527,25 @@ impl Validator {
                     *index = TypeRef::TypeError;
                 }
             }
+            Type::SizeExpr { expr } => {
+                // Visit the expr, producing a compile-time value
+                let eval = self.visit_expr(expr);
+
+                if !expr.is_compile_eval() || eval.is_none() {
+                    // Is not a compile-time expression, give back a type error
+                    self.reporter.report_error(expr.get_span(), format_args!("Expression is not a compile-time expression"));
+                    return TypeRef::TypeError;
+                }
+
+                // Value type-checking should be done by the destination type type
+
+                // Type should be valid, replace with eval_value
+                if let Some(value) = eval {
+                    let span = expr.get_span().clone();
+                    *expr = Box::new(Expr::try_from(value).expect("Cannot convert size value back into an expression"));
+                    expr.set_span(span);
+                }
+            }
         }
 
         // Replace the type with the updated type
@@ -544,8 +655,8 @@ impl VisitorMut<(), Option<Value>> for Validator {
                     is_compile_eval = expr.is_compile_eval();
                 }
 
-                // Resolve the identifier type spec, if possible
-                if types::is_named(type_spec) {
+                // Resolve the identifier type spec or sized char sequence type spec, if possible
+                if types::is_named(type_spec) || types::is_sized_char_seq_type(type_spec) {
                     // Only required to be compile-time if the decl is a const decl, or if the type spec
                     // is not directly an array
                     let resolving_context = if *is_const || !matches!(self.type_table.type_from_ref(type_spec), Some(Type::Array{ .. })) {
@@ -2315,6 +2426,59 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("var a := 1\na := -1");
         assert_eq!(true, success);
         assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        // Constont folding allows compile-time expressions in length specifiers
+        let (success, unit) = make_validator("const sz := 3\nconst a : string(sz) := 'aaa'");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(3))));
+
+        let (success, unit) = make_validator("const sz := 3\nconst a : char(sz + 10) := 'aaa'");
+        assert_eq!(true, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::CharN(SequenceSize::Size(13))));
+
+        // Constant folding length specifiers should still preserve parser validation semantics
+        // On error, should resovle into the base types
+
+        // Case: Zero Size
+        let (success, unit) = make_validator("const sz := 0\nconst a : string(sz) := 'aaa'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+
+        let (success, unit) = make_validator("const sz := 0\nconst a : char(sz + 1 - 1) := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Char));
+
+        // Case: Negative size
+        let (success, unit) = make_validator("const sz := -2\nconst a : string(sz) := 'aaa'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+
+        let (success, unit) = make_validator("const a : char(5 - 10) := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Char));
+
+        // Case: Too large
+        let (success, unit) = make_validator("const sz := 16#10000 - 5 + 5\nconst a : string(sz) := 'aaa'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+
+        let (success, unit) = make_validator("const a : char(65530 + 10) := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Char));
+
+        // Case: Wrong compile-time type
+        let (success, unit) = make_validator("const a : char(65530 + 0.0) := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Char));
+
+        let (success, unit) = make_validator("const a : string('noop' + 'boop') := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::String_));
+
+        // Case: Not actually a compile-time expression
+        let (success, unit) = make_validator("var depend := 65530\nconst a : char(depend) := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Char));
     }
 
     #[test]

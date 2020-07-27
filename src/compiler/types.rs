@@ -32,9 +32,18 @@ pub enum TypeRef {
     Named(usize),
 }
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum SequenceSize {
+    /// Compile-time expression, resolved to Size at validator time.
+    /// Points into the type table.
+    CompileExpr(usize),
+    /// Constant parsed. 0 indicates any length
+    Size(usize),
+}
+
 /// Enum of basic primitive types
 /// Not included in the unit type table
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PrimitiveType {
     // Base primative types
     /// Boolean type
@@ -84,17 +93,17 @@ pub enum PrimitiveType {
     // accommodate larger strings
     String_,
     /// Fixed-size string of ASCII characters (u8's)
-    /// `usize` is the maximum length storable in the string
+    /// `SequenceSize` is the maximum length storable in the string
     /// A size of zero indicates a dynamic length type, or a '*' size specifier
     /// Assignable to other StrN's of the same or larger size
-    StringN(usize),
+    StringN(SequenceSize),
     /// A single ASCII character
     Char,
     /// Multiple ASCII characters (u8's)
-    /// `usize` is the maximum length storable in the string
+    /// `SequenceSize` is the maximum length storable in the string
     /// A size of zero indicates a dynamic length type, or a '*' size specifier
     /// Assignable to other CharN's of the same or larger size
-    CharN(usize),
+    CharN(SequenceSize),
     /// A type able to store a pointer address
     /// The size of an AddressInt varies between compiling for 32-bit or 64-bit machines
     /// If compiling for 32-bit, the pointer size is 4 bytes
@@ -187,6 +196,8 @@ pub enum Type {
     /// Set of values in a given range.
     /// The start and end expressions of the range must be compile-time evaluable.
     Set { range: TypeRef },
+    /// Expression holding the size of a Char(n) or a String(n)
+    SizeExpr { expr: Box<Expr> },
 }
 
 /// Table of all named references defined in the scope
@@ -253,14 +264,14 @@ impl TypeTable {
 pub fn get_string_kind(s: &String) -> PrimitiveType {
     let size = s.bytes().count();
 
-    PrimitiveType::StringN(size)
+    PrimitiveType::StringN(SequenceSize::Size(size))
 }
 
 /// Makes the appropriate `CharN` type for the given `String`
 pub fn get_char_kind(s: &String) -> PrimitiveType {
     let size = s.bytes().count();
 
-    PrimitiveType::CharN(size)
+    PrimitiveType::CharN(SequenceSize::Size(size))
 }
 
 /// Gets the appropriate int type for the given integer value
@@ -291,6 +302,24 @@ pub fn get_intnat_kind(v: u64) -> PrimitiveType {
         PrimitiveType::LongInt
     } else {
         PrimitiveType::LongNat
+    }
+}
+
+/// Gets the appropriate character sequence base type for the given
+/// primitive TypeRef.
+pub fn get_char_seq_base_type(seq_ref: TypeRef) -> TypeRef {
+    if let TypeRef::Primitive(primitive) = seq_ref {
+        let base_primivite = match primitive {
+            PrimitiveType::CharN(_) => PrimitiveType::Char,
+            PrimitiveType::StringN(_) => PrimitiveType::String_,
+            PrimitiveType::String_ => PrimitiveType::String_,
+            PrimitiveType::Char => PrimitiveType::Char,
+            _ => panic!("Tried to convert a non char sequence type into a char sequence base type"),
+        };
+
+        TypeRef::Primitive(base_primivite)
+    } else {
+        panic!("Tried to convert non primitive type ref into a primitive char sequence type");
     }
 }
 
@@ -386,8 +415,9 @@ pub fn is_sized_char_seq_type(type_ref: &TypeRef) -> bool {
 pub fn get_sized_len(type_ref: &TypeRef) -> Option<usize> {
     match type_ref {
         TypeRef::Primitive(kind) => match kind {
-            PrimitiveType::StringN(s) | PrimitiveType::CharN(s) => Some(*s),
-            _ => None,
+            PrimitiveType::StringN(SequenceSize::Size(s))
+            | PrimitiveType::CharN(SequenceSize::Size(s)) => Some(*s),
+            _ => None, // Can't resolve a compile-time expression or not a string sequence
         },
         _ => None,
     }

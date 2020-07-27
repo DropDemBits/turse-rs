@@ -1,7 +1,7 @@
 //! Intermediate values for compile-time evaluation
 use crate::compiler::ast::Expr;
 use crate::compiler::frontend::token::{Token, TokenType};
-use crate::compiler::types::{self, PrimitiveType, TypeRef};
+use crate::compiler::types::{self, PrimitiveType, SequenceSize, TypeRef};
 use crate::compiler::Location;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
@@ -69,7 +69,7 @@ impl TryFrom<Value> for Expr {
 
                 Ok(value::make_literal(
                     TokenType::StringLiteral(v),
-                    TypeRef::Primitive(PrimitiveType::StringN(size)),
+                    TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(size))),
                 ))
             }
         }
