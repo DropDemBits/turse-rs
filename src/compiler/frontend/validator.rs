@@ -1225,8 +1225,6 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 }
 
                 if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
-                    // TODO: Extract the ref name from 'left' (either a dot-expr, or a ref-expr)
-
                     // Match based on the type info
                     match type_info {
                         Type::Enum { fields } => {
@@ -1243,7 +1241,18 @@ impl VisitorMut<(), Option<Value>> for Validator {
                                 field.is_compile_eval = false; // Not directly compile-time evaluable
                             } else {
                                 // Field name is not a part of the enum
-                                self.reporter.report_error(&field.token.location, format_args!("'{}' is not a field of the enum '???'", field.name));
+                                field.type_spec = TypeRef::TypeError;
+                                *eval_type = TypeRef::TypeError;
+
+                                // Grabbing the identifier as the enum type name is a best-effort guess
+                                self.reporter.report_error(
+                                    &field.token.location,
+                                    format_args!(
+                                        "'{}' is not a field of the enum type '{}'",
+                                        field.name,
+                                        get_reference_ident(left).map(|ident| ident.name.as_str()).unwrap_or("<unknown>")
+                                    )
+                                );
                             }
                         }
                         Type::Pointer { .. } => {
@@ -1640,6 +1649,16 @@ fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bo
             // Wrong types, should be captured by type checks before this call
             return false;
         }
+    }
+}
+
+/// Gets the reference identifier, if there is one
+fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
+    match ref_expr {
+        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+            Some(ident)
+        }
+        _ => None
     }
 }
 
@@ -2475,6 +2494,15 @@ mod test {
 
         // Arbitrary applications of nat cheat
         assert_eq!(true, run_validator("var a : int := ###############'kemp'"));
+    }
+
+    #[test]
+    fn test_dot_typecheck() {
+        // Normal cases
+        assert_eq!(true, run_validator("type e0 : enum (a, b, c)\nvar a := e0.a"));
+
+        // Field is not a part of the compound type
+        assert_eq!(false, run_validator("type e0 : enum (a, b, c)\nvar a := e0.d"));
     }
 
     #[test]
