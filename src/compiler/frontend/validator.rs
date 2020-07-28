@@ -301,7 +301,7 @@ impl Validator {
                         // Check if it is a not a zero sized range
                         if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&range) {
                             // Not being `flexible` nor `init`-sized guarrantees that end is a `Some`
-                            if !validate_range_size(&start, &end.as_ref().unwrap(), false) {
+                            if !validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, false) {
                                 // Zero sized ranges aren't allowed in compile-time array types
                                 let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                                 self.reporter.report_error(&range_span, format_args!("Range bounds creates a zero-sized range"));
@@ -424,7 +424,7 @@ impl Validator {
 
                 // Check if the start and end bounds form a positive range size
                 if end.is_some() && start.is_compile_eval() && end.as_ref().unwrap().is_compile_eval() {
-                    let is_valid_size = validate_range_size(&start, &end.as_ref().unwrap(), true);
+                    let is_valid_size = validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, true);
 
                     if !is_valid_size {
                         self.reporter.report_error(&range_span, format_args!("Range bounds creates a negative-sized range"));
@@ -435,6 +435,11 @@ impl Validator {
                 // Update the base type
                 // Either `start_type` or `end_type` could be used
                 *base_type = self.dealias_resolve_type(start_type);
+
+                // If the base type is an enum field, take the associated enum type
+                if let Some(Type::EnumField{ enum_type, .. }) = self.type_table.type_from_ref(base_type) {
+                    *base_type = *enum_type;
+                }
             }
             Type::Reference { expr } => {
                 // Reference will produce a reference to the associated type_spec
@@ -517,7 +522,7 @@ impl Validator {
                     // If the index type is a range, check if it is a not a zero sized range
                     if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&real_index) {
                         // Compile-time enforcement guarrantees that end is a some
-                        if !validate_range_size(&start, &end.as_ref().unwrap(), false) {
+                        if !validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, false) {
                             // Zero sized ranges aren't allowed in set types
                             let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                             self.reporter.report_error(&range_span, format_args!("Range bounds creates a zero-sized range"));
@@ -679,7 +684,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                         if end.is_none() {
                             // Error should be reported by parser
                             *type_spec = TypeRef::TypeError;
-                        } else if !validate_range_size(&start, &end.as_ref().unwrap(), false) {
+                        } else if !validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, false) {
                             // Zero sized ranges aren't allowed in variable/constant range types
                             let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                             self.reporter.report_error(&range_span, format_args!("Range bounds creates a zero-sized range"));
@@ -973,6 +978,11 @@ impl VisitorMut<(), Option<Value>> for Validator {
                         *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
                         *eval_type = good_eval;
 
+                        if types::is_enum_field(left_type, &self.type_table) || types::is_enum_field(right_type, &self.type_table) {
+                            // Can't perform operations on enum fields yet
+                            *is_compile_eval = false;
+                        }
+
                         if *is_compile_eval {
                             // Try to fold the current expression
                             let lvalue = Value::try_from(*left.clone()).expect(&format!("Left operand is not a compile-time value {:?}", left));
@@ -1026,22 +1036,27 @@ impl VisitorMut<(), Option<Value>> for Validator {
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
                             TokenType::Shl | TokenType::Shr => 
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
-                            TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu =>
+                            TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu => {
                                 if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
                                 } else {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
-                                },
-                            TokenType::NotEqu | TokenType::Equ => if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
+                                }
+                            },
+                            TokenType::NotEqu | TokenType::Equ => {
+                                if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
                                 } else {
                                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
-                                },
-                            TokenType::In | TokenType::NotIn => if !types::is_set(right_type, &self.type_table) {
-                                self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
+                                }
+                            },
+                            TokenType::In | TokenType::NotIn => {
+                                if !types::is_set(right_type, &self.type_table) {
+                                    self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
                                 } else {
                                         self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
-                                },
+                                }
+                            },
                             TokenType::Imply =>
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                             _ => unreachable!(),
@@ -1218,7 +1233,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 debug_assert!(types::is_base_type(&left_ref, &self.type_table));
 
                 if types::is_error(&left_ref) {
-                    // Is a type error, silently propogate
+                    // Is a type error, silently propogate error
                     field.type_spec = TypeRef::TypeError;
                     *eval_type = TypeRef::TypeError;
                     return None;
@@ -1238,7 +1253,11 @@ impl VisitorMut<(), Option<Value>> for Validator {
                                 // Update the field ident info
                                 field.is_const = true; // Not mutable
                                 field.is_typedef = false; // Not typedef
-                                field.is_compile_eval = false; // Not directly compile-time evaluable
+
+                                // Enum fields are compile-time evaluable
+                                // (can't perform compile-time operations quite yet)
+                                field.is_compile_eval = true;
+                                *is_compile_eval = true;
                             } else {
                                 // Field name is not a part of the enum
                                 field.type_spec = TypeRef::TypeError;
@@ -1466,8 +1485,8 @@ fn check_binary_operands(
             // - Both types are numerics (real, int, nat, etc)
             // - Both types are char or strings/character sequence class types (string, string(n), char(n), or char)
             // - Both types are sets (not necessarily equivalent)
-            // Valid, but not checked:
             // - Both types are enums (not necessarily equivalent)
+            // Valid, but not checked:
             // - Both types are (object) classes (not necessarily equivalent)
             // Otherwise, Boolean (as an error) is produced
             if types::is_number_type(left_type) && types::is_number_type(right_type) {
@@ -1480,8 +1499,11 @@ fn check_binary_operands(
             } else if types::is_set(left_type, type_table) && types::is_set(right_type, type_table) {
                 // Set comparision, produce boolean
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if types::is_enum_type(left_type, type_table) && types::is_enum_type(right_type, type_table) {
+                // Enum ordering comparison, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
-            // TODO: Check remaining types (object class, enums)
+            // TODO: Check remaining type (object class)
         }
         TokenType::Equ | TokenType::NotEqu => {
             // Valid conditions:
@@ -1489,10 +1511,10 @@ fn check_binary_operands(
             // - Both types are char or strings class types (string, string(n), char, char(n))
             // - Both types are sets (not necessarily equivalent)
             // - Both types are booleans
-            // Valid, but not checked:
             // - Both types are enums (not necessarily equivalent)
-            // - Both types are (object) classes (not necessarily equivalent)
             // - Both types are pointers (with equivalent types)
+            // Valid, but not checked:
+            // - Both types are (object) classes (not necessarily equivalent)
             // - Both types are class pointers (not necessarily equivalent)
             // Otherwise, Boolean (as an error) is produced
             if types::is_number_type(left_type) && types::is_number_type(right_type) {
@@ -1508,8 +1530,14 @@ fn check_binary_operands(
             } else if types::is_set(left_type, type_table) && types::is_set(right_type, type_table) {
                 // Set equality, produce boolean
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if types::is_enum_type(left_type, type_table) && types::is_enum_type(right_type, type_table) {
+                // Enum equality comparison, produce boolean
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+            } else if types::is_pointer(left_type, type_table) && types::is_pointer(right_type, type_table) {
+                // Pointer comparison, not necessarily the same type
+                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
-            // TODO: Check remaining types (pointer, object class, enums)
+            // TODO: Check remaining types (pointer, object class)
         }
         TokenType::In | TokenType::NotIn => {
             // Valid conditions:
@@ -1588,12 +1616,12 @@ fn check_unary_operand(op: &TokenType, right_type: &TypeRef, type_table: &TypeTa
 ///
 /// Specifiying `allow_zero_size` as true allows zero-sized ranges to be
 /// captured as valid. Otherwise, zero-sized ranges are marked as invalid.
-fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bool) -> bool {
-    let start_value = Value::try_from(start_bound.clone()).expect("Cannot convert start bound into a value");
-    let end_value = Value::try_from(end_bound.clone()).expect("Cannot convert end bound into a value");
+fn validate_range_size(start_bound: &Expr, end_bound: &Expr, type_table: &TypeTable, allow_zero_size: bool) -> bool {
+    let start_value = value::apply_ord(start_bound, type_table).expect("Cannot convert start bound into a value");
+    let end_value = value::apply_ord(end_bound, type_table).expect("Cannot convert end bound into a value");
 
     if value::is_nat_value(&start_value) && value::is_nat_value(&end_value) {
-        // Unsigned check
+        // Unsigned check (covers nat, char, boolean, and enum fields)
         let start_value: u64 = start_value.into();
         let end_value: u64 = end_value.into();
 
@@ -1613,7 +1641,7 @@ fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bo
             return !range_overflow && (allow_zero_size || range_size != 0);
         }
     } else {
-        // Check for char/int/boolean
+        // Check for int
         let start_value = value::value_as_i64(start_value);
         let end_value = value::value_as_i64(end_value);
 
@@ -1673,10 +1701,13 @@ fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
         Expr::Call { left, .. } => {
             match &**left {
                 Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+                    let dealiased_ref = types::dealias_ref(&ident.type_spec, type_table);
+                    let type_info = type_table.type_from_ref(&dealiased_ref);
+
                     // Can only assign if the ref is to an array variable
                     // Can't assign to a const ref or a type def
                     !ident.is_const && !ident.is_typedef
-                    && matches!(type_table.type_from_ref(&types::dealias_ref(&ident.type_spec, type_table)), Some(Type::Array { .. }))
+                    && matches!(type_info, Some(Type::Array { .. }))
                 }
                 _ => can_assign_to_ref_expr(&left, type_table), // Go further down the chain
             }
@@ -1861,15 +1892,24 @@ mod test {
         assert_eq!(true, run_validator("var i : false .. true := true"));
         assert_eq!(true, run_validator("var i : 0 .. 8 := 5"));
         assert_eq!(true, run_validator("var i : 'd' .. 'g' := 'f'"));
-        // TODO: add enum range case
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\nvar i : e0.a .. e0.b := e0.a"));
 
-        // Comptibility with compatible sets
+        // Comptibility with equivalent sets
         assert_eq!(true,  run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(true,  run_validator("type e0 : enum(a, b, c, d)\ntype s0 : set of e0\ntype s1 : set of e0\nvar a : s0\nvar b : s1 := a"));
+
         assert_eq!(false, run_validator("type s0 : set of 1 .. 4 \ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1 := a"));
         assert_eq!(false, run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of 2 .. 3\nvar a : s0\nvar b : s1 := a"));
         assert_eq!(false, run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of char  \nvar a : s0\nvar b : s1 := a"));
         assert_eq!(false, run_validator("type s0 : set of boolean\ntype s1 : set of char  \nvar a : s0\nvar b : s1 := a"));
-        // TODO: add enum range case
+        
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c, d)\ntype s0 : set of e0.a .. e0.c\ntype s1 : set of e0     \nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c, d)\ntype s0 : set of e0.a .. e0.c\ntype s1 : set of boolean\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c, d)\ntype s0 : set of e0.a .. e0.c\ntype s1 : set of char   \nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a)\ntype e1 : enum(a)\ntype s0 : set of e0.a .. e0.a\ntype s1 : set of e1.a .. e1.a\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a)\ntype e1 : enum(a)\ntype s0 : set of e0.a .. e0.a\ntype s1 : set of e1          \nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a)\ntype e1 : enum(a)\ntype s0 : set of e0          \ntype s1 : set of e1.a .. e1.a\nvar a : s0\nvar b : s1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a)\ntype e1 : enum(a)\ntype s0 : set of e0          \ntype s1 : set of e1          \nvar a : s0\nvar b : s1 := a"));
 
         // Compatibility between enums of same root type declaration
         assert_eq!(true, run_validator("type e0 : enum(a, b, c)\nvar a : e0\nvar b : e0 := a"));
@@ -2189,7 +2229,7 @@ mod test {
         assert_eq!(true, run_validator(&format!("var a : boolean := 1.0 {} 1.0", compare_op)));
         assert_eq!(true, run_validator(&format!("var a : boolean := \"Hello, \" {} \"World!\"", compare_op)));
         assert_eq!(true, run_validator(&format!("type s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1\nvar c : boolean := a {} b", compare_op)));
-        // Missing: enum & objectclass compares
+        // Missing: enum (direct field & behind const) & objectclass compares
 
         // Comparison operands must be the same type (class)
         // bool is whether to always reject
@@ -2198,6 +2238,7 @@ mod test {
             (false, vec![ "string := \"Hello!\"", "char := 'c'", "char(3) := 'cd'", "string(5) := 'cdefg'" ]),
             (false, vec![ "s0", "s1", "s2", "s3" ]),
             (true,  vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
+            (false, vec![ "e0 := e0.a", "e0 := e0.b", "e0 := e0.c", "e0 := e0.d", "e1 := e1.e", "e1 := e1.f", "e1 := e1.g", "e1 := e1.h" ]),
             (true,  vec![ "alt" ]),
         ];
 
@@ -2214,6 +2255,8 @@ mod test {
                 type s1 : set of 1 .. 3
                 type s2 : set of char
                 type s3 : set of boolean
+                type e0 : enum(a, b, c, d)
+                type e1 : enum(e, f, g, h)
                 var a : {}
                 var b : {}
                 var c : boolean := a {} b",
@@ -2246,6 +2289,8 @@ mod test {
             (false, vec![ "string := \"Hello!\"", "char := 'c'", "char(3) := 'cd'", "string(5) := 'cdefg'" ]),
             (false, vec![ "s0", "s1", "s2", "s3" ]),
             (false, vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
+            (false, vec![ "^int", "^nat", "pointer to string", "pointer to int", "pointer to nat" ]),
+            (false, vec![ "e0 := e0.a", "e0 := e0.b", "e0 := e0.c", "e0 := e0.d", "e1 := e1.e", "e1 := e1.f", "e1 := e1.g", "e1 := e1.h" ]),
             (true,  vec![ "alt" ]),
         ];
 
@@ -2262,6 +2307,8 @@ mod test {
                 type s1 : set of 1 .. 3
                 type s2 : set of char
                 type s3 : set of boolean
+                type e0 : enum(a, b, c, d)
+                type e1 : enum(e, f, g, h)
                 var a : {}
                 var b : {}
                 var c : boolean := a {} b",
@@ -2321,21 +2368,26 @@ mod test {
 
     fn test_set_in_typecheck(variant: &str) {
         // Tests typechecking for the binary operatory
-        // TODO: add remaining enum type (and range)
+        // TODO: add remaining enum type (and range) using constants
         assert_eq!(true, run_validator(&format!("type s : set of 1 .. 3 \nvar a : s\nvar b := 1 {} a", variant)));
         assert_eq!(true, run_validator(&format!("type s : set of char   \nvar a : s\nvar b := 'a' {} a", variant)));
         assert_eq!(true, run_validator(&format!("type s : set of char   \nvar a : s\nvar c : char := 'c'\nvar b := c {} a", variant)));
         assert_eq!(true, run_validator(&format!("type s : set of boolean\nvar a : s\nvar b := true {} a", variant)));
+        assert_eq!(true, run_validator(&format!("type e0 : enum(a, b)\ntype s : set of e0\nvar a : s\nvar b := e0.a {} a", variant)));
+        assert_eq!(true, run_validator(&format!("type e0 : enum(a, b)\ntype s : set of e0.a .. e0.b\nvar a : s\nvar b := e0.a {} a", variant)));
 
         // Right operand must be a set
-        assert_eq!(false, run_validator(&format!("type s : set of 1 .. 3 \nvar a : int\nvar b := 1 {} a", variant)));
-        assert_eq!(false, run_validator(&format!("type s : set of char   \nvar a : string\nvar b := 'a' {} a", variant)));
-        assert_eq!(false, run_validator(&format!("type s : set of boolean\nvar a : char\nvar b := true {} a", variant)));
+        assert_eq!(false, run_validator(&format!("var a : int\nvar b := 1 {} a", variant)));
+        assert_eq!(false, run_validator(&format!("var a : string\nvar b := 'a' {} a", variant)));
+        assert_eq!(false, run_validator(&format!("var a : char\nvar b := true {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type e0 : enum(a, b)\nvar a : e0\nvar b := e0.a {} a", variant)));
 
         // Left operand must be compatible with the set index
         assert_eq!(false, run_validator(&format!("type s : set of 1 .. 3 \nvar a : s\nvar b := true {} a", variant)));
         assert_eq!(false, run_validator(&format!("type s : set of char   \nvar a : s\nvar b := 1 {} a", variant)));
         assert_eq!(false, run_validator(&format!("type s : set of boolean\nvar a : s\nvar b := 'a' {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type e0 : enum(a, b)\ntype s : set of e0\nvar a : s\nvar b := 'c' {} a", variant)));
+        assert_eq!(false, run_validator(&format!("type e0 : enum(a, b)\ntype s : set of e0.a .. e0.b\nvar a : s\nvar b := false {} a", variant)));
     }
 
     #[test]
@@ -2490,7 +2542,7 @@ mod test {
         assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #a"));
         assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #(((a)))"));
         // nat cheat cannot be applied to typedefs hidden behind '.'s (not checked yet)
-        // TODO: flesh this out once types with fields are parsed
+        // TODO: flesh this out once modules are parsed
 
         // Arbitrary applications of nat cheat
         assert_eq!(true, run_validator("var a : int := ###############'kemp'"));

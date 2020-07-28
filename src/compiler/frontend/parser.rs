@@ -1391,7 +1391,7 @@ impl<'s> Parser<'s> {
 
     /// Parse a single index specificier
     fn type_index(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
-        // "boolean" | "char" | type_ident | type_range
+        // "boolean" | "char" | type_ident (handles type_enum) | type_range
         match self.current().token_type {
             TokenType::Boolean | TokenType::Char => Ok(self.parse_type(parse_context)),
             _ => self.type_reference_or_range(parse_context).map_err(|_| ()),

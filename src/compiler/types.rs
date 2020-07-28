@@ -567,11 +567,50 @@ pub fn is_set(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     matches!(type_table.type_from_ref(type_ref), Some(Type::Set { .. }))
 }
 
+/// Checks if the given `type_ref` references an enum type (Type::Enum).
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type).
+pub fn is_enum(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    matches!(type_table.type_from_ref(type_ref), Some(Type::Enum { .. }))
+}
+
+/// Checks if the given `type_ref` references a field of an enum type (Type::EnumField).
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type).
+pub fn is_enum_field(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    matches!(
+        type_table.type_from_ref(type_ref),
+        Some(Type::EnumField { .. })
+    )
+}
+
+/// Checks if the given `type_ref` references either an enum type, or a field of an enum type
+/// (Type::Enum, Type::EnumField).
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type).
+pub fn is_enum_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    matches!(type_table.type_from_ref(type_ref), Some(Type::Enum { .. }) | Some(Type::EnumField { .. }))
+}
+
+/// Checks if the given `type_ref` references a pointer type (Type::Pointer).
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type).
+pub fn is_pointer(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
+    matches!(
+        type_table.type_from_ref(type_ref),
+        Some(Type::Pointer { .. })
+    )
+}
+
+/// Checks if the given `type_ref` references an index-class type (char, boolean, enum, range).
+/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
+/// forwarded to the base type).
 pub fn is_index_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     matches!(
         type_ref,
         TypeRef::Primitive(PrimitiveType::Char) | TypeRef::Primitive(PrimitiveType::Boolean)
-    ) || matches!(type_table.type_from_ref(type_ref), Some(Type::Range { .. })) // Don't forget about enum types!
+    ) || matches!(type_table.type_from_ref(type_ref), Some(Type::Range { .. }))
+        || matches!(type_table.type_from_ref(type_ref), Some(Type::Enum { .. }))
 }
 
 /// Gets the common type between the two given type refs
@@ -693,9 +732,9 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // as the value of an unsized `string` can only be checked at runtime
         lvalue_len >= rvalue_len
     } else if let Some(Type::Range { base_type, .. }) = type_table.type_from_ref(lvalue) {
-        // A value is assignable inside of a range type if the value is equivalent to the
+        // A value is assignable inside of a range type if the value is assignable to the
         // range's base type
-        is_equivalent_to(base_type, rvalue, type_table)
+        is_assignable_to(base_type, rvalue, type_table)
     } else if let Some(Type::Enum { .. }) = type_table.type_from_ref(lvalue) {
         if let Some(Type::EnumField { enum_type, .. }) = type_table.type_from_ref(rvalue) {
             // Enum field is assignable into the parent enum type

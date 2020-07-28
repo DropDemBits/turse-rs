@@ -1,7 +1,7 @@
 //! Intermediate values for compile-time evaluation
 use crate::compiler::ast::Expr;
 use crate::compiler::frontend::token::{Token, TokenType};
-use crate::compiler::types::{self, PrimitiveType, SequenceSize, TypeRef};
+use crate::compiler::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use crate::compiler::Location;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
@@ -803,6 +803,53 @@ pub fn apply_unary(op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError>
             _ => Err(ValueApplyError::WrongTypes),
         },
         _ => unreachable!(),
+    }
+}
+
+/// Applies the 'ord' function on the given expression operand, producing a
+/// new Value.
+pub fn apply_ord(expr: &Expr, type_table: &TypeTable) -> Result<Value, ValueApplyError> {
+    // Can apply 'ord' on:
+    // - char
+    // - boolean
+    // - char(n) or string(n) where n == 1
+    // - enum.field
+
+    // 'ord' produces identity on
+    // - integer-class types
+
+    // Equivalent to NatCheat
+    let eval_type = &expr.get_eval_type();
+
+    if types::is_integer_type(eval_type) {
+        // Simple direct conversion
+        Value::try_from(expr.clone()).map_err(|_| ValueApplyError::WrongTypes)
+    } else if types::is_boolean(eval_type) {
+        // NatCheat boolean
+        let bool_value = Value::try_from(expr.clone()).map_err(|_| ValueApplyError::WrongTypes)?;
+        apply_unary(&TokenType::Pound, bool_value)
+    } else if types::is_char(eval_type) || types::is_char_seq_type(eval_type) {
+        // Convert to Value, check len, cheat into NatValue
+        let value = Value::try_from(expr.clone()).map_err(|_| ValueApplyError::WrongTypes)?;
+
+        if let Value::StringValue(str_value) = value {
+            let mut chars = str_value.chars();
+            let first_char = chars.next();
+
+            if first_char.is_some() && chars.next().is_none() {
+                // Is valid, take first character
+                return Ok(Value::from(first_char.unwrap() as u64));
+            }
+        }
+
+        // Empty length string or too many characters
+        Err(ValueApplyError::WrongTypes)
+    } else if let Some(Type::EnumField { ordinal, .. }) = type_table.type_from_ref(eval_type) {
+        // Grab ordinal value, convert into NatValue
+        Ok(Value::from(*ordinal as u64))
+    } else {
+        // Can't apply to given expression
+        Err(ValueApplyError::WrongTypes)
     }
 }
 
