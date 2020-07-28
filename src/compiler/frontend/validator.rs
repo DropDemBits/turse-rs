@@ -742,7 +742,9 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 // Grab the compile-time value
                 let const_val = if is_compile_eval && *is_const {
                     // Create a value to clone from
-                    Some(Value::try_from(*value.as_ref().unwrap().clone()).expect("Initializer value is not a compile-time expression"))
+                    let value = Value::from_expr(*value.as_ref().unwrap().clone(), &self.type_table)
+                        .expect(&format!("Initializer value '{:?}' is not a compile-time expression", value));
+                    Some(value)
                 } else {
                     // No compile-time value is produced
                     None
@@ -984,15 +986,10 @@ impl VisitorMut<(), Option<Value>> for Validator {
                         *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
                         *eval_type = good_eval;
 
-                        if types::is_enum_field(left_type, &self.type_table) || types::is_enum_field(right_type, &self.type_table) {
-                            // Can't perform operations on enum fields yet
-                            *is_compile_eval = false;
-                        }
-
                         if *is_compile_eval {
                             // Try to fold the current expression
-                            let lvalue = Value::try_from(*left.clone()).expect(&format!("Left operand is not a compile-time value {:?}", left));
-                            let rvalue = Value::try_from(*right.clone()).expect(&format!("Right operand is not a compile-time value {:?}", right));
+                            let lvalue = Value::from_expr(*left.clone(), &self.type_table).expect(&format!("Left operand is not a compile-time value {:?}", left));
+                            let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(&format!("Right operand is not a compile-time value {:?}", right));
 
                             let result = value::apply_binary(lvalue, op, rvalue);
                             
@@ -1130,7 +1127,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
 
                         if *is_compile_eval {
                             // Try to fold the expression
-                            let rvalue = Value::try_from(*right.clone()).expect(&format!("Right operand is not a compile-time value {:?}", right));
+                            let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(&format!("Right operand is not a compile-time value {:?}", right));
 
                             let result = value::apply_unary(&op, rvalue);
 
@@ -1261,9 +1258,18 @@ impl VisitorMut<(), Option<Value>> for Validator {
                                 field.is_typedef = false; // Not typedef
 
                                 // Enum fields are compile-time evaluable
-                                // (can't perform compile-time operations quite yet)
                                 field.is_compile_eval = true;
                                 *is_compile_eval = true;
+
+                                let enum_id = types::get_type_id(&left_ref).unwrap();
+                                let field_id = types::get_type_id(&field_ref).unwrap();
+                                let ordinal = if let Type::EnumField {ordinal, ..} = self.type_table.get_type(field_id) {
+                                    *ordinal
+                                } else {
+                                    0
+                                };
+
+                                return Some(Value::EnumValue(field_id, enum_id, ordinal));
                             } else {
                                 // Field name is not a part of the enum
                                 field.type_spec = TypeRef::TypeError;
@@ -1543,7 +1549,7 @@ fn check_binary_operands(
                 // Pointer comparison, not necessarily the same type
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
-            // TODO: Check remaining types (pointer, object class)
+            // TODO: Check remaining types (class pointers, object class)
         }
         TokenType::In | TokenType::NotIn => {
             // Valid conditions:
@@ -2374,13 +2380,28 @@ mod test {
 
     fn test_set_in_typecheck(variant: &str) {
         // Tests typechecking for the binary operatory
-        // TODO: add remaining enum type (and range) using constants
         assert_eq!(true, run_validator(&format!("type s : set of 1 .. 3 \nvar a : s\nvar b := 1 {} a", variant)));
         assert_eq!(true, run_validator(&format!("type s : set of char   \nvar a : s\nvar b := 'a' {} a", variant)));
         assert_eq!(true, run_validator(&format!("type s : set of char   \nvar a : s\nvar c : char := 'c'\nvar b := c {} a", variant)));
         assert_eq!(true, run_validator(&format!("type s : set of boolean\nvar a : s\nvar b := true {} a", variant)));
         assert_eq!(true, run_validator(&format!("type e0 : enum(a, b)\ntype s : set of e0\nvar a : s\nvar b := e0.a {} a", variant)));
         assert_eq!(true, run_validator(&format!("type e0 : enum(a, b)\ntype s : set of e0.a .. e0.b\nvar a : s\nvar b := e0.a {} a", variant)));
+        assert_eq!(true, run_validator(&format!(
+            "type e0 : enum(a, b)\nconst c : e0 := e0.b\ntype s : set of e0.a .. c\nvar a : s\nvar b := c {} a",
+            variant
+        )));
+        assert_eq!(true, run_validator(&format!(
+            "type e0 : enum(a, b)\nconst c := e0.b\ntype s : set of e0.a .. c\nvar a : s\nvar b := c {} a",
+            variant
+        )));
+        assert_eq!(true, run_validator(&format!(
+            "type e0 : enum(a, b)\nconst c : e0 := e0.b\ntype s : set of e0\nvar a : s\nvar b := c {} a",
+            variant
+        )));
+        assert_eq!(true, run_validator(&format!(
+            "type e0 : enum(a, b)\nconst c := e0.b\ntype s : set of e0\nvar a : s\nvar b := c {} a",
+            variant
+        )));
 
         // Right operand must be a set
         assert_eq!(false, run_validator(&format!("var a : int\nvar b := 1 {} a", variant)));
@@ -2534,7 +2555,7 @@ mod test {
     fn test_poundcheat_typecheck() {
         // Tests typechecking for the unary operator
         // nat cheat can be applied to anything var/const reference or literal,
-        // as long as the destination operand is a nat
+        // as long as the destination operand is a 'nat'
         assert_eq!(true, run_validator("var a : nat := #true"));
         assert_eq!(true, run_validator("var a : nat := #1"));
         assert_eq!(true, run_validator("var a : nat := #1"));
@@ -2543,6 +2564,7 @@ mod test {
         assert_eq!(true, run_validator("var a : nat := #'aa'"));
         assert_eq!(true, run_validator("var a : nat := #'a'"));
         assert_eq!(true, run_validator("var a : function a() : int\nvar b : nat := #a"));
+        assert_eq!(true, run_validator("type e0 : enum (a)\nvar a : nat := #e0.a"));
 
         // nat cheat cannot be applied to direct typedefs
         assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #a"));
@@ -2573,6 +2595,8 @@ mod test {
         assert_eq!(true, run_validator("var a : 1 .. 1"));
         assert_eq!(true, run_validator("var a : true .. true"));
         assert_eq!(true, run_validator("var a : false .. false"));
+        assert_eq!(true, run_validator("type e : enum(a, b)\nvar a : e.a .. e.a"));
+        assert_eq!(true, run_validator("type e : enum(a, b)\nconst c : e := e.a\nvar a : c .. c"));
 
         // End range overflows constitute a valid range
         assert_eq!(true, run_validator("var a : -8000 .. 16#8000000000000000"));
@@ -2589,6 +2613,8 @@ mod test {
         assert_eq!(true, run_validator("var a : flexible array 16#8000000000000000 .. 16#7fffffffffffffff of int"));
         assert_eq!(true, run_validator("var a : flexible array true .. false of int"));
         assert_eq!(true, run_validator("var a : flexible array 'D' .. 'C' of int"));
+        assert_eq!(true, run_validator("type e : enum(a, b)\nvar a : flexible array e.b .. e.a of int"));
+        assert_eq!(true, run_validator("type e : enum(a, b)\nconst c : e := e.b\nconst d : e := e.a\nvar a : flexible array c .. d of int"));
 
         // 0 sized ranges aren't valid anywhere else
         assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7fffffff"));
@@ -2597,6 +2623,8 @@ mod test {
         assert_eq!(false, run_validator("type a : set of 16#80000000 .. 16#7fffffff"));
         assert_eq!(false, run_validator("type a : set of true .. false"));
         assert_eq!(false, run_validator("type a : set of 'D' .. 'C'"));
+        assert_eq!(false, run_validator("type e : enum(a, b)\nvar a : e.b .. e.a"));
+        assert_eq!(false, run_validator("type e : enum(a, b)\nconst c : e := e.b\nconst d : e := e.a\nvar a : c .. d"));
 
         // 0 sized ranges can't hide behind aliases
         assert_eq!(false, run_validator("type a : 16#80000000 .. 16#7fffffff\nvar b : a"));
@@ -2610,6 +2638,8 @@ mod test {
         assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7ffffffe"));
         assert_eq!(false, run_validator("var a : 16#ffffffffffffffff .. 16#fffffffffffffffd"));
         assert_eq!(false, run_validator("var a : 'D' .. 'B'"));
+        assert_eq!(false, run_validator("type e : enum(a, b, c)\nvar a : e.c .. e.a"));
+        assert_eq!(false, run_validator("type e : enum(a, b, c)\nconst c : e := e.c\nconst d : e := e.a\nvar a : c .. d"));
     }
 
     #[test]
@@ -2636,6 +2666,34 @@ mod test {
 
         // Valid type check, checked at runtime
         assert_eq!(true, run_validator("var a : nat := (0 - 1)"));
+
+        // Folding should stop at runtime evaluations
+        assert_eq!(true, run_validator("var a : nat := 1\nvar b := a + (1 + 1)"));
+
+        // Folding should be able to fold enum comparisons
+        let (success, unit) = make_validator("type e0 : enum (a, b, c)\nvar a := e0.a < e0.c");
+        assert_eq!(true, success);
+        if let Stmt::VarDecl { value: Some(expr), .. } = &unit.stmts()[1] {
+            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::BooleanValue(true));
+        } else {
+            panic!("Fold failed");
+        }
+
+        let (success, unit) = make_validator("type e0 : enum (a, b, c)\nconst c : e0 := e0.c\nvar a := e0.a < c");
+        assert_eq!(true, success);
+        if let Stmt::VarDecl { value: Some(expr), .. } = &unit.stmts()[2] {
+            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::BooleanValue(true));
+        } else {
+            panic!("Fold failed");
+        }
+
+        let (success, unit) = make_validator("type e0 : enum (a, b, c)\nconst c := e0.c\nvar a := e0.a < c");
+        assert_eq!(true, success);
+        if let Stmt::VarDecl { value: Some(expr), .. } = &unit.stmts()[2] {
+            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::BooleanValue(true));
+        } else {
+            panic!("Fold failed");
+        }
     }
 
     #[test]
@@ -2751,6 +2809,19 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("var depend := 65530\nconst a : char(depend) := 'a'");
         assert_eq!(false, success);
         assert_eq!(unit.root_block().borrow().scope.get_ident("a").as_ref().unwrap().type_spec, TypeRef::Primitive(PrimitiveType::Char));
+
+        // Constant propogation should allow enum fields to be hidden behind constant vars
+        assert_eq!(true, run_validator("
+        type e0 : enum(a, b, c)
+        const a : e0 := e0.a
+        var b : a .. e0.b := e0.c
+        "));
+
+        assert_eq!(true, run_validator("
+        type e0 : enum(a, b, c)
+        const a := e0.a
+        var b : a .. e0.b := e0.c
+        "));
     }
 
     #[test]

@@ -1,10 +1,19 @@
 //! Intermediate values for compile-time evaluation
-use crate::compiler::ast::Expr;
+use crate::compiler::ast::{Expr, Identifier};
 use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use crate::compiler::Location;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
+
+/// Errors returned from value folding
+#[derive(Debug, PartialEq)]
+pub enum ValueApplyError {
+    Overflow,
+    DivisionByZero,
+    InvalidOperand,
+    WrongTypes,
+}
 
 /// A single compile-time value
 #[derive(Debug, PartialEq, Clone)]
@@ -19,6 +28,39 @@ pub enum Value {
     RealValue(f64),
     /// A boolean value
     BooleanValue(bool),
+    /// An enum field value.
+    /// The first `usize` is a reference to the original enum field type id.
+    /// The second `usize` is a reference to the parent enum type id.
+    /// The third `usize` is the ordinal value of the field.
+    EnumValue(usize, usize, usize),
+}
+
+impl Value {
+    /// Produces a value from an expression.
+    pub fn from_expr(value: Expr, type_table: &TypeTable) -> Result<Value, &'static str> {
+        match value {
+            Expr::Literal { value, .. } => match value.token_type {
+                TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
+                TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
+                TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
+                TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
+                TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
+                TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
+                _ => Err("Cannot convert complex literal into a value"),
+            },
+            Expr::Dot { eval_type, .. } => {
+                if let Some(field_id) = types::get_type_id(&eval_type) {
+                    if let Type::EnumField { ordinal, enum_type } = type_table.get_type(field_id) {
+                        let enum_id = types::get_type_id(enum_type).unwrap();
+                        return Ok(Value::EnumValue(field_id, enum_id, *ordinal));
+                    }
+                }
+
+                Err("Cannot convert non-literal expression into a value")
+            }
+            _ => Err("Cannot convert non-literal expression into a value"),
+        }
+    }
 }
 
 impl TryFrom<Expr> for Value {
@@ -71,6 +113,41 @@ impl TryFrom<Value> for Expr {
                     TokenType::StringLiteral(v),
                     TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(size))),
                 ))
+            }
+            Value::EnumValue(field_id, enum_id, _) => {
+                // No location information
+                let some_tok = Token {
+                    location: Location::new(),
+                    token_type: TokenType::Identifier,
+                };
+
+                let enum_ident = Identifier::new(
+                    some_tok.clone(),
+                    TypeRef::Named(enum_id),
+                    String::from("<unknown>"),
+                    true,
+                    true,
+                    true,
+                    0,
+                );
+
+                let field_ident = Identifier::new(
+                    some_tok,
+                    TypeRef::Named(field_id),
+                    String::from("<unknown.field>"),
+                    true,
+                    false,
+                    true,
+                    0,
+                );
+
+                Ok(Expr::Dot {
+                    left: Box::new(Expr::Reference { ident: enum_ident }),
+                    field: field_ident,
+                    is_compile_eval: true,
+                    eval_type: TypeRef::Named(field_id),
+                    span: Location::new(),
+                })
             }
         }
     }
@@ -208,6 +285,10 @@ pub fn is_number(value: &Value) -> bool {
     matches!(value, Value::IntValue(_) | Value::NatValue(_) | Value::RealValue(_))
 }
 
+pub fn is_enum_value(value: &Value) -> bool {
+    matches!(value, Value::EnumValue(..))
+}
+
 fn make_literal(kind: TokenType, eval_type: TypeRef) -> Expr {
     Expr::Literal {
         value: Token {
@@ -216,15 +297,6 @@ fn make_literal(kind: TokenType, eval_type: TypeRef) -> Expr {
         },
         eval_type,
     }
-}
-
-/// Errors returned from value folding
-#[derive(Debug, PartialEq)]
-pub enum ValueApplyError {
-    Overflow,
-    DivisionByZero,
-    InvalidOperand,
-    WrongTypes,
 }
 
 /// Forcefully converts a value into an i64, performing the neccessary casts
@@ -238,6 +310,7 @@ pub fn value_as_i64(v: Value) -> Result<i64, ValueApplyError> {
             // Only convert the first char
             v.chars().next().map(|c| Ok(c as i64)).unwrap_or(Ok(0))
         }
+        Value::EnumValue(_, _, ordinal) => Ok(ordinal as i64),
     }
 }
 
@@ -257,11 +330,9 @@ fn value_into_u64_bytes(v: Value) -> Result<u64, ValueApplyError> {
 /// Tries to convert the value into an i64. Consumes the value.
 fn value_into_i64(v: Value) -> Result<i64, ValueApplyError> {
     match v {
-        Value::NatValue(v) => {
-            let v: u64 = v.into();
-            i64::try_from(v).map_err(|_| ValueApplyError::Overflow)
-        }
+        Value::NatValue(v) => i64::try_from(v).map_err(|_| ValueApplyError::Overflow),
         Value::IntValue(v) => Ok(v),
+        Value::EnumValue(_, _, v) => i64::try_from(v).map_err(|_| ValueApplyError::Overflow),
         _ => panic!("Tried to convert {:?} into an i64", v),
     }
 }
@@ -313,7 +384,8 @@ fn compare_values(
         lvalue
             .partial_cmp(&rvalue)
             .ok_or(ValueApplyError::InvalidOperand)
-    } else if is_integer(&lhs) && is_integer(&rhs) {
+    } else if (is_integer(&lhs) && is_integer(&rhs)) || (is_enum_value(&lhs) && is_enum_value(&rhs))
+    {
         let lvalue: i64 = value_into_i64(lhs)?;
         let rvalue: i64 = value_into_i64(rhs)?;
 
@@ -769,6 +841,7 @@ pub fn apply_unary(op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError>
                 // Produce the converted type (after swapping bytes)
                 Ok(Value::from(value.swap_bytes()))
             }
+            Value::EnumValue(_, _, ordinal) => Ok(Value::from(ordinal as u64)),
         },
         TokenType::Plus => {
             if is_number(&rhs) {
