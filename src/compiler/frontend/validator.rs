@@ -420,6 +420,12 @@ impl Validator {
                     self.reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
 
                     return TypeRef::TypeError;
+                } else if (types::is_char_seq_type(&start_type) && types::get_sized_len(&start_type).unwrap_or(0) != 1)
+                    || (types::is_char_seq_type(&end_type) && types::get_sized_len(&end_type).unwrap_or(0) != 1) {
+                    // Range eval types are the wrong types
+                    self.reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
+
+                    return TypeRef::TypeError;
                 }
 
                 // Check if the start and end bounds form a positive range size
@@ -2826,6 +2832,8 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         assert_eq!(false, run_validator("type a : true .. 'c'"));
         assert_eq!(false, run_validator("type a : 1 .. 'c'"));
         assert_eq!(false, run_validator("type a : 'c' .. true"));
+        assert_eq!(false, run_validator("type a : 'c' .. 'aa'"));
+        assert_eq!(false, run_validator("type a : 'cb' .. 'aa'"));
 
         // Identifier is not a reference to a type
         // TODO: Test dot references for records, unions, monitors, and modules once those are valid & resolvable

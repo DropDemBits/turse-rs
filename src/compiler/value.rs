@@ -818,7 +818,6 @@ pub fn apply_ord(expr: &Expr, type_table: &TypeTable) -> Result<Value, ValueAppl
     // 'ord' produces identity on
     // - integer-class types
 
-    // Equivalent to NatCheat
     let eval_type = &expr.get_eval_type();
 
     if types::is_integer_type(eval_type) {
