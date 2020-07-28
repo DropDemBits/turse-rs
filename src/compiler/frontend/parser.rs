@@ -791,10 +791,12 @@ impl<'s> Parser<'s> {
 
         let name = ident.location.get_lexeme(self.source).to_string();
         let span = var_ref.get_span().span_to(&self.previous().location);
+        // Field info will be updated to the correct type at validator time
+        let field = Identifier::new(ident, TypeRef::Unknown, name, false, false, true, 0);
 
         Ok(Expr::Dot {
             left: Box::new(var_ref),
-            field: (ident, name, false),
+            field,
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
             span,

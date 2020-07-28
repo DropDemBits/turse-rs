@@ -696,6 +696,13 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // A value is assignable inside of a range type if the value is equivalent to the
         // range's base type
         is_equivalent_to(base_type, rvalue, type_table)
+    } else if let Some(Type::Enum { .. }) = type_table.type_from_ref(lvalue) {
+        if let Some(Type::EnumField { enum_type, .. }) = type_table.type_from_ref(rvalue) {
+            // Enum field is assignable into the parent enum type
+            lvalue == enum_type
+        } else {
+            is_equivalent_to(lvalue, rvalue, type_table)
+        }
     } else {
         // This check is last as it performs very heavy type checking
         is_equivalent_to(lvalue, rvalue, type_table)
@@ -735,13 +742,27 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
     // Perform equivalence testing based on the type info
     // TODO: Finish the equivalency cases
-    // Unions, Records, Enums, and Collections have equivalency based on the type_id, so they will always fail this check
+    // Unions, Records, Enums, and Collections have equivalency based on the type_id
     if let TypeRef::Named(left_id) = lhs {
         if let TypeRef::Named(right_id) = rhs {
             let left_info = type_table.get_type(*left_id);
             let right_info = type_table.get_type(*right_id);
 
             match left_info {
+                Type::Enum { .. } => {
+                    // Only equivalent if the base types are
+                    return lhs == rhs;
+                }
+                Type::EnumField { enum_type, .. } => {
+                    if let Type::EnumField {
+                        enum_type: other_type,
+                        ..
+                    } = right_info
+                    {
+                        // Enum fields only equivalent if the parent enum types are
+                        return enum_type == other_type;
+                    }
+                }
                 Type::Function { params, result } => {
                     if let Type::Function {
                         params: other_params,
@@ -755,6 +776,12 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                     if let Type::Set { range: other_range } = right_info {
                         // Sets are equivalent if the range types are equivalent
                         return is_equivalent_to(range, other_range, type_table);
+                    }
+                }
+                Type::Pointer { to } => {
+                    if let Type::Pointer { to: other_to } = right_info {
+                        // Pointer types are equivalent if the 'to' types are
+                        return is_equivalent_to(to, other_to, type_table);
                     }
                 }
                 Type::Range {

@@ -49,7 +49,8 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    /// Creates a new identifier
+    /// Creates a new identifier.
+    /// Specifying an import index of '0' indicates that the identifier is not imported
     /// `token` Location of the reference token
     pub fn new(
         token: Token,
@@ -150,11 +151,9 @@ pub enum Expr {
         /// Expression evaluating to a reference
         left: Box<Self>,
         /// Field to be referenced
-        // Token is provided in case an error wants to be reported at the token location
-        // String is provided as type information is only needed during type validation & compilation
-        // bool indicates whether this field is a type reference or a variable / const reference
-        // ???: Just use an identifier?
-        field: (Token, String, bool),
+        // While the type is an identifier, it is not a direct reference to an
+        // identifier in the current scope
+        field: Identifier,
         /// The expression evaluation type
         eval_type: TypeRef,
         /// If the expression is compile-time evaluable
@@ -252,11 +251,7 @@ impl fmt::Debug for Expr {
             },
             Reference { ident } => f.write_fmt(format_args!("ref({})", ident.name)),
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
-            Dot {
-                left,
-                field: (_, name, _),
-                ..
-            } => f.write_fmt(format_args!("(. {:?} {:?})", left, name)),
+            Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.name)),
         }
     }
 }

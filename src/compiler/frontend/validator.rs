@@ -448,15 +448,15 @@ impl Validator {
                 
                 // Ensure that the top-most expression resolves to a type
                 match &**expr {
-                    Expr::Dot { field: (token, name, is_typedef), .. } => {
-                        if !is_typedef {
-                            self.reporter.report_error(&token.location, format_args!("Field '{}' is not a reference to a type", name));
+                    Expr::Dot { field, .. } => {
+                        if !field.is_typedef {
+                            self.reporter.report_error(&field.token.location, format_args!("Field '{}' is not a reference to a type", field.name));
 
                             // Produce a type error
                             return TypeRef::TypeError;
                         }
 
-                        reference_locate = token.location.clone();
+                        reference_locate = field.token.location.clone();
                     }
                     Expr::Reference { ident } => {
                         if !ident.is_typedef {
@@ -805,6 +805,13 @@ impl VisitorMut<(), Option<Value>> for Validator {
                     let span = value.get_span().clone();
                     *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap());
                     value.set_span(span);
+                }
+
+                // Check the reference expression
+                if !can_assign_to_ref_expr(&var_ref, &self.type_table) {
+                    // Not a var ref
+                    self.reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
+                    return;
                 }
 
                 let left_type = &self.dealias_resolve_type(var_ref.get_eval_type());
@@ -1156,8 +1163,8 @@ impl VisitorMut<(), Option<Value>> for Validator {
             }
             Expr::Dot {
                 left,
-                field: _,
-                eval_type: _,
+                field,
+                eval_type,
                 is_compile_eval,
                 ..
             } => {
@@ -1165,9 +1172,73 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 // Validate that the field exists in the given type
                 // eval_type is the field type
 
-                // For now, dot expressions default to runtime-time only
+                // 4 things falling under this expression
+                // - Enum fields references
+                // - Record/Union field references
+                // - Class public member/method references (through desugared arrow)
+                // - Module/Monitor exported references
+
+                // `left` must be of the following types (x indicates not checked):
+                // - Type::Enum
+                // x Type::Record
+                // x Type::Union
+                // x Type::Class
+                // x Type::Module
+                // x Type::Monitor
+
+                // All dot expressions default to runtime evaluation
                 *is_compile_eval = false;
-                // TODO: Type check dot expressions
+
+                // Dealias & resolve left type
+                let left_ref = self.dealias_resolve_type(left.get_eval_type());
+
+                debug_assert!(types::is_base_type(&left_ref, &self.type_table));
+
+                if types::is_error(&left_ref) {
+                    // Is a type error, silently propogate
+                    field.type_spec = TypeRef::TypeError;
+                    *eval_type = TypeRef::TypeError;
+                    return None;
+                }
+
+                if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
+                    // TODO: Extract the ref name from 'left' (either a dot-expr, or a ref-expr)
+
+                    // Match based on the type info
+                    match type_info {
+                        Type::Enum { fields } => {
+                            let enum_field = fields.get(&field.name);
+                            // Check if the field is a part of the compound type
+                            if let Some(field_ref) = enum_field {
+                                // Link field type_spec & our type_spec to the field reference
+                                field.type_spec = *field_ref;
+                                *eval_type = *field_ref;
+
+                                // Update the field ident info
+                                field.is_const = true; // Not mutable
+                                field.is_typedef = false; // Not typedef
+                                field.is_compile_eval = false; // Not directly compile-time evaluable
+                            } else {
+                                // Field name is not a part of the enum
+                                self.reporter.report_error(&field.token.location, format_args!("'{}' is not a field of the enum '???'", field.name));
+                            }
+                        }
+                        Type::Pointer { .. } => {
+                            // Not a compound type, special report (for using ->)
+                            *eval_type = TypeRef::TypeError;
+                            self.reporter.report_error(&left.get_span(), format_args!("Left side of '.' is not a compound type (did you mean to use '->')"));
+                        }
+                        _ => {
+                            // Not a compound type, produces a type error
+                            *eval_type = TypeRef::TypeError;
+                            self.reporter.report_error(&left.get_span(), format_args!("Left side of '.' is not a compound type"));
+                        }
+                    }
+                } else {
+                    // Not a compound type, produces a type error
+                    *eval_type = TypeRef::TypeError;
+                    self.reporter.report_error(&left.get_span(), format_args!("Left side of '.' is not a compound type"));
+                }
             }
             Expr::Reference { ident } => {
                 // Use the identifier and grab the associated value
@@ -1549,6 +1620,33 @@ fn validate_range_size(start_bound: &Expr, end_bound: &Expr, allow_zero_size: bo
     }
 }
 
+/// Checks if the given `ref_expr` references a variable or a mutable reference.
+/// Assumes the `ref_expr` has already had the types propogated.
+fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
+    match ref_expr {
+        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+            // Can only assign to a variable reference
+            !ident.is_const && !ident.is_typedef
+        }
+        Expr::Call { left, .. } => {
+            match &**left {
+                Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+                    // Can only assign if the ref is to an array variable
+                    // Can't assign to a const ref or a type def
+                    !ident.is_const && !ident.is_typedef
+                    && matches!(type_table.type_from_ref(&types::dealias_ref(&ident.type_spec, type_table)), Some(Type::Array { .. }))
+                }
+                _ => can_assign_to_ref_expr(&left, type_table), // Go further down the chain
+            }
+        }
+        Expr::UnaryOp { op, eval_type, .. } => {
+            // Only assignable if the expression is a deref, and the eval type isn't an error
+            matches!(op.token_type, TokenType::Caret) && !types::is_error(eval_type)
+        }
+        _ => false // Not one of the above, likely unable to assign to
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -1599,6 +1697,30 @@ mod test {
 
     #[test]
     fn test_simple_asn_typecheck() {
+        // Const refs & type defs aren't assignable (const only assignable at init)
+        assert_eq!(false, run_validator("const a : int := 1\na := 2"));
+        assert_eq!(false, run_validator("type a : enum(a, b, c)\na.b := 2"));
+        assert_eq!(false, run_validator("type a : enum(a, b, c)\na := 2"));
+
+        // Pointers derefs are asssignable if the pointer ref is a var or const ref
+        assert_eq!(true, run_validator("var a : ^int\n^a := 2"));
+        assert_eq!(true, run_validator("var a : ^^int\n^^a := 2"));
+        assert_eq!(true, run_validator("var src : ^int\nvar a : ^^int\n^a := src"));
+        assert_eq!(true, run_validator("var src : ^int\nconst a : ^int := src\n^a := 2"));
+        assert_eq!(true, run_validator("var src : ^^int\nconst a : ^^int := src\n^^a := 2"));
+        assert_eq!(true, run_validator("var src1 : ^int\nvar src2 : ^^int\nconst a : ^^int := src2\n^a := src1"));
+
+        // Not checked yet
+        //assert_eq!(false, run_validator("type a : ^int\n^a := 2"));
+
+        // TODO: Check arrow operator using records
+
+        // Array subscripts are only assignable if they are a variable
+        // TODO: above
+
+        // Call exprs aren't directly assignable
+        // TODO: above
+
         // Also tests type compatibility
         // Basic, unsized types
         assert_eq!(true, run_validator("var a : int  := 1"));
@@ -1695,6 +1817,26 @@ mod test {
         assert_eq!(false, run_validator("type s0 : set of 1 .. 3 \ntype s1 : set of char  \nvar a : s0\nvar b : s1 := a"));
         assert_eq!(false, run_validator("type s0 : set of boolean\ntype s1 : set of char  \nvar a : s0\nvar b : s1 := a"));
         // TODO: add enum range case
+
+        // Compatibility between enums of same root type declaration
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\nvar a : e0\nvar b : e0 := a"));
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\ntype e1 : e0\nvar a : e0\nvar b : e1 := a"));
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\ntype e1 : e0\nvar a : e0 := e1.a\nvar b : e1 := a"));
+
+        // Incompatibility between enums of different root type declaration (even with same field names and ordering)
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0\nvar b : e1 := a"));
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0 := e1.a"));
+
+        // Compatibility between enum and fields of same root type declaration
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\nvar a : e0 := e0.a"));
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\ntype e1 : e0\nvar a : e0 := e0.a"));
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\ntype e1 : e0\nvar a : e0 := e1.a"));
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\ntype e1 : e0\nvar a : e1 := e0.a"));
+        assert_eq!(true, run_validator("type e0 : enum(a, b, c)\ntype e1 : e0\nvar a : e1 := e1.a"));
+
+        // Incompatibility between enum and fields of different root type declaration
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0 := e1.a"));
+        assert_eq!(false, run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e1 := e0.a"));
     }
 
     #[test]
@@ -2272,6 +2414,9 @@ mod test {
         assert_eq!(false, run_validator("var a : string  := ^\"a\""));
         assert_eq!(false, run_validator("var a : string  := ^'aa'"));
         assert_eq!(false, run_validator("var a : string  := ^'a'"));
+
+        // Cannot apply deref to type references
+        // TODO: typecheck above
     }
 
     #[test]
@@ -2375,12 +2520,12 @@ mod test {
     #[test]
     fn test_folding_reporting() {
         // All of these should produce errors
-        assert_eq!(false, run_validator("var beebee := 1 shl -1
-        beebee := 1 shr amt
-        beebee := 1 div 0
-        beebee := 1 / 0
-        beebee := 1 rem 0
-        beebee := 1 mod 0"));
+        assert_eq!(false, run_validator("var beebee := 1 shl -1"));
+        assert_eq!(false, run_validator("beebee := 1 shr amt"));
+        assert_eq!(false, run_validator("beebee := 1 div 0"));
+        assert_eq!(false, run_validator("beebee := 1 / 0"));
+        assert_eq!(false, run_validator("beebee := 1 rem 0"));
+        assert_eq!(false, run_validator("beebee := 1 mod 0"));
     }
 
     #[test]
@@ -2568,7 +2713,9 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         assert_eq!(false, run_validator("type a : 'c' .. true"));
 
         // Identifier is not a reference to a type
-        // TODO: Test dot references once those are valid & resolvable
+        // TODO: Test dot references for records, unions, monitors, and modules once those are valid & resolvable
+        assert_eq!(false, run_validator("type a : enum (c)\ntype b : a.c"));
+        assert_eq!(false, run_validator("type a : enum (c)\nvar b : a.c"));
         assert_eq!(false, run_validator("var a : int := 1\ntype b : a"));
         assert_eq!(false, run_validator("var a : int := 1\nvar b : a := 2"));
 
