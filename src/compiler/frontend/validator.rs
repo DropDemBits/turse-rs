@@ -935,6 +935,21 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 // Validate that the types are assignable with the given operation
                 // eval_type is the type of the expr result
 
+                if is_type_reference(left) || is_type_reference(right) {
+                    // Left or right operand is a type reference, can't perform operations on them
+                    *eval_type = TypeRef::TypeError;
+                    *is_compile_eval = false;
+
+                    if is_type_reference(left) {
+                        self.reporter.report_error(left.get_span(), format_args!("Operand is not a variable or constant reference"));
+                    }
+                    if is_type_reference(right) {
+                        self.reporter.report_error(right.get_span(), format_args!("Operand is not a variable or constant reference"));
+                    }
+
+                    return None;
+                }
+
                 let loc = &op.location;
                 let op = &op.token_type;
 
@@ -1029,7 +1044,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                                 },
                             TokenType::Imply =>
                                 self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
-                            _ => todo!(),
+                            _ => unreachable!(),
                         }
 
                         // Produce no value
@@ -1059,6 +1074,14 @@ impl VisitorMut<(), Option<Value>> for Validator {
 
                 let loc = &op.location;
                 let op = &op.token_type;
+
+                if is_type_reference(right) {
+                    // Operand is a type reference, can't perform operations on it
+                    *eval_type = TypeRef::TypeError;
+                    *is_compile_eval = false;
+                    self.reporter.report_error(right.get_span(), format_args!("Operand is not a variable or constant reference"));
+                    return None;
+                }
 
                 let right_type = &self.dealias_resolve_type(right.get_eval_type());
 
@@ -1501,7 +1524,7 @@ fn check_binary_operands(
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
         }
-        _ => todo!()
+        _ => unreachable!()
     }
 
     Err(binary_default(op))
@@ -1647,6 +1670,18 @@ fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
     }
 }
 
+/// Checks if the expression evaluates to a type reference
+fn is_type_reference(expr: &Expr) -> bool {
+    match expr {
+        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+            // It's a type reference based on the identifier
+            ident.is_typedef
+        }
+        Expr::Grouping { expr: inner, .. } => is_type_reference(inner),
+        _ => false // Most likely not a type reference
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -1710,8 +1745,7 @@ mod test {
         assert_eq!(true, run_validator("var src : ^^int\nconst a : ^^int := src\n^^a := 2"));
         assert_eq!(true, run_validator("var src1 : ^int\nvar src2 : ^^int\nconst a : ^^int := src2\n^a := src1"));
 
-        // Not checked yet
-        //assert_eq!(false, run_validator("type a : ^int\n^a := 2"));
+        assert_eq!(false, run_validator("type a : ^int\n^a := 2"));
 
         // TODO: Check arrow operator using records
 
@@ -2416,7 +2450,7 @@ mod test {
         assert_eq!(false, run_validator("var a : string  := ^'a'"));
 
         // Cannot apply deref to type references
-        // TODO: typecheck above
+        assert_eq!(false, run_validator("type a : ^int\nvar b : int := ^a"));
     }
 
     #[test]
@@ -2433,8 +2467,9 @@ mod test {
         assert_eq!(true, run_validator("var a : nat := #'a'"));
         assert_eq!(true, run_validator("var a : function a() : int\nvar b : nat := #a"));
 
-        // nat cheat cannot be applied to direct typedefs (not checked yet)
-        //assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #a"));
+        // nat cheat cannot be applied to direct typedefs
+        assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #a"));
+        assert_eq!(false, run_validator("type a : function a() : int\nvar b : nat := #(((a)))"));
         // nat cheat cannot be applied to typedefs hidden behind '.'s (not checked yet)
         // TODO: flesh this out once types with fields are parsed
 
