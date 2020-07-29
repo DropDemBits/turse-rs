@@ -155,7 +155,10 @@ pub struct Parser<'s> {
 
 #[derive(Debug)]
 enum ParsingStatus {
+    /// Error during parsing
     Error,
+    /// Skipping tokens during parsing
+    Skip,
 }
 
 impl<'s> Parser<'s> {
@@ -182,11 +185,6 @@ impl<'s> Parser<'s> {
             match self.decl() {
                 Ok(expr) => stmts.push(expr),
                 Err(_) => {}
-            }
-
-            if self.current().token_type == TokenType::Semicolon {
-                // Nom the semicolon
-                self.next_token();
             }
         }
 
@@ -516,6 +514,13 @@ impl<'s> Parser<'s> {
         match self.current().token_type {
             TokenType::Identifier | TokenType::Caret => self.stmt_reference(),
             TokenType::Begin => self.stmt_block(),
+            TokenType::Semicolon => {
+                // Consume extra semicolon
+                self.next_token();
+
+                // Nothing produced
+                Err(ParsingStatus::Skip)
+            }
             _ => {
                 // Nom as token isn't consumed by anything else
                 self.next_token();
@@ -1984,6 +1989,12 @@ mod test {
             &get_ident_type(&parser, rhs),
             parser.unit.as_ref().unwrap().types(),
         )
+    }
+
+    #[test]
+    fn test_opt_semicolon() {
+        let mut parser = make_test_parser(";;;;;\nvar a : int := 1;\n;;;;;var b : int := 1;");
+        assert!(parser.parse());
     }
 
     #[test]
