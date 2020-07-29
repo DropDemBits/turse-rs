@@ -343,7 +343,7 @@ impl Validator {
                     *result = Some(self.resolve_type(result.unwrap(), ResolveContext::CompileTime(false)));
                 }
             }
-            Type::Pointer { to } => {
+            Type::Pointer { to, .. } => {
                 // Resolve the 'to' type (allow forward references)
                 *to = self.resolve_type(*to, ResolveContext::CompileTime(true));
             }
@@ -1546,8 +1546,15 @@ fn check_binary_operands(
                 // Enum equality comparison, produce boolean
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             } else if types::is_pointer(left_type, type_table) && types::is_pointer(right_type, type_table) {
-                // Pointer comparison, not necessarily the same type
-                return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+                // Pointer comparison, not necessarily the same type (but should have the same checkedness)
+                if let Some(Type::Pointer { is_unchecked, .. }) = type_table.type_from_ref(left_type) {
+                    if let Some(Type::Pointer { is_unchecked: other_unchecked, .. }) = type_table.type_from_ref(right_type) {
+                        if is_unchecked == other_unchecked {
+                            // Same checkedness
+                            return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
+                        }
+                    }
+                }
             }
             // TODO: Check remaining types (class pointers, object class)
         }
@@ -1613,7 +1620,7 @@ fn check_unary_operand(op: &TokenType, right_type: &TypeRef, type_table: &TypeTa
             // Valid conditions:
             // - Operand is a pointer type (produces the pointer's type)
             // Otherwise, TypeError is produced (as an error)
-            if let Some(Type::Pointer { to }) = type_table.type_from_ref(right_type) {
+            if let Some(Type::Pointer { to, .. }) = type_table.type_from_ref(right_type) {
                 // Produce the type pointed to by the type ref
                 return Ok(*to);
             }
@@ -2302,6 +2309,7 @@ mod test {
             (false, vec![ "s0", "s1", "s2", "s3" ]),
             (false, vec![ "boolean := true", "boolean := false", "boolean := true and false" ]),
             (false, vec![ "^int", "^nat", "pointer to string", "pointer to int", "pointer to nat" ]),
+            (false, vec![ "unchecked ^int", "unchecked ^nat", "unchecked pointer to string", "unchecked pointer to int", "unchecked pointer to nat" ]),
             (false, vec![ "e0 := e0.a", "e0 := e0.b", "e0 := e0.c", "e0 := e0.d", "e1 := e1.e", "e1 := e1.f", "e1 := e1.g", "e1 := e1.h" ]),
             (true,  vec![ "alt" ]),
         ];

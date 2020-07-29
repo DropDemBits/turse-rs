@@ -187,7 +187,12 @@ pub enum Type {
         result: Option<TypeRef>,
     },
     /// Pointer to a given TypeRef
-    Pointer { to: TypeRef },
+    Pointer {
+        /// The pointed-to type
+        to: TypeRef,
+        /// If the pointer is unchecked
+        is_unchecked: bool,
+    },
     /// Inclusive range type, encoding `start` .. `end` and `start` .. * \
     /// `start` must evaluate to be less than or equal to `end` \
     /// Expressions are used, as dynamic arrays have an upper bound
@@ -817,10 +822,16 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                         return is_equivalent_to(range, other_range, type_table);
                     }
                 }
-                Type::Pointer { to } => {
-                    if let Type::Pointer { to: other_to } = right_info {
-                        // Pointer types are equivalent if the 'to' types are
-                        return is_equivalent_to(to, other_to, type_table);
+                Type::Pointer { to, is_unchecked } => {
+                    if let Type::Pointer {
+                        to: other_to,
+                        is_unchecked: other_unchecked,
+                    } = right_info
+                    {
+                        // Pointer types are equivalent if the 'to' types are, and if they have
+                        // equivalent checked/uncheckedness
+                        return is_equivalent_to(to, other_to, type_table)
+                            && is_unchecked == other_unchecked;
                     }
                 }
                 Type::Range {

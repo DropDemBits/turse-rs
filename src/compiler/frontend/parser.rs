@@ -937,7 +937,19 @@ impl<'s> Parser<'s> {
                 self.type_array(parse_context)
             }
             TokenType::Array => self.type_array(parse_context),
-            TokenType::Pointer | TokenType::Caret => self.type_pointer(parse_context),
+            TokenType::Unchecked
+                if matches!(
+                    self.peek().token_type,
+                    TokenType::Pointer | TokenType::Caret
+                ) =>
+            {
+                // Unchecked pointer type
+                self.type_pointer(parse_context)
+            }
+            TokenType::Pointer | TokenType::Caret => {
+                // Checked pointer type
+                self.type_pointer(parse_context)
+            }
             TokenType::Set => self.type_set(parse_context),
             TokenType::Function | TokenType::Procedure => {
                 // subprogram_header
@@ -1116,6 +1128,9 @@ impl<'s> Parser<'s> {
 
     /// Parse pointer to another type
     fn type_pointer(&mut self, parse_context: &TokenType) -> TypeRef {
+        // Consume optional 'unchecked' attribute
+        let is_unchecked = self.optional(TokenType::Unchecked);
+
         // Consume "pointer" or '^'
         if let TokenType::Pointer = &self.next_token().token_type {
             // Consume the "to"
@@ -1124,7 +1139,10 @@ impl<'s> Parser<'s> {
 
         // Get the pointer to type
         let pointer_to = self.parse_type(parse_context);
-        let typedef = Type::Pointer { to: pointer_to };
+        let typedef = Type::Pointer {
+            to: pointer_to,
+            is_unchecked,
+        };
 
         self.declare_type(typedef)
     }
@@ -2357,6 +2375,7 @@ mod test {
         let mut parser = make_test_parser(
             "
 var a : pointer to int
+var a_alt : unchecked pointer to int
 var b : ^ string
 var c : some_type
 var d : procedure nps
@@ -2444,12 +2463,24 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var a : pointer int");
         assert!(!parser.parse());
 
+        // Pointer type expects "to"
+        let mut parser = make_test_parser("var a : unchecked pointer int");
+        assert!(!parser.parse());
+
         // Pointer type expects type
         let mut parser = make_test_parser("var a : ^");
         assert!(!parser.parse());
 
         // Pointer type expects type
         let mut parser = make_test_parser("var a : pointer");
+        assert!(!parser.parse());
+
+        // Pointer type expects type
+        let mut parser = make_test_parser("var a : unchecked ^");
+        assert!(!parser.parse());
+
+        // Pointer type expects type
+        let mut parser = make_test_parser("var a : unchecked pointer");
         assert!(!parser.parse());
     }
 
