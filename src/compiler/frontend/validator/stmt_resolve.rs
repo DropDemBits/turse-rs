@@ -344,7 +344,10 @@ impl Validator {
 
         // Revert to previous scope and pop the last scope info
         self.active_block.replace(previous_scope.unwrap());
-        self.scope_infos.pop();
+        let last_info = self.scope_infos.pop().unwrap();
+
+        // Report unused identifiers
+        self.report_unused_identifiers(&last_info);
     }
 }
 

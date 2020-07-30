@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::rc::{Rc, Weak};
 
 // An identifier info entry associated with one instance of an identifier
+#[derive(Debug)]
 struct IdentInfo {
     /// The identifier associated with this info
     ident: Identifier,
@@ -34,6 +35,7 @@ struct IdentInfo {
 }
 
 /// Info for a scope
+#[derive(Debug)]
 struct ScopeInfo {
     /// All identifiers used within the scope,
     /// with all identifier name conflicts tracked
@@ -248,6 +250,23 @@ impl Validator {
         // At the end of the aliasing chain
         return current_ref;
     }
+
+    /// Reports unused identifiers in the given scope
+    fn report_unused_identifiers(&self, info: &ScopeInfo) {
+        for (_, idents) in info.local_idents.iter() {
+            for ident_info in idents.iter() {
+                // Only report for declared identifiers
+                if ident_info.ident.is_declared && ident_info.uses == 0 {
+                    // No uses, warn
+                    let ident = &ident_info.ident;
+                    self.reporter.report_warning(
+                        &ident.token.location,
+                        format_args!("This declaration of '{}' is never used", ident.name),
+                    );
+}
+            }
+        }
+    }
 }
 
 impl VisitorMut<(), Option<Value>> for Validator {
@@ -318,6 +337,11 @@ impl VisitorMut<(), Option<Value>> for Validator {
             Expr::Reference { ident } => self.resolve_expr_reference(ident),
             Expr::Literal { eval_type, .. } => self.resolve_expr_literal(eval_type),
         }
+    }
+
+    fn end_visit(&mut self) {
+        // Report any unused identifiers in the main scope
+        self.report_unused_identifiers(&self.scope_infos[0]);
     }
 }
 

@@ -83,9 +83,13 @@ impl CodeUnit {
     where
         T: VisitorMut<St, Ex>,
     {
+        visitor.start_visit();
+
         for stmt in self.stmts.iter_mut() {
             visitor.visit_stmt(stmt);
         }
+
+        visitor.end_visit();
     }
 
     /// Visits the AST using the given Visitor, only providing immutable access
@@ -93,9 +97,13 @@ impl CodeUnit {
     where
         T: Visitor<St, Ex>,
     {
+        visitor.start_visit();
+
         for stmt in self.stmts.iter() {
             visitor.visit_stmt(stmt);
         }
+
+        visitor.end_visit();
     }
 
     #[allow(dead_code)] // Used only by the tests right now
