@@ -67,6 +67,7 @@ impl<'s> Parser<'s> {
         };
 
         // Grab assign value
+        let has_init_expr;
         let assign_expr = if self.is_simple_assignment() {
             if &self.current().token_type == &TokenType::Equ {
                 // Warn of mistake
@@ -76,17 +77,54 @@ impl<'s> Parser<'s> {
             // Consume assign
             self.next_token();
 
+            has_init_expr = matches!(self.current().token_type, TokenType::Init);
+
             // Get the assign expression
-            let asn_expr = self.expr();
+            let asn_expr = if has_init_expr {
+                // Parse the init expr
+                self.next_token();
+                self.expr_init()
+            } else {
+                // Parse a normal expr
+                self.expr()
+            };
 
             asn_expr
                 .map(|expr| Some(Box::new(expr)))
                 .unwrap_or_else(|_| None)
         } else {
+            has_init_expr = false;
             None
         };
 
-        // Validate if the declaration requirements have been met
+        // Check if the init expression was required to be present or absent
+        // Required to be present when the type_spec is an array, and is init-sized
+        // Required to be absent in the case of a missing type spec
+        if let Some(Type::Array { is_init_sized, .. }) = self
+            .unit
+            .as_ref()
+            .unwrap()
+            .types()
+            .type_from_ref(&type_spec)
+        {
+            if *is_init_sized && !has_init_expr {
+                // Error: Requires to have init, but has no init
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!("Arrays with '*' as an end bound require an 'init' initializer"),
+                );
+            }
+        } else if type_spec == TypeRef::Unknown && has_init_expr {
+            // Error: Requires to not have init, but 'init' present
+            // Force into a TypeError
+            self.reporter.report_error(
+                &self.current().location,
+                format_args!("Cannot infer a type from an 'init' initializer"),
+            );
+            type_spec = TypeRef::TypeError;
+        }
+
+        // Validate if the other declaration requirements have been met
         // Otherwise, produce an error and a TypeError
         if is_const && assign_expr.is_none() {
             // const declares require the assignment expression
@@ -296,7 +334,25 @@ impl<'s> Parser<'s> {
             // If the assign value expr can't be parsed, bail out
             // Assignment after variable declaration isn't really important
             // in an invalid parse state
-            let value = self.expr()?;
+            let value = if matches!(self.current().token_type, TokenType::Init) {
+                // Init expressions invalid in normal assign contexts
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!(
+                        "'init' assignments are only valid in constant and variable declarations"
+                    ),
+                );
+
+                // Nom the expr anyways
+                self.next_token();
+                let _ = self.expr_init();
+
+                // Bail out
+                return Err(ParsingStatus::Error);
+            } else {
+                // Parse a regular expr
+                self.expr()?
+            };
 
             Ok(Stmt::Assign {
                 var_ref: Box::new(reference),

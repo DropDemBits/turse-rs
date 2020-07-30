@@ -249,7 +249,7 @@ impl<'s> Parser<'s> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::compiler::ast::{self, Stmt};
+    use crate::compiler::ast::{self, Expr, Stmt};
     use crate::compiler::frontend::scanner::Scanner;
     use crate::compiler::types::{self, *};
 
@@ -759,7 +759,7 @@ var x : array false .. true of char
 var y : array boolean of boolean
 % Other ranges
 var z : array start_range .. end_range of real
-var implicit_size : array 1 .. * of real
+var implicit_size : array 1 .. * of real := init (1, 2, 3, 4, 5)
 var flexi : flexible array 1 .. 0 of real
 
 var up_size := 5
@@ -1259,5 +1259,123 @@ type enumeration : enum (a, b, c, d, e, f)
                 Some(Type::Forward { is_resolved: true })
             )
         );
+    }
+
+    #[test]
+    fn test_init_expr() {
+        fn nab_init_len(stmt: &Stmt) -> Option<usize> {
+            if let Stmt::VarDecl {
+                value: Some(init_expr),
+                ..
+            } = stmt
+            {
+                if let Expr::Init { exprs, .. } = &**init_expr {
+                    Some(exprs.len())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+
+        // Size checking & compile-time checking is performed by the validator
+        let mut parser = make_test_parser("var a : array 1 .. 3 of int := init(1, 2, 3)");
+        assert!(parser.parse());
+        assert_eq!(
+            Some(3),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init(1)");
+        assert!(parser.parse());
+        assert_eq!(
+            Some(1),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Expect at least one expression
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init() begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(1),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Expect closing paren
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init( begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(1),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Expect starting paren
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init) begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(1),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Expect parens
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(1),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Expect expr after comma (length 2)
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,) begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(2),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Expect expr after comma (length 3)
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,,) begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(3),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Bad exprs should still contribute to length
+        let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,+,+,4) begin end");
+        assert!(!parser.parse());
+        assert_eq!(
+            Some(4),
+            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
+        );
+
+        // Can only be used in initalization of const's & var's
+        let mut parser = make_test_parser("var a : array 1 .. 3 of int\n a := init(1,2,3)");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : array 1 .. 3 of int\n a := +init(1,2,3)");
+        assert!(!parser.parse());
+
+        let mut parser = make_test_parser("var a : array 1 .. 3 of int\n a := -init(1,2,3)");
+        assert!(!parser.parse());
+
+        let mut parser =
+            make_test_parser("var a : array 1 .. 3 of int\n a := init(1,2,3)+init(1,2,3)");
+        assert!(!parser.parse());
+
+        // Arrays require init initializers
+        let mut parser = make_test_parser("var a : array 1 .. * of int");
+        assert!(!parser.parse());
+
+        // Can't infer type from init
+        let mut parser = make_test_parser("var a := init(1, 2, 3)");
+        assert!(!parser.parse());
+        assert_eq!(TypeRef::TypeError, get_ident_type(&parser, "a"));
+
+        // Can't infer type from init
+        let mut parser = make_test_parser("const a := init(1, 2, 3)");
+        assert!(!parser.parse());
+        assert_eq!(TypeRef::TypeError, get_ident_type(&parser, "a"));
     }
 }

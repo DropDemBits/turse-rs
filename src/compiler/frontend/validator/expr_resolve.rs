@@ -10,6 +10,25 @@ use std::convert::TryFrom;
 impl Validator {
 	// --- Expr Resolvers --- //
 	
+	// Resolves an "init" expression
+	pub(super) fn resolve_expr_init(&mut self, exprs: &mut Vec<Expr>) -> Option<Value> {
+		for expr in exprs.iter_mut() {
+			let value = self.visit_expr(expr);
+
+			// Replace with folded expression
+			if value.is_some() {
+				let span = expr.get_span().clone();
+				*expr = Expr::try_from(value.unwrap()).expect("Unable to convert folded value back into an expression");
+				expr.set_span(span);
+			}
+
+			if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
+				self.reporter.report_error(expr.get_span(), format_args!("Expression is not a compile-time expression"));
+			}
+		}
+		None
+	}
+
 	pub(super) fn resolve_expr_grouping(&mut self, expr: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
 		let eval = self.visit_expr(expr);
 		

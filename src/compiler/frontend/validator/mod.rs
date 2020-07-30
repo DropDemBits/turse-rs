@@ -277,6 +277,8 @@ impl VisitorMut<(), Option<Value>> for Validator {
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
     fn visit_expr(&mut self, visit_expr: &mut Expr) -> Option<Value> {
         match visit_expr {
+            Expr::Empty => None,
+            Expr::Init { exprs, .. } => self.resolve_expr_init(exprs),
             Expr::Grouping {
                 expr,
                 eval_type,

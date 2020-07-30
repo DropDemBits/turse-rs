@@ -78,6 +78,9 @@ impl Identifier {
 /// Common expression node
 #[derive(Clone)]
 pub enum Expr {
+    /// Empty expression, always evaluates to a type error.
+    /// Only used as a placeholder in "init" expressions.
+    Empty,
     /// Binary expression
     BinaryOp {
         /// Left operand for the binary operation
@@ -161,12 +164,23 @@ pub enum Expr {
         /// The span of the expression
         span: Location,
     },
+    /// "init" expression
+    Init {
+        /// Location of "init"
+        init: Location,
+        /// Expressions part of the "init"
+        exprs: Vec<Self>,
+        /// The span of the expression
+        span: Location,
+    },
 }
 
 impl Expr {
     /// Gets the evaluation type produced by the expression
     pub fn get_eval_type(&self) -> TypeRef {
         match self {
+            Expr::Empty => TypeRef::TypeError,
+            Expr::Init { .. } => TypeRef::TypeError, // Doesn't evaluate to anything
             Expr::BinaryOp { eval_type, .. } => *eval_type,
             Expr::UnaryOp { eval_type, .. } => *eval_type,
             Expr::Grouping { eval_type, .. } => *eval_type,
@@ -180,6 +194,8 @@ impl Expr {
     /// Gets the span of the location
     pub fn get_span(&self) -> &Location {
         match self {
+            Expr::Empty => panic!("Can't get span for empty expression"),
+            Expr::Init { span, .. } => span,
             Expr::BinaryOp { span, .. } => span,
             Expr::UnaryOp { span, .. } => span,
             Expr::Grouping { span, .. } => span,
@@ -192,6 +208,8 @@ impl Expr {
 
     pub fn set_span(&mut self, at: Location) {
         match self {
+            Expr::Empty => {}
+            Expr::Init { span, .. } => *span = at,
             Expr::BinaryOp { span, .. } => *span = at,
             Expr::UnaryOp { span, .. } => *span = at,
             Expr::Grouping { span, .. } => *span = at,
@@ -205,6 +223,8 @@ impl Expr {
     /// Gets the compile evaluability status of the expression
     pub fn is_compile_eval(&self) -> bool {
         match self {
+            Expr::Empty => false,
+            Expr::Init { .. } => false, // Never directly compilable at runtime
             Expr::BinaryOp {
                 is_compile_eval, ..
             } => *is_compile_eval,
@@ -232,6 +252,8 @@ impl fmt::Debug for Expr {
         use Expr::*;
 
         match self {
+            Empty => f.write_str("<empty>"),
+            Init { exprs, .. } => f.write_fmt(format_args!("init({:?})", exprs)),
             BinaryOp {
                 left, op, right, ..
             } => f.write_fmt(format_args!("({} {:?} {:?})", &op.token_type, left, right)),

@@ -176,12 +176,13 @@ impl<'s> Parser<'s> {
             );
 
             ParsingStatus::Error
-        });
+        })?;
+        // Fail if the token isn't an expression token
 
         // Consume the token
         self.next_token();
 
-        let mut expr = prefix_rule?(self)?;
+        let mut expr = prefix_rule(self)?;
 
         // Go over infix operators
         while !self.is_at_end()
@@ -425,6 +426,45 @@ impl<'s> Parser<'s> {
                 ident_tok.location
             )
         }
+    }
+
+    /// Parses an init expression.
+    /// Expects the "init" token to be consumed.
+    ///
+    /// While not a true expression, it is in expression position.
+    ///
+    /// `init` `(` expr (`,` expr)+ `)`
+    pub(super) fn expr_init(&mut self) -> Result<Expr, ParsingStatus> {
+        let init_token = self.previous().clone();
+
+        let _ = self.expects(
+            TokenType::LeftParen,
+            format_args!("Expected '(' after 'init'"),
+        );
+        let mut exprs = vec![];
+
+        loop {
+            let next_expr = self.expr();
+
+            // Always fill positions with something
+            exprs.push(next_expr.unwrap_or(Expr::Empty));
+
+            if !self.optional(TokenType::Comma) {
+                // No more commas
+                break;
+            }
+        }
+
+        let _ = self.expects(
+            TokenType::RightParen,
+            format_args!("Expected ')' after the last expression"),
+        );
+
+        Ok(Expr::Init {
+            span: init_token.location.span_to(&self.previous().location),
+            init: init_token.location,
+            exprs,
+        })
     }
 
     // --- Helpers --- //
