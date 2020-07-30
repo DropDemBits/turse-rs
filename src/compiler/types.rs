@@ -266,11 +266,6 @@ impl TypeTable {
         &self.types[type_id]
     }
 
-    /// Gets a mutable reference to a defined type
-    pub fn get_type_mut(&mut self, type_id: usize) -> &mut Type {
-        &mut self.types[type_id]
-    }
-
     /// Checks if the given type is an indirect alias for another type.
     /// This includes both Alias and Reference types.
     pub fn is_indirect_alias(&self, type_id: usize) -> bool {

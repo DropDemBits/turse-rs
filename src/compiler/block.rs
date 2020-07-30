@@ -98,6 +98,7 @@ impl CodeUnit {
         }
     }
 
+    #[allow(dead_code)] // Used only by the tests right now
     pub fn stmts(&self) -> &Vec<Stmt> {
         &self.stmts
     }
@@ -110,6 +111,7 @@ impl CodeUnit {
         &self.root_block
     }
 
+    #[allow(dead_code)] // Will be used when resolving external idents
     pub fn root_block_mut(&mut self) -> &mut Rc<RefCell<CodeBlock>> {
         &mut self.root_block
     }

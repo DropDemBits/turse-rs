@@ -1,4 +1,7 @@
 //! IR Generation and manipulation
+
+// Mute IR warnings as we aren't touching this for now
+#![allow(dead_code)]
 mod builder;
 mod graph;
 

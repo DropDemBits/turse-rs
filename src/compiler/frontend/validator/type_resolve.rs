@@ -586,7 +586,7 @@ pub(super) fn validate_range_size(
     let end_value =
         value::apply_ord(end_bound, type_table).expect("Cannot convert end bound into a value");
 
-    if value::is_nat_value(&start_value) && value::is_nat_value(&end_value) {
+    if value::is_nat(&start_value) && value::is_nat(&end_value) {
         // Unsigned check (covers nat, char, boolean, and enum fields)
         let start_value: u64 = start_value.into();
         let end_value: u64 = end_value.into();

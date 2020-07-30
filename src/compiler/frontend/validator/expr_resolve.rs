@@ -8,9 +8,9 @@ use crate::compiler::value::{self, Value, ValueApplyError};
 use std::convert::TryFrom;
 
 impl Validator {
-	// --- Expr Visitors --- //
+	// --- Expr Resolvers --- //
 	
-	pub(super) fn visit_expr_grouping(&mut self, expr: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
+	pub(super) fn resolve_expr_grouping(&mut self, expr: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
 		let eval = self.visit_expr(expr);
 		
 		// Try to replace the inner expression with the folded value
@@ -27,7 +27,7 @@ impl Validator {
 		return eval;
 	}
 	
-	pub(super) fn visit_expr_binary(&mut self, left: &mut Box<Expr>, op: &Token, right: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
+	pub(super) fn resolve_expr_binary(&mut self, left: &mut Box<Expr>, op: &Token, right: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
 		let left_eval = self.visit_expr(left);
 		let right_eval = self.visit_expr(right);
 		
@@ -169,7 +169,7 @@ impl Validator {
 		}
 	}
 	
-	pub(super) fn visit_expr_unary(&mut self, op: &Token, right: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
+	pub(super) fn resolve_expr_unary(&mut self, op: &Token, right: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
 		let right_eval = self.visit_expr(right);
 		
 		// Try to replace operand with the folded value
@@ -262,7 +262,7 @@ impl Validator {
 			}
 		}
 		
-	pub(super) fn visit_expr_call(&mut self, left: &mut Box<Expr>, arg_list: &mut Vec<Expr>, _eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
+	pub(super) fn resolve_expr_call(&mut self, left: &mut Box<Expr>, arg_list: &mut Vec<Expr>, _eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
 		self.visit_expr(left);
 		arg_list.iter_mut().for_each(|expr| {
 			let value = self.visit_expr(expr);
@@ -291,7 +291,7 @@ impl Validator {
 		None
 	}
 	
-	pub(super) fn visit_expr_dot(&mut self, left: &mut Box<Expr>, field: &mut Identifier, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
+	pub(super) fn resolve_expr_dot(&mut self, left: &mut Box<Expr>, field: &mut Identifier, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
 		self.visit_expr(left);
 		// Validate that the field exists in the given type
 		// eval_type is the field type
@@ -389,7 +389,7 @@ impl Validator {
 		None
 	}
 	
-	pub(super) fn visit_expr_reference(&mut self, ident: &mut Identifier) -> Option<Value> {
+	pub(super) fn resolve_expr_reference(&mut self, ident: &mut Identifier) -> Option<Value> {
 		// Use the identifier and grab the associated value
 		let (compile_value, is_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
 		
@@ -428,7 +428,7 @@ impl Validator {
 		return compile_value;
 	}
 		
-	pub(super) fn visit_expr_literal(&mut self, eval_type: &mut TypeRef) -> Option<Value> {
+	pub(super) fn resolve_expr_literal(&mut self, eval_type: &mut TypeRef) -> Option<Value> {
 		// Literal values already have the type resolved, unless the eval type is an IntNat
 		// No need to produce a value as the current literal can produce the required value
 		

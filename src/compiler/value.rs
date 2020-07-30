@@ -257,35 +257,35 @@ impl Into<f64> for Value {
 
 // Type checks
 
-pub fn is_boolean_value(value: &Value) -> bool {
+pub fn is_boolean(value: &Value) -> bool {
     matches!(value, Value::BooleanValue(_))
 }
 
-pub fn is_string_value(value: &Value) -> bool {
+pub fn is_string(value: &Value) -> bool {
     matches!(value, Value::StringValue(_))
 }
 
-pub fn is_int_value(value: &Value) -> bool {
+pub fn is_int(value: &Value) -> bool {
     matches!(value, Value::IntValue(_))
 }
 
-pub fn is_nat_value(value: &Value) -> bool {
+pub fn is_nat(value: &Value) -> bool {
     matches!(value, Value::NatValue(_))
 }
 
-pub fn is_integer(value: &Value) -> bool {
+pub fn is_integer_value(value: &Value) -> bool {
     matches!(value, Value::IntValue(_) | Value::NatValue(_))
 }
 
-pub fn is_real_value(value: &Value) -> bool {
+pub fn is_real(value: &Value) -> bool {
     matches!(value, Value::RealValue(_))
 }
 
-pub fn is_number(value: &Value) -> bool {
+pub fn is_number_value(value: &Value) -> bool {
     matches!(value, Value::IntValue(_) | Value::NatValue(_) | Value::RealValue(_))
 }
 
-pub fn is_enum_value(value: &Value) -> bool {
+pub fn is_enum(value: &Value) -> bool {
     matches!(value, Value::EnumValue(..))
 }
 
@@ -358,7 +358,7 @@ fn compare_values(
     rhs: Value,
     equality_only: bool,
 ) -> Result<Ordering, ValueApplyError> {
-    if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+    if is_boolean(&lhs) && is_boolean(&rhs) {
         let lvalue: bool = lhs.into();
         let rvalue: bool = rhs.into();
 
@@ -370,21 +370,21 @@ fn compare_values(
             // Cannot perform ordering comparisons on boolean values
             Err(ValueApplyError::WrongTypes)
         }
-    } else if is_string_value(&lhs) && is_string_value(&rhs) {
+    } else if is_string(&lhs) && is_string(&rhs) {
         let lvalue: String = lhs.into();
         let rvalue: String = rhs.into();
 
         lvalue
             .partial_cmp(&rvalue)
             .ok_or(ValueApplyError::InvalidOperand)
-    } else if is_nat_value(&lhs) && is_nat_value(&rhs) {
+    } else if is_nat(&lhs) && is_nat(&rhs) {
         let lvalue: u64 = lhs.into();
         let rvalue: u64 = rhs.into();
 
         lvalue
             .partial_cmp(&rvalue)
             .ok_or(ValueApplyError::InvalidOperand)
-    } else if (is_integer(&lhs) && is_integer(&rhs)) || (is_enum_value(&lhs) && is_enum_value(&rhs))
+    } else if (is_integer_value(&lhs) && is_integer_value(&rhs)) || (is_enum(&lhs) && is_enum(&rhs))
     {
         let lvalue: i64 = value_into_i64(lhs)?;
         let rvalue: i64 = value_into_i64(rhs)?;
@@ -392,7 +392,7 @@ fn compare_values(
         lvalue
             .partial_cmp(&rvalue)
             .ok_or(ValueApplyError::InvalidOperand)
-    } else if is_number(&lhs) && is_number(&rhs) {
+    } else if is_number_value(&lhs) && is_number_value(&rhs) {
         let lvalue: f64 = value_into_f64(lhs)?;
         let rvalue: f64 = value_into_f64(rhs)?;
 
@@ -416,12 +416,12 @@ where
     N: FnOnce(u64, u64) -> Result<Value, ValueApplyError>,
     I: FnOnce(i64, i64) -> Result<Value, ValueApplyError>,
 {
-    if is_nat_value(&lhs) && is_nat_value(&rhs) {
+    if is_nat(&lhs) && is_nat(&rhs) {
         let lvalue: u64 = lhs.into();
         let rvalue: u64 = rhs.into();
 
         Ok(Value::from(nat_apply(lvalue, rvalue)?))
-    } else if is_integer(&lhs) && is_integer(&rhs) {
+    } else if is_integer_value(&lhs) && is_integer_value(&rhs) {
         let lvalue = value_into_i64(lhs)?;
         let rvalue = value_into_i64(rhs)?;
 
@@ -443,17 +443,17 @@ where
     I: FnOnce(i64, i64) -> Result<Value, ValueApplyError>,
     R: FnOnce(f64, f64) -> Result<Value, ValueApplyError>,
 {
-    if is_nat_value(&lhs) && is_nat_value(&rhs) {
+    if is_nat(&lhs) && is_nat(&rhs) {
         let lvalue: u64 = lhs.into();
         let rvalue: u64 = rhs.into();
 
         Ok(Value::from(nat_apply(lvalue, rvalue)?))
-    } else if is_integer(&lhs) && is_integer(&rhs) {
+    } else if is_integer_value(&lhs) && is_integer_value(&rhs) {
         let lvalue = value_into_i64(lhs)?;
         let rvalue = value_into_i64(rhs)?;
 
         Ok(Value::from(int_apply(lvalue, rvalue)?))
-    } else if is_number(&lhs) && is_number(&rhs) {
+    } else if is_number_value(&lhs) && is_number_value(&rhs) {
         let lvalue = value_into_f64(lhs)?;
         let rvalue = value_into_f64(rhs)?;
 
@@ -493,7 +493,7 @@ fn check_inf(v: f64) -> Result<f64, ValueApplyError> {
 pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError> {
     match op {
         TokenType::Plus => {
-            if is_string_value(&lhs) && is_string_value(&rhs) {
+            if is_string(&lhs) && is_string(&rhs) {
                 let mut lvalue: String = lhs.into();
                 let rvalue: String = rhs.into();
                 lvalue.push_str(&rvalue);
@@ -558,7 +558,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         ),
         TokenType::Slash => {
             // Real division
-            if is_number(&lhs) && is_number(&rhs) {
+            if is_number_value(&lhs) && is_number_value(&rhs) {
                 let lvalue = value_into_f64(lhs)?;
                 let rvalue = value_into_f64(rhs)?;
                 let res = lvalue / rvalue;
@@ -574,7 +574,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         }
         TokenType::Div => {
             // Integer division
-            if is_integer(&lhs) && is_integer(&rhs) {
+            if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 apply_binary_integer(
                     lhs,
                     rhs,
@@ -593,7 +593,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
                         ))
                     },
                 )
-            } else if is_number(&lhs) && is_number(&rhs) {
+            } else if is_number_value(&lhs) && is_number_value(&rhs) {
                 let lvalue = value_into_f64(lhs)?;
                 let rvalue = value_into_f64(rhs)?;
                 let res = lvalue / rvalue;
@@ -677,13 +677,13 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             |l, r| Ok(Value::from(check_inf(l.powf(r))?)),
         ),
         TokenType::And => {
-            if is_integer(&lhs) && is_integer(&rhs) {
+            if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 // Bitwise And
                 let lvalue = value_into_u64_bytes(lhs)?;
                 let rvalue = value_into_u64_bytes(rhs)?;
 
                 Ok(Value::from(lvalue & rvalue))
-            } else if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+            } else if is_boolean(&lhs) && is_boolean(&rhs) {
                 // Boolean And
                 let lvalue: bool = lhs.into();
                 let rvalue: bool = rhs.into();
@@ -694,13 +694,13 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             }
         }
         TokenType::Or => {
-            if is_integer(&lhs) && is_integer(&rhs) {
+            if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 // Bitwise Or
                 let lvalue = value_into_u64_bytes(lhs)?;
                 let rvalue = value_into_u64_bytes(rhs)?;
 
                 Ok(Value::from(lvalue | rvalue))
-            } else if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+            } else if is_boolean(&lhs) && is_boolean(&rhs) {
                 // Boolean Or
                 let lvalue: bool = lhs.into();
                 let rvalue: bool = rhs.into();
@@ -711,13 +711,13 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             }
         }
         TokenType::Xor => {
-            if is_integer(&lhs) && is_integer(&rhs) {
+            if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 // Bitwise Xor
                 let lvalue = value_into_u64_bytes(lhs)?;
                 let rvalue = value_into_u64_bytes(rhs)?;
 
                 Ok(Value::from(lvalue ^ rvalue))
-            } else if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+            } else if is_boolean(&lhs) && is_boolean(&rhs) {
                 // Boolean Xor
                 let lvalue: bool = lhs.into();
                 let rvalue: bool = rhs.into();
@@ -732,7 +732,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             // For compatibility reasons, 'r' is masked into the 0 - 31 range
             // as TProlog only works with 32-bit integers. In the future,
             // 'r' can be masked into the 0 - 63 range by a feature flag
-            if is_integer(&lhs) && is_integer(&rhs) {
+            if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 let lvalue = value_into_i64(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
 
@@ -752,7 +752,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             // For compatibility reasons, 'r' is masked into the 0 - 31 range
             // as TProlog only works with 32-bit integers. In the future,
             // 'r' can be masked into the 0 - 63 range by a feature flag
-            if is_integer(&lhs) && is_integer(&rhs) {
+            if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 let lvalue = value_into_i64(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
 
@@ -768,7 +768,7 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
             }
         }
         TokenType::Imply => {
-            if is_boolean_value(&lhs) && is_boolean_value(&rhs) {
+            if is_boolean(&lhs) && is_boolean(&rhs) {
                 // Boolean Imply
                 let lvalue: bool = lhs.into();
                 let rvalue: bool = rhs.into();
@@ -844,7 +844,7 @@ pub fn apply_unary(op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError>
             Value::EnumValue(_, _, ordinal) => Ok(Value::from(ordinal as u64)),
         },
         TokenType::Plus => {
-            if is_number(&rhs) {
+            if is_number_value(&rhs) {
                 // Return the same value
                 Ok(rhs)
             } else {
@@ -1148,7 +1148,7 @@ mod test {
 
             let eval = apply_binary(lhs, &op, rhs).unwrap();
 
-            if is_real_value(&eval) && is_real_value(&result) {
+            if is_real(&eval) && is_real(&result) {
                 // Use epsilon
                 let eval: f64 = eval.into();
                 let result: f64 = result.into();
@@ -1310,7 +1310,7 @@ mod test {
 
             let eval = apply_unary(&op, rhs).unwrap();
 
-            if is_real_value(&eval) && is_real_value(&result) {
+            if is_real(&eval) && is_real(&result) {
                 // Use epsilon
                 let eval: f64 = eval.into();
                 let result: f64 = result.into();

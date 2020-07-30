@@ -1,5 +1,5 @@
 //! Validator fragment, resolves all statements and declarations
-use super::expr;
+use super::expr_resolve;
 use super::{ResolveContext, ScopeInfo, Validator};
 
 use crate::compiler::ast::{Expr, Identifier, Stmt, VisitorMut};
@@ -12,9 +12,9 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 
 impl Validator {
-    // --- Decl Visitors --- //
+    // --- Decl Resolvers --- //
 
-    pub(super) fn visit_decl_var(
+    pub(super) fn resolve_decl_var(
         &mut self,
         idents: &mut Vec<Identifier>,
         type_spec: &mut TypeRef,
@@ -182,7 +182,7 @@ impl Validator {
         }
     }
 
-    pub(super) fn visit_decl_type(
+    pub(super) fn resolve_decl_type(
         &mut self,
         ident: &mut Identifier,
         resolved_type: &mut Option<TypeRef>,
@@ -230,9 +230,9 @@ impl Validator {
         }
     }
 
-    // --- Stmt Visitors --- //
+    // --- Stmt Resolvers --- //
 
-    pub(super) fn visit_stmt_assign(
+    pub(super) fn resolve_stmt_assign(
         &mut self,
         var_ref: &mut Box<Expr>,
         op: &TokenType,
@@ -282,7 +282,7 @@ impl Validator {
             }
         } else {
             let produce_type =
-                expr::check_binary_operands(left_type, op, right_type, &self.type_table);
+                expr_resolve::check_binary_operands(left_type, op, right_type, &self.type_table);
             if produce_type.is_err()
                 || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
             {
@@ -295,7 +295,7 @@ impl Validator {
         }
     }
 
-    pub(super) fn visit_stmt_block(
+    pub(super) fn resolve_stmt_block(
         &mut self,
         block: &Rc<RefCell<CodeBlock>>,
         stmts: &mut Vec<Stmt>,

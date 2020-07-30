@@ -9,8 +9,8 @@
 //! resolving types in declaration statements
 
 // Validator fragments
-mod expr;
-mod stmt;
+mod expr_resolve;
+mod stmt_resolve;
 mod type_resolve;
 
 use crate::compiler::ast::{Expr, Identifier, Stmt, VisitorMut};
@@ -20,7 +20,6 @@ use crate::compiler::value::Value;
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::rc::{Rc, Weak};
 
 // An identifier info entry associated with one instance of an identifier
@@ -259,19 +258,19 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 type_spec,
                 value,
                 is_const,
-            } => self.visit_decl_var(idents, type_spec, value, *is_const),
+            } => self.resolve_decl_var(idents, type_spec, value, *is_const),
             Stmt::TypeDecl {
                 ident,
                 resolved_type,
                 is_new_def,
-            } => self.visit_decl_type(ident, resolved_type, *is_new_def),
+            } => self.resolve_decl_type(ident, resolved_type, *is_new_def),
             Stmt::Assign { var_ref, op, value } => {
-                self.visit_stmt_assign(var_ref, &op.token_type, value)
+                self.resolve_stmt_assign(var_ref, &op.token_type, value)
             }
             Stmt::ProcedureCall { proc_ref } => {
                 let _ = self.visit_expr(proc_ref);
             }
-            Stmt::Block { block, stmts } => self.visit_stmt_block(block, stmts),
+            Stmt::Block { block, stmts } => self.resolve_stmt_block(block, stmts),
         }
     }
 
@@ -283,7 +282,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.visit_expr_grouping(expr, eval_type, is_compile_eval),
+            } => self.resolve_expr_grouping(expr, eval_type, is_compile_eval),
             Expr::BinaryOp {
                 left,
                 op,
@@ -291,14 +290,14 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.visit_expr_binary(left, op, right, eval_type, is_compile_eval),
+            } => self.resolve_expr_binary(left, op, right, eval_type, is_compile_eval),
             Expr::UnaryOp {
                 op,
                 right,
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.visit_expr_unary(op, right, eval_type, is_compile_eval),
+            } => self.resolve_expr_unary(op, right, eval_type, is_compile_eval),
             Expr::Call {
                 left,
                 op: _,
@@ -306,16 +305,16 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.visit_expr_call(left, arg_list, eval_type, is_compile_eval),
+            } => self.resolve_expr_call(left, arg_list, eval_type, is_compile_eval),
             Expr::Dot {
                 left,
                 field,
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.visit_expr_dot(left, field, eval_type, is_compile_eval),
-            Expr::Reference { ident } => self.visit_expr_reference(ident),
-            Expr::Literal { eval_type, .. } => self.visit_expr_literal(eval_type),
+            } => self.resolve_expr_dot(left, field, eval_type, is_compile_eval),
+            Expr::Reference { ident } => self.resolve_expr_reference(ident),
+            Expr::Literal { eval_type, .. } => self.resolve_expr_literal(eval_type),
         }
     }
 }
@@ -2004,7 +2003,10 @@ mod test {
             value: Some(expr), ..
         } = &unit.stmts()[0]
         {
-            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::IntValue(-3));
+            assert_eq!(
+                Value::from_expr(*expr.clone(), unit.types()).unwrap(),
+                Value::IntValue(-3)
+            );
         } else {
             panic!("Fold failed");
         }
@@ -2049,7 +2051,7 @@ mod test {
         } = &unit.stmts()[1]
         {
             assert_eq!(
-                Value::try_from(*expr.clone()).unwrap(),
+                Value::from_expr(*expr.clone(), unit.types()).unwrap(),
                 Value::BooleanValue(true)
             );
         } else {
@@ -2064,7 +2066,7 @@ mod test {
         } = &unit.stmts()[2]
         {
             assert_eq!(
-                Value::try_from(*expr.clone()).unwrap(),
+                Value::from_expr(*expr.clone(), unit.types()).unwrap(),
                 Value::BooleanValue(true)
             );
         } else {
@@ -2079,7 +2081,7 @@ mod test {
         } = &unit.stmts()[2]
         {
             assert_eq!(
-                Value::try_from(*expr.clone()).unwrap(),
+                Value::from_expr(*expr.clone(), unit.types()).unwrap(),
                 Value::BooleanValue(true)
             );
         } else {
@@ -2116,7 +2118,10 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             value: Some(expr), ..
         } = &unit.stmts().last().unwrap()
         {
-            assert_eq!(Value::try_from(*expr.clone()).unwrap(), Value::NatValue(19));
+            assert_eq!(
+                Value::from_expr(*expr.clone(), unit.types()).unwrap(),
+                Value::NatValue(19)
+            );
         } else {
             panic!("Fold failed");
         }
