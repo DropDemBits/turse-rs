@@ -444,7 +444,7 @@ impl Validator {
                 if !field.is_typedef {
                     self.reporter.report_error(
                         &field.token.location,
-                        format_args!("Field '{}' is not a reference to a type", field.name),
+                        format_args!("Field '{}' does not refer to a type", field.name),
                     );
 
                     // Produce a type error
@@ -457,7 +457,7 @@ impl Validator {
                 if !ident.is_typedef {
                     self.reporter.report_error(
                         &ident.token.location,
-                        format_args!("'{}' is not a reference to a type", ident.name),
+                        format_args!("'{}' does not refer to a type", ident.name),
                     );
 
                     // Produce a type error
