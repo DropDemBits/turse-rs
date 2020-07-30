@@ -440,11 +440,17 @@ impl Validator {
 
         // Ensure that the top-most expression resolves to a type
         match &**expr {
-            Expr::Dot { field, .. } => {
+            Expr::Dot { left, field, .. } => {
                 if !field.is_typedef {
+                    // Should always either be a dot, or a reference
+                    let member_ident = super::get_reference_ident(left).unwrap();
+
                     self.reporter.report_error(
                         &field.token.location,
-                        format_args!("Field '{}' does not refer to a type", field.name),
+                        format_args!(
+                            "Field '{}' of '{}' does not refer to a type",
+                            field.name, member_ident.name
+                        ),
                     );
 
                     // Produce a type error

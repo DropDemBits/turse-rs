@@ -65,15 +65,15 @@ impl Validator {
 		// Validate that the types are assignable with the given operation
 		// eval_type is the type of the expr result
 		
-		if is_type_reference(left) || is_type_reference(right) {
+		if super::is_type_reference(left) || super::is_type_reference(right) {
 			// Left or right operand is a type reference, can't perform operations on them
 			*eval_type = TypeRef::TypeError;
 			*is_compile_eval = false;
 			
-			if is_type_reference(left) {
+			if super::is_type_reference(left) {
 				self.reporter.report_error(left.get_span(), format_args!("Operand is not a variable or constant reference"));
 			}
-			if is_type_reference(right) {
+			if super::is_type_reference(right) {
 				self.reporter.report_error(right.get_span(), format_args!("Operand is not a variable or constant reference"));
 			}
 			
@@ -205,7 +205,7 @@ impl Validator {
 			let loc = &op.location;
 			let op = &op.token_type;
 			
-			if is_type_reference(right) {
+			if super::is_type_reference(right) {
 				// Operand is a type reference, can't perform operations on it
 				*eval_type = TypeRef::TypeError;
 				*is_compile_eval = false;
@@ -383,7 +383,7 @@ impl Validator {
 							format_args!(
 								"'{}' is not a field of the enum type '{}'",
 								field.name,
-								get_reference_ident(left).map(|ident| ident.name.as_str()).unwrap_or("<unknown>")
+								super::get_reference_ident(left).map(|ident| ident.name.as_str()).unwrap_or("<unknown>")
 							)
 						);
 					}
@@ -755,24 +755,3 @@ fn check_unary_operand(
 
     Err(unary_default(op))
 }
-
-/// Gets the reference identifier, if there is one
-fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
-    match ref_expr {
-        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => Some(ident),
-        _ => None,
-    }
-}
-
-/// Checks if the expression evaluates to a type reference
-fn is_type_reference(expr: &Expr) -> bool {
-    match expr {
-        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
-            // It's a type reference based on the identifier
-            ident.is_typedef
-        }
-        Expr::Grouping { expr: inner, .. } => is_type_reference(inner),
-        _ => false, // Most likely not a type reference
-    }
-}
-

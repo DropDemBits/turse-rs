@@ -321,6 +321,28 @@ impl VisitorMut<(), Option<Value>> for Validator {
     }
 }
 
+// --- Helpers --- //
+
+/// Gets the reference identifier, if there is one
+fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
+    match ref_expr {
+        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => Some(ident),
+        _ => None,
+    }
+}
+
+/// Checks if the expression evaluates to a type reference
+fn is_type_reference(expr: &Expr) -> bool {
+    match expr {
+        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+            // It's a type reference based on the identifier
+            ident.is_typedef
+        }
+        Expr::Grouping { expr: inner, .. } => is_type_reference(inner),
+        _ => false, // Most likely not a type reference
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
