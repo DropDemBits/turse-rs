@@ -207,6 +207,9 @@ pub enum Type {
         /// Can be an int, enum type, char, or boolean, depending on the range evaluation.
         /// This is always a de-aliased type.
         base_type: TypeRef,
+        /// Size of the range, in elements
+        /// May or may not be computed
+        size: Option<usize>,
     },
     /// A reference to a named type.
     /// This type is resolved into the corresponding type at the validation stage,
@@ -833,11 +836,13 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                     start,
                     end,
                     base_type,
+                    size,
                 } => {
                     if let Type::Range {
                         start: other_start,
                         end: other_end,
                         base_type: other_type,
+                        size: other_size,
                     } = right_info
                     {
                         // Range type equivalency follows base type equivalency
@@ -866,23 +871,8 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                                 .unwrap_or(false)
                         };
 
-                        // Compare the end ranges
-                        let is_end_eq = if end.as_ref().and(other_end.as_ref()).is_some() {
-                            let end_value = Value::try_from(end.clone().unwrap()).ok();
-                            let other_end_value = Value::try_from(other_end.clone().unwrap()).ok();
-
-                            end_value
-                                .and_then(|v| Some((v, other_end_value?)))
-                                .and_then(|(a, b)| value::apply_binary(a, &TokenType::Equ, b).ok())
-                                .map(|v| {
-                                    let is_eq: bool = v.into();
-                                    is_eq
-                                })
-                                .unwrap_or(false)
-                        } else {
-                            // Mismatched sizes
-                            false
-                        };
+                        // Compare the range sizes
+                        let is_end_eq = size == other_size;
 
                         return is_start_eq && is_end_eq;
                     }

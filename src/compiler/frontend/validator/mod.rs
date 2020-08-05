@@ -263,7 +263,7 @@ impl Validator {
                         &ident.token.location,
                         format_args!("This declaration of '{}' is never used", ident.name),
                     );
-}
+                }
             }
         }
     }
@@ -1938,7 +1938,7 @@ mod test {
             run_validator("type e : enum(a, b)\nconst c : e := e.a\nvar a : c .. c")
         );
 
-        // End range overflows constitute a valid range
+        // End range overflows constitute a valid range (but emits a warning)
         assert_eq!(true, run_validator("var a : -8000 .. 16#8000000000000000"));
         assert_eq!(true, run_validator("var a : -1 .. 16#ffffffffffffffff"));
         assert_eq!(true, run_validator("var a : 0 .. 16#ffffffffffffffff"));
@@ -2816,6 +2816,30 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
                 .unwrap()
                 .type_spec,
             TypeRef::Primitive(PrimitiveType::LongNat)
+        );
+    }
+
+    #[test]
+    fn test_resolve_init_expr() {
+        // All expressions in 'init' must be compile-time expressions
+        assert_eq!(
+            true,
+            run_validator("var a : array 1 .. * of int := init(1, 2, 3)")
+        );
+
+        assert_eq!(
+            true,
+            run_validator("var a : array 1 .. * of int := init(1, 2 + 3 - 5 * 10, 3)")
+        );
+
+        assert_eq!(
+            true,
+            run_validator("const c := 5\nvar a : array 1 .. * of int := init(1, c - 5, 3)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var c := 5\nvar a : array 1 .. * of int := init(1, c, 3)")
         );
     }
 

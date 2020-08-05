@@ -171,7 +171,8 @@ impl Validator {
                 start,
                 end,
                 base_type,
-            } => self.resolve_type_range(start, end, base_type, resolving_context),
+                size,
+            } => self.resolve_type_range(start, end, base_type, size, resolving_context),
             Type::Reference { expr } => self.resolve_type_reference(expr, resolving_context),
             Type::Set { range: index } => self.resolve_type_set(index),
             Type::SizeExpr { expr } => self.resolve_type_size(expr),
@@ -252,11 +253,12 @@ impl Validator {
                 // - We are in a compile-time context,
                 // - This is an explict sized array (i.e. not `flexible` nor `init` sized)
                 // Check if it is a not a zero sized range
-                if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&range)
+                if let Some(Type::Range {
+                    start, end, size, ..
+                }) = self.type_table.type_from_ref(&range)
                 {
                     // Not being `flexible` nor `init`-sized guarrantees that end is a `Some`
-                    if !validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, false)
-                    {
+                    if *size == Some(0) {
                         // Zero sized ranges aren't allowed in compile-time array types
                         let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                         self.reporter.report_error(
@@ -304,6 +306,7 @@ impl Validator {
         start: &mut Expr,
         end: &mut Option<Expr>,
         base_type: &mut TypeRef,
+        size: &mut Option<usize>,
         resolving_context: ResolveContext,
     ) -> ResolveResult {
         // Base type starts out as a type error
@@ -399,15 +402,30 @@ impl Validator {
 
         // Check if the start and end bounds form a positive range size
         if end.is_some() && start.is_compile_eval() && end.as_ref().unwrap().is_compile_eval() {
-            let is_valid_size =
-                validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, true);
+            let range_size = get_range_size(&start, &end.as_ref().unwrap(), &self.type_table);
 
-            if !is_valid_size {
-                self.reporter.report_error(
-                    &range_span,
-                    format_args!("Range bounds creates a negative-sized range"),
-                );
-                return Some(TypeRef::TypeError);
+            if let Err(size_err) = range_size {
+                match size_err {
+                    RangeSizeError::Overflow => {
+                        // Cap the size to usize max
+                        self.reporter.report_warning(
+                            &range_span,
+                            format_args!("Range bound size exceeds the maximum representable size"),
+                        );
+
+                        *size = Some(usize::MAX);
+                    }
+                    RangeSizeError::NegativeSize => {
+                        self.reporter.report_error(
+                            &range_span,
+                            format_args!("Range bounds creates a negative-sized range"),
+                        );
+                        return Some(TypeRef::TypeError);
+                    }
+                }
+            } else {
+                // Update range size
+                *size = Some(range_size.ok().unwrap());
             }
         }
 
@@ -531,10 +549,12 @@ impl Validator {
             }
 
             // If the index type is a range, check if it is a not a zero sized range
-            if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&real_index)
+            if let Some(Type::Range {
+                start, end, size, ..
+            }) = self.type_table.type_from_ref(&real_index)
             {
                 // Compile-time enforcement guarrantees that end is a some
-                if !validate_range_size(&start, &end.as_ref().unwrap(), &self.type_table, false) {
+                if *size == Some(0) {
                     // Zero sized ranges aren't allowed in set types
                     let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                     self.reporter.report_error(
@@ -577,79 +597,180 @@ impl Validator {
     }
 }
 
-/// Validates the range size
+/// Errors when computing the range size
+pub enum RangeSizeError {
+    /// Range size has overflowed
+    Overflow,
+    /// Range size is negative
+    NegativeSize,
+}
+
+/// Gets the size of the given range.
 ///
-/// Specifiying `allow_zero_size` as true allows zero-sized ranges to be
-/// captured as valid. Otherwise, zero-sized ranges are marked as invalid.
-pub(super) fn validate_range_size(
+/// # Return Values
+/// Returns a `Ok(u64)` if the range is a valid, otherwise an appropriate error.
+pub(super) fn get_range_size(
     start_bound: &Expr,
     end_bound: &Expr,
     type_table: &TypeTable,
-    allow_zero_size: bool,
-) -> bool {
-    let start_value =
+) -> Result<usize, RangeSizeError> {
+    // Apply 'ord' to convert into appropriate ranges
+    let start_bound =
         value::apply_ord(start_bound, type_table).expect("Cannot convert start bound into a value");
-    let end_value =
+    let end_bound =
         value::apply_ord(end_bound, type_table).expect("Cannot convert end bound into a value");
 
-    if value::is_nat(&start_value) && value::is_nat(&end_value) {
+    if value::is_nat(&start_bound) && value::is_nat(&end_bound) {
         // Unsigned check (covers nat, char, boolean, and enum fields)
-        let start_value: u64 = start_value.into();
-        let end_value: u64 = end_value.into();
+        let start_value: u64 = start_bound.into();
+        let end_value: u64 = end_bound.into();
 
-        let (inclusive_end_value, overflowed) = end_value.overflowing_add(1);
+        let (inclusive_end_value, adjust_overflow) = end_value.overflowing_add(1);
+        let (range_size, range_overflow) = inclusive_end_value.overflowing_sub(start_value);
 
-        // En - (St+1) = rs, rs < 0 is invalid, rs == 0 only valid if allowed
+        // rs := (En+1) - St, rs < 0 is invalid, rs == 0 only valid if allowed
 
-        // Check for overflow
-        if overflowed {
-            // end_value is u64::MAX
-            // Nothing can be greater than u64::MAX, so this always forms a valid range
-            return true;
+        // Validity table, based on:
+        // adjust_overflow | range_overflow
+        // x | x -> ok
+        // x | V -> into neg,
+        // V | x -> can't represent range at all, overflow! (only happens if end_value is u64::MAX and start_value is 0)
+        // V | V -> ovl over, then back down ()
+
+        // Check for okayness
+        // Is ok if:
+        // - adjust_overflow xnor range_overflow (both or neither overflow)
+
+        if !adjust_overflow && range_overflow {
+            // Start value pushed range into the negative
+            Err(RangeSizeError::NegativeSize)
+        } else if adjust_overflow && !range_overflow {
+            // `end_value` is u64::MAX, but `start_value` is 0
+            // Can't represent the range size (u64::MAX + 1)
+            Err(RangeSizeError::Overflow)
         } else {
-            let (range_size, range_overflow) = inclusive_end_value.overflowing_sub(start_value);
+            #[cfg(target_pointer_width = "32")]
+            if range_size > (usize::MAX as u64) {
+                // Greater than the maximum size of a usize (only on 32-bit platforms)
+                Err(RangeSizeError::Overflow)
+            }
 
-            // Overflow indicates a start bound greater than the adjusted end range
-            return !range_overflow && (allow_zero_size || range_size != 0);
+            // Size is valid
+            Ok(range_size as usize)
         }
     } else {
-        // Check for int
-        let start_value = value::value_as_i64(start_value);
-        let end_value = value::value_as_i64(end_value);
+        // Check for ints
+        let start_value = value::value_as_i64(start_bound);
+        let end_value = value::value_as_i64(end_bound.clone());
 
-        if start_value.is_err() && matches!(start_value, Err(ValueApplyError::Overflow)) {
-            // Start value is definitely larger than the end bound, invalid
-            false
-        } else if end_value.is_err() && matches!(end_value, Err(ValueApplyError::Overflow)) {
-            // End value is definitely larger than the end bound, valid
-            true
-        } else if !start_value.is_err() && !end_value.is_err() {
-            // Values are in range, maybe
+        if start_value.is_ok()
+            && matches!(end_value, Err(ValueApplyError::Overflow))
+            && end_value.is_err()
+        {
+            // End value is definitely larger than the end bound, most likely positive
+            let start_value: i64 = start_value.unwrap();
+            let end_value: u64 = end_bound.into();
+
+            // Sign is effective signedness, value is raw hex value
+            // start_value exists in [-0x80000000_00000000 .. 0x7FFFFFFF_FFFFFFFF]
+            // end_value   exists in [ 0x80000000_00000000 .. 0xFFFFFFFF_FFFFFFFF]
+
+            // Adjust `start_value` as adjusting end_value may take it out of the range of a u64
+
+            let (range_size, overflow) = if start_value.is_negative() {
+                // Always values less than 0
+                // Will always be positive addition
+                // Need to adjust start value up one first
+
+                // Adjust should never fail as the start value should be in the range of
+                // 0 -> i64::MAX + 1 (which is still in bounds for a u64)
+                let positive_start =
+                    u64::from_ne_bytes(start_value.overflowing_abs().0.to_ne_bytes());
+                let adjusted_start = positive_start.checked_add(1).unwrap();
+
+                // Overflow is ok
+                end_value.overflowing_add(adjusted_start)
+            } else if start_value.is_positive() {
+                // Always values greater than 0
+                // Will always be negative subtraction
+                // Need to adjust `start_value` down one first
+                let adjusted_start = (start_value as u64).checked_sub(1).unwrap();
+
+                // Overflow is not ok
+                end_value.overflowing_sub(adjusted_start)
+            } else {
+                // Is zero, keep the same size
+                (end_value, false)
+            };
+
+            if overflow {
+                if start_value.is_negative() {
+                    // Start value pushed range into overflow
+                    Err(RangeSizeError::Overflow)
+                } else {
+                    // Start value pushed range into the negatives
+                    Err(RangeSizeError::NegativeSize)
+                }
+            } else {
+                #[cfg(target_pointer_width = "32")]
+                if range_size > (usize::MAX as u64) {
+                    // Greater than the maximum size of a usize (only on 32-bit platforms)
+                    Err(RangeSizeError::Overflow)
+                }
+
+                // Computed range is valid
+                Ok(range_size as usize)
+            }
+        } else if start_value.is_ok() && end_value.is_ok() {
+            // Values maybe are in range
             let start_value = start_value.unwrap();
             let end_value = end_value.unwrap();
-            let (inclusive_end_value, overflowed) = end_value.overflowing_add(1);
+            let (inclusive_end_value, adjust_overflow) = end_value.overflowing_add(1);
+            let (range_size, range_overflow) = inclusive_end_value.overflowing_sub(start_value);
 
-            // En - (St+1) = rs, rs < 0 is invalid, rs == 0 only valid if allowed
+            // Validity table, based on:
+            // adjust_overflow | range_overflow
+            // x | x -> ok
+            // x | V -> still neg, bad
+            // V | x -> neg ovl, ok
+            // V | V -> ok, through ovl
 
-            // Check for overflow
-            if overflowed {
-                // end_value is i64::MAX
-                // Any start bound less than `i64::MAX - 1` produces a negative sized range
-                // Any start bound less than `i64::MAX` produces a zero sized range
-                return start_value == i64::MAX || (start_value > i64::MAX - 1 && allow_zero_size);
+            // rs := (En+1) - St, rs < 0 is invalid, rs == 0 only valid if allowed
+
+            // Check for okayness
+            // Is ok if:
+            // - adjust_overflow xnor range_overflow (both or neither overflow)
+            // - !adjust_overflow and range_overflow (`end_value` overflows into u64 range, and `start_value` is zero)
+
+            if adjust_overflow && !range_overflow {
+                // `end_value` is i64::MAX, adjusted is representable in u64
+                // `start_value` is 0 or negative (should not be positive)
+                debug_assert!(!range_size.is_positive());
+
+                // Byte convert into a u64, then a usize
+                return Ok(u64::from_ne_bytes(range_size.to_ne_bytes()) as usize);
+            } else if (!adjust_overflow && range_overflow) || range_size.is_negative() {
+                // Range size overflowed into negative
+                return Err(RangeSizeError::NegativeSize);
             } else {
-                let (range_size, range_overflow) = inclusive_end_value.overflowing_sub(start_value);
+                #[cfg(target_pointer_width = "32")]
+                if range_size > (usize::MAX as u64) {
+                    // Greater than the maximum size of a usize (only on 32-bit platforms)
+                    Err(RangeSizeError::Overflow)
+                }
 
-                // Overflow indicates a start bound greater than the adjusted end range
-                // We check if the the range is not negative, as the zero-size
-                // case is handled by the 3rd conditional
-                return !range_overflow
-                    && !(range_size < 0)
-                    && (allow_zero_size || range_size != 0);
+                // Is positive
+                debug_assert!(range_size.is_positive());
+                return Ok(range_size as usize);
             }
+        } else if let Err(ValueApplyError::Overflow) = start_value {
+            // Start value is definitely larger than the end bound, forming a negative size range
+            // End range type should be int, as nat types are captured before this point
+            debug_assert!(value::is_int(&end_bound));
+            Err(RangeSizeError::NegativeSize)
         } else {
             // Wrong types, should be captured by type checks before this call
-            return false;
+            unreachable!("Typechecks not done before range compute")
         }
     }
 }

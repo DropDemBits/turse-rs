@@ -67,18 +67,15 @@ impl Validator {
             *type_spec = self.resolve_type(*type_spec, resolving_context);
 
             // If the `type_spec` is a range, verify it is not a zero sized range
-            if let Some(Type::Range { start, end, .. }) = self.type_table.type_from_ref(&type_spec)
+            if let Some(Type::Range {
+                start, end, size, ..
+            }) = self.type_table.type_from_ref(&type_spec)
             {
                 // No guarrantess that end is a Some
                 if end.is_none() {
                     // Error should be reported by parser
                     *type_spec = TypeRef::TypeError;
-                } else if !super::type_resolve::validate_range_size(
-                    &start,
-                    &end.as_ref().unwrap(),
-                    &self.type_table,
-                    false,
-                ) {
+                } else if *size == Some(0) {
                     // Zero sized ranges aren't allowed in variable/constant range types
                     let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                     self.reporter.report_error(

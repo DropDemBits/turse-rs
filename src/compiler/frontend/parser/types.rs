@@ -510,6 +510,7 @@ impl<'s> Parser<'s> {
                 start: start_range,
                 end: end_range,
                 base_type: TypeRef::Unknown,
+                size: None,
             }),
         }
     }
