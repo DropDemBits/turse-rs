@@ -69,8 +69,8 @@ impl<'s> Parser<'s> {
                 // Try to parse either a reference, or a range type
                 let ref_or_range = self.type_reference_or_range(parse_context);
 
-                if ref_or_range.is_err() {
-                    if !ref_or_range.unwrap_err() {
+                if let Err(tokens_consumed) = ref_or_range {
+                    if !tokens_consumed {
                         // No parsing has been done yet, report at the current location
                         self.reporter.report_error(
                             &self.current().location,

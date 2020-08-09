@@ -135,6 +135,127 @@ impl Validator {
         }
         // Variable declarations with no assignment value will have the type already given
 
+        // If value is an init expression, verify compatibility
+        if !types::is_error(type_spec) {
+            if let Some(expr) = value {
+                if let Expr::Init { init, exprs, .. } = &**expr {
+                    // Check if the type can accept the "init"
+                    // Only valid for arrays, records, and unions
+                    let mut field_types = if let Some(type_info) =
+                        self.type_table.type_from_ref(type_spec)
+                    {
+                        match type_info {
+                            Type::Array {
+                                ranges,
+                                element_type,
+                                is_init_sized,
+                                is_flexible,
+                            } => {
+                                // `did_overflow` indicates it was capped at usize::MAX
+                                let (elem_count, did_overflow) =
+                                    types::get_array_element_count(ranges, &self.type_table);
+
+                                if ranges.is_empty() {
+                                    // No ranges on the array, error reported by the parser
+                                    None
+                                } else if *is_flexible {
+                                    self.reporter.report_error(init, format_args!("'init' initializers are not allowed for flexible arrays"));
+                                    None
+                                } else if elem_count == 0 && !is_init_sized {
+                                    // We know it to be dynamic, as one of the ranges isn't a compile-time expression and it isn't a flexible array
+                                    self.reporter.report_error(init, format_args!("'init' initializers are not allowed for dynamic arrays"));
+                                    None
+                                } else if did_overflow {
+                                    // Array has more elements than can be handled
+                                    // Definitely an error (stop yourself, for your own sake)
+                                    self.reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
+                                    None
+                                } else {
+                                    if *is_init_sized {
+                                        // Match type count with init size
+                                        Some(
+                                            std::iter::once(element_type).cycle().take(exprs.len()),
+                                        )
+                                    } else {
+                                        // Build type iter on array count sizes
+                                        Some(std::iter::once(element_type).cycle().take(elem_count))
+                                    }
+                                }
+                            }
+                            _ => {
+                                // Not the requested type
+                                None
+                            }
+                        }
+                    } else {
+                        // Nope!
+                        None
+                    };
+
+                    // If a none, errors are already produced
+                    if let Some(field_types) = field_types.as_mut() {
+                        // Iterate over the init types
+                        let mut init_types = exprs.iter().map(|e| (e, e.get_eval_type()));
+                        let mut has_fields_remaining = false;
+
+                        for field_type in field_types {
+                            let init_field = init_types.next();
+
+                            if init_field.is_none() {
+                                has_fields_remaining = true;
+                                // None left
+                                break;
+                            }
+
+                            let (init_expr, init_type) = init_field.unwrap();
+
+                            if !matches!(*init_expr, Expr::Empty)
+                                && !types::is_assignable_to(
+                                    field_type,
+                                    &init_type,
+                                    &self.type_table,
+                                )
+                            {
+                                // Wrong types (skipping over empty expressions as those are produced by the parser)
+                                // ???: Report field name for records?
+                                self.reporter.report_error(
+                                    init_expr.get_span(),
+                                    format_args!("Initializer value evaluates to the wrong type"),
+                                );
+                            }
+                        }
+
+                        // Check if there are any remaining
+                        let next_init = init_types.next();
+
+                        if !has_fields_remaining && next_init.is_some() {
+                            // Too many init fields
+                            self.reporter.report_error(
+                                next_init.unwrap().0.get_span(),
+                                format_args!("Too many initializer values"),
+                            );
+                        } else if has_fields_remaining && next_init.is_none() {
+                            // Too few init
+                            let report_at = if !exprs.is_empty() {
+                                exprs.last().unwrap().get_span()
+                            } else {
+                                // If empty, at init
+                                // Empty case captured by Parser
+                                init
+                            };
+
+                            // ???: Report field name for records?
+                            // ???: Report missing count for arrays?
+                            self.reporter.report_error(
+                                report_at,
+                                format_args!("Too few initializer values"),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         // Grab the compile-time value
         let const_val = if is_compile_eval && is_const {
             // Create a value to clone from

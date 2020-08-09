@@ -24,6 +24,8 @@ impl Validator {
 
 			if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
 				self.reporter.report_error(expr.get_span(), format_args!("Expression is not a compile-time expression"));
+			} else if super::is_type_reference(expr) {
+				self.reporter.report_error(expr.get_span(), format_args!("Reference does not refer to a variable or constant"));
 			}
 		}
 		None

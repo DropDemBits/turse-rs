@@ -2841,6 +2841,93 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             false,
             run_validator("var c := 5\nvar a : array 1 .. * of int := init(1, c, 3)")
         );
+
+        // Should be as many elements as specified by the array ranges
+        assert_eq!(
+            true,
+            run_validator("var a : array 1 .. 3 of int := init(1, 2, 3)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init(1, 2, 3, 4, 5)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init(1, 2)")
+        );
+
+        // Should also apply to other types
+        assert_eq!(
+            true,
+            run_validator("var a : array boolean of int := init(1, 2)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array boolean of int := init(1)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array boolean of int := init(1, 2, 3)")
+        );
+
+        // Range types should compound together
+        assert_eq!(
+            true,
+            run_validator("var a : array boolean, boolean of int := init(1, 2, 3, 4)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array boolean, boolean of int := init(1, 2, 3, 4, 5, 6)")
+        );
+
+        // Range types should compound together
+        assert_eq!(
+            false,
+            run_validator("var a : array boolean, boolean of int := init(1, 2, 3)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array boolean, boolean of int := init(1, 2)")
+        );
+
+        // Types should match field/element type (and not be a type reference)
+        // TODO: add tests for union & record fields
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init(1, 2.0, 3)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init(1, 2, \"ee\")")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init('c', 2, 3)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("type k : int\nvar a : array 1 .. 3 of int := init(k, 2, 3)")
+        );
+
+        // "init" initializers are not allowed for dynamic or flexible arrays
+        assert_eq!(
+            false,
+            run_validator("var a : flexible array 1 .. 3 of int := init(1, 2, 3)")
+        );
+
+        assert_eq!(
+            false,
+            run_validator("var len := 3\nvar a : array 1 .. len of int := init(1, 2, 3)")
+        );
     }
 
     #[test]

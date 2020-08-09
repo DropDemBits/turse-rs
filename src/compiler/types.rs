@@ -913,6 +913,56 @@ pub fn dealias_ref(type_ref: &TypeRef, type_table: &TypeTable) -> TypeRef {
     }
 }
 
+/// Gets the length of an index type
+pub fn get_index_length(index_ref: &TypeRef, type_table: &TypeTable) -> usize {
+    if let TypeRef::Primitive(prim_type) = index_ref {
+        match prim_type {
+            PrimitiveType::Boolean => 2,
+            PrimitiveType::Char => 0x200000, // Over the entire range of unicode characters
+            _ => 0,
+        }
+    } else if let TypeRef::Named(type_id) = index_ref {
+        // Based on the range type info
+        match type_table.get_type(*type_id) {
+            Type::Range { size, .. } => {
+                // Based on the size
+                size.unwrap_or(0)
+            }
+            Type::Enum { fields } => {
+                // Based on the number of fields
+                fields.keys().count()
+            }
+            Type::EnumField { .. } => panic!("Enum field cannot be used as an index type"),
+            _ => {
+                // No length
+                0
+            }
+        }
+    } else {
+        // No length
+        0
+    }
+}
+
+/// Computes the number of elements inside of the array
+pub fn get_array_element_count(ranges: &Vec<TypeRef>, type_table: &TypeTable) -> (usize, bool) {
+    if ranges.is_empty() {
+        // No ranges means that there is no array
+        return (0, false);
+    }
+
+    ranges
+        .iter()
+        .map(|index| get_index_length(index, type_table))
+        .fold((1, false), |acc, elem| {
+            let (last_count, did_overflow) = acc;
+            let (new_count, will_overflow) = last_count.overflowing_mul(elem);
+
+            // Carry overflow status
+            (new_count, did_overflow || will_overflow)
+        })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
