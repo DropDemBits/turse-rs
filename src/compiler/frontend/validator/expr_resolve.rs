@@ -113,10 +113,7 @@ impl Validator {
 					let result = value::apply_binary(lvalue, op, rvalue);
 					
 					return match result {
-						Ok(v) => {
-							eprintln!("Folded ({:?} {} {:?}) into {:?}", left, op, right, v);
-							Some(v)
-						},
+						Ok(v) => Some(v),
 						Err(msg) => {
 							// Report the error message!
 							match msg {
@@ -246,10 +243,7 @@ impl Validator {
 						let result = value::apply_unary(&op, rvalue);
 						
 						return match result {
-							Ok(v) => {
-								eprintln!("Folded ({} {:?}) into {:?}", op, right, v);
-								Some(v)
-							}
+							Ok(v) => Some(v),
 							Err(msg) => {
 								match msg {
 									ValueApplyError::Overflow => self.reporter.report_error(&right.get_span(), format_args!("Overflow in compile-time expression")),
