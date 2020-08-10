@@ -1378,4 +1378,57 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(!parser.parse());
         assert_eq!(TypeRef::TypeError, get_ident_type(&parser, "a"));
     }
+
+    #[test]
+    fn test_infix_operators() {
+        // Test all operators in infix positions
+        // Should not crash
+
+        // Types don't matter here, as that's checked in validator
+        let mut parser = make_test_parser("const a := 1 + 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 - 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 * 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 div 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 shl 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 shr 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 and 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 or 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 xor 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 in 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 not in 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~ in 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~in 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 < 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 <= 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 > 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 >= 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 = 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~= 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~ = 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 not = 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 not= 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 => 1"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba.a"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba->a"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba()"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba(1, 2, 3)"); assert_eq!(parser.parse(), true);
+
+
+        // Only prefix
+        let mut parser = make_test_parser("const a := 1 ~ "); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 not "); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 # "); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 1.0 "); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 1 "); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 \"keke\""); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 'keke'"); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 true"); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 false"); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 nil"); assert_eq!(parser.parse(), false);
+
+        // Identifiers and ^ are okay as they are interpreted as a new statement
+        let mut parser = make_test_parser("const ba := 2\nconst a := 1 ba"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := 1 ^ba"); assert_eq!(parser.parse(), true);
+
+    }
 }

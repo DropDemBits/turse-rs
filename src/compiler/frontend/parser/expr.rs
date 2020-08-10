@@ -197,14 +197,19 @@ impl<'s> Parser<'s> {
                 return Ok(expr);
             }
 
-            let infix_rule = infix
-                .infix_rule
-                .expect(&format!("No infix function for given rule '{:?}'", op).to_string());
+            let infix_rule = infix.infix_rule;
+
+            if infix_rule.is_none() {
+                // Not a valid infix rule, return whatever expression was parsed
+                self.reporter.report_error(&op.location, format_args!("'{}' cannot be used as an infix operator", op.token_type));
+                return Ok(expr);
+            }
 
             // Consume token for infix rule
             self.next_token();
 
             // Produce the next expression
+            let infix_rule = infix_rule.unwrap();
             expr = infix_rule(self, expr)?;
         }
 
