@@ -756,7 +756,7 @@ impl<'s> Scanner<'s> {
 
                             let to_chr = to_chr.ok().unwrap();
 
-                            // Check if the parsed char is in range
+                            // Check if the parsed char is in range and not a surrogate character
                             if to_chr > 0x10FFFF {
                                 self.reporter.report_error(
                                     &hex_cursor,
@@ -765,10 +765,18 @@ impl<'s> Scanner<'s> {
                                     ),
                                 );
                                 literal_text.push('�');
+                            } else if to_chr >= 0xD800 && to_chr <= 0xDFFF {
+                                self.reporter.report_error(
+                                    &hex_cursor,
+                                    format_args!(
+                                        "Surrogate codepoints (paired or unpaired) are not allowed in strings"
+                                    ),
+                                );
+                                literal_text.push('�');
                             } else {
                                 // Push the parsed char
                                 literal_text.push(char::from_u32(to_chr).unwrap());
-                            }
+                           }
                         }
                         _ => {
                             // Fetch the location
@@ -1354,6 +1362,8 @@ mod test {
             "'\\u200000'",
             "'\\u3ffffff'",
             "'\\u3fffffff'",
+            // Surrogate characters
+            "'\\uD800'", "'\\UDFfF'", "'\\Ud900'", "'\\udab0'",
         ];
 
         for escape_test in failed_escapes.iter() {
