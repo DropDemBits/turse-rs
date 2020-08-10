@@ -77,7 +77,8 @@ impl ScopeInfo {
                 // Make sure this is the first time we're seeing this identifer
                 assert_eq!(
                     ident.instance, 0,
-                    "Not the first time seeing the identifier"
+                    "Not the first time seeing the identifier '{:?}'",
+                    ident
                 );
 
                 // Create a new identifier info group
@@ -123,7 +124,11 @@ impl ScopeInfo {
                     vec![]
                 } else {
                     // Ensure that this usage is the first of the instance
-                    assert_eq!(ident.instance, 1);
+                    assert_eq!(
+                        ident.instance, 1,
+                        "Not the first usage of this identifier '{:?}'",
+                        ident
+                    );
 
                     // Insert a dummy info entry into the returned vec
                     let mut dummy_ident = ident.clone();
