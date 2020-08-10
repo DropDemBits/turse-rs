@@ -658,9 +658,16 @@ impl<'s> Scanner<'s> {
                             // Select the octal digits
                             octal_cursor.current_to_other(&self.cursor);
 
-                            let to_chr =
-                                u16::from_str_radix(octal_cursor.get_lexeme(self.source), 8)
-                                    .expect("Failure in parsing octal digits");
+                            let to_chr = u16::from_str_radix(octal_cursor.get_lexeme(self.source), 8);
+
+                            if let Err(err) = to_chr {
+                                // Can't parse the digits, push an invalid char
+                                self.reporter.report_error(&octal_cursor, format_args!("Can't parse digits for the octal character value: {}", err));
+                                literal_text.push('�');
+                                continue;
+                            }
+
+                            let to_chr = to_chr.ok().unwrap();
 
                             // Check if the parsed character is in range
                             if to_chr >= 256 {
@@ -676,7 +683,7 @@ impl<'s> Scanner<'s> {
                                 literal_text.push((to_chr as u8) as char);
                             }
                         }
-                        'x' if self.peek_ahead.is_ascii_alphanumeric() => {
+                        'x' if self.peek_ahead.is_ascii_hexdigit() => {
                             // Hex sequence, {1-2} digits
                             // nom 'x'
                             self.next_char();
@@ -688,36 +695,7 @@ impl<'s> Scanner<'s> {
 
                             // Nom all of the hex digits
                             for _ in 0..2 {
-                                if !self.peek.is_ascii_alphanumeric() {
-                                    break;
-                                }
-
-                                self.next_char();
-                                hex_cursor.columns(1);
-                            }
-
-                            // Select the hex digits
-                            hex_cursor.current_to_other(&self.cursor);
-
-                            let to_chr = u8::from_str_radix(hex_cursor.get_lexeme(self.source), 16)
-                                .expect("Failure in parsing hex digits");
-
-                            // Push the parsed char
-                            literal_text.push(to_chr as char);
-                        }
-                        'u' | 'U' if self.peek_ahead.is_ascii_alphanumeric() => {
-                            // u: unicode character {4-8} � if out of range
-                            // nom 'u' or 'U'
-                            self.next_char();
-
-                            let mut hex_cursor = self.cursor.clone();
-
-                            // Start at the first digit
-                            hex_cursor.step();
-
-                            // Nom all of the hex digits
-                            for _ in 0..8 {
-                                if !self.peek.is_ascii_alphanumeric() {
+                                if !self.peek.is_ascii_hexdigit() {
                                     break;
                                 }
 
@@ -729,8 +707,54 @@ impl<'s> Scanner<'s> {
                             hex_cursor.current_to_other(&self.cursor);
 
                             let to_chr =
-                                u32::from_str_radix(hex_cursor.get_lexeme(self.source), 16)
-                                    .expect("Failure in parsing hex digits");
+                                u8::from_str_radix(hex_cursor.get_lexeme(self.source), 16);
+
+                            if let Err(err) = to_chr {
+                                // Can't parse the digits, push an invalid char
+                                self.reporter.report_error(&hex_cursor, format_args!("Can't parse digits for hex character value: {}", err));
+                                literal_text.push('�');
+                                continue;
+                            }
+
+                            let to_chr = to_chr.ok().unwrap();
+
+                            // Push the parsed char
+                            literal_text.push(to_chr as char);
+                        }
+                        'u' | 'U' if self.peek_ahead.is_ascii_hexdigit() => {
+                            // u: unicode character {4-8} � if out of range
+                            // nom 'u' or 'U'
+                            self.next_char();
+
+                            let mut hex_cursor = self.cursor.clone();
+
+                            // Start at the first digit
+                            hex_cursor.step();
+
+                            // Nom all of the hex digits
+                            for _ in 0..8 {
+                                if !self.peek.is_ascii_hexdigit() {
+                                    break;
+                                }
+
+                                self.next_char();
+                                hex_cursor.columns(1);
+                            }
+
+                            // Select the hex digits
+                            hex_cursor.current_to_other(&self.cursor);
+
+                            let to_chr =
+                                u32::from_str_radix(hex_cursor.get_lexeme(self.source), 16);
+
+                            if let Err(err) = to_chr {
+                                // Can't parse the digits, push an invalid char
+                                self.reporter.report_error(&hex_cursor, format_args!("Can't parse digits for unicode codepoint: {}", err));
+                                literal_text.push('�');
+                                continue;
+                            }
+
+                            let to_chr = to_chr.ok().unwrap();
 
                             // Check if the parsed char is in range
                             if to_chr > 0x10FFFF {
@@ -1264,39 +1288,42 @@ mod test {
             ("'\\F'", "\x0C"),
             ("'\\T'", "\t"),
             // Octal escapes
-            ("'\\0'", "\0"),
-            ("'\\43'", "#"),
+            ("'\\0o'", "\0o"),
+            ("'\\43O'", "#O"),
             ("'\\101'", "A"),
             ("'\\377'", "\u{00FF}"), // Have to use unicode characters
             ("'\\1011'", "A1"),
-            // Hex escapes
-            ("'\\x0'", "\0"),
+            // Hex escapes (non-hex digits and extra hex digits are ignored)
+            ("'\\x0o'", "\0o"),
             ("'\\x00'", "\0"),
-            ("'\\x00A'", "\0A"),
+            ("'\\x00Ak'", "\0Ak"),
             ("'\\x20'", " "),
-            ("'\\x20A'", " A"),
+            ("'\\x20Ar'", " Ar"),
             ("'\\xfe'", "\u{00FE}"),
-            // Unicode escapes
-            ("'\\u8'", "\x08"),
-            ("'\\uA7'", "§"),
-            ("'\\u394'", "Δ"),
-            ("'\\u2764'", "❤"),
-            ("'\\u1f029'", "🀩"),
-            ("'\\u10f029'", "\u{10F029}"),
-            ("'\\U8'", "\x08"),
-            ("'\\Ua7'", "§"),
-            ("'\\U394'", "Δ"),
-            ("'\\U2764'", "❤"),
-            ("'\\U1F029'", "🀩"),
-            ("'\\U10F029'", "\u{10F029}"),
+            // Unicode escapes (non-hex digits and extra digits are ignored)
+            ("'\\u8o'", "\x08o"),
+            ("'\\uA7k'", "§k"),
+            ("'\\u394o'", "Δo"),
+            ("'\\u2764r'", "❤r"),
+            ("'\\u1f029t'", "🀩t"),
+            ("'\\u10f029s'", "\u{10F029}s"),
+            ("'\\u10F029i'", "\u{10F029}i"),
+            ("'\\U8O'", "\x08O"),
+            ("'\\Ua7l'", "§l"),
+            ("'\\U394w'", "Δw"),
+            ("'\\U2764X'", "❤X"),
+            ("'\\U1F029z'", "🀩z"),
+            ("'\\U10F029Y'", "\u{10F029}Y"),
+            ("'\\U10F029jY'", "\u{10F029}jY"),
             // Caret escapes
             ("'^J'", "\n"),
             ("'^M'", "\r"),
             ("'^?'", "\x7F"),
         ];
 
-        for escape_test in valid_escapes.iter() {
+        for (test_num, escape_test) in valid_escapes.iter().enumerate() {
             let mut scanner = Scanner::new(escape_test.0);
+            eprintln!("test #{}", test_num + 1);
             assert!(scanner.scan_tokens());
             assert_eq!(
                 scanner.tokens[0].token_type,
@@ -1321,7 +1348,12 @@ mod test {
 
         // Bad escape sequences
         let failed_escapes = [
-            "'\\777'", // Bad octal size
+            // Greater than 255
+            "'\\777'",
+            // Larger than U+10FFFF
+            "'\\u200000'",
+            "'\\u3ffffff'",
+            "'\\u3fffffff'",
         ];
 
         for escape_test in failed_escapes.iter() {
