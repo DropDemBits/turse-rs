@@ -63,8 +63,18 @@ impl<'s> Parser<'s> {
                 self.type_function(parse_context, is_function)
             }
             TokenType::Enum => self.type_enum(parse_context),
-            TokenType::Record => unimplemented!(),
-            TokenType::Union => unimplemented!(),
+            TokenType::Record => {
+                self.reporter.report_error(&self.current().location, format_args!("Record types are not parsed yet"));
+                self.next_token();
+
+                TypeRef::TypeError
+            },
+            TokenType::Union => {
+                self.reporter.report_error(&self.current().location, format_args!("Union types are not parsed yet"));
+                self.next_token();
+
+                TypeRef::TypeError
+            },
             _ => {
                 // Try to parse either a reference, or a range type
                 let ref_or_range = self.type_reference_or_range(parse_context);
