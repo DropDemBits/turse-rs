@@ -1,6 +1,7 @@
 mod compiler;
 mod status_reporter;
 
+use compiler::block::CodeUnit;
 use std::fs;
 
 /// Compiles and runs the given file
@@ -14,11 +15,12 @@ pub fn compile_run_file(path: &str) {
         }
     };
 
-    compile_file(path, &file_contents);
+    let unit = compile_file(path, &file_contents);
+    resolve_unit(unit);
 }
 
-/// Compiles a single file
-pub fn compile_file(_path: &str, contents: &str) {
+/// Compiles a single file into a single code unit
+pub fn compile_file(_path: &str, contents: &str) -> CodeUnit {
     // Build the main unit
     let code_unit = compiler::block::CodeUnit::new(true);
 
@@ -30,7 +32,11 @@ pub fn compile_file(_path: &str, contents: &str) {
     parser.parse();
 
     // Take the unit back from the parser
-    let mut code_unit = parser.take_unit();
+    parser.take_unit()
+}
+
+/// Resolves the unit into the corresponding IR graph
+pub fn resolve_unit(mut code_unit: CodeUnit) {
     let type_table = code_unit.take_types();
 
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
