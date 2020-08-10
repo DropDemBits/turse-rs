@@ -550,11 +550,11 @@ pub fn is_boolean(type_ref: &TypeRef) -> bool {
 }
 
 /// Checks if the given `type_ref` references a base type (i.e. the
-/// reference does not point to a Type::Alias, Type::Named, Type::Forward,
-/// TypeRef::Unknown, or TypeRef::TypeError)
+/// reference does not point to a Type::Alias, Type::Reference, Type::Forward, or TypeRef::Unknown)
 pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     match type_ref {
-        TypeRef::Unknown | TypeRef::TypeError => false,
+        TypeRef::Unknown => false,
+        TypeRef::TypeError => true,
         TypeRef::Primitive(_) => true,
         TypeRef::Named(type_id) => !matches!(
             type_table.get_type(*type_id),

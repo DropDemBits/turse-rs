@@ -3006,4 +3006,12 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             )
         );
     }
+
+    #[test]
+    fn test_error_propogate() {
+        // Type errors should propogate downards and be handled correctly (i.e. not panic)
+        assert_eq!(run_validator("var j : int\nvar k := (j.k) + 1"), false);
+        assert_eq!(run_validator("var j : int\nvar k := # (j.k)"), false);
+        assert_eq!(run_validator("var j : int\nvar k := # (j->k)"), false);
+    }
 }
