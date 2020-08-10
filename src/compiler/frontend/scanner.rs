@@ -658,11 +658,18 @@ impl<'s> Scanner<'s> {
                             // Select the octal digits
                             octal_cursor.current_to_other(&self.cursor);
 
-                            let to_chr = u16::from_str_radix(octal_cursor.get_lexeme(self.source), 8);
+                            let to_chr =
+                                u16::from_str_radix(octal_cursor.get_lexeme(self.source), 8);
 
                             if let Err(err) = to_chr {
                                 // Can't parse the digits, push an invalid char
-                                self.reporter.report_error(&octal_cursor, format_args!("Can't parse digits for the octal character value: {}", err));
+                                self.reporter.report_error(
+                                    &octal_cursor,
+                                    format_args!(
+                                        "Can't parse digits for the octal character value: {}",
+                                        err
+                                    ),
+                                );
                                 literal_text.push('�');
                                 continue;
                             }
@@ -706,12 +713,17 @@ impl<'s> Scanner<'s> {
                             // Select the hex digits
                             hex_cursor.current_to_other(&self.cursor);
 
-                            let to_chr =
-                                u8::from_str_radix(hex_cursor.get_lexeme(self.source), 16);
+                            let to_chr = u8::from_str_radix(hex_cursor.get_lexeme(self.source), 16);
 
                             if let Err(err) = to_chr {
                                 // Can't parse the digits, push an invalid char
-                                self.reporter.report_error(&hex_cursor, format_args!("Can't parse digits for hex character value: {}", err));
+                                self.reporter.report_error(
+                                    &hex_cursor,
+                                    format_args!(
+                                        "Can't parse digits for hex character value: {}",
+                                        err
+                                    ),
+                                );
                                 literal_text.push('�');
                                 continue;
                             }
@@ -749,7 +761,13 @@ impl<'s> Scanner<'s> {
 
                             if let Err(err) = to_chr {
                                 // Can't parse the digits, push an invalid char
-                                self.reporter.report_error(&hex_cursor, format_args!("Can't parse digits for unicode codepoint: {}", err));
+                                self.reporter.report_error(
+                                    &hex_cursor,
+                                    format_args!(
+                                        "Can't parse digits for unicode codepoint: {}",
+                                        err
+                                    ),
+                                );
                                 literal_text.push('�');
                                 continue;
                             }
@@ -776,7 +794,7 @@ impl<'s> Scanner<'s> {
                             } else {
                                 // Push the parsed char
                                 literal_text.push(char::from_u32(to_chr).unwrap());
-                           }
+                            }
                         }
                         _ => {
                             // Fetch the location
@@ -1363,7 +1381,10 @@ mod test {
             "'\\u3ffffff'",
             "'\\u3fffffff'",
             // Surrogate characters
-            "'\\uD800'", "'\\UDFfF'", "'\\Ud900'", "'\\udab0'",
+            "'\\uD800'",
+            "'\\UDFfF'",
+            "'\\Ud900'",
+            "'\\udab0'",
         ];
 
         for escape_test in failed_escapes.iter() {

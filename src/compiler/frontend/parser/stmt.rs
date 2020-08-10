@@ -9,13 +9,39 @@ impl<'s> Parser<'s> {
     // --- Decl Parsing --- //
 
     pub(super) fn decl(&mut self) -> Result<Stmt, ParsingStatus> {
+        // Update nesting
+        self.stmt_nesting = self.stmt_nesting.saturating_add(1);
+
+        if self.stmt_nesting > super::MAX_NESTING_DEPTH {
+            // Over nesting depth
+            self.reporter.report_error(
+                &self.current().location,
+                format_args!("Implementation limit - Statement is nested too deeply"),
+            );
+
+            self.stmt_nesting = self
+                .stmt_nesting
+                .checked_sub(1)
+                .expect("Mismatched nesting counts");
+
+            // nom the token!
+            self.next_token();
+            return Err(ParsingStatus::Error);
+        }
+
         let nom = self.current();
-        match nom.token_type {
+        let decl = match nom.token_type {
             TokenType::Var => self.decl_var(false),
             TokenType::Const => self.decl_var(true),
             TokenType::Type => self.decl_type(),
             _ => self.stmt(),
-        }
+        };
+
+        self.stmt_nesting = self
+            .stmt_nesting
+            .checked_sub(1)
+            .expect("Mismatched nesting counts");
+        decl
     }
 
     fn decl_var(&mut self, is_const: bool) -> Result<Stmt, ParsingStatus> {

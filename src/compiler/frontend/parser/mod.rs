@@ -14,6 +14,9 @@ use std::cell::RefCell;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
+/// Maximum nesting depth during parsing
+const MAX_NESTING_DEPTH: usize = 256;
+
 /// Main parser
 #[derive(Debug)]
 pub struct Parser<'s> {
@@ -29,6 +32,12 @@ pub struct Parser<'s> {
     unit: Option<CodeUnit>,
     /// Actively parsed blocks
     blocks: Vec<Rc<RefCell<CodeBlock>>>,
+    /// Expression nesting depth
+    expr_nesting: usize,
+    /// Statement nesting depth
+    stmt_nesting: usize,
+    /// Type nesting depth
+    type_nesting: usize,
 }
 
 #[derive(Debug)]
@@ -49,6 +58,9 @@ impl<'s> Parser<'s> {
             // Clone a ref to the root block
             blocks: vec![unit.root_block().clone()],
             unit: Some(unit),
+            expr_nesting: 0,
+            stmt_nesting: 0,
+            type_nesting: 0,
         }
     }
 
@@ -1385,50 +1397,108 @@ type enumeration : enum (a, b, c, d, e, f)
         // Should not crash
 
         // Types don't matter here, as that's checked in validator
-        let mut parser = make_test_parser("const a := 1 + 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 - 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 * 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 div 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 shl 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 shr 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 and 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 or 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 xor 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 in 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 not in 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 ~ in 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 ~in 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 < 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 <= 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 > 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 >= 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 = 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 ~= 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 ~ = 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 not = 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 not= 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const a := 1 => 1"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const ba := 2\nconst a := ba.a"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const ba := 2\nconst a := ba->a"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const ba := 2\nconst a := ba()"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const ba := 2\nconst a := ba(1, 2, 3)"); assert_eq!(parser.parse(), true);
-
+        let mut parser = make_test_parser("const a := 1 + 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 - 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 * 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 div 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 shl 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 shr 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 and 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 or 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 xor 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 in 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 not in 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~ in 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~in 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 < 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 <= 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 > 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 >= 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 = 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~= 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 ~ = 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 not = 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 not= 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 => 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba.a");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba->a");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba()");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := ba(1, 2, 3)");
+        assert_eq!(parser.parse(), true);
 
         // Only prefix
-        let mut parser = make_test_parser("const a := 1 ~ "); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 not "); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 # "); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 1.0 "); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 1 "); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 \"keke\""); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 'keke'"); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 true"); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 false"); assert_eq!(parser.parse(), false);
-        let mut parser = make_test_parser("const a := 1 nil"); assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 ~ ");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 not ");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 # ");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 1.0 ");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 1 ");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 \"keke\"");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 'keke'");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 true");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 false");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("const a := 1 nil");
+        assert_eq!(parser.parse(), false);
 
         // Identifiers and ^ are okay as they are interpreted as a new statement
-        let mut parser = make_test_parser("const ba := 2\nconst a := 1 ba"); assert_eq!(parser.parse(), true);
-        let mut parser = make_test_parser("const ba := 2\nconst a := 1 ^ba"); assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := 1 ba");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const ba := 2\nconst a := 1 ^ba");
+        assert_eq!(parser.parse(), true);
+    }
 
+    #[test]
+    fn test_nesting_limit() {
+        // Should not panic
+
+        // Expr limit, unary
+        let mut parser = make_test_parser("var k := ####################################################################################################################################################################################################################################################################################1");
+        assert_eq!(parser.parse(), false);
+
+        // Expr limit, binary
+        let mut parser = make_test_parser("var k := 1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
+        assert_eq!(parser.parse(), false);
+
+        // Stmt limit
+        let mut parser = make_test_parser("begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin ");
+        assert_eq!(parser.parse(), false);
+
+        // Type limit
+        let mut parser = make_test_parser("type k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : int))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
+        assert_eq!(parser.parse(), false);
     }
 }

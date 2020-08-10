@@ -134,14 +134,40 @@ impl<'s> Parser<'s> {
     // --- Expr Parsing --- //
 
     pub(super) fn expr(&mut self) -> Result<Expr, ParsingStatus> {
-        self.expr_precedence(Precedence::Imply)
+        let last_nesting = self.expr_nesting;
+        let expr = self.expr_precedence(Precedence::Imply);
+        assert_eq!(self.expr_nesting, last_nesting);
+        expr
     }
 
     pub(super) fn expr_reference(&mut self) -> Result<Expr, ParsingStatus> {
-        self.expr_precedence(Precedence::Arrow)
+        let last_nesting = self.expr_nesting;
+        let expr = self.expr_precedence(Precedence::Arrow);
+        assert_eq!(self.expr_nesting, last_nesting);
+        expr
     }
 
     fn expr_precedence(&mut self, min_precedence: Precedence) -> Result<Expr, ParsingStatus> {
+        // Update the nesting depth
+        self.expr_nesting = self.expr_nesting.saturating_add(1);
+
+        if self.expr_nesting > super::MAX_NESTING_DEPTH {
+            // Over the nesting limit
+            self.reporter.report_error(
+                &self.current().location,
+                format_args!("Implementation limit - Expression is nested too deeply"),
+            );
+
+            self.expr_nesting = self
+                .expr_nesting
+                .checked_sub(1)
+                .expect("Mismatched nesting counts");
+
+            // nom the token!
+            self.next_token();
+            return Err(ParsingStatus::Error);
+        }
+
         // Keep track of last token
         let before_op = self.previous();
 
@@ -149,40 +175,56 @@ impl<'s> Parser<'s> {
         let op = self.current();
 
         let prefix = Parser::get_rule(&op.token_type);
-        let prefix_rule = prefix.prefix_rule.ok_or_else(|| {
-            // Try to figure out if the typo was a reasonable one
-            // ???: Rework this system to use a hashmap with key (token_type, token_type)?
+        let prefix_rule = prefix
+            .prefix_rule
+            .ok_or_else(|| {
+                // Try to figure out if the typo was a reasonable one
+                // ???: Rework this system to use a hashmap with key (token_type, token_type)?
 
-            let hint = if before_op.location != op.location {
-                if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ {
-                    "(Did you mean '=' instead of '=='?)"
+                let hint = if before_op.location != op.location {
+                    if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ {
+                        "(Did you mean '=' instead of '=='?)"
+                    } else {
+                        ""
+                    }
                 } else {
+                    // No hints for looking back at the start or end of the file
                     ""
-                }
-            } else {
-                // No hints for looking back at the start or end of the file
-                ""
-            };
+                };
 
-            // The token reference are relative to the next token, as the next
-            // token is consumed unconditionally
-            self.reporter.report_error(
-                &self.current().location,
-                format_args!(
-                    "Expected expression before '{}' {}",
-                    self.current().location.get_lexeme(self.source),
-                    hint
-                ),
-            );
+                // The token reference are relative to the next token, as the next
+                // token is consumed unconditionally
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!(
+                        "Expected expression before '{}' {}",
+                        self.current().location.get_lexeme(self.source),
+                        hint
+                    ),
+                );
 
-            ParsingStatus::Error
-        })?;
+                ParsingStatus::Error
+            })
+            .map_err(|e| {
+                // Reduce depth
+                self.expr_nesting = self
+                    .expr_nesting
+                    .checked_sub(1)
+                    .expect("Mismatched nesting counts");
+                e
+            })?;
         // Fail if the token isn't an expression token
 
         // Consume the token
         self.next_token();
 
-        let mut expr = prefix_rule(self)?;
+        let mut expr = prefix_rule(self).map_err(|e| {
+            self.expr_nesting = self
+                .expr_nesting
+                .checked_sub(1)
+                .expect("Mismatched nesting counts");
+            e
+        })?;
 
         // Go over infix operators
         while !self.is_at_end()
@@ -194,6 +236,12 @@ impl<'s> Parser<'s> {
             if infix.precedence >= Precedence::Follow {
                 // Is a deref, identifier, or literal
                 // Most likely end of expression, so return
+
+                // Reduce depth
+                self.expr_nesting = self
+                    .expr_nesting
+                    .checked_sub(1)
+                    .expect("Mismatched nesting counts");
                 return Ok(expr);
             }
 
@@ -201,7 +249,16 @@ impl<'s> Parser<'s> {
 
             if infix_rule.is_none() {
                 // Not a valid infix rule, return whatever expression was parsed
-                self.reporter.report_error(&op.location, format_args!("'{}' cannot be used as an infix operator", op.token_type));
+                self.reporter.report_error(
+                    &op.location,
+                    format_args!("'{}' cannot be used as an infix operator", op.token_type),
+                );
+
+                // Reduce depth
+                self.expr_nesting = self
+                    .expr_nesting
+                    .checked_sub(1)
+                    .expect("Mismatched nesting counts");
                 return Ok(expr);
             }
 
@@ -210,9 +267,20 @@ impl<'s> Parser<'s> {
 
             // Produce the next expression
             let infix_rule = infix_rule.unwrap();
-            expr = infix_rule(self, expr)?;
+            expr = infix_rule(self, expr).map_err(|e| {
+                self.expr_nesting = self
+                    .expr_nesting
+                    .checked_sub(1)
+                    .expect("Mismatched nesting counts");
+                e
+            })?;
         }
 
+        // Reduce nesting
+        self.expr_nesting = self
+            .expr_nesting
+            .checked_sub(1)
+            .expect("Mismatched nesting counts");
         // Give back parsed expression
         Ok(expr)
     }

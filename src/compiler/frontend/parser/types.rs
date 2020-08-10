@@ -12,7 +12,27 @@ impl<'s> Parser<'s> {
     ///
     /// `parse_context`         The token type describing where the type is being parsed
     pub(super) fn parse_type(&mut self, parse_context: &TokenType) -> TypeRef {
-        match &self.current().token_type {
+        // Update nesting depth
+        self.type_nesting = self.type_nesting.saturating_add(1);
+
+        if self.type_nesting > super::MAX_NESTING_DEPTH {
+            // Over nesting limit
+            self.reporter.report_error(
+                &self.current().location,
+                format_args!("Implementation limit - Type specification is nested too deeply"),
+            );
+
+            self.type_nesting = self
+                .type_nesting
+                .checked_sub(1)
+                .expect("Mismatched nesting counts");
+
+            // Nom the token!
+            self.next_token();
+            return TypeRef::TypeError;
+        }
+
+        let type_spec = match &self.current().token_type {
             // Basic primitive types
             TokenType::Addressint => self.type_primitive(PrimitiveType::AddressInt),
             TokenType::Boolean => self.type_primitive(PrimitiveType::Boolean),
@@ -64,17 +84,23 @@ impl<'s> Parser<'s> {
             }
             TokenType::Enum => self.type_enum(parse_context),
             TokenType::Record => {
-                self.reporter.report_error(&self.current().location, format_args!("Record types are not parsed yet"));
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!("Record types are not parsed yet"),
+                );
                 self.next_token();
 
                 TypeRef::TypeError
-            },
+            }
             TokenType::Union => {
-                self.reporter.report_error(&self.current().location, format_args!("Union types are not parsed yet"));
+                self.reporter.report_error(
+                    &self.current().location,
+                    format_args!("Union types are not parsed yet"),
+                );
                 self.next_token();
 
                 TypeRef::TypeError
-            },
+            }
             _ => {
                 // Try to parse either a reference, or a range type
                 let ref_or_range = self.type_reference_or_range(parse_context);
@@ -97,7 +123,14 @@ impl<'s> Parser<'s> {
                     ref_or_range.ok().unwrap()
                 }
             }
-        }
+        };
+
+        // Decrement nesting depth
+        self.type_nesting = self
+            .type_nesting
+            .checked_sub(1)
+            .expect("Mismatched nesting counts");
+        type_spec
     }
 
     /// Parse a basic primitive type

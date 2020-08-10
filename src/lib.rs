@@ -27,8 +27,7 @@ pub fn compile_file(_path: &str, contents: &str) -> CodeUnit {
     let mut scanner = compiler::frontend::scanner::Scanner::new(contents);
     scanner.scan_tokens();
 
-    let mut parser =
-        compiler::frontend::parser::Parser::new(scanner.tokens, contents, code_unit);
+    let mut parser = compiler::frontend::parser::Parser::new(scanner.tokens, contents, code_unit);
     parser.parse();
 
     // Take the unit back from the parser
@@ -69,4 +68,3 @@ pub fn resolve_unit(mut code_unit: CodeUnit) {
         println!("ed {:?}", edge);
     }*/
 }
-

@@ -8,143 +8,186 @@ use crate::compiler::value::{self, Value, ValueApplyError};
 use std::convert::TryFrom;
 
 impl Validator {
-	// --- Expr Resolvers --- //
-	
-	// Resolves an "init" expression
-	pub(super) fn resolve_expr_init(&mut self, exprs: &mut Vec<Expr>) -> Option<Value> {
-		for expr in exprs.iter_mut() {
-			let value = self.visit_expr(expr);
+    // --- Expr Resolvers --- //
 
-			// Replace with folded expression
-			if value.is_some() {
-				let span = expr.get_span().clone();
-				*expr = Expr::try_from(value.unwrap()).expect("Unable to convert folded value back into an expression");
-				expr.set_span(span);
-			}
+    // Resolves an "init" expression
+    pub(super) fn resolve_expr_init(&mut self, exprs: &mut Vec<Expr>) -> Option<Value> {
+        for expr in exprs.iter_mut() {
+            let value = self.visit_expr(expr);
 
-			if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
-				self.reporter.report_error(expr.get_span(), format_args!("Expression is not a compile-time expression"));
-			} else if super::is_type_reference(expr) {
-				self.reporter.report_error(expr.get_span(), format_args!("Reference does not refer to a variable or constant"));
-			}
-		}
-		None
-	}
+            // Replace with folded expression
+            if value.is_some() {
+                let span = expr.get_span().clone();
+                *expr = Expr::try_from(value.unwrap())
+                    .expect("Unable to convert folded value back into an expression");
+                expr.set_span(span);
+            }
 
-	pub(super) fn resolve_expr_grouping(&mut self, expr: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
-		let eval = self.visit_expr(expr);
-		
-		// Try to replace the inner expression with the folded value
-		if eval.is_some() {
-			let span = expr.get_span().clone();
-			*expr = Box::new(Expr::try_from(eval.clone().unwrap()).unwrap());
-			expr.set_span(span);
-		}
-		
-		*eval_type = expr.get_eval_type();
-		*is_compile_eval = expr.is_compile_eval();
-		
-		// Propogate the folded value
-		return eval;
-	}
-	
-	pub(super) fn resolve_expr_binary(&mut self, left: &mut Box<Expr>, op: &Token, right: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
-		let left_eval = self.visit_expr(left);
-		let right_eval = self.visit_expr(right);
-		
-		// Try to replace the operands with the folded values
-		if left_eval.is_some() {
-			let span = left.get_span().clone();
-			*left = Box::new(Expr::try_from(left_eval.unwrap()).unwrap());
-			left.set_span(span);
-		}
-		if right_eval.is_some() {
-			let span = right.get_span().clone();
-			*right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
-			right.set_span(span);
-		}
-		
-		// Validate that the types are assignable with the given operation
-		// eval_type is the type of the expr result
-		
-		if super::is_type_reference(left) || super::is_type_reference(right) {
-			// Left or right operand is a type reference, can't perform operations on them
-			*eval_type = TypeRef::TypeError;
-			*is_compile_eval = false;
-			
-			if super::is_type_reference(left) {
-				self.reporter.report_error(left.get_span(), format_args!("Operand is not a variable or constant reference"));
-			}
-			if super::is_type_reference(right) {
-				self.reporter.report_error(right.get_span(), format_args!("Operand is not a variable or constant reference"));
-			}
-			
-			return None;
-		}
-		
-		let loc = &op.location;
-		let op = &op.token_type;
-		
-		let left_type = &self.dealias_resolve_type(left.get_eval_type());
-		let right_type = &self.dealias_resolve_type(right.get_eval_type());
-		
-		if types::is_error(left_type) || types::is_error(right_type) {
-			// Either one is a type error
-			// Set default type & return no value (no need to report an error as this is just propoagtion)
-			*eval_type = binary_default(op);
-			*is_compile_eval = false;
-			return None;
-		}
-		
-		debug_assert!(types::is_base_type(left_type, &self.type_table));
-		debug_assert!(types::is_base_type(right_type, &self.type_table));
-		
-		match check_binary_operands(left_type, op, right_type, &self.type_table) {
-			Ok(good_eval) => {
-				// Only evaluable if the operands are not type errors and are applicable to the current op
-				*is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
-				*eval_type = good_eval;
-				
-				if *is_compile_eval {
-					// Try to fold the current expression
-					let lvalue = Value::from_expr(*left.clone(), &self.type_table).expect(&format!("Left operand is not a compile-time value {:?}", left));
-					let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(&format!("Right operand is not a compile-time value {:?}", right));
-					
-					let result = value::apply_binary(lvalue, op, rvalue);
-					
-					return match result {
-						Ok(v) => Some(v),
-						Err(msg) => {
-							// Report the error message!
-							match msg {
-								ValueApplyError::Overflow =>
-								self.reporter.report_error(&loc, format_args!("Overflow in compile-time expression")),
-								ValueApplyError::InvalidOperand => match op {
-									TokenType::Shl | TokenType::Shr => self.reporter.report_error(right.get_span(), format_args!("Negative shift amount in compile-time '{}' expression", op)),
-									_ => self.reporter.report_error(right.get_span(), format_args!("Invalid operand in compile-time expression")),
-								},
-								ValueApplyError::DivisionByZero => {
-									// Recoverable
-									self.reporter.report_warning(&loc, format_args!("Compile-time '{}' by zero", op));
-								},
-								ValueApplyError::WrongTypes => unreachable!() // Types are guarranteed to be compatible
-							}
-							
-							// Remove the compile-time evaluability status
-							*is_compile_eval = false;
-							None
-						}
-					}
-				} else {
-					// Can't fold the current expression
-					return None;
-				}
-			},
-			Err(bad_eval) => {
-				*eval_type = bad_eval;
-				*is_compile_eval = false;
-				
-				match op {
+            if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
+                self.reporter.report_error(
+                    expr.get_span(),
+                    format_args!("Expression is not a compile-time expression"),
+                );
+            } else if super::is_type_reference(expr) {
+                self.reporter.report_error(
+                    expr.get_span(),
+                    format_args!("Reference does not refer to a variable or constant"),
+                );
+            }
+        }
+        None
+    }
+
+    pub(super) fn resolve_expr_grouping(
+        &mut self,
+        expr: &mut Box<Expr>,
+        eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) -> Option<Value> {
+        let eval = self.visit_expr(expr);
+
+        // Try to replace the inner expression with the folded value
+        if eval.is_some() {
+            let span = expr.get_span().clone();
+            *expr = Box::new(Expr::try_from(eval.clone().unwrap()).unwrap());
+            expr.set_span(span);
+        }
+
+        *eval_type = expr.get_eval_type();
+        *is_compile_eval = expr.is_compile_eval();
+
+        // Propogate the folded value
+        return eval;
+    }
+
+    pub(super) fn resolve_expr_binary(
+        &mut self,
+        left: &mut Box<Expr>,
+        op: &Token,
+        right: &mut Box<Expr>,
+        eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) -> Option<Value> {
+        let left_eval = self.visit_expr(left);
+        let right_eval = self.visit_expr(right);
+
+        // Try to replace the operands with the folded values
+        if left_eval.is_some() {
+            let span = left.get_span().clone();
+            *left = Box::new(Expr::try_from(left_eval.unwrap()).unwrap());
+            left.set_span(span);
+        }
+        if right_eval.is_some() {
+            let span = right.get_span().clone();
+            *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
+            right.set_span(span);
+        }
+
+        // Validate that the types are assignable with the given operation
+        // eval_type is the type of the expr result
+
+        if super::is_type_reference(left) || super::is_type_reference(right) {
+            // Left or right operand is a type reference, can't perform operations on them
+            *eval_type = TypeRef::TypeError;
+            *is_compile_eval = false;
+
+            if super::is_type_reference(left) {
+                self.reporter.report_error(
+                    left.get_span(),
+                    format_args!("Operand is not a variable or constant reference"),
+                );
+            }
+            if super::is_type_reference(right) {
+                self.reporter.report_error(
+                    right.get_span(),
+                    format_args!("Operand is not a variable or constant reference"),
+                );
+            }
+
+            return None;
+        }
+
+        let loc = &op.location;
+        let op = &op.token_type;
+
+        let left_type = &self.dealias_resolve_type(left.get_eval_type());
+        let right_type = &self.dealias_resolve_type(right.get_eval_type());
+
+        if types::is_error(left_type) || types::is_error(right_type) {
+            // Either one is a type error
+            // Set default type & return no value (no need to report an error as this is just propoagtion)
+            *eval_type = binary_default(op);
+            *is_compile_eval = false;
+            return None;
+        }
+
+        debug_assert!(types::is_base_type(left_type, &self.type_table));
+        debug_assert!(types::is_base_type(right_type, &self.type_table));
+
+        match check_binary_operands(left_type, op, right_type, &self.type_table) {
+            Ok(good_eval) => {
+                // Only evaluable if the operands are not type errors and are applicable to the current op
+                *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
+                *eval_type = good_eval;
+
+                if *is_compile_eval {
+                    // Try to fold the current expression
+                    let lvalue = Value::from_expr(*left.clone(), &self.type_table).expect(
+                        &format!("Left operand is not a compile-time value {:?}", left),
+                    );
+                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(
+                        &format!("Right operand is not a compile-time value {:?}", right),
+                    );
+
+                    let result = value::apply_binary(lvalue, op, rvalue);
+
+                    return match result {
+                        Ok(v) => Some(v),
+                        Err(msg) => {
+                            // Report the error message!
+                            match msg {
+                                ValueApplyError::Overflow => self.reporter.report_error(
+                                    &loc,
+                                    format_args!("Overflow in compile-time expression"),
+                                ),
+                                ValueApplyError::InvalidOperand => match op {
+                                    TokenType::Shl | TokenType::Shr => self.reporter.report_error(
+                                        right.get_span(),
+                                        format_args!(
+                                            "Negative shift amount in compile-time '{}' expression",
+                                            op
+                                        ),
+                                    ),
+                                    _ => self.reporter.report_error(
+                                        right.get_span(),
+                                        format_args!("Invalid operand in compile-time expression"),
+                                    ),
+                                },
+                                ValueApplyError::DivisionByZero => {
+                                    // Recoverable
+                                    self.reporter.report_warning(
+                                        &loc,
+                                        format_args!("Compile-time '{}' by zero", op),
+                                    );
+                                }
+                                ValueApplyError::WrongTypes => unreachable!(), // Types are guarranteed to be compatible
+                            }
+
+                            // Remove the compile-time evaluability status
+                            *is_compile_eval = false;
+                            None
+                        }
+                    };
+                } else {
+                    // Can't fold the current expression
+                    return None;
+                }
+            }
+            Err(bad_eval) => {
+                *eval_type = bad_eval;
+                *is_compile_eval = false;
+
+                match op {
 					TokenType::Plus => 
 					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
 					TokenType::Minus | TokenType::Star => 
@@ -180,89 +223,103 @@ impl Validator {
 					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
 					_ => unreachable!(),
 				}
-				
-				// Produce no value
-				return None;
-			}
-		}
-	}
-	
-	pub(super) fn resolve_expr_unary(&mut self, op: &Token, right: &mut Box<Expr>, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
-		let right_eval = self.visit_expr(right);
-		
-		// Try to replace operand with the folded value
-		if right_eval.is_some() {
-			let span = right.get_span().clone();
-			*right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
-			right.set_span(span);
-		}
-		
-		// Validate that the unary operator can be applied to the rhs
-		// eval_type is the result of the operation (usually the same
-			// as rhs)
-			
-			let loc = &op.location;
-			let op = &op.token_type;
-			
-			if super::is_type_reference(right) {
-				// Operand is a type reference, can't perform operations on it
-				*eval_type = TypeRef::TypeError;
-				*is_compile_eval = false;
-				self.reporter.report_error(right.get_span(), format_args!("Operand is not a variable or constant reference"));
-				return None;
-			}
-			
-			let right_type = &self.dealias_resolve_type(right.get_eval_type());
-			
-			if types::is_error(right_type) {
-				// Right operand is a type error
-				
-				// Propogate error
-				*eval_type = binary_default(op);
-				*is_compile_eval = false;
-				return None;
-			}
-			
-			debug_assert!(types::is_base_type(right_type, &self.type_table));
-			
-			match check_unary_operand(op, right_type, &self.type_table) {
-				Ok(good_eval) => {
-					*eval_type = good_eval;
-					// Compile-time evaluability is dependend on the right operand
-					*is_compile_eval = right.is_compile_eval();
-					
-					if *op == TokenType::Caret {
-						// Pointers are never compile-time evaluable
-						*is_compile_eval = false;
-					}
-					
-					if *is_compile_eval {
-						// Try to fold the expression
-						let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(&format!("Right operand is not a compile-time value {:?}", right));
-						
-						let result = value::apply_unary(&op, rvalue);
-						
-						return match result {
-							Ok(v) => Some(v),
-							Err(msg) => {
-								match msg {
-									ValueApplyError::Overflow => self.reporter.report_error(&right.get_span(), format_args!("Overflow in compile-time expression")),
-									_ => unreachable!() // Overflow is the only error produced, WrongTypes captured by typecheck above
-								}
-								
-								None
-							}
-						};
-					}
-					
-					// Produce no value
-					return None;
-				}
-				Err(bad_eval) => {
-					*eval_type = bad_eval;
-					*is_compile_eval = false;
-					
-					match op {
+
+                // Produce no value
+                return None;
+            }
+        }
+    }
+
+    pub(super) fn resolve_expr_unary(
+        &mut self,
+        op: &Token,
+        right: &mut Box<Expr>,
+        eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) -> Option<Value> {
+        let right_eval = self.visit_expr(right);
+
+        // Try to replace operand with the folded value
+        if right_eval.is_some() {
+            let span = right.get_span().clone();
+            *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
+            right.set_span(span);
+        }
+
+        // Validate that the unary operator can be applied to the rhs
+        // eval_type is the result of the operation (usually the same
+        // as rhs)
+
+        let loc = &op.location;
+        let op = &op.token_type;
+
+        if super::is_type_reference(right) {
+            // Operand is a type reference, can't perform operations on it
+            *eval_type = TypeRef::TypeError;
+            *is_compile_eval = false;
+            self.reporter.report_error(
+                right.get_span(),
+                format_args!("Operand is not a variable or constant reference"),
+            );
+            return None;
+        }
+
+        let right_type = &self.dealias_resolve_type(right.get_eval_type());
+
+        if types::is_error(right_type) {
+            // Right operand is a type error
+
+            // Propogate error
+            *eval_type = binary_default(op);
+            *is_compile_eval = false;
+            return None;
+        }
+
+        debug_assert!(types::is_base_type(right_type, &self.type_table));
+
+        match check_unary_operand(op, right_type, &self.type_table) {
+            Ok(good_eval) => {
+                *eval_type = good_eval;
+                // Compile-time evaluability is dependend on the right operand
+                *is_compile_eval = right.is_compile_eval();
+
+                if *op == TokenType::Caret {
+                    // Pointers are never compile-time evaluable
+                    *is_compile_eval = false;
+                }
+
+                if *is_compile_eval {
+                    // Try to fold the expression
+                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(
+                        &format!("Right operand is not a compile-time value {:?}", right),
+                    );
+
+                    let result = value::apply_unary(&op, rvalue);
+
+                    return match result {
+                        Ok(v) => Some(v),
+                        Err(msg) => {
+                            match msg {
+                                ValueApplyError::Overflow => self.reporter.report_error(
+                                    &right.get_span(),
+                                    format_args!("Overflow in compile-time expression"),
+                                ),
+                                _ => unreachable!(), // Overflow is the only error produced, WrongTypes captured by typecheck above
+                            }
+
+                            None
+                        }
+                    };
+                }
+
+                // Produce no value
+                return None;
+            }
+            Err(bad_eval) => {
+                *eval_type = bad_eval;
+                *is_compile_eval = false;
+
+                match op {
 						TokenType::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
 						TokenType::Plus => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
 						TokenType::Minus => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
@@ -270,189 +327,219 @@ impl Validator {
 						TokenType::Pound => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
 						_ => unreachable!()
 					}
-					
-					// Produce no value
-					return None;
-				}
-			}
-		}
-		
-	pub(super) fn resolve_expr_call(&mut self, left: &mut Box<Expr>, arg_list: &mut Vec<Expr>, _eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
-		self.visit_expr(left);
-		arg_list.iter_mut().for_each(|expr| {
-			let value = self.visit_expr(expr);
-			
-			if value.is_some() {
-				// Substitute value with folded expression
-				*expr = Expr::try_from(value.unwrap()).unwrap();
-			}
-		});
-		
-		// Validate that 'left' is "callable"
-		// 3 things that fall under this expression
-		// - set cons
-		// - array subscript
-		// - fcn / proc call
-		// Distinguished by the identifier type
-		
-		// Validate that the argument types match the type_spec using the given reference
-		// eval_type is the result of the call expr
-		
-		// For now, call expressions default to runtime-time only
-		// A call expression would be compile-time evaluable if it had no side effects,
-		// but we don't check that right now
-		*is_compile_eval = false;
-		// TODO: Type check call expressions
-		None
-	}
-	
-	pub(super) fn resolve_expr_dot(&mut self, left: &mut Box<Expr>, field: &mut Identifier, eval_type: &mut TypeRef, is_compile_eval: &mut bool) -> Option<Value> {
-		self.visit_expr(left);
-		// Validate that the field exists in the given type
-		// eval_type is the field type
-		
-		// 4 things falling under this expression
-		// - Enum fields references
-		// - Record/Union field references
-		// - Class public member/method references (through desugared arrow)
-		// - Module/Monitor exported references
-		
-		// `left` must be of the following types (x indicates not checked):
-		// - Type::Enum
-		// x Type::Record
-		// x Type::Union
-		// x Type::Class
-		// x Type::Module
-		// x Type::Monitor
-		
-		// All dot expressions default to runtime evaluation
-		*is_compile_eval = false;
-		
-		// Dealias & resolve left type
-		let left_ref = self.dealias_resolve_type(left.get_eval_type());
-		
-		debug_assert!(types::is_base_type(&left_ref, &self.type_table));
-		
-		if types::is_error(&left_ref) {
-			// Is a type error, silently propogate error
-			field.type_spec = TypeRef::TypeError;
-			*eval_type = TypeRef::TypeError;
-			return None;
-		}
-		
-		if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
-			// Match based on the type info
-			match type_info {
-				Type::Enum { fields } => {
-					let enum_field = fields.get(&field.name);
-					// Check if the field is a part of the compound type
-					if let Some(field_ref) = enum_field {
-						// Link field type_spec & our type_spec to the field reference
-						field.type_spec = *field_ref;
-						*eval_type = *field_ref;
-						
-						// Update the field ident info
-						field.is_const = true; // Not mutable
-						field.is_typedef = false; // Not typedef
-						
-						// Enum fields are compile-time evaluable
-						field.is_compile_eval = true;
-						*is_compile_eval = true;
-						
-						let enum_id = types::get_type_id(&left_ref).unwrap();
-						let field_id = types::get_type_id(&field_ref).unwrap();
-						let ordinal = if let Type::EnumField {ordinal, ..} = self.type_table.get_type(field_id) {
-							*ordinal
-						} else {
-							0
-						};
-						
-						return Some(Value::EnumValue(field_id, enum_id, ordinal));
-					} else {
-						// Field name is not a part of the enum
-						field.type_spec = TypeRef::TypeError;
-						*eval_type = TypeRef::TypeError;
-						
-						// Grabbing the identifier as the enum type name is a best-effort guess
-						self.reporter.report_error(
-							&field.token.location,
-							format_args!(
-								"'{}' is not a field of the enum type '{}'",
-								field.name,
-								super::get_reference_ident(left).map(|ident| ident.name.as_str()).unwrap_or("<unknown>")
-							)
-						);
-					}
-				}
-				Type::Pointer { .. } => {
-					// Not a compound type, special report (for using ->)
-					*eval_type = TypeRef::TypeError;
-					self.reporter.report_error(&left.get_span(), format_args!("Left side of '.' is not a compound type (did you mean to use '->')"));
-				}
-				_ => {
-					// Not a compound type, produces a type error
-					*eval_type = TypeRef::TypeError;
-					self.reporter.report_error(&left.get_span(), format_args!("Left side of '.' is not a compound type"));
-				}
-			}
-		} else {
-			// Not a compound type, produces a type error
-			*eval_type = TypeRef::TypeError;
-			self.reporter.report_error(&left.get_span(), format_args!("Left side of '.' is not a compound type"));
-		}
-		
-		None
-	}
-	
-	pub(super) fn resolve_expr_reference(&mut self, ident: &mut Identifier) -> Option<Value> {
-		// Use the identifier and grab the associated value
-		let (compile_value, is_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
-		
-		if !is_declared {
-			// Identifier has not been declared at all before this point, report it
-			// Only reported once everytime something is not declared
-			self.reporter.report_error(&ident.token.location, format_args!("'{}' has not been declared yet", ident.name));
-		}
-		
-		if ident.is_declared {
-			// Should either have a valid type, or TypeRef::Unknown
-			assert_ne!(ident.type_spec, TypeRef::TypeError);
-			
-			// Grab the correct identifier information (including the
-				// type_spec) in the scope table
-			let block_ref = self.active_block.as_ref().unwrap().upgrade();
-			let block = block_ref.as_ref().unwrap().borrow();
-			let new_info = block
-			.scope
-			.get_ident_instance(&ident.name, ident.instance)
-			.unwrap();
-			
-			// Update the necessary info
-			ident.import_index = new_info.import_index;
-			ident.is_declared = new_info.is_declared;
-			ident.is_typedef = new_info.is_typedef;
-			ident.type_spec = new_info.type_spec;
-			
-			// An identifier is compile-time evaluable if and only if there is an associated expression
-			ident.is_compile_eval = compile_value.is_some();
-		} else {
-			// Not declared, don't touch the `type_spec` (preserves error checking "correctness")
-		}
-		
-		// Return the reference's associated compile-time value
-		return compile_value;
-	}
-		
-	pub(super) fn resolve_expr_literal(&mut self, eval_type: &mut TypeRef) -> Option<Value> {
-		// Literal values already have the type resolved, unless the eval type is an IntNat
-		// No need to produce a value as the current literal can produce the required value
-		
-		if matches!(eval_type, TypeRef::Primitive(PrimitiveType::IntNat)) {
-			// Force IntNats into Ints
-			*eval_type = TypeRef::Primitive(PrimitiveType::Int);
-		}
-		return None;
-	}	
+
+                // Produce no value
+                return None;
+            }
+        }
+    }
+
+    pub(super) fn resolve_expr_call(
+        &mut self,
+        left: &mut Box<Expr>,
+        arg_list: &mut Vec<Expr>,
+        _eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) -> Option<Value> {
+        self.visit_expr(left);
+        arg_list.iter_mut().for_each(|expr| {
+            let value = self.visit_expr(expr);
+
+            if value.is_some() {
+                // Substitute value with folded expression
+                *expr = Expr::try_from(value.unwrap()).unwrap();
+            }
+        });
+
+        // Validate that 'left' is "callable"
+        // 3 things that fall under this expression
+        // - set cons
+        // - array subscript
+        // - fcn / proc call
+        // Distinguished by the identifier type
+
+        // Validate that the argument types match the type_spec using the given reference
+        // eval_type is the result of the call expr
+
+        // For now, call expressions default to runtime-time only
+        // A call expression would be compile-time evaluable if it had no side effects,
+        // but we don't check that right now
+        *is_compile_eval = false;
+        // TODO: Type check call expressions
+        None
+    }
+
+    pub(super) fn resolve_expr_dot(
+        &mut self,
+        left: &mut Box<Expr>,
+        field: &mut Identifier,
+        eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) -> Option<Value> {
+        self.visit_expr(left);
+        // Validate that the field exists in the given type
+        // eval_type is the field type
+
+        // 4 things falling under this expression
+        // - Enum fields references
+        // - Record/Union field references
+        // - Class public member/method references (through desugared arrow)
+        // - Module/Monitor exported references
+
+        // `left` must be of the following types (x indicates not checked):
+        // - Type::Enum
+        // x Type::Record
+        // x Type::Union
+        // x Type::Class
+        // x Type::Module
+        // x Type::Monitor
+
+        // All dot expressions default to runtime evaluation
+        *is_compile_eval = false;
+
+        // Dealias & resolve left type
+        let left_ref = self.dealias_resolve_type(left.get_eval_type());
+
+        debug_assert!(types::is_base_type(&left_ref, &self.type_table));
+
+        if types::is_error(&left_ref) {
+            // Is a type error, silently propogate error
+            field.type_spec = TypeRef::TypeError;
+            *eval_type = TypeRef::TypeError;
+            return None;
+        }
+
+        if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
+            // Match based on the type info
+            match type_info {
+                Type::Enum { fields } => {
+                    let enum_field = fields.get(&field.name);
+                    // Check if the field is a part of the compound type
+                    if let Some(field_ref) = enum_field {
+                        // Link field type_spec & our type_spec to the field reference
+                        field.type_spec = *field_ref;
+                        *eval_type = *field_ref;
+
+                        // Update the field ident info
+                        field.is_const = true; // Not mutable
+                        field.is_typedef = false; // Not typedef
+
+                        // Enum fields are compile-time evaluable
+                        field.is_compile_eval = true;
+                        *is_compile_eval = true;
+
+                        let enum_id = types::get_type_id(&left_ref).unwrap();
+                        let field_id = types::get_type_id(&field_ref).unwrap();
+                        let ordinal = if let Type::EnumField { ordinal, .. } =
+                            self.type_table.get_type(field_id)
+                        {
+                            *ordinal
+                        } else {
+                            0
+                        };
+
+                        return Some(Value::EnumValue(field_id, enum_id, ordinal));
+                    } else {
+                        // Field name is not a part of the enum
+                        field.type_spec = TypeRef::TypeError;
+                        *eval_type = TypeRef::TypeError;
+
+                        // Grabbing the identifier as the enum type name is a best-effort guess
+                        self.reporter.report_error(
+                            &field.token.location,
+                            format_args!(
+                                "'{}' is not a field of the enum type '{}'",
+                                field.name,
+                                super::get_reference_ident(left)
+                                    .map(|ident| ident.name.as_str())
+                                    .unwrap_or("<unknown>")
+                            ),
+                        );
+                    }
+                }
+                Type::Pointer { .. } => {
+                    // Not a compound type, special report (for using ->)
+                    *eval_type = TypeRef::TypeError;
+                    self.reporter.report_error(
+                        &left.get_span(),
+                        format_args!(
+                            "Left side of '.' is not a compound type (did you mean to use '->')"
+                        ),
+                    );
+                }
+                _ => {
+                    // Not a compound type, produces a type error
+                    *eval_type = TypeRef::TypeError;
+                    self.reporter.report_error(
+                        &left.get_span(),
+                        format_args!("Left side of '.' is not a compound type"),
+                    );
+                }
+            }
+        } else {
+            // Not a compound type, produces a type error
+            *eval_type = TypeRef::TypeError;
+            self.reporter.report_error(
+                &left.get_span(),
+                format_args!("Left side of '.' is not a compound type"),
+            );
+        }
+
+        None
+    }
+
+    pub(super) fn resolve_expr_reference(&mut self, ident: &mut Identifier) -> Option<Value> {
+        // Use the identifier and grab the associated value
+        let (compile_value, is_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
+
+        if !is_declared {
+            // Identifier has not been declared at all before this point, report it
+            // Only reported once everytime something is not declared
+            self.reporter.report_error(
+                &ident.token.location,
+                format_args!("'{}' has not been declared yet", ident.name),
+            );
+        }
+
+        if ident.is_declared {
+            // Should either have a valid type, or TypeRef::Unknown
+            assert_ne!(ident.type_spec, TypeRef::TypeError);
+
+            // Grab the correct identifier information (including the
+            // type_spec) in the scope table
+            let block_ref = self.active_block.as_ref().unwrap().upgrade();
+            let block = block_ref.as_ref().unwrap().borrow();
+            let new_info = block
+                .scope
+                .get_ident_instance(&ident.name, ident.instance)
+                .unwrap();
+
+            // Update the necessary info
+            ident.import_index = new_info.import_index;
+            ident.is_declared = new_info.is_declared;
+            ident.is_typedef = new_info.is_typedef;
+            ident.type_spec = new_info.type_spec;
+
+            // An identifier is compile-time evaluable if and only if there is an associated expression
+            ident.is_compile_eval = compile_value.is_some();
+        } else {
+            // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
+        }
+
+        // Return the reference's associated compile-time value
+        return compile_value;
+    }
+
+    pub(super) fn resolve_expr_literal(&mut self, eval_type: &mut TypeRef) -> Option<Value> {
+        // Literal values already have the type resolved, unless the eval type is an IntNat
+        // No need to produce a value as the current literal can produce the required value
+
+        if matches!(eval_type, TypeRef::Primitive(PrimitiveType::IntNat)) {
+            // Force IntNats into Ints
+            *eval_type = TypeRef::Primitive(PrimitiveType::Int);
+        }
+        return None;
+    }
 }
 
 /// Default type in a binary expression

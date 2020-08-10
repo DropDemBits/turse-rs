@@ -1,4 +1,3 @@
-
 extern crate getopts;
 
 use getopts::Options;
@@ -60,4 +59,3 @@ fn main() {
         show_usage(&program, &opts);
     }
 }
-
