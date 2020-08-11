@@ -2048,6 +2048,9 @@ mod test {
             )
         );
 
+        // Rnage bounds can't be reals, or any other types
+        assert_eq!(false, run_validator("type e : 0.0 .. 0.0"));
+
         // Still ba safe when handling empty expressions
         assert_eq!(false, run_validator("type e set of(0.."));
         assert_eq!(false, run_validator("type e.."));

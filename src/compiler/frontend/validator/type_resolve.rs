@@ -433,6 +433,15 @@ impl Validator {
                         );
                         return Some(TypeRef::TypeError);
                     }
+                    RangeSizeError::WrongTypes => {
+                        // Wrong types, handle here!
+                        self.reporter.report_error(
+                            &range_span,
+                            format_args!("Range bounds must both be integers, charachers, booleans, or elements from the same enumeration"),
+                        );
+
+                        return Some(TypeRef::TypeError);
+                    }
                 }
             } else {
                 // Update range size
@@ -614,6 +623,8 @@ pub enum RangeSizeError {
     Overflow,
     /// Range size is negative
     NegativeSize,
+    /// Either range bound is the wrong type
+    WrongTypes,
 }
 
 /// Gets the size of the given range.
@@ -625,11 +636,16 @@ pub(super) fn get_range_size(
     end_bound: &Expr,
     type_table: &TypeTable,
 ) -> Result<usize, RangeSizeError> {
+    fn to_size_error(err: ValueApplyError) -> RangeSizeError {
+        match err {
+            ValueApplyError::WrongTypes => RangeSizeError::WrongTypes,
+            _ => panic!("Cannot convert bound into a value: {:?}", err),
+        }
+    }
+
     // Apply 'ord' to convert into appropriate ranges
-    let start_bound =
-        value::apply_ord(start_bound, type_table).expect("Cannot convert start bound into a value");
-    let end_bound =
-        value::apply_ord(end_bound, type_table).expect("Cannot convert end bound into a value");
+    let start_bound = value::apply_ord(start_bound, type_table).map_err(to_size_error)?;
+    let end_bound = value::apply_ord(end_bound, type_table).map_err(to_size_error)?;
 
     if value::is_nat(&start_bound) && value::is_nat(&end_bound) {
         // Unsigned check (covers nat, char, boolean, and enum fields)
