@@ -1872,6 +1872,9 @@ mod test {
 
         // Cannot apply deref to type references
         assert_eq!(false, run_validator("type a : ^int\nvar b : int := ^a"));
+
+        // Gracefully handle empty expressions
+        assert_eq!(false, run_validator("^to"));
     }
 
     #[test]
@@ -2691,6 +2694,9 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         assert_eq!(run_validator("k().c"), false);
         assert_eq!(run_validator("a(begin a"), false);
         assert_eq!(run_validator("a.begin a"), false);
+
+        // Type parsing should preserve used identifiers
+        assert_eq!(run_validator("var k : set a\nbegin a end"), false);
     }
 
     #[test]

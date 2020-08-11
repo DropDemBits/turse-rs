@@ -212,13 +212,7 @@ impl<'s> Parser<'s> {
                     .checked_sub(1)
                     .expect("Mismatched nesting counts");
                 e
-            });
-        // Fail if the token isn't an expression token, returning an Expr::Empty
-        if prefix_rule.is_err() {
-            return Ok(Expr::Empty);
-        }
-
-        let prefix_rule = prefix_rule.unwrap();
+            })?;
 
         // Consume the token
         self.next_token();

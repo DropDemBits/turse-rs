@@ -1,6 +1,6 @@
 //! Parser fragment, parsing all statements and declarations
 use super::{Parser, ParsingStatus};
-use crate::compiler::ast::{Identifier, Stmt};
+use crate::compiler::ast::{Expr, Identifier, Stmt};
 use crate::compiler::block::BlockKind;
 use crate::compiler::frontend::token::TokenType;
 use crate::compiler::types::{Type, TypeRef};
@@ -154,13 +154,16 @@ impl<'s> Parser<'s> {
         // Otherwise, produce an error and a TypeError
         if is_const && assign_expr.is_none() {
             // const declares require the assignment expression
-            // Recoverable error, just use TypeError as the type_spec
+            // Recoverable error
+            // If the type is still unknown, just use TypeError as the type_spec
             self.reporter.report_error(
                 &decl_tok.location,
                 format_args!("const declaration requires an initial value"),
             );
 
-            type_spec = TypeRef::TypeError;
+            if matches!(type_spec, TypeRef::Unknown) {
+                type_spec = TypeRef::TypeError;
+            }
         } else if type_spec == TypeRef::Unknown && assign_expr.is_none() {
             // No type inferrable
             // Recoverable error, just use TypeError as the type_spec
@@ -334,9 +337,11 @@ impl<'s> Parser<'s> {
         // Both take references as the primary expression
 
         // If the reference expr can't be parsed, replace it with an empty expression
+        // instead of bailing out
+        //
         // Referring to an identifier still has side effects in an invalid parse, as
         // it may use an undefined identifier
-        let reference = self.expr_reference().unwrap();
+        let reference = self.expr_reference().unwrap_or(Expr::Empty);
         let is_compound_assign = self.is_compound_assignment();
 
         if is_compound_assign || self.is_simple_assignment() {
@@ -374,10 +379,10 @@ impl<'s> Parser<'s> {
                 // Nom the expr anyways
                 self.next_token();
                 // Parse the init expression as it may use undefined identifiers
-                self.expr_init().unwrap()
+                self.expr_init().unwrap_or(Expr::Empty)
             } else {
                 // Parse a regular expr
-                self.expr().unwrap()
+                self.expr().unwrap_or(Expr::Empty)
             };
 
             Ok(Stmt::Assign {

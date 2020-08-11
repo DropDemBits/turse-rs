@@ -510,7 +510,7 @@ impl Validator {
 
                 reference_locate = ident.token.location.clone();
             }
-            _ => unreachable!(), // No other expressions allowed, handled by the parser
+            _ => return Some(TypeRef::TypeError), // No other expressions allowed, produce a type error
         }
 
         // Check if the eval type de-aliases to a forward

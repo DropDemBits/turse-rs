@@ -105,17 +105,15 @@ impl<'s> Parser<'s> {
                 // Try to parse either a reference, or a range type
                 let ref_or_range = self.type_reference_or_range(parse_context);
 
-                if let Err(tokens_consumed) = ref_or_range {
-                    if !tokens_consumed {
-                        // No parsing has been done yet, report at the current location
-                        self.reporter.report_error(
-                            &self.current().location,
-                            format_args!(
-                                "Unexpected '{}', expected a type specifier",
-                                self.get_token_lexeme(self.current())
-                            ),
-                        );
-                    }
+                if let Err(_) = ref_or_range {
+                    // No parsing has been done yet, so report at the current location
+                    self.reporter.report_error(
+                        &self.current().location,
+                        format_args!(
+                            "Unexpected '{}', expected a type specifier",
+                            self.get_token_lexeme(self.current())
+                        ),
+                    );
 
                     // Return a type error
                     TypeRef::TypeError
@@ -134,7 +132,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse a basic primitive type
-    pub(super) fn type_primitive(&mut self, primitive: PrimitiveType) -> TypeRef {
+    fn type_primitive(&mut self, primitive: PrimitiveType) -> TypeRef {
         // Consume name
         self.next_token();
 
@@ -142,7 +140,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Gets the size specifier for a char(n) or string(n)
-    pub(super) fn get_size_specifier(
+    fn get_size_specifier(
         &mut self,
         parse_context: &TokenType,
     ) -> Result<SequenceSize, ()> {
@@ -227,7 +225,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse character sequence (string, char, char(n))
-    pub(super) fn type_char_seq(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_char_seq(&mut self, parse_context: &TokenType) -> TypeRef {
         // Nom "string" / "char"
         let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
 
@@ -270,7 +268,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse pointer to another type
-    pub(super) fn type_pointer(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_pointer(&mut self, parse_context: &TokenType) -> TypeRef {
         // Consume optional 'unchecked' attribute
         let is_unchecked = self.optional(TokenType::Unchecked);
 
@@ -291,7 +289,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse procedure & function parameter specification & result type
-    pub(super) fn type_function(&mut self, parse_context: &TokenType, has_result: bool) -> TypeRef {
+    fn type_function(&mut self, parse_context: &TokenType, has_result: bool) -> TypeRef {
         let param_decl = if let TokenType::LeftParen = self.current().token_type {
             // Parameter Declaration
 
@@ -386,7 +384,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parses a sequence of function variable-type parameters, producing one or more parameter definitions
-    pub(super) fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<ParamDef> {
+    fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<ParamDef> {
         // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
 
         // Attributes apply to all idents
@@ -433,7 +431,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parses a single function subprogram-type parameter, producing one parameter definition
-    pub(super) fn type_subprogram_param(&mut self, parse_context: &TokenType) -> ParamDef {
+    fn type_subprogram_param(&mut self, parse_context: &TokenType) -> ParamDef {
         // "function" | "procedure" identifier param_list
 
         // Consume "function" or "procedure"
@@ -459,14 +457,15 @@ impl<'s> Parser<'s> {
     }
 
     /// Try to parse either a reference, or a range.
-    /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(bool)`, with
-    /// the `bool` indicating whether any type parsing has been attempted
-    pub(super) fn type_reference_or_range(
+    /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(())`
+    /// if the reference expression is nested too deeply
+    fn type_reference_or_range(
         &mut self,
         parse_context: &TokenType,
-    ) -> Result<TypeRef, bool> {
-        // Bail out on err
-        let primary_expr = self.expr().map_err(|_| false)?;
+    ) -> Result<TypeRef, ()> {
+        // Bail out on err (i.e. too deep in the expr nesting or not a
+        // expression at all)
+        let primary_expr = self.expr().map_err(|_| ())?;
 
         if self.current().token_type == TokenType::Range {
             // Pass off to the range parser
@@ -480,16 +479,18 @@ impl<'s> Parser<'s> {
                 match current_expr {
                     Expr::Dot { left, .. } => current_expr = &left, // Move through the chain
                     Expr::Reference { .. } => break, // Reached the end of the dot expression
+                    Expr::Empty => break, // Error has been reported already 
                     _ => {
                         // Not completely a dot expression
-                        // TODO: Location is incorrect, use expr span?
                         self.reporter.report_error(
-                            &self.previous().location,
+                            &current_expr.get_span(),
                             format_args!("Expression is not a valid type reference"),
                         );
 
-                        // Indicate that the error has been reported
-                        return Err(true);
+                        // Regardless if an expression is not a proper reference,
+                        // always make it into a valid type as further expressions
+                        // may refer to undefined expressions
+                        break;
                     }
                 }
             }
@@ -502,7 +503,7 @@ impl<'s> Parser<'s> {
 
     // Parse the rest of a range type
     // Will always produce a range
-    pub(super) fn type_range_rest(
+    fn type_range_rest(
         &mut self,
         start_range: Expr,
         parse_context: &TokenType,
@@ -520,46 +521,42 @@ impl<'s> Parser<'s> {
             TokenType::Star => {
                 let star_tok = self.next_token();
 
-                if is_inferred_valid {
-                    Ok(None)
-                } else {
+                if !is_inferred_valid {
+                    // Report, but don't bail out
                     self.reporter.report_error(
                         &star_tok.location,
                         format_args!("'*' as a range end is only valid in an array range"),
                     );
-
-                    // Bail out completely
-                    return TypeRef::TypeError;
                 }
+
+                None
             }
             // Explicit range
-            _ => self.expr().map(|expr| Some(expr)),
+            _ => self.expr().ok().or(Some(Expr::Empty)),
         };
 
-        match end_range {
-            Err(_) => {
-                self.reporter.report_error(
-                    &range_tok.location,
-                    if is_inferred_valid {
-                        format_args!("Expected expression or '*' after '..'")
-                    } else {
-                        format_args!("Expected expression after '..'")
-                    },
-                );
-
-                TypeRef::TypeError
-            }
-            Ok(end_range) => self.declare_type(Type::Range {
-                start: start_range,
-                end: end_range,
-                base_type: TypeRef::Unknown,
-                size: None,
-            }),
+        if matches!(end_range, Some(Expr::Empty)) {
+            // End range is not a valid range
+            self.reporter.report_error(
+                &range_tok.location,
+                if is_inferred_valid {
+                    format_args!("Expected expression or '*' after '..'")
+                } else {
+                    format_args!("Expected expression after '..'")
+                },
+            );
         }
+
+        self.declare_type(Type::Range {
+            start: start_range,
+            end: end_range,
+            base_type: TypeRef::Unknown,
+            size: None,
+        })
     }
 
     /// Parse a single index specificier
-    pub(super) fn type_index(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
+    fn type_index(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
         // "boolean" | "char" | type_ident (handles type_enum) | type_range
         match self.current().token_type {
             TokenType::Boolean | TokenType::Char => Ok(self.parse_type(parse_context)),
@@ -568,7 +565,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse an array type
-    pub(super) fn type_array(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_array(&mut self, parse_context: &TokenType) -> TypeRef {
         // "flexible"? "array" range_spec (',' range_spec)* "of" type_spec
 
         let is_flexible = self.optional(TokenType::Flexible);
@@ -636,7 +633,6 @@ impl<'s> Parser<'s> {
                 // Add the range
                 ranges.push(range);
             }
-
             if !self.optional(TokenType::Comma) {
                 break;
             }
@@ -700,7 +696,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse a set type
-    pub(super) fn type_set(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_set(&mut self, parse_context: &TokenType) -> TypeRef {
         // Parse the entire set declaration
         let set_tok = self.next_token();
         // nab 'of'
@@ -718,14 +714,26 @@ impl<'s> Parser<'s> {
                 &set_tok.location,
                 format_args!("Set types can only be declared inside of 'type' statements"),
             );
-            TypeRef::TypeError
-        } else {
-            self.declare_type(Type::Set { range })
+
+            // While set types are only allowed in the 'type' stmt context (i.e.
+            // we are in a var/const/parameter/index type spec), it is safe
+            // behaviour to build a type up from what has been parsed as the
+            // index type spec may refer to undefined identifiers.
+            //
+            // Dropping this type definition would mean dropping these already
+            // parsed scope definitions, which would result in an inconsitent
+            // state during the validation stage, and will cause in a panic
+            // or an assertion fail.
+            //
+            // Therefore, we must still build the set type, even if we are not
+            // in a 'type' stmt context.
         }
+
+        self.declare_type(Type::Set { range })
     }
 
     // Parse an enumeration type
-    pub(super) fn type_enum(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_enum(&mut self, parse_context: &TokenType) -> TypeRef {
         // Parse the entire enum declaration first
         let enum_tok = self.next_token();
         // nab '('
@@ -773,7 +781,14 @@ impl<'s> Parser<'s> {
                 format_args!("Enumerated types can only be declared inside of 'type' statements"),
             );
 
-            return TypeRef::TypeError;
+            // As the enumerated type is not behind a Type::Alias, there is no way
+            // of referencing the type and therefore it is impossible to pass this
+            // enumerated type to anywhere else. This behaviour is still
+            // acceptable as we distinguish between variable/constant references
+            // and type references
+            //
+            // Thus, it is safe to build up a type from what has been parsed to
+            // maintain consistent behaviour as with set types.
         }
 
         // Build the type from the identifiers

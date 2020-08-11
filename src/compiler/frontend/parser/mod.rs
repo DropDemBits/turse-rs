@@ -918,6 +918,10 @@ type enumeration : enum (a, b, c, d, e, f)
             make_test_parser("var inv : flexible array 1 .. 2 array of 1 .. * of real");
         assert!(!parser.parse());
 
+        let mut parser =
+            make_test_parser("var inv : flexible array 1 .. 2 of array 1 .. * of real");
+        assert!(!parser.parse());
+
         let mut parser = make_test_parser("var inv : array 1 .. 2 of array 1 .. * of real");
         assert!(!parser.parse());
 
@@ -1040,15 +1044,30 @@ type enumeration : enum (a, b, c, d, e, f)
             TypeRef::Primitive(PrimitiveType::Int)
         );
 
-        // Enums not in top-level type contexts are rejected (producing type errors)
-        // i.e. anonymous enums are not allowed
+        // Enums not in top-level type contexts are rejected 
+        // (i.e. anonymous enums are not allowed), but still produce
+        // an enum type
         let mut parser = make_test_parser("var a : enum (a, b, c)");
         assert!(!parser.parse());
-        assert_eq!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+        let type_ref = get_ident_type(&parser, "a");
+        let type_of = parser.unit.as_ref().unwrap().types().type_from_ref(&type_ref);
+        assert!(
+            matches!(type_of,
+                Some(Type::Enum {..})
+            ),
+            "Is of type {:?} from {:?}", type_of, type_ref
+        );
 
-        let mut parser = make_test_parser("const a : enum (a, b, c)");
+        let mut parser = make_test_parser("const a : enum (a, b, c) := 2");
         assert!(!parser.parse());
-        assert_eq!(get_ident_type(&parser, "a"), TypeRef::TypeError);
+        let type_ref = get_ident_type(&parser, "a");
+        let type_of = parser.unit.as_ref().unwrap().types().type_from_ref(&type_ref);
+        assert!(
+            matches!(type_of,
+                Some(Type::Enum {..})
+            ),
+            "Is of type {:?} from {:?}", type_of, type_ref
+        );
 
         let mut parser = make_test_parser("type a : set of enum (a, b, c)");
         assert!(!parser.parse());
@@ -1172,6 +1191,7 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var a : string\ntype a");
         assert!(!parser.parse());
         assert!(get_ident(&parser, "a").is_some());
+        let type_ref = get_ident(&parser, "a").unwrap().type_spec;
         assert_eq!(
             true,
             matches!(
@@ -1180,11 +1200,12 @@ type enumeration : enum (a, b, c, d, e, f)
                     .as_ref()
                     .unwrap()
                     .types()
-                    .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
+                    .type_from_ref(&type_ref),
                 Some(Type::Alias {
                     to: TypeRef::TypeError,
                 })
-            )
+            ),
+            "From ref {:?}", type_ref
         );
         assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 
