@@ -333,11 +333,10 @@ impl<'s> Parser<'s> {
         // Identifiers & References can begin either an assignment or a procedure call
         // Both take references as the primary expression
 
-        // If the reference expr can't be parsed, bail out
-        // Referring to an identifier (aside from checking if it's been declared)
-        // does not have any side effects in an invalid parse and can be
-        // safely ignored
-        let reference = self.expr_reference()?;
+        // If the reference expr can't be parsed, replace it with an empty expression
+        // Referring to an identifier still has side effects in an invalid parse, as
+        // it may use an undefined identifier
+        let reference = self.expr_reference().unwrap();
         let is_compound_assign = self.is_compound_assignment();
 
         if is_compound_assign || self.is_simple_assignment() {
@@ -357,9 +356,12 @@ impl<'s> Parser<'s> {
                 assign_op.token_type = TokenType::Assign;
             };
 
-            // If the assign value expr can't be parsed, bail out
-            // Assignment after variable declaration isn't really important
-            // in an invalid parse state
+            // If the assign value expr can't be parsed, replace it with an
+            // Expr::Empty.
+            // Assignment after variable declaration is really important
+            // in the case where the identifier isn't declared before this
+            // assignment, as this assignment makes the unknown identifier
+            // known.
             let value = if matches!(self.current().token_type, TokenType::Init) {
                 // Init expressions invalid in normal assign contexts
                 self.reporter.report_error(
@@ -371,13 +373,11 @@ impl<'s> Parser<'s> {
 
                 // Nom the expr anyways
                 self.next_token();
-                let _ = self.expr_init();
-
-                // Bail out
-                return Err(ParsingStatus::Error);
+                // Parse the init expression as it may use undefined identifiers
+                self.expr_init().unwrap()
             } else {
                 // Parse a regular expr
-                self.expr()?
+                self.expr().unwrap()
             };
 
             Ok(Stmt::Assign {

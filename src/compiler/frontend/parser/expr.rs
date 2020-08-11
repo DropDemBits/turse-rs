@@ -212,8 +212,13 @@ impl<'s> Parser<'s> {
                     .checked_sub(1)
                     .expect("Mismatched nesting counts");
                 e
-            })?;
-        // Fail if the token isn't an expression token
+            });
+        // Fail if the token isn't an expression token, returning an Expr::Empty
+        if prefix_rule.is_err() {
+            return Ok(Expr::Empty);
+        }
+
+        let prefix_rule = prefix_rule.unwrap();
 
         // Consume the token
         self.next_token();
@@ -224,7 +229,7 @@ impl<'s> Parser<'s> {
                 .checked_sub(1)
                 .expect("Mismatched nesting counts");
             e
-        })?;
+        }).unwrap();
 
         // Go over infix operators
         while !self.is_at_end()
@@ -273,7 +278,7 @@ impl<'s> Parser<'s> {
                     .checked_sub(1)
                     .expect("Mismatched nesting counts");
                 e
-            })?;
+            }).unwrap();
         }
 
         // Reduce nesting
@@ -378,9 +383,9 @@ impl<'s> Parser<'s> {
             format_args!("Missing identifier after '.'"),
         );
 
-        // Return an empty expression on error
+        // Return the var_ref on error
         if ident.is_err() {
-            return Ok(Expr::Empty);
+            return Ok(var_ref);
         }
 
         let ident = ident.unwrap();
@@ -484,7 +489,8 @@ impl<'s> Parser<'s> {
                     &token.location,
                     format_args!("Unexpected token '{}'", self.get_token_lexeme(&token)),
                 );
-                Err(ParsingStatus::Error)
+                // Give back an empty expression
+                Ok(Expr::Empty)
             }
         }
     }
