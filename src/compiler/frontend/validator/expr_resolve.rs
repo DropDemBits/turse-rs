@@ -307,6 +307,8 @@ impl Validator {
                                 _ => unreachable!(), // Overflow is the only error produced, WrongTypes captured by typecheck above
                             }
 
+                            // Revoke compile-time evaluability status
+                            *is_compile_eval = false;
                             None
                         }
                     };
@@ -338,7 +340,7 @@ impl Validator {
         &mut self,
         left: &mut Box<Expr>,
         arg_list: &mut Vec<Expr>,
-        _eval_type: &mut TypeRef,
+        eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
     ) -> Option<Value> {
         self.visit_expr(left);
@@ -361,11 +363,15 @@ impl Validator {
         // Validate that the argument types match the type_spec using the given reference
         // eval_type is the result of the call expr
 
-        // For now, call expressions default to runtime-time only
+        // For now, call expressions default to runtime-time only, and evaluating to a
+        // TypeError.
         // A call expression would be compile-time evaluable if it had no side effects,
         // but we don't check that right now
         *is_compile_eval = false;
+        *eval_type = TypeRef::TypeError;
+
         // TODO: Type check call expressions
+        self.reporter.report_error(&left.get_span(), format_args!("Call and subscript expressions are not supported yet"));
         None
     }
 
@@ -400,7 +406,7 @@ impl Validator {
         // Dealias & resolve left type
         let left_ref = self.dealias_resolve_type(left.get_eval_type());
 
-        debug_assert!(types::is_base_type(&left_ref, &self.type_table));
+        debug_assert!(types::is_base_type(&left_ref, &self.type_table), "Of type {:?}", left_ref);
 
         if types::is_error(&left_ref) {
             // Is a type error, silently propogate error
@@ -502,9 +508,6 @@ impl Validator {
         }
 
         if ident.is_declared {
-            // Should either have a valid type, or TypeRef::Unknown
-            assert_ne!(ident.type_spec, TypeRef::TypeError);
-
             // Grab the correct identifier information (including the
             // type_spec) in the scope table
             let block_ref = self.active_block.as_ref().unwrap().upgrade();
@@ -514,6 +517,9 @@ impl Validator {
                 .get_ident_instance(&ident.name, ident.instance)
                 .unwrap();
 
+            // Should either have a valid type, or TypeRef::TypeError
+            assert_ne!(new_info.type_spec, TypeRef::Unknown);
+            
             // Update the necessary info
             ident.import_index = new_info.import_index;
             ident.is_declared = new_info.is_declared;

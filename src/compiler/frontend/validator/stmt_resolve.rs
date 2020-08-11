@@ -32,7 +32,6 @@ impl Validator {
                     .count(),
                 0
             );
-            return;
         }
 
         // Visit the expression to update the eval type

@@ -392,8 +392,10 @@ mod test {
         let mut scanner = Scanner::new(&source);
         assert!(scanner.scan_tokens(), "Scanner failed to scan the source");
 
+        // Ignore the parser status, as the validator needs to handle
+        // invalid parser ASTs
         let mut parser = Parser::new(scanner.tokens, &source, code_unit);
-        assert!(parser.parse(), "Parser failed to parse the source");
+        let successful_parse = parser.parse();
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
@@ -406,7 +408,7 @@ mod test {
 
         let successful_validate = !validator.reporter.has_error();
 
-        (successful_validate, code_unit)
+        (successful_validate && successful_parse, code_unit)
     }
 
     /// Runs the validator on the given source
@@ -2078,6 +2080,9 @@ mod test {
             run_validator("var a : real := 10.0 ** (300 + 7) * 100")
         );
         assert_eq!(false, run_validator("var a : real := 10.0 ** (300 + 10)"));
+        assert_eq!(false, run_validator("var a := false=0=-#-3"));
+        assert_eq!(false, run_validator("var a := -#-3"));
+        assert_eq!(false, run_validator("var a := --#-3"));
         // Preserve types
         assert_eq!(
             false,
@@ -2667,6 +2672,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
                 .type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         ); // Final type
+
+        // None of these should panic
+        assert_eq!(run_validator("var a:0\na"), false);
+        assert_eq!(run_validator("var a\na"), false);
+        assert_eq!(run_validator("a=begin a end"), false);
+        assert_eq!(run_validator("k().c"), false);
+        assert_eq!(run_validator("a(begin a"), false);
+        assert_eq!(run_validator("a.begin a"), false);
     }
 
     #[test]

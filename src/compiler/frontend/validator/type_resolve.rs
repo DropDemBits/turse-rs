@@ -760,7 +760,7 @@ pub(super) fn get_range_size(
                 }
 
                 // Is positive
-                debug_assert!(range_size.is_positive());
+                debug_assert!(!range_size.is_negative(), "Range size is {}", range_size);
                 return Ok(range_size as usize);
             }
         } else if let Err(ValueApplyError::Overflow) = start_value {
