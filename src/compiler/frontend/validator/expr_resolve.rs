@@ -524,14 +524,17 @@ impl Validator {
                 .get_ident_instance(&ident.name, ident.instance)
                 .unwrap();
 
-            // Should either have a valid type, or TypeRef::TypeError
-            assert_ne!(new_info.type_spec, TypeRef::Unknown);
-            
             // Update the necessary info
             ident.import_index = new_info.import_index;
             ident.is_declared = new_info.is_declared;
             ident.is_typedef = new_info.is_typedef;
-            ident.type_spec = new_info.type_spec;
+
+            if matches!(new_info.type_spec, TypeRef::Unknown) {
+                // If the type is still unknown at this point, force it into a TypeError
+                ident.type_spec = TypeRef::TypeError;
+            } else {
+                ident.type_spec = new_info.type_spec;
+            }
 
             // An identifier is compile-time evaluable if and only if there is an associated expression
             ident.is_compile_eval = compile_value.is_some();

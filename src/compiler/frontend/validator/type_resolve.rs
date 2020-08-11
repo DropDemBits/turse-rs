@@ -328,7 +328,7 @@ impl Validator {
         }
 
         if let Some(right) = right_eval {
-            let span = start.get_span().clone();
+            let span = end.as_ref().unwrap().get_span().clone();
             end.replace(
                 Expr::try_from(right).expect("Cannot convert end bound into an expression"),
             );
@@ -378,6 +378,7 @@ impl Validator {
             }
         }
 
+        // Bounds are guarranteed to be something, safe to directly get_span
         // Build a location spanning over the entire range
         let range_span = if end.is_some() {
             start.get_span().span_to(end.as_ref().unwrap().get_span())

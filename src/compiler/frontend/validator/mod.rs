@@ -2051,6 +2051,7 @@ mod test {
         // Still ba safe when handling empty expressions
         assert_eq!(false, run_validator("type e set of(0.."));
         assert_eq!(false, run_validator("type e.."));
+        assert_eq!(false, run_validator("type e:..0*0"));
     }
 
     #[test]
