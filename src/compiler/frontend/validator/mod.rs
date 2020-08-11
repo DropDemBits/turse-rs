@@ -2149,6 +2149,9 @@ mod test {
         } else {
             panic!("Fold failed");
         }
+
+        // Pull literal expressions from inside grouping expressions
+        assert_eq!(true, run_validator("const c := (0)"));
     }
 
     #[test]

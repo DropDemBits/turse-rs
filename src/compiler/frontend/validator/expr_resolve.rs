@@ -44,7 +44,14 @@ impl Validator {
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
     ) -> Option<Value> {
-        let eval = self.visit_expr(expr);
+        let eval = if let Expr::Literal { .. } = **expr {
+            // Produce a literal value from the expression
+            self.visit_expr(expr);
+            Some(Value::from_expr(*expr.clone(), &self.type_table).unwrap())
+        } else {
+            // Visit the expr
+            self.visit_expr(expr)
+        };
 
         // Try to replace the inner expression with the folded value
         if eval.is_some() {
