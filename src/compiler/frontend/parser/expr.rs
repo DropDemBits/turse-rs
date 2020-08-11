@@ -288,11 +288,11 @@ impl<'s> Parser<'s> {
     fn expr_grouping(&mut self) -> Result<Expr, ParsingStatus> {
         let span = self.previous().location;
 
-        let expr = self.expr()?;
-        self.expects(
+        let expr = self.expr().ok().unwrap_or(Expr::Empty);
+        let _ = self.expects(
             TokenType::RightParen,
             format_args!("Expected ')' to close off parenthetical grouping"),
-        )?;
+        );
 
         let span = span.span_to(&self.previous().location);
 
@@ -308,7 +308,7 @@ impl<'s> Parser<'s> {
         let op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence.up();
         // Get rhs
-        let rhs = self.expr_precedence(precedence)?;
+        let rhs = self.expr_precedence(precedence).ok().unwrap_or(Expr::Empty);
 
         let span = lhs.get_span().span_to(&self.previous().location);
 
@@ -324,7 +324,7 @@ impl<'s> Parser<'s> {
 
     fn expr_unary(&mut self) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
-        let right = self.expr_precedence(Precedence::Unary)?;
+        let right = self.expr_precedence(Precedence::Unary).ok().unwrap_or(Expr::Empty);
         let span = op.location.span_to(&self.previous().location);
 
         Ok(Expr::UnaryOp {
@@ -339,7 +339,7 @@ impl<'s> Parser<'s> {
     fn expr_unary_rule(&mut self) -> Result<Expr, ParsingStatus> {
         let mut op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence;
-        let right = self.expr_precedence(precedence)?;
+        let right = self.expr_precedence(precedence).ok().unwrap_or(Expr::Empty);
         let span = op.location.span_to(&self.previous().location);
 
         if op.token_type == TokenType::Tilde {
@@ -358,7 +358,7 @@ impl<'s> Parser<'s> {
 
     fn expr_call(&mut self, func_ref: Expr) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
-        let arg_list = self.make_arg_list()?.unwrap();
+        let arg_list = self.make_arg_list().unwrap();
         let span = func_ref.get_span().span_to(&self.previous().location);
 
         Ok(Expr::Call {
@@ -376,7 +376,14 @@ impl<'s> Parser<'s> {
         let ident = self.expects(
             TokenType::Identifier,
             format_args!("Missing identifier after '.'"),
-        )?;
+        );
+
+        // Return an empty expression on error
+        if ident.is_err() {
+            return Ok(Expr::Empty);
+        }
+
+        let ident = ident.unwrap();
 
         // The actual identifier information will be resolved at validator time,
         // so we can just store the field name and location info
@@ -461,10 +468,10 @@ impl<'s> Parser<'s> {
                         self.next_token(); // identifier
                     }
 
-                    self.expects(
+                    let _ = self.expects(
                         TokenType::RightParen,
                         format_args!("Expected ')' to close off parentheses for 'nil'"),
-                    )?;
+                    );
                 }
 
                 Ok(Expr::Literal {
@@ -543,17 +550,18 @@ impl<'s> Parser<'s> {
     // --- Helpers --- //
 
     /// Builds an argument list for an expression
-    fn make_arg_list(&mut self) -> Result<Option<Vec<Expr>>, ParsingStatus> {
+    fn make_arg_list(&mut self) -> Option<Vec<Expr>> {
         if self.previous().token_type != TokenType::LeftParen {
             // No arg_list to be found
-            return Ok(None);
+            return None;
         }
 
         let mut arg_list = vec![];
 
         if self.current().token_type != TokenType::RightParen {
             loop {
-                arg_list.push(self.expr()?);
+                // Fill arguments with something
+                arg_list.push(self.expr().ok().unwrap_or(Expr::Empty));
 
                 if self.current().token_type != TokenType::Comma {
                     break;
@@ -564,13 +572,13 @@ impl<'s> Parser<'s> {
             }
         }
 
-        self.expects(
+        let _ = self.expects(
             TokenType::RightParen,
             format_args!("Missing ')' after parameter list"),
-        )?;
+        );
 
         // Give back the arg list
-        return Ok(Some(arg_list));
+        return Some(arg_list);
     }
 
     /// Gets the precedence rule for the given token
