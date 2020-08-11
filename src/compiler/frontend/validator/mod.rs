@@ -2047,6 +2047,10 @@ mod test {
                 "type e : enum(a, b, c)\nconst c : e := e.c\nconst d : e := e.a\nvar a : c .. d"
             )
         );
+
+        // Still ba safe when handling empty expressions
+        assert_eq!(false, run_validator("type e set of(0.."));
+        assert_eq!(false, run_validator("type e.."));
     }
 
     #[test]

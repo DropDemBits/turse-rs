@@ -337,11 +337,16 @@ impl Validator {
 
         if !start.is_compile_eval() {
             // The start range must be a compile-time expression
-            // Span over the start bound
-            self.reporter.report_error(
-                start.get_span(),
-                format_args!("Start bound must be a compile-time expression"),
-            );
+            
+            // Report error if the bound is not an empty
+            // Otherwise, error is already reported at the end bound's location
+            if !matches!(start, Expr::Empty) {
+                // Span over the start bound
+                self.reporter.report_error(
+                    start.get_span(),
+                    format_args!("Start bound must be a compile-time expression"),
+                );
+            }
 
             // Produce a type error as this is not a valid expression
             return Some(TypeRef::TypeError);
@@ -356,11 +361,16 @@ impl Validator {
             if let Some(end) = end {
                 if !end.is_compile_eval() {
                     // Right-hand side is not a compile-time expression
-                    // Span over the end bound
-                    self.reporter.report_error(
-                        end.get_span(),
-                        format_args!("End bound must be a compile-time expression"),
-                    );
+                    
+                    // Report the error if it's not an empty
+                    // Otherwise, error is already reported at the end bound's location
+                    if !matches!(end, Expr::Empty) {
+                        // Span over the end bound
+                        self.reporter.report_error(
+                            end.get_span(),
+                            format_args!("End bound must be a compile-time expression"),
+                        );
+                    }
 
                     // Range is not a valid type
                     return Some(TypeRef::TypeError);
