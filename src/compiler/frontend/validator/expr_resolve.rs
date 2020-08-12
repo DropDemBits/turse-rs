@@ -44,14 +44,8 @@ impl Validator {
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
     ) -> Option<Value> {
-        let eval = if let Expr::Literal { .. } = **expr {
-            // Produce a literal value from the expression
-            self.visit_expr(expr);
-            Some(Value::from_expr(*expr.clone(), &self.type_table).unwrap())
-        } else {
-            // Visit the expr
-            self.visit_expr(expr)
-        };
+        // Visit the expr
+        let eval = self.visit_expr(expr);
 
         // Try to replace the inner expression with the folded value
         if eval.is_some() {
@@ -546,15 +540,25 @@ impl Validator {
         return compile_value;
     }
 
-    pub(super) fn resolve_expr_literal(&mut self, eval_type: &mut TypeRef) -> Option<Value> {
+    pub(super) fn resolve_expr_literal(&mut self, value: &mut Token, eval_type: &mut TypeRef) -> Option<Value> {
         // Literal values already have the type resolved, unless the eval type is an IntNat
-        // No need to produce a value as the current literal can produce the required value
 
         if matches!(eval_type, TypeRef::Primitive(PrimitiveType::IntNat)) {
             // Force IntNats into Ints
             *eval_type = TypeRef::Primitive(PrimitiveType::Int);
         }
-        return None;
+
+        if matches!(value.token_type, TokenType::Nil) {
+            // Don't produce a compile-time value for 'nil'
+            None
+        } else {
+            // Produce the corresponding literal value
+            let tok_type = value.token_type.clone();
+            let v = Value::from_token_type(tok_type)
+                .expect(&format!("Literal '{:?}' cannot be converted into a compile-time value", value.token_type));
+
+            Some(v)
+        }
     }
 }
 

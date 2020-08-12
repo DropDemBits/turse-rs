@@ -340,7 +340,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 ..
             } => self.resolve_expr_dot(left, field, eval_type, is_compile_eval),
             Expr::Reference { ident } => self.resolve_expr_reference(ident),
-            Expr::Literal { eval_type, .. } => self.resolve_expr_literal(eval_type),
+            Expr::Literal { value, eval_type } => self.resolve_expr_literal(value, eval_type),
         }
     }
 
@@ -2076,6 +2076,9 @@ mod test {
         } else {
             panic!("Fold failed");
         }
+
+        // 'nil' should never be folded
+        assert_eq!(true, run_validator("var k : nat := #nil"));
 
         // Stop folding in an error
         assert_eq!(

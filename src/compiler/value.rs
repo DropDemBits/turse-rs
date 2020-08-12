@@ -39,15 +39,7 @@ impl Value {
     /// Produces a value from an expression.
     pub fn from_expr(value: Expr, type_table: &TypeTable) -> Result<Value, &'static str> {
         match value {
-            Expr::Literal { value, .. } => match value.token_type {
-                TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
-                TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
-                TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
-                TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
-                TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
-                TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
-                _ => Err("Cannot convert complex literal into a value"),
-            },
+            Expr::Literal { value, .. } => Value::from_token_type(value.token_type),
             Expr::Dot { eval_type, .. } => {
                 if let Some(field_id) = types::get_type_id(&eval_type) {
                     if let Type::EnumField { ordinal, enum_type } = type_table.get_type(field_id) {
@@ -60,6 +52,18 @@ impl Value {
             }
             _ => Err("Cannot convert non-literal expression into a value"),
         }
+    }
+
+    pub fn from_token_type(token_type: TokenType) -> Result<Value, &'static str> {
+        match token_type {
+                TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
+                TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
+                TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
+                TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
+                TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
+                TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
+                _ => Err("Cannot convert complex literal into a value"),
+            }
     }
 }
 

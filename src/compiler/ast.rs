@@ -1,6 +1,6 @@
 //! AST structure definitions
 use crate::compiler::block::CodeBlock;
-use crate::compiler::frontend::token::Token;
+use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::TypeRef;
 use crate::compiler::Location;
 use std::cell::RefCell;
@@ -234,7 +234,7 @@ impl Expr {
             Expr::Grouping {
                 is_compile_eval, ..
             } => *is_compile_eval,
-            Expr::Literal { .. } => true, // Literals are already evaluated
+            Expr::Literal { value, .. } => !matches!(&value.token_type, TokenType::Nil), // Literals (except nil) are already evaluated
             Expr::Call {
                 is_compile_eval, ..
             } => *is_compile_eval,
@@ -248,7 +248,6 @@ impl Expr {
 
 impl fmt::Debug for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use crate::compiler::frontend::token::TokenType;
         use Expr::*;
 
         match self {
