@@ -170,6 +170,67 @@ impl<'s> Parser<'s> {
         }
     }
 
+    /// Skips all tokens until a safe parsing point is reached.
+    /// 
+    /// This should only be called in the event of a fatal error, as this will
+    /// skip any valid expressions and statements caught up in the recovery
+    /// process.
+    fn skip_to_safe_point(&mut self) {
+        loop {
+            match self.current().token_type {
+                TokenType::Var
+                | TokenType::Const
+                | TokenType::Type
+                | TokenType::Bind
+                | TokenType::Procedure
+                | TokenType::Function
+                | TokenType::Module
+                | TokenType::Class
+                | TokenType::Process
+                | TokenType::Monitor
+                | TokenType::Open
+                | TokenType::Close
+                | TokenType::Put
+                | TokenType::Get
+                | TokenType::Read
+                | TokenType::Write
+                | TokenType::Seek
+                | TokenType::Tell
+                | TokenType::For
+                | TokenType::Loop
+                | TokenType::Exit
+                | TokenType::If
+                | TokenType::Elif
+                | TokenType::Elsif
+                | TokenType::Elseif
+                | TokenType::Else
+                | TokenType::Case
+                | TokenType::Assert
+                | TokenType::Begin
+                | TokenType::End
+                | TokenType::EndIf
+                | TokenType::EndFor
+                | TokenType::EndLoop
+                | TokenType::EndCase
+                | TokenType::Return
+                | TokenType::Result_
+                | TokenType::New
+                | TokenType::Free
+                | TokenType::Tag
+                | TokenType::Fork
+                | TokenType::Signal
+                | TokenType::Wait
+                | TokenType::Pause
+                | TokenType::Quit
+                | TokenType::Semicolon
+                | TokenType::Eof=> break,
+                _ => {
+                    let _ = self.next_token();
+                },
+            }
+        }
+    }
+
     // -- Wrappers around the scope list -- //
     // See `Scope` for the documentation of these functions
 

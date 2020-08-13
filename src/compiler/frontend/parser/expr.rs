@@ -287,7 +287,16 @@ impl<'s> Parser<'s> {
     fn expr_grouping(&mut self) -> Result<Expr, ParsingStatus> {
         let span = self.previous().location;
 
-        let expr = self.expr().ok().unwrap_or(Expr::Empty);
+        let expr = match self.expr() {
+            Ok(expr) => expr,
+            Err(_) => {
+                // Fatal error encountered
+                // Skip all tokens until we reach a safe point
+                self.skip_to_safe_point();
+                return Ok(Expr::Empty);
+            }
+        };
+
         let _ = self.expects(
             TokenType::RightParen,
             format_args!("Expected ')' to close off parenthetical grouping"),
@@ -307,8 +316,14 @@ impl<'s> Parser<'s> {
         let op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence.up();
         // Get rhs
-        let rhs = self.expr_precedence(precedence).ok().unwrap_or(Expr::Empty);
+        let rhs = self.expr_precedence(precedence).ok();
 
+        if rhs.is_none() {
+            // Return back the lhs
+            return Ok(lhs);
+        }
+
+        let rhs = rhs.unwrap();
         let span = lhs.get_span().span_to(&self.previous().location);
 
         Ok(Expr::BinaryOp {
