@@ -305,6 +305,16 @@ impl Validator {
         resolved_type: &mut Option<TypeRef>,
         is_new_def: bool,
     ) {
+        if !ident.is_declared {
+            // This is a dummy type declare, and only provides resolving access
+            // Resolve the type, and return
+            let dummy_ref = resolved_type.take().unwrap();
+            let dummy_ref = self.resolve_type(dummy_ref, ResolveContext::CompileTime(false));
+            resolved_type.replace(dummy_ref);
+
+            return;
+        }
+
         if is_new_def {
             if resolved_type.is_some() {
                 // Resolve the associated type (do not allow forward references)

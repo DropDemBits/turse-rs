@@ -222,8 +222,30 @@ impl<'s> Parser<'s> {
         };
 
         if ident_tok.is_none() {
-            // Cannot declare a named type without an identifier
-            return Err(ParsingStatus::Error);
+            // If None, give an err (cannot declare a forward named type without an identifier)
+            // Else, create a dummy type decl (provide validator access to any refs inside the type)
+            return match type_spec {
+                Some(type_spec) => {
+                    // Can take a token from the previous, as the location doesn't matter
+                    let dummy_token = self.previous().clone();
+                    let dummy_ident = Identifier::new(
+                        dummy_token,
+                        TypeRef::TypeError,
+                        "<dummy>".to_string(),
+                        false,
+                        false,
+                        false,
+                        0 // Not imported, just a dummy
+                    );
+
+                    Ok(Stmt::TypeDecl {
+                        ident: dummy_ident,
+                        resolved_type: Some(type_spec),
+                        is_new_def: false, // Doesn't really matter
+                    })
+                },
+                None => Err(ParsingStatus::Error),
+            };
         }
 
         // Declare the actual type

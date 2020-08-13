@@ -1245,8 +1245,9 @@ type enumeration : enum (a, b, c, d, e, f)
         // Requires identifer, will consume the type and colon
         let mut parser = make_test_parser("type : a := 1");
         assert!(!parser.parse());
+        // The 'type' stmt should still produce a statement. providing validator access to 'a'
         // The a := 1 should not produce a statement (the a should be consumed by "type")
-        assert_eq!(parser.unit.unwrap().stmts().len(), 0);
+        assert_eq!(parser.unit.unwrap().stmts().len(), 1);
 
         // Requires colon, will parse the rest and produce a declaration
         let mut parser = make_test_parser("var a : string\ntype a");
