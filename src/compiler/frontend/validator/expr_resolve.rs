@@ -510,12 +510,9 @@ impl Validator {
 
         if ident.is_declared {
             // Grab the correct identifier information (including the
-            // type_spec) in the scope table
-            let block_ref = self.active_block.as_ref().unwrap().upgrade();
-            let block = block_ref.as_ref().unwrap().borrow();
-            let new_info = block
-                .scope
-                .get_ident_instance(&ident.name, ident.instance)
+            // type_spec) in the current scope info
+            let new_info = self.scope_infos.last().unwrap()
+                .get_ident(&ident.name, ident.instance.into())
                 .unwrap();
 
             // Update the necessary info

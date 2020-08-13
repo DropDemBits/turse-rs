@@ -481,15 +481,18 @@ impl Validator {
             Expr::Dot { left, field, .. } => {
                 if !field.is_typedef {
                     // Should always either be a dot, or a reference
-                    let member_ident = super::get_reference_ident(left).unwrap();
+                    // Otherwise, the expr is an empty
+                    let member_ident = super::get_reference_ident(left);
 
-                    self.reporter.report_error(
-                        &field.token.location,
-                        format_args!(
-                            "Field '{}' of '{}' does not refer to a type",
-                            field.name, member_ident.name
-                        ),
-                    );
+                    if let Some(ident) = member_ident {
+                        self.reporter.report_error(
+                            &field.token.location,
+                            format_args!(
+                                "Field '{}' of '{}' does not refer to a type",
+                                field.name, ident.name
+                            ),
+                        );
+                    }
 
                     // Produce a type error
                     return Some(TypeRef::TypeError);

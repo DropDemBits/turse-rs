@@ -24,7 +24,7 @@ impl Validator {
         let mut is_compile_eval = false;
 
         if types::is_error(type_spec) {
-            // Nothing to do, the identifiers should all have matching values
+            // The identifiers should all have matching values
             debug_assert_eq!(
                 idents
                     .iter()
@@ -380,19 +380,20 @@ impl Validator {
             value.set_span(span);
         }
 
-        // Check the reference expression
-        if !can_assign_to_ref_expr(&var_ref, &self.type_table) {
-            // Not a var ref
-            self.reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
-            return;
-        }
-
+        // Resolve types first
         let left_type = &self.dealias_resolve_type(var_ref.get_eval_type());
         let right_type = &self.dealias_resolve_type(value.get_eval_type());
 
         // Validate that the types are assignable for the given operation
         if types::is_error(left_type) || types::is_error(right_type) {
             // Silently drop propogated TypeErrors
+            return;
+        }
+
+        // Check the reference expression
+        if !can_assign_to_ref_expr(&var_ref, &self.type_table) {
+            // Not a var ref
+            self.reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
             return;
         }
 
@@ -439,25 +440,31 @@ impl Validator {
             let scope = &block.borrow().scope;
 
             for import in scope.import_table() {
+                let imported_info = &mut self.scope_infos[import.downscopes];
+
                 // Fetch ident from the new scope
-                let ident = scope
-                    .get_ident_instance(&import.name, 0)
-                    .expect("Import does not have a corresponding identifier entry");
+                let base_ident = imported_info.get_ident(&import.name, import.instance.into());
+                
+                if let Some(mut base_ident) = base_ident {
+                    // Use identifier from the imported scope
+                    let imported_ident = base_ident.clone();
+                    // Should be the same
+                    assert_eq!(imported_ident.instance, import.instance);
 
-                // Build the imported identifier
-                let mut imported_ident = ident.clone();
-                imported_ident.instance = import.instance;
+                    // Get compile value from the imported scope info
+                    let (compile_value, is_declared) = imported_info.use_ident(&imported_ident);
+                    assert!(is_declared, "Imported identifier was never declared");
 
-                // Get info from the imported scope info
-                let (compile_value, is_declared) =
-                    self.scope_infos[import.downscopes].use_ident(&imported_ident);
-                assert!(is_declared, "Imported identifier was never declared");
+                    // Import into the new scope info
+                    base_ident.instance = 0;
+                    assert!(
+                        !scope_info.decl_ident_with(base_ident, compile_value),
+                        "Duplicate import identifier?"
+                    );
+                }
 
-                // Import into the new scope info
-                assert!(
-                    !scope_info.decl_ident_with(ident.clone(), compile_value),
-                    "Duplicate import identifier?"
-                );
+                // If None, identfifier is not declared in the imported scope
+                // Error will be reported later on, so don't need ro do anything
             }
         }
 

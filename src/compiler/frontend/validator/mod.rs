@@ -53,7 +53,7 @@ impl ScopeInfo {
     /// Any imported identifiers in the current scope must refer to the ScopeInfo
     /// where the imported identifier is declared in.
     ///
-    /// # Return Values
+    /// # Return Values (in a tuple)
     /// `Option<Value>`     Associated compile-time value. \
     /// `bool`              True if the identifier has been declared before.
     pub fn use_ident(&mut self, ident: &Identifier) -> (Option<Value>, bool) {
@@ -77,8 +77,8 @@ impl ScopeInfo {
                 // Make sure this is the first time we're seeing this identifer
                 assert_eq!(
                     ident.instance, 0,
-                    "Not the first time seeing the identifier '{:?}'",
-                    ident
+                    "Not the first time seeing the identifier '{:#?}'",
+                    ident 
                 );
 
                 // Create a new identifier info group
@@ -92,6 +92,13 @@ impl ScopeInfo {
             .clone();
 
         (compile_value, is_already_declared)
+    }
+
+    /// Grab info of given instance of identifier
+    pub fn get_ident(&self, ident_name: &str, instance: usize) -> Option<Identifier> {
+        self.local_idents.get(ident_name).map(|infos| {
+            infos[instance].ident.clone()
+        })
     }
 
     /// Declares an identifier, creating the associated IdentInfo entry.
@@ -2697,6 +2704,8 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         assert_eq!(run_validator("k().c"), false);
         assert_eq!(run_validator("a(begin a"), false);
         assert_eq!(run_validator("a.begin a"), false);
+        assert_eq!(run_validator("var ye0\nvar y : ye0\nbegin i=y"), false);
+        assert_eq!(run_validator("var ye0\nvar ye0 : ye0\nbegin ye0="), false);
 
         // Type parsing should preserve used identifiers
         assert_eq!(run_validator("var k : set a\nbegin a end"), false);
@@ -3043,6 +3052,26 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             end"
             )
         );
+
+        // Undeclared identifier should be captured
+        assert_eq!(
+            false,
+            run_validator(
+                "begin
+                    a
+                end
+                "
+            )
+        );
+    }
+
+    #[test]
+    fn test_type_spec_access() {
+        // From fuzzing, should not panic
+        assert_eq!(false, run_validator("type : a\nbegin a end"));
+        assert_eq!(false, run_validator("var k\nvar l : k\nbegin l end"));
+        assert_eq!(false, run_validator("const i:char(Qbegin v"));
+        assert_eq!(false, run_validator("const i:char(egin begin+egin"));
     }
 
     #[test]
