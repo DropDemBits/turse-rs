@@ -270,7 +270,7 @@ impl fmt::Debug for Expr {
                 TokenType::Nil => f.write_fmt(format_args!("nil")),
                 _ => f.write_fmt(format_args!("unk({:?})", value)),
             },
-            Reference { ident } => f.write_fmt(format_args!("ref({})", ident.name)),
+            Reference { ident } => f.write_fmt(format_args!("ref({:#?})", ident)),
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.name)),
         }
