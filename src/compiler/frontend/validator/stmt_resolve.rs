@@ -444,7 +444,7 @@ impl Validator {
 
                 // Fetch ident from the new scope
                 let base_ident = imported_info.get_ident(&import.name, import.instance.into());
-                
+
                 if let Some(mut base_ident) = base_ident {
                     // Use identifier from the imported scope
                     let imported_ident = base_ident.clone();

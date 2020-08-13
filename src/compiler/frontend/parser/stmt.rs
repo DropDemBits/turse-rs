@@ -235,7 +235,7 @@ impl<'s> Parser<'s> {
                         false,
                         false,
                         false,
-                        0 // Not imported, just a dummy
+                        0, // Not imported, just a dummy
                     );
 
                     Ok(Stmt::TypeDecl {
@@ -243,7 +243,7 @@ impl<'s> Parser<'s> {
                         resolved_type: Some(type_spec),
                         is_new_def: false, // Doesn't really matter
                     })
-                },
+                }
                 None => Err(ParsingStatus::Error),
             };
         }

@@ -56,14 +56,14 @@ impl Value {
 
     pub fn from_token_type(token_type: TokenType) -> Result<Value, &'static str> {
         match token_type {
-                TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
-                TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
-                TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
-                TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
-                TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
-                TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
-                _ => Err("Cannot convert complex literal into a value"),
-            }
+            TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
+            TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
+            TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
+            TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
+            TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
+            TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
+            _ => Err("Cannot convert complex literal into a value"),
+        }
     }
 }
 

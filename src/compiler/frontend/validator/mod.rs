@@ -78,7 +78,7 @@ impl ScopeInfo {
                 assert_eq!(
                     ident.instance, 0,
                     "Not the first time seeing the identifier '{:#?}'",
-                    ident 
+                    ident
                 );
 
                 // Create a new identifier info group
@@ -96,9 +96,9 @@ impl ScopeInfo {
 
     /// Grab info of given instance of identifier
     pub fn get_ident(&self, ident_name: &str, instance: usize) -> Option<Identifier> {
-        self.local_idents.get(ident_name).map(|infos| {
-            infos[instance].ident.clone()
-        })
+        self.local_idents
+            .get(ident_name)
+            .map(|infos| infos[instance].ident.clone())
     }
 
     /// Declares an identifier, creating the associated IdentInfo entry.

@@ -217,13 +217,15 @@ impl<'s> Parser<'s> {
         // Consume the token
         self.next_token();
 
-        let mut expr = prefix_rule(self).map_err(|e| {
-            self.expr_nesting = self
-                .expr_nesting
-                .checked_sub(1)
-                .expect("Mismatched nesting counts");
-            e
-        }).unwrap();
+        let mut expr = prefix_rule(self)
+            .map_err(|e| {
+                self.expr_nesting = self
+                    .expr_nesting
+                    .checked_sub(1)
+                    .expect("Mismatched nesting counts");
+                e
+            })
+            .unwrap();
 
         // Go over infix operators
         while !self.is_at_end()
@@ -266,13 +268,15 @@ impl<'s> Parser<'s> {
 
             // Produce the next expression
             let infix_rule = infix_rule.unwrap();
-            expr = infix_rule(self, expr).map_err(|e| {
-                self.expr_nesting = self
-                    .expr_nesting
-                    .checked_sub(1)
-                    .expect("Mismatched nesting counts");
-                e
-            }).unwrap();
+            expr = infix_rule(self, expr)
+                .map_err(|e| {
+                    self.expr_nesting = self
+                        .expr_nesting
+                        .checked_sub(1)
+                        .expect("Mismatched nesting counts");
+                    e
+                })
+                .unwrap();
         }
 
         // Reduce nesting
@@ -338,7 +342,10 @@ impl<'s> Parser<'s> {
 
     fn expr_unary(&mut self) -> Result<Expr, ParsingStatus> {
         let op = self.previous().clone();
-        let right = self.expr_precedence(Precedence::Unary).ok().unwrap_or(Expr::Empty);
+        let right = self
+            .expr_precedence(Precedence::Unary)
+            .ok()
+            .unwrap_or(Expr::Empty);
         let span = op.location.span_to(&self.previous().location);
 
         Ok(Expr::UnaryOp {

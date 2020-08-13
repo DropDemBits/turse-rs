@@ -171,7 +171,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Skips all tokens until a safe parsing point is reached.
-    /// 
+    ///
     /// This should only be called in the event of a fatal error, as this will
     /// skip any valid expressions and statements caught up in the recovery
     /// process.
@@ -223,10 +223,10 @@ impl<'s> Parser<'s> {
                 | TokenType::Pause
                 | TokenType::Quit
                 | TokenType::Semicolon
-                | TokenType::Eof=> break,
+                | TokenType::Eof => break,
                 _ => {
                     let _ = self.next_token();
-                },
+                }
             }
         }
     }
@@ -1105,29 +1105,39 @@ type enumeration : enum (a, b, c, d, e, f)
             TypeRef::Primitive(PrimitiveType::Int)
         );
 
-        // Enums not in top-level type contexts are rejected 
+        // Enums not in top-level type contexts are rejected
         // (i.e. anonymous enums are not allowed), but still produce
         // an enum type
         let mut parser = make_test_parser("var a : enum (a, b, c)");
         assert!(!parser.parse());
         let type_ref = get_ident_type(&parser, "a");
-        let type_of = parser.unit.as_ref().unwrap().types().type_from_ref(&type_ref);
+        let type_of = parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .types()
+            .type_from_ref(&type_ref);
         assert!(
-            matches!(type_of,
-                Some(Type::Enum {..})
-            ),
-            "Is of type {:?} from {:?}", type_of, type_ref
+            matches!(type_of, Some(Type::Enum { .. })),
+            "Is of type {:?} from {:?}",
+            type_of,
+            type_ref
         );
 
         let mut parser = make_test_parser("const a : enum (a, b, c) := 2");
         assert!(!parser.parse());
         let type_ref = get_ident_type(&parser, "a");
-        let type_of = parser.unit.as_ref().unwrap().types().type_from_ref(&type_ref);
+        let type_of = parser
+            .unit
+            .as_ref()
+            .unwrap()
+            .types()
+            .type_from_ref(&type_ref);
         assert!(
-            matches!(type_of,
-                Some(Type::Enum {..})
-            ),
-            "Is of type {:?} from {:?}", type_of, type_ref
+            matches!(type_of, Some(Type::Enum { .. })),
+            "Is of type {:?} from {:?}",
+            type_of,
+            type_ref
         );
 
         let mut parser = make_test_parser("type a : set of enum (a, b, c)");
@@ -1267,7 +1277,8 @@ type enumeration : enum (a, b, c, d, e, f)
                     to: TypeRef::TypeError,
                 })
             ),
-            "From ref {:?}", type_ref
+            "From ref {:?}",
+            type_ref
         );
         assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 

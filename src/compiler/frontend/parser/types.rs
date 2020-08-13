@@ -140,10 +140,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Gets the size specifier for a char(n) or string(n)
-    fn get_size_specifier(
-        &mut self,
-        parse_context: &TokenType,
-    ) -> Result<SequenceSize, ()> {
+    fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<SequenceSize, ()> {
         match self.current().token_type {
             TokenType::NatLiteral(size)
                 if matches!(self.peek().token_type, TokenType::RightParen) =>
@@ -459,10 +456,7 @@ impl<'s> Parser<'s> {
     /// Try to parse either a reference, or a range.
     /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(())`
     /// if the reference expression is nested too deeply
-    fn type_reference_or_range(
-        &mut self,
-        parse_context: &TokenType,
-    ) -> Result<TypeRef, ()> {
+    fn type_reference_or_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
         // Bail out on err (i.e. too deep in the expr nesting or not a
         // expression at all)
         let primary_expr = self.expr().map_err(|_| ())?;
@@ -479,7 +473,7 @@ impl<'s> Parser<'s> {
                 match current_expr {
                     Expr::Dot { left, .. } => current_expr = &left, // Move through the chain
                     Expr::Reference { .. } => break, // Reached the end of the dot expression
-                    Expr::Empty => break, // Error has been reported already 
+                    Expr::Empty => break,            // Error has been reported already
                     _ => {
                         // Not completely a dot expression
                         self.reporter.report_error(
@@ -503,11 +497,7 @@ impl<'s> Parser<'s> {
 
     // Parse the rest of a range type
     // Will always produce a range
-    fn type_range_rest(
-        &mut self,
-        start_range: Expr,
-        parse_context: &TokenType,
-    ) -> TypeRef {
+    fn type_range_rest(&mut self, start_range: Expr, parse_context: &TokenType) -> TypeRef {
         // A None for the range is only acceptable in array decls
         // Everywhere else is invalid
         let is_inferred_valid = *parse_context == TokenType::Array;

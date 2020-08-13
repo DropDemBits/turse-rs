@@ -337,7 +337,7 @@ impl Validator {
 
         if !start.is_compile_eval() {
             // The start range must be a compile-time expression
-            
+
             // Report error if the bound is not an empty
             // Otherwise, error is already reported at the end bound's location
             if !matches!(start, Expr::Empty) {
@@ -361,7 +361,7 @@ impl Validator {
             if let Some(end) = end {
                 if !end.is_compile_eval() {
                     // Right-hand side is not a compile-time expression
-                    
+
                     // Report the error if it's not an empty
                     // Otherwise, error is already reported at the end bound's location
                     if !matches!(end, Expr::Empty) {

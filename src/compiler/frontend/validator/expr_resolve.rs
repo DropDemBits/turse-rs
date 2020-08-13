@@ -372,7 +372,10 @@ impl Validator {
         *eval_type = TypeRef::TypeError;
 
         // TODO: Type check call expressions
-        self.reporter.report_error(&left.get_span(), format_args!("Call and subscript expressions are not supported yet"));
+        self.reporter.report_error(
+            &left.get_span(),
+            format_args!("Call and subscript expressions are not supported yet"),
+        );
         None
     }
 
@@ -407,7 +410,11 @@ impl Validator {
         // Dealias & resolve left type
         let left_ref = self.dealias_resolve_type(left.get_eval_type());
 
-        debug_assert!(types::is_base_type(&left_ref, &self.type_table), "Of type {:?}", left_ref);
+        debug_assert!(
+            types::is_base_type(&left_ref, &self.type_table),
+            "Of type {:?}",
+            left_ref
+        );
 
         if types::is_error(&left_ref) {
             // Is a type error, silently propogate error
@@ -511,7 +518,10 @@ impl Validator {
         if ident.is_declared {
             // Grab the correct identifier information (including the
             // type_spec) in the current scope info
-            let new_info = self.scope_infos.last().unwrap()
+            let new_info = self
+                .scope_infos
+                .last()
+                .unwrap()
                 .get_ident(&ident.name, ident.instance.into())
                 .unwrap();
 
@@ -537,7 +547,11 @@ impl Validator {
         return compile_value;
     }
 
-    pub(super) fn resolve_expr_literal(&mut self, value: &mut Token, eval_type: &mut TypeRef) -> Option<Value> {
+    pub(super) fn resolve_expr_literal(
+        &mut self,
+        value: &mut Token,
+        eval_type: &mut TypeRef,
+    ) -> Option<Value> {
         // Literal values already have the type resolved, unless the eval type is an IntNat
 
         if matches!(eval_type, TypeRef::Primitive(PrimitiveType::IntNat)) {
@@ -551,8 +565,10 @@ impl Validator {
         } else {
             // Produce the corresponding literal value
             let tok_type = value.token_type.clone();
-            let v = Value::from_token_type(tok_type)
-                .expect(&format!("Literal '{:?}' cannot be converted into a compile-time value", value.token_type));
+            let v = Value::from_token_type(tok_type).expect(&format!(
+                "Literal '{:?}' cannot be converted into a compile-time value",
+                value.token_type
+            ));
 
             Some(v)
         }
