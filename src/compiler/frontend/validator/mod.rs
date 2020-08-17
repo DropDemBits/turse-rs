@@ -519,6 +519,14 @@ mod test {
             false,
             run_validator("var c : string(2) := 'ce'\nvar a : char := c")
         );
+        assert_eq!(
+            false,
+            run_validator("var c : char(2) := 'ce'\nvar a : char\na := c")
+        );
+        assert_eq!(
+            false,
+            run_validator("var c : string(2) := 'ce'\nvar a : char\na := c")
+        );
 
         // Compatibility with char into char(n) and string(n)
         assert_eq!(
@@ -545,6 +553,9 @@ mod test {
         assert_eq!(true, run_validator("var a : char(6) := 'abcd'"));
         assert_eq!(true, run_validator("var a : char(6) := 'abcdaa'"));
         assert_eq!(false, run_validator("var a : char(6) := 'abcdaaa'"));
+        assert_eq!(true, run_validator("var a : char(6)\na := 'abcd'"));
+        assert_eq!(true, run_validator("var a : char(6)\na := 'abcdaa'"));
+        assert_eq!(false, run_validator("var a : char(6)\na := 'abcdaaa'"));
 
         // (In)compatibility between string(n) of same or different size
         assert_eq!(
@@ -558,6 +569,18 @@ mod test {
         assert_eq!(
             false,
             run_validator("var s : string(7) := 'abcdaaa'\nvar a : string(6) := s")
+        );
+        assert_eq!(
+            true,
+            run_validator("var s : string(4) := 'abcd'    \nvar a : string(6)\na := s")
+        );
+        assert_eq!(
+            true,
+            run_validator("var s : string(6) := 'abcdaa'  \nvar a : string(6)\na := s")
+        );
+        assert_eq!(
+            false,
+            run_validator("var s : string(7) := 'abcdaaa'\nvar a : string(6)\na := s")
         );
 
         // Compatibility between real and number types
@@ -577,6 +600,8 @@ mod test {
         // Incompatibility between real and integers
         assert_eq!(false, run_validator("var i : int := 1.0"));
         assert_eq!(false, run_validator("var i : nat := 1.0"));
+        assert_eq!(false, run_validator("var i : int\ni := 1.0"));
+        assert_eq!(false, run_validator("var i : nat\ni := 1.0"));
 
         // Incompatibility between numbers and strings
         assert_eq!(false, run_validator("var i : int  := \"text\""));
@@ -588,11 +613,23 @@ mod test {
         assert_eq!(false, run_validator("var i : int  := 't'"));
         assert_eq!(false, run_validator("var i : nat  := 't'"));
         assert_eq!(false, run_validator("var i : real := 't'"));
+        assert_eq!(false, run_validator("var i : int \ni := \"text\""));
+        assert_eq!(false, run_validator("var i : nat \ni := \"text\""));
+        assert_eq!(false, run_validator("var i : real\ni := \"text\""));
+        assert_eq!(false, run_validator("var i : int \ni := 'text'"));
+        assert_eq!(false, run_validator("var i : nat \ni := 'text'"));
+        assert_eq!(false, run_validator("var i : real\ni := 'text'"));
+        assert_eq!(false, run_validator("var i : int \ni := 't'"));
+        assert_eq!(false, run_validator("var i : nat \ni := 't'"));
+        assert_eq!(false, run_validator("var i : real\ni := 't'"));
 
         // Incompatibility between numbers and booleans
         assert_eq!(false, run_validator("var i : int  := false"));
         assert_eq!(false, run_validator("var i : nat  := false"));
         assert_eq!(false, run_validator("var i : real := false"));
+        assert_eq!(false, run_validator("var i : int \ni := false"));
+        assert_eq!(false, run_validator("var i : nat \ni := false"));
+        assert_eq!(false, run_validator("var i : real\ni := false"));
 
         // Compatibility between booleans
         assert_eq!(true, run_validator("var i : boolean := false"));
@@ -603,6 +640,11 @@ mod test {
         assert_eq!(false, run_validator("var i : boolean := \"h\""));
         assert_eq!(false, run_validator("var i : boolean := 'ha'"));
         assert_eq!(false, run_validator("var i : boolean := 'h'"));
+        assert_eq!(false, run_validator("var i : boolean\ni := 1"));
+        assert_eq!(false, run_validator("var i : boolean\ni := 1.0"));
+        assert_eq!(false, run_validator("var i : boolean\ni := \"h\""));
+        assert_eq!(false, run_validator("var i : boolean\ni := 'ha'"));
+        assert_eq!(false, run_validator("var i : boolean\ni := 'h'"));
 
         // Compatibility with ranges
         assert_eq!(true, run_validator("var i : false .. true := true"));
@@ -622,6 +664,7 @@ mod test {
         );
         assert_eq!(true,  run_validator("type e0 : enum(a, b, c, d)\ntype s0 : set of e0\ntype s1 : set of e0\nvar a : s0\nvar b : s1 := a"));
 
+        // Incompatibilty with sets of incompatible ranges
         assert_eq!(
             false,
             run_validator(
@@ -682,6 +725,18 @@ mod test {
             false,
             run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0 := e1.a")
         );
+        assert_eq!(
+            false,
+            run_validator(
+                "type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0\nvar b : e1\nb := a"
+            )
+        );
+        assert_eq!(
+            false,
+            run_validator(
+                "type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0\na := e1.a"
+            )
+        );
 
         // Compatibility between enum and fields of same root type declaration
         assert_eq!(
@@ -714,6 +769,10 @@ mod test {
             false,
             run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e1 := e0.a")
         );
+
+        // Type refs are never assignable or used as an assignment value
+        assert_eq!(false, run_validator("type a : int\na := 1"));
+        assert_eq!(false, run_validator("type a : int\nvar b : int := a"));
     }
 
     #[test]
@@ -806,6 +865,16 @@ mod test {
             run_validator(
                 "type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar c : t\nc += a"
             )
+        );
+
+        // Also check for invalid use of type refs in binary exprs
+        assert_eq!(
+            false,
+            run_validator("type a : int\nvar b : int\nb := a + b")
+        );
+        assert_eq!(
+            false,
+            run_validator("type a : int\nvar b : int\nb := b + a")
         );
     }
 
@@ -1351,7 +1420,23 @@ mod test {
             ))
         );
         assert_eq!(true, run_validator(&format!("type s0 : set of 1 .. 3\ntype s1 : set of 1 .. 3\nvar a : s0\nvar b : s1\nvar c : boolean := a {} b", compare_op)));
-        // Missing: enum (direct field & behind const) & objectclass compares
+        // Missing: objectclass compares
+
+        // Comparison operands are applicable (and foldable) to enum fields behind constants
+        assert_eq!(
+            true,
+            run_validator(&format!(
+                "type e0 : enum(a, b)\nconst a : e0 := e0.b\nvar c : boolean := a {} e0.a",
+                compare_op
+            ))
+        );
+        assert_eq!(
+            true,
+            run_validator(&format!(
+                "type e0 : enum(a, b)\nconst a : e0 := e0.b\nvar c : boolean := e0.a {} a",
+                compare_op
+            ))
+        );
 
         // Comparison operands must be the same type (class)
         // bool is whether to always reject
@@ -1902,6 +1987,10 @@ mod test {
         );
         assert_eq!(
             true,
+            run_validator("var a : proc a(a : int, b, c : nat)\nvar b : nat := #a")
+        );
+        assert_eq!(
+            true,
             run_validator("type e0 : enum (a)\nvar a : nat := #e0.a")
         );
 
@@ -1934,12 +2023,31 @@ mod test {
             false,
             run_validator("type e0 : enum (a, b, c)\nvar a := e0.d")
         );
+
+        // Reference is not a compound type
+        assert_eq!(false, run_validator("var a : int\na.b"));
+        assert_eq!(false, run_validator("var a : array 1 .. 2 of int\na.b"));
+        assert_eq!(false, run_validator("var a : ^int\na->b"));
+
+        // Reference is behind a pointer (gives a special error message)
+        assert_eq!(false, run_validator("var a : ^int\na.b"));
+
+        // TODO: Handle cases for union & Record fields
+        // Class, Module, and Monitor qualified exported types are checked in test_type_resolution
     }
 
     #[test]
     fn test_range_size_checking() {
         // Ranges in Turing are inclusive on both bounds
         assert_eq!(true, run_validator("var a : 1 .. 16"));
+        assert_eq!(
+            true,
+            run_validator(
+                "const s : int := 0
+                const e : int := 10
+                var a : s .. e"
+            )
+        );
 
         // 1 sized ranges are valid
         assert_eq!(true, run_validator("var a : 'a' .. 'a'"));
@@ -1954,12 +2062,34 @@ mod test {
             true,
             run_validator("type e : enum(a, b)\nconst c : e := e.a\nvar a : c .. c")
         );
+        assert_eq!(
+            true,
+            run_validator(
+                "const s : int := 0
+                const e : int := 0
+                var a : s .. e"
+            )
+        );
 
         // End range overflows constitute a valid range (but emits a warning)
         assert_eq!(true, run_validator("var a : -8000 .. 16#8000000000000000"));
         assert_eq!(true, run_validator("var a : -1 .. 16#ffffffffffffffff"));
         assert_eq!(true, run_validator("var a : 0 .. 16#ffffffffffffffff"));
         assert_eq!(true, run_validator("var a : 1 .. 16#ffffffffffffffff"));
+        assert_eq!(true, run_validator("var a : 0-2+2 .. 16#8000000000000000"));
+        assert_eq!(true, run_validator("var a : 1-2+2 .. 16#8000000000000000"));
+        assert_eq!(
+            true,
+            run_validator("const s : int := 1\nvar a : s .. 16#ffffffffffffffff")
+        );
+        assert_eq!(
+            true,
+            run_validator("const s : int := 0\nvar a : s .. 16#fffffffffffffffe")
+        );
+        assert_eq!(
+            true,
+            run_validator("const s : int := 0\nvar a : s .. 16#ffffffffffffffff")
+        );
         assert_eq!(
             true,
             run_validator("var a : -16#7fffffffffffffff - 1 .. 16#ffffffffffffffff")
@@ -1992,8 +2122,23 @@ mod test {
             run_validator("type e : enum(a, b)\nvar a : flexible array e.b .. e.a of int")
         );
         assert_eq!(true, run_validator("type e : enum(a, b)\nconst c : e := e.b\nconst d : e := e.a\nvar a : flexible array c .. d of int"));
+        assert_eq!(
+            true,
+            run_validator(
+                "const s : int := 1
+                const e : int := 0
+                var a : flexible array s .. e of int"
+            )
+        );
 
         // 0 sized ranges aren't valid anywhere else
+        assert_eq!(false, run_validator("var a : array 1 .. 0 of int"));
+        assert_eq!(
+            false,
+            run_validator("var a : array 16#80000000 .. 16#7fffffff of int")
+        );
+        assert_eq!(false, run_validator("var a : array true .. false of int"));
+        assert_eq!(false, run_validator("var a : array 'D' .. 'C' of int"));
         assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7fffffff"));
         assert_eq!(false, run_validator("var a : true .. false"));
         assert_eq!(false, run_validator("var a : 'D' .. 'C'"));
@@ -2011,6 +2156,14 @@ mod test {
             false,
             run_validator(
                 "type e : enum(a, b)\nconst c : e := e.b\nconst d : e := e.a\nvar a : c .. d"
+            )
+        );
+        assert_eq!(
+            false,
+            run_validator(
+                "const s : int := 1
+                const e : int := 0
+                var a : array s .. e of int"
             )
         );
 
@@ -2039,6 +2192,10 @@ mod test {
             false,
             run_validator("type a : 'D' .. 'C'                \ntype b : set of a")
         );
+        assert_eq!(
+            false,
+            run_validator("type a : -1+2 .. 1-1               \ntype b : set of a")
+        );
 
         // Negative size ranges are invalid
         assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7ffffffe"));
@@ -2057,14 +2214,22 @@ mod test {
                 "type e : enum(a, b, c)\nconst c : e := e.c\nconst d : e := e.a\nvar a : c .. d"
             )
         );
+        assert_eq!(false, run_validator("var a : -1+3 .. 0"));
 
-        // Rnage bounds can't be reals, or any other types
+        // Range bounds can't be reals, or any other types
         assert_eq!(false, run_validator("type e : 0.0 .. 0.0"));
+        assert_eq!(false, run_validator("type e : 0.0 + 0.0 .. 0.0 + 0.0"));
+
+        // Range bounds must be compile-time expressions
+        assert_eq!(false, run_validator("var a : int\ntype e : set of a..0"));
+        assert_eq!(false, run_validator("var a : int\ntype e : set of 0..a"));
+        assert_eq!(false, run_validator("var a : int\ntype e : set of a..a"));
 
         // Still ba safe when handling empty expressions
         assert_eq!(false, run_validator("type e set of(0.."));
         assert_eq!(false, run_validator("type e.."));
         assert_eq!(false, run_validator("type e:..0*0"));
+        assert_eq!(false, run_validator("var a: array of int"));
     }
 
     #[test]
@@ -2416,6 +2581,20 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             TypeRef::Primitive(PrimitiveType::Char)
         );
 
+        let (success, unit) =
+            make_validator("var depend := 65530\nconst a : string(1 + depend + 1) := 'a'");
+        assert_eq!(false, success);
+        assert_eq!(
+            unit.root_block()
+                .borrow()
+                .scope
+                .get_ident("a")
+                .as_ref()
+                .unwrap()
+                .type_spec,
+            TypeRef::Primitive(PrimitiveType::String_)
+        );
+
         // Constant propogation should allow enum fields to be hidden behind constant vars
         assert_eq!(
             true,
@@ -2722,6 +2901,11 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             true,
             run_validator("type a : int\ntype b : a\nvar c : int := 1\nvar d : b := c")
         );
+        assert_eq!(true, run_validator("type a : boolean\ntype b : set of a"));
+        assert_eq!(true, run_validator("type a : char\ntype b : set of a"));
+        assert_eq!(false, run_validator("type a : real\ntype b : set of a"));
+        assert_eq!(false, run_validator("type a : string\ntype b : set of a"));
+        // TODO: include cases of record and union
 
         // Aliases of resolved forward types are equivalent to their base types
         assert_eq!(
@@ -2746,6 +2930,9 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             false,
             run_validator("type a : forward\ntype k : set of a\ntype a : int")
         );
+
+        // Forward refs must be resolved in the current unit
+        assert_eq!(false, run_validator("type a : forward"));
 
         // Range bounds types do not match
         assert_eq!(false, run_validator("type a : true .. 'c'"));
@@ -2889,6 +3076,11 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             run_validator("var c := 5\nvar a : array 1 .. * of int := init(1, c, 3)")
         );
 
+        assert_eq!(
+            false,
+            run_validator("type c : int\nvar a : array 1 .. * of int := init(1, c, 3)")
+        );
+
         // Should be as many elements as specified by the array ranges
         assert_eq!(
             true,
@@ -2903,6 +3095,18 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         assert_eq!(
             false,
             run_validator("var a : array 1 .. 3 of int := init(1, 2)")
+        );
+
+        // Should not panic
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init(1, 2, 3, or)")
+        );
+
+        // Reported by parser
+        assert_eq!(
+            false,
+            run_validator("var a : array 1 .. 3 of int := init()")
         );
 
         // Should also apply to other types
@@ -2975,6 +3179,25 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             false,
             run_validator("var len := 3\nvar a : array 1 .. len of int := init(1, 2, 3)")
         );
+    }
+
+    #[test]
+    fn test_resolve_var_decl() {
+        assert_eq!(true, run_validator("var a : 1 .. 3 := 2"));
+        assert_eq!(true, run_validator("const a : 1 .. 3 := 2"));
+
+        // Init-sized type specs are not allowed in const/var decls
+        assert_eq!(false, run_validator("var a : 1 .. *"));
+
+        assert_eq!(false, run_validator("const a : 1 .. *"));
+    }
+
+    #[test]
+    fn test_resolve_type_decl() {
+        assert_eq!(true, run_validator("type a : 1 .. 3"));
+
+        // Should report redecl errors
+        assert_eq!(false, run_validator("var a : int\ntype a : 1 .. 3"));
     }
 
     #[test]

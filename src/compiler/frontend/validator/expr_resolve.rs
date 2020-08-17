@@ -23,15 +23,15 @@ impl Validator {
                 expr.set_span(span);
             }
 
-            if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
-                self.reporter.report_error(
-                    expr.get_span(),
-                    format_args!("Expression is not a compile-time expression"),
-                );
-            } else if super::is_type_reference(expr) {
+            if super::is_type_reference(expr) {
                 self.reporter.report_error(
                     expr.get_span(),
                     format_args!("Reference does not refer to a variable or constant"),
+                );
+            } else if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
+                self.reporter.report_error(
+                    expr.get_span(),
+                    format_args!("Expression is not a compile-time expression"),
                 );
             }
         }
@@ -323,13 +323,13 @@ impl Validator {
                 *is_compile_eval = false;
 
                 match op {
-						TokenType::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
-						TokenType::Plus => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
-						TokenType::Minus => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
-						TokenType::Caret => self.reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
-						TokenType::Pound => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
-						_ => unreachable!()
-					}
+                    TokenType::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
+                    TokenType::Plus => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
+                    TokenType::Minus => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
+                    TokenType::Caret => self.reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
+                    TokenType::Pound => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
+                    _ => unreachable!()
+                }
 
                 // Produce no value
                 return None;

@@ -1507,6 +1507,10 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         let mut parser = make_test_parser("const a := 1 or 1");
         assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 & 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("const a := 1 | 1");
+        assert_eq!(parser.parse(), true);
         let mut parser = make_test_parser("const a := 1 xor 1");
         assert_eq!(parser.parse(), true);
         let mut parser = make_test_parser("const a := 1 in 1");

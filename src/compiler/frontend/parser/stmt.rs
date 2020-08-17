@@ -259,7 +259,7 @@ impl<'s> Parser<'s> {
                 .types()
                 .type_from_ref(&ident.type_spec)
         }) {
-            // Resolve forwards (otherwise `is_resolved` would be false)
+            // Resolve forwards (otherwise `is_resolved` would be true)
 
             // We known that the old ident is valid (from above condtion)
             let old_ident = old_ident.unwrap();

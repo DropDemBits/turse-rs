@@ -473,6 +473,11 @@ impl<'s> Scanner<'s> {
             // Nom the 'e'
             self.next_char();
 
+            if self.peek == '-' {
+                // Consume negative exponent sign
+                self.next_char();
+            }
+
             // Parse the exponent digits
             while matches!(self.peek, '0'..='9') {
                 self.next_char();
@@ -1166,6 +1171,12 @@ mod test {
         // Should still produce a token
         assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
 
+        // Out of range (= overflow)
+        let mut scanner = Scanner::new("18446744073709551616#0000");
+        assert!(!scanner.scan_tokens());
+        // Should still produce a token
+        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+
         // Invalid digit
         let mut scanner = Scanner::new("10#999a999");
         assert!(!scanner.scan_tokens());
@@ -1199,12 +1210,29 @@ mod test {
             TokenType::RealLiteral(100.00e100)
         );
 
+        let mut scanner = Scanner::new("100.00e-100");
+        assert!(scanner.scan_tokens());
+        assert_eq!(
+            scanner.tokens[0].token_type,
+            TokenType::RealLiteral(100.00e-100)
+        );
+
         let mut scanner = Scanner::new("1e100");
         assert!(scanner.scan_tokens());
         assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(1e100));
 
         // Invalid format
         let mut scanner = Scanner::new("1e");
+        assert!(!scanner.scan_tokens());
+        // Should still produce a value
+        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));
+
+        let mut scanner = Scanner::new("1e-");
+        assert!(!scanner.scan_tokens());
+        // Should still produce a value
+        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));
+
+        let mut scanner = Scanner::new("1e--2");
         assert!(!scanner.scan_tokens());
         // Should still produce a value
         assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));

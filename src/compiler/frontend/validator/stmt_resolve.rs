@@ -47,6 +47,14 @@ impl Validator {
             }
 
             is_compile_eval = expr.is_compile_eval();
+
+            if super::is_type_reference(expr) {
+                self.reporter.report_error(
+                    expr.get_span(),
+                    format_args!("A type reference cannot be used as an initializer value"),
+                );
+                *value = None;
+            }
         }
 
         // Resolve the identifier type spec or sized char sequence type spec, if possible
@@ -229,13 +237,23 @@ impl Validator {
 
                         if !has_fields_remaining && next_init.is_some() {
                             // Too many init fields
+                            let (next_expr, _) = next_init.unwrap();
+
+                            let report_at = if !matches!(next_expr, Expr::Empty) {
+                                next_expr.get_span()
+                            } else {
+                                // If empty, at init
+                                // No other close location to report at
+                                init
+                            };
+
                             self.reporter.report_error(
-                                next_init.unwrap().0.get_span(),
+                                report_at,
                                 format_args!("Too many initializer values"),
                             );
                         } else if has_fields_remaining && next_init.is_none() {
                             // Too few init
-                            let report_at = if !exprs.is_empty() {
+                            let report_at = if !matches!(exprs.last(), Some(Expr::Empty)) {
                                 exprs.last().unwrap().get_span()
                             } else {
                                 // If empty, at init
@@ -320,6 +338,14 @@ impl Validator {
                 // Resolve the associated type (do not allow forward references)
                 ident.type_spec =
                     self.resolve_type(ident.type_spec, ResolveContext::CompileTime(false));
+            } else if let Some(Type::Forward { is_resolved: false }) =
+                self.type_table.type_from_ref(&ident.type_spec)
+            {
+                // Not resolved in the current unit
+                self.reporter.report_error(
+                    &ident.token.location,
+                    format_args!("'{}' is not resolved in the current unit", ident.name),
+                );
             }
 
             // Declare the identifier and check for redeclaration errors

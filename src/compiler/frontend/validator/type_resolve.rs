@@ -244,13 +244,9 @@ impl Validator {
             // Not required to be compile-time, unless we are in a compile-time context
             *range = self.resolve_type(*range, resolving_context);
 
-            if matches!(resolving_context, ResolveContext::CompileTime(_))
-                && !is_flexible
-                && !is_init_sized
-            {
+            if !is_flexible && !is_init_sized {
                 // If the following holds true
                 // - The index type is a range,
-                // - We are in a compile-time context,
                 // - This is an explict sized array (i.e. not `flexible` nor `init` sized)
                 // Check if it is a not a zero sized range
                 if let Some(Type::Range {
@@ -258,9 +254,11 @@ impl Validator {
                 }) = self.type_table.type_from_ref(&range)
                 {
                     // Not being `flexible` nor `init`-sized guarrantees that end is a `Some`
-                    if *size == Some(0) {
+                    let end = end.as_ref().unwrap();
+
+                    if end.is_compile_eval() && *size == Some(0) {
                         // Zero sized ranges aren't allowed in compile-time array types
-                        let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
+                        let range_span = start.get_span().span_to(end.get_span());
                         self.reporter.report_error(
                             &range_span,
                             format_args!("Range bounds creates a zero-sized range"),
@@ -587,9 +585,22 @@ impl Validator {
                     *index = TypeRef::TypeError;
                 }
             }
-        } else if types::is_primitive(&index) && types::is_index_type(&index, &self.type_table) {
-            // Is a primitive, either a 'char' or 'boolean'
-            // Keep as is
+        } else if types::is_primitive(&index) {
+            if !types::is_index_type(&index, &self.type_table) {
+                // Is a primitive, but neither a 'char' nor a 'boolean'
+                *index = TypeRef::TypeError;
+
+                // Report the error based on the reference location
+                // If not a reference, already reported by the parser
+                if let Some(Type::Reference { expr }) =
+                    self.type_table.type_from_ref(&old_index_ref)
+                {
+                    self.reporter.report_error(
+                        expr.get_span(),
+                        format_args!("Set index is not a range, char, boolean, or enumerated type"),
+                    );
+                }
+            }
         } else {
             // Ensure that the range is really a type error
             // Don't need to report, as it is covered by a previous error
@@ -729,17 +740,17 @@ pub(super) fn get_range_size(
                 // Overflow is not ok
                 end_value.overflowing_sub(adjusted_start)
             } else {
-                // Is zero, keep the same size
-                (end_value, false)
+                // Is zero, range size is just end value plus 1
+                end_value.overflowing_add(1)
             };
 
             if overflow {
-                if start_value.is_negative() {
-                    // Start value pushed range into overflow
-                    Err(RangeSizeError::Overflow)
-                } else {
+                if start_value.is_positive() {
                     // Start value pushed range into the negatives
                     Err(RangeSizeError::NegativeSize)
+                } else {
+                    // Start value pushed range into overflow
+                    Err(RangeSizeError::Overflow)
                 }
             } else {
                 #[cfg(target_pointer_width = "32")]

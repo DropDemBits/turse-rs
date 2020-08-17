@@ -52,9 +52,6 @@ pub fn resolve_unit(mut code_unit: CodeUnit) {
         return;
     }
 
-    // Code Unit
-    println!("Parsed Code Unit:\n{:#?}\n", code_unit);
-
     // Generate IR for the given unit
     /*let ir_builder = compiler::ir::IrBuilder::new(code_unit);
     let ir = ir_builder.generate_ir().unwrap();
