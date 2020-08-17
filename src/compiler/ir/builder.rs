@@ -138,7 +138,7 @@ impl IrVisitor {
 }
 
 impl ast::Visitor<(), Reference> for IrVisitor {
-    fn visit_stmt(&mut self, stmt: &ast::Stmt) -> () {
+    fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match stmt {
             ast::Stmt::VarDecl { idents, value, .. } => {
                 // ???: Handle constant variables?

@@ -124,10 +124,13 @@ impl Precedence {
 // The contents of the Parser are valid for the entire lifetime of the parser,
 // but the mutable reference is only bound to the lifetime of the
 // PrecedenceRule reference
+type PrefixRule<'s, 'local> = fn(&'local mut Parser<'s>) -> Result<Expr, ParsingStatus>;
+type InfixRule<'s, 'local> = fn(&'local mut Parser<'s>, Expr) -> Result<Expr, ParsingStatus>;
+
 struct PrecedenceRule<'s, 'local> {
     precedence: Precedence,
-    prefix_rule: Option<fn(&'local mut Parser<'s>) -> Result<Expr, ParsingStatus>>,
-    infix_rule: Option<fn(&'local mut Parser<'s>, Expr) -> Result<Expr, ParsingStatus>>,
+    prefix_rule: Option<PrefixRule<'s, 'local>>,
+    infix_rule: Option<InfixRule<'s, 'local>>,
 }
 
 impl<'s> Parser<'s> {
@@ -175,44 +178,45 @@ impl<'s> Parser<'s> {
         let op = self.current();
 
         let prefix = Parser::get_rule(&op.token_type);
-        let prefix_rule = prefix
-            .prefix_rule
-            .ok_or_else(|| {
-                // Try to figure out if the typo was a reasonable one
-                // ???: Rework this system to use a hashmap with key (token_type, token_type)?
+        let prefix_rule = prefix.prefix_rule.ok_or_else(|| {
+            // Try to figure out if the typo was a reasonable one
+            // ???: Rework this system to use a hashmap with key (token_type, token_type)?
 
-                let hint = if before_op.location != op.location {
-                    if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ {
-                        "(Did you mean '=' instead of '=='?)"
-                    } else {
-                        ""
-                    }
+            let hint = if before_op.location != op.location {
+                if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ {
+                    "(Did you mean '=' instead of '=='?)"
                 } else {
-                    // No hints for looking back at the start or end of the file
                     ""
-                };
+                }
+            } else {
+                // No hints for looking back at the start or end of the file
+                ""
+            };
 
-                // The token reference are relative to the next token, as the next
-                // token is consumed unconditionally
-                self.reporter.report_error(
-                    &self.current().location,
-                    format_args!(
-                        "Expected expression before '{}' {}",
-                        self.current().location.get_lexeme(self.source),
-                        hint
-                    ),
-                );
+            // The token reference are relative to the next token, as the next
+            // token is consumed unconditionally
+            self.reporter.report_error(
+                &self.current().location,
+                format_args!(
+                    "Expected expression before '{}' {}",
+                    self.current().location.get_lexeme(self.source),
+                    hint
+                ),
+            );
 
-                ParsingStatus::Error
-            })
-            .map_err(|e| {
-                // Reduce depth
-                self.expr_nesting = self
-                    .expr_nesting
-                    .checked_sub(1)
-                    .expect("Mismatched nesting counts");
-                e
-            })?;
+            ParsingStatus::Error
+        });
+
+        if prefix_rule.is_err() {
+            // Reduce depth
+            self.expr_nesting = self
+                .expr_nesting
+                .checked_sub(1)
+                .expect("Mismatched nesting counts");
+
+            return Err(ParsingStatus::Error);
+        }
+        let prefix_rule = prefix_rule.unwrap();
 
         // Consume the token
         self.next_token();
@@ -481,13 +485,9 @@ impl<'s> Parser<'s> {
 
                 // TODO: validate that theses are the same as the pointer type (ie produce nil for a given type id)
                 // For classes, both must have a common ancestor
-                if &self.current().token_type == &TokenType::LeftParen {
+                if self.optional(TokenType::LeftParen) {
                     // Consume optional identifier & parens
-                    self.next_token(); // (
-
-                    if &self.current().token_type == &TokenType::Identifier {
-                        self.next_token(); // identifier
-                    }
+                    self.optional(TokenType::Identifier);
 
                     let _ = self.expects(
                         TokenType::RightParen,
@@ -600,7 +600,7 @@ impl<'s> Parser<'s> {
         );
 
         // Give back the arg list
-        return Some(arg_list);
+        Some(arg_list)
     }
 
     /// Gets the precedence rule for the given token

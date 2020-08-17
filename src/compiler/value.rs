@@ -344,14 +344,8 @@ fn value_into_i64(v: Value) -> Result<i64, ValueApplyError> {
 /// Tries to convert the value into an f64. Consumes the value.
 fn value_into_f64(v: Value) -> Result<f64, ValueApplyError> {
     match v {
-        Value::NatValue(v) => {
-            let v: u64 = v.into();
-            Ok(v as f64)
-        }
-        Value::IntValue(v) => {
-            let v: i64 = v.into();
-            Ok(v as f64)
-        }
+        Value::NatValue(v) => Ok(v as f64),
+        Value::IntValue(v) => Ok(v as f64),
         Value::RealValue(v) => Ok(v),
         _ => panic!("Tried to convert {:?} into an f64", v),
     }
@@ -424,12 +418,12 @@ where
         let lvalue: u64 = lhs.into();
         let rvalue: u64 = rhs.into();
 
-        Ok(Value::from(nat_apply(lvalue, rvalue)?))
+        Ok(nat_apply(lvalue, rvalue)?)
     } else if is_integer_value(&lhs) && is_integer_value(&rhs) {
         let lvalue = value_into_i64(lhs)?;
         let rvalue = value_into_i64(rhs)?;
 
-        Ok(Value::from(int_apply(lvalue, rvalue)?))
+        Ok(int_apply(lvalue, rvalue)?)
     } else {
         Err(ValueApplyError::WrongTypes)
     }
@@ -451,17 +445,17 @@ where
         let lvalue: u64 = lhs.into();
         let rvalue: u64 = rhs.into();
 
-        Ok(Value::from(nat_apply(lvalue, rvalue)?))
+        Ok(nat_apply(lvalue, rvalue)?)
     } else if is_integer_value(&lhs) && is_integer_value(&rhs) {
         let lvalue = value_into_i64(lhs)?;
         let rvalue = value_into_i64(rhs)?;
 
-        Ok(Value::from(int_apply(lvalue, rvalue)?))
+        Ok(int_apply(lvalue, rvalue)?)
     } else if is_number_value(&lhs) && is_number_value(&rhs) {
         let lvalue = value_into_f64(lhs)?;
         let rvalue = value_into_f64(rhs)?;
 
-        Ok(Value::from(real_apply(lvalue, rvalue)?))
+        Ok(real_apply(lvalue, rvalue)?)
     } else {
         Err(ValueApplyError::WrongTypes)
     }
@@ -912,9 +906,11 @@ pub fn apply_ord(expr: &Expr, type_table: &TypeTable) -> Result<Value, ValueAppl
             let mut chars = str_value.chars();
             let first_char = chars.next();
 
-            if first_char.is_some() && chars.next().is_none() {
-                // Is valid, take first character
-                return Ok(Value::from(first_char.unwrap() as u64));
+            if let Some(first_char) = first_char {
+                if chars.next().is_none() {
+                    // Is valid, take first character
+                    return Ok(Value::from(first_char as u64));
+                }
             }
         }
 

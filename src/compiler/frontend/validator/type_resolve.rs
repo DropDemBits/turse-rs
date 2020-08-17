@@ -6,7 +6,6 @@ use crate::compiler::types::{
     self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable,
 };
 use crate::compiler::value::{self, ValueApplyError};
-use std::convert::TryFrom;
 
 impl Validator {
     // --- Type Resolvers --- //
@@ -80,7 +79,7 @@ impl Validator {
                                     format_args!("Invalid maximum string length of '0'"),
                                 );
 
-                                return types::get_char_seq_base_type(base_ref);
+                                types::get_char_seq_base_type(base_ref)
                             } else if size as usize >= types::MAX_STRING_SIZE {
                                 // Greater than max length, never valid
                                 self.reporter.report_error(
@@ -92,22 +91,22 @@ impl Validator {
                                     ),
                                 );
 
-                                return types::get_char_seq_base_type(base_ref);
+                                types::get_char_seq_base_type(base_ref)
                             } else {
                                 // Return the correct size type
                                 if types::is_charn(&base_ref) {
-                                    return TypeRef::Primitive(PrimitiveType::CharN(
-                                        SequenceSize::Size(size as usize),
-                                    ));
+                                    TypeRef::Primitive(PrimitiveType::CharN(SequenceSize::Size(
+                                        size as usize,
+                                    )))
                                 } else {
-                                    return TypeRef::Primitive(PrimitiveType::StringN(
-                                        SequenceSize::Size(size as usize),
-                                    ));
+                                    TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(
+                                        size as usize,
+                                    )))
                                 }
                             }
                         } else {
                             // Not a valid size, error reported previously
-                            return types::get_char_seq_base_type(base_ref);
+                            types::get_char_seq_base_type(base_ref)
                         }
                     } else {
                         // There should always be a SizeExpr here, unless some bad input was fed through a pre-compiled library
@@ -115,7 +114,7 @@ impl Validator {
                     }
                 } else {
                     // Already resolved, don't need to do anything
-                    return base_ref;
+                    base_ref
                 }
             }
             _ => unreachable!(), // Invalid primitive type or type ref for length resolving, called on wrong path?
@@ -183,7 +182,7 @@ impl Validator {
             self.type_table.replace_type(type_id, type_info);
         }
 
-        return replace_ref.unwrap_or(base_ref);
+        replace_ref.unwrap_or(base_ref)
     }
 
     fn resolve_type_alias(
@@ -219,13 +218,7 @@ impl Validator {
         // Value type-checking should be done by the destination type type
 
         // Type should be valid, replace with eval_value
-        if let Some(value) = eval {
-            let span = expr.get_span().clone();
-            *expr = Box::new(
-                Expr::try_from(value).expect("Cannot convert size value back into an expression"),
-            );
-            expr.set_span(span);
-        }
+        super::replace_with_folded(expr, eval);
 
         // Nothing to replace
         None
@@ -301,8 +294,8 @@ impl Validator {
 
     fn resolve_type_range(
         &mut self,
-        start: &mut Expr,
-        end: &mut Option<Expr>,
+        start: &mut Box<Expr>,
+        end: &mut Option<Box<Expr>>,
         base_type: &mut TypeRef,
         size: &mut Option<usize>,
         resolving_context: ResolveContext,
@@ -311,26 +304,18 @@ impl Validator {
         *base_type = TypeRef::TypeError;
 
         // Visit the bound expressions
-        let left_eval = self.visit_expr(start);
-        let right_eval = if end.is_some() {
+        let start_eval = self.visit_expr(start);
+        let end_eval = if end.is_some() {
             self.visit_expr(end.as_mut().unwrap())
         } else {
             None
         };
 
         // Apply the folded values
-        if let Some(left) = left_eval {
-            let span = start.get_span().clone();
-            *start = Expr::try_from(left).expect("Cannot convert start bound into an expression");
-            start.set_span(span);
-        }
+        super::replace_with_folded(start, start_eval);
 
-        if let Some(right) = right_eval {
-            let span = end.as_ref().unwrap().get_span().clone();
-            end.replace(
-                Expr::try_from(right).expect("Cannot convert end bound into an expression"),
-            );
-            end.as_mut().unwrap().set_span(span);
+        if let Some(end) = end {
+            super::replace_with_folded(end, end_eval);
         }
 
         if !start.is_compile_eval() {
@@ -338,7 +323,7 @@ impl Validator {
 
             // Report error if the bound is not an empty
             // Otherwise, error is already reported at the end bound's location
-            if !matches!(start, Expr::Empty) {
+            if !matches!(**start, Expr::Empty) {
                 // Span over the start bound
                 self.reporter.report_error(
                     start.get_span(),
@@ -362,7 +347,7 @@ impl Validator {
 
                     // Report the error if it's not an empty
                     // Otherwise, error is already reported at the end bound's location
-                    if !matches!(end, Expr::Empty) {
+                    if !matches!(**end, Expr::Empty) {
                         // Span over the end bound
                         self.reporter.report_error(
                             end.get_span(),
@@ -381,7 +366,7 @@ impl Validator {
         let range_span = if end.is_some() {
             start.get_span().span_to(end.as_ref().unwrap().get_span())
         } else {
-            start.get_span().clone()
+            *start.get_span()
         };
 
         // Try to derive a base copy from the given types
@@ -496,7 +481,7 @@ impl Validator {
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = field.token.location.clone();
+                reference_locate = field.token.location;
             }
             Expr::Reference { ident } => {
                 if !ident.is_typedef {
@@ -509,7 +494,7 @@ impl Validator {
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = ident.token.location.clone();
+                reference_locate = ident.token.location;
             }
             _ => return Some(TypeRef::TypeError), // No other expressions allowed, produce a type error
         }
@@ -536,7 +521,7 @@ impl Validator {
         }
 
         // Produce the resolved type
-        return Some(type_ref);
+        Some(type_ref)
     }
 
     fn resolve_type_set(&mut self, index: &mut TypeRef) -> ResolveResult {
@@ -645,6 +630,7 @@ pub enum RangeSizeError {
 ///
 /// # Return Values
 /// Returns a `Ok(u64)` if the range is a valid, otherwise an appropriate error.
+#[allow(clippy::unnecessary_unwrap)] // if-let chains aren't in stable, so we use .is_ok() and .unwrap() in its place
 pub(super) fn get_range_size(
     start_bound: &Expr,
     end_bound: &Expr,
@@ -789,20 +775,20 @@ pub(super) fn get_range_size(
                 debug_assert!(!range_size.is_positive());
 
                 // Byte convert into a u64, then a usize
-                return Ok(u64::from_ne_bytes(range_size.to_ne_bytes()) as usize);
+                Ok(u64::from_ne_bytes(range_size.to_ne_bytes()) as usize)
             } else if (!adjust_overflow && range_overflow) || range_size.is_negative() {
                 // Range size overflowed into negative
-                return Err(RangeSizeError::NegativeSize);
+                Err(RangeSizeError::NegativeSize)
             } else {
                 #[cfg(target_pointer_width = "32")]
                 if range_size > (usize::MAX as u64) {
                     // Greater than the maximum size of a usize (only on 32-bit platforms)
-                    Err(RangeSizeError::Overflow)
+                    return Err(RangeSizeError::Overflow);
                 }
 
                 // Is positive
                 debug_assert!(!range_size.is_negative(), "Range size is {}", range_size);
-                return Ok(range_size as usize);
+                Ok(range_size as usize)
             }
         } else if let Err(ValueApplyError::Overflow) = start_value {
             // Start value is definitely larger than the end bound, forming a negative size range

@@ -268,7 +268,7 @@ impl<'s> Scanner<'s> {
 
         self.tokens.push(Token {
             token_type,
-            location: self.cursor.clone(),
+            location: self.cursor,
         });
     }
 
@@ -339,7 +339,6 @@ impl<'s> Scanner<'s> {
         }
 
         // Done
-        return;
     }
 
     fn make_number_radix(&mut self) {
@@ -349,7 +348,7 @@ impl<'s> Scanner<'s> {
         self.next_char();
 
         // Go over the rest of the digits
-        let mut radix_locate = self.cursor.clone();
+        let mut radix_locate = self.cursor;
         radix_locate.step();
 
         while self.peek.is_ascii_alphanumeric() {
@@ -547,8 +546,6 @@ impl<'s> Scanner<'s> {
                 );
 
                 self.make_str_literal(is_str_literal, literal_text, 0);
-
-                return;
             }
             '\0' => {
                 self.reporter.report_error(
@@ -556,8 +553,6 @@ impl<'s> Scanner<'s> {
                     format_args!("String literal ends at the end of the file"),
                 );
                 self.make_str_literal(is_str_literal, literal_text, part_width);
-
-                return;
             }
             _ => {
                 assert!((self.peek == '\'' || self.peek == '"'));
@@ -645,7 +640,7 @@ impl<'s> Scanner<'s> {
                         }
                         '0'..='7' => {
                             // Octal str, {1-3}, 0 - 377
-                            let mut octal_cursor = self.cursor.clone();
+                            let mut octal_cursor = self.cursor;
 
                             // Start at the first digit
                             octal_cursor.step();
@@ -700,7 +695,7 @@ impl<'s> Scanner<'s> {
                             // nom 'x'
                             self.next_char();
 
-                            let mut hex_cursor = self.cursor.clone();
+                            let mut hex_cursor = self.cursor;
 
                             // Start at the first digit
                             hex_cursor.step();
@@ -743,7 +738,7 @@ impl<'s> Scanner<'s> {
                             // nom 'u' or 'U'
                             self.next_char();
 
-                            let mut hex_cursor = self.cursor.clone();
+                            let mut hex_cursor = self.cursor;
 
                             // Start at the first digit
                             hex_cursor.step();
@@ -803,7 +798,7 @@ impl<'s> Scanner<'s> {
                         }
                         _ => {
                             // Fetch the location
-                            let mut bad_escape = self.cursor.clone();
+                            let mut bad_escape = self.cursor;
                             self.next_char();
 
                             // Select the escape sequence
@@ -860,7 +855,7 @@ impl<'s> Scanner<'s> {
                             // Unless the user knows what they are doing, they are likely to not intend for the ^ character to be parsed as the beginning of a caret sequence
                             // Notify the user with this situation
                             // Fetch the location
-                            let mut bad_escape = self.cursor.clone();
+                            let mut bad_escape = self.cursor;
                             self.next_char();
 
                             // Select the escape sequence

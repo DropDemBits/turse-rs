@@ -8,7 +8,6 @@ use crate::compiler::frontend::token::TokenType;
 use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::value::Value;
 use std::cell::RefCell;
-use std::convert::TryFrom;
 use std::rc::Rc;
 
 impl Validator {
@@ -40,11 +39,7 @@ impl Validator {
             let init_eval = self.visit_expr(expr);
 
             // Try to replace the initializer value with the folded value
-            if init_eval.is_some() {
-                let span = expr.get_span().clone();
-                *expr = Box::new(Expr::try_from(init_eval.unwrap()).unwrap());
-                expr.set_span(span);
-            }
+            super::replace_with_folded(expr, init_eval);
 
             is_compile_eval = expr.is_compile_eval();
 
@@ -177,16 +172,12 @@ impl Validator {
                                     // Definitely an error (stop yourself, for your own sake)
                                     self.reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
                                     None
+                                } else if *is_init_sized {
+                                    // Match type count with init size
+                                    Some(std::iter::once(element_type).cycle().take(exprs.len()))
                                 } else {
-                                    if *is_init_sized {
-                                        // Match type count with init size
-                                        Some(
-                                            std::iter::once(element_type).cycle().take(exprs.len()),
-                                        )
-                                    } else {
-                                        // Build type iter on array count sizes
-                                        Some(std::iter::once(element_type).cycle().take(elem_count))
-                                    }
+                                    // Build type iter on array count sizes
+                                    Some(std::iter::once(element_type).cycle().take(elem_count))
                                 }
                             }
                             _ => {
@@ -235,38 +226,40 @@ impl Validator {
                         // Check if there are any remaining
                         let next_init = init_types.next();
 
-                        if !has_fields_remaining && next_init.is_some() {
-                            // Too many init fields
-                            let (next_expr, _) = next_init.unwrap();
+                        match next_init {
+                            Some((next_expr, _)) if !has_fields_remaining => {
+                                // Too many init fields
+                                let report_at = if !matches!(next_expr, Expr::Empty) {
+                                    next_expr.get_span()
+                                } else {
+                                    // If empty, at init
+                                    // No other close location to report at
+                                    init
+                                };
 
-                            let report_at = if !matches!(next_expr, Expr::Empty) {
-                                next_expr.get_span()
-                            } else {
-                                // If empty, at init
-                                // No other close location to report at
-                                init
-                            };
+                                self.reporter.report_error(
+                                    report_at,
+                                    format_args!("Too many initializer values"),
+                                );
+                            }
+                            None if has_fields_remaining => {
+                                // Too few init
+                                let report_at = if !matches!(exprs.last(), Some(Expr::Empty)) {
+                                    exprs.last().unwrap().get_span()
+                                } else {
+                                    // If empty, at init
+                                    // Empty case captured by Parser
+                                    init
+                                };
 
-                            self.reporter.report_error(
-                                report_at,
-                                format_args!("Too many initializer values"),
-                            );
-                        } else if has_fields_remaining && next_init.is_none() {
-                            // Too few init
-                            let report_at = if !matches!(exprs.last(), Some(Expr::Empty)) {
-                                exprs.last().unwrap().get_span()
-                            } else {
-                                // If empty, at init
-                                // Empty case captured by Parser
-                                init
-                            };
-
-                            // ???: Report field name for records?
-                            // ???: Report missing count for arrays?
-                            self.reporter.report_error(
-                                report_at,
-                                format_args!("Too few initializer values"),
-                            );
+                                // ???: Report field name for records?
+                                // ???: Report missing count for arrays?
+                                self.reporter.report_error(
+                                    report_at,
+                                    format_args!("Too few initializer values"),
+                                );
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -277,10 +270,12 @@ impl Validator {
         let const_val = if is_compile_eval && is_const {
             // Create a value to clone from
             let value = Value::from_expr(*value.as_ref().unwrap().clone(), &self.type_table)
-                .expect(&format!(
-                    "Initializer value '{:?}' is not a compile-time expression",
-                    value
-                ));
+                .unwrap_or_else(|msg| {
+                    panic!(
+                        "Initializer value '{:?}' is not a compile-time expression ({})",
+                        value, msg
+                    )
+                });
             Some(value)
         } else {
             // No compile-time value is produced
@@ -395,16 +390,8 @@ impl Validator {
         let value_eval = self.visit_expr(value);
 
         // Try to replace the operands with the folded values
-        if ref_eval.is_some() {
-            let span = var_ref.get_span().clone();
-            *var_ref = Box::new(Expr::try_from(ref_eval.unwrap()).unwrap());
-            var_ref.set_span(span);
-        }
-        if value_eval.is_some() {
-            let span = value.get_span().clone();
-            *value = Box::new(Expr::try_from(value_eval.unwrap()).unwrap());
-            value.set_span(span);
-        }
+        super::replace_with_folded(var_ref, ref_eval);
+        super::replace_with_folded(value, value_eval);
 
         // Resolve types first
         let left_type = &self.dealias_resolve_type(var_ref.get_eval_type());

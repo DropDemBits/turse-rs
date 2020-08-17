@@ -105,6 +105,12 @@ impl Location {
     }
 }
 
+impl Default for Location {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// All valid operators usable in Turing code
 #[derive(Debug)]
 pub enum Operator {

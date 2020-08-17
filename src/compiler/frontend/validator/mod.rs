@@ -20,6 +20,7 @@ use crate::compiler::value::Value;
 use crate::status_reporter::StatusReporter;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::rc::{Rc, Weak};
 
 // An identifier info entry associated with one instance of an identifier
@@ -230,14 +231,7 @@ impl Validator {
         // parser should not produce such a alias cyclic chain, and when using
         // external libraries, the type references should be validated to not
         // produce a cyclic reference chain.
-        loop {
-            let current_id = if let Some(type_id) = types::get_type_id(&current_ref) {
-                type_id
-            } else {
-                // Most likely at the end of the chain, so break
-                break;
-            };
-
+        while let Some(current_id) = types::get_type_id(&current_ref) {
             // Reference types should already be resolved
             let mut type_info = self.type_table.get_type(current_id).clone();
             debug_assert!(!matches!(type_info, Type::Reference { .. }));
@@ -260,7 +254,7 @@ impl Validator {
         }
 
         // At the end of the aliasing chain
-        return current_ref;
+        current_ref
     }
 
     /// Reports unused identifiers in the given scope
@@ -376,6 +370,18 @@ fn is_type_reference(expr: &Expr) -> bool {
         }
         Expr::Grouping { expr: inner, .. } => is_type_reference(inner),
         _ => false, // Most likely not a type reference
+    }
+}
+
+/// Replaces an expression with the folded version of the value
+///
+/// Appropriately carries over the associated expr's span
+fn replace_with_folded(expr: &mut Expr, folded_expr: Option<Value>) {
+    if let Some(value) = folded_expr {
+        let span = *expr.get_span();
+        // Conversion is infalliable (should be using either Into or From)
+        *expr = Expr::try_from(value).unwrap();
+        expr.set_span(span);
     }
 }
 
@@ -2389,8 +2395,8 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         {
             if let Expr::BinaryOp { left, right, .. } = *expr.clone() {
                 // Check that (a + b) was folded, but not the + c
-                assert!(!matches!(*left.clone(), Expr::BinaryOp { .. }));
-                assert!(matches!(*right.clone(), Expr::Reference { .. }));
+                assert!(!matches!(*left, Expr::BinaryOp { .. }));
+                assert!(matches!(*right, Expr::Reference { .. }));
             } else {
                 panic!("Something wrong happened! (folding did weird things!)");
             }

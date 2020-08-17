@@ -50,7 +50,7 @@ impl ReferenceNode {
             })
             .or_insert(graph::Reference {
                 name: name.to_string(),
-                type_ref: type_ref.clone(),
+                type_ref: *type_ref,
                 generation: 0,
                 address_space,
             })
@@ -61,7 +61,7 @@ impl ReferenceNode {
     pub fn use_ref(&self, name: &str) -> graph::Reference {
         self.references
             .get(name)
-            .map(|r| r.clone())
-            .expect(&format!("Reference '{}' is missing an 'assign_ref'", name))
+            .cloned()
+            .unwrap_or_else(|| panic!("Reference '{}' is missing an 'assign_ref'", name))
     }
 }

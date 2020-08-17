@@ -58,7 +58,7 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub fn new(parent_blocks: &Vec<Rc<RefCell<CodeBlock>>>) -> Self {
+    pub fn new(parent_blocks: &[Rc<RefCell<CodeBlock>>]) -> Self {
         // Take a weak reference to the parent blocks
         // We do not need a strong reference to the parent blocks, as we do not
         // want to take ownership of them.
@@ -199,7 +199,7 @@ impl Scope {
                                 .unwrap()
                                 .instance
                                 .checked_add(1)
-                                .expect(&format!("Too many redeclarations of '{}'", name));
+                                .unwrap_or_else(|| panic!("Too many redeclarations of '{}'", name));
 
                             // Add to the existing ident list
                             all_idents.push(new_ident.clone());
@@ -217,7 +217,7 @@ impl Scope {
             // Declare the identifier
             let old_value = self
                 .idents
-                .insert(name.clone(), IdentEntry::Single(new_ident.clone()));
+                .insert(name, IdentEntry::Single(new_ident.clone()));
 
             assert!(old_value.is_none());
 
@@ -311,9 +311,9 @@ impl Scope {
             // Import the identifier from the parent scopes
             let imported = self.import_ident(ident.clone(), name);
 
-            if imported.is_some() {
+            if let Some(imported_ident) = imported {
                 // Return the imported identifier
-                return (imported.unwrap(), None);
+                return (imported_ident, None);
             }
 
             // None found, make a new one!
@@ -414,7 +414,7 @@ mod test {
 
     fn make_test_block(
         block_kind: BlockKind,
-        enclosing_blocks: &Vec<Rc<RefCell<CodeBlock>>>,
+        enclosing_blocks: &[Rc<RefCell<CodeBlock>>],
     ) -> CodeBlock {
         CodeBlock::new(block_kind, enclosing_blocks)
     }
@@ -443,7 +443,7 @@ mod test {
 
     #[test]
     fn test_ident_declare_use() {
-        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         let (ident, declare_msg) = scope.declare_ident(
@@ -463,7 +463,7 @@ mod test {
 
     #[test]
     fn test_ident_redeclare() {
-        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         // First decl, pass
@@ -624,7 +624,7 @@ mod test {
 
     #[test]
     fn test_resolve_defined() {
-        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         let (ident, msg) = scope.declare_ident(
@@ -658,7 +658,7 @@ mod test {
     #[test]
     #[should_panic(expected = "The given identifier has not been declared yet")]
     fn test_resolve_undefined() {
-        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         // Panics!
@@ -676,7 +676,7 @@ mod test {
 
     #[test]
     fn test_use_undefined() {
-        let root_block = make_test_block(BlockKind::Main, &vec![]);
+        let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         let (ident, msg) = scope.use_ident(make_ident_token(), "a");

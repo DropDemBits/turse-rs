@@ -48,7 +48,7 @@ impl StatusReporter {
     pub fn report_error(&self, at: &Location, message: Arguments) {
         self.report_at(ReportMessage {
             kind: ReportKind::Error,
-            at: at.clone(),
+            at: *at,
             message,
         });
 
@@ -58,7 +58,7 @@ impl StatusReporter {
     pub fn report_warning(&self, at: &Location, message: Arguments) {
         self.report_at(ReportMessage {
             kind: ReportKind::Warning,
-            at: at.clone(),
+            at: *at,
             message,
         });
     }

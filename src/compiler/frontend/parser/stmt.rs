@@ -95,7 +95,7 @@ impl<'s> Parser<'s> {
         // Grab assign value
         let has_init_expr;
         let assign_expr = if self.is_simple_assignment() {
-            if &self.current().token_type == &TokenType::Equ {
+            if self.current().token_type == TokenType::Equ {
                 // Warn of mistake
                 self.warn_equ_as_assign(self.current().location);
             }
@@ -270,11 +270,11 @@ impl<'s> Parser<'s> {
                     self.replace_type(&old_ident.type_spec, Type::Forward { is_resolved: true });
 
                     // Use the resolved type in the type decl
-                    let mut ident = old_ident.clone();
+                    let mut ident = old_ident;
                     ident.token = ident_tok;
 
                     Ok(Stmt::TypeDecl {
-                        ident: ident,
+                        ident,
                         resolved_type: Some(resolve_type),
                         is_new_def: false,
                     })
@@ -286,11 +286,11 @@ impl<'s> Parser<'s> {
                         format_args!("Duplicate forward type declaration"),
                     );
 
-                    let mut ident = old_ident.clone();
+                    let mut ident = old_ident;
                     ident.token = ident_tok;
 
                     Ok(Stmt::TypeDecl {
-                        ident: ident,
+                        ident,
                         resolved_type: None,
                         is_new_def: false,
                     })
@@ -431,8 +431,8 @@ impl<'s> Parser<'s> {
             let stmt = self.decl();
 
             // Only add the Stmt if it was parsed successfully
-            if stmt.is_ok() {
-                stmts.push(stmt.unwrap());
+            if let Ok(stmt) = stmt {
+                stmts.push(stmt);
             }
         }
 
@@ -461,7 +461,7 @@ impl<'s> Parser<'s> {
 
     /// Checks if the current tokens form a compound assignment (operator '=')
     fn is_compound_assignment(&self) -> bool {
-        if &self.peek().token_type == &TokenType::Equ {
+        if self.peek().token_type == TokenType::Equ {
             // Look ahead token is a '=', check if current is one of the valid compound assign operators
             match &self.current().token_type {
                 TokenType::Plus

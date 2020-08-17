@@ -1,3 +1,4 @@
+#![allow(clippy::if_same_then_else)]
 mod compiler;
 mod status_reporter;
 

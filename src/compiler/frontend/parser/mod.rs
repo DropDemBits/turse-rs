@@ -72,9 +72,8 @@ impl<'s> Parser<'s> {
         let mut stmts = vec![];
 
         while !self.is_at_end() {
-            match self.decl() {
-                Ok(expr) => stmts.push(expr),
-                Err(_) => {}
+            if let Ok(stmt) = self.decl() {
+                stmts.push(stmt);
             }
         }
 
@@ -86,8 +85,7 @@ impl<'s> Parser<'s> {
 
     /// Takes the unit from the parser
     pub fn take_unit(&mut self) -> CodeUnit {
-        let code_unit = self.unit.take().unwrap();
-        code_unit
+        self.unit.take().unwrap()
     }
 
     /// Gets the previous token in the stream
@@ -134,7 +132,7 @@ impl<'s> Parser<'s> {
         message: Arguments,
     ) -> Result<Token, ParsingStatus> {
         if self.current().token_type == expected_type {
-            Ok(self.next_token().clone())
+            Ok(self.next_token())
         } else {
             self.reporter
                 .report_error(&self.current().location, message);
@@ -274,7 +272,7 @@ impl<'s> Parser<'s> {
             .borrow_mut()
             .scope
             .get_ident(name)
-            .map(|i| i.clone())
+            .cloned()
     }
 
     // -- Wrappers around the type table -- //
@@ -313,9 +311,7 @@ impl<'s> Parser<'s> {
 
     /// Pops a block off of the block list, returning the block
     fn pop_block(&mut self) -> Rc<RefCell<CodeBlock>> {
-        let block = self.blocks.pop().unwrap();
-
-        block
+        self.blocks.pop().unwrap()
     }
 }
 
@@ -343,7 +339,7 @@ mod test {
             .borrow()
             .scope
             .get_ident(name)
-            .map(|i| i.clone())
+            .cloned()
     }
 
     // Gets the identifier with the specified instance
@@ -360,7 +356,7 @@ mod test {
             .borrow()
             .scope
             .get_ident_instance(name, instance)
-            .map(|i| i.clone())
+            .cloned()
     }
 
     fn get_ident_type(parser: &Parser, name: &str) -> TypeRef {

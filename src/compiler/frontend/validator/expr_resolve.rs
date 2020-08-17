@@ -5,7 +5,6 @@ use crate::compiler::ast::{Expr, Identifier, VisitorMut};
 use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::value::{self, Value, ValueApplyError};
-use std::convert::TryFrom;
 
 impl Validator {
     // --- Expr Resolvers --- //
@@ -16,12 +15,7 @@ impl Validator {
             let value = self.visit_expr(expr);
 
             // Replace with folded expression
-            if value.is_some() {
-                let span = expr.get_span().clone();
-                *expr = Expr::try_from(value.unwrap())
-                    .expect("Unable to convert folded value back into an expression");
-                expr.set_span(span);
-            }
+            super::replace_with_folded(expr, value);
 
             if super::is_type_reference(expr) {
                 self.reporter.report_error(
@@ -47,18 +41,14 @@ impl Validator {
         // Visit the expr
         let eval = self.visit_expr(expr);
 
-        // Try to replace the inner expression with the folded value
-        if eval.is_some() {
-            let span = expr.get_span().clone();
-            *expr = Box::new(Expr::try_from(eval.clone().unwrap()).unwrap());
-            expr.set_span(span);
-        }
+        // Replace the inner expression with the folded value
+        super::replace_with_folded(expr, eval.clone());
 
         *eval_type = expr.get_eval_type();
         *is_compile_eval = expr.is_compile_eval();
 
         // Propogate the folded value
-        return eval;
+        eval
     }
 
     pub(super) fn resolve_expr_binary(
@@ -72,17 +62,9 @@ impl Validator {
         let left_eval = self.visit_expr(left);
         let right_eval = self.visit_expr(right);
 
-        // Try to replace the operands with the folded values
-        if left_eval.is_some() {
-            let span = left.get_span().clone();
-            *left = Box::new(Expr::try_from(left_eval.unwrap()).unwrap());
-            left.set_span(span);
-        }
-        if right_eval.is_some() {
-            let span = right.get_span().clone();
-            *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
-            right.set_span(span);
-        }
+        // Replace the operands with the folded values
+        super::replace_with_folded(left, left_eval);
+        super::replace_with_folded(right, right_eval);
 
         // Validate that the types are assignable with the given operation
         // eval_type is the type of the expr result
@@ -133,16 +115,16 @@ impl Validator {
 
                 if *is_compile_eval {
                     // Try to fold the current expression
-                    let lvalue = Value::from_expr(*left.clone(), &self.type_table).expect(
-                        &format!("Left operand is not a compile-time value {:?}", left),
-                    );
-                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(
-                        &format!("Right operand is not a compile-time value {:?}", right),
-                    );
+                    let lvalue = Value::from_expr(*left.clone(), &self.type_table).unwrap_or_else(|msg| {
+                        panic!("Left operand is not a compile-time value {:?} ({})", left, msg)
+                    });
+                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
+                        panic!("Right operand is not a compile-time value {:?} ({})", left, msg)
+                    });
 
                     let result = value::apply_binary(lvalue, op, rvalue);
 
-                    return match result {
+                    match result {
                         Ok(v) => Some(v),
                         Err(msg) => {
                             // Report the error message!
@@ -178,10 +160,10 @@ impl Validator {
                             *is_compile_eval = false;
                             None
                         }
-                    };
+                    }
                 } else {
                     // Can't fold the current expression
-                    return None;
+                    None
                 }
             }
             Err(bad_eval) => {
@@ -226,7 +208,7 @@ impl Validator {
 				}
 
                 // Produce no value
-                return None;
+                None
             }
         }
     }
@@ -240,12 +222,8 @@ impl Validator {
     ) -> Option<Value> {
         let right_eval = self.visit_expr(right);
 
-        // Try to replace operand with the folded value
-        if right_eval.is_some() {
-            let span = right.get_span().clone();
-            *right = Box::new(Expr::try_from(right_eval.unwrap()).unwrap());
-            right.set_span(span);
-        }
+        // Replace operand with the folded value
+        super::replace_with_folded(right, right_eval);
 
         // Validate that the unary operator can be applied to the rhs
         // eval_type is the result of the operation (usually the same
@@ -291,9 +269,9 @@ impl Validator {
 
                 if *is_compile_eval {
                     // Try to fold the expression
-                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).expect(
-                        &format!("Right operand is not a compile-time value {:?}", right),
-                    );
+                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
+                        panic!("Right operand is not a compile-time value {:?} ({})", right, msg)
+                    });
 
                     let result = value::apply_unary(&op, rvalue);
 
@@ -316,7 +294,7 @@ impl Validator {
                 }
 
                 // Produce no value
-                return None;
+                None
             }
             Err(bad_eval) => {
                 *eval_type = bad_eval;
@@ -332,7 +310,7 @@ impl Validator {
                 }
 
                 // Produce no value
-                return None;
+                None
             }
         }
     }
@@ -347,11 +325,7 @@ impl Validator {
         self.visit_expr(left);
         arg_list.iter_mut().for_each(|expr| {
             let value = self.visit_expr(expr);
-
-            if value.is_some() {
-                // Substitute value with folded expression
-                *expr = Expr::try_from(value.unwrap()).unwrap();
-            }
+            super::replace_with_folded(expr, value);
         });
 
         // Validate that 'left' is "callable"
@@ -544,7 +518,7 @@ impl Validator {
         }
 
         // Return the reference's associated compile-time value
-        return compile_value;
+        compile_value
     }
 
     pub(super) fn resolve_expr_literal(
@@ -565,10 +539,9 @@ impl Validator {
         } else {
             // Produce the corresponding literal value
             let tok_type = value.token_type.clone();
-            let v = Value::from_token_type(tok_type).expect(&format!(
-                "Literal '{:?}' cannot be converted into a compile-time value",
-                value.token_type
-            ));
+            let v = Value::from_token_type(tok_type).unwrap_or_else(|msg| {
+                panic!("Literal '{:?}' cannot be converted into a compile-time value ({})", value.token_type, msg);
+            });
 
             Some(v)
         }

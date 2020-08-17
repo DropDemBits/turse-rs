@@ -39,7 +39,7 @@ pub struct CodeBlock {
 }
 
 impl CodeBlock {
-    pub fn new(block_kind: BlockKind, enclosing_blocks: &Vec<Rc<RefCell<Self>>>) -> Self {
+    pub fn new(block_kind: BlockKind, enclosing_blocks: &[Rc<RefCell<Self>>]) -> Self {
         Self {
             block_kind,
             scope: Scope::new(enclosing_blocks),
@@ -71,7 +71,7 @@ impl CodeUnit {
                 } else {
                     BlockKind::Unit
                 },
-                &vec![],
+                &[],
             ))),
             stmts: vec![],
             types: Some(TypeTable::new()),

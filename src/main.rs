@@ -3,7 +3,7 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 
-fn show_usage(program_name: &String, opts: &Options) {
+fn show_usage(program_name: &str, opts: &Options) {
     let brief = format!("Usage: {} [options]", program_name);
     print!("{}", opts.usage(&brief));
 }

@@ -105,7 +105,7 @@ impl<'s> Parser<'s> {
                 // Try to parse either a reference, or a range type
                 let ref_or_range = self.type_reference_or_range(parse_context);
 
-                if let Err(_) = ref_or_range {
+                if ref_or_range.is_err() {
                     // No parsing has been done yet, so report at the current location
                     self.reporter.report_error(
                         &self.current().location,
@@ -397,7 +397,7 @@ impl<'s> Parser<'s> {
                     format_args!("Expected identifier for parameter name"),
                 )
                 .map(|tok| tok.location.get_lexeme(self.source).to_string())
-                .unwrap_or(String::from("<invalid>"));
+                .unwrap_or_else(|_| String::new());
 
             idents.push(ident);
 
@@ -440,7 +440,7 @@ impl<'s> Parser<'s> {
                 format_args!("Expected identifier for parameter name"),
             )
             .map(|tok| tok.location.get_lexeme(self.source).to_string())
-            .unwrap_or(String::from("<invalid>"));
+            .unwrap_or_else(|_| String::new());
 
         let type_spec = self.type_function(parse_context, has_result);
 
@@ -538,8 +538,8 @@ impl<'s> Parser<'s> {
         }
 
         self.declare_type(Type::Range {
-            start: start_range,
-            end: end_range,
+            start: Box::new(start_range),
+            end: end_range.map(Box::new),
             base_type: TypeRef::Unknown,
             size: None,
         })
@@ -747,7 +747,7 @@ impl<'s> Parser<'s> {
                     ),
                 )
                 .map(|_| current_text)
-                .unwrap_or(String::from(""));
+                .unwrap_or_else(|_| String::new());
 
             fields.push(ident);
 

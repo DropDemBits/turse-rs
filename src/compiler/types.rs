@@ -199,10 +199,10 @@ pub enum Type {
     /// that can be a runtime dependent value
     Range {
         /// Start of the range
-        start: Expr,
+        start: Box<Expr>,
         /// End of the range
         /// None is equivalent to specifiying *
-        end: Option<Expr>,
+        end: Option<Box<Expr>>,
         /// Base type for the range.
         /// Can be an int, enum type, char, or boolean, depending on the range evaluation.
         /// This is always a de-aliased type.
@@ -223,7 +223,7 @@ pub enum Type {
 }
 
 /// Table of all named references defined in the scope
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TypeTable {
     /// Next type id
     next_id: usize,
@@ -278,14 +278,14 @@ impl TypeTable {
 
 // --- Helpers for deriving the appropriate type ---
 /// Makes the appropriate `StringN` type for the given `String`
-pub fn get_string_kind(s: &String) -> PrimitiveType {
+pub fn get_string_kind(s: &str) -> PrimitiveType {
     let size = s.bytes().count();
 
     PrimitiveType::StringN(SequenceSize::Size(size))
 }
 
 /// Makes the appropriate `CharN` type for the given `String`
-pub fn get_char_kind(s: &String) -> PrimitiveType {
+pub fn get_char_kind(s: &str) -> PrimitiveType {
     let size = s.bytes().count();
 
     PrimitiveType::CharN(SequenceSize::Size(size))
@@ -858,8 +858,8 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
                         // Compare the start ranges
                         let is_start_eq = {
-                            let start_value = Value::try_from(start.clone()).ok();
-                            let other_start_value = Value::try_from(other_start.clone()).ok();
+                            let start_value = Value::try_from(*start.clone()).ok();
+                            let other_start_value = Value::try_from(*other_start.clone()).ok();
 
                             start_value
                                 .and_then(|v| Some((v, other_start_value?)))
@@ -945,7 +945,7 @@ pub fn get_index_length(index_ref: &TypeRef, type_table: &TypeTable) -> usize {
 }
 
 /// Computes the number of elements inside of the array
-pub fn get_array_element_count(ranges: &Vec<TypeRef>, type_table: &TypeTable) -> (usize, bool) {
+pub fn get_array_element_count(ranges: &[TypeRef], type_table: &TypeTable) -> (usize, bool) {
     if ranges.is_empty() {
         // No ranges means that there is no array
         return (0, false);
