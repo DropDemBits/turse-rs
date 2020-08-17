@@ -930,65 +930,65 @@ mod test {
     use super::*;
 
     macro_rules! make_bops {
-		($( $l:literal $op:ident $r:literal == $exp:expr );* $( ; )?) => {
-			{
-				use TokenType::*;
-				let mut res = vec![];
+        ($( $l:literal $op:ident $r:literal == $exp:expr );* $( ; )?) => {
+            {
+                use TokenType::*;
+                let mut res = vec![];
 
-				$(
-					res.push((Value::from($l), $op, Value::from($r), Value::from($exp)));
-				)*
+                $(
+                    res.push((Value::from($l), $op, Value::from($r), Value::from($exp)));
+                )*
 
-				res
-			}
-		};
+                res
+            }
+        };
     }
 
     macro_rules! make_error_bops {
-		($( $l:literal $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
-			{
+        ($( $l:literal $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
+            {
                 use TokenType::*;
                 use ValueApplyError::*;
-				let mut res = vec![];
+                let mut res = vec![];
 
-				$(
-					res.push((Value::from($l), $op, Value::from($r), $exp));
-				)*
+                $(
+                    res.push((Value::from($l), $op, Value::from($r), $exp));
+                )*
 
-				res
-			}
-		};
+                res
+            }
+        };
     }
 
     macro_rules! make_uops {
-		($( $op:ident $r:literal == $exp:expr );* $( ; )?) => {
-			{
-				use TokenType::*;
-				let mut res = vec![];
+        ($( $op:ident $r:literal == $exp:expr );* $( ; )?) => {
+            {
+                use TokenType::*;
+                let mut res = vec![];
 
-				$(
-					res.push(($op, Value::from($r), Value::from($exp)));
-				)*
+                $(
+                    res.push(($op, Value::from($r), Value::from($exp)));
+                )*
 
-				res
-			}
-		};
+                res
+            }
+        };
     }
 
     macro_rules! make_error_uops {
-		($( $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
-			{
+        ($( $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
+            {
                 use TokenType::*;
                 use ValueApplyError::*;
-				let mut res = vec![];
+                let mut res = vec![];
 
-				$(
-					res.push(($op, Value::from($r), $exp));
-				)*
+                $(
+                    res.push(($op, Value::from($r), $exp));
+                )*
 
-				res
-			}
-		};
+                res
+            }
+        };
     }
 
     #[test]

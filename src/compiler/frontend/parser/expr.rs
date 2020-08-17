@@ -26,7 +26,7 @@ literal:
 
 selector:
     '(' arg_list ')'  // arrays (params: Expr::List)
-    '.' reference		// fields (Expr::BinaryOp, op: Dot)
+    '.' reference        // fields (Expr::BinaryOp, op: Dot)
 
 reference:
     identifier
@@ -54,7 +54,7 @@ setCons:
 
 enumValue:
     reference '.' identifier // Documented encoding
-    reference 				 // Real encoding
+    reference                  // Real encoding
 
 */
 

@@ -115,12 +115,20 @@ impl Validator {
 
                 if *is_compile_eval {
                     // Try to fold the current expression
-                    let lvalue = Value::from_expr(*left.clone(), &self.type_table).unwrap_or_else(|msg| {
-                        panic!("Left operand is not a compile-time value {:?} ({})", left, msg)
-                    });
-                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
-                        panic!("Right operand is not a compile-time value {:?} ({})", left, msg)
-                    });
+                    let lvalue =
+                        Value::from_expr(*left.clone(), &self.type_table).unwrap_or_else(|msg| {
+                            panic!(
+                                "Left operand is not a compile-time value {:?} ({})",
+                                left, msg
+                            )
+                        });
+                    let rvalue =
+                        Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
+                            panic!(
+                                "Right operand is not a compile-time value {:?} ({})",
+                                left, msg
+                            )
+                        });
 
                     let result = value::apply_binary(lvalue, op, rvalue);
 
@@ -171,41 +179,41 @@ impl Validator {
                 *is_compile_eval = false;
 
                 match op {
-					TokenType::Plus => 
-					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
-					TokenType::Minus | TokenType::Star => 
-					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
-					TokenType::Slash | TokenType::Div | TokenType::Mod | TokenType::Rem | TokenType::Exp => 
-					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
-					TokenType::And | TokenType::Or | TokenType::Xor =>
-					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
-					TokenType::Shl | TokenType::Shr => 
-					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
-					TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu => {
-						if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-							self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
-						} else {
-							self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
-						}
-					},
-					TokenType::NotEqu | TokenType::Equ => {
-						if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-							self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
-						} else {
-							self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
-						}
-					},
-					TokenType::In | TokenType::NotIn => {
-						if !types::is_set(right_type, &self.type_table) {
-							self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
-						} else {
-							self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
-						}
-					},
-					TokenType::Imply =>
-					self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
-					_ => unreachable!(),
-				}
+                    TokenType::Plus =>
+                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
+                    TokenType::Minus | TokenType::Star =>
+                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
+                    TokenType::Slash | TokenType::Div | TokenType::Mod | TokenType::Rem | TokenType::Exp =>
+                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
+                    TokenType::And | TokenType::Or | TokenType::Xor =>
+                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
+                    TokenType::Shl | TokenType::Shr =>
+                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
+                    TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu => {
+                        if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
+                            self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
+                        } else {
+                            self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
+                        }
+                    },
+                    TokenType::NotEqu | TokenType::Equ => {
+                        if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
+                            self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
+                        } else {
+                            self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
+                        }
+                    },
+                    TokenType::In | TokenType::NotIn => {
+                        if !types::is_set(right_type, &self.type_table) {
+                            self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
+                        } else {
+                            self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
+                        }
+                    },
+                    TokenType::Imply =>
+                    self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
+                    _ => unreachable!(),
+                }
 
                 // Produce no value
                 None
@@ -269,9 +277,13 @@ impl Validator {
 
                 if *is_compile_eval {
                     // Try to fold the expression
-                    let rvalue = Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
-                        panic!("Right operand is not a compile-time value {:?} ({})", right, msg)
-                    });
+                    let rvalue =
+                        Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
+                            panic!(
+                                "Right operand is not a compile-time value {:?} ({})",
+                                right, msg
+                            )
+                        });
 
                     let result = value::apply_unary(&op, rvalue);
 
@@ -540,7 +552,10 @@ impl Validator {
             // Produce the corresponding literal value
             let tok_type = value.token_type.clone();
             let v = Value::from_token_type(tok_type).unwrap_or_else(|msg| {
-                panic!("Literal '{:?}' cannot be converted into a compile-time value ({})", value.token_type, msg);
+                panic!(
+                    "Literal '{:?}' cannot be converted into a compile-time value ({})",
+                    value.token_type, msg
+                );
             });
 
             Some(v)
