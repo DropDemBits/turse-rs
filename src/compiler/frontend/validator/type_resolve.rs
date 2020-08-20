@@ -236,6 +236,7 @@ impl Validator {
         for range in ranges.iter_mut() {
             // Not required to be compile-time, unless we are in a compile-time context
             *range = self.resolve_type(*range, resolving_context);
+            let dealiased_range = types::dealias_ref(range, &self.type_table);
 
             if !is_flexible && !is_init_sized {
                 // If the following holds true
@@ -244,19 +245,20 @@ impl Validator {
                 // Check if it is a not a zero sized range
                 if let Some(Type::Range {
                     start, end, size, ..
-                }) = self.type_table.type_from_ref(&range)
+                }) = self.type_table.type_from_ref(&dealiased_range)
                 {
-                    // Not being `flexible` nor `init`-sized guarrantees that end is a `Some`
-                    let end = end.as_ref().unwrap();
-
-                    if end.is_compile_eval() && *size == Some(0) {
-                        // Zero sized ranges aren't allowed in compile-time array types
-                        let range_span = start.get_span().span_to(end.get_span());
-                        self.reporter.report_error(
-                            &range_span,
-                            format_args!("Range bounds creates a zero-sized range"),
-                        );
-                        *range = TypeRef::TypeError;
+                    // Not being `flexible` nor `init`-sized does not guarrantees that end
+                    // is a `Some` (e.g. something hidden behind an alias)
+                    if let Some(end) = end {
+                        if end.is_compile_eval() && *size == Some(0) {
+                            // Zero sized ranges aren't allowed in compile-time array types
+                            let range_span = start.get_span().span_to(end.get_span());
+                            self.reporter.report_error(
+                                &range_span,
+                                format_args!("Range bounds creates a zero-sized range"),
+                            );
+                            *range = TypeRef::TypeError;
+                        }
                     }
                 }
             }
@@ -532,10 +534,10 @@ impl Validator {
         // ignored during equivalence checking
         *index = self.resolve_type(*index, ResolveContext::CompileTime(false));
 
-        if types::is_named(&index) {
+        if types::is_named(&index) || types::is_primitive(&index) {
             // Check that the index reference is actually an index type and not a reference to a non-index type
             // Other cases are handled by the parser
-            let real_index = self.dealias_resolve_type(*index);
+            let real_index = types::dealias_ref(index, &self.type_table);
 
             if !types::is_index_type(&real_index, &self.type_table) {
                 // Not a real index type, change it to point to a type error
@@ -568,22 +570,6 @@ impl Validator {
                         format_args!("Range bounds creates a zero-sized range"),
                     );
                     *index = TypeRef::TypeError;
-                }
-            }
-        } else if types::is_primitive(&index) {
-            if !types::is_index_type(&index, &self.type_table) {
-                // Is a primitive, but neither a 'char' nor a 'boolean'
-                *index = TypeRef::TypeError;
-
-                // Report the error based on the reference location
-                // If not a reference, already reported by the parser
-                if let Some(Type::Reference { expr }) =
-                    self.type_table.type_from_ref(&old_index_ref)
-                {
-                    self.reporter.report_error(
-                        expr.get_span(),
-                        format_args!("Set index is not a range, char, boolean, or enumerated type"),
-                    );
                 }
             }
         } else {

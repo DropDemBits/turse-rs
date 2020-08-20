@@ -2202,6 +2202,46 @@ mod test {
             false,
             run_validator("type a : -1+2 .. 1-1               \ntype b : set of a")
         );
+        assert_eq!(
+            false,
+            run_validator("type a : 'D' .. 'C'                \ntype b : array a of int")
+        );
+
+        // 0 sized ranges can't hide behind double aliases
+        assert_eq!(
+            false,
+            run_validator("type a : 'D' .. 'C'\ntype b : a    \nvar c : a")
+        );
+        assert_eq!(
+            false,
+            run_validator("type a : 'D' .. 'C'\ntype b : a    \ntype c : set of a")
+        );
+        assert_eq!(
+            false,
+            run_validator("type a : 'D' .. 'C'\ntype b : a    \ntype c : array a of int")
+        );
+
+        // `init`-sized ranges can't hide behind aliases
+        assert_eq!(
+            false,
+            run_validator("type a : 1 .. *\nvar b : array a of int := init(1)")
+        );
+        assert_eq!(false, run_validator("type a : 1 .. *\ntype b : set of a"));
+        assert_eq!(false, run_validator("type a : 1 .. *\nvar b : set of a"));
+
+        // `init`-sized ranges can't hide behind double aliases
+        assert_eq!(
+            false,
+            run_validator("type a : 1 .. *\ntype b : a\nvar c : array b of int")
+        );
+        assert_eq!(
+            false,
+            run_validator("type a : 1 .. *\ntype b : a\ntype c : set of b")
+        );
+        assert_eq!(
+            false,
+            run_validator("type a : 1 .. *\ntype b : a\nvar c : b")
+        );
 
         // Negative size ranges are invalid
         assert_eq!(false, run_validator("var a : 16#80000000 .. 16#7ffffffe"));
