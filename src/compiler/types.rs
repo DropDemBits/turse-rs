@@ -738,6 +738,10 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // A value is assignable inside of a range type if the value is assignable to the
         // range's base type
         is_assignable_to(base_type, rvalue, type_table)
+    } else if let Some(Type::Range { base_type, .. }) = type_table.type_from_ref(rvalue) {
+        // A range type is assignable to a value if the range's base type is assignable
+        // to the given value
+        is_assignable_to(lvalue, base_type, type_table)
     } else if let Some(Type::Enum { .. }) = type_table.type_from_ref(lvalue) {
         if let Some(Type::EnumField { enum_type, .. }) = type_table.type_from_ref(rvalue) {
             // Enum field is assignable into the parent enum type

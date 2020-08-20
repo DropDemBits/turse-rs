@@ -32,6 +32,73 @@ impl Validator {
         None
     }
 
+    /// Resolves an indirection expression
+    pub(super) fn resolve_expr_indirect(
+        &mut self,
+        reference: &mut Option<Box<Expr>>,
+        addr: &mut Box<Expr>,
+        eval_type: &mut TypeRef,
+    ) -> Option<Value> {
+        if let Some(reference) = reference {
+            let ref_eval = self.visit_expr(reference);
+            super::replace_with_folded(reference, ref_eval);
+        }
+
+        let addr_eval = self.visit_expr(addr);
+        super::replace_with_folded(addr, addr_eval);
+
+        // `reference` must be a type reference
+        if let Some(reference) = reference {
+            if !super::is_type_reference(reference) {
+                self.reporter.report_error(
+                    reference.get_span(),
+                    format_args!("Reference does not refer to a type"),
+                );
+
+                if *eval_type == TypeRef::Unknown {
+                    // Force into a type error
+                    *eval_type = TypeRef::TypeError;
+                }
+            } else if *eval_type == TypeRef::Unknown {
+                // Use type eval of reference expr
+                *eval_type = reference.get_eval_type();
+            }
+        }
+
+        // Resolve `eval_type` & de-alias it
+        if !types::is_error(eval_type) {
+            *eval_type = self.dealias_resolve_type(*eval_type);
+        }
+
+        // `addr` must evaluate to a `nat` or `int` type, not evaluating to a type reference
+        if super::is_type_reference(addr) {
+            self.reporter.report_error(
+                addr.get_span(),
+                format_args!("Indirection address reference is not a 'var' or 'const' reference"),
+            );
+        } else if !matches!(**addr, Expr::Empty) {
+            let dealiased_addr = types::dealias_ref(&addr.get_eval_type(), &self.type_table);
+
+            if !types::is_assignable_to(
+                &TypeRef::Primitive(PrimitiveType::Int),
+                &dealiased_addr,
+                &self.type_table,
+            ) {
+                self.reporter.report_error(
+                    addr.get_span(),
+                    format_args!(
+                        "Indirection address expression does not evaluate to an integer type",
+                    ),
+                );
+            }
+        }
+
+        // ???: Warn about null address accesses?
+
+        // Never return a value
+        None
+    }
+
     pub(super) fn resolve_expr_grouping(
         &mut self,
         expr: &mut Box<Expr>,

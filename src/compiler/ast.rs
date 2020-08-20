@@ -173,6 +173,17 @@ pub enum Expr {
         /// The span of the expression
         span: Location,
     },
+    /// "Indirect" expression
+    Indirect {
+        reference: Option<Box<Expr>>,
+        /// The expression contained in the box address
+        addr: Box<Expr>,
+        /// The expression evaluation type
+        /// If TypeRef::Unknown, type is derived from the reference expression
+        eval_type: TypeRef,
+        /// The span of the expression
+        span: Location,
+    },
 }
 
 impl Expr {
@@ -181,6 +192,7 @@ impl Expr {
         match self {
             Expr::Empty => TypeRef::TypeError,
             Expr::Init { .. } => TypeRef::TypeError, // Doesn't evaluate to anything
+            Expr::Indirect { eval_type, .. } => *eval_type,
             Expr::BinaryOp { eval_type, .. } => *eval_type,
             Expr::UnaryOp { eval_type, .. } => *eval_type,
             Expr::Grouping { eval_type, .. } => *eval_type,
@@ -195,6 +207,7 @@ impl Expr {
     pub fn get_span(&self) -> &Location {
         match self {
             Expr::Empty => panic!("Can't get span for empty expression"),
+            Expr::Indirect { span, .. } => span,
             Expr::Init { span, .. } => span,
             Expr::BinaryOp { span, .. } => span,
             Expr::UnaryOp { span, .. } => span,
@@ -210,6 +223,7 @@ impl Expr {
         match self {
             Expr::Empty => {}
             Expr::Init { span, .. } => *span = at,
+            Expr::Indirect { span, .. } => *span = at,
             Expr::BinaryOp { span, .. } => *span = at,
             Expr::UnaryOp { span, .. } => *span = at,
             Expr::Grouping { span, .. } => *span = at,
@@ -224,7 +238,8 @@ impl Expr {
     pub fn is_compile_eval(&self) -> bool {
         match self {
             Expr::Empty => false,
-            Expr::Init { .. } => false, // Never directly compilable at runtime
+            Expr::Init { .. } => false, // Never directly evaluable at compile-time
+            Expr::Indirect { .. } => false, // Never compile-time evaluable
             Expr::BinaryOp {
                 is_compile_eval, ..
             } => *is_compile_eval,
@@ -253,6 +268,7 @@ impl fmt::Debug for Expr {
         match self {
             Empty => f.write_str("<empty>"),
             Init { exprs, .. } => f.write_fmt(format_args!("init({:?})", exprs)),
+            Indirect { eval_type, reference, .. } => f.write_fmt(format_args!("({:?} @ ({:?}))", eval_type, reference)),
             BinaryOp {
                 left, op, right, ..
             } => f.write_fmt(format_args!("({} {:?} {:?})", &op.token_type, left, right)),

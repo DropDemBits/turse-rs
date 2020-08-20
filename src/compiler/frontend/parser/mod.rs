@@ -1595,4 +1595,115 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("type k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : int))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
         assert_eq!(parser.parse(), false);
     }
+
+    #[test]
+    fn test_indirect_expr() {
+        // all valid types
+        let mut parser = make_test_parser(
+            "
+            const c := 1 + 2 - 3
+            type tyref : int
+            var a00 := addressint @ (0)
+            var a01 := char       @ (0)
+            var a02 := char(c)    @ (0)
+            var a03 := string     @ (0)
+            var a04 := string(c)  @ (0)
+            var a05 := boolean    @ (0)
+            var a06 := int        @ (0)
+            var a07 := int1       @ (0)
+            var a08 := int2       @ (0)
+            var a09 := int4       @ (0)
+            var a10 := nat        @ (0)
+            var a11 := nat1       @ (0)
+            var a12 := nat2       @ (0)
+            var a13 := nat4       @ (0)
+            var a14 := real       @ (0)
+            var a15 := real4      @ (0)
+            var a16 := real8      @ (0)
+            var a17 := tyref      @ (0)
+            ",
+        );
+        assert_eq!(parser.parse(), true);
+
+        // Indirect expressions must be produced in error case
+        let mut parser = make_test_parser(
+            "
+            var a00 := addressint
+            var a01 := char      
+            var a02 := char(c)   
+            var a03 := string    
+            var a04 := string(c) 
+            var a05 := boolean   
+            var a06 := int       
+            var a07 := int1      
+            var a08 := int2      
+            var a09 := int4      
+            var a10 := nat       
+            var a11 := nat1      
+            var a12 := nat2      
+            var a13 := nat4      
+            var a14 := real      
+            var a15 := real4     
+            var a16 := real8     
+            ",
+        );
+        assert_eq!(parser.parse(), false);
+        for stmt in parser.unit.as_ref().unwrap().stmts() {
+            if let Stmt::VarDecl {
+                value: Some(some_val),
+                ..
+            } = stmt
+            {
+                assert!(matches!(**some_val, Expr::Indirect { .. }));
+            }
+        }
+
+        // Expect '(' after '@'
+        let mut parser = make_test_parser("var a := int @ 0)");
+        assert_eq!(parser.parse(), false);
+
+        // Expect '(' after expr
+        let mut parser = make_test_parser("var a := int @ 0");
+        assert_eq!(parser.parse(), false);
+        let mut parser = make_test_parser("var a := int @ (0");
+        assert_eq!(parser.parse(), false);
+
+        // Address expression should be empty in these cases
+        let mut parser = make_test_parser("var a := int @ ()");
+        assert_eq!(parser.parse(), false);
+        if let Stmt::VarDecl {
+            value: Some(indirect),
+            ..
+        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        {
+            if let Expr::Indirect { addr, .. } = &**indirect {
+                assert!(matches!(**addr, Expr::Empty), "Is {:?}", addr);
+            }
+        }
+
+        let mut parser = make_test_parser("var a := int @ ");
+        assert_eq!(parser.parse(), false);
+        if let Stmt::VarDecl {
+            value: Some(indirect),
+            ..
+        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        {
+            if let Expr::Indirect { addr, .. } = &**indirect {
+                assert!(matches!(**addr, Expr::Empty), "Is {:?}", addr);
+            }
+        }
+
+        // Should not be a bare empty
+        let mut parser = make_test_parser("var a := int @ (+)");
+        assert_eq!(parser.parse(), false);
+        if let Stmt::VarDecl {
+            value: Some(indirect),
+            ..
+        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        {
+            if let Expr::Indirect { addr, .. } = &**indirect {
+                assert!(!matches!(**addr, Expr::Empty), "Is {:?}", addr);
+            }
+        }
+    }
 }

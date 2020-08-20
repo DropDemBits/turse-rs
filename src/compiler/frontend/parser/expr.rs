@@ -3,6 +3,7 @@ use super::{Parser, ParsingStatus};
 use crate::compiler::ast::{Expr, Identifier};
 use crate::compiler::frontend::token::{Token, TokenType};
 use crate::compiler::types::{self, PrimitiveType, TypeRef};
+use crate::compiler::Location;
 
 /*
 expr:
@@ -238,7 +239,9 @@ impl<'s> Parser<'s> {
             let op = self.current();
             let infix = Parser::get_rule(&op.token_type);
 
-            if infix.precedence >= Precedence::Follow {
+            if infix.precedence >= Precedence::Follow
+                && !matches!(op.token_type, TokenType::At | TokenType::Range)
+            {
                 // Is a deref, identifier, or literal
                 // Most likely end of expression, so return
 
@@ -501,6 +504,7 @@ impl<'s> Parser<'s> {
                 })
             }
             _ => {
+                // Unexpected token
                 self.reporter.report_error(
                     &token.location,
                     format_args!("Unexpected token '{}'", self.get_token_lexeme(&token)),
@@ -528,6 +532,72 @@ impl<'s> Parser<'s> {
                 ident_tok.location
             )
         }
+    }
+
+    /// Parses an indirection expr, using a type reference expression
+    fn expr_indirect_ref(&mut self, type_ref: Expr) -> Result<Expr, ParsingStatus> {
+        self.expr_indirect(
+            *type_ref.get_span(),
+            Some(Box::new(type_ref)),
+            TypeRef::Unknown,
+        )
+    }
+
+    /// Parses an indirection expr, using a primitive type reference
+    fn expr_indirect_type(&mut self) -> Result<Expr, ParsingStatus> {
+        // Valid primitive types are:
+        // - `addressint`
+        // - `int`, `int1`, `int2`, `int4`
+        // - `nat`, `nat1`, `nat2`, `nat4`
+        // - `real`, `real4`, `real8`
+        // - `boolean`
+        // - `char`, `char(expr)`
+        // - `string`, `string(expr)`
+
+        let start_span = self.previous().location;
+        let type_ref = self.parse_primitive_type(&TokenType::At);
+        let at = self.expects(
+            TokenType::At,
+            format_args!("Expected '@' after primitive type (to form an indirection expression)"),
+        );
+
+        if at.is_ok() {
+            self.expr_indirect(start_span, None, type_ref)
+        } else {
+            // Make a dummy expression
+            Ok(Expr::Indirect {
+                reference: None,
+                addr: Box::new(Expr::Empty),
+                eval_type: type_ref,
+                span: start_span,
+            })
+        }
+    }
+
+    /// Parses the rest of an indirection expression
+    fn expr_indirect(
+        &mut self,
+        span_from: Location,
+        reference: Option<Box<Expr>>,
+        eval_type: TypeRef,
+    ) -> Result<Expr, ParsingStatus> {
+        // ... '@' '(' expr ')'
+        assert_eq!(self.previous().token_type, TokenType::At);
+
+        let _ = self.expects(TokenType::LeftParen, format_args!("Expected '(' after '@'"));
+        let addr = Box::new(self.expr().unwrap_or(Expr::Empty));
+        let _ = self.expects(
+            TokenType::RightParen,
+            format_args!("Expected ')' after address expression"),
+        );
+        let span = span_from.span_to(&self.previous().location);
+
+        Ok(Expr::Indirect {
+            reference,
+            addr,
+            eval_type,
+            span,
+        })
     }
 
     /// Parses an init expression.
@@ -703,6 +773,30 @@ impl<'s> Parser<'s> {
             TokenType::Identifier => &PrecedenceRule {
                 precedence: Precedence::Primary,
                 prefix_rule: Some(Parser::expr_ident),
+                infix_rule: None,
+            },
+            TokenType::At => &PrecedenceRule {
+                precedence: Precedence::Primary,
+                prefix_rule: None,
+                infix_rule: Some(Parser::expr_indirect_ref),
+            },
+            TokenType::Addressint
+            | TokenType::Int
+            | TokenType::Int1
+            | TokenType::Int2
+            | TokenType::Int4
+            | TokenType::Nat
+            | TokenType::Nat1
+            | TokenType::Nat2
+            | TokenType::Nat4
+            | TokenType::Real
+            | TokenType::Real4
+            | TokenType::Real8
+            | TokenType::Boolean
+            | TokenType::Char
+            | TokenType::String_ => &PrecedenceRule {
+                precedence: Precedence::Primary,
+                prefix_rule: Some(Parser::expr_indirect_type),
                 infix_rule: None,
             },
             _ => &PrecedenceRule {

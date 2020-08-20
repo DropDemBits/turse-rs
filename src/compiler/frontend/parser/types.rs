@@ -8,9 +8,9 @@ use std::collections::HashMap;
 impl<'s> Parser<'s> {
     // --- Type Parsing --- //
     /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged.
-    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed
+    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed.
     ///
-    /// `parse_context`         The token type describing where the type is being parsed
+    /// `parse_context`     The token type describing where the type is being parsed
     pub(super) fn parse_type(&mut self, parse_context: &TokenType) -> TypeRef {
         // Update nesting depth
         self.type_nesting = self.type_nesting.saturating_add(1);
@@ -47,7 +47,16 @@ impl<'s> Parser<'s> {
             TokenType::Real => self.type_primitive(PrimitiveType::Real),
             TokenType::Real4 => self.type_primitive(PrimitiveType::Real4),
             TokenType::Real8 => self.type_primitive(PrimitiveType::Real8),
-            TokenType::String_ | TokenType::Char => self.type_char_seq(parse_context),
+            TokenType::Char => {
+                // Nom 'char'
+                self.next_token();
+                self.type_char_seq(true, parse_context)
+            }
+            TokenType::String_ => {
+                // Nom 'string'
+                self.next_token();
+                self.type_char_seq(false, parse_context)
+            }
 
             // Compound primitives
             TokenType::Flexible if self.peek().token_type == TokenType::Array => {
@@ -129,6 +138,42 @@ impl<'s> Parser<'s> {
             .checked_sub(1)
             .expect("Mismatched nesting counts");
         type_spec
+    }
+
+    /// Tries to parse a primitive type from the previous token, returning
+    /// TypeRef::TypeError if the parsing couldn't be salvaged.
+    /// If a Type::TypeError is produced, no further tokens have been consumed.
+    ///
+    /// This is only used to parse a primitive type in an indirection
+    /// expression.
+    ///
+    /// `parse_context`     The token type describing where the type is being parsed
+    pub(super) fn parse_primitive_type(&mut self, parse_context: &TokenType) -> TypeRef {
+        match self.previous().token_type {
+            TokenType::Addressint => TypeRef::Primitive(PrimitiveType::AddressInt),
+            TokenType::Boolean => TypeRef::Primitive(PrimitiveType::Boolean),
+            TokenType::Int => TypeRef::Primitive(PrimitiveType::Int),
+            TokenType::Int1 => TypeRef::Primitive(PrimitiveType::Int1),
+            TokenType::Int2 => TypeRef::Primitive(PrimitiveType::Int2),
+            TokenType::Int4 => TypeRef::Primitive(PrimitiveType::Int4),
+            TokenType::Nat => TypeRef::Primitive(PrimitiveType::Nat),
+            TokenType::Nat1 => TypeRef::Primitive(PrimitiveType::Nat1),
+            TokenType::Nat2 => TypeRef::Primitive(PrimitiveType::Nat2),
+            TokenType::Nat4 => TypeRef::Primitive(PrimitiveType::Nat4),
+            TokenType::Real => TypeRef::Primitive(PrimitiveType::Real),
+            TokenType::Real4 => TypeRef::Primitive(PrimitiveType::Real4),
+            TokenType::Real8 => TypeRef::Primitive(PrimitiveType::Real8),
+            TokenType::Char => self.type_char_seq(true, parse_context),
+            TokenType::String_ => self.type_char_seq(false, parse_context),
+            _ => {
+                self.reporter.report_error(
+                    &self.previous().location,
+                    format_args!("'{}' is not a primitive type", self.previous().token_type),
+                );
+
+                TypeRef::TypeError
+            }
+        }
     }
 
     /// Parse a basic primitive type
@@ -222,10 +267,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parse character sequence (string, char, char(n))
-    fn type_char_seq(&mut self, parse_context: &TokenType) -> TypeRef {
-        // Nom "string" / "char"
-        let is_char_type = matches!(self.next_token().token_type, TokenType::Char);
-
+    fn type_char_seq(&mut self, is_char_type: bool, parse_context: &TokenType) -> TypeRef {
         // If left paren, construct sized type
         if self.current().token_type == TokenType::LeftParen {
             self.next_token();

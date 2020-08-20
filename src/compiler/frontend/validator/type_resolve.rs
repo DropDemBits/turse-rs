@@ -435,12 +435,17 @@ impl Validator {
         }
 
         // Update the base type
-        // Either `start_type` or `end_type` could be used
-        *base_type = self.dealias_resolve_type(start_type);
+        // Use `end_type` as it may use a larger base type than `start_type`
+        *base_type = self.dealias_resolve_type(end_type);
 
         // If the base type is an enum field, take the associated enum type
         if let Some(Type::EnumField { enum_type, .. }) = self.type_table.type_from_ref(base_type) {
             *base_type = *enum_type;
+        }
+
+        if types::is_intnat(base_type) {
+            // Force into int from intnat
+            *base_type = TypeRef::Primitive(PrimitiveType::Int);
         }
 
         // Nothing to replace

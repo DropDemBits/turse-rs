@@ -304,6 +304,12 @@ impl VisitorMut<(), Option<Value>> for Validator {
         match visit_expr {
             Expr::Empty => None,
             Expr::Init { exprs, .. } => self.resolve_expr_init(exprs),
+            Expr::Indirect {
+                reference,
+                addr,
+                eval_type,
+                ..
+            } => self.resolve_expr_indirect(reference, addr, eval_type),
             Expr::Grouping {
                 expr,
                 eval_type,
@@ -776,9 +782,28 @@ mod test {
             run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e1 := e0.a")
         );
 
+        // Range types are assignable into compatible base type
+        assert_eq!(true, run_validator("var a : 1 .. 3\nvar b : int := a"));
+        assert_eq!(true, run_validator("var a : int\nvar b : 1 .. 3 := a"));
+        assert_eq!(true, run_validator("var a : 1 .. 3\nvar b : real := a"));
+        assert_eq!(false, run_validator("var a : real\nvar b : 1 .. 3 := a"));
+
         // Type refs are never assignable or used as an assignment value
         assert_eq!(false, run_validator("type a : int\na := 1"));
         assert_eq!(false, run_validator("type a : int\nvar b : int := a"));
+    }
+
+    #[test]
+    fn test_binary_no_typerefs() {
+        // Check for invalid use of type refs in binary exprs
+        assert_eq!(
+            false,
+            run_validator("type a : int\nvar b : int\nb := a + b")
+        );
+        assert_eq!(
+            false,
+            run_validator("type a : int\nvar b : int\nb := b + a")
+        );
     }
 
     #[test]
@@ -871,16 +896,6 @@ mod test {
             run_validator(
                 "type s : set of 1 .. 3\ntype t : set of boolean\nvar a : s\nvar c : t\nc += a"
             )
-        );
-
-        // Also check for invalid use of type refs in binary exprs
-        assert_eq!(
-            false,
-            run_validator("type a : int\nvar b : int\nb := a + b")
-        );
-        assert_eq!(
-            false,
-            run_validator("type a : int\nvar b : int\nb := b + a")
         );
     }
 
@@ -1873,6 +1888,55 @@ mod test {
 
         assert_eq!(false, run_validator("var a : nat     := true    =>  false"));
         assert_eq!(false, run_validator("var a : nat     := 1\na    =>= true "));
+    }
+
+    #[test]
+    fn test_indirect_typecheck() {
+        // Parser checks all primitive eval types
+        assert_eq!(
+            true,
+            run_validator("type into : int\nvar adr : addressint\nvar k := into @ (adr)") // ???
+        );
+        assert_eq!(
+            true,
+            run_validator("var adr : addressint\nvar k := int @ (adr)")
+        );
+        // Accept constant addresses
+        assert_eq!(true, run_validator("type into : int\nvar k := into @ (1)"));
+        assert_eq!(true, run_validator("var k := int @ (1)"));
+        assert_eq!(true, run_validator("var k := char(3) @ (1)"));
+
+        // Reference must refer to a type
+        assert_eq!(false, run_validator("var into : int\nvar k := into @ (1)"));
+        assert_eq!(
+            false,
+            run_validator("const into : int := 0\nvar k := into @ (1)")
+        );
+        assert_eq!(
+            false,
+            run_validator(
+                "type into_enum : enum(a)\nvar adr : addressint\nvar k := into_enum.a @ (adr)"
+            )
+        );
+
+        // address must not be a type reference
+        assert_eq!(false, run_validator("type at : int\nvar k := int @ (at)"));
+
+        // address must be a `nat` or `int` type
+        assert_eq!(false, run_validator("var at : real\nvar k := int @ (at)"));
+        assert_eq!(false, run_validator("var at : string\nvar k := int @ (at)"));
+        assert_eq!(
+            false,
+            run_validator("var at : string(5)\nvar k := int @ (at)")
+        );
+        assert_eq!(false, run_validator("var at : char\nvar k := int @ (at)"));
+        assert_eq!(
+            false,
+            run_validator("var at : char(5)\nvar k := int @ (at)")
+        );
+
+        // Range types with integer base types are allowed
+        assert_eq!(true, run_validator("var at : 1 .. 3\nvar ka := int @ (at)"));
     }
 
     #[test]
