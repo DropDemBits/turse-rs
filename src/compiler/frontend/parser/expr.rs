@@ -296,8 +296,6 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_grouping(&mut self) -> Result<Expr, ParsingStatus> {
-        let span = self.previous().location;
-
         let expr = match self.expr() {
             Ok(expr) => expr,
             Err(_) => {
@@ -313,14 +311,8 @@ impl<'s> Parser<'s> {
             format_args!("Expected ')' to close off parenthetical grouping"),
         );
 
-        let span = span.span_to(&self.previous().location);
-
-        Ok(Expr::Grouping {
-            expr: Box::new(expr),
-            eval_type: TypeRef::Unknown,
-            is_compile_eval: false,
-            span,
-        })
+        // Give back inner expr
+        Ok(expr)
     }
 
     fn expr_binary(&mut self, lhs: Expr) -> Result<Expr, ParsingStatus> {

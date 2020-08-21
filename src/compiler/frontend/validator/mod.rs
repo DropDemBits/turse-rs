@@ -310,12 +310,6 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 eval_type,
                 ..
             } => self.resolve_expr_indirect(reference, addr, eval_type),
-            Expr::Grouping {
-                expr,
-                eval_type,
-                is_compile_eval,
-                ..
-            } => self.resolve_expr_grouping(expr, eval_type, is_compile_eval),
             Expr::BinaryOp {
                 left,
                 op,
@@ -374,7 +368,6 @@ fn is_type_reference(expr: &Expr) -> bool {
             // It's a type reference based on the identifier
             ident.is_typedef
         }
-        Expr::Grouping { expr: inner, .. } => is_type_reference(inner),
         _ => false, // Most likely not a type reference
     }
 }

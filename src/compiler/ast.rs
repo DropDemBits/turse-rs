@@ -109,18 +109,6 @@ pub enum Expr {
         /// The span of the expression
         span: Location,
     },
-    /// Parenthetical expression
-    Grouping {
-        /// The inner grouping expression
-        expr: Box<Self>,
-        // The following are for caching purposes
-        /// The expression evaluation type
-        eval_type: TypeRef,
-        /// If the expression is compile-time evaluable
-        is_compile_eval: bool,
-        /// The span of the expression
-        span: Location,
-    },
     /// Common literal value
     Literal {
         /// The literal value
@@ -195,7 +183,6 @@ impl Expr {
             Expr::Indirect { eval_type, .. } => *eval_type,
             Expr::BinaryOp { eval_type, .. } => *eval_type,
             Expr::UnaryOp { eval_type, .. } => *eval_type,
-            Expr::Grouping { eval_type, .. } => *eval_type,
             Expr::Literal { eval_type, .. } => *eval_type,
             Expr::Call { eval_type, .. } => *eval_type,
             Expr::Dot { eval_type, .. } => *eval_type,
@@ -211,7 +198,6 @@ impl Expr {
             Expr::Init { span, .. } => span,
             Expr::BinaryOp { span, .. } => span,
             Expr::UnaryOp { span, .. } => span,
-            Expr::Grouping { span, .. } => span,
             Expr::Literal { value, .. } => &value.location,
             Expr::Call { span, .. } => span,
             Expr::Dot { span, .. } => span,
@@ -226,7 +212,6 @@ impl Expr {
             Expr::Indirect { span, .. } => *span = at,
             Expr::BinaryOp { span, .. } => *span = at,
             Expr::UnaryOp { span, .. } => *span = at,
-            Expr::Grouping { span, .. } => *span = at,
             Expr::Literal { value, .. } => value.location = at,
             Expr::Call { span, .. } => *span = at,
             Expr::Dot { span, .. } => *span = at,
@@ -244,9 +229,6 @@ impl Expr {
                 is_compile_eval, ..
             } => *is_compile_eval,
             Expr::UnaryOp {
-                is_compile_eval, ..
-            } => *is_compile_eval,
-            Expr::Grouping {
                 is_compile_eval, ..
             } => *is_compile_eval,
             Expr::Literal { value, .. } => !matches!(&value.token_type, TokenType::Nil), // Literals (except nil) are already evaluated
@@ -268,14 +250,17 @@ impl fmt::Debug for Expr {
         match self {
             Empty => f.write_str("<empty>"),
             Init { exprs, .. } => f.write_fmt(format_args!("init({:?})", exprs)),
-            Indirect { eval_type, reference, .. } => f.write_fmt(format_args!("({:?} @ ({:?}))", eval_type, reference)),
+            Indirect {
+                eval_type,
+                reference,
+                ..
+            } => f.write_fmt(format_args!("({:?} @ ({:?}))", eval_type, reference)),
             BinaryOp {
                 left, op, right, ..
             } => f.write_fmt(format_args!("({} {:?} {:?})", &op.token_type, left, right)),
             UnaryOp { op, right, .. } => {
                 f.write_fmt(format_args!("({} {:?})", &op.token_type, right))
             }
-            Grouping { expr, .. } => f.write_fmt(format_args!("({:?})", expr)),
             Literal { value, .. } => match &value.token_type {
                 TokenType::StringLiteral(s) => f.write_fmt(format_args!("\"{}\"", s)),
                 TokenType::CharLiteral(s) => f.write_fmt(format_args!("'{}'", s)),

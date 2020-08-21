@@ -99,25 +99,6 @@ impl Validator {
         None
     }
 
-    pub(super) fn resolve_expr_grouping(
-        &mut self,
-        expr: &mut Box<Expr>,
-        eval_type: &mut TypeRef,
-        is_compile_eval: &mut bool,
-    ) -> Option<Value> {
-        // Visit the expr
-        let eval = self.visit_expr(expr);
-
-        // Replace the inner expression with the folded value
-        super::replace_with_folded(expr, eval.clone());
-
-        *eval_type = expr.get_eval_type();
-        *is_compile_eval = expr.is_compile_eval();
-
-        // Propogate the folded value
-        eval
-    }
-
     pub(super) fn resolve_expr_binary(
         &mut self,
         left: &mut Box<Expr>,
@@ -408,9 +389,10 @@ impl Validator {
         });
 
         // Validate that 'left' is "callable"
-        // 3 things that fall under this expression
+        // 4 things that fall under this expression
         // - set cons
         // - array subscript
+        // - string/string(n)/char(n) subscript
         // - fcn / proc call
         // Distinguished by the identifier type
 
