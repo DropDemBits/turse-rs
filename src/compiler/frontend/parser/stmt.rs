@@ -414,8 +414,22 @@ impl<'s> Parser<'s> {
             })
         } else {
             // Is a procedure call
+            let proc_ref = if matches!(reference, Expr::Call { .. }) {
+                reference
+            } else {
+                // Reference is not a call expression, wrap it in one
+                Expr::Call {
+                    arg_list: vec![],
+                    span: *reference.get_span(),
+                    eval_type: TypeRef::Unknown,
+                    is_compile_eval: false,
+                    op: self.previous().clone(),
+                    left: Box::new(reference),
+                }
+            };
+
             Ok(Stmt::ProcedureCall {
-                proc_ref: Box::new(reference),
+                proc_ref: Box::new(proc_ref),
             })
         }
     }

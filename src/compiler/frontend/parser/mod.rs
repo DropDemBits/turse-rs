@@ -1706,4 +1706,48 @@ type enumeration : enum (a, b, c, d, e, f)
             }
         }
     }
+
+    #[test]
+    fn test_call_stmt() {
+        let mut parser = make_test_parser("var p : proc _\np");
+        assert_eq!(parser.parse(), true);
+        if let Stmt::ProcedureCall {
+            proc_ref: proc_call,
+        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        {
+            assert!(
+                !matches!(**proc_call, Expr::Call { .. }),
+                "Is {:?}",
+                proc_call
+            );
+        }
+
+        let mut parser = make_test_parser("var p : proc _\np()");
+        assert_eq!(parser.parse(), true);
+        if let Stmt::ProcedureCall {
+            proc_ref: proc_call,
+        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        {
+            assert!(
+                !matches!(**proc_call, Expr::Call { .. }),
+                "Is {:?}",
+                proc_call
+            );
+        }
+
+        let mut parser = make_test_parser("var p : fcn _ (__ : int) : int\np(1)");
+        assert_eq!(parser.parse(), true);
+        if let Stmt::ProcedureCall {
+            proc_ref: proc_call,
+        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        {
+            assert!(
+                !matches!(**proc_call, Expr::Call { .. }),
+                "Is {:?}",
+                proc_call
+            );
+        }
+
+        // TODO: Check for dot, arrow, and deref exprs
+    }
 }
