@@ -293,7 +293,27 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 self.resolve_stmt_assign(var_ref, &op.token_type, value)
             }
             Stmt::ProcedureCall { proc_ref } => {
-                let _ = self.visit_expr(proc_ref);
+                if let Expr::Call {
+                    left,
+                    op,
+                    arg_list,
+                    eval_type,
+                    is_compile_eval,
+                    ..
+                } = &mut **proc_ref
+                {
+                    // Defer to expression resolution
+                    let _ = self.resolve_expr_call(
+                        left,
+                        op,
+                        arg_list,
+                        eval_type,
+                        is_compile_eval,
+                        true,
+                    );
+                } else {
+                    unreachable!();
+                }
             }
             Stmt::Block { block, stmts } => self.resolve_stmt_block(block, stmts),
         }
@@ -327,12 +347,12 @@ impl VisitorMut<(), Option<Value>> for Validator {
             } => self.resolve_expr_unary(op, right, eval_type, is_compile_eval),
             Expr::Call {
                 left,
-                op: _,
+                op,
                 arg_list,
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.resolve_expr_call(left, arg_list, eval_type, is_compile_eval),
+            } => self.resolve_expr_call(left, op, arg_list, eval_type, is_compile_eval, false),
             Expr::Dot {
                 left,
                 field,

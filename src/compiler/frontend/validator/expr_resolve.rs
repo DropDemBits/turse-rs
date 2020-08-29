@@ -3,8 +3,10 @@ use super::Validator;
 
 use crate::compiler::ast::{Expr, Identifier, VisitorMut};
 use crate::compiler::frontend::token::{Token, TokenType};
-use crate::compiler::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
+use crate::compiler::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use crate::compiler::value::{self, Value, ValueApplyError};
+use crate::compiler::Location;
+use std::cmp::Ordering;
 
 impl Validator {
     // --- Expr Resolvers --- //
@@ -375,30 +377,38 @@ impl Validator {
         }
     }
 
+    // `allow_procedure`: Should procedure calls be allowed in this position
     pub(super) fn resolve_expr_call(
         &mut self,
         left: &mut Box<Expr>,
-        arg_list: &mut Vec<Expr>,
+        op: &mut Token,
+        args: &mut Vec<Expr>,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
+        allow_procedure: bool,
     ) -> Option<Value> {
+        // Visit given exprs
         self.visit_expr(left);
-        arg_list.iter_mut().for_each(|expr| {
+
+        args.iter_mut().for_each(|expr| {
             let value = self.visit_expr(expr);
-            super::replace_with_folded(expr, value);
+
+            // Don't fold for dot and reference exprs
+            if !matches!(expr, Expr::Reference { .. } | Expr::Dot { .. }) {
+                super::replace_with_folded(expr, value);
+            }
         });
 
         // Validate that 'left' is "callable"
-        // 4 things that fall under this expression
+        // 5 things that fall under this expression
         // - set cons
+        // - pointer specialization
         // - array subscript
         // - string/string(n)/char(n) subscript
         // - fcn / proc call
         // Distinguished by the identifier type
 
-        // Validate that the argument types match the type_spec using the given reference
-        // eval_type is the result of the call expr
-
+        // TODO: Type check call expressions
         // For now, call expressions default to runtime-time only, and evaluating to a
         // TypeError.
         // A call expression would be compile-time evaluable if it had no side effects,
@@ -406,12 +416,316 @@ impl Validator {
         *is_compile_eval = false;
         *eval_type = TypeRef::TypeError;
 
-        // TODO: Type check call expressions
-        self.reporter.report_error(
-            &left.get_span(),
-            format_args!("Call and subscript expressions are not supported yet"),
-        );
-        None
+        let left_dealiased = types::dealias_ref(&left.get_eval_type(), &self.type_table);
+
+        // TODO: Need tests for:
+        // - Set Cons (incompatible element arg, arg is type ref)
+        // x Pointer specialization (not a pointer, wrong arg count, etc...)
+        // x CharSeq subscript
+        // - Array subscript
+        // - Procedure & Function call
+        //   - Too few
+        //   - Too many
+        //   - tyref
+        //   - const expr for ref param
+        //   - var for ref param
+        //   - other for ref param
+        //   - empty for ref param
+        //   - wrong type no coerece
+        //   - wrong type no coerece empty
+        //   - wrong type coerce
+        // - Bare Procedure & Function call
+        // - Bare function calls in expr position
+
+        // TODO: Check for bare function calls in reference & dot exprs
+
+        // Specialize the call types
+        // - Discriminants:
+        //   - If left is a type ref
+        //   - Type of left
+        if super::is_type_reference(left) {
+            // Call expression should fall under the 2 types
+            // - Set constructor (left.eval_type = Type::Set)
+            //   - Params must be equivalent to base index type
+            // - Pointer specialization (left.eval_type = Type::Pointer{ to }, matches!(to, Type::Class | Type::Collection))
+            //   - Must be 1 param, param must be equivalent to pointer `to` type
+            // Otherwise, type cannot be called or subscripted
+
+            match self.type_table.type_from_ref(&left_dealiased) {
+                Some(Type::Set { range }) => {
+                    // Set constructor
+                    self.typecheck_set_constructor(range, args, &op.location);
+
+                    // Evaluate to the given set type decl
+                    *eval_type = left.get_eval_type();
+                    // Never compile-time evaluable
+                    *is_compile_eval = false;
+
+                    None
+                }
+                Some(Type::Pointer { to: _, .. }) => {
+                    // Pointer specialization
+                    if args.len() != 1 {
+                        self.reporter.report_error(
+                            &op.location,
+                            format_args!(
+                                "Pointer specialization requires only 1 argument to be present"
+                            ),
+                        )
+                    }
+
+                    // TODO: Fill out for both collection & class types
+                    self.reporter.report_error(
+                        &left.get_span(),
+                        format_args!("Pointer specialization expressions are not supported yet"),
+                    );
+
+                    None
+                }
+                _ => {
+                    // Can't call given expr
+                    self.report_uncallable_expr(left);
+                    None
+                }
+            }
+        } else if types::is_char_seq_type(&left_dealiased) {
+            // Call expression is a CharSeq subscripting
+            // - Must be 1 param, param type should be an expr, a subscript, or a subscript pair
+            // TODO: Fill out after parsing subscript and subscript pairs
+            self.reporter.report_error(
+                &left.get_span(),
+                format_args!("String subscript expressions are not supported yet"),
+            );
+
+            None
+        } else {
+            // Call expression should fall under the 2 types
+            // - Array subscripting
+            //   - Param types must correspond to equivalent array range types
+            // - Procedure / function call
+            //   - Param types must correspond to equivalent parameters
+            // Otherwise, type cannot be called or subscripted
+            match self.type_table.type_from_ref(&left_dealiased) {
+                Some(Type::Array {
+                    ranges,
+                    element_type,
+                    ..
+                }) => {
+                    self.typecheck_array_dimensions(ranges, args, &op.location);
+
+                    // Evaluates to the element type
+                    *eval_type = *element_type;
+                    // Never compile-time evaluable
+                    *is_compile_eval = false;
+
+                    None
+                }
+                Some(Type::Function { params, result }) => {
+                    // Typecheck the function arguments
+                    self.typecheck_function_arguments(params.as_ref(), args, &op.location);
+
+                    // allow_procedure
+                    *eval_type = if let Some(result_type) = result {
+                        // Get function result type
+                        *result_type
+                    } else if allow_procedure {
+                        // Procedures allowed in this position (e.g. as procedure calls)
+                        TypeRef::TypeError
+                    } else {
+                        // Procedures not allowed in this position
+                        self.reporter.report_error(
+                            left.get_span(),
+                            format_args!(
+                                "Reference is to a procedure and cannot be used in expressions"
+                            ),
+                        );
+                        TypeRef::TypeError
+                    };
+
+                    // We don't know if the expr call is compile-time unless it's a predef,
+                    // so by default, everything is not compile-time evaluable
+                    *is_compile_eval = false;
+
+                    None
+                }
+                _ => {
+                    // Can't call given expr
+                    self.report_uncallable_expr(left);
+                    None
+                }
+            }
+        }
+    }
+
+    fn report_uncallable_expr(&self, left: &Expr) {
+        if let Some(ident) = super::get_reference_ident(left) {
+            self.reporter.report_error(
+                &ident.token.location,
+                format_args!("'{}' cannot be called or have subscripts", ident.name),
+            );
+        } else if !matches!(*left, Expr::Empty) {
+            self.reporter.report_error(
+                left.get_span(),
+                format_args!("Expression cannot be called or have subscripts",),
+            );
+        }
+    }
+
+    /// Typechecks the given set constructor, checking for type compatibility
+    fn typecheck_set_constructor(&self, index_type: &TypeRef, args: &[Expr], at_paren: &Location) {
+        // All params must be assignable to range type
+        // TODO: Handle `all` token
+        if args.is_empty() {
+            self.reporter.report_error(
+                &at_paren,
+                format_args!("Set constructors require at least 1 parameter"),
+            );
+        }
+
+        args.iter().for_each(|element| {
+            let element_dealiased = types::dealias_ref(&element.get_eval_type(), &self.type_table);
+
+            if !types::is_assignable_to(index_type, &element_dealiased, &self.type_table) {
+                self.reporter.report_error(
+                    element.get_span(),
+                    format_args!("Element parameter is not compatible with set element type"),
+                );
+            }
+        });
+    }
+
+    /// Typechecks the given function arguments, checking for type compatibility
+    /// and the correct argument count.
+    pub(super) fn typecheck_function_arguments(
+        &self,
+        params: Option<&Vec<ParamDef>>,
+        args: &[Expr],
+        at_paren: &Location,
+    ) {
+        if let Some(param_types) = params {
+            for (param_def, arg) in param_types.iter().zip(args.iter()) {
+                let param_dealias = types::dealias_ref(&param_def.type_spec, &self.type_table);
+                let arg_dealias = types::dealias_ref(&arg.get_eval_type(), &self.type_table);
+
+                if super::is_type_reference(arg) {
+                    // Is a type ref, error!
+                    self.reporter.report_error(
+                        arg.get_span(),
+                        format_args!(
+                            "Cannot use a type reference as a function or procedure parameter"
+                        ),
+                    );
+                } else {
+                    if param_def.pass_by_ref {
+                        // Parameter must be var to be passed as a ref
+                        if let Some(ident) = super::get_reference_ident(arg) {
+                            if ident.is_const {
+                                self.reporter.report_error(
+                                    arg.get_span(),
+                                    format_args!(
+                                        "Cannot pass a reference parameter to a constant reference"
+                                    ),
+                                );
+                            }
+                        } else if !matches!(arg, Expr::Empty) {
+                            // Not a var!
+                            self.reporter.report_error(
+                                arg.get_span(),
+                                format_args!("Cannot pass a reference parameter to an expression"),
+                            );
+                        }
+                    }
+
+                    if !param_def.force_type
+                        && !types::is_assignable_to(&param_dealias, &arg_dealias, &self.type_table)
+                        && !matches!(arg, Expr::Empty)
+                    {
+                        // Report error if the expr is not an empty expr and the type isn't coerced
+                        self.reporter.report_error(
+                            arg.get_span(),
+                            format_args!("Argument is the wrong type"),
+                        );
+                    }
+                }
+            }
+        }
+
+        // Check arg count
+        let param_type_count = if let Some(param_types) = params {
+            param_types.len()
+        } else {
+            0
+        };
+        let arg_count = args.len();
+
+        match arg_count.cmp(&param_type_count) {
+            Ordering::Less => {
+                // Not enough arguments
+                self.reporter.report_error(
+                    &at_paren,
+                    format_args!(
+                        "Missing {} arguments for call expression",
+                        param_type_count - arg_count
+                    ),
+                );
+            }
+            Ordering::Greater => {
+                // Too many arguments
+                self.reporter.report_error(
+                    &at_paren,
+                    format_args!(
+                        "{} extra arguments for call expression",
+                        arg_count - param_type_count
+                    ),
+                );
+            }
+            _ => {}
+        }
+    }
+
+    /// Typechecks the given array dimensions, checking for type compatibility
+    /// and the correct dimension count
+    fn typecheck_array_dimensions(&self, ranges: &[TypeRef], args: &[Expr], at_paren: &Location) {
+        // Check dimension type compatibility
+        for (dim_type, arg) in ranges.iter().zip(args.iter()) {
+            if !types::is_assignable_to(dim_type, &arg.get_eval_type(), &self.type_table)
+                && !matches!(arg, Expr::Empty)
+            {
+                self.reporter.report_error(
+                    arg.get_span(),
+                    format_args!("Expression evaluates to the wrong type"),
+                );
+            }
+        }
+
+        // Check range arg count
+        // ???: This is duplicated with function param length, check?
+        let dim_count = ranges.len();
+        let arg_count = args.len();
+
+        match arg_count.cmp(&dim_count) {
+            Ordering::Less => {
+                // Not enough arguments
+                self.reporter.report_error(
+                    &at_paren,
+                    format_args!(
+                        "Missing {} dimensions for array subscript",
+                        dim_count - arg_count
+                    ),
+                );
+            }
+            Ordering::Greater => {
+                // Too many arguments
+                self.reporter.report_error(
+                    &at_paren,
+                    format_args!(
+                        "{} extra dimensions for array subscript",
+                        arg_count - dim_count
+                    ),
+                );
+            }
+            _ => {}
+        }
     }
 
     pub(super) fn resolve_expr_dot(
