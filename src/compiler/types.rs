@@ -300,15 +300,6 @@ pub fn get_int_kind(v: i64) -> PrimitiveType {
     }
 }
 
-/// Gets the appropriate nat type for the given integer value
-pub fn get_nat_kind(v: u64) -> PrimitiveType {
-    if v <= u32::MAX as u64 {
-        PrimitiveType::Nat
-    } else {
-        PrimitiveType::LongNat
-    }
-}
-
 /// Gets the appropriate int/nat type for the given integer value
 pub fn get_intnat_kind(v: u64) -> PrimitiveType {
     if v <= i32::MAX as u64 {
@@ -568,23 +559,6 @@ pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
 /// forwarded to the base type)
 pub fn is_set(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     matches!(type_table.type_from_ref(type_ref), Some(Type::Set { .. }))
-}
-
-/// Checks if the given `type_ref` references an enum type (Type::Enum).
-/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
-/// forwarded to the base type).
-pub fn is_enum(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
-    matches!(type_table.type_from_ref(type_ref), Some(Type::Enum { .. }))
-}
-
-/// Checks if the given `type_ref` references a field of an enum type (Type::EnumField).
-/// Requires that `type_ref` is de-aliased (i.e. all aliased references are
-/// forwarded to the base type).
-pub fn is_enum_field(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
-    matches!(
-        type_table.type_from_ref(type_ref),
-        Some(Type::EnumField { .. })
-    )
 }
 
 /// Checks if the given `type_ref` references either an enum type, or a field of an enum type

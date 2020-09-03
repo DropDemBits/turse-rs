@@ -689,7 +689,7 @@ mod test {
     #[test]
     fn test_use_import() {
         // External identifiers should be imported into the current scope
-        let mut blocks = make_test_block_list(3);
+        let blocks = make_test_block_list(3);
 
         // Outer declare
         {
