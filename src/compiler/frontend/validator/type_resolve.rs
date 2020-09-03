@@ -490,7 +490,7 @@ impl Validator {
 
                 reference_locate = field.token.location;
             }
-            Expr::Reference { ident } => {
+            Expr::Reference { ident, .. } => {
                 if !ident.is_typedef {
                     self.reporter.report_error(
                         &ident.token.location,

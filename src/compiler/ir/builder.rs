@@ -324,7 +324,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::Expr::Reference { ident } => {
+            ast::Expr::Reference { ident, .. } => {
                 // Fetch the reference
                 self.make_use_ref(ident)
             }

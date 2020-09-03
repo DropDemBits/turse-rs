@@ -502,13 +502,13 @@ impl Validator {
 /// Assumes the `ref_expr` has already had the types propogated.
 fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
     match ref_expr {
-        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+        Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => {
             // Can only assign to a variable reference
             !ident.is_const && !ident.is_typedef
         }
         Expr::Call { left, .. } => {
             match &**left {
-                Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+                Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => {
                     let dealiased_ref = types::dealias_ref(&ident.type_spec, type_table);
                     let type_info = type_table.type_from_ref(&dealiased_ref);
 

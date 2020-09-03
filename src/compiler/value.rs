@@ -146,7 +146,10 @@ impl TryFrom<Value> for Expr {
                 );
 
                 Ok(Expr::Dot {
-                    left: Box::new(Expr::Reference { ident: enum_ident }),
+                    left: Box::new(Expr::Reference {
+                        ident: enum_ident,
+                        eval_type: TypeRef::Named(enum_id),
+                    }),
                     field: field_ident,
                     is_compile_eval: true,
                     eval_type: TypeRef::Named(field_id),

@@ -416,28 +416,28 @@ impl Validator {
         *is_compile_eval = false;
         *eval_type = TypeRef::TypeError;
 
-        let left_dealiased = types::dealias_ref(&left.get_eval_type(), &self.type_table);
+        let left_type = if let Some(ident) = super::get_reference_ident(&left) {
+            // We care about the subroutine reference and not the evaluation type in a reference expr
+            ident.type_spec
+        } else {
+            // Take the eval type as we may get the callable from an expr eval
+            left.get_eval_type()
+        };
+
+        let left_dealiased = types::dealias_ref(&left_type, &self.type_table);
 
         // TODO: Need tests for:
         // - Set Cons (incompatible element arg, arg is type ref)
         // x Pointer specialization (not a pointer, wrong arg count, etc...)
         // x CharSeq subscript
         // - Array subscript
+
+        // TODO: Integrate written tests into test code
         // - Procedure & Function call
-        //   - Too few
-        //   - Too many
-        //   - tyref
-        //   - const expr for ref param
-        //   - var for ref param
-        //   - other for ref param
-        //   - empty for ref param
-        //   - wrong type no coerece
-        //   - wrong type no coerece empty
-        //   - wrong type coerce
         // - Bare Procedure & Function call
         // - Bare function calls in expr position
 
-        // TODO: Check for bare function calls in reference & dot exprs
+        // TODO: Check for bare function calls in dot exprs with fields (records, unions, classes, modules, monitors)
 
         // Specialize the call types
         // - Discriminants:
@@ -753,6 +753,8 @@ impl Validator {
         // x Type::Module
         // x Type::Monitor
 
+        // TODO: For fields that are bare function references, take the result type as the `eval_type`
+
         // All dot expressions default to runtime evaluation
         *is_compile_eval = false;
 
@@ -851,7 +853,11 @@ impl Validator {
         None
     }
 
-    pub(super) fn resolve_expr_reference(&mut self, ident: &mut Identifier) -> Option<Value> {
+    pub(super) fn resolve_expr_reference(
+        &mut self,
+        ident: &mut Identifier,
+        eval_type: &mut TypeRef,
+    ) -> Option<Value> {
         // Use the identifier and grab the associated value
         let (compile_value, is_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
 
@@ -886,10 +892,26 @@ impl Validator {
                 ident.type_spec = new_info.type_spec;
             }
 
+            // Fetch the eval type based on the ident type spec
+            if ident.is_typedef {
+                // Take the type from the type spec
+                *eval_type = ident.type_spec;
+            } else if let Some(Type::Function {
+                params: None,
+                result: Some(result),
+            }) = self.type_table.type_from_ref(&ident.type_spec)
+            {
+                // Evaluation type is the bare function's result type
+                *eval_type = *result;
+            } else {
+                *eval_type = ident.type_spec;
+            }
+
             // An identifier is compile-time evaluable if and only if there is an associated expression
             ident.is_compile_eval = compile_value.is_some();
         } else {
             // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
+            *eval_type = ident.type_spec;
         }
 
         // Return the reference's associated compile-time value

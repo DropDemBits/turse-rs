@@ -360,7 +360,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 is_compile_eval,
                 ..
             } => self.resolve_expr_dot(left, field, eval_type, is_compile_eval),
-            Expr::Reference { ident } => self.resolve_expr_reference(ident),
+            Expr::Reference { ident, eval_type } => self.resolve_expr_reference(ident, eval_type),
             Expr::Literal { value, eval_type } => self.resolve_expr_literal(value, eval_type),
         }
     }
@@ -376,7 +376,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
 /// Gets the reference identifier, if there is one
 fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
     match ref_expr {
-        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => Some(ident),
+        Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => Some(ident),
         _ => None,
     }
 }
@@ -384,7 +384,7 @@ fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
 /// Checks if the expression evaluates to a type reference
 fn is_type_reference(expr: &Expr) -> bool {
     match expr {
-        Expr::Reference { ident } | Expr::Dot { field: ident, .. } => {
+        Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => {
             // It's a type reference based on the identifier
             ident.is_typedef
         }

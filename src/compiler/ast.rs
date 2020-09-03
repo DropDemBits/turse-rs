@@ -76,6 +76,9 @@ impl Identifier {
 }
 
 /// Common expression node
+///
+/// `eval_type` is the type produced after evaluating the expression.
+/// For reference and dot expressions, the evaluation type may be different from the identifier type spec
 #[derive(Clone)]
 pub enum Expr {
     /// Empty expression, always evaluates to a type error.
@@ -121,6 +124,8 @@ pub enum Expr {
     Reference {
         /// The identifier associated with this referenece
         ident: Identifier,
+        /// The expression evaluation type
+        eval_type: TypeRef,
     },
     /// Funcion call expression
     Call {
@@ -186,7 +191,7 @@ impl Expr {
             Expr::Literal { eval_type, .. } => *eval_type,
             Expr::Call { eval_type, .. } => *eval_type,
             Expr::Dot { eval_type, .. } => *eval_type,
-            Expr::Reference { ident } => ident.type_spec,
+            Expr::Reference { eval_type, .. } => *eval_type,
         }
     }
 
@@ -215,7 +220,7 @@ impl Expr {
             Expr::Literal { value, .. } => value.location = at,
             Expr::Call { span, .. } => *span = at,
             Expr::Dot { span, .. } => *span = at,
-            Expr::Reference { ident } => ident.token.location = at,
+            Expr::Reference { ident, .. } => ident.token.location = at,
         }
     }
 
@@ -238,7 +243,7 @@ impl Expr {
             Expr::Dot {
                 is_compile_eval, ..
             } => *is_compile_eval,
-            Expr::Reference { ident } => ident.is_compile_eval,
+            Expr::Reference { ident, .. } => ident.is_compile_eval,
         }
     }
 }
@@ -271,7 +276,7 @@ impl fmt::Debug for Expr {
                 TokenType::Nil => f.write_fmt(format_args!("nil")),
                 _ => f.write_fmt(format_args!("unk({:?})", value)),
             },
-            Reference { ident } => f.write_fmt(format_args!("ref({:#?})", ident)),
+            Reference { ident, .. } => f.write_fmt(format_args!("ref({:#?})", ident)),
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.name)),
         }

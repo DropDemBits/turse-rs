@@ -517,6 +517,7 @@ impl<'s> Parser<'s> {
             // is where the error will be reported
             Ok(Expr::Reference {
                 ident: self.use_ident(ident_tok).0,
+                eval_type: TypeRef::Unknown,
             })
         } else {
             panic!(
