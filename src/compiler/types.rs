@@ -654,8 +654,7 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
     // TODO: Not all of the assignability rules listed above are checked yet, still need to do
     // - Other equivalencies
     // - pointer class inheritance
-    // - range containment
-    // - set, function/procedure, and array equivalency
+    // - and array equivalency
     if rvalue == lvalue {
         // Same types are assignable / equivalent
 

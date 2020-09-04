@@ -1748,6 +1748,6 @@ type enumeration : enum (a, b, c, d, e, f)
             );
         }
 
-        // TODO: Check for dot, arrow, and deref exprs
+        // TODO: Check for calls behind dot, arrow, and deref exprs
     }
 }

@@ -371,13 +371,7 @@ impl<'s> Parser<'s> {
             );
 
             Some(params)
-        } else {
-            // Parameterless declaration
-            None
-        };
-
-        if has_result
-            && param_decl.is_none()
+        } else if has_result
             && matches!(
                 parse_context,
                 TokenType::Const | TokenType::Var | TokenType::Type
@@ -385,7 +379,7 @@ impl<'s> Parser<'s> {
         {
             // In the context of a function type declaration, which requires the '()'
             if matches!(self.previous().token_type, TokenType::Identifier) {
-                self.reporter.report_error(
+                self.reporter.report_warning(
                     &self.previous().location,
                     format_args!(
                         "Function type declarations must specifiy '()' after the identifier"
@@ -394,7 +388,7 @@ impl<'s> Parser<'s> {
             } else {
                 // Identifier is not really needed in these situations, though
                 // we still do so for compatibility
-                self.reporter.report_error(
+                self.reporter.report_warning(
                     &self.previous().location,
                     format_args!(
                         "Function type declarations must specifiy '()' after '{}'",
@@ -402,7 +396,15 @@ impl<'s> Parser<'s> {
                     ),
                 );
             }
-        }
+
+            // TODO: Change to a `Some(vec![])` once function declarations are parsed
+            // We can't test bare function references until function declarations are parsed, so
+            // preserve the bareness
+            None
+        } else {
+            // Parameterless declaration, in an allowed context
+            None
+        };
 
         let result_type = if has_result {
             let _ = self.expects(

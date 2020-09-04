@@ -427,6 +427,10 @@ impl<'s> Parser<'s> {
         // Span starts from the var_ref, all the way to the arrow token
         let span = var_ref.get_span().span_to(&self.previous().location);
 
+        // TODO: Wrap inside of a dedicated Expr::Arrow
+        // Arrow expression may desugar into either a pointer specialization
+        // or deref-dot pair depending on the reference type
+
         // Wrap the var_ref in a deref
         self.expr_dot(Expr::UnaryOp {
             op: Token {
