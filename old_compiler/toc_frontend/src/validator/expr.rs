@@ -309,9 +309,6 @@ impl Validator<'_> {
         // - fcn / proc call
         // Distinguished by the identifier type
 
-        // TODO: Type check the rest of the call expressions
-        // Call expressions default to runtime-time only and evaluating to a
-        // TypeError if type check fails.
         // A call expression would be compile-time evaluable if it had no side effects,
         // but we don't check that right now
         *is_compile_eval = false;

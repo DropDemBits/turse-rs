@@ -489,7 +489,10 @@ impl<'u> VisitorMut<(), (), ()> for Validator<'u> {
             TypeKind::Error => ty.type_ref = Some(TypeRef::TypeError),
             TypeKind::Primitive(prim) => {
                 // Primitive should not be either of the sized types
-                assert!(!matches!(prim, PrimitiveType::CharN(_) | PrimitiveType::StringN(_)));
+                assert!(!matches!(
+                    prim,
+                    PrimitiveType::CharN(_) | PrimitiveType::StringN(_)
+                ));
                 ty.type_ref = Some(TypeRef::Primitive(*prim))
             }
             TypeKind::CharN { size } => {
@@ -1586,10 +1589,13 @@ mod test {
         // TODO: Check arrow operator using records
 
         // Array subscripts are only assignable if they are a variable
-        // TODO: above
+        assert_eq!(true, run_validator("var a : array 1 .. 2 of int\na(1) := 1"));
+        assert_eq!(false, run_validator("const a : array 1 .. 2 of int := init(1, 2)\na(1) := 1"));
+        assert_eq!(false, run_validator("type a : array 1 .. 2 of int := init(1, 2)\na(1) := 1"));
 
         // Call exprs aren't directly assignable
-        // TODO: above
+        assert_eq!(false, run_validator("var a : fcn _ () : int\na() := 1"));
+        assert_eq!(false, run_validator("var a : fcn _ (q : int) : int\na(1) := 1"));
 
         // Also tests type compatibility
         // Basic, unsized types
@@ -1746,6 +1752,19 @@ mod test {
         // Incompatibility between enum and fields of different root type declaration
         assert_eq!(false, run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e0 := e1.a"));
         assert_eq!(false, run_validator("type e0 : enum(a, b, c)\ntype e1 : enum(a, b, c)\nvar a : e1 := e0.a"));
+
+        // Compatibility between arrays of equivalent component types and index types
+        // Equivalent Components
+        assert_eq!(true, run_validator("type a0 : array char of int\ntype a1 : array char of int\nvar a : a0\nvar b : a1 := a"));
+        assert_eq!(false, run_validator("type a0 : array char of int\ntype a1 : array char of boolean\nvar a : a0\nvar b : a1 := a"));
+
+        // Equivalent ranges
+        assert_eq!(false, run_validator("type a0 : array char of int\ntype a1 : array boolean of int\nvar a : a0\nvar b : a1 := a"));
+        assert_eq!(false, run_validator("type a0 : array char, boolean of int\ntype a1 : array char of int\nvar a : a0\nvar b : a1 := a"));
+        assert_eq!(false, run_validator("type a0 : array char of int\ntype a1 : array char, boolean of int\nvar a : a0\nvar b : a1 := a"));
+        assert_eq!(false, run_validator("type a0 : array boolean, char of int\ntype a1 : array char, boolean of int\nvar a : a0\nvar b : a1 := a"));
+
+        // TODO: Type compatibility for the rest of the types (records, unions, pointer to classes, subprograms)
 
         // Range types are assignable into compatible base type
         assert_eq!(true, run_validator("var a : 1 .. 3\nvar b : int := a"));

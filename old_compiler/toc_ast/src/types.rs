@@ -608,11 +608,17 @@ pub fn is_index_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
 pub fn common_type<'a>(
     lhs: &'a TypeRef,
     rhs: &'a TypeRef,
-    _type_table: &'_ TypeTable,
+    type_table: &'_ TypeTable,
 ) -> Option<&'a TypeRef> {
     // TODO: Between strings, stringNs, charNs, chars, sets, classes, pointers, etc.
+    debug_assert!(
+        !is_char_seq_type(lhs) && !is_set(lhs, type_table) && !is_pointer(lhs, type_table),
+        "Can't find common type for these cases"
+    );
+
     if lhs == rhs && !(is_intnat(lhs) && is_intnat(rhs)) {
-        // Both are the same type, so they're both in common with eachother
+        // Both are the same type, so they're both in common with each other
+        // In the case of IntNat, IntNat, both are deferred into the int case
         Some(lhs)
     } else if (is_real(lhs) && is_number_type(rhs)) || (is_number_type(lhs) && is_real(rhs)) {
         // Number types get promoted to real types if any 'real' exists
@@ -650,6 +656,8 @@ pub fn common_type<'a>(
 /// - All boolean range types (e.g. `false .. true`) have `boolean` as the root type (i.e. all `boolean`s are assignable to the given range).
 ///
 /// # Assignability rules
+/// All equivalence rules also fall under the assignability rules.
+///
 /// - If two types (after de-aliasing) have the same `type_id` (i.e, have the same root definition) \
 /// - If two types (after de-aliasing) have equvalent root types \
 /// - If `lvalue` is 'real' and `rvalue` is either `real` or an integer-class type (`rvalue` is converted into an int) \
@@ -659,6 +667,7 @@ pub fn common_type<'a>(
 /// - If `lvalue` is a string-class type and `rvalue` is a `char` (producing a string of length 1)
 /// - If `lvalue` is a `char(n)` and `rvalue` is a `string(n)` (`rvalue` gets converted into a `string(n)`)
 /// - If `lvalue` and `rvalue` are pointers to classes and they are the same class or share a common ancestor
+///
 /// As well as:
 /// - If `lvalue` is a string(x) and `rvalue` is a char
 /// - If `lvalue` is a char(x) and `rvalue` is a char
@@ -668,7 +677,6 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
     // TODO: Not all of the assignability rules listed above are checked yet, still need to do
     // - Other equivalencies
     // - pointer class inheritance
-    // - and array equivalency
     if rvalue == lvalue {
         // Same types are assignable / equivalent
 
@@ -729,25 +737,52 @@ pub fn is_assignable_to(lvalue: &TypeRef, rvalue: &TypeRef, type_table: &TypeTab
         // A range type is assignable to a value if the range's base type is assignable
         // to the given value
         is_assignable_to(lvalue, base_type, type_table)
-    } else if let Some(Type::Enum { .. }) = type_table.type_from_ref(lvalue) {
-        if let Some(Type::EnumField { enum_type, .. }) = type_table.type_from_ref(rvalue) {
-            // Enum field is assignable into the parent enum type
-            lvalue == enum_type
-        } else {
-            is_equivalent_to(lvalue, rvalue, type_table)
-        }
     } else {
         // This check is last as it performs very heavy type checking
         is_equivalent_to(lvalue, rvalue, type_table)
     }
 }
 
-/// Checks if the types are equivalent
+/// Checks if the given types are equivalent.
+/// Equivalence rules are primarily used to typecheck parameters in call expressions.
+///
+/// # Arguments
+/// * `lhs` & `rhs` - The types to check equivalence with
+/// * `type_table` - The unit's type table containing all of the named types
+///
+/// # Equivalence rules
+///
+/// `lhs` and `rhs` are equivalent types if they are:
+/// - Types from the same primitive type class:
+///   - Integer class types (`intx`, `int`, `long int`, `natx`, `nat`, `long nat`, `addressint`)
+///   - Real class types (`realx`, `real`)
+/// - The same primitive types (`boolean`, `string`)
+/// - Range types with equal start and end bounds
+/// - Arrays with equivalent index types and component types
+/// - The same sized char sequence type (i.e. `char(n)`, `string(n)`) with equal maximum lengths
+/// - Sets with equivalent index types
+/// - Both `char`
+/// - Both `procedure` types, with equivalent parameter types and var-bindings
+/// - Both `function` types, with equivalent parameter types and var-bindings, as well as equivalent result types
+/// - \* Pointers to the same collection
+/// - \* Pointers to the same class or equivalent type, as well as the same checked-ness
+///
+/// \* All declarations of enum, record, or union types form distinct types, and are therefore not equivalent to other type
+/// declarations.
+///
+/// \* Types exported as `opaque` form a special equivalency class, where outside of the exported scope they are considered
+/// as a distinct type.
+/// Opaque types fall under the assignability set, but are not comparable types outside of the exported scope.
+///
+/// *Note*: Anything marked with '*' is either not checked yet, or not fully checked yet
 pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) -> bool {
     if is_error(lhs) || is_error(rhs) {
         // Quick escape for type errors
         return false;
     }
+
+    let lhs = &dealias_ref(lhs, type_table);
+    let rhs = &dealias_ref(rhs, type_table);
 
     if lhs == rhs {
         // Quick escape for simple equivalent types (e.g. primitives)
@@ -775,7 +810,8 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
     // Perform equivalence testing based on the type info
     // TODO: Finish the equivalency cases
-    // Unions, Records, Enums, and Collections have equivalency based on the type_id
+    // - Unions, Records, Enums, and Collections have equivalency based on the type_id
+    // - Pointers to collections have equivalency based on the same `to` reference
     if let TypeRef::Named(left_id) = lhs {
         if let TypeRef::Named(right_id) = rhs {
             let left_info = type_table.get_type(*left_id);
@@ -783,8 +819,13 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
             match left_info {
                 Type::Enum { .. } => {
-                    // Only equivalent if the base types are
-                    return lhs == rhs;
+                    if let Type::EnumField { enum_type, .. } = right_info {
+                        // Equivalent with a field from the same enum
+                        return lhs == enum_type;
+                    } else {
+                        // Only equivalent if the base types are
+                        return lhs == rhs;
+                    }
                 }
                 Type::EnumField { enum_type, .. } => {
                     if let Type::EnumField {
@@ -794,6 +835,9 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                     {
                         // Enum fields only equivalent if the parent enum types are
                         return enum_type == other_type;
+                    } else {
+                        // Enum types are equivalent if the other type is same parent enum type
+                        return enum_type == rhs;
                     }
                 }
                 Type::Function { params, result } => {
@@ -802,7 +846,45 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                         result: other_result,
                     } = right_info
                     {
-                        return params == other_params && result == other_result;
+                        if !result
+                            .as_ref()
+                            .zip(other_result.as_ref())
+                            .map(|(this, other)| is_equivalent_to(this, other, type_table))
+                            .unwrap_or(false)
+                        {
+                            // Result types not equivalent
+                            return false;
+                        }
+
+                        let param_iters = params
+                            .as_ref()
+                            .map(|p| p.iter())
+                            .zip(other_params.as_ref().map(|p| p.iter()));
+
+                        // Check binding-ness
+                        if let Some((left_iter, right_iter)) = param_iters {
+                            for (left_param, right_param) in left_iter.zip(right_iter) {
+                                if left_param.pass_by_ref ^ right_param.pass_by_ref {
+                                    // Not the same binding type
+                                    return false;
+                                }
+
+                                if !is_equivalent_to(
+                                    &left_param.type_spec,
+                                    &right_param.type_spec,
+                                    type_table,
+                                ) {
+                                    // Not the same base type
+                                    return false;
+                                }
+                            }
+                        } else {
+                            // Not the same bareness
+                            return false;
+                        }
+
+                        // Equivalent
+                        return true;
                     }
                 }
                 Type::Set { range } => {
@@ -853,6 +935,38 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                         return start == other_start && size == other_size;
                     }
                 }
+                Type::Array {
+                    ranges,
+                    element_type,
+                    ..
+                } => {
+                    if let Type::Array {
+                        ranges: other_ranges,
+                        element_type: other_element_type,
+                        ..
+                    } = right_info
+                    {
+                        // Component types must be equivalent
+                        if !is_equivalent_to(element_type, other_element_type, type_table) {
+                            return false;
+                        }
+
+                        // Must be the same number of range types
+                        if ranges.len() != other_ranges.len() {
+                            return false;
+                        }
+
+                        // Range types must be equivalent
+                        for (left_range, right_range) in ranges.iter().zip(other_ranges.iter()) {
+                            if !is_equivalent_to(left_range, right_range, type_table) {
+                                return false;
+                            }
+                        }
+
+                        // Arrays are equivalent
+                        return true;
+                    }
+                }
                 _ => todo!("??? {:?} & {:?}", left_info, right_info),
             }
         }
@@ -886,6 +1000,10 @@ pub fn dealias_ref(type_ref: &TypeRef, type_table: &TypeTable) -> TypeRef {
 }
 
 /// Gets the length of an index type
+///
+/// # Panics
+/// Panics if `index_ref` refers to a Type::EnumField, as those can't be used
+/// as an index type
 pub fn get_index_length(index_ref: &TypeRef, type_table: &TypeTable) -> usize {
     if let TypeRef::Primitive(prim_type) = index_ref {
         match prim_type {
