@@ -168,10 +168,13 @@ pub enum Expr {
     },
     /// "Indirect" expression
     Indirect {
+        // The reference type in the indirect expression.
+        // If None, the type is a primitive and is contained in `eval_type`.
+        // Must be a type reference.
         reference: Option<Box<Expr>>,
-        /// The expression contained in the box address
+        /// The address section of the indirect expression
         addr: Box<Expr>,
-        /// The expression evaluation type
+        /// The type to read at the address.
         /// If TypeRef::Unknown, type is derived from the reference expression
         eval_type: TypeRef,
         /// The span of the expression
@@ -298,7 +301,8 @@ pub enum Stmt {
         /// If the declare is for a const declaration
         is_const: bool,
     },
-    /// `type` statement declaration
+    /// `type` statement declaration.
+    /// The type_spec of `ident` is the declared type
     TypeDecl {
         /// The identifier associated with this type declare
         ident: Identifier,
