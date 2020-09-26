@@ -9,9 +9,9 @@ license = "MIT"
 
 [dependencies]
 unicode-segmentation = "^0.1"
-getopts = "0.2"
+getopts = "^0.2"
 lazy_static = "1"
-petgraph = "0.5"
+petgraph = { version = "^0.5", default-features = false, features = ["stable_graph"] }
 
 [dev-dependencies]
 rand = "0.7"
