@@ -40,9 +40,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00d63df3d41950fb462ed38308eea019113ad1508da725bbedcd0fa5a85ef5f7"
+checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
 
 [[package]]
 name = "indexmap"
@@ -53,12 +53,6 @@ dependencies = [
  "autocfg",
  "hashbrown",
 ]
-
-[[package]]
-name = "lazy_static"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
@@ -124,14 +118,45 @@ dependencies = [
 ]
 
 [[package]]
-name = "rsprolog"
+name = "toc"
 version = "0.1.0"
 dependencies = [
  "getopts",
- "lazy_static",
- "petgraph",
+ "toc_ast",
+ "toc_core",
+ "toc_frontend",
+ "toc_ir",
+]
+
+[[package]]
+name = "toc_ast"
+version = "0.1.0"
+dependencies = [
+ "toc_core",
+]
+
+[[package]]
+name = "toc_core"
+version = "0.1.0"
+
+[[package]]
+name = "toc_frontend"
+version = "0.1.0"
+dependencies = [
  "rand",
+ "toc_ast",
+ "toc_core",
  "unicode-segmentation",
+]
+
+[[package]]
+name = "toc_ir"
+version = "0.1.0"
+dependencies = [
+ "petgraph",
+ "toc_ast",
+ "toc_core",
+ "toc_frontend",
 ]
 
 [[package]]
