@@ -520,7 +520,7 @@ impl<'s> Parser<'s> {
             // references will be resolved at validator time, and that
             // is where the error will be reported
             Ok(Expr::Reference {
-                ident: self.use_ident(ident_tok).0,
+                ident: self.use_ident(ident_tok).unwrap_or_else(|err| err.into()),
                 eval_type: TypeRef::Unknown,
             })
         } else {

@@ -178,7 +178,10 @@ impl<'s> Parser<'s> {
         // Declare the identifiers
         let idents: Vec<Identifier> = ident_tokens
             .into_iter()
-            .map(|token| self.declare_ident(token, type_spec, is_const, false).0)
+            .map(|token| {
+                self.declare_ident(token, type_spec, is_const, false)
+                    .unwrap_or_else(|err| err.into())
+            })
             .collect();
 
         Ok(Stmt::VarDecl {
@@ -304,7 +307,9 @@ impl<'s> Parser<'s> {
 
                     // Normal declare
                     Ok(Stmt::TypeDecl {
-                        ident: self.declare_ident(ident_tok, alias_type, true, true).0,
+                        ident: self
+                            .declare_ident(ident_tok, alias_type, true, true)
+                            .unwrap_or_else(|err| err.into()),
                         resolved_type: Some(alias_type),
                         is_new_def: true,
                     })
@@ -314,7 +319,9 @@ impl<'s> Parser<'s> {
 
                     // Forward declare
                     Ok(Stmt::TypeDecl {
-                        ident: self.declare_ident(ident_tok, forward_type, true, true).0,
+                        ident: self
+                            .declare_ident(ident_tok, forward_type, true, true)
+                            .unwrap_or_else(|err| err.into()),
                         resolved_type: None,
                         is_new_def: true,
                     })

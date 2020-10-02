@@ -2,13 +2,13 @@
 use super::expr_resolve;
 use super::{ResolveContext, ScopeInfo, Validator};
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use toc_ast::ast::{Expr, Identifier, Stmt, VisitorMut};
 use toc_ast::block::CodeBlock;
 use toc_ast::token::TokenType;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 impl Validator {
     // --- Decl Resolvers --- //
@@ -287,7 +287,8 @@ impl Validator {
             ident.type_spec = *type_spec;
             // Only compile-time evaluable if the identifier referencences a constant
             ident.is_compile_eval = is_compile_eval && ident.is_const;
-            self.active_block
+            let resolved_ident = self
+                .active_block
                 .as_ref()
                 .unwrap()
                 .upgrade()
@@ -296,12 +297,16 @@ impl Validator {
                 .scope
                 .resolve_ident(&ident.name, &ident);
 
+            // Must always be a defined identifier
+            let resolved_ident = resolved_ident
+                .expect("Internal Compiler Error: Consistency of identifiers has been broken");
+
             // Add identifier to the scope info (including the compile-time value)
             if self
                 .scope_infos
                 .last_mut()
                 .unwrap()
-                .decl_ident_with(ident.clone(), const_val.clone())
+                .decl_ident_with(resolved_ident, const_val.clone())
             {
                 // Report the error
                 self.reporter.report_error(

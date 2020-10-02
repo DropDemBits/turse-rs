@@ -9,6 +9,7 @@ use std::fmt::Arguments;
 use std::rc::Rc;
 use toc_ast::ast::Identifier;
 use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
+use toc_ast::scope::IdentError;
 use toc_ast::token::{Token, TokenType};
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
@@ -232,15 +233,14 @@ impl<'s> Parser<'s> {
     // -- Wrappers around the scope list -- //
     // See `Scope` for the documentation of these functions
 
-    /// Declares an identifer in the current scope, providing the error message
-    /// Allows ignoring the error message, which is all cases
+    /// Declares an identifer in the current scope
     fn declare_ident(
         &self,
         ident: Token,
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
-    ) -> (Identifier, Option<String>) {
+    ) -> Result<Identifier, IdentError> {
         let name = ident.location.get_lexeme(self.source).to_string();
 
         self.blocks
@@ -251,9 +251,8 @@ impl<'s> Parser<'s> {
             .declare_ident(ident, name, type_spec, is_const, is_typedef)
     }
 
-    /// Uses an identifer, providing the error message
-    /// Allows ignoring the error message, which is all cases
-    fn use_ident(&self, ident: Token) -> (Identifier, Option<String>) {
+    /// Uses an identifer
+    fn use_ident(&self, ident: Token) -> Result<Identifier, IdentError> {
         let name = ident.location.get_lexeme(self.source);
 
         self.blocks

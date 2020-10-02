@@ -29,6 +29,38 @@ enum IdentEntry {
     Multiple(Vec<Identifier>),
 }
 
+/// Error in the declaration or usage of an identifier.
+/// Will always include an identifier as part of the error
+#[derive(Debug)]
+pub enum IdentError {
+    /// An identifier was not declared in any scope.
+    Undeclared(Identifier),
+    /// An identifier was already declared in the current scope, or a parent scope.
+    Redeclared(Identifier),
+}
+
+impl std::fmt::Display for IdentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IdentError::Undeclared(ident) => {
+                f.write_fmt(format_args!("'{}' has not been declared yet", ident.name))
+            }
+            IdentError::Redeclared(ident) => {
+                f.write_fmt(format_args!("'{}' has already been declared", ident.name))
+            }
+        }
+    }
+}
+
+impl From<IdentError> for Identifier {
+    fn from(ident_error: IdentError) -> Self {
+        match ident_error {
+            IdentError::Undeclared(ident) => ident,
+            IdentError::Redeclared(ident) => ident,
+        }
+    }
+}
+
 /// Scope of identifiers
 #[derive(Debug)]
 pub struct Scope {
@@ -82,7 +114,7 @@ impl Scope {
 
     /// Declares an identifier in the current scope.
     /// If the identifier with the same name has already been declared, the new
-    /// identifier definition will overwrite the old one and an error message
+    /// identifier definition will overwrite the old one and an IdentError::Redeclared
     /// will be produced.
     pub fn declare_ident(
         &mut self,
@@ -91,7 +123,7 @@ impl Scope {
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
-    ) -> (Identifier, Option<String>) {
+    ) -> Result<Identifier, IdentError> {
         // Check to see if the identifier exists in the current scope or within the import boundary
         let mut ident_exists = self.get_ident(&name).is_some();
         let mut external_declaration = false;
@@ -144,9 +176,7 @@ impl Scope {
 
                 let all_idents = vec![imported, new_ident.clone()];
 
-                let old_value = self
-                    .idents
-                    .insert(name.clone(), IdentEntry::Multiple(all_idents));
+                let old_value = self.idents.insert(name, IdentEntry::Multiple(all_idents));
                 // Make sure that the ident was imported
                 assert!(old_value.is_some());
             } else {
@@ -208,12 +238,8 @@ impl Scope {
                     });
             }
 
-            // TODO: Check if the identifier is across an import boundary, to
-            // see if it can be overwritten
-            (
-                new_ident,
-                Some(format!("'{}' has already been declared", name)),
-            )
+            // TODO: Check if the identifier is across an import boundary, to see if it can be overwritten
+            Err(IdentError::Redeclared(new_ident))
         } else {
             // Declare the identifier
             let old_value = self
@@ -223,20 +249,31 @@ impl Scope {
             assert!(old_value.is_none());
 
             // Defining a new identifier
-            (new_ident, None)
+            Ok(new_ident)
         }
     }
 
     /// Resolves the given identifier in the given scope, by modifying the
-    /// identifier with the same instance
+    /// identifier with the same instance.
+    ///
     /// If the given identifier has not been declared in the current scope
-    /// (either by importing from an external scope or by local declaration), a panic is done
-    /// An identifier should already be declared by the time this is executed
-    pub fn resolve_ident(&mut self, name: &str, new_info: &Identifier) -> Identifier {
-        let ident_store = self
-            .idents
-            .get_mut(name)
-            .expect("The given identifier has not been declared yet");
+    /// (either by importing from an external scope or by local declaration),
+    /// an IdentError::Undeclared error is returned.
+    ///
+    /// Otherwise, an identifier should already be declared by the time this is executed
+    pub fn resolve_ident(
+        &mut self,
+        name: &str,
+        new_info: &Identifier,
+    ) -> Result<Identifier, IdentError> {
+        let ident_store = self.idents.get_mut(name);
+
+        if ident_store.is_none() {
+            // Given identifier is undeclared
+            return Err(IdentError::Undeclared(new_info.clone()));
+        }
+
+        let ident_store = ident_store.unwrap();
 
         // Grab the identifier reference
         let ident = match ident_store {
@@ -251,8 +288,8 @@ impl Scope {
         ident.is_const = new_info.is_const;
         ident.is_typedef = new_info.is_typedef;
 
-        // Give back the resovled copy
-        ident.clone()
+        // Give back the resolved copy
+        Ok(ident.clone())
     }
 
     /// Imports the identifier from the one of the parent scopes
@@ -297,24 +334,27 @@ impl Scope {
     }
 
     /// Uses an identifer.
-    /// If an identifier is not found in the current scope, it is returned from one of the parent scopes
-    /// If an identifer is found from one of the parent scopes, a new import entry is also created
-    /// Should an identifier not be found, an error message is produced, and
-    /// an identifier with the same name is declared in the current scope
-    pub fn use_ident(&mut self, ident: Token, name: &str) -> (Identifier, Option<String>) {
+    ///
+    /// # Process
+    /// If an identifier is not found in the current scope, it is returned from one of the parent scopes.
+    /// If an identifer is found from one of the parent scopes, a new import entry is also created.
+    ///
+    /// Should an identifier not be found, an IdentError::Undeclared with a placeholder identer is
+    /// created.
+    pub fn use_ident(&mut self, ident: Token, name: &str) -> Result<Identifier, IdentError> {
         if let Some(declared) = self.get_ident(name) {
             let mut reference = declared.clone();
             // Change the location to be that of the reference location
             reference.token = ident;
 
-            (reference, None)
+            Ok(reference)
         } else {
             // Import the identifier from the parent scopes
             let imported = self.import_ident(ident.clone(), name);
 
             if let Some(imported_ident) = imported {
                 // Return the imported identifier
-                return (imported_ident, None);
+                return Ok(imported_ident);
             }
 
             // None found, make a new one!
@@ -341,10 +381,7 @@ impl Scope {
             // a definition
             assert!(old_value.is_none());
 
-            (
-                err_ident,
-                Some(format!("'{}' has not been declared yet", name)),
-            )
+            Err(IdentError::Undeclared(err_ident))
         }
     }
 
@@ -443,54 +480,57 @@ mod test {
     }
 
     #[test]
-    fn test_ident_declare_use() {
+    fn test_ident_declare_use() -> Result<(), IdentError> {
         let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
-        let (ident, declare_msg) = scope.declare_ident(
+        let ident = scope.declare_ident(
             make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
             false,
-        );
-        assert!(declare_msg.is_none());
+        )?;
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
-        let (use_ident, use_msg) = scope.use_ident(make_ident_token(), "a");
-        assert!(use_msg.is_none());
+        let use_ident = scope.use_ident(make_ident_token(), "a")?;
         assert_eq!(use_ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
+
+        Ok(())
     }
 
     #[test]
-    fn test_ident_redeclare() {
+    fn test_ident_redeclare() -> Result<(), IdentError> {
         let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         // First decl, pass
-        let (ident, declare_msg) = scope.declare_ident(
+        let ident = scope.declare_ident(
             make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
             false,
-        );
-        assert!(declare_msg.is_none());
+        )?;
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
         // Redecl, fail
-        let (redeclare_ident, redeclare_msg) = scope.declare_ident(
-            make_ident_token(),
-            String::from("a"),
-            TypeRef::Primitive(PrimitiveType::String_),
-            false,
-            false,
-        );
-        assert!(redeclare_msg.is_some());
+        let redeclare_ident: Identifier = scope
+            .declare_ident(
+                make_ident_token(),
+                String::from("a"),
+                TypeRef::Primitive(PrimitiveType::String_),
+                false,
+                false,
+            )
+            .expect_err("Previous declaration failed")
+            .into();
+
         assert_eq!(
             redeclare_ident.type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
+
         // Ensure that we're keeping track of the identifiers
         assert_eq!(
             scope.get_ident_instance("a", 2).unwrap().type_spec,
@@ -500,10 +540,12 @@ mod test {
             scope.get_ident_instance("a", 1).unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
+
+        Ok(())
     }
 
     #[test]
-    fn test_ident_declare_shadow() {
+    fn test_ident_declare_shadow() -> Result<(), IdentError> {
         // Identifier shadowing is not allow within inner scopes
         let mut blocks = vec![];
         let root_block = Rc::new(RefCell::new(make_test_block(BlockKind::Main, &blocks)));
@@ -518,14 +560,13 @@ mod test {
         {
             let root_scope = &mut blocks[0].borrow_mut().scope;
 
-            let (declare_ident, declare_msg) = root_scope.declare_ident(
+            let declare_ident = root_scope.declare_ident(
                 make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
                 false,
-            );
-            assert!(declare_msg.is_none());
+            )?;
             assert_eq!(
                 declare_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
@@ -535,14 +576,17 @@ mod test {
         // Inner declare
         {
             let inner_scope = &mut blocks[1].borrow_mut().scope;
-            let (shadow_ident, shadow_msg) = inner_scope.declare_ident(
-                make_ident_token(),
-                String::from("a"),
-                TypeRef::Primitive(PrimitiveType::Real),
-                false,
-                false,
-            );
-            assert!(shadow_msg.is_some());
+            let shadow_ident: Identifier = inner_scope
+                .declare_ident(
+                    make_ident_token(),
+                    String::from("a"),
+                    TypeRef::Primitive(PrimitiveType::Real),
+                    false,
+                    false,
+                )
+                .expect_err("Identifier not imported from parent")
+                .into();
+
             assert_eq!(
                 shadow_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Real)
@@ -568,10 +612,12 @@ mod test {
                 true
             );
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_ident_declare_no_shadow() {
+    fn test_ident_declare_no_shadow() -> Result<(), IdentError> {
         // Declaring outer after inner scopes should not cause issues
         let mut blocks = vec![];
         let root_block = Rc::new(RefCell::new(make_test_block(BlockKind::Main, &blocks)));
@@ -585,14 +631,13 @@ mod test {
         // Inner declare
         {
             let inner_scope = &mut blocks[1].borrow_mut().scope;
-            let (shadow_ident, shadow_msg) = inner_scope.declare_ident(
+            let shadow_ident = inner_scope.declare_ident(
                 make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Real),
                 false,
                 false,
-            );
-            assert!(shadow_msg.is_none());
+            )?;
             assert_eq!(
                 shadow_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Real)
@@ -608,34 +653,34 @@ mod test {
         {
             let root_scope = &mut blocks[0].borrow_mut().scope;
 
-            let (declare_ident, declare_msg) = root_scope.declare_ident(
+            let declare_ident = root_scope.declare_ident(
                 make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
                 false,
-            );
-            assert!(declare_msg.is_none());
+            )?;
             assert_eq!(
                 declare_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
             );
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_resolve_defined() {
+    fn test_resolve_defined() -> Result<(), IdentError> {
         let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
-        let (ident, msg) = scope.declare_ident(
+        let ident = scope.declare_ident(
             make_ident_token(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
             false,
-        );
-        assert!(msg.is_none());
+        )?;
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
         let new_info = Identifier::new(
@@ -647,22 +692,22 @@ mod test {
             true,
             0,
         );
-        let ident = scope.resolve_ident("a", &new_info);
+        let ident = scope.resolve_ident("a", &new_info)?;
 
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::String_));
         assert_eq!(
             scope.get_ident("a").unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
+
+        Ok(())
     }
 
     #[test]
-    #[should_panic(expected = "The given identifier has not been declared yet")]
     fn test_resolve_undefined() {
         let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
-        // Panics!
         let new_info = Identifier::new(
             make_ident_token(),
             TypeRef::Primitive(PrimitiveType::String_),
@@ -672,7 +717,11 @@ mod test {
             true,
             0,
         );
-        let _ = scope.resolve_ident("a", &new_info);
+
+        // Panics!
+        let _err = scope
+            .resolve_ident("a", &new_info)
+            .expect_err("The given identifier has been declared");
     }
 
     #[test]
@@ -680,15 +729,17 @@ mod test {
         let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
-        let (ident, msg) = scope.use_ident(make_ident_token(), "a");
-        assert!(msg.is_some());
+        let ident: Identifier = scope
+            .use_ident(make_ident_token(), "a")
+            .expect_err("Unused identifier was defined")
+            .into();
         assert_eq!(ident.type_spec, TypeRef::TypeError);
         // Should be the first instance
         assert_eq!(ident.instance, 0);
     }
 
     #[test]
-    fn test_use_import() {
+    fn test_use_import() -> Result<(), IdentError> {
         // External identifiers should be imported into the current scope
         let blocks = make_test_block_list(3);
 
@@ -696,14 +747,13 @@ mod test {
         {
             let root_scope = &mut blocks[1].borrow_mut().scope;
 
-            let (declare_ident, declare_msg) = root_scope.declare_ident(
+            let declare_ident = root_scope.declare_ident(
                 make_ident_token(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
                 false,
-            );
-            assert!(declare_msg.is_none());
+            )?;
             assert_eq!(
                 declare_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
@@ -714,8 +764,8 @@ mod test {
         // Inner use
         {
             let inner_scope = &mut blocks[2].borrow_mut().scope;
-            let (import_ident, shadow_msg) = inner_scope.use_ident(make_ident_token(), "a");
-            assert!(shadow_msg.is_none());
+            let import_ident = inner_scope.use_ident(make_ident_token(), "a")?;
+
             assert_eq!(
                 import_ident.type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
@@ -726,5 +776,7 @@ mod test {
             assert_eq!(import_ident.instance, 0);
             assert_eq!(import_ident.import_index.is_some(), true);
         }
+
+        Ok(())
     }
 }
