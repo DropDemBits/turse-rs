@@ -1,12 +1,12 @@
 //! Core compiler interface
 extern crate toc_ast;
+extern crate toc_core;
 extern crate toc_frontend;
 extern crate toc_ir;
-extern crate toc_core;
 
-use toc_frontend::{scanner::Scanner, parser::Parser, validator::Validator};
-use toc_ast::block::CodeUnit;
 use std::fs;
+use toc_ast::block::CodeUnit;
+use toc_frontend::{parser::Parser, scanner::Scanner, validator::Validator};
 
 /// Compiles and runs the given file
 pub fn compile_run_file(path: &str) {
@@ -46,8 +46,7 @@ pub fn resolve_unit(mut code_unit: CodeUnit) {
     // TODO: Provide external type resolution stage
 
     // Validate AST
-    let mut validator =
-        Validator::new(code_unit.root_block(), type_table);
+    let mut validator = Validator::new(code_unit.root_block(), type_table);
     code_unit.visit_ast_mut(&mut validator);
     code_unit.put_types(validator.take_types());
 

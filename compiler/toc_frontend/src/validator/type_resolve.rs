@@ -2,9 +2,7 @@
 use super::{ResolveContext, ResolveResult, Validator};
 use toc_ast::ast::{Expr, VisitorMut};
 use toc_ast::token::TokenType;
-use toc_ast::types::{
-    self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable,
-};
+use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, ValueApplyError};
 
 impl Validator {

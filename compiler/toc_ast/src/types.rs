@@ -840,7 +840,7 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                             let other_start_value = Value::try_from(*other_start.clone()).ok();
 
                             start_value
-                                .and_then(|v| Some((v, other_start_value?)))
+                                .zip(other_start_value)
                                 .and_then(|(a, b)| value::apply_binary(a, &TokenType::Equ, b).ok())
                                 .map(|v| {
                                     let is_eq: bool = v.into();

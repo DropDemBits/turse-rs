@@ -3,8 +3,10 @@ use crate::ast::{Expr, Identifier};
 use crate::token::{Token, TokenType};
 use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_core::Location;
+
 use std::cmp::Ordering;
 use std::convert::TryFrom;
+use std::fmt;
 
 /// Errors returned from value folding
 #[derive(Debug, PartialEq)]
@@ -14,6 +16,29 @@ pub enum ValueApplyError {
     InvalidOperand,
     WrongTypes,
 }
+
+impl fmt::Display for ValueApplyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ValueApplyError::Overflow => f.write_str("Overflow in compile-time expression"),
+            ValueApplyError::DivisionByZero => {
+                f.write_str("Compile-time 'div', 'mod', or 'rem' by zero")
+            }
+            ValueApplyError::InvalidOperand => {
+                f.write_str("Invalid operand in compile-time expression")
+            }
+            ValueApplyError::WrongTypes => {
+                f.write_str("Mismatched types in compile-time expression")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ValueApplyError {}
+
+/// Constraints for evaluation operations
+// TODO(Was doing): Evaluation constraints to allow coexistence of 64-bit and 32-bit operations
+pub struct EvalConstraints {}
 
 /// A single compile-time value
 #[derive(Debug, PartialEq, Clone)]
@@ -198,6 +223,7 @@ impl From<f64> for Value {
     }
 }
 
+// TODO: Remove interface, this is a fallible operation (replace with Value::from_token_type)
 impl From<TokenType> for Value {
     fn from(token_type: TokenType) -> Value {
         match token_type {

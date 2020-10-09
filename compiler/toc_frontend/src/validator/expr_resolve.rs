@@ -1,12 +1,12 @@
 //! Validator fragment, resolves all expressions
 use super::Validator;
 
+use std::cmp::Ordering;
 use toc_ast::ast::{Expr, Identifier, VisitorMut};
 use toc_ast::token::{Token, TokenType};
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
-use std::cmp::Ordering;
 
 impl Validator {
     // --- Expr Resolvers --- //
@@ -187,10 +187,6 @@ impl Validator {
                         Err(msg) => {
                             // Report the error message!
                             match msg {
-                                ValueApplyError::Overflow => self.reporter.report_error(
-                                    &loc,
-                                    format_args!("Overflow in compile-time expression"),
-                                ),
                                 ValueApplyError::InvalidOperand => match op {
                                     TokenType::Shl | TokenType::Shr => self.reporter.report_error(
                                         right.get_span(),
@@ -211,7 +207,9 @@ impl Validator {
                                         format_args!("Compile-time '{}' by zero", op),
                                     );
                                 }
-                                ValueApplyError::WrongTypes => unreachable!(), // Types are guarranteed to be compatible
+                                other => {
+                                    self.reporter.report_error(&loc, format_args!("{}", other))
+                                }
                             }
 
                             // Remove the compile-time evaluability status
@@ -337,21 +335,20 @@ impl Validator {
 
                     let result = value::apply_unary(&op, rvalue);
 
-                    return match result {
-                        Ok(v) => Some(v),
-                        Err(msg) => {
-                            match msg {
-                                ValueApplyError::Overflow => self.reporter.report_error(
-                                    &right.get_span(),
-                                    format_args!("Overflow in compile-time expression"),
-                                ),
-                                _ => unreachable!(), // Overflow is the only error produced, WrongTypes captured by typecheck above
-                            }
-
-                            // Revoke compile-time evaluability status
-                            *is_compile_eval = false;
-                            None
+                    return if let Err(msg) = result {
+                        match msg {
+                            ValueApplyError::Overflow => self.reporter.report_error(
+                                &right.get_span(),
+                                format_args!("Overflow in compile-time expression"),
+                            ),
+                            other => self.reporter.report_error(&loc, format_args!("{}", other)),
                         }
+
+                        // Revoke compile-time evaluability status
+                        *is_compile_eval = false;
+                        None
+                    } else {
+                        result.ok()
                     };
                 }
 
