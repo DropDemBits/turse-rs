@@ -37,8 +37,10 @@ impl fmt::Display for ValueApplyError {
 impl std::error::Error for ValueApplyError {}
 
 /// Constraints for evaluation operations
-// TODO(Was doing): Evaluation constraints to allow coexistence of 64-bit and 32-bit operations
-pub struct EvalConstraints {}
+pub struct EvalConstraints {
+    /// Whether to perform operations at the 64-bit width for integer types
+    pub as_64_bit: bool,
+}
 
 /// A single compile-time value
 #[derive(Debug, PartialEq, Clone)]
@@ -125,10 +127,12 @@ impl TryFrom<Value> for Expr {
             Value::IntValue(v) => Ok(value::make_literal(
                 TokenType::IntLiteral(v),
                 TypeRef::Primitive(types::get_int_kind(v)),
+                //TypeRef::Primitive(PrimitiveType::IntNat),
             )),
             Value::NatValue(v) => Ok(value::make_literal(
                 TokenType::NatLiteral(v),
                 TypeRef::Primitive(types::get_intnat_kind(v)),
+                //TypeRef::Primitive(PrimitiveType::IntNat),
             )),
             Value::RealValue(v) => Ok(value::make_literal(
                 TokenType::RealLiteral(v),
@@ -517,7 +521,16 @@ fn check_inf(v: f64) -> Result<f64, ValueApplyError> {
 }
 
 /// Applies the specified binary operation on the given value operands
-pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError> {
+///
+/// `constraints` modifies how the binary operation is applied.
+pub fn apply_binary(
+    lhs: Value,
+    op: &TokenType,
+    rhs: Value,
+    constraints: EvalConstraints,
+) -> Result<Value, ValueApplyError> {
+    // constraints.as_64_bit affects the bit shift manipulation operators specifically, since they are size-sensitive
+    // All values are sign-extended to 64-bits otherwise
     match op {
         TokenType::Plus => {
             if is_string(&lhs) && is_string(&rhs) {
@@ -756,19 +769,22 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         }
         TokenType::Shl => {
             // Bitshift left
-            // For compatibility reasons, 'r' is masked into the 0 - 31 range
-            // as TProlog only works with 32-bit integers. In the future,
-            // 'r' can be masked into the 0 - 63 range by a feature flag
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
-                let lvalue = value_into_i64(lhs)?;
+                let lvalue = value_into_u64_bytes(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
 
                 if rvalue < 0 {
                     Err(ValueApplyError::InvalidOperand)
                 } else {
-                    Ok(Value::from(
-                        lvalue.overflowing_shl((rvalue as u32) & 0x1F).0 as u64,
-                    ))
+                    let result = if constraints.as_64_bit {
+                        // Mask into the 0 - 63 range for 64-bit integers
+                        lvalue.overflowing_shl((rvalue as u32) & 0x3F).0 as u64
+                    } else {
+                        // Mask into the 0 - 31 range for 64-bit integers, and truncate to 32 bits
+                        (lvalue.overflowing_shl((rvalue as u32) & 0x1F).0 as u64) & 0xFFFFFFFF
+                    };
+
+                    Ok(Value::from(result))
                 }
             } else {
                 Err(ValueApplyError::WrongTypes)
@@ -776,19 +792,22 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
         }
         TokenType::Shr => {
             // Bitshift right
-            // For compatibility reasons, 'r' is masked into the 0 - 31 range
-            // as TProlog only works with 32-bit integers. In the future,
-            // 'r' can be masked into the 0 - 63 range by a feature flag
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
-                let lvalue = value_into_i64(lhs)?;
+                let lvalue = value_into_u64_bytes(lhs)?;
                 let rvalue = value_into_i64(rhs)?;
 
                 if rvalue < 0 {
                     Err(ValueApplyError::InvalidOperand)
                 } else {
-                    Ok(Value::from(
-                        lvalue.overflowing_shr((rvalue as u32) & 0x1F).0 as u64,
-                    ))
+                    let result = if constraints.as_64_bit {
+                        // Mask into the 0 - 63 range for 64-bit integers
+                        lvalue.overflowing_shr((rvalue as u32) & 0x3F).0 as u64
+                    } else {
+                        // Truncate lvalue to 32 bits and mask shift into the 0 - 31 range for 64-bit integers
+                        (lvalue as u32).overflowing_shr((rvalue as u32) & 0x1F).0 as u64
+                    };
+
+                    Ok(Value::from(result))
                 }
             } else {
                 Err(ValueApplyError::WrongTypes)
@@ -834,7 +853,14 @@ pub fn apply_binary(lhs: Value, op: &TokenType, rhs: Value) -> Result<Value, Val
 }
 
 /// Applies the specifies unary operation on the given value operand
-pub fn apply_unary(op: &TokenType, rhs: Value) -> Result<Value, ValueApplyError> {
+///
+/// `constraints` modifies how the binary operation is applied. Currently,
+/// evaluation constraints are not used for unary operations.
+pub fn apply_unary(
+    op: &TokenType,
+    rhs: Value,
+    _constraints: EvalConstraints,
+) -> Result<Value, ValueApplyError> {
     match op {
         TokenType::Not => match rhs {
             Value::IntValue(_) | Value::NatValue(_) => {
@@ -926,7 +952,13 @@ pub fn apply_ord(expr: &Expr, type_table: &TypeTable) -> Result<Value, ValueAppl
     } else if types::is_boolean(eval_type) {
         // NatCheat boolean
         let bool_value = Value::try_from(expr.clone()).map_err(|_| ValueApplyError::WrongTypes)?;
-        apply_unary(&TokenType::Pound, bool_value)
+
+        // Don't worry about constraints
+        apply_unary(
+            &TokenType::Pound,
+            bool_value,
+            EvalConstraints { as_64_bit: false },
+        )
     } else if types::is_char(eval_type) || types::is_char_seq_type(eval_type) {
         // Convert to Value, check len, cheat into NatValue
         let value = Value::try_from(expr.clone()).map_err(|_| ValueApplyError::WrongTypes)?;
@@ -1021,7 +1053,7 @@ mod test {
     }
 
     #[test]
-    fn test_binary_ops() {
+    fn test_32bit_binary_ops() {
         // Binary operations on
         // + - * / div mod rem ** and or xor shl shr =>
         // < > <= >= = ~=
@@ -1117,12 +1149,18 @@ mod test {
             false Xor false == false;
 
             // Bitshift left
+            // 32-bit masking should give the same result
+            1u64 Shl 1u64 == 2u64;
             1u64 Shl 33u64 == 2u64;
             3i64 Shl 33i64 == 6u64;
+            3i64 Shl 65i64 == 6u64;
 
             // Bitshift right
+            // Should perform a 32-bit logical shift right
+            1u64 Shr 64u64 == 1u64;
             1u64 Shr 32u64 == 1u64;
             2i64 Shr 1i64 == 1u64;
+            -8i64 Shr 1i64 == 0x7FFFFFFCu64;
 
             // Imply
             true Imply true == true;
@@ -1175,7 +1213,7 @@ mod test {
         for (test_num, validate) in arithmetics.into_iter().enumerate() {
             let (lhs, op, rhs, result) = validate;
 
-            let eval = apply_binary(lhs, &op, rhs).unwrap();
+            let eval = apply_binary(lhs, &op, rhs, EvalConstraints { as_64_bit: false }).unwrap();
 
             if is_real(&eval) && is_real(&result) {
                 // Use epsilon
@@ -1190,7 +1228,54 @@ mod test {
                     f64::EPSILON,
                 );
             } else {
-                assert_eq!(eval, result, "Test #{} failed", (test_num + 1));
+                assert_eq!(eval, result, "Test #{} (on {}) failed", (test_num + 1), op);
+            }
+        }
+    }
+
+    #[test]
+    fn test_64bit_binary_ops() {
+        // Binary operations on size-sensitive operations
+        // shl shr
+
+        let arithmetics = make_bops![
+            // Bitshift left
+            // 64-bit masking should give different results from the 32 - 63 range
+            1u64 Shl 1u64 == 2u64;
+            3u64 Shl 1u64 == 6u64;
+            1u64 Shl 33u64 == 0x2_00000000u64;
+            3i64 Shl 33i64 == 0x6_00000000u64;
+            1i64 Shl 65i64 == 2u64;
+            3i64 Shl 65i64 == 6u64;
+
+            // Bitshift right
+            // Should perform a logical shift right
+            // 64-bit masking should give different results from the 32 - 63 range
+            1u64 Shr 64u64 == 1u64;
+            1u64 Shr 32u64 == 0u64;
+            2i64 Shr 1i64 == 1u64;
+            -8i64 Shr 1i64 == 0x7FFFFFFFFFFFFFFCu64;
+        ];
+
+        for (test_num, validate) in arithmetics.into_iter().enumerate() {
+            let (lhs, op, rhs, result) = validate;
+
+            let eval = apply_binary(lhs, &op, rhs, EvalConstraints { as_64_bit: true }).unwrap();
+
+            if is_real(&eval) && is_real(&result) {
+                // Use epsilon
+                let eval: f64 = eval.into();
+                let result: f64 = result.into();
+
+                assert!(
+                    (eval - result).abs() <= f64::EPSILON,
+                    "FP Test #{} failed ({} > {})",
+                    (test_num + 1),
+                    (eval - result).abs(),
+                    f64::EPSILON,
+                );
+            } else {
+                assert_eq!(eval, result, "Test #{} (on {}) failed", (test_num + 1), op);
             }
         }
     }
@@ -1290,10 +1375,10 @@ mod test {
         for (test_num, validate) in error_tests.into_iter().enumerate() {
             let (lhs, op, rhs, expect_error) = validate;
 
-            let error = apply_binary(lhs, &op, rhs).expect_err(&format!(
-                "Test #{} did not produce an error",
-                (test_num + 1)
-            ));
+            let error =
+                apply_binary(lhs, &op, rhs, EvalConstraints { as_64_bit: false }).expect_err(
+                    &format!("Test #{} did not produce an error", (test_num + 1)),
+                );
 
             assert_eq!(error, expect_error, "Test #{} failed", (test_num + 1));
         }
@@ -1337,7 +1422,8 @@ mod test {
         for (test_num, validate) in arithmetics.into_iter().enumerate() {
             let (op, rhs, result) = validate;
 
-            let eval = apply_unary(&op, rhs).unwrap();
+            // Unary operations ignore constraints
+            let eval = apply_unary(&op, rhs, EvalConstraints { as_64_bit: false }).unwrap();
 
             if is_real(&eval) && is_real(&result) {
                 // Use epsilon
@@ -1381,10 +1467,10 @@ mod test {
         for (test_num, validate) in error_tests.into_iter().enumerate() {
             let (op, rhs, expect_error) = validate;
 
-            let error = apply_unary(&op, rhs).expect_err(&format!(
-                "Test #{} did not produce an error",
-                (test_num + 1)
-            ));
+            // Unary operations ignore constraints
+            let error = apply_unary(&op, rhs, EvalConstraints { as_64_bit: false }).expect_err(
+                &format!("Test #{} did not produce an error", (test_num + 1)),
+            );
 
             assert_eq!(error, expect_error, "Test #{} failed", (test_num + 1));
         }

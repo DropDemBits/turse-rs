@@ -841,7 +841,15 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
                             start_value
                                 .zip(other_start_value)
-                                .and_then(|(a, b)| value::apply_binary(a, &TokenType::Equ, b).ok())
+                                .and_then(|(a, b)| {
+                                    value::apply_binary(
+                                        a,
+                                        &TokenType::Equ,
+                                        b,
+                                        value::EvalConstraints { as_64_bit: false },
+                                    )
+                                    .ok()
+                                })
                                 .map(|v| {
                                     let is_eq: bool = v.into();
                                     is_eq

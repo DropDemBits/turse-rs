@@ -180,7 +180,12 @@ impl Validator {
                             )
                         });
 
-                    let result = value::apply_binary(lvalue, op, rvalue);
+                    let result = value::apply_binary(
+                        lvalue,
+                        op,
+                        rvalue,
+                        value::EvalConstraints { as_64_bit: false },
+                    );
 
                     match result {
                         Ok(v) => Some(v),
@@ -333,7 +338,11 @@ impl Validator {
                             )
                         });
 
-                    let result = value::apply_unary(&op, rvalue);
+                    let result = value::apply_unary(
+                        &op,
+                        rvalue,
+                        value::EvalConstraints { as_64_bit: false },
+                    );
 
                     return if let Err(msg) = result {
                         match msg {
