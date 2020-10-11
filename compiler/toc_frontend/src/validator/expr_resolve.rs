@@ -2,8 +2,7 @@
 use super::Validator;
 
 use std::cmp::Ordering;
-use toc_ast::ast::{Expr, Identifier, VisitorMut};
-use toc_ast::token::{Token, TokenType};
+use toc_ast::ast::{BinaryOp, Expr, Identifier, Literal, UnaryOp, VisitorMut};
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
@@ -104,7 +103,7 @@ impl Validator {
     pub(super) fn resolve_expr_binary(
         &mut self,
         left: &mut Box<Expr>,
-        op: &Token,
+        op: &mut (BinaryOp, Location),
         right: &mut Box<Expr>,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
@@ -140,8 +139,8 @@ impl Validator {
             return None;
         }
 
-        let loc = &op.location;
-        let op = &op.token_type;
+        let loc = &op.1;
+        let op = op.0;
 
         let left_type = &self.dealias_resolve_type(left.get_eval_type());
         let right_type = &self.dealias_resolve_type(right.get_eval_type());
@@ -193,7 +192,7 @@ impl Validator {
                             // Report the error message!
                             match msg {
                                 ValueApplyError::InvalidOperand => match op {
-                                    TokenType::Shl | TokenType::Shr => self.reporter.report_error(
+                                    BinaryOp::Shl | BinaryOp::Shr => self.reporter.report_error(
                                         right.get_span(),
                                         format_args!(
                                             "Negative shift amount in compile-time '{}' expression",
@@ -232,38 +231,38 @@ impl Validator {
                 *is_compile_eval = false;
 
                 match op {
-                    TokenType::Plus =>
+                    BinaryOp::Add =>
                         self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
-                    TokenType::Minus | TokenType::Star =>
+                    BinaryOp::Sub | BinaryOp::Mul =>
                         self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
-                    TokenType::Slash | TokenType::Div | TokenType::Mod | TokenType::Rem | TokenType::Exp =>
+                    BinaryOp::RealDiv | BinaryOp::Div | BinaryOp::Mod | BinaryOp::Rem | BinaryOp::Exp =>
                         self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
-                    TokenType::And | TokenType::Or | TokenType::Xor =>
+                    BinaryOp::And | BinaryOp::Or | BinaryOp::Xor =>
                         self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
-                    TokenType::Shl | TokenType::Shr =>
+                    BinaryOp::Shl | BinaryOp::Shr =>
                         self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
-                    TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu => {
+                    BinaryOp::Less | BinaryOp::LessEq | BinaryOp::Greater | BinaryOp::GreaterEq => {
                         if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
                             self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
                         } else {
                             self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
                         }
                     },
-                    TokenType::NotEqu | TokenType::Equ => {
+                    BinaryOp::NotEqual | BinaryOp::Equal => {
                         if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
                             self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
                         } else {
                             self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
                         }
                     },
-                    TokenType::In | TokenType::NotIn => {
+                    BinaryOp::In | BinaryOp::NotIn => {
                         if !types::is_set(right_type, &self.type_table) {
                             self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
                         } else {
                             self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
                         }
                     },
-                    TokenType::Imply =>
+                    BinaryOp::Imply =>
                     self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                     _ => unreachable!(),
                 }
@@ -276,7 +275,7 @@ impl Validator {
 
     pub(super) fn resolve_expr_unary(
         &mut self,
-        op: &Token,
+        op: &mut (UnaryOp, Location),
         right: &mut Box<Expr>,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
@@ -290,8 +289,8 @@ impl Validator {
         // eval_type is the result of the operation (usually the same
         // as rhs)
 
-        let loc = &op.location;
-        let op = &op.token_type;
+        let loc = &op.1;
+        let op = op.0;
 
         if super::is_type_reference(right) {
             // Operand is a type reference, can't perform operations on it
@@ -310,7 +309,7 @@ impl Validator {
             // Right operand is a type error
 
             // Propogate error
-            *eval_type = binary_default(op);
+            *eval_type = unary_default(op);
             *is_compile_eval = false;
             return None;
         }
@@ -323,7 +322,7 @@ impl Validator {
                 // Compile-time evaluability is dependend on the right operand
                 *is_compile_eval = right.is_compile_eval();
 
-                if *op == TokenType::Caret {
+                if op == UnaryOp::Deref {
                     // Pointers are never compile-time evaluable
                     *is_compile_eval = false;
                 }
@@ -338,11 +337,8 @@ impl Validator {
                             )
                         });
 
-                    let result = value::apply_unary(
-                        &op,
-                        rvalue,
-                        value::EvalConstraints { as_64_bit: false },
-                    );
+                    let result =
+                        value::apply_unary(op, rvalue, value::EvalConstraints { as_64_bit: false });
 
                     return if let Err(msg) = result {
                         match msg {
@@ -369,12 +365,11 @@ impl Validator {
                 *is_compile_eval = false;
 
                 match op {
-                    TokenType::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
-                    TokenType::Plus => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
-                    TokenType::Minus => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
-                    TokenType::Caret => self.reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
-                    TokenType::Pound => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
-                    _ => unreachable!()
+                    UnaryOp::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
+                    UnaryOp::Identity => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
+                    UnaryOp::Negate => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
+                    UnaryOp::Deref => self.reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
+                    UnaryOp::NatCheat => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
                 }
 
                 // Produce no value
@@ -387,7 +382,7 @@ impl Validator {
     pub(super) fn resolve_expr_call(
         &mut self,
         left: &mut Box<Expr>,
-        op: &mut Token,
+        paren_at: &mut Location,
         args: &mut Vec<Expr>,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
@@ -460,7 +455,7 @@ impl Validator {
             match self.type_table.type_from_ref(&left_dealiased) {
                 Some(Type::Set { range }) => {
                     // Set constructor
-                    self.typecheck_set_constructor(range, args, &op.location);
+                    self.typecheck_set_constructor(range, args, paren_at);
 
                     // Evaluate to the given set type decl
                     *eval_type = left.get_eval_type();
@@ -473,7 +468,7 @@ impl Validator {
                     // Pointer specialization
                     if args.len() != 1 {
                         self.reporter.report_error(
-                            &op.location,
+                            paren_at,
                             format_args!(
                                 "Pointer specialization requires only 1 argument to be present"
                             ),
@@ -517,7 +512,7 @@ impl Validator {
                     element_type,
                     ..
                 }) => {
-                    self.typecheck_array_dimensions(ranges, args, &op.location);
+                    self.typecheck_array_dimensions(ranges, args, paren_at);
 
                     // Evaluates to the element type
                     *eval_type = *element_type;
@@ -528,7 +523,7 @@ impl Validator {
                 }
                 Some(Type::Function { params, result }) => {
                     // Typecheck the function arguments
-                    self.typecheck_function_arguments(params.as_ref(), args, &op.location);
+                    self.typecheck_function_arguments(params.as_ref(), args, paren_at);
 
                     // allow_procedure
                     *eval_type = if let Some(result_type) = result {
@@ -566,7 +561,7 @@ impl Validator {
     fn report_uncallable_expr(&self, left: &Expr) {
         if let Some(ident) = super::get_reference_ident(left) {
             self.reporter.report_error(
-                &ident.token.location,
+                &ident.location,
                 format_args!("'{}' cannot be called or have subscripts", ident.name),
             );
         } else if !matches!(*left, Expr::Empty) {
@@ -817,7 +812,7 @@ impl Validator {
 
                         // Grabbing the identifier as the enum type name is a best-effort guess
                         self.reporter.report_error(
-                            &field.token.location,
+                            &field.location,
                             format_args!(
                                 "'{}' is not a field of the enum type '{}'",
                                 field.name,
@@ -871,7 +866,7 @@ impl Validator {
             // Identifier has not been declared at all before this point, report it
             // Only reported once everytime something is not declared
             self.reporter.report_error(
-                &ident.token.location,
+                &ident.location,
                 format_args!("'{}' has not been declared yet", ident.name),
             );
         }
@@ -926,7 +921,7 @@ impl Validator {
 
     pub(super) fn resolve_expr_literal(
         &mut self,
-        value: &mut Token,
+        value: &mut Literal,
         eval_type: &mut TypeRef,
     ) -> Option<Value> {
         // Literal values already have the type resolved, unless the eval type is an IntNat
@@ -936,16 +931,15 @@ impl Validator {
             *eval_type = TypeRef::Primitive(PrimitiveType::Int);
         }
 
-        if matches!(value.token_type, TokenType::Nil) {
+        if matches!(value, Literal::Nil) {
             // Don't produce a compile-time value for 'nil'
             None
         } else {
             // Produce the corresponding literal value
-            let tok_type = value.token_type.clone();
-            let v = Value::from_token_type(tok_type).unwrap_or_else(|msg| {
+            let v = Value::from_literal(value.clone()).unwrap_or_else(|msg| {
                 panic!(
                     "Literal '{:?}' cannot be converted into a compile-time value ({})",
-                    value.token_type, msg
+                    value, msg
                 );
             });
 
@@ -955,30 +949,29 @@ impl Validator {
 }
 
 /// Default type in a binary expression
-fn binary_default(op: &TokenType) -> TypeRef {
+fn binary_default(op: BinaryOp) -> TypeRef {
     match op {
-        TokenType::Less
-        | TokenType::Greater
-        | TokenType::LessEqu
-        | TokenType::GreaterEqu
-        | TokenType::Equ
-        | TokenType::NotEqu
-        | TokenType::In
-        | TokenType::NotIn
-        | TokenType::And
-        | TokenType::Or
-        | TokenType::Imply => TypeRef::Primitive(PrimitiveType::Boolean),
+        BinaryOp::Less
+        | BinaryOp::Greater
+        | BinaryOp::LessEq
+        | BinaryOp::GreaterEq
+        | BinaryOp::Equal
+        | BinaryOp::NotEqual
+        | BinaryOp::In
+        | BinaryOp::NotIn
+        | BinaryOp::And
+        | BinaryOp::Or
+        | BinaryOp::Imply => TypeRef::Primitive(PrimitiveType::Boolean),
         _ => TypeRef::TypeError,
     }
 }
 
 /// Default type in a unary expression
-fn unary_default(op: &TokenType) -> TypeRef {
+fn unary_default(op: UnaryOp) -> TypeRef {
     match op {
-        TokenType::Not => TypeRef::Primitive(PrimitiveType::Boolean),
-        TokenType::Pound => TypeRef::Primitive(PrimitiveType::Nat4),
-        TokenType::Plus | TokenType::Minus | TokenType::Caret => TypeRef::TypeError,
-        _ => unreachable!(),
+        UnaryOp::Not => TypeRef::Primitive(PrimitiveType::Boolean),
+        UnaryOp::NatCheat => TypeRef::Primitive(PrimitiveType::Nat4),
+        _ => TypeRef::TypeError,
     }
 }
 
@@ -994,7 +987,7 @@ fn unary_default(op: &TokenType) -> TypeRef {
 ///                         certain operations (e.g. shl, shr)
 pub(super) fn check_binary_operands(
     left_type: &TypeRef,
-    op: &TokenType,
+    op: BinaryOp,
     right_type: &TypeRef,
     type_table: &TypeTable,
 ) -> Result<TypeRef, TypeRef> {
@@ -1005,7 +998,7 @@ pub(super) fn check_binary_operands(
     debug_assert!(types::is_base_type(right_type, type_table));
 
     match op {
-        TokenType::Plus => {
+        BinaryOp::Add => {
             // Valid conditions:
             // - Both types are strings
             // - Both types are numerics (real, int, nat, etc)
@@ -1026,7 +1019,7 @@ pub(super) fn check_binary_operands(
                 return Ok(*left_type);
             }
         }
-        TokenType::Minus | TokenType::Star => {
+        BinaryOp::Sub | BinaryOp::Mul => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // - Both types are equivalent sets
@@ -1043,7 +1036,7 @@ pub(super) fn check_binary_operands(
                 return Ok(*left_type);
             }
         }
-        TokenType::Slash => {
+        BinaryOp::RealDiv => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // Otherwise, TypeError is produced
@@ -1052,7 +1045,7 @@ pub(super) fn check_binary_operands(
                 return Ok(TypeRef::Primitive(PrimitiveType::Real));
             }
         }
-        TokenType::Div => {
+        BinaryOp::Div => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // Otherwise, TypeError is produced
@@ -1061,7 +1054,7 @@ pub(super) fn check_binary_operands(
                 return Ok(TypeRef::Primitive(PrimitiveType::Int));
             }
         }
-        TokenType::Mod | TokenType::Rem | TokenType::Exp => {
+        BinaryOp::Mod | BinaryOp::Rem | BinaryOp::Exp => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // Otherwise, TypeError is produced
@@ -1070,7 +1063,7 @@ pub(super) fn check_binary_operands(
                 return Ok(*types::common_type(left_type, right_type, type_table).unwrap());
             }
         }
-        TokenType::And | TokenType::Or | TokenType::Xor => {
+        BinaryOp::And | BinaryOp::Or | BinaryOp::Xor => {
             // Valid conditions:
             // - Both types are integers (int, nat, etc)
             // - Both types are booleans
@@ -1083,7 +1076,7 @@ pub(super) fn check_binary_operands(
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
         }
-        TokenType::Shl | TokenType::Shr => {
+        BinaryOp::Shl | BinaryOp::Shr => {
             // Valid conditions:
             // - Both types are integers (int, nat, etc)
             // Otherwise, TypeError is produced
@@ -1092,7 +1085,7 @@ pub(super) fn check_binary_operands(
                 return Ok(TypeRef::Primitive(PrimitiveType::Nat));
             }
         }
-        TokenType::Less | TokenType::LessEqu | TokenType::Greater | TokenType::GreaterEqu => {
+        BinaryOp::Less | BinaryOp::LessEq | BinaryOp::Greater | BinaryOp::GreaterEq => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // - Both types are char or strings/character sequence class types (string, string(n), char(n), or char)
@@ -1121,7 +1114,7 @@ pub(super) fn check_binary_operands(
             }
             // TODO: Check remaining type (object class)
         }
-        TokenType::Equ | TokenType::NotEqu => {
+        BinaryOp::Equal | BinaryOp::NotEqual => {
             // Valid conditions:
             // - Both types are numerics (real, int, nat, etc)
             // - Both types are char or strings class types (string, string(n), char, char(n))
@@ -1174,7 +1167,7 @@ pub(super) fn check_binary_operands(
             }
             // TODO: Check remaining types (class pointers, object class)
         }
-        TokenType::In | TokenType::NotIn => {
+        BinaryOp::In | BinaryOp::NotIn => {
             // Valid conditions:
             // - Left type matches the set's index type
             // - Right type is a set
@@ -1187,7 +1180,7 @@ pub(super) fn check_binary_operands(
                 }
             }
         }
-        TokenType::Imply => {
+        BinaryOp::Imply => {
             // Valid conditions:
             // - Both types are booleans
             // Otherwise, TypeError is produced
@@ -1203,14 +1196,14 @@ pub(super) fn check_binary_operands(
 }
 
 fn check_unary_operand(
-    op: &TokenType,
+    op: UnaryOp,
     right_type: &TypeRef,
     type_table: &TypeTable,
 ) -> Result<TypeRef, TypeRef> {
     debug_assert!(types::is_base_type(right_type, &type_table));
 
     match op {
-        TokenType::Not => {
+        UnaryOp::Not => {
             // Valid conditions:
             // - Operand is an integer (int, nat)
             // - Operand is a boolean
@@ -1223,11 +1216,11 @@ fn check_unary_operand(
                 return Ok(TypeRef::Primitive(PrimitiveType::Boolean));
             }
         }
-        TokenType::Pound => {
+        UnaryOp::NatCheat => {
             // Pound type cheat always forces the current operand into a nat4
             return Ok(TypeRef::Primitive(PrimitiveType::Nat4));
         }
-        TokenType::Plus | TokenType::Minus => {
+        UnaryOp::Identity | UnaryOp::Negate => {
             // Valid conditions:
             // - Operand is a numeric (real, int, nat)
             // Otherwise, TypeError is produced (as an error)
@@ -1236,7 +1229,7 @@ fn check_unary_operand(
                 return Ok(*right_type);
             }
         }
-        TokenType::Caret => {
+        UnaryOp::Deref => {
             // Valid conditions:
             // - Operand is a pointer type (produces the pointer's type)
             // Otherwise, TypeError is produced (as an error)
@@ -1245,7 +1238,6 @@ fn check_unary_operand(
                 return Ok(*to);
             }
         }
-        _ => unreachable!(),
     }
 
     Err(unary_default(op))

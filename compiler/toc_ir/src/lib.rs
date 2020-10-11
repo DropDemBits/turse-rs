@@ -5,11 +5,11 @@ mod graph;
 
 pub use builder::IrBuilder;
 
-extern crate toc_core;
 extern crate petgraph;
+extern crate toc_core;
 
-use toc_ast::types::TypeRef;
 use std::collections::HashMap;
+use toc_ast::types::TypeRef;
 
 /// Variable reference spaces
 #[derive(Debug, Copy, Clone)]
@@ -64,5 +64,11 @@ impl ReferenceNode {
             .get(name)
             .cloned()
             .unwrap_or_else(|| panic!("Reference '{}' is missing an 'assign_ref'", name))
+    }
+}
+
+impl Default for ReferenceNode {
+    fn default() -> Self {
+        Self::new()
     }
 }

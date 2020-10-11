@@ -169,3 +169,9 @@ impl StatusReporter {
         self.has_error.get()
     }
 }
+
+impl Default for StatusReporter {
+    fn default() -> Self {
+        Self::new()
+    }
+}

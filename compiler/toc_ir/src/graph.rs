@@ -1,13 +1,13 @@
 //! All of the components in an IrGraph/IrModule
 use crate::AddressSpace;
-use toc_ast::types::TypeRef;
-use toc_ast::value::Value;
-use toc_ast::Operator;
-use toc_core::Location;
 use petgraph::prelude::*;
 use petgraph::stable_graph::StableDiGraph;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use toc_ast::ast::{BinaryOp, UnaryOp};
+use toc_ast::types::TypeRef;
+use toc_ast::value::Value;
+use toc_core::Location;
 
 /// Reference to an IR block
 pub type BlockIndexType = u32;
@@ -58,6 +58,12 @@ impl IrGraph {
     }
 }
 
+impl Default for IrGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A function definition
 #[derive(Debug)]
 pub struct Function {
@@ -96,6 +102,12 @@ impl Block {
     pub fn insert_instruction(&mut self, inst: Instruction) -> usize {
         self.instrs.push(inst);
         self.instrs.len() - 1
+    }
+}
+
+impl Default for Block {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -154,14 +166,14 @@ pub enum InstructionOp {
     /// Applies a binary op and stores the result into `dest`
     BinaryOp {
         dest: Reference,
-        op: Operator,
+        op: BinaryOp,
         lhs: Reference,
         rhs: Reference,
     },
     /// Applies a unary op and stores the result into `dest`
     UnaryOp {
         dest: Reference,
-        op: Operator,
+        op: UnaryOp,
         rhs: Reference,
     },
     /// Casts a reference from the source type into the destination type

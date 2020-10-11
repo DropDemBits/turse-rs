@@ -5,8 +5,7 @@
 //!   - Any type including a range (e.g. 'set', 'array')
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
-use crate::ast::Expr;
-use crate::token::TokenType;
+use crate::ast::{BinaryOp, Expr};
 use crate::value::{self, Value};
 
 use std::collections::HashMap;
@@ -844,7 +843,7 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                                 .and_then(|(a, b)| {
                                     value::apply_binary(
                                         a,
-                                        &TokenType::Equ,
+                                        BinaryOp::Equal,
                                         b,
                                         value::EvalConstraints { as_64_bit: false },
                                     )

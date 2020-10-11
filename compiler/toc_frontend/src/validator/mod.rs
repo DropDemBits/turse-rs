@@ -266,7 +266,7 @@ impl Validator {
                     // No uses, warn
                     let ident = &ident_info.ident;
                     self.reporter.report_warning(
-                        &ident.token.location,
+                        &ident.location,
                         format_args!("This declaration of '{}' is never used", ident.name),
                     );
                 }
@@ -290,12 +290,12 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 is_new_def,
             } => self.resolve_decl_type(ident, resolved_type, *is_new_def),
             Stmt::Assign { var_ref, op, value } => {
-                self.resolve_stmt_assign(var_ref, &op.token_type, value)
+                self.resolve_stmt_assign(var_ref, op.as_mut(), value)
             }
             Stmt::ProcedureCall { proc_ref } => {
                 if let Expr::Call {
                     left,
-                    op,
+                    paren_at,
                     arg_list,
                     eval_type,
                     is_compile_eval,
@@ -305,7 +305,7 @@ impl VisitorMut<(), Option<Value>> for Validator {
                     // Defer to expression resolution
                     let _ = self.resolve_expr_call(
                         left,
-                        op,
+                        paren_at,
                         arg_list,
                         eval_type,
                         is_compile_eval,
@@ -347,12 +347,14 @@ impl VisitorMut<(), Option<Value>> for Validator {
             } => self.resolve_expr_unary(op, right, eval_type, is_compile_eval),
             Expr::Call {
                 left,
-                op,
+                paren_at,
                 arg_list,
                 eval_type,
                 is_compile_eval,
                 ..
-            } => self.resolve_expr_call(left, op, arg_list, eval_type, is_compile_eval, false),
+            } => {
+                self.resolve_expr_call(left, paren_at, arg_list, eval_type, is_compile_eval, false)
+            }
             Expr::Dot {
                 left,
                 field,
@@ -361,7 +363,9 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 ..
             } => self.resolve_expr_dot(left, field, eval_type, is_compile_eval),
             Expr::Reference { ident, eval_type } => self.resolve_expr_reference(ident, eval_type),
-            Expr::Literal { value, eval_type } => self.resolve_expr_literal(value, eval_type),
+            Expr::Literal {
+                value, eval_type, ..
+            } => self.resolve_expr_literal(value, eval_type),
         }
     }
 

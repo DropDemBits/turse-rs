@@ -1,6 +1,5 @@
 //! AST structure definitions
 use crate::block::CodeBlock;
-use crate::token::{Token, TokenType};
 use crate::types::TypeRef;
 use toc_core::Location;
 
@@ -15,8 +14,8 @@ pub type IdentInstance = u16;
 /// Definition of an identifier
 #[derive(Debug, Clone)]
 pub struct Identifier {
-    /// The token associated with the name.
-    pub token: Token,
+    /// The location of this identifier reference in the source code.
+    pub location: Location,
     /// The name of the identifier.
     pub name: String,
     /// The type for this identifier.
@@ -54,7 +53,7 @@ impl Identifier {
     /// Specifying an import index of '0' indicates that the identifier is not imported
     /// `token` Location of the reference token
     pub fn new(
-        token: Token,
+        location: Location,
         type_spec: TypeRef,
         name: String,
         is_const: bool,
@@ -63,7 +62,7 @@ impl Identifier {
         import_index: u32,
     ) -> Self {
         Self {
-            token,
+            location,
             name,
             type_spec,
             is_const,
@@ -72,6 +71,150 @@ impl Identifier {
             import_index: NonZeroU32::new(import_index),
             is_compile_eval: false,
             instance: 0, // All identifiers start with instance 0
+        }
+    }
+}
+
+/// Binary operators
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum BinaryOp {
+    /// Addition / Set Union / String Concatenation (`+`)
+    Add,
+    /// Subtraction / Set Subtraction (`*`)
+    Sub,
+    /// Multiplication / Set Intersection (`*`)
+    Mul,
+    /// Integer Division (`div`)
+    Div,
+    /// Real Division (`/`)
+    RealDiv,
+    /// Modulo (`mod`)
+    Mod,
+    /// Remainder (`rem`)
+    Rem,
+    /// Exponentiation (`**`)
+    Exp,
+    /// Bitwise/boolean And (`and`)
+    And,
+    /// Bitwise/boolean Or (`or`)
+    Or,
+    /// Bitwise/boolean Exclusive-Or (`xor`)
+    Xor,
+    /// Logical Shift Left (`shl`)
+    Shl,
+    /// Logical Shift Right (`shr`)
+    Shr,
+    /// Less than (`<`)
+    Less,
+    /// Less than or Equal (`<=`)
+    LessEq,
+    /// Greater than (`>`)
+    Greater,
+    /// Greater than or Equal (`>=`)
+    GreaterEq,
+    /// Equality (`=` or `=`)
+    Equal,
+    /// Inequality (`not=` or `~=`)
+    NotEqual,
+    /// Set inclusion (`in`)
+    In,
+    /// Set exclusion (`not in`)
+    NotIn,
+    /// Material Implication (`=>`)
+    Imply,
+    /// Arrow (`->`)
+    Arrow,
+    /// Dot (`.`)
+    Dot,
+}
+
+impl fmt::Display for BinaryOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BinaryOp::Add => f.write_str("+"),
+            BinaryOp::Sub => f.write_str("-"),
+            BinaryOp::Mul => f.write_str("mul"),
+            BinaryOp::Div => f.write_str("div"),
+            BinaryOp::RealDiv => f.write_str("/"),
+            BinaryOp::Mod => f.write_str("mod"),
+            BinaryOp::Rem => f.write_str("rem"),
+            BinaryOp::Exp => f.write_str("**"),
+            BinaryOp::And => f.write_str("and"),
+            BinaryOp::Or => f.write_str("or"),
+            BinaryOp::Xor => f.write_str("xor"),
+            BinaryOp::Shl => f.write_str("shl"),
+            BinaryOp::Shr => f.write_str("shr"),
+            BinaryOp::Less => f.write_str("<"),
+            BinaryOp::LessEq => f.write_str("<="),
+            BinaryOp::Greater => f.write_str(">"),
+            BinaryOp::GreaterEq => f.write_str(">="),
+            BinaryOp::Equal => f.write_str("="),
+            BinaryOp::NotEqual => f.write_str("not ="),
+            BinaryOp::In => f.write_str("in"),
+            BinaryOp::NotIn => f.write_str("not in"),
+            BinaryOp::Imply => f.write_str("=>"),
+            BinaryOp::Arrow => f.write_str("->"),
+            BinaryOp::Dot => f.write_str("."),
+        }
+    }
+}
+
+/// Unary operators
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum UnaryOp {
+    /// Binary/boolean negation operator (`not`)
+    Not,
+    /// Nat cheat (`#`)
+    NatCheat,
+    /// Integer identity (`+`)
+    Identity,
+    /// Integer negation (`-`)
+    Negate,
+    /// Pointer dereferencing operator (`^`)
+    Deref,
+}
+
+impl fmt::Display for UnaryOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UnaryOp::Not => f.write_str("not"),
+            UnaryOp::NatCheat => f.write_str("#"),
+            UnaryOp::Identity => f.write_str("+"),
+            UnaryOp::Negate => f.write_str("-"),
+            UnaryOp::Deref => f.write_str("^"),
+        }
+    }
+}
+
+/// Literal values
+#[derive(Debug, Clone)]
+pub enum Literal {
+    /// String sequence (`"abcd"`)
+    StrSequence(String),
+    /// Character sequence (`'abcd'`)
+    CharSequence(String),
+    /// Natural literal (`123456`)
+    Nat(u64),
+    /// Integer literal (`-123456`)
+    Int(i64),
+    /// Real literal (`0.1234`)
+    Real(f64),
+    /// Boolean Literal (`true` or `false`)
+    Bool(bool),
+    /// Nil literal
+    Nil,
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::StrSequence(s) => f.write_fmt(format_args!("\"{}\"", s)),
+            Literal::CharSequence(s) => f.write_fmt(format_args!("'{}'", s)),
+            Literal::Nat(n) => f.write_fmt(format_args!("nat({})", n)),
+            Literal::Int(n) => f.write_fmt(format_args!("int({})", n)),
+            Literal::Real(n) => f.write_fmt(format_args!("real({})", n)),
+            Literal::Bool(b) => f.write_fmt(format_args!("bool({})", b)),
+            Literal::Nil => f.write_fmt(format_args!("nil")),
         }
     }
 }
@@ -90,7 +233,7 @@ pub enum Expr {
         /// Left operand for the binary operation
         left: Box<Self>,
         /// Operator of the binary expression
-        op: Token,
+        op: (BinaryOp, Location),
         /// Right operand for the binary operation
         right: Box<Self>,
         /// The expression evaluation type
@@ -103,7 +246,7 @@ pub enum Expr {
     /// Unary expression
     UnaryOp {
         /// Operator of the unary expression
-        op: Token,
+        op: (UnaryOp, Location),
         /// Operand for the unary operation
         right: Box<Self>,
         /// The expression evaluation type
@@ -116,9 +259,11 @@ pub enum Expr {
     /// Common literal value
     Literal {
         /// The literal value
-        value: Token,
+        value: Literal,
         /// The evaluation type
         eval_type: TypeRef,
+        /// The span of the expression
+        span: Location,
     },
     // Note: Some functions & procedures may be in the AST as pure references (in the middle of expressions)
     // This is checked in the validator stage
@@ -133,7 +278,7 @@ pub enum Expr {
         /// Expression evaluating to a reference
         left: Box<Self>,
         /// Token location
-        op: Token,
+        paren_at: Location,
         /// The argument list for the call
         arg_list: Vec<Self>, // Parens may be omitted, indicated by left's eval type
         /// The expression evaluation type
@@ -207,10 +352,10 @@ impl Expr {
             Expr::Init { span, .. } => span,
             Expr::BinaryOp { span, .. } => span,
             Expr::UnaryOp { span, .. } => span,
-            Expr::Literal { value, .. } => &value.location,
+            Expr::Literal { span, .. } => span,
             Expr::Call { span, .. } => span,
             Expr::Dot { span, .. } => span,
-            Expr::Reference { ident, .. } => &ident.token.location,
+            Expr::Reference { ident, .. } => &ident.location,
         }
     }
 
@@ -221,10 +366,10 @@ impl Expr {
             Expr::Indirect { span, .. } => *span = at,
             Expr::BinaryOp { span, .. } => *span = at,
             Expr::UnaryOp { span, .. } => *span = at,
-            Expr::Literal { value, .. } => value.location = at,
+            Expr::Literal { span, .. } => *span = at,
             Expr::Call { span, .. } => *span = at,
             Expr::Dot { span, .. } => *span = at,
-            Expr::Reference { ident, .. } => ident.token.location = at,
+            Expr::Reference { ident, .. } => ident.location = at,
         }
     }
 
@@ -240,7 +385,7 @@ impl Expr {
             Expr::UnaryOp {
                 is_compile_eval, ..
             } => *is_compile_eval,
-            Expr::Literal { value, .. } => !matches!(&value.token_type, TokenType::Nil), // Literals (except nil) are already evaluated
+            Expr::Literal { value, .. } => !matches!(&value, Literal::Nil), // Literals (except nil) are already evaluated
             Expr::Call {
                 is_compile_eval, ..
             } => *is_compile_eval,
@@ -266,20 +411,9 @@ impl fmt::Debug for Expr {
             } => f.write_fmt(format_args!("({:?} @ ({:?}))", eval_type, reference)),
             BinaryOp {
                 left, op, right, ..
-            } => f.write_fmt(format_args!("({} {:?} {:?})", &op.token_type, left, right)),
-            UnaryOp { op, right, .. } => {
-                f.write_fmt(format_args!("({} {:?})", &op.token_type, right))
-            }
-            Literal { value, .. } => match &value.token_type {
-                TokenType::StringLiteral(s) => f.write_fmt(format_args!("\"{}\"", s)),
-                TokenType::CharLiteral(s) => f.write_fmt(format_args!("'{}'", s)),
-                TokenType::NatLiteral(n) => f.write_fmt(format_args!("nat({})", n)),
-                TokenType::IntLiteral(n) => f.write_fmt(format_args!("int({})", n)),
-                TokenType::RealLiteral(n) => f.write_fmt(format_args!("real({})", n)),
-                TokenType::BoolLiteral(b) => f.write_fmt(format_args!("bool({})", b)),
-                TokenType::Nil => f.write_fmt(format_args!("nil")),
-                _ => f.write_fmt(format_args!("unk({:?})", value)),
-            },
+            } => f.write_fmt(format_args!("({} {:?} {:?})", &op.0, left, right)),
+            UnaryOp { op, right, .. } => f.write_fmt(format_args!("({} {:?})", &op.0, right)),
+            Literal { value, .. } => f.write_fmt(format_args!("{}", value)),
             Reference { ident, .. } => f.write_fmt(format_args!("ref({:#?})", ident)),
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.name)),
@@ -317,8 +451,8 @@ pub enum Stmt {
     Assign {
         /// The variable reference expression
         var_ref: Box<Expr>,
-        /// The assignment operation
-        op: Token,
+        /// The (optional) assignment operation
+        op: Option<BinaryOp>,
         /// The value to assign
         value: Box<Expr>,
     },

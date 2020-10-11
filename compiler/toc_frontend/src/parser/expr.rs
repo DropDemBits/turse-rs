@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all expressions
 use super::{Parser, ParsingStatus};
-use toc_ast::ast::{Expr, Identifier};
-use toc_ast::token::{Token, TokenType};
+use toc_ast::ast::{Expr, Identifier, Literal, UnaryOp};
+use toc_ast::token::TokenType;
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
@@ -331,7 +331,7 @@ impl<'s> Parser<'s> {
 
         Ok(Expr::BinaryOp {
             left: Box::new(lhs),
-            op,
+            op: (super::try_into_binary(op.token_type)?, op.location),
             right: Box::new(rhs),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
@@ -347,8 +347,10 @@ impl<'s> Parser<'s> {
             .unwrap_or(Expr::Empty);
         let span = op.location.span_to(&self.previous().location);
 
+        let location = op.location;
+
         Ok(Expr::UnaryOp {
-            op,
+            op: (super::try_into_unary(op.token_type)?, location),
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
@@ -368,7 +370,7 @@ impl<'s> Parser<'s> {
         }
 
         Ok(Expr::UnaryOp {
-            op,
+            op: (super::try_into_unary(op.token_type)?, op.location),
             right: Box::new(right),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
@@ -383,7 +385,7 @@ impl<'s> Parser<'s> {
 
         Ok(Expr::Call {
             left: Box::new(func_ref),
-            op,
+            paren_at: op.location,
             arg_list,
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
@@ -411,7 +413,15 @@ impl<'s> Parser<'s> {
         let name = ident.location.get_lexeme(self.source).to_string();
         let span = var_ref.get_span().span_to(&self.previous().location);
         // Field info will be updated to the correct type at validator time
-        let field = Identifier::new(ident, TypeRef::Unknown, name, false, false, true, 0);
+        let field = Identifier::new(
+            ident.location,
+            TypeRef::Unknown,
+            name,
+            false,
+            false,
+            true,
+            0,
+        );
 
         Ok(Expr::Dot {
             left: Box::new(var_ref),
@@ -433,10 +443,7 @@ impl<'s> Parser<'s> {
 
         // Wrap the var_ref in a deref
         self.expr_dot(Expr::UnaryOp {
-            op: Token {
-                token_type: TokenType::Caret,
-                location: op.location,
-            },
+            op: (UnaryOp::Deref, op.location),
             right: Box::new(var_ref),
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
@@ -450,34 +457,34 @@ impl<'s> Parser<'s> {
 
         match token_type {
             TokenType::StringLiteral(s) => Ok(Expr::Literal {
-                value: token,
                 eval_type: TypeRef::Primitive(types::get_string_kind(&s)),
+                value: Literal::StrSequence(s),
+                span: token.location,
             }),
             TokenType::CharLiteral(s) => Ok(Expr::Literal {
-                value: token,
                 eval_type: TypeRef::Primitive(types::get_char_kind(&s)),
+                value: Literal::CharSequence(s),
+                span: token.location,
             }),
             TokenType::NatLiteral(v) => Ok(Expr::Literal {
-                value: token,
+                value: Literal::Nat(v),
                 eval_type: TypeRef::Primitive(types::get_intnat_kind(v)),
+                span: token.location,
             }),
-            TokenType::RealLiteral(_) => Ok(Expr::Literal {
-                value: token,
+            TokenType::RealLiteral(v) => Ok(Expr::Literal {
+                value: Literal::Real(v),
                 eval_type: TypeRef::Primitive(PrimitiveType::Real),
+                span: token.location,
             }),
             TokenType::True => Ok(Expr::Literal {
-                value: Token {
-                    token_type: TokenType::BoolLiteral(true),
-                    location: token.location,
-                },
+                value: Literal::Bool(true),
                 eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
+                span: token.location,
             }),
             TokenType::False => Ok(Expr::Literal {
-                value: Token {
-                    token_type: TokenType::BoolLiteral(false),
-                    location: token.location,
-                },
+                value: Literal::Bool(false),
                 eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
+                span: token.location,
             }),
             TokenType::Nil => {
                 // Consume optional collection / class id
@@ -495,8 +502,9 @@ impl<'s> Parser<'s> {
                 }
 
                 Ok(Expr::Literal {
-                    value: token,
+                    value: Literal::Nil,
                     eval_type: TypeRef::Primitive(PrimitiveType::Nil),
+                    span: token.location,
                 })
             }
             _ => {

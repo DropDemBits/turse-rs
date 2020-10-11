@@ -4,9 +4,8 @@ use super::{ResolveContext, ScopeInfo, Validator};
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use toc_ast::ast::{Expr, Identifier, Stmt, VisitorMut};
+use toc_ast::ast::{BinaryOp, Expr, Identifier, Stmt, UnaryOp, VisitorMut};
 use toc_ast::block::CodeBlock;
-use toc_ast::token::TokenType;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
 
@@ -126,7 +125,7 @@ impl Validator {
                 if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
                     // Value to assign is the wrong type, just report the error
                     self.reporter.report_error(
-                        &idents.last().as_ref().unwrap().token.location,
+                        &idents.last().as_ref().unwrap().location,
                         format_args!("Initialization value is the wrong type"),
                     );
                 } else {
@@ -310,7 +309,7 @@ impl Validator {
             {
                 // Report the error
                 self.reporter.report_error(
-                    &ident.token.location,
+                    &ident.location,
                     format_args!("'{}' has already been declared", ident.name),
                 );
             }
@@ -343,7 +342,7 @@ impl Validator {
             {
                 // Not resolved in the current unit
                 self.reporter.report_error(
-                    &ident.token.location,
+                    &ident.location,
                     format_args!("'{}' is not resolved in the current unit", ident.name),
                 );
             }
@@ -356,7 +355,7 @@ impl Validator {
                 .decl_ident(ident.clone())
             {
                 self.reporter.report_error(
-                    &ident.token.location,
+                    &ident.location,
                     format_args!("'{}' has already been declared", ident.name),
                 );
             }
@@ -388,7 +387,7 @@ impl Validator {
     pub(super) fn resolve_stmt_assign(
         &mut self,
         var_ref: &mut Box<Expr>,
-        op: &TokenType,
+        op: Option<&mut BinaryOp>,
         value: &mut Box<Expr>,
     ) {
         let ref_eval = self.visit_expr(var_ref);
@@ -418,17 +417,9 @@ impl Validator {
         debug_assert!(types::is_base_type(left_type, &self.type_table));
         debug_assert!(types::is_base_type(right_type, &self.type_table));
 
-        if *op == TokenType::Assign {
-            if !types::is_assignable_to(left_type, right_type, &self.type_table) {
-                // Value to assign is the wrong type
-                self.reporter.report_error(
-                    &value.get_span(),
-                    format_args!("Assignment value is the wrong type"),
-                );
-            }
-        } else {
+        if let Some(op) = op {
             let produce_type =
-                expr_resolve::check_binary_operands(left_type, op, right_type, &self.type_table);
+                expr_resolve::check_binary_operands(left_type, *op, right_type, &self.type_table);
             if produce_type.is_err()
                 || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
             {
@@ -438,6 +429,12 @@ impl Validator {
                     format_args!("Assignment value is the wrong type"),
                 );
             }
+        } else if !types::is_assignable_to(left_type, right_type, &self.type_table) {
+            // Value to assign is the wrong type
+            self.reporter.report_error(
+                &value.get_span(),
+                format_args!("Assignment value is the wrong type"),
+            );
         }
     }
 
@@ -528,7 +525,7 @@ fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
         }
         Expr::UnaryOp { op, eval_type, .. } => {
             // Only assignable if the expression is a deref, and the eval type isn't an error
-            matches!(op.token_type, TokenType::Caret) && !types::is_error(eval_type)
+            matches!(op.0, UnaryOp::Deref) && !types::is_error(eval_type)
         }
         _ => false, // Not one of the above, likely unable to assign to
     }

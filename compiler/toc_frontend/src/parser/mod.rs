@@ -7,7 +7,7 @@ mod types;
 use std::cell::RefCell;
 use std::fmt::Arguments;
 use std::rc::Rc;
-use toc_ast::ast::Identifier;
+use toc_ast::ast::{BinaryOp, Identifier, UnaryOp};
 use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
 use toc_ast::scope::IdentError;
 use toc_ast::token::{Token, TokenType};
@@ -248,7 +248,7 @@ impl<'s> Parser<'s> {
             .unwrap()
             .borrow_mut()
             .scope
-            .declare_ident(ident, name, type_spec, is_const, is_typedef)
+            .declare_ident(ident.location, name, type_spec, is_const, is_typedef)
     }
 
     /// Uses an identifer
@@ -260,7 +260,7 @@ impl<'s> Parser<'s> {
             .unwrap()
             .borrow_mut()
             .scope
-            .use_ident(ident, name)
+            .use_ident(ident.location, name)
     }
 
     /// Gets the identifier from the current scope
@@ -311,6 +311,49 @@ impl<'s> Parser<'s> {
     /// Pops a block off of the block list, returning the block
     fn pop_block(&mut self) -> Rc<RefCell<CodeBlock>> {
         self.blocks.pop().unwrap()
+    }
+}
+
+/// Tries to convert the given token type into the corresponding biary operator
+fn try_into_binary(op: TokenType) -> Result<BinaryOp, ParsingStatus> {
+    match op {
+        TokenType::Plus => Ok(BinaryOp::Add),
+        TokenType::Minus => Ok(BinaryOp::Sub),
+        TokenType::Star => Ok(BinaryOp::Mul),
+        TokenType::Div => Ok(BinaryOp::Div),
+        TokenType::Slash => Ok(BinaryOp::RealDiv),
+        TokenType::Mod => Ok(BinaryOp::Mod),
+        TokenType::Rem => Ok(BinaryOp::Rem),
+        TokenType::Exp => Ok(BinaryOp::Exp),
+        TokenType::And => Ok(BinaryOp::And),
+        TokenType::Or => Ok(BinaryOp::Or),
+        TokenType::Xor => Ok(BinaryOp::Xor),
+        TokenType::Shl => Ok(BinaryOp::Shl),
+        TokenType::Shr => Ok(BinaryOp::Shr),
+        TokenType::Less => Ok(BinaryOp::Less),
+        TokenType::LessEqu => Ok(BinaryOp::LessEq),
+        TokenType::Greater => Ok(BinaryOp::Greater),
+        TokenType::GreaterEqu => Ok(BinaryOp::GreaterEq),
+        TokenType::Equ => Ok(BinaryOp::Equal),
+        TokenType::NotEqu => Ok(BinaryOp::NotEqual),
+        TokenType::In => Ok(BinaryOp::In),
+        TokenType::NotIn => Ok(BinaryOp::NotIn),
+        TokenType::Imply => Ok(BinaryOp::Imply),
+        TokenType::Dot => Ok(BinaryOp::Dot),
+        TokenType::Arrow => Ok(BinaryOp::Arrow),
+        _ => Err(ParsingStatus::Error),
+    }
+}
+
+/// Tries to convert the given token type into the corresponding unary operator
+fn try_into_unary(op: TokenType) -> Result<UnaryOp, ParsingStatus> {
+    match op {
+        TokenType::Pound => Ok(UnaryOp::NatCheat),
+        TokenType::Caret => Ok(UnaryOp::Deref),
+        TokenType::Plus => Ok(UnaryOp::Identity),
+        TokenType::Minus => Ok(UnaryOp::Negate),
+        TokenType::Not => Ok(UnaryOp::Not),
+        _ => Err(ParsingStatus::Error),
     }
 }
 
@@ -555,35 +598,31 @@ mod test {
         parser.parse();
         assert!(!parser.reporter.has_error());
         let expected_ops = [
-            TokenType::Assign,
-            TokenType::Plus,
-            TokenType::Minus,
-            TokenType::Star,
-            TokenType::Div,
-            TokenType::Slash,
-            TokenType::Rem,
-            TokenType::Mod,
-            TokenType::Exp,
-            TokenType::And,
-            TokenType::Or,
-            TokenType::Xor,
-            TokenType::Shl,
-            TokenType::Shr,
-            TokenType::Assign,
+            None,
+            Some(BinaryOp::Add),
+            Some(BinaryOp::Sub),
+            Some(BinaryOp::Mul),
+            Some(BinaryOp::Div),
+            Some(BinaryOp::RealDiv),
+            Some(BinaryOp::Rem),
+            Some(BinaryOp::Mod),
+            Some(BinaryOp::Exp),
+            Some(BinaryOp::And),
+            Some(BinaryOp::Or),
+            Some(BinaryOp::Xor),
+            Some(BinaryOp::Shl),
+            Some(BinaryOp::Shr),
+            None,
         ];
 
         let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts[2..].iter().zip(expected_ops.iter()) {
-            if let Stmt::Assign {
-                op: Token { ref token_type, .. },
-                ..
-            } = test_stmt.0
-            {
-                if token_type != test_stmt.1 {
+            if let Stmt::Assign { op, .. } = test_stmt.0 {
+                if op.ne(test_stmt.1) {
                     panic!(
                         "Mismatch between expected {:?} and parsed {:?}",
-                        test_stmt.1, token_type
+                        test_stmt.1, op
                     );
                 }
             }
@@ -604,20 +643,20 @@ mod test {
         );
         parser.parse();
         assert!(!parser.reporter.has_error());
-        let expected_ops = [TokenType::Imply, TokenType::And, TokenType::Or];
+        let expected_ops = [
+            Some(BinaryOp::Imply),
+            Some(BinaryOp::And),
+            Some(BinaryOp::Or),
+        ];
 
         let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts[1..].iter().zip(expected_ops.iter()) {
-            if let Stmt::Assign {
-                op: Token { ref token_type, .. },
-                ..
-            } = test_stmt.0
-            {
-                if token_type != test_stmt.1 {
+            if let Stmt::Assign { op, .. } = test_stmt.0 {
+                if op.ne(test_stmt.1) {
                     panic!(
                         "Mismatch between expected {:?} and parsed {:?}",
-                        test_stmt.1, token_type
+                        test_stmt.1, op
                     );
                 }
             }

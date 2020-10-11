@@ -1,7 +1,7 @@
 use crate::ast::{self, IdentInstance, Identifier};
 use crate::block::CodeBlock;
-use crate::token::Token;
 use crate::types::TypeRef;
+use toc_core::Location;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -118,7 +118,7 @@ impl Scope {
     /// will be produced.
     pub fn declare_ident(
         &mut self,
-        ident: Token,
+        at: Location,
         name: String,
         type_spec: TypeRef,
         is_const: bool,
@@ -144,7 +144,7 @@ impl Scope {
         }
 
         let mut new_ident = Identifier::new(
-            ident.clone(),
+            at,
             type_spec,
             name.clone(),
             is_const,
@@ -169,7 +169,7 @@ impl Scope {
             if external_declaration {
                 // Declaration is from an above scope and has not been imported,
                 // import the entry for consistency
-                let imported = self.import_ident(ident, &name).unwrap();
+                let imported = self.import_ident(at, &name).unwrap();
 
                 // This identifier is now the second instance (first after import)
                 new_ident.instance = 1;
@@ -293,7 +293,7 @@ impl Scope {
     }
 
     /// Imports the identifier from the one of the parent scopes
-    fn import_ident(&mut self, ident: Token, name: &str) -> Option<Identifier> {
+    fn import_ident(&mut self, at: Location, name: &str) -> Option<Identifier> {
         // Take the identifier from the parent scopes, in reverse order
         for (downscopes, block_ref) in self.parent_blocks.iter().enumerate().rev() {
             let block_ref = block_ref
@@ -313,7 +313,7 @@ impl Scope {
                 });
 
                 // Change the location to point to the reference location
-                reference.token = ident;
+                reference.location = at;
                 // Update the import index
                 reference.import_index.replace(index);
                 // Instance is 0 in the local scope
@@ -341,16 +341,18 @@ impl Scope {
     ///
     /// Should an identifier not be found, an IdentError::Undeclared with a placeholder identer is
     /// created.
-    pub fn use_ident(&mut self, ident: Token, name: &str) -> Result<Identifier, IdentError> {
+    pub fn use_ident(&mut self, at: Location, name: &str) -> Result<Identifier, IdentError> {
         if let Some(declared) = self.get_ident(name) {
-            let mut reference = declared.clone();
-            // Change the location to be that of the reference location
-            reference.token = ident;
+            let reference = Identifier {
+                // Change the location to be that of the reference location
+                location: at,
+                ..declared.clone()
+            };
 
             Ok(reference)
         } else {
             // Import the identifier from the parent scopes
-            let imported = self.import_ident(ident.clone(), name);
+            let imported = self.import_ident(at, name);
 
             if let Some(imported_ident) = imported {
                 // Return the imported identifier
@@ -359,7 +361,7 @@ impl Scope {
 
             // None found, make a new one!
             let mut err_ident = Identifier::new(
-                ident,
+                at,
                 TypeRef::TypeError, // Produce a type error to propagate the error
                 name.to_string(),
                 false,
@@ -446,7 +448,6 @@ impl Scope {
 mod test {
     use super::*;
     use crate::block::BlockKind;
-    use crate::token::TokenType;
     use crate::types::PrimitiveType;
     use toc_core::Location;
 
@@ -472,20 +473,13 @@ mod test {
         blocks
     }
 
-    fn make_ident_token() -> Token {
-        Token {
-            location: Location::new(),
-            token_type: TokenType::Identifier,
-        }
-    }
-
     #[test]
     fn test_ident_declare_use() -> Result<(), IdentError> {
         let root_block = make_test_block(BlockKind::Main, &[]);
         let mut scope = root_block.scope;
 
         let ident = scope.declare_ident(
-            make_ident_token(),
+            Location::new(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
@@ -493,7 +487,7 @@ mod test {
         )?;
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
-        let use_ident = scope.use_ident(make_ident_token(), "a")?;
+        let use_ident = scope.use_ident(Location::new(), "a")?;
         assert_eq!(use_ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
         Ok(())
@@ -506,7 +500,7 @@ mod test {
 
         // First decl, pass
         let ident = scope.declare_ident(
-            make_ident_token(),
+            Location::new(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
@@ -517,7 +511,7 @@ mod test {
         // Redecl, fail
         let redeclare_ident: Identifier = scope
             .declare_ident(
-                make_ident_token(),
+                Location::new(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::String_),
                 false,
@@ -561,7 +555,7 @@ mod test {
             let root_scope = &mut blocks[0].borrow_mut().scope;
 
             let declare_ident = root_scope.declare_ident(
-                make_ident_token(),
+                Location::new(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
@@ -578,7 +572,7 @@ mod test {
             let inner_scope = &mut blocks[1].borrow_mut().scope;
             let shadow_ident: Identifier = inner_scope
                 .declare_ident(
-                    make_ident_token(),
+                    Location::new(),
                     String::from("a"),
                     TypeRef::Primitive(PrimitiveType::Real),
                     false,
@@ -632,7 +626,7 @@ mod test {
         {
             let inner_scope = &mut blocks[1].borrow_mut().scope;
             let shadow_ident = inner_scope.declare_ident(
-                make_ident_token(),
+                Location::new(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Real),
                 false,
@@ -654,7 +648,7 @@ mod test {
             let root_scope = &mut blocks[0].borrow_mut().scope;
 
             let declare_ident = root_scope.declare_ident(
-                make_ident_token(),
+                Location::new(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
@@ -675,7 +669,7 @@ mod test {
         let mut scope = root_block.scope;
 
         let ident = scope.declare_ident(
-            make_ident_token(),
+            Location::new(),
             String::from("a"),
             TypeRef::Primitive(PrimitiveType::Int),
             false,
@@ -684,7 +678,7 @@ mod test {
         assert_eq!(ident.type_spec, TypeRef::Primitive(PrimitiveType::Int));
 
         let new_info = Identifier::new(
-            make_ident_token(),
+            Location::new(),
             TypeRef::Primitive(PrimitiveType::String_),
             String::from(""),
             true,
@@ -709,7 +703,7 @@ mod test {
         let mut scope = root_block.scope;
 
         let new_info = Identifier::new(
-            make_ident_token(),
+            Location::new(),
             TypeRef::Primitive(PrimitiveType::String_),
             String::from(""),
             true,
@@ -730,7 +724,7 @@ mod test {
         let mut scope = root_block.scope;
 
         let ident: Identifier = scope
-            .use_ident(make_ident_token(), "a")
+            .use_ident(Location::new(), "a")
             .expect_err("Unused identifier was defined")
             .into();
         assert_eq!(ident.type_spec, TypeRef::TypeError);
@@ -748,7 +742,7 @@ mod test {
             let root_scope = &mut blocks[1].borrow_mut().scope;
 
             let declare_ident = root_scope.declare_ident(
-                make_ident_token(),
+                Location::new(),
                 String::from("a"),
                 TypeRef::Primitive(PrimitiveType::Int),
                 false,
@@ -764,7 +758,7 @@ mod test {
         // Inner use
         {
             let inner_scope = &mut blocks[2].borrow_mut().scope;
-            let import_ident = inner_scope.use_ident(make_ident_token(), "a")?;
+            let import_ident = inner_scope.use_ident(Location::new(), "a")?;
 
             assert_eq!(
                 import_ident.type_spec,

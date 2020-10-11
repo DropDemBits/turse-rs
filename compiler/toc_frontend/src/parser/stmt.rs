@@ -4,6 +4,7 @@ use toc_ast::ast::{Expr, Identifier, Stmt};
 use toc_ast::block::BlockKind;
 use toc_ast::token::TokenType;
 use toc_ast::types::{Type, TypeRef};
+use toc_core::Location;
 
 impl<'s> Parser<'s> {
     // --- Decl Parsing --- //
@@ -230,9 +231,8 @@ impl<'s> Parser<'s> {
             return match type_spec {
                 Some(type_spec) => {
                     // Can take a token from the previous, as the location doesn't matter
-                    let dummy_token = self.previous().clone();
                     let dummy_ident = Identifier::new(
-                        dummy_token,
+                        Location::new(),
                         TypeRef::TypeError,
                         "<dummy>".to_string(),
                         false,
@@ -274,7 +274,7 @@ impl<'s> Parser<'s> {
 
                     // Use the resolved type in the type decl
                     let mut ident = old_ident;
-                    ident.token = ident_tok;
+                    ident.location = ident_tok.location;
 
                     Ok(Stmt::TypeDecl {
                         ident,
@@ -290,7 +290,7 @@ impl<'s> Parser<'s> {
                     );
 
                     let mut ident = old_ident;
-                    ident.token = ident_tok;
+                    ident.location = ident_tok.location;
 
                     Ok(Stmt::TypeDecl {
                         ident,
@@ -376,18 +376,21 @@ impl<'s> Parser<'s> {
         if is_compound_assign || self.is_simple_assignment() {
             // Is a (compound) assignment or '='
             // '=' is checked for as it's a common mistake to have '=' instead of ':='
-            let mut assign_op = self.next_token();
+            let assign_tok = self.next_token();
 
-            if is_compound_assign {
+            let assign_op = if is_compound_assign {
                 // Nom the other equ in the compound assignment
                 self.next_token();
-            } else if assign_op.token_type != TokenType::Assign {
+                Some(super::try_into_binary(assign_tok.token_type).expect("Not a binary operator"))
+            } else if assign_tok.token_type != TokenType::Assign {
                 // Current assignment op is '=', not ':='
                 // Warn of mistake, convert into ':='
                 let locate = self.previous().location;
                 self.warn_equ_as_assign(locate);
 
-                assign_op.token_type = TokenType::Assign;
+                None
+            } else {
+                None
             };
 
             // If the assign value expr can't be parsed, replace it with an
@@ -430,7 +433,7 @@ impl<'s> Parser<'s> {
                     span: *reference.get_span(),
                     eval_type: TypeRef::Unknown,
                     is_compile_eval: false,
-                    op: self.previous().clone(),
+                    paren_at: self.previous().location,
                     left: Box::new(reference),
                 }
             };
@@ -484,23 +487,23 @@ impl<'s> Parser<'s> {
     fn is_compound_assignment(&self) -> bool {
         if self.peek().token_type == TokenType::Equ {
             // Look ahead token is a '=', check if current is one of the valid compound assign operators
-            match &self.current().token_type {
+            matches!(
+                &self.current().token_type,
                 TokenType::Plus
-                | TokenType::Minus
-                | TokenType::Star
-                | TokenType::Div
-                | TokenType::Slash
-                | TokenType::Rem
-                | TokenType::Mod
-                | TokenType::Exp
-                | TokenType::And
-                | TokenType::Or
-                | TokenType::Xor
-                | TokenType::Shl
-                | TokenType::Shr
-                | TokenType::Imply => true,
-                _ => false,
-            }
+                    | TokenType::Minus
+                    | TokenType::Star
+                    | TokenType::Div
+                    | TokenType::Slash
+                    | TokenType::Rem
+                    | TokenType::Mod
+                    | TokenType::Exp
+                    | TokenType::And
+                    | TokenType::Or
+                    | TokenType::Xor
+                    | TokenType::Shl
+                    | TokenType::Shr
+                    | TokenType::Imply
+            )
         } else {
             false
         }

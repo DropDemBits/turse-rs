@@ -1,7 +1,6 @@
 //! Validator fragment, resolves all type specifications
 use super::{ResolveContext, ResolveResult, Validator};
-use toc_ast::ast::{Expr, VisitorMut};
-use toc_ast::token::TokenType;
+use toc_ast::ast::{Expr, Literal, VisitorMut};
 use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, ValueApplyError};
 
@@ -32,26 +31,26 @@ impl Validator {
                     // Grab the expression id, verify it's a literal, as well as being the correct type (int/nat/intnat)
                     if let Type::SizeExpr { expr } = self.type_table.get_type(expr_id) {
                         let computed_size = if let Expr::Literal { value, .. } = &**expr {
-                            match value.token_type {
-                                TokenType::NatLiteral(len) => Some(len), // Direct correspondence
-                                TokenType::IntLiteral(len) => {
-                                    if len < 0 {
+                            match value {
+                                Literal::Nat(len) => Some(*len), // Direct correspondence
+                                Literal::Int(len) => {
+                                    if *len < 0 {
                                         // Negative length is invalid
                                         self.reporter.report_error(
-                                            &value.location,
+                                            expr.get_span(),
                                             format_args!(
                                                 "Compile-time string length specifier is negative"
                                             ),
                                         );
                                         None
                                     } else {
-                                        Some(len as u64)
+                                        Some(*len as u64)
                                     }
                                 }
                                 _ => {
                                     // Wrong length type
                                     self.reporter.report_error(
-                                        &value.location,
+                                        expr.get_span(),
                                         format_args!("Wrong type for a string length specifier"),
                                     );
                                     None
@@ -474,7 +473,7 @@ impl Validator {
 
                     if let Some(ident) = member_ident {
                         self.reporter.report_error(
-                            &field.token.location,
+                            &field.location,
                             format_args!(
                                 "Field '{}' of '{}' does not refer to a type",
                                 field.name, ident.name
@@ -486,12 +485,12 @@ impl Validator {
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = field.token.location;
+                reference_locate = field.location;
             }
             Expr::Reference { ident, .. } => {
                 if !ident.is_typedef {
                     self.reporter.report_error(
-                        &ident.token.location,
+                        &ident.location,
                         format_args!("'{}' does not refer to a type", ident.name),
                     );
 
@@ -499,7 +498,7 @@ impl Validator {
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = ident.token.location;
+                reference_locate = ident.location;
             }
             _ => return Some(TypeRef::TypeError), // No other expressions allowed, produce a type error
         }

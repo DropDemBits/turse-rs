@@ -1,6 +1,5 @@
 //! Intermediate values for compile-time evaluation
-use crate::ast::{Expr, Identifier};
-use crate::token::{Token, TokenType};
+use crate::ast::{BinaryOp, Expr, Identifier, Literal, UnaryOp};
 use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
@@ -16,6 +15,8 @@ pub enum ValueApplyError {
     InvalidOperand,
     WrongTypes,
 }
+
+impl std::error::Error for ValueApplyError {}
 
 impl fmt::Display for ValueApplyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -33,8 +34,6 @@ impl fmt::Display for ValueApplyError {
         }
     }
 }
-
-impl std::error::Error for ValueApplyError {}
 
 /// Constraints for evaluation operations
 pub struct EvalConstraints {
@@ -66,7 +65,7 @@ impl Value {
     /// Produces a value from an expression.
     pub fn from_expr(value: Expr, type_table: &TypeTable) -> Result<Value, &'static str> {
         match value {
-            Expr::Literal { value, .. } => Value::from_token_type(value.token_type),
+            Expr::Literal { value, .. } => Value::from_literal(value),
             Expr::Dot { eval_type, .. } => {
                 if let Some(field_id) = types::get_type_id(&eval_type) {
                     if let Type::EnumField { ordinal, enum_type } = type_table.get_type(field_id) {
@@ -81,14 +80,15 @@ impl Value {
         }
     }
 
-    pub fn from_token_type(token_type: TokenType) -> Result<Value, &'static str> {
-        match token_type {
-            TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
-            TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
-            TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
-            TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
-            TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
-            TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
+    /// Converts a Literal into a Value
+    pub fn from_literal(literal: Literal) -> Result<Value, &'static str> {
+        match literal {
+            Literal::Bool(v) => Ok(Value::BooleanValue(v)),
+            Literal::Int(v) => Ok(Value::IntValue(v)),
+            Literal::Nat(v) => Ok(Value::NatValue(v)),
+            Literal::Real(v) => Ok(Value::RealValue(v)),
+            Literal::StrSequence(v) => Ok(Value::StringValue(v)),
+            Literal::CharSequence(v) => Ok(Value::StringValue(v)),
             _ => Err("Cannot convert complex literal into a value"),
         }
     }
@@ -99,15 +99,7 @@ impl TryFrom<Expr> for Value {
 
     fn try_from(value: Expr) -> Result<Value, Self::Error> {
         match value {
-            Expr::Literal { value, .. } => match value.token_type {
-                TokenType::BoolLiteral(v) => Ok(Value::BooleanValue(v)),
-                TokenType::IntLiteral(v) => Ok(Value::IntValue(v)),
-                TokenType::NatLiteral(v) => Ok(Value::NatValue(v)),
-                TokenType::RealLiteral(v) => Ok(Value::RealValue(v)),
-                TokenType::StringLiteral(v) => Ok(Value::StringValue(v)),
-                TokenType::CharLiteral(v) => Ok(Value::StringValue(v)),
-                _ => Err("Cannot convert complex literal into a value"),
-            },
+            Expr::Literal { value, .. } => Value::from_literal(value),
             _ => Err("Cannot convert non-literal expression into a value"),
         }
     }
@@ -121,21 +113,21 @@ impl TryFrom<Value> for Expr {
 
         match v {
             Value::BooleanValue(v) => Ok(value::make_literal(
-                TokenType::BoolLiteral(v),
+                Literal::Bool(v),
                 TypeRef::Primitive(PrimitiveType::Boolean),
             )),
             Value::IntValue(v) => Ok(value::make_literal(
-                TokenType::IntLiteral(v),
+                Literal::Int(v),
                 TypeRef::Primitive(types::get_int_kind(v)),
                 //TypeRef::Primitive(PrimitiveType::IntNat),
             )),
             Value::NatValue(v) => Ok(value::make_literal(
-                TokenType::NatLiteral(v),
+                Literal::Nat(v),
                 TypeRef::Primitive(types::get_intnat_kind(v)),
                 //TypeRef::Primitive(PrimitiveType::IntNat),
             )),
             Value::RealValue(v) => Ok(value::make_literal(
-                TokenType::RealLiteral(v),
+                Literal::Real(v),
                 TypeRef::Primitive(PrimitiveType::Real),
             )),
             Value::StringValue(v) => {
@@ -143,19 +135,14 @@ impl TryFrom<Value> for Expr {
                 let size = v.bytes().len();
 
                 Ok(value::make_literal(
-                    TokenType::StringLiteral(v),
+                    Literal::StrSequence(v),
                     TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(size))),
                 ))
             }
             Value::EnumValue(field_id, enum_id, _) => {
-                // No location information
-                let some_tok = Token {
-                    location: Location::new(),
-                    token_type: TokenType::Identifier,
-                };
-
+                // No location information for both of them
                 let enum_ident = Identifier::new(
-                    some_tok.clone(),
+                    Location::new(),
                     TypeRef::Named(enum_id),
                     String::from("<unknown>"),
                     true,
@@ -165,7 +152,7 @@ impl TryFrom<Value> for Expr {
                 );
 
                 let field_ident = Identifier::new(
-                    some_tok,
+                    Location::new(),
                     TypeRef::Named(field_id),
                     String::from("<unknown.field>"),
                     true,
@@ -224,25 +211,6 @@ impl From<u64> for Value {
 impl From<f64> for Value {
     fn from(v: f64) -> Value {
         Value::RealValue(v)
-    }
-}
-
-// TODO: Remove interface, this is a fallible operation (replace with Value::from_token_type)
-impl From<TokenType> for Value {
-    fn from(token_type: TokenType) -> Value {
-        match token_type {
-            TokenType::BoolLiteral(v) => (Value::BooleanValue(v)),
-            TokenType::IntLiteral(v) => (Value::IntValue(v)),
-            TokenType::NatLiteral(v) => (Value::NatValue(v)),
-            TokenType::RealLiteral(v) => (Value::RealValue(v)),
-            TokenType::StringLiteral(v) => (Value::StringValue(v)),
-            TokenType::CharLiteral(v) => (Value::StringValue(v)),
-            TokenType::Nil => (Value::NatValue(0)), // Treat nil as 0
-            _ => panic!(
-                "Cannot convert complex literal into a value ({:?})",
-                token_type
-            ),
-        }
     }
 }
 
@@ -326,13 +294,11 @@ pub fn is_enum(value: &Value) -> bool {
     matches!(value, Value::EnumValue(..))
 }
 
-fn make_literal(kind: TokenType, eval_type: TypeRef) -> Expr {
+fn make_literal(value: Literal, eval_type: TypeRef) -> Expr {
     Expr::Literal {
-        value: Token {
-            location: Location::new(),
-            token_type: kind,
-        },
+        value,
         eval_type,
+        span: Location::new(),
     }
 }
 
@@ -525,14 +491,14 @@ fn check_inf(v: f64) -> Result<f64, ValueApplyError> {
 /// `constraints` modifies how the binary operation is applied.
 pub fn apply_binary(
     lhs: Value,
-    op: &TokenType,
+    op: BinaryOp,
     rhs: Value,
     constraints: EvalConstraints,
 ) -> Result<Value, ValueApplyError> {
     // constraints.as_64_bit affects the bit shift manipulation operators specifically, since they are size-sensitive
     // All values are sign-extended to 64-bits otherwise
     match op {
-        TokenType::Plus => {
+        BinaryOp::Add => {
             if is_string(&lhs) && is_string(&rhs) {
                 let mut lvalue: String = lhs.into();
                 let rvalue: String = rhs.into();
@@ -557,7 +523,7 @@ pub fn apply_binary(
                 )
             }
         }
-        TokenType::Minus => apply_binary_number(
+        BinaryOp::Sub => apply_binary_number(
             lhs,
             rhs,
             |l, r| {
@@ -581,7 +547,7 @@ pub fn apply_binary(
             },
             |l, r| Ok(Value::from(check_inf(l - r)?)),
         ),
-        TokenType::Star => apply_binary_number(
+        BinaryOp::Mul => apply_binary_number(
             lhs,
             rhs,
             |l, r| {
@@ -596,7 +562,7 @@ pub fn apply_binary(
             },
             |l, r| Ok(Value::from(check_inf(l * r)?)),
         ),
-        TokenType::Slash => {
+        BinaryOp::RealDiv => {
             // Real division
             if is_number_value(&lhs) && is_number_value(&rhs) {
                 let lvalue = value_into_f64(lhs)?;
@@ -612,7 +578,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Div => {
+        BinaryOp::Div => {
             // Integer division
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 apply_binary_integer(
@@ -649,7 +615,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Mod => apply_binary_number(
+        BinaryOp::Mod => apply_binary_number(
             lhs,
             rhs,
             |l, r| {
@@ -664,7 +630,7 @@ pub fn apply_binary(
             },
             |l, r| Ok(Value::from(mod_floor(l as f64, r as f64)?)),
         ),
-        TokenType::Rem => apply_binary_number(
+        BinaryOp::Rem => apply_binary_number(
             lhs,
             rhs,
             |l, r| {
@@ -691,7 +657,7 @@ pub fn apply_binary(
                 }
             },
         ),
-        TokenType::Exp => apply_binary_number(
+        BinaryOp::Exp => apply_binary_number(
             lhs,
             rhs,
             |l, r| {
@@ -716,7 +682,7 @@ pub fn apply_binary(
             },
             |l, r| Ok(Value::from(check_inf(l.powf(r))?)),
         ),
-        TokenType::And => {
+        BinaryOp::And => {
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 // Bitwise And
                 let lvalue = value_into_u64_bytes(lhs)?;
@@ -733,7 +699,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Or => {
+        BinaryOp::Or => {
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 // Bitwise Or
                 let lvalue = value_into_u64_bytes(lhs)?;
@@ -750,7 +716,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Xor => {
+        BinaryOp::Xor => {
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 // Bitwise Xor
                 let lvalue = value_into_u64_bytes(lhs)?;
@@ -767,7 +733,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Shl => {
+        BinaryOp::Shl => {
             // Bitshift left
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 let lvalue = value_into_u64_bytes(lhs)?;
@@ -790,7 +756,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Shr => {
+        BinaryOp::Shr => {
             // Bitshift right
             if is_integer_value(&lhs) && is_integer_value(&rhs) {
                 let lvalue = value_into_u64_bytes(lhs)?;
@@ -813,7 +779,7 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Imply => {
+        BinaryOp::Imply => {
             if is_boolean(&lhs) && is_boolean(&rhs) {
                 // Boolean Imply
                 let lvalue: bool = lhs.into();
@@ -824,27 +790,27 @@ pub fn apply_binary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Less => Ok(Value::from(matches!(
+        BinaryOp::Less => Ok(Value::from(matches!(
             compare_values(lhs, rhs, false)?,
             Ordering::Less
         ))),
-        TokenType::LessEqu => Ok(Value::from(matches!(
+        BinaryOp::LessEq => Ok(Value::from(matches!(
             compare_values(lhs, rhs, false)?,
             Ordering::Less | Ordering::Equal
         ))),
-        TokenType::Greater => Ok(Value::from(matches!(
+        BinaryOp::Greater => Ok(Value::from(matches!(
             compare_values(lhs, rhs, false)?,
             Ordering::Greater
         ))),
-        TokenType::GreaterEqu => Ok(Value::from(matches!(
+        BinaryOp::GreaterEq => Ok(Value::from(matches!(
             compare_values(lhs, rhs, false)?,
             Ordering::Greater | Ordering::Equal
         ))),
-        TokenType::Equ => Ok(Value::from(matches!(
+        BinaryOp::Equal => Ok(Value::from(matches!(
             compare_values(lhs, rhs, true)?,
             Ordering::Equal
         ))),
-        TokenType::NotEqu => Ok(Value::from(!matches!(
+        BinaryOp::NotEqual => Ok(Value::from(!matches!(
             compare_values(lhs, rhs, true)?,
             Ordering::Equal
         ))),
@@ -857,12 +823,12 @@ pub fn apply_binary(
 /// `constraints` modifies how the binary operation is applied. Currently,
 /// evaluation constraints are not used for unary operations.
 pub fn apply_unary(
-    op: &TokenType,
+    op: UnaryOp,
     rhs: Value,
     _constraints: EvalConstraints,
 ) -> Result<Value, ValueApplyError> {
     match op {
-        TokenType::Not => match rhs {
+        UnaryOp::Not => match rhs {
             Value::IntValue(_) | Value::NatValue(_) => {
                 // Bitwise Not
                 Ok(Value::from(!value_into_u64_bytes(rhs)?))
@@ -873,7 +839,7 @@ pub fn apply_unary(
             }
             _ => Err(ValueApplyError::WrongTypes),
         },
-        TokenType::Pound => match rhs {
+        UnaryOp::NatCheat => match rhs {
             // Coercion into Nat8
             Value::IntValue(_) | Value::NatValue(_) => Ok(Value::from(value_into_u64_bytes(rhs)?)),
             Value::RealValue(v) => {
@@ -896,7 +862,7 @@ pub fn apply_unary(
             }
             Value::EnumValue(_, _, ordinal) => Ok(Value::from(ordinal as u64)),
         },
-        TokenType::Plus => {
+        UnaryOp::Identity => {
             if is_number_value(&rhs) {
                 // Return the same value
                 Ok(rhs)
@@ -904,7 +870,7 @@ pub fn apply_unary(
                 Err(ValueApplyError::WrongTypes)
             }
         }
-        TokenType::Minus => match rhs {
+        UnaryOp::Negate => match rhs {
             Value::NatValue(v) => {
                 if v <= (i64::MAX as u64) {
                     Ok(Value::from(-(v as i64)))
@@ -955,7 +921,7 @@ pub fn apply_ord(expr: &Expr, type_table: &TypeTable) -> Result<Value, ValueAppl
 
         // Don't worry about constraints
         apply_unary(
-            &TokenType::Pound,
+            UnaryOp::NatCheat,
             bool_value,
             EvalConstraints { as_64_bit: false },
         )
@@ -993,7 +959,7 @@ mod test {
     macro_rules! make_bops {
         ($( $l:literal $op:ident $r:literal == $exp:expr );* $( ; )?) => {
             {
-                use TokenType::*;
+                use BinaryOp::*;
                 let mut res = vec![];
 
                 $(
@@ -1008,7 +974,7 @@ mod test {
     macro_rules! make_error_bops {
         ($( $l:literal $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
             {
-                use TokenType::*;
+                use BinaryOp::*;
                 use ValueApplyError::*;
                 let mut res = vec![];
 
@@ -1024,7 +990,7 @@ mod test {
     macro_rules! make_uops {
         ($( $op:ident $r:literal == $exp:expr );* $( ; )?) => {
             {
-                use TokenType::*;
+                use UnaryOp::*;
                 let mut res = vec![];
 
                 $(
@@ -1039,7 +1005,7 @@ mod test {
     macro_rules! make_error_uops {
         ($( $op:ident $r:literal causes $exp:expr );* $( ; )*) => {
             {
-                use TokenType::*;
+                use UnaryOp::*;
                 use ValueApplyError::*;
                 let mut res = vec![];
 
@@ -1060,30 +1026,30 @@ mod test {
 
         let arithmetics = make_bops![
             // Add
-            1u64 Plus 1u64 == 2u64;
-            1i64 Plus 1u64 == 2i64;
-            1i64 Plus 1.5f64 == 2.5f64;
-            "Hello " Plus "World!" == "Hello World!";
+            1u64 Add 1u64 == 2u64;
+            1i64 Add 1u64 == 2i64;
+            1i64 Add 1.5f64 == 2.5f64;
+            "Hello " Add "World!" == "Hello World!";
 
             // Subtraction
-             2u64 Minus 1u64 == 1u64;
-            21i64 Minus 1u64 == 20i64;
-             2u64 Minus 0.5f64 == 1.5f64;
+             2u64 Sub 1u64 == 1u64;
+            21i64 Sub 1u64 == 20i64;
+             2u64 Sub 0.5f64 == 1.5f64;
 
             // Multiply
-              3u64 Star 2u64 == 6u64;
-              3u64 Star 2i64 == 6i64;
-            3.2f64 Star 2.0f64 == 6.4f64;
-            3.2f64 Star 2u64 == 6.4f64;
+              3u64 Mul 2u64 == 6u64;
+              3u64 Mul 2i64 == 6i64;
+            3.2f64 Mul 2.0f64 == 6.4f64;
+            3.2f64 Mul 2u64 == 6.4f64;
             // Integer division
             4u64 Div 2u64 == 2u64;
             3i64 Div -2i64 == -1i64;
             3f64 Div 2i64 == 1i64;
 
             // Real division
-            3u64 Slash 2u64 == 1.5f64;
-            3i64 Slash 2i64 == 1.5f64;
-            3f64 Slash 2f64 == 1.5f64;
+            3u64 RealDiv 2u64 == 1.5f64;
+            3i64 RealDiv 2i64 == 1.5f64;
+            3f64 RealDiv 2f64 == 1.5f64;
 
             // Modulo (mod_floor)
                5u64 Mod 2u64 == 1u64;
@@ -1169,21 +1135,21 @@ mod test {
             false Imply false == true;
 
             // Equality
-            true Equ true == true;
-            true Equ false == false;
+            true Equal true == true;
+            true Equal false == false;
 
-            10u64 Equ 10i64 == true;
-            -1i64 Equ -1f64 == true;
+            10u64 Equal 10i64 == true;
+            -1i64 Equal -1f64 == true;
 
-            "Hello!" Equ "Hello!" == true;
-            "Hello!" Equ "World!" == false;
+            "Hello!" Equal "Hello!" == true;
+            "Hello!" Equal "World!" == false;
 
             // Inequality
-            true NotEqu false == true;
-            true NotEqu true == false;
+            true NotEqual false == true;
+            true NotEqual true == false;
 
-            "Hello!" NotEqu "Hello!" == false;
-            "Hello!" NotEqu "World!" == true;
+            "Hello!" NotEqual "Hello!" == false;
+            "Hello!" NotEqual "World!" == true;
 
             // Less Than
             1f64 Less 10u64 == true;
@@ -1200,20 +1166,20 @@ mod test {
             "Z" Greater "A" == true;
 
             // Greater Equal
-            45f64 GreaterEqu 44.9f64 == true;
-            "Z" GreaterEqu "Z" == true;
+            45f64 GreaterEq 44.9f64 == true;
+            "Z" GreaterEq "Z" == true;
 
             // Less Equal
-            21f64 LessEqu 45i64 == true;
-            45f64 LessEqu 45i64 == true;
-            "A" LessEqu "Z" == true;
-            "Z" LessEqu "Z" == true;
+            21f64 LessEq 45i64 == true;
+            45f64 LessEq 45i64 == true;
+            "A" LessEq "Z" == true;
+            "Z" LessEq "Z" == true;
         ];
 
         for (test_num, validate) in arithmetics.into_iter().enumerate() {
             let (lhs, op, rhs, result) = validate;
 
-            let eval = apply_binary(lhs, &op, rhs, EvalConstraints { as_64_bit: false }).unwrap();
+            let eval = apply_binary(lhs, op, rhs, EvalConstraints { as_64_bit: false }).unwrap();
 
             if is_real(&eval) && is_real(&result) {
                 // Use epsilon
@@ -1260,7 +1226,7 @@ mod test {
         for (test_num, validate) in arithmetics.into_iter().enumerate() {
             let (lhs, op, rhs, result) = validate;
 
-            let eval = apply_binary(lhs, &op, rhs, EvalConstraints { as_64_bit: true }).unwrap();
+            let eval = apply_binary(lhs, op, rhs, EvalConstraints { as_64_bit: true }).unwrap();
 
             if is_real(&eval) && is_real(&result) {
                 // Use epsilon
@@ -1290,8 +1256,8 @@ mod test {
             // Division by 0
             1u64 Div 0u64 causes DivisionByZero;
             1f64 Div 0f64 causes DivisionByZero;
-            1u64 Slash 0u64 causes DivisionByZero;
-            1f64 Slash 0f64 causes DivisionByZero;
+            1u64 RealDiv 0u64 causes DivisionByZero;
+            1f64 RealDiv 0f64 causes DivisionByZero;
             1u64 Mod 0u64 causes DivisionByZero;
             1f64 Mod 0f64 causes DivisionByZero;
             1u64 Rem 0u64 causes DivisionByZero;
@@ -1302,11 +1268,11 @@ mod test {
             1u64 Exp -1i64 causes InvalidOperand;
 
             // Overflow
-            0xFFFFFFFF_FFFFFFFFu64 Plus 1u64 causes Overflow;
-            0xFFFFFFFF_FFFFFFFFu64 Minus 1i64 causes Overflow; // Conversion overflow
-            -9223372036854775808i64 Minus 1u64 causes Overflow;
-            0xFFFFFFFF_FFFFFFFFu64 Star 0xFFFFFFFF_FFFFFFFFu64 causes Overflow;
-            -9223372036854775808i64 Star -1i64 causes Overflow;
+            0xFFFFFFFF_FFFFFFFFu64 Add 1u64 causes Overflow;
+            0xFFFFFFFF_FFFFFFFFu64 Sub 1i64 causes Overflow; // Conversion overflow
+            -9223372036854775808i64 Sub 1u64 causes Overflow;
+            0xFFFFFFFF_FFFFFFFFu64 Mul 0xFFFFFFFF_FFFFFFFFu64 causes Overflow;
+            -9223372036854775808i64 Mul -1i64 causes Overflow;
             10e303f64 Div 0.00000001f64 causes Overflow;
             // Mod and Rem can't be easily checked for overflow as those capture 0 as a division by zero
             -3i64 Exp 128u64 causes Overflow;
@@ -1317,20 +1283,20 @@ mod test {
             10i64 Exp 310f64 causes Overflow;
 
             // Mismatched types
-            "1" Plus 1u64 causes WrongTypes;
-            true Plus 1u64 causes WrongTypes;
+            "1" Add 1u64 causes WrongTypes;
+            true Add 1u64 causes WrongTypes;
 
-            "1" Minus 1u64 causes WrongTypes;
-            true Minus 1u64 causes WrongTypes;
+            "1" Sub 1u64 causes WrongTypes;
+            true Sub 1u64 causes WrongTypes;
 
-            "1" Star 1u64 causes WrongTypes;
-            true Star 1u64 causes WrongTypes;
+            "1" Mul 1u64 causes WrongTypes;
+            true Mul 1u64 causes WrongTypes;
 
             "1" Div 1u64 causes WrongTypes;
             true Div 1u64 causes WrongTypes;
 
-            "1" Slash 1u64 causes WrongTypes;
-            true Slash 1u64 causes WrongTypes;
+            "1" RealDiv 1u64 causes WrongTypes;
+            true RealDiv 1u64 causes WrongTypes;
 
             "1" Mod 1u64 causes WrongTypes;
             true Mod 1u64 causes WrongTypes;
@@ -1367,16 +1333,16 @@ mod test {
 
             // Cannot compare ordering with booleans
             true Less true causes WrongTypes;
-            true LessEqu true causes WrongTypes;
+            true LessEq true causes WrongTypes;
             true Greater true causes WrongTypes;
-            true GreaterEqu true causes WrongTypes;
+            true GreaterEq true causes WrongTypes;
         ];
 
         for (test_num, validate) in error_tests.into_iter().enumerate() {
             let (lhs, op, rhs, expect_error) = validate;
 
             let error =
-                apply_binary(lhs, &op, rhs, EvalConstraints { as_64_bit: false }).expect_err(
+                apply_binary(lhs, op, rhs, EvalConstraints { as_64_bit: false }).expect_err(
                     &format!("Test #{} did not produce an error", (test_num + 1)),
                 );
 
@@ -1387,43 +1353,43 @@ mod test {
     #[test]
     fn test_unary_ops() {
         let arithmetics = make_uops![
-            Plus 1u64 == 1u64;
-            Plus -2i64 == -2i64;
-            Plus 1.5f64 == 1.5f64;
+            Identity 1u64 == 1u64;
+            Identity -2i64 == -2i64;
+            Identity 1.5f64 == 1.5f64;
 
-            Minus 3u64 == -3i64;
-            Minus -2i64 == 2i64;
-            Minus 1.5f64 == -1.5f64;
+            Negate 3u64 == -3i64;
+            Negate -2i64 == 2i64;
+            Negate 1.5f64 == -1.5f64;
 
             Not 0xAAAAAAAA_AAAAAAAA_u64 == 0x55555555_55555555_u64;
             Not 0x55555555_55555555_i64 == 0xAAAAAAAA_AAAAAAAA_u64;
             Not true == false;
             Not false == true;
 
-            Pound 1u64 == 1u64;
-            Pound -2i64 == 0xFFFFFFFF_FFFFFFFEu64;
+            NatCheat 1u64 == 1u64;
+            NatCheat -2i64 == 0xFFFFFFFF_FFFFFFFEu64;
             // Halves are swapped around due to how Turing stores values on the operand stack
             // Done here to also preserve compatibility
-            Pound -1f64 == 0x00000000_BFF00000u64;
-            Pound true == 1u64;
-            Pound false == 0u64;
+            NatCheat -1f64 == 0x00000000_BFF00000u64;
+            NatCheat true == 1u64;
+            NatCheat false == 0u64;
             // Take the bytewise UTF-8 representation of the string, padded with zeros
-            Pound "A" == 0x41u64;
-            Pound "AA" == 0x4141u64;
-            Pound "AAB" == 0x424141u64;
-            Pound "AABB" == 0x42424141u64;
-            Pound "AABBC" == 0x4342424141u64;
-            Pound "AABBCC" == 0x434342424141u64;
-            Pound "AABBCCD" == 0x44434342424141u64;
-            Pound "AABBCCDD" == 0x4444434342424141u64;
-            Pound "💛" == 0x9B929FF0u64; // U+1F49B -> F0 9F 92 9B
+            NatCheat "A" == 0x41u64;
+            NatCheat "AA" == 0x4141u64;
+            NatCheat "AAB" == 0x424141u64;
+            NatCheat "AABB" == 0x42424141u64;
+            NatCheat "AABBC" == 0x4342424141u64;
+            NatCheat "AABBCC" == 0x434342424141u64;
+            NatCheat "AABBCCD" == 0x44434342424141u64;
+            NatCheat "AABBCCDD" == 0x4444434342424141u64;
+            NatCheat "💛" == 0x9B929FF0u64; // U+1F49B -> F0 9F 92 9B
         ];
 
         for (test_num, validate) in arithmetics.into_iter().enumerate() {
             let (op, rhs, result) = validate;
 
             // Unary operations ignore constraints
-            let eval = apply_unary(&op, rhs, EvalConstraints { as_64_bit: false }).unwrap();
+            let eval = apply_unary(op, rhs, EvalConstraints { as_64_bit: false }).unwrap();
 
             if is_real(&eval) && is_real(&result) {
                 // Use epsilon
@@ -1447,16 +1413,16 @@ mod test {
     fn test_unary_op_errors() {
         let error_tests = make_error_uops![
             // Overflow
-            Minus 0x80000000_00000000_u64 causes Overflow;
-            Minus -0x80000000_00000000_i64 causes Overflow;
+            Negate 0x80000000_00000000_u64 causes Overflow;
+            Negate -0x80000000_00000000_i64 causes Overflow;
             // Can't test Minus(f64) overflow, no way to make infs
 
             // Wrong types
-            Plus true causes WrongTypes;
-            Plus "no" causes WrongTypes;
+            Identity true causes WrongTypes;
+            Identity "no" causes WrongTypes;
 
-            Minus false causes WrongTypes;
-            Minus "nada" causes WrongTypes;
+            Negate false causes WrongTypes;
+            Negate "nada" causes WrongTypes;
 
             Not "nada" causes WrongTypes;
             Not 1f64 causes WrongTypes;
@@ -1468,7 +1434,7 @@ mod test {
             let (op, rhs, expect_error) = validate;
 
             // Unary operations ignore constraints
-            let error = apply_unary(&op, rhs, EvalConstraints { as_64_bit: false }).expect_err(
+            let error = apply_unary(op, rhs, EvalConstraints { as_64_bit: false }).expect_err(
                 &format!("Test #{} did not produce an error", (test_num + 1)),
             );
 

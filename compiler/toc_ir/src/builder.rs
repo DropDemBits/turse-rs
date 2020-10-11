@@ -5,7 +5,6 @@ use toc_ast::ast;
 use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::types;
 use toc_ast::value;
-use toc_ast::Operator;
 use toc_core::Location;
 
 pub struct IrBuilder {
@@ -168,7 +167,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                     if let Some(ref value_ref) = value_ref {
                         // TODO: Decide whether to generate stores or moves, based on address space
                         let asn_inst = Instruction::new(
-                            &ident.token.location,
+                            &ident.location,
                             InstructionOp::Move {
                                 dest: ident_ref,
                                 src: value_ref.clone(),
@@ -182,9 +181,8 @@ impl ast::Visitor<(), Reference> for IrVisitor {
             ast::Stmt::Assign { var_ref, op, value } => {
                 let asn_ref = self.visit_expr(var_ref);
                 let value_ref = self.visit_expr(value);
-                let asn_op = Operator::from_binary(&op.token_type);
 
-                let value_ref = if !matches!(asn_op, Operator::NoOp) {
+                let value_ref = if let Some(op) = op {
                     // Build a binary expression involving the operator
                     let new_value = self.make_temporary(asn_ref.type_ref);
 
@@ -193,7 +191,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                         InstructionOp::BinaryOp {
                             dest: new_value.clone(),
                             lhs: asn_ref.clone(),
-                            op: asn_op,
+                            op: *op,
                             rhs: value_ref,
                         },
                     );
@@ -268,11 +266,11 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // TODO: If any are global refs, load values from locations
 
                 let binop_inst = Instruction::new(
-                    &op.location,
+                    &op.1,
                     InstructionOp::BinaryOp {
                         dest: eval_ref.clone(),
                         lhs: left_eval,
-                        op: Operator::from_binary(&op.token_type),
+                        op: op.0,
                         rhs: right_eval,
                     },
                 );
@@ -295,10 +293,10 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // TODO: If `right` is global refs, load value from location
 
                 let unop_inst = Instruction::new(
-                    &op.location,
+                    &op.1,
                     InstructionOp::UnaryOp {
                         dest: eval_ref.clone(),
-                        op: Operator::from_unary(&op.token_type),
+                        op: op.0,
                         rhs: right_eval,
                     },
                 );
@@ -308,15 +306,20 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::Expr::Literal { value, eval_type } => {
+            ast::Expr::Literal {
+                value,
+                eval_type,
+                span,
+            } => {
                 let eval_ref = self.make_temporary(*eval_type);
 
                 // TODO: May want to use a constant table reference, but for now, use a Value
                 let const_inst = Instruction::new(
-                    &value.location,
+                    span,
                     InstructionOp::LoadConst {
                         dest: eval_ref.clone(),
-                        constant: value::Value::from(value.token_type.clone()),
+                        constant: value::Value::from_literal(value.clone())
+                            .unwrap_or_else(|_| value::Value::from(0_i64)),
                     },
                 );
 
