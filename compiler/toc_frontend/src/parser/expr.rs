@@ -1,6 +1,6 @@
 //! Parser fragment, parsing all expressions
 use super::{Parser, ParsingStatus};
-use toc_ast::ast::{Expr, Identifier, Literal, UnaryOp};
+use toc_ast::ast::{Expr, Identifier, Literal};
 use toc_ast::token::TokenType;
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
@@ -394,6 +394,17 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_dot(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+        self.parse_dot(var_ref, false)
+    }
+
+    fn expr_arrow(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+        // Arrow expression may desugar into either a pointer specialization
+        // or deref-dot pair depending on the reference type
+        self.parse_dot(var_ref, true)
+    }
+
+    /// Parses a dot, either producing an Expr::Dot or an Expr::Arrow
+    fn parse_dot(&mut self, var_ref: Expr, as_arrow: bool) -> Result<Expr, ParsingStatus> {
         // Get the ident
         let ident = self.expects(
             TokenType::Identifier,
@@ -423,32 +434,23 @@ impl<'s> Parser<'s> {
             0,
         );
 
-        Ok(Expr::Dot {
-            left: Box::new(var_ref),
-            field,
-            eval_type: TypeRef::Unknown,
-            is_compile_eval: false,
-            span,
-        })
-    }
-
-    fn expr_arrow(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
-        let op = self.previous().clone();
-        // Span starts from the var_ref, all the way to the arrow token
-        let span = var_ref.get_span().span_to(&self.previous().location);
-
-        // TODO: Wrap inside of a dedicated Expr::Arrow
-        // Arrow expression may desugar into either a pointer specialization
-        // or deref-dot pair depending on the reference type
-
-        // Wrap the var_ref in a deref
-        self.expr_dot(Expr::UnaryOp {
-            op: (UnaryOp::Deref, op.location),
-            right: Box::new(var_ref),
-            eval_type: TypeRef::Unknown,
-            is_compile_eval: false,
-            span,
-        })
+        if as_arrow {
+            Ok(Expr::Arrow {
+                left: Box::new(var_ref),
+                field,
+                eval_type: TypeRef::Unknown,
+                is_compile_eval: false,
+                span,
+            })
+        } else {
+            Ok(Expr::Dot {
+                left: Box::new(var_ref),
+                field,
+                eval_type: TypeRef::Unknown,
+                is_compile_eval: false,
+                span,
+            })
+        }
     }
 
     fn expr_primary(&mut self) -> Result<Expr, ParsingStatus> {

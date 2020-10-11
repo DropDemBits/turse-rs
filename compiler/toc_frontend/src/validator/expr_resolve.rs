@@ -854,6 +854,28 @@ impl Validator {
         None
     }
 
+    pub(super) fn resolve_expr_arrow(
+        &mut self,
+        left: &mut Box<Expr>,
+        field: &mut Identifier,
+        eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) -> Option<Value> {
+        self.visit_expr(left);
+
+        // Arrow expressions are not validated yet
+        // TODO: Validate arrow expressions (blocking on compound types)
+        self.reporter.report_error(
+            &field.location,
+            format_args!("Arrow expressions are not validated yet"),
+        );
+
+        *eval_type = TypeRef::TypeError;
+        *is_compile_eval = false;
+
+        None
+    }
+
     pub(super) fn resolve_expr_reference(
         &mut self,
         ident: &mut Identifier,

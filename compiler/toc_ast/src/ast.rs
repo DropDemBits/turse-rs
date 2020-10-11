@@ -303,6 +303,21 @@ pub enum Expr {
         /// The span of the expression
         span: Location,
     },
+    /// Arrow expression
+    Arrow {
+        /// Expression evaluating to a reference
+        left: Box<Self>,
+        /// Field to be referenced
+        // While the type is an identifier, it is not a direct reference to an
+        // identifier in the current scope
+        field: Identifier,
+        /// The expression evaluation type
+        eval_type: TypeRef,
+        /// If the expression is compile-time evaluable
+        is_compile_eval: bool,
+        /// The span of the expression
+        span: Location,
+    },
     /// "init" expression
     Init {
         /// Location of "init"
@@ -340,6 +355,7 @@ impl Expr {
             Expr::Literal { eval_type, .. } => *eval_type,
             Expr::Call { eval_type, .. } => *eval_type,
             Expr::Dot { eval_type, .. } => *eval_type,
+            Expr::Arrow { eval_type, .. } => *eval_type,
             Expr::Reference { eval_type, .. } => *eval_type,
         }
     }
@@ -355,6 +371,7 @@ impl Expr {
             Expr::Literal { span, .. } => span,
             Expr::Call { span, .. } => span,
             Expr::Dot { span, .. } => span,
+            Expr::Arrow { span, .. } => span,
             Expr::Reference { ident, .. } => &ident.location,
         }
     }
@@ -369,6 +386,7 @@ impl Expr {
             Expr::Literal { span, .. } => *span = at,
             Expr::Call { span, .. } => *span = at,
             Expr::Dot { span, .. } => *span = at,
+            Expr::Arrow { span, .. } => *span = at,
             Expr::Reference { ident, .. } => ident.location = at,
         }
     }
@@ -390,6 +408,9 @@ impl Expr {
                 is_compile_eval, ..
             } => *is_compile_eval,
             Expr::Dot {
+                is_compile_eval, ..
+            } => *is_compile_eval,
+            Expr::Arrow {
                 is_compile_eval, ..
             } => *is_compile_eval,
             Expr::Reference { ident, .. } => ident.is_compile_eval,
@@ -417,6 +438,9 @@ impl fmt::Debug for Expr {
             Reference { ident, .. } => f.write_fmt(format_args!("ref({:#?})", ident)),
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
             Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.name)),
+            Arrow { left, field, .. } => {
+                f.write_fmt(format_args!("(-> {:?} {:?})", left, field.name))
+            }
         }
     }
 }

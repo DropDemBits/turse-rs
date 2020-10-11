@@ -362,6 +362,13 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 is_compile_eval,
                 ..
             } => self.resolve_expr_dot(left, field, eval_type, is_compile_eval),
+            Expr::Arrow {
+                left,
+                field,
+                eval_type,
+                is_compile_eval,
+                ..
+            } => self.resolve_expr_arrow(left, field, eval_type, is_compile_eval),
             Expr::Reference { ident, eval_type } => self.resolve_expr_reference(ident, eval_type),
             Expr::Literal {
                 value, eval_type, ..
