@@ -147,16 +147,41 @@ impl<'s> Scanner<'s> {
         }
     }
 
+    /// Skips over all whitespace, returning the first non-whitespace character
+    fn skip_whitespace(&mut self) -> char {
+        loop {
+            self.next_char();
+
+            match self.current {
+                // Whitespace
+                ' ' => self.cursor.columns(1),
+                '\t' => self.cursor.columns(4), // By default, 1 tab = 4 spaces
+                '\r' => {}
+                '\n' => self.cursor.lines(1),
+                '%' => self.skip_line_comment(),
+                '/' => {
+                    if self.match_next('*') {
+                        // Skip over a block comment
+                        self.skip_block_comment()
+                    } else {
+                        // Give back a slash
+                        break self.current;
+                    }
+                }
+                chr => break chr,
+            }
+
+            // Step over whitespace
+            self.cursor.step();
+        }
+    }
+
     /// Scan a single token
     fn scan_token(&mut self) {
-        let chr = self.next_char();
+        let chr = self.skip_whitespace();
 
         match chr {
             '\0' => self.make_token(TokenType::Eof, 0),
-            // Whitespace
-            ' ' | '\t' => self.cursor.columns(1),
-            '\r' => {}
-            '\n' => self.cursor.lines(1),
             // Meaningful tokens
             '(' => self.make_token(TokenType::LeftParen, 1),
             ')' => self.make_token(TokenType::RightParen, 1),
@@ -169,19 +194,18 @@ impl<'s> Scanner<'s> {
             '~' => self.make_token(TokenType::Tilde, 1),
             '&' => self.make_token(TokenType::And, 1),
             '|' => self.make_token(TokenType::Or, 1),
-            '/' => self.scan_block_comment(),
-            '%' => self.scan_line_comment(),
-            '-' => self.make_or_default('>', TokenType::Arrow, 2, TokenType::Minus, 1),
-            '=' => self.make_or_default('>', TokenType::Imply, 2, TokenType::Equ, 1),
-            ':' => self.make_or_default('=', TokenType::Assign, 2, TokenType::Colon, 1),
-            '>' => self.make_or_default('=', TokenType::GreaterEqu, 2, TokenType::Greater, 1),
-            '<' => self.make_or_default('=', TokenType::LessEqu, 2, TokenType::Less, 1),
+            '/' => self.make_token(TokenType::Slash, 1),
+            '-' => self.make_or_default('>', TokenType::Arrow, TokenType::Minus),
+            '=' => self.make_or_default('>', TokenType::Imply, TokenType::Equ),
+            ':' => self.make_or_default('=', TokenType::Assign, TokenType::Colon),
+            '>' => self.make_or_default('=', TokenType::GreaterEqu, TokenType::Greater),
+            '<' => self.make_or_default('=', TokenType::LessEqu, TokenType::Less),
             '.' if matches!(self.peek, '0'..='9') => {
                 // `self.make_number_real` expects there to be a '.' or 'e' at self.current
                 self.make_number_real(self.cursor);
             }
-            '.' => self.make_or_default('.', TokenType::Range, 2, TokenType::Dot, 1),
-            '*' => self.make_or_default('*', TokenType::Exp, 2, TokenType::Star, 1),
+            '.' => self.make_or_default('.', TokenType::Range, TokenType::Dot),
+            '*' => self.make_or_default('*', TokenType::Exp, TokenType::Star),
             '"' => self.make_char_sequence(true),
             '\'' => self.make_char_sequence(false),
             '0'..='9' => self.make_number(),
@@ -211,88 +235,65 @@ impl<'s> Scanner<'s> {
     }
 
     /// Makes the `does_match` token if the char matched, otherwise makes the `no_match` token
-    /// Also steps with the appropriate token
-    fn make_or_default(
-        &mut self,
-        expect: char,
-        does_match: TokenType,
-        step_match: usize,
-        no_match: TokenType,
-        step_no_match: usize,
-    ) {
+    fn make_or_default(&mut self, expect: char, does_match: TokenType, no_match: TokenType) {
         if self.match_next(expect) {
-            self.make_token(does_match, step_match);
+            self.make_token(does_match, 2);
         } else {
-            self.make_token(no_match, step_no_match);
+            self.make_token(no_match, 1);
         }
     }
 
     /// Skips over a block comment
-    fn scan_block_comment(&mut self) {
-        if self.match_next('*') {
-            // Block comment parsing
-            let mut depth: usize = 1;
+    fn skip_block_comment(&mut self) {
+        // Block comment parsing
+        let mut depth: usize = 1;
 
-            while depth > 0 {
-                match self.peek {
-                    '\0' => {
-                        // Block comment ends at the end of the file
-                        self.next_char();
-                        self.cursor.step();
-                        self.make_token(TokenType::Eof, 0);
+        while depth > 0 {
+            // Consume char
+            self.next_char();
 
-                        self.reporter.report_error(
-                            &self.cursor,
-                            format_args!(
-                                "Block comment (starting here) ends at the end of the file"
-                            ),
-                        );
-                        break;
-                    }
-                    '*' => {
-                        // Consume the star
-                        self.next_char();
+            match self.current {
+                '\0' => {
+                    self.cursor.step();
+                    self.make_token(TokenType::Eof, 0);
 
-                        if self.peek == '/' {
-                            // Decrease depth and consume '*/'
-                            self.next_char();
-                            depth = depth.saturating_sub(1);
-                        }
-                    }
-                    '/' => {
-                        // Consume the slash
+                    self.reporter.report_error(
+                        &self.cursor,
+                        format_args!("Block comment (starting here) ends at the end of the file"),
+                    );
+                    break;
+                }
+                '*' => {
+                    if self.peek == '/' {
+                        // Decrease depth and consume '*/'
                         self.next_char();
-
-                        if self.peek == '*' {
-                            // Increase depth and consume '/*'
-                            self.next_char();
-                            depth = depth.saturating_add(1);
-                        }
-                    }
-                    '\n' => {
-                        // End the line and rebase lexeme start to the beginning of the line
-                        self.next_char();
-                        self.cursor.lines(1);
-                        self.cursor.step();
-                    }
-                    _ => {
-                        // Consume char
-                        self.next_char();
+                        depth = depth.saturating_sub(1);
                     }
                 }
+                '/' => {
+                    if self.peek == '*' {
+                        // Increase depth and consume '/*'
+                        self.next_char();
+                        depth = depth.saturating_add(1);
+                    }
+                }
+                '\n' => {
+                    // End the line and rebase lexeme start to the beginning of the line
+                    self.cursor.lines(1);
+                    self.cursor.step();
+                }
+                _ => {}
             }
-
-            // Handle column stuff
-            let remaining_comment = self.cursor.get_lexeme(self.source);
-            let end_at_column = UnicodeSegmentation::graphemes(remaining_comment, true).count();
-            self.cursor.columns(end_at_column);
-        } else {
-            self.make_token(TokenType::Slash, 1);
         }
+
+        // Handle column stuff
+        let remaining_comment = self.cursor.get_lexeme(self.source);
+        let end_at_column = UnicodeSegmentation::graphemes(remaining_comment, true).count();
+        self.cursor.columns(end_at_column);
     }
 
     /// Skips over a line comment
-    fn scan_line_comment(&mut self) {
+    fn skip_line_comment(&mut self) {
         // Line comment
         while self.peek != '\n' && !self.is_at_end() {
             // Nom all the chars
@@ -426,6 +427,7 @@ impl<'s> Scanner<'s> {
 
         // Check if the base is in range
         if base.is_none() {
+            // Error has been reported above
             // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
             self.make_token(TokenType::NatLiteral(0), base_numerals.len());
             return;
@@ -621,8 +623,7 @@ impl<'s> Scanner<'s> {
         while self.peek != ending_delimiter && !matches!(self.peek, '\r' | '\n' | '\0') {
             let current = self.next_char();
             match current {
-                '\\' if matches!(self.peek, '\r' | '\n' | '\0') => break, // Reached the end of the literal
-                '^' if matches!(self.peek, '\r' | '\n' | '\0') => break, // Reached the end of the literal
+                '^' | '\\' if matches!(self.peek, '\r' | '\n' | '\0') => break, // Reached the end of the literal
                 '\\' => self.scan_slash_escape(&mut literal_text),
                 '^' => self.scan_caret_escape(&mut literal_text),
                 _ => literal_text.push(current),
