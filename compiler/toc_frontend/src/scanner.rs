@@ -1,5 +1,5 @@
 //! Scanner for tokens
-use toc_ast::token::{Token, TokenType};
+use crate::token::{Token, TokenType};
 use toc_core::Location;
 use toc_core::StatusReporter;
 

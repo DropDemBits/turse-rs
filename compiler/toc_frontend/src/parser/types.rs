@@ -1,9 +1,9 @@
 //! Parser fragment, parsing all type specifications
 use super::Parser;
-use toc_ast::ast::Expr;
-use toc_ast::token::TokenType;
-use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef};
+use crate::token::TokenType;
 use std::collections::HashMap;
+use toc_ast::ast::Expr;
+use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef};
 
 impl<'s> Parser<'s> {
     // --- Type Parsing --- //

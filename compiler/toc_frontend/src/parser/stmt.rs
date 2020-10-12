@@ -1,8 +1,8 @@
 //! Parser fragment, parsing all statements and declarations
 use super::{Parser, ParsingStatus};
+use crate::token::TokenType;
 use toc_ast::ast::{Expr, Identifier, Stmt};
 use toc_ast::block::BlockKind;
-use toc_ast::token::TokenType;
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
 

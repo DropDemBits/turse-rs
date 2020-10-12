@@ -4,16 +4,17 @@ mod expr;
 mod stmt;
 mod types;
 
-use std::cell::RefCell;
-use std::fmt::Arguments;
-use std::rc::Rc;
+use crate::token::{Token, TokenType};
 use toc_ast::ast::{BinaryOp, Identifier, UnaryOp};
 use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
 use toc_ast::scope::IdentError;
-use toc_ast::token::{Token, TokenType};
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
 use toc_core::StatusReporter;
+
+use std::cell::RefCell;
+use std::fmt::Arguments;
+use std::rc::Rc;
 
 /// Maximum nesting depth during parsing
 const MAX_NESTING_DEPTH: usize = 256;
