@@ -17,7 +17,7 @@ pub struct Scanner<'a> {
     /// Status reporter
     reporter: StatusReporter,
     /// Vector of scanned tokens
-    pub tokens: Vec<Token>,
+    pub tokens: Vec<Token<'a>>,
     /// Iterator for char indicies
     next_indicies: std::str::CharIndices<'a>,
     /// Iterator for chars
@@ -59,14 +59,16 @@ impl<'s> Scanner<'s> {
     pub fn scan_tokens(&mut self) -> bool {
         while !self.is_at_end() {
             self.cursor.step();
-            self.scan_token();
+            let token = self.scan_token();
+            self.tokens.push(token);
             self.stitch_token();
         }
 
         if self.tokens.is_empty() || self.tokens.last().unwrap().token_type != TokenType::Eof {
             // Add eof
             self.cursor.step();
-            self.make_token(TokenType::Eof, 1);
+            let eof = self.make_token(TokenType::Eof, 1);
+            self.tokens.push(eof)
         }
 
         !self.reporter.has_error()
@@ -176,8 +178,10 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    /// Scan a single token
-    fn scan_token(&mut self) {
+    /// Scan the input source, producing a single token
+    ///
+    /// No token fusing occurs at this stage
+    fn scan_token(&mut self) -> Token<'s> {
         let chr = self.skip_whitespace();
 
         match chr {
@@ -202,7 +206,7 @@ impl<'s> Scanner<'s> {
             '<' => self.make_or_default('=', TokenType::LessEqu, TokenType::Less),
             '.' if matches!(self.peek, '0'..='9') => {
                 // `self.make_number_real` expects there to be a '.' or 'e' at self.current
-                self.make_number_real(self.cursor);
+                self.make_number_real(self.cursor)
             }
             '.' => self.make_or_default('.', TokenType::Range, TokenType::Dot),
             '*' => self.make_or_default('*', TokenType::Exp, TokenType::Star),
@@ -211,13 +215,15 @@ impl<'s> Scanner<'s> {
             '0'..='9' => self.make_number(),
             _ => {
                 if is_ident_char(chr) {
-                    self.make_ident();
+                    self.make_ident()
                 } else {
-                    self.cursor.columns(1);
                     self.reporter.report_error(
                         &self.cursor,
                         format_args!("Unrecognized character '{}'", chr),
                     );
+
+                    // Create an error token
+                    self.make_token(TokenType::Error, 1)
                 }
             }
         }
@@ -225,21 +231,27 @@ impl<'s> Scanner<'s> {
 
     /// Makes a token and adds it to the token list
     /// Also steps the cursor's columns
-    fn make_token(&mut self, token_type: TokenType, steps: usize) {
+    fn make_token(&mut self, token_type: TokenType, steps: usize) -> Token<'s> {
         self.cursor.columns(steps);
 
-        self.tokens.push(Token {
+        Token {
             token_type,
             location: self.cursor,
-        });
+            _source: std::marker::PhantomData,
+        }
     }
 
     /// Makes the `does_match` token if the char matched, otherwise makes the `no_match` token
-    fn make_or_default(&mut self, expect: char, does_match: TokenType, no_match: TokenType) {
+    fn make_or_default(
+        &mut self,
+        expect: char,
+        does_match: TokenType,
+        no_match: TokenType,
+    ) -> Token<'s> {
         if self.match_next(expect) {
-            self.make_token(does_match, 2);
+            self.make_token(does_match, 2)
         } else {
-            self.make_token(no_match, 1);
+            self.make_token(no_match, 1)
         }
     }
 
@@ -254,14 +266,13 @@ impl<'s> Scanner<'s> {
 
             match self.current {
                 '\0' => {
-                    self.cursor.step();
-                    self.make_token(TokenType::Eof, 0);
-
                     self.reporter.report_error(
                         &self.cursor,
                         format_args!("Block comment (starting here) ends at the end of the file"),
                     );
-                    break;
+
+                    // No more parsing, will be handled by the return from `skip_whitespace`
+                    return;
                 }
                 '*' => {
                     if self.peek == '/' {
@@ -301,7 +312,7 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    fn make_number(&mut self) {
+    fn make_number(&mut self) -> Token<'s> {
         // 3 main number formats
         // numeric+
         // numeric+ '#' alphanumeric+
@@ -333,15 +344,13 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    fn make_number_basic(&mut self, numerals: Location) {
+    fn make_number_basic(&mut self, numerals: Location) -> Token<'s> {
         // End normal NatLiteral
         let numerals = numerals.get_lexeme(self.source);
         let numerals_len = numerals.len();
 
         match try_parse_int(numerals, 10) {
-            Ok(num) => {
-                self.make_token(TokenType::NatLiteral(num), numerals_len);
-            }
+            Ok(num) => self.make_token(TokenType::NatLiteral(num), numerals_len),
             Err(e) => {
                 match e {
                     IntErrKind::Overflow(_) => self
@@ -358,14 +367,14 @@ impl<'s> Scanner<'s> {
                 }
 
                 // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-                self.make_token(TokenType::NatLiteral(0), numerals_len);
+                self.make_token(TokenType::NatLiteral(0), numerals_len)
             }
         }
 
         // Done
     }
 
-    fn make_number_radix(&mut self, base_numerals: Location) {
+    fn make_number_radix(&mut self, base_numerals: Location) -> Token<'s> {
         // Base has already been parsed
         let base_numerals = base_numerals.get_lexeme(self.source).to_string();
 
@@ -429,8 +438,7 @@ impl<'s> Scanner<'s> {
         if base.is_none() {
             // Error has been reported above
             // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-            self.make_token(TokenType::NatLiteral(0), base_numerals.len());
-            return;
+            return self.make_token(TokenType::NatLiteral(0), base_numerals.len());
         }
 
         let base = base.unwrap();
@@ -443,8 +451,7 @@ impl<'s> Scanner<'s> {
             );
 
             // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-            self.make_token(TokenType::NatLiteral(0), base_numerals.len());
-            return;
+            return self.make_token(TokenType::NatLiteral(0), base_numerals.len());
         }
 
         // Check if the range contains digits outside of the range
@@ -452,7 +459,7 @@ impl<'s> Scanner<'s> {
         match try_parse_int(&radix_numerals, base as u32) {
             Ok(num) => {
                 let literal_len = self.cursor.get_lexeme(self.source).len();
-                self.make_token(TokenType::NatLiteral(num), literal_len);
+                self.make_token(TokenType::NatLiteral(num), literal_len)
             }
             Err(k) => {
                 match k {
@@ -474,12 +481,12 @@ impl<'s> Scanner<'s> {
                     ),
                 }
                 // Produce a 0 value token (exact value doesn't matter, as the output will not be compiled)
-                self.make_token(TokenType::NatLiteral(0), base_numerals.len());
+                self.make_token(TokenType::NatLiteral(0), base_numerals.len())
             }
         }
     }
 
-    fn make_number_real(&mut self, numerals: Location) {
+    fn make_number_real(&mut self, numerals: Location) -> Token<'s> {
         let mut numerals = numerals;
 
         if self.current == '.' {
@@ -553,18 +560,18 @@ impl<'s> Scanner<'s> {
             Some(num) => num,
         };
 
-        self.make_token(TokenType::RealLiteral(parsed_value), 0);
+        self.make_token(TokenType::RealLiteral(parsed_value), 0)
     }
 
-    fn make_str_literal(&mut self, is_str_literal: bool, s: String, width: usize) {
+    fn make_str_literal(&mut self, is_str_literal: bool, s: String, width: usize) -> Token<'s> {
         if is_str_literal {
-            self.make_token(TokenType::StringLiteral(s), width);
+            self.make_token(TokenType::StringLiteral(s), width)
         } else {
-            self.make_token(TokenType::CharLiteral(s), width);
+            self.make_token(TokenType::CharLiteral(s), width)
         }
     }
 
-    fn make_char_sequence(&mut self, is_str_literal: bool) {
+    fn make_char_sequence(&mut self, is_str_literal: bool) -> Token<'s> {
         let ending_delimiter = if is_str_literal { '"' } else { '\'' };
         let literal_text = self.extract_char_sequence(ending_delimiter);
 
@@ -574,21 +581,22 @@ impl<'s> Scanner<'s> {
         // Advance to the correct location
         self.cursor.columns(part_width);
 
+        let real_width;
+
         match self.peek {
             '\r' | '\n' => {
                 self.reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the line"),
                 );
-
-                self.make_str_literal(is_str_literal, literal_text, 0);
+                real_width = 0;
             }
             '\0' => {
                 self.reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the file"),
                 );
-                self.make_str_literal(is_str_literal, literal_text, part_width);
+                real_width = part_width;
             }
             _ => {
                 assert!((self.peek == '\'' || self.peek == '"'));
@@ -596,10 +604,13 @@ impl<'s> Scanner<'s> {
                 // Consume other delimiter
                 self.next_char();
 
-                // Make it! (Adjust part_width by 1 to account for ending delimiter)
-                self.make_str_literal(is_str_literal, literal_text, 1);
+                // Adjust part_width by 1 to account for ending delimiter
+                real_width = 1;
             }
         }
+
+        // Make it!
+        self.make_str_literal(is_str_literal, literal_text, real_width)
     }
 
     /// Extracts the character sequence from the source, handling escape sequences
@@ -867,7 +878,7 @@ impl<'s> Scanner<'s> {
         self.next_char();
     }
 
-    fn make_ident(&mut self) {
+    fn make_ident(&mut self) -> Token<'s> {
         // Consume all of the identifier digits
         while is_ident_char_or_digit(self.peek) {
             self.next_char();
@@ -1003,7 +1014,7 @@ impl<'s> Scanner<'s> {
             _ => TokenType::Identifier,
         };
 
-        self.make_token(token_type, len);
+        self.make_token(token_type, len)
     }
 }
 
@@ -1047,15 +1058,23 @@ mod test {
         // Invalid chars (outside of strings) in the current format:
         // Control chars
         // '[' ']' '{' '}' '!' '$' '?' '`' '\\'
-        for c in "[]{}!$?`\\".chars() {
+        // Any non-ascii character (for now)
+        for c in r#"[]{}!$?`\🧑‍🔬"#.chars() {
             let s = c.to_string();
             let mut scanner = Scanner::new(&s);
 
-            if scanner.scan_tokens() {
-                panic!("Invalid char {} passed as valid", c);
-            } else if scanner.tokens[0].location.column != 2 {
-                panic!("Column not advanced over invalid charater");
-            }
+            assert!(!scanner.scan_tokens(), "'{}' passed as valid", c);
+            assert_eq!(
+                scanner.tokens[1].location.column, 2,
+                "Column not advanced over '{}'",
+                c
+            );
+            assert_eq!(
+                scanner.tokens[0].token_type,
+                TokenType::Error,
+                "No token produced for '{}'",
+                c
+            );
         }
     }
 
@@ -1083,9 +1102,10 @@ mod test {
         let mut scanner = Scanner::new("ba$e");
         assert!(!scanner.scan_tokens());
         assert_eq!(scanner.tokens[0].location.get_lexeme("ba$e"), "ba");
-        assert_eq!(scanner.tokens[1].location.get_lexeme("ba$e"), "e");
+        assert_eq!(scanner.tokens[1].location.get_lexeme("ba$e"), "$");
+        assert_eq!(scanner.tokens[2].location.get_lexeme("ba$e"), "e");
         // Column check for invalid characters
-        assert_eq!(scanner.tokens[1].location.column, 4);
+        assert_eq!(scanner.tokens[2].location.column, 4);
     }
 
     #[test]

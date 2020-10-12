@@ -1,18 +1,22 @@
-use toc_core::Location;
 use std::fmt;
+use toc_core::Location;
 
 /// Parsed token
 #[derive(Debug, PartialEq, Clone)]
-pub struct Token {
+pub struct Token<'a> {
     /// Type of the token
     pub token_type: TokenType,
     /// Location of the lexeme in the file/text stream
     pub location: Location,
+    /// The token is only valid for the lifetime of the source
+    pub _source: std::marker::PhantomData<&'a ()>,
 }
 
 /// Valid tokens in Turing
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
+    /// Generic error token
+    Error,
     // Character Tokens
     /// @
     At,
@@ -213,6 +217,7 @@ pub enum TokenType {
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            TokenType::Error => "<error>",
             TokenType::At => "@",
             TokenType::Arrow => "->",
             TokenType::Caret => "^",

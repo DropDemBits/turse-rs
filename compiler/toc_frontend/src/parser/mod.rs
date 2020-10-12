@@ -27,7 +27,7 @@ pub struct Parser<'s> {
     /// File source used for getting lexemes for reporting
     source: &'s str,
     /// Source for tokens
-    tokens: Vec<Token>,
+    tokens: Vec<Token<'s>>,
     /// Current token being parsed
     current: usize,
     /// Parsed Code Unit
@@ -51,7 +51,7 @@ enum ParsingStatus {
 }
 
 impl<'s> Parser<'s> {
-    pub fn new(tokens: Vec<Token>, source: &'s str, unit: CodeUnit) -> Self {
+    pub fn new(tokens: Vec<Token<'s>>, source: &'s str, unit: CodeUnit) -> Self {
         Self {
             reporter: StatusReporter::new(),
             source,
@@ -91,17 +91,17 @@ impl<'s> Parser<'s> {
     }
 
     /// Gets the previous token in the stream
-    fn previous(&self) -> &Token {
+    fn previous(&self) -> &Token<'s> {
         &self.tokens[self.current.saturating_sub(1)]
     }
 
     /// Gets the current token in the stream
-    fn current(&self) -> &Token {
+    fn current(&self) -> &Token<'s> {
         &self.tokens[self.current]
     }
 
     /// Peeks at the next token in the stream
-    fn peek(&self) -> &Token {
+    fn peek(&self) -> &Token<'s> {
         if self.is_at_end() {
             // At the end of file, return the Eof token
             self.tokens.last().as_ref().unwrap()
@@ -111,7 +111,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Advances to the next token, returning the previous token
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token<'s> {
         if !self.is_at_end() {
             // Advance cursor
             self.current = self.current.saturating_add(1);
@@ -132,7 +132,7 @@ impl<'s> Parser<'s> {
         &mut self,
         expected_type: TokenType,
         message: Arguments,
-    ) -> Result<Token, ParsingStatus> {
+    ) -> Result<Token<'s>, ParsingStatus> {
         if self.current().token_type == expected_type {
             Ok(self.next_token())
         } else {
