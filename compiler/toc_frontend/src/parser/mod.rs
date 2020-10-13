@@ -4,6 +4,7 @@ mod expr;
 mod stmt;
 mod types;
 
+use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
 use toc_ast::ast::{BinaryOp, Identifier, UnaryOp};
 use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
@@ -26,10 +27,15 @@ pub struct Parser<'s> {
     reporter: StatusReporter,
     /// File source used for getting lexemes for reporting
     source: &'s str,
-    /// Source for tokens
-    tokens: Vec<Token<'s>>,
+    /// Scanner for scanning tokens
+    scanner: Scanner<'s>,
+
+    /// Previous token parsed
+    previous: Token<'s>,
     /// Current token being parsed
-    current: usize,
+    current: Token<'s>,
+    /// Next token to parse
+    peek: Token<'s>,
     /// Parsed Code Unit
     unit: Option<CodeUnit>,
     /// Actively parsed blocks
@@ -51,12 +57,18 @@ enum ParsingStatus {
 }
 
 impl<'s> Parser<'s> {
-    pub fn new(tokens: Vec<Token<'s>>, source: &'s str, unit: CodeUnit) -> Self {
+    pub fn new(mut scanner: Scanner<'s>, source: &'s str, unit: CodeUnit) -> Self {
         Self {
             reporter: StatusReporter::new(),
             source,
-            tokens,
-            current: 0,
+            previous: Token::new(TokenType::Error, Location::new()),
+            current: scanner
+                .next()
+                .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
+            peek: scanner
+                .next()
+                .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
+            scanner,
             // Clone a ref to the root block
             blocks: vec![unit.root_block().clone()],
             unit: Some(unit),
@@ -92,29 +104,61 @@ impl<'s> Parser<'s> {
 
     /// Gets the previous token in the stream
     fn previous(&self) -> &Token<'s> {
-        &self.tokens[self.current.saturating_sub(1)]
+        &self.previous
     }
 
     /// Gets the current token in the stream
     fn current(&self) -> &Token<'s> {
-        &self.tokens[self.current]
+        &self.current
     }
 
     /// Peeks at the next token in the stream
+    /// `peek` is not affected by token stitching
     fn peek(&self) -> &Token<'s> {
-        if self.is_at_end() {
-            // At the end of file, return the Eof token
-            self.tokens.last().as_ref().unwrap()
-        } else {
-            &self.tokens[self.current.saturating_add(1)]
-        }
+        &self.peek
+    }
+
+    /// Advances `peek` without updating `current` and `previous`.
+    ///
+    /// Only used to support token stitching
+    fn advance_peek(&mut self) {
+        self.peek = self
+            .scanner
+            .next()
+            .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new()));
     }
 
     /// Advances to the next token, returning the previous token
     fn next_token(&mut self) -> Token<'s> {
-        if !self.is_at_end() {
-            // Advance cursor
-            self.current = self.current.saturating_add(1);
+        fn stitch_into<'s>(
+            token_type: TokenType,
+            stitch_from: &Token<'s>,
+            stitch_to: &Token<'s>,
+        ) -> Token<'s> {
+            let new_span = stitch_from.location.span_to(&stitch_to.location);
+            Token::new(token_type, new_span)
+        }
+
+        std::mem::swap(&mut self.previous, &mut self.current);
+        std::mem::swap(&mut self.current, &mut self.peek);
+        self.advance_peek();
+
+        // Try and do some token stitching of the current token
+        if matches!(self.current.token_type, TokenType::Not | TokenType::Tilde) {
+            // Stitch together with the next token
+            match self.peek.token_type {
+                TokenType::Equ => {
+                    // Make `not =`
+                    self.current = stitch_into(TokenType::NotEqu, &self.current, &self.peek);
+                    self.advance_peek()
+                }
+                TokenType::In => {
+                    // Make `not in`
+                    self.current = stitch_into(TokenType::NotIn, &self.current, &self.peek);
+                    self.advance_peek()
+                }
+                _ => {}
+            }
         }
 
         self.previous().clone()
@@ -361,15 +405,17 @@ fn try_into_unary(op: TokenType) -> Result<UnaryOp, ParsingStatus> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::context::CompileContext;
     use crate::scanner::Scanner;
+    use std::{cell::RefCell, rc::Rc};
     use toc_ast::ast::{self, Expr, Stmt};
     use toc_ast::types::{self, *};
 
     fn make_test_parser(source: &str) -> Parser {
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens();
+        let context = Rc::new(RefCell::new(CompileContext::new()));
+        let scanner = Scanner::scan_source(source, context);
 
-        Parser::new(scanner.tokens, source, CodeUnit::new(true))
+        Parser::new(scanner, source, CodeUnit::new(true))
     }
 
     // Get the latest version of the identifier

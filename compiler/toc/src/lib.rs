@@ -5,8 +5,11 @@ extern crate toc_frontend;
 extern crate toc_ir;
 
 use std::fs;
+use std::{cell::RefCell, rc::Rc};
 use toc_ast::block::CodeUnit;
-use toc_frontend::{parser::Parser, scanner::Scanner, validator::Validator};
+use toc_frontend::{
+    context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
+};
 
 /// Compiles and runs the given file
 pub fn compile_run_file(path: &str) {
@@ -27,11 +30,11 @@ pub fn compile_run_file(path: &str) {
 pub fn compile_file(_path: &str, contents: &str) -> CodeUnit {
     // Build the main unit
     let code_unit = CodeUnit::new(true);
+    let context = Rc::new(RefCell::new(CompileContext::new()));
 
-    let mut scanner = Scanner::new(contents);
-    scanner.scan_tokens();
+    let scanner = Scanner::scan_source(contents, context);
+    let mut parser = Parser::new(scanner, contents, code_unit);
 
-    let mut parser = Parser::new(scanner.tokens, contents, code_unit);
     parser.parse();
 
     // Take the unit back from the parser

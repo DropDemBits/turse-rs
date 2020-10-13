@@ -342,21 +342,20 @@ mod test {
     extern crate toc_frontend;
 
     use super::*;
+    use std::{cell::RefCell, rc::Rc};
     use toc_ast::block::CodeUnit;
-    use toc_frontend::parser::Parser;
-    use toc_frontend::scanner::Scanner;
-    use toc_frontend::validator::Validator;
+    use toc_frontend::{
+        context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
+    };
 
     /// Generates a graph from a string source
     fn generate_graph(source: &str) -> (bool, Option<IrGraph>) {
-        // Yoinked again from main.rs
         // Build the main unit
         let code_unit = CodeUnit::new(true);
+        let context = Rc::new(RefCell::new(CompileContext::new()));
 
-        let mut scanner = Scanner::new(&source);
-        assert!(scanner.scan_tokens(), "Scanner failed to scan the source");
-
-        let mut parser = Parser::new(scanner.tokens, &source, code_unit);
+        let scanner = Scanner::scan_source(source, context);
+        let mut parser = Parser::new(scanner, &source, code_unit);
         assert!(parser.parse(), "Parser failed to parse the source");
 
         // Take the unit back from the parser

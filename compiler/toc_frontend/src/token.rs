@@ -9,7 +9,17 @@ pub struct Token<'a> {
     /// Location of the lexeme in the file/text stream
     pub location: Location,
     /// The token is only valid for the lifetime of the source
-    pub _source: std::marker::PhantomData<&'a ()>,
+    _source: std::marker::PhantomData<&'a ()>,
+}
+
+impl Token<'_> {
+    pub fn new(token_type: TokenType, location: Location) -> Self {
+        Self {
+            token_type,
+            location,
+            _source: std::marker::PhantomData,
+        }
+    }
 }
 
 /// Valid tokens in Turing

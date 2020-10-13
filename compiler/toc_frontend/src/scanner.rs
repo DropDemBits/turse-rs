@@ -1,10 +1,12 @@
 //! Scanner for tokens
+use crate::context::CompileContext;
 use crate::token::{Token, TokenType};
 use toc_core::Location;
-use toc_core::StatusReporter;
 
+use std::cell::RefCell;
 use std::char;
 use std::num::ParseIntError;
+use std::rc::Rc;
 use unicode_segmentation::UnicodeSegmentation;
 
 extern crate strtod;
@@ -14,8 +16,8 @@ extern crate strtod;
 pub struct Scanner<'a> {
     /// Scanning source
     source: &'a str,
-    /// Status reporter
-    reporter: StatusReporter,
+    /// Compile context of the scanner
+    context: Rc<RefCell<CompileContext>>,
     /// Vector of scanned tokens
     pub tokens: Vec<Token<'a>>,
     /// Iterator for char indicies
@@ -32,7 +34,7 @@ pub struct Scanner<'a> {
 }
 
 impl<'s> Scanner<'s> {
-    pub fn new(source: &'s str) -> Self {
+    pub fn scan_source(source: &'s str, context: Rc<RefCell<CompileContext>>) -> Self {
         let mut next_indicies = source.char_indices();
         let mut chars = source.chars();
 
@@ -44,7 +46,7 @@ impl<'s> Scanner<'s> {
 
         Self {
             source,
-            reporter: StatusReporter::new(),
+            context,
             tokens: vec![],
             next_indicies,
             chars,
@@ -52,26 +54,6 @@ impl<'s> Scanner<'s> {
             peek,
             cursor: Location::new(),
         }
-    }
-
-    /// Scans the source input for all tokens
-    /// Returns true if the scan was successful
-    pub fn scan_tokens(&mut self) -> bool {
-        while !self.is_at_end() {
-            self.cursor.step();
-            let token = self.scan_token();
-            self.tokens.push(token);
-            self.stitch_token();
-        }
-
-        if self.tokens.is_empty() || self.tokens.last().unwrap().token_type != TokenType::Eof {
-            // Add eof
-            self.cursor.step();
-            let eof = self.make_token(TokenType::Eof, 1);
-            self.tokens.push(eof)
-        }
-
-        !self.reporter.has_error()
     }
 
     // Checks if the end of the stream has been reached
@@ -110,46 +92,8 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    /// Stiches the previous token with the current ont
-    fn stitch_token(&mut self) {
-        let mut reverse_iter = self.tokens.iter().rev();
-        let mut next_reverse = move || {
-            reverse_iter
-                .next()
-                .map(|tok| &tok.token_type)
-                .unwrap_or(&TokenType::Eof)
-        };
-
-        match next_reverse() {
-            TokenType::In => match next_reverse() {
-                TokenType::Not | TokenType::Tilde => {
-                    // Stitch not in -> not_in
-                    let end_loc = self.tokens.pop().unwrap().location;
-                    let change = self.tokens.last_mut().unwrap();
-
-                    // Adjust location & kind
-                    change.token_type = TokenType::NotIn;
-                    change.location.current_to_other(&end_loc);
-                }
-                _ => {}
-            },
-            TokenType::Equ => match next_reverse() {
-                TokenType::Not | TokenType::Tilde => {
-                    // Stitch not = -> not_=
-                    let end_loc = self.tokens.pop().unwrap().location;
-                    let change = self.tokens.last_mut().unwrap();
-
-                    // Adjust location & kind
-                    change.token_type = TokenType::NotEqu;
-                    change.location.current_to_other(&end_loc);
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-    }
-
-    /// Skips over all whitespace, returning the first non-whitespace character
+    /// Skips over all whitespace, returning the first non-whitespace character,
+    /// or `None` if at the end of the file
     fn skip_whitespace(&mut self) -> char {
         loop {
             self.next_char();
@@ -181,51 +125,57 @@ impl<'s> Scanner<'s> {
     /// Scan the input source, producing a single token
     ///
     /// No token fusing occurs at this stage
-    fn scan_token(&mut self) -> Token<'s> {
+    fn scan_token(&mut self) -> Option<Token<'s>> {
         let chr = self.skip_whitespace();
 
-        match chr {
-            '\0' => self.make_token(TokenType::Eof, 0),
-            // Meaningful tokens
-            '(' => self.make_token(TokenType::LeftParen, 1),
-            ')' => self.make_token(TokenType::RightParen, 1),
-            '@' => self.make_token(TokenType::At, 1),
-            '^' => self.make_token(TokenType::Caret, 1),
-            ',' => self.make_token(TokenType::Comma, 1),
-            '#' => self.make_token(TokenType::Pound, 1),
-            '+' => self.make_token(TokenType::Plus, 1),
-            ';' => self.make_token(TokenType::Semicolon, 1),
-            '~' => self.make_token(TokenType::Tilde, 1),
-            '&' => self.make_token(TokenType::And, 1),
-            '|' => self.make_token(TokenType::Or, 1),
-            '/' => self.make_token(TokenType::Slash, 1),
-            '-' => self.make_or_default('>', TokenType::Arrow, TokenType::Minus),
-            '=' => self.make_or_default('>', TokenType::Imply, TokenType::Equ),
-            ':' => self.make_or_default('=', TokenType::Assign, TokenType::Colon),
-            '>' => self.make_or_default('=', TokenType::GreaterEqu, TokenType::Greater),
-            '<' => self.make_or_default('=', TokenType::LessEqu, TokenType::Less),
-            '.' if matches!(self.peek, '0'..='9') => {
-                // `self.make_number_real` expects there to be a '.' or 'e' at self.current
-                self.make_number_real(self.cursor)
-            }
-            '.' => self.make_or_default('.', TokenType::Range, TokenType::Dot),
-            '*' => self.make_or_default('*', TokenType::Exp, TokenType::Star),
-            '"' => self.make_char_sequence(true),
-            '\'' => self.make_char_sequence(false),
-            '0'..='9' => self.make_number(),
-            _ => {
-                if is_ident_char(chr) {
-                    self.make_ident()
-                } else {
-                    self.reporter.report_error(
-                        &self.cursor,
-                        format_args!("Unrecognized character '{}'", chr),
-                    );
-
-                    // Create an error token
-                    self.make_token(TokenType::Error, 1)
+        if chr == '\0' {
+            // End of file
+            None
+        } else {
+            let token = match chr {
+                // Meaningful tokens
+                '(' => self.make_token(TokenType::LeftParen, 1),
+                ')' => self.make_token(TokenType::RightParen, 1),
+                '@' => self.make_token(TokenType::At, 1),
+                '^' => self.make_token(TokenType::Caret, 1),
+                ',' => self.make_token(TokenType::Comma, 1),
+                '#' => self.make_token(TokenType::Pound, 1),
+                '+' => self.make_token(TokenType::Plus, 1),
+                ';' => self.make_token(TokenType::Semicolon, 1),
+                '~' => self.make_token(TokenType::Tilde, 1),
+                '&' => self.make_token(TokenType::And, 1),
+                '|' => self.make_token(TokenType::Or, 1),
+                '/' => self.make_token(TokenType::Slash, 1),
+                '-' => self.make_or_default('>', TokenType::Arrow, TokenType::Minus),
+                '=' => self.make_or_default('>', TokenType::Imply, TokenType::Equ),
+                ':' => self.make_or_default('=', TokenType::Assign, TokenType::Colon),
+                '>' => self.make_or_default('=', TokenType::GreaterEqu, TokenType::Greater),
+                '<' => self.make_or_default('=', TokenType::LessEqu, TokenType::Less),
+                '.' if matches!(self.peek, '0'..='9') => {
+                    // `self.make_number_real` expects there to be a '.' or 'e' at self.current
+                    self.make_number_real(self.cursor)
                 }
-            }
+                '.' => self.make_or_default('.', TokenType::Range, TokenType::Dot),
+                '*' => self.make_or_default('*', TokenType::Exp, TokenType::Star),
+                '"' => self.make_char_sequence(true),
+                '\'' => self.make_char_sequence(false),
+                '0'..='9' => self.make_number(),
+                _ => {
+                    if is_ident_char(chr) {
+                        self.make_ident()
+                    } else {
+                        self.context.borrow_mut().reporter.report_error(
+                            &self.cursor,
+                            format_args!("Unrecognized character '{}'", chr),
+                        );
+
+                        // Create an error token
+                        self.make_token(TokenType::Error, 1)
+                    }
+                }
+            };
+
+            Some(token)
         }
     }
 
@@ -234,11 +184,7 @@ impl<'s> Scanner<'s> {
     fn make_token(&mut self, token_type: TokenType, steps: usize) -> Token<'s> {
         self.cursor.columns(steps);
 
-        Token {
-            token_type,
-            location: self.cursor,
-            _source: std::marker::PhantomData,
-        }
+        Token::new(token_type, self.cursor)
     }
 
     /// Makes the `does_match` token if the char matched, otherwise makes the `no_match` token
@@ -256,6 +202,8 @@ impl<'s> Scanner<'s> {
     }
 
     /// Skips over a block comment
+    ///
+    /// Returns false if the block comment ends at the end of the file
     fn skip_block_comment(&mut self) {
         // Block comment parsing
         let mut depth: usize = 1;
@@ -266,7 +214,7 @@ impl<'s> Scanner<'s> {
 
             match self.current {
                 '\0' => {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Block comment (starting here) ends at the end of the file"),
                     );
@@ -354,13 +302,15 @@ impl<'s> Scanner<'s> {
             Err(e) => {
                 match e {
                     IntErrKind::Overflow(_) => self
+                        .context
+                        .borrow_mut()
                         .reporter
                         .report_error(&self.cursor, format_args!("Integer literal is too large")),
-                    IntErrKind::InvalidDigit(_) => self.reporter.report_error(
+                    IntErrKind::InvalidDigit(_) => self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Invalid digit found for a base 10 number"),
                     ),
-                    IntErrKind::Other(e) => self.reporter.report_error(
+                    IntErrKind::Other(e) => self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Failed to parse integer literal ({})", e),
                     ),
@@ -397,7 +347,7 @@ impl<'s> Scanner<'s> {
         let base = match try_parse_int(&base_numerals, 10) {
             Ok(num) => {
                 if num < 2 || num > 36 {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Base for integer literal is not between the range of 2 - 36"),
                     );
@@ -411,7 +361,7 @@ impl<'s> Scanner<'s> {
             Err(k) => {
                 match k {
                     IntErrKind::Overflow(_) => {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &self.cursor,
                             format_args!(
                                 "Base for integer literal is not between the range of 2 - 36"
@@ -419,12 +369,12 @@ impl<'s> Scanner<'s> {
                         );
                     }
                     IntErrKind::InvalidDigit(_) => {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &self.cursor,
                             format_args!("Invalid digit found in the base specifier"),
                         );
                     } // Notify!
-                    IntErrKind::Other(e) => self.reporter.report_error(
+                    IntErrKind::Other(e) => self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Failed to parse base for integer literal ({})", e),
                     ),
@@ -445,7 +395,7 @@ impl<'s> Scanner<'s> {
 
         // Check if there are any numeral digits
         if radix_numerals.is_empty() {
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &self.cursor,
                 format_args!("Missing digits for integer literal"),
             );
@@ -464,18 +414,18 @@ impl<'s> Scanner<'s> {
             Err(k) => {
                 match k {
                     IntErrKind::Overflow(_) => {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &self.cursor,
                             format_args!("Integer literal is too large"),
                         );
                     }
                     IntErrKind::InvalidDigit(_) => {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Digit in integer literal is outside of the specified base's allowed digits"),
                     );
                     }
-                    IntErrKind::Other(e) => self.reporter.report_error(
+                    IntErrKind::Other(e) => self.context.borrow_mut().reporter.report_error(
                         &self.cursor,
                         format_args!("Failed to parse base for integer literal ({})", e),
                     ),
@@ -536,24 +486,32 @@ impl<'s> Scanner<'s> {
         // A value is always produced
         let parsed_value = match value {
             Some(num) if num.is_infinite() => {
-                self.reporter
+                self.context
+                    .borrow_mut()
+                    .reporter
                     .report_error(&self.cursor, format_args!("Real literal is too large"));
                 0f64
             }
             Some(num) if num.is_nan() => {
                 // Capture NaNs (What impl does)
-                self.reporter
+                self.context
+                    .borrow_mut()
+                    .reporter
                     .report_error(&self.cursor, format_args!("Invalid real literal (is NaN)"));
                 0f64
             }
             Some(_num) if requires_exponent_digits.eq(&Some(false)) => {
                 // Missing exponent digits
-                self.reporter
+                self.context
+                    .borrow_mut()
+                    .reporter
                     .report_error(&self.cursor, format_args!("Invalid real literal"));
                 0f64
             }
             None => {
-                self.reporter
+                self.context
+                    .borrow_mut()
+                    .reporter
                     .report_error(&self.cursor, format_args!("Invalid real literal"));
                 0f64
             }
@@ -585,14 +543,14 @@ impl<'s> Scanner<'s> {
 
         match self.peek {
             '\r' | '\n' => {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the line"),
                 );
                 real_width = 0;
             }
             '\0' => {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the file"),
                 );
@@ -709,7 +667,7 @@ impl<'s> Scanner<'s> {
 
                 // Check if the parsed character is in range
                 if to_chr >= 256 {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &octal_cursor,
                         format_args!(
                             "Octal character value is larger than 255 (octal 377), value is {} ({})",
@@ -774,13 +732,13 @@ impl<'s> Scanner<'s> {
 
                 // Check if the parsed char is in range and not a surrogate character
                 if to_chr > 0x10FFFF {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &hex_cursor,
                         format_args!("Unicode codepoint value is greater than U+10FFFF"),
                     );
                     literal_text.push(char::REPLACEMENT_CHARACTER);
                 } else if to_chr >= 0xD800 && to_chr <= 0xDFFF {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &hex_cursor,
                         format_args!(
                             "Surrogate codepoints (paired or unpaired) are not allowed in strings"
@@ -807,7 +765,7 @@ impl<'s> Scanner<'s> {
                 match escaped {
                     'x' | 'u' | 'U' => {
                         // Missing the hex digits
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &bad_escape,
                             format_args!(
                                 "Invalid escape sequence character '{}' (missing hexadecimal digits after the '{}')",
@@ -817,7 +775,7 @@ impl<'s> Scanner<'s> {
                     }
                     _ => {
                         // Bog-standard error report
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &bad_escape,
                             format_args!(
                                 "Invalid escape sequence character '{}'",
@@ -861,7 +819,7 @@ impl<'s> Scanner<'s> {
                 bad_escape.column += 1;
                 bad_escape.width = 2;
 
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &bad_escape,
                     format_args!(
                         "Unknown caret notation sequence '{}' (did you mean to escape the caret by typing '\\^'?)",
@@ -1018,6 +976,15 @@ impl<'s> Scanner<'s> {
     }
 }
 
+impl<'s> std::iter::Iterator for Scanner<'s> {
+    type Item = Token<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.cursor.step();
+        self.scan_token()
+    }
+}
+
 /// Checks if the given `chr` is a valid identifier character
 fn is_ident_char(chr: char) -> bool {
     chr.is_alphabetic() || chr == '_'
@@ -1053,6 +1020,16 @@ fn try_parse_int(digits: &str, base: u32) -> Result<u64, IntErrKind> {
 mod test {
     use super::*;
 
+    fn make_scanner(
+        source: &str,
+    ) -> (
+        impl std::iter::Iterator<Item = Token<'_>> + '_,
+        Rc<RefCell<CompileContext>>,
+    ) {
+        let context = Rc::new(RefCell::new(CompileContext::new()));
+        (Scanner::scan_source(source, context.clone()), context)
+    }
+
     #[test]
     fn test_invalid_chars() {
         // Invalid chars (outside of strings) in the current format:
@@ -1060,19 +1037,26 @@ mod test {
         // '[' ']' '{' '}' '!' '$' '?' '`' '\\'
         // Any non-ascii character (for now)
         for c in r#"[]{}!$?`\🧑‍🔬"#.chars() {
-            let s = c.to_string();
-            let mut scanner = Scanner::new(&s);
+            let mut s = c.to_string();
+            s.push('a');
 
-            assert!(!scanner.scan_tokens(), "'{}' passed as valid", c);
+            let (mut scanner, context) = make_scanner(&s);
+
             assert_eq!(
-                scanner.tokens[1].location.column, 2,
-                "Column not advanced over '{}'",
+                scanner.next().unwrap().token_type,
+                TokenType::Error,
+                "No token produced for '{}'",
                 c
             );
             assert_eq!(
-                scanner.tokens[0].token_type,
-                TokenType::Error,
-                "No token produced for '{}'",
+                scanner.next().unwrap().location.column,
+                2,
+                "Column not advanced over '{}'",
+                c
+            );
+            assert!(
+                context.borrow().reporter.has_error(),
+                "Error not reported for {}",
                 c
             );
         }
@@ -1081,176 +1065,212 @@ mod test {
     #[test]
     fn test_identifier() {
         // Valid ident
-        let mut scanner = Scanner::new("_source_text");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);
-        assert_eq!(
-            scanner.tokens[0].location.get_lexeme(scanner.source),
-            "_source_text"
-        );
+        let source = "_source_text";
+        let (scanner, context) = make_scanner(source);
+        let mut scanner = scanner.peekable();
+
+        assert_eq!(scanner.peek().unwrap().token_type, TokenType::Identifier);
+        assert_eq!(scanner.peek().unwrap().location.get_lexeme(source), source);
+        assert!(!context.borrow().reporter.has_error());
 
         // Skip over first digits
-        let mut scanner = Scanner::new("0123_separate");
-        assert!(scanner.scan_tokens());
-        assert_ne!(scanner.tokens[0].token_type, TokenType::Identifier);
+        let source = "0123_separate";
+        let (scanner, context) = make_scanner(source);
+        let mut scanner = scanner.peekable();
+
+        assert_ne!(scanner.peek().unwrap().token_type, TokenType::Identifier);
         assert_ne!(
-            scanner.tokens[0].location.get_lexeme(scanner.source),
+            scanner.peek().unwrap().location.get_lexeme(source),
             "0123_separate"
         );
+        assert!(!context.borrow().reporter.has_error());
 
         // Invalid character, but "ba" should still be parsed
-        let mut scanner = Scanner::new("ba$e");
-        assert!(!scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].location.get_lexeme("ba$e"), "ba");
-        assert_eq!(scanner.tokens[1].location.get_lexeme("ba$e"), "$");
-        assert_eq!(scanner.tokens[2].location.get_lexeme("ba$e"), "e");
+        let source = "ba$e";
+        let (scanner, context) = make_scanner(source);
+        let mut scanner = scanner.peekable();
+
+        assert_eq!(scanner.next().unwrap().location.get_lexeme(source), "ba");
+        assert_eq!(scanner.next().unwrap().location.get_lexeme(source), "$");
+        assert_eq!(scanner.peek().unwrap().location.get_lexeme(source), "e");
         // Column check for invalid characters
-        assert_eq!(scanner.tokens[2].location.column, 4);
+        assert_eq!(scanner.peek().unwrap().location.column, 4);
+        assert!(context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_int_literal_basic() {
         // Basic integer literal
-        let mut scanner = Scanner::new("01234560");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(1234560));
+        let (mut scanner, context) = make_scanner("01234560");
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::NatLiteral(1234560)
+        );
+        assert!(!context.borrow().reporter.has_error());
 
         // Overflow
-        let mut scanner = Scanner::new("99999999999999999999");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("99999999999999999999");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // Digit cutoff
-        let mut scanner = Scanner::new("999a999");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(999));
+        let (mut scanner, context) = make_scanner("999a999");
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::NatLiteral(999)
+        );
+        assert!(!context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_int_literal_radix() {
         // Integer literal with base
-        let mut scanner = Scanner::new("16#EABC");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0xEABC));
+        let (mut scanner, context) = make_scanner("16#EABC");
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::NatLiteral(0xEABC)
+        );
+        assert!(!context.borrow().reporter.has_error());
 
         // Overflow
-        let mut scanner = Scanner::new("10#99999999999999999999");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("10#99999999999999999999");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // No digits
-        let mut scanner = Scanner::new("30#");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("30#");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // Out of range (> 36)
-        let mut scanner = Scanner::new("37#asda");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("37#asda");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // Out of range (= 0)
-        let mut scanner = Scanner::new("0#0000");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("0#0000");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // Out of range (= 1)
-        let mut scanner = Scanner::new("1#0000");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("1#0000");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // Out of range (= overflow)
-        let mut scanner = Scanner::new("18446744073709551616#0000");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("18446744073709551616#0000");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
 
         // Invalid digit
-        let mut scanner = Scanner::new("10#999a999");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("10#999a999");
         // Should still produce a token
-        assert_eq!(scanner.tokens[0].token_type, TokenType::NatLiteral(0));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
+        assert!(context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_real_literal() {
         // NOTE: May need to use Epsilon comparison if this test fails on other machines & operating systems
         // Real Literal
-        let mut scanner = Scanner::new("1.");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(1.0));
-
-        let mut scanner = Scanner::new("100.00");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(100.00));
-
-        let mut scanner = Scanner::new("100.00e10");
-        assert!(scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("1.");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(1.0)
+        );
+        assert!(!context.borrow().reporter.has_error());
+
+        let (mut scanner, context) = make_scanner("100.00");
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(100.00)
+        );
+        assert!(!context.borrow().reporter.has_error());
+
+        let (mut scanner, context) = make_scanner("100.00e10");
+        assert_eq!(
+            scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e10)
         );
+        assert!(!context.borrow().reporter.has_error());
 
-        let mut scanner = Scanner::new("100.00e100");
-        assert!(scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("100.00e100");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e100)
         );
+        assert!(!context.borrow().reporter.has_error());
 
         // Negative and positive exponents are valid
-        let mut scanner = Scanner::new("100.00e-100");
-        assert!(scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("100.00e-100");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e-100)
         );
+        assert!(!context.borrow().reporter.has_error());
 
-        let mut scanner = Scanner::new("100.00e+100");
-        assert!(scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("100.00e+100");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e+100)
         );
+        assert!(!context.borrow().reporter.has_error());
 
-        let mut scanner = Scanner::new("1e100");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(1e100));
+        let (mut scanner, context) = make_scanner("1e100");
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(1e100)
+        );
+        assert!(!context.borrow().reporter.has_error());
 
         // Invalid format
-        let mut scanner = Scanner::new("1e");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("1e");
         // Should still produce a value
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(0f64)
+        );
+        assert!(context.borrow().reporter.has_error());
 
-        let mut scanner = Scanner::new("1e-");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("1e-");
         // Should still produce a value
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(0f64)
+        );
+        assert!(context.borrow().reporter.has_error());
 
-        let mut scanner = Scanner::new("1e--2");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("1e--2");
         // Should still produce a value
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(0f64)
+        );
+        assert!(context.borrow().reporter.has_error());
 
         // Too big
-        let mut scanner = Scanner::new("1e600");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("1e600");
         // Should still produce a value
-        assert_eq!(scanner.tokens[0].token_type, TokenType::RealLiteral(0f64));
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(0f64)
+        );
+        assert!(context.borrow().reporter.has_error());
 
         // Allow for leading dot
-        let mut scanner = Scanner::new(".12345");
-        assert!(scanner.scan_tokens(), "Scanner state: {:#?}", &scanner);
+        let (mut scanner, context) = make_scanner(".12345");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::RealLiteral(0.12345f64)
         );
+        assert!(!context.borrow().reporter.has_error());
 
         // The following tests are from strtod_test.toml
         // See https://github.com/ahrvoje/numerics/blob/master/strtod/strtod_tests.toml
@@ -1279,17 +1299,17 @@ mod test {
         let mut passed_all = true;
 
         for (name, hex_value, text) in conversion_tests.iter() {
-            let mut scanner = Scanner::new(text);
+            let (mut scanner, context) = make_scanner(text);
             let expected_value = f64::from_ne_bytes(hex_value.to_ne_bytes());
 
-            if !scanner.scan_tokens() {
+            if context.borrow().reporter.has_error() {
                 // Did not scan properly, skip
                 eprintln!("Failed conversion test {}", name);
                 passed_all = false;
                 continue;
             }
 
-            if let TokenType::RealLiteral(scanned_value) = scanner.tokens[0].token_type {
+            if let TokenType::RealLiteral(scanned_value) = scanner.next().unwrap().token_type {
                 if (scanned_value - expected_value).abs() >= f64::EPSILON {
                     // Not in the near range!
                     eprintln!(
@@ -1305,7 +1325,8 @@ mod test {
                 // Wrong type, very bad!
                 panic!(
                     "Did not get correct conversion value for {} (got {:?})",
-                    name, scanner.tokens[0].token_type
+                    name,
+                    scanner.next().unwrap().token_type
                 );
             }
         }
@@ -1316,78 +1337,77 @@ mod test {
     #[test]
     fn test_string_literal() {
         // String literal parsing
-        let mut scanner = Scanner::new("\"abcd💖\"a");
-        assert!(scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("\"abcd💖\"a");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd💖".to_string())
         );
-
         // Validate column advancing
-        assert_eq!(scanner.tokens[1].location.column, 8);
+        assert_eq!(scanner.next().unwrap().location.column, 8);
+        assert!(!context.borrow().reporter.has_error());
 
         // Invalid parsing should make a literal from the successfully parsed character
 
         // Ends at the end of line
-        let mut scanner = Scanner::new("\"abcd\n");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("\"abcd\n");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd".to_string())
         );
+        assert!(context.borrow().reporter.has_error());
 
         // Ends at the end of file
-        let mut scanner = Scanner::new("\"abcd");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("\"abcd");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd".to_string())
         );
+        assert!(context.borrow().reporter.has_error());
 
         // Mismatched delimiter
-        let mut scanner = Scanner::new("\"abcd'");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("\"abcd'");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd\'".to_string())
         );
+        assert!(context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_char_literal() {
         // Char(n) literal parsing
-        let mut scanner = Scanner::new("'abcd'");
-        assert!(scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("'abcd'");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd".to_string())
         );
+        assert!(!context.borrow().reporter.has_error());
 
         // Invalid parsing should make a literal from the successfully parsed characters
 
         // Ends at the end of line
-        let mut scanner = Scanner::new("'abcd\n");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("'abcd\n");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd".to_string())
         );
+        assert!(context.borrow().reporter.has_error());
 
         // Ends at the end of file
-        let mut scanner = Scanner::new("'abcd");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("'abcd");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd".to_string())
         );
+        assert!(context.borrow().reporter.has_error());
 
         // Mismatched delimiter
-        let mut scanner = Scanner::new("'abcd\"");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("'abcd\"");
         assert_eq!(
-            scanner.tokens[0].token_type,
+            scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd\"".to_string())
         );
+        assert!(context.borrow().reporter.has_error());
     }
 
     #[test]
@@ -1445,16 +1465,16 @@ mod test {
         ];
 
         for (test_num, escape_test) in valid_escapes.iter().enumerate() {
-            let mut scanner = Scanner::new(escape_test.0);
+            let (mut scanner, context) = make_scanner(escape_test.0);
+            assert_eq!(
+                scanner.next().unwrap().token_type,
+                TokenType::CharLiteral(escape_test.1.to_string())
+            );
             assert!(
-                scanner.scan_tokens(),
+                !context.borrow().reporter.has_error(),
                 "in test #{} ({:?})",
                 test_num + 1,
                 valid_escapes[test_num]
-            );
-            assert_eq!(
-                scanner.tokens[0].token_type,
-                TokenType::CharLiteral(escape_test.1.to_string())
             );
         }
 
@@ -1465,12 +1485,12 @@ mod test {
         ];
 
         for escape_test in failed_escapes.iter() {
-            let mut scanner = Scanner::new(escape_test);
-            assert!(!scanner.scan_tokens());
+            let (mut scanner, context) = make_scanner(escape_test);
             assert_eq!(
-                scanner.tokens[0].token_type,
+                scanner.next().unwrap().token_type,
                 TokenType::CharLiteral("".to_string())
             );
+            assert!(context.borrow().reporter.has_error());
         }
 
         // Bad escape sequences
@@ -1489,12 +1509,12 @@ mod test {
         ];
 
         for escape_test in failed_escapes.iter() {
-            let mut scanner = Scanner::new(escape_test);
-            assert!(!scanner.scan_tokens());
+            let (mut scanner, context) = make_scanner(escape_test);
             assert_eq!(
-                scanner.tokens[0].token_type,
-                TokenType::CharLiteral('�'.to_string())
+                scanner.next().unwrap().token_type,
+                TokenType::CharLiteral(char::REPLACEMENT_CHARACTER.to_string())
             );
+            assert!(context.borrow().reporter.has_error());
         }
 
         // Incorrect start of escape sequence
@@ -1507,107 +1527,59 @@ mod test {
         ];
 
         for escape_test in incorrect_start.iter() {
-            let mut scanner = Scanner::new(escape_test.0);
-            assert!(!scanner.scan_tokens());
+            let (mut scanner, context) = make_scanner(escape_test.0);
             assert_eq!(
-                scanner.tokens[0].token_type,
+                scanner.next().unwrap().token_type,
                 TokenType::CharLiteral(escape_test.1.to_string())
             );
+            assert!(context.borrow().reporter.has_error());
         }
     }
 
     #[test]
     fn test_block_comment() {
         // Block comments
-        let mut scanner = Scanner::new("/* /* abcd % * / \n\n\r\n */ */ asd");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens.len(), 2);
-        assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);
+        let (mut scanner, context) = make_scanner("/* /* abcd % * / \n\n\r\n */ */ asd");
+        assert!(!context.borrow().reporter.has_error());
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
+        assert_eq!(scanner.next(), None);
 
         // End of file, mismatch
-        let mut scanner = Scanner::new("/* /* abcd */ ");
-        assert!(!scanner.scan_tokens());
+        let (mut scanner, context) = make_scanner("/* /* abcd */ ");
+        let _ = scanner.next();
+        assert!(context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_line_comment() {
         // Line comment
-        let mut scanner = Scanner::new("% abcd asd\n asd");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens.len(), 2);
-        assert_eq!(scanner.tokens[0].token_type, TokenType::Identifier);
+        let (mut scanner, context) = make_scanner("% abcd asd\n asd");
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
+        assert_eq!(scanner.next(), None);
+        assert!(!context.borrow().reporter.has_error());
 
         // End of file
-        let mut scanner = Scanner::new("% abcd asd");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens.len(), 1);
+        let (mut scanner, context) = make_scanner("% abcd asd");
+        assert_eq!(scanner.next(), None);
+        assert_eq!(scanner.next(), None);
+        assert!(!context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_keyword() {
         // Keyword as the corresponding keyword
-        let mut scanner = Scanner::new("and");
-        assert!(scanner.scan_tokens());
-        assert_eq!(scanner.tokens.len(), 2);
-        assert_eq!(scanner.tokens[0].token_type, TokenType::And);
-    }
-
-    #[test]
-    fn test_not_in_stitching() {
-        let mut scanner = Scanner::new("not in ~ in ~in in in not");
-        assert!(scanner.scan_tokens());
-        assert_eq!(
-            scanner
-                .tokens
-                .iter()
-                .map(|tk| &tk.token_type)
-                .collect::<Vec<&TokenType>>(),
-            vec![
-                &TokenType::NotIn,
-                &TokenType::NotIn,
-                &TokenType::NotIn,
-                &TokenType::In,
-                &TokenType::In,
-                &TokenType::Not,
-                &TokenType::Eof,
-            ]
-        );
-    }
-
-    #[test]
-    fn test_not_eq_stitching() {
-        let mut scanner = Scanner::new("not = not= ~ = ~= = = not");
-        assert!(scanner.scan_tokens());
-        assert_eq!(
-            scanner
-                .tokens
-                .iter()
-                .map(|tk| &tk.token_type)
-                .collect::<Vec<&TokenType>>(),
-            vec![
-                &TokenType::NotEqu,
-                &TokenType::NotEqu,
-                &TokenType::NotEqu,
-                &TokenType::NotEqu,
-                &TokenType::Equ,
-                &TokenType::Equ,
-                &TokenType::Not,
-                &TokenType::Eof,
-            ]
-        );
+        let (mut scanner, context) = make_scanner("and");
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::And);
+        assert!(!context.borrow().reporter.has_error());
     }
 
     #[test]
     fn test_aliases() {
-        let mut scanner = Scanner::new("fcn proc");
-        assert!(scanner.scan_tokens());
+        let (scanner, context) = make_scanner("fcn proc");
         assert_eq!(
-            scanner
-                .tokens
-                .iter()
-                .map(|tk| &tk.token_type)
-                .collect::<Vec<&TokenType>>(),
-            vec![&TokenType::Function, &TokenType::Procedure, &TokenType::Eof,]
-        )
+            scanner.map(|tk| tk.token_type).collect::<Vec<TokenType>>(),
+            vec![TokenType::Function, TokenType::Procedure,]
+        );
+        assert!(!context.borrow().reporter.has_error());
     }
 }

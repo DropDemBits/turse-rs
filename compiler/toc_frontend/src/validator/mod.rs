@@ -418,9 +418,11 @@ fn replace_with_folded(expr: &mut Expr, folded_expr: Option<Value>) {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::context::CompileContext;
     use crate::parser::Parser;
     use crate::scanner::Scanner;
     use rand::prelude::*;
+    use std::{cell::RefCell, rc::Rc};
     use toc_ast::block::CodeUnit;
     use toc_ast::types::{PrimitiveType, SequenceSize};
 
@@ -428,16 +430,14 @@ mod test {
     /// Parsing & scanning must complete successfully
     /// Returns true if the AST is valid, and the validated code unit
     fn make_validator(source: &str) -> (bool, CodeUnit) {
-        // Taken from main.rs
         // Build the main unit
         let code_unit = CodeUnit::new(true);
-
-        let mut scanner = Scanner::new(&source);
-        assert!(scanner.scan_tokens(), "Scanner failed to scan the source");
+        let context = Rc::new(RefCell::new(CompileContext::new()));
+        let scanner = Scanner::scan_source(&source, context);
 
         // Ignore the parser status, as the validator needs to handle
         // invalid parser ASTs
-        let mut parser = Parser::new(scanner.tokens, &source, code_unit);
+        let mut parser = Parser::new(scanner, &source, code_unit);
         let successful_parse = parser.parse();
 
         // Take the unit back from the parser
