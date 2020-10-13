@@ -1710,6 +1710,12 @@ type enumeration : enum (a, b, c, d, e, f)
         );
         assert_eq!(parser.parse(), true);
 
+        // Allowed to be used in reference position
+        let mut parser = make_test_parser("int @ (0) := 1");
+        assert_eq!(parser.parse(), true);
+        let mut parser = make_test_parser("bambam @ (0) := 1");
+        assert_eq!(parser.parse(), true);
+
         // Indirect expressions must be produced in error case
         let mut parser = make_test_parser(
             "

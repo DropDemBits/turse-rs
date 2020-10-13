@@ -527,6 +527,7 @@ fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
             // Only assignable if the expression is a deref, and the eval type isn't an error
             matches!(op.0, UnaryOp::Deref) && !types::is_error(eval_type)
         }
-        _ => false, // Not one of the above, likely unable to assign to
+        Expr::Indirect { .. } => true, // Can always assign to an indirect expression
+        _ => false,                    // Not one of the above, likely unable to assign to
     }
 }

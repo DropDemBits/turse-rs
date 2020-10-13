@@ -1961,6 +1961,10 @@ mod test {
 
         // Range types with integer base types are allowed
         assert_eq!(true, run_validator("var at : 1 .. 3\nvar ka := int @ (at)"));
+
+        // Allowed to be used in reference position
+        assert_eq!(true, run_validator("int @ (0) := 1"));
+        assert_eq!(true, run_validator("type bambam : int\nbambam @ (0) := 1"));
     }
 
     #[test]
