@@ -22,39 +22,39 @@ pub fn compile_run_file(path: &str) {
         }
     };
 
-    let unit = compile_file(path, &file_contents);
-    resolve_unit(unit);
+    let (unit, context) = compile_file(path, &file_contents);
+    resolve_unit(unit, context);
 }
 
 /// Compiles a single file into a single code unit
-pub fn compile_file(_path: &str, contents: &str) -> CodeUnit {
+pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<CompileContext>>) {
     // Build the main unit
     let code_unit = CodeUnit::new(true);
     let context = Rc::new(RefCell::new(CompileContext::new()));
 
-    let scanner = Scanner::scan_source(contents, context);
-    let mut parser = Parser::new(scanner, contents, code_unit);
+    let scanner = Scanner::scan_source(contents, context.clone());
+    let mut parser = Parser::new(scanner, contents, code_unit, context.clone());
 
     parser.parse();
 
     // Take the unit back from the parser
-    parser.take_unit()
+    (parser.take_unit(), context)
 }
 
 /// Resolves the unit into the corresponding IR graph
-pub fn resolve_unit(mut code_unit: CodeUnit) {
+pub fn resolve_unit(mut code_unit: CodeUnit, context: Rc<RefCell<CompileContext>>) {
     let type_table = code_unit.take_types();
 
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
     // TODO: Provide external type resolution stage
 
     // Validate AST
-    let mut validator = Validator::new(code_unit.root_block(), type_table);
+    let mut validator = Validator::new(code_unit.root_block(), type_table, context.clone());
     code_unit.visit_ast_mut(&mut validator);
     code_unit.put_types(validator.take_types());
 
     // Validator must run successfully
-    if validator.reporter.has_error() {
+    if context.borrow().reporter.has_error() {
         return;
     }
 

@@ -43,7 +43,7 @@ impl Validator {
             is_compile_eval = expr.is_compile_eval();
 
             if super::is_type_reference(expr) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     expr.get_span(),
                     format_args!("A type reference cannot be used as an initializer value"),
                 );
@@ -79,7 +79,7 @@ impl Validator {
                 } else if *size == Some(0) {
                     // Zero sized ranges aren't allowed in variable/constant range types
                     let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &range_span,
                         format_args!("Range bounds creates a zero-sized range"),
                     );
@@ -124,7 +124,7 @@ impl Validator {
                 // Validate that the types are assignable
                 if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
                     // Value to assign is the wrong type, just report the error
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &idents.last().as_ref().unwrap().location,
                         format_args!("Initialization value is the wrong type"),
                     );
@@ -160,16 +160,16 @@ impl Validator {
                                     // No ranges on the array, error reported by the parser
                                     None
                                 } else if *is_flexible {
-                                    self.reporter.report_error(init, format_args!("'init' initializers are not allowed for flexible arrays"));
+                                    self.context.borrow_mut().reporter.report_error(init, format_args!("'init' initializers are not allowed for flexible arrays"));
                                     None
                                 } else if elem_count == 0 && !is_init_sized {
                                     // We know it to be dynamic, as one of the ranges isn't a compile-time expression and it isn't a flexible array
-                                    self.reporter.report_error(init, format_args!("'init' initializers are not allowed for dynamic arrays"));
+                                    self.context.borrow_mut().reporter.report_error(init, format_args!("'init' initializers are not allowed for dynamic arrays"));
                                     None
                                 } else if did_overflow {
                                     // Array has more elements than can be handled
                                     // Definitely an error (stop yourself, for your own sake)
-                                    self.reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
+                                    self.context.borrow_mut().reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
                                     None
                                 } else if *is_init_sized {
                                     // Match type count with init size
@@ -215,7 +215,7 @@ impl Validator {
                             {
                                 // Wrong types (skipping over empty expressions as those are produced by the parser)
                                 // ???: Report field name for records?
-                                self.reporter.report_error(
+                                self.context.borrow_mut().reporter.report_error(
                                     init_expr.get_span(),
                                     format_args!("Initializer value evaluates to the wrong type"),
                                 );
@@ -236,7 +236,7 @@ impl Validator {
                                     init
                                 };
 
-                                self.reporter.report_error(
+                                self.context.borrow_mut().reporter.report_error(
                                     report_at,
                                     format_args!("Too many initializer values"),
                                 );
@@ -253,7 +253,7 @@ impl Validator {
 
                                 // ???: Report field name for records?
                                 // ???: Report missing count for arrays?
-                                self.reporter.report_error(
+                                self.context.borrow_mut().reporter.report_error(
                                     report_at,
                                     format_args!("Too few initializer values"),
                                 );
@@ -308,7 +308,7 @@ impl Validator {
                 .decl_ident_with(resolved_ident, const_val.clone())
             {
                 // Report the error
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &ident.location,
                     format_args!("'{}' has already been declared", ident.name),
                 );
@@ -341,7 +341,7 @@ impl Validator {
                 self.type_table.type_from_ref(&ident.type_spec)
             {
                 // Not resolved in the current unit
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &ident.location,
                     format_args!("'{}' is not resolved in the current unit", ident.name),
                 );
@@ -354,7 +354,7 @@ impl Validator {
                 .unwrap()
                 .decl_ident(ident.clone())
             {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &ident.location,
                     format_args!("'{}' has already been declared", ident.name),
                 );
@@ -410,7 +410,7 @@ impl Validator {
         // Check the reference expression
         if !can_assign_to_ref_expr(&var_ref, &self.type_table) {
             // Not a var ref
-            self.reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
+            self.context.borrow_mut().reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
             return;
         }
 
@@ -424,14 +424,14 @@ impl Validator {
                 || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
             {
                 // Value to assign is the wrong type
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &value.get_span(),
                     format_args!("Assignment value is the wrong type"),
                 );
             }
         } else if !types::is_assignable_to(left_type, right_type, &self.type_table) {
             // Value to assign is the wrong type
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &value.get_span(),
                 format_args!("Assignment value is the wrong type"),
             );

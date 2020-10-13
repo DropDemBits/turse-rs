@@ -4,6 +4,7 @@ mod expr;
 mod stmt;
 mod types;
 
+use crate::context::CompileContext;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
 use toc_ast::ast::{BinaryOp, Identifier, UnaryOp};
@@ -11,7 +12,6 @@ use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
 use toc_ast::scope::IdentError;
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
-use toc_core::StatusReporter;
 
 use std::cell::RefCell;
 use std::fmt::Arguments;
@@ -23,8 +23,8 @@ const MAX_NESTING_DEPTH: usize = 256;
 /// Main parser
 #[derive(Debug)]
 pub struct Parser<'s> {
-    /// Status reporter
-    reporter: StatusReporter,
+    /// Compile Context
+    context: Rc<RefCell<CompileContext>>,
     /// File source used for getting lexemes for reporting
     source: &'s str,
     /// Scanner for scanning tokens
@@ -57,9 +57,14 @@ enum ParsingStatus {
 }
 
 impl<'s> Parser<'s> {
-    pub fn new(mut scanner: Scanner<'s>, source: &'s str, unit: CodeUnit) -> Self {
+    pub fn new(
+        mut scanner: Scanner<'s>,
+        source: &'s str,
+        unit: CodeUnit,
+        context: Rc<RefCell<CompileContext>>,
+    ) -> Self {
         Self {
-            reporter: StatusReporter::new(),
+            context,
             source,
             previous: Token::new(TokenType::Error, Location::new()),
             current: scanner
@@ -94,7 +99,7 @@ impl<'s> Parser<'s> {
         // Transfer statements over to the CodeUnit
         self.unit.as_mut().unwrap().stmts_mut().append(&mut stmts);
 
-        !self.reporter.has_error()
+        !self.context.borrow().reporter.has_error()
     }
 
     /// Takes the unit from the parser
@@ -180,7 +185,9 @@ impl<'s> Parser<'s> {
         if self.current().token_type == expected_type {
             Ok(self.next_token())
         } else {
-            self.reporter
+            self.context
+                .borrow_mut()
+                .reporter
                 .report_error(&self.current().location, message);
             Err(ParsingStatus::Error)
         }
@@ -200,10 +207,15 @@ impl<'s> Parser<'s> {
     }
 
     fn warn_equ_as_assign(&self, at: Location) {
-        self.reporter
+        self.context
+            .borrow_mut()
+            .reporter
             .report_warning(&at, format_args!("'=' found, assumed it to be ':='"));
     }
 
+    /// Gets the corresponding lexeme for the given Token.
+    ///
+    /// If the given token is of `TokenType::Eof`, the given lexeme is `"<end of file>"`.
     fn get_token_lexeme(&self, token: &Token) -> &str {
         let token_content = token.location.get_lexeme(self.source);
 
@@ -413,9 +425,9 @@ mod test {
 
     fn make_test_parser(source: &str) -> Parser {
         let context = Rc::new(RefCell::new(CompileContext::new()));
-        let scanner = Scanner::scan_source(source, context);
+        let scanner = Scanner::scan_source(source, context.clone());
 
-        Parser::new(scanner, source, CodeUnit::new(true))
+        Parser::new(scanner, source, CodeUnit::new(true), context)
     }
 
     // Get the latest version of the identifier
@@ -588,8 +600,7 @@ mod test {
         a = -6
         ",
         );
-        parser.parse();
-        assert!(!parser.reporter.has_error());
+        assert!(parser.parse());
 
         // Invaild: Dropped value
         let mut parser = make_test_parser(
@@ -599,8 +610,7 @@ mod test {
         a := 
         ",
         );
-        parser.parse();
-        assert!(parser.reporter.has_error());
+        assert!(!parser.parse());
 
         let mut parser = make_test_parser(
             "
@@ -609,8 +619,7 @@ mod test {
         a = 
         ",
         );
-        parser.parse();
-        assert!(parser.reporter.has_error());
+        assert!(!parser.parse());
     }
 
     #[test]
@@ -642,8 +651,7 @@ mod test {
         a = 2
         ",
         );
-        parser.parse();
-        assert!(!parser.reporter.has_error());
+        assert!(parser.parse());
         let expected_ops = [
             None,
             Some(BinaryOp::Add),
@@ -688,8 +696,7 @@ mod test {
         % xor= only valid for integers (int, nat, long, ulong) & sets
         ",
         );
-        parser.parse();
-        assert!(!parser.reporter.has_error());
+        assert!(parser.parse());
         let expected_ops = [
             Some(BinaryOp::Imply),
             Some(BinaryOp::And),

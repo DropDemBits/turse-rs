@@ -354,8 +354,8 @@ mod test {
         let code_unit = CodeUnit::new(true);
         let context = Rc::new(RefCell::new(CompileContext::new()));
 
-        let scanner = Scanner::scan_source(source, context);
-        let mut parser = Parser::new(scanner, &source, code_unit);
+        let scanner = Scanner::scan_source(source, context.clone());
+        let mut parser = Parser::new(scanner, &source, code_unit, context.clone());
         assert!(parser.parse(), "Parser failed to parse the source");
 
         // Take the unit back from the parser
@@ -363,12 +363,12 @@ mod test {
         let type_table = code_unit.take_types();
 
         // Validate AST
-        let mut validator = Validator::new(code_unit.root_block(), type_table);
+        let mut validator = Validator::new(code_unit.root_block(), type_table, context.clone());
         code_unit.visit_ast_mut(&mut validator);
         code_unit.put_types(validator.take_types());
 
         assert!(
-            !validator.reporter.has_error(),
+            !context.borrow().reporter.has_error(),
             "Validator failed to validate the AST"
         );
 

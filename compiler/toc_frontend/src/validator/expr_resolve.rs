@@ -19,12 +19,12 @@ impl Validator {
             super::replace_with_folded(expr, value);
 
             if super::is_type_reference(expr) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     expr.get_span(),
                     format_args!("Reference does not refer to a variable or constant"),
                 );
             } else if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     expr.get_span(),
                     format_args!("Expression is not a compile-time expression"),
                 );
@@ -51,7 +51,7 @@ impl Validator {
         // `reference` must be a type reference
         if let Some(reference) = reference {
             if !super::is_type_reference(reference) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     reference.get_span(),
                     format_args!("Reference does not refer to a type"),
                 );
@@ -73,7 +73,7 @@ impl Validator {
 
         // `addr` must evaluate to a `nat` or `int` type, not evaluating to a type reference
         if super::is_type_reference(addr) {
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 addr.get_span(),
                 format_args!("Indirection address reference is not a 'var' or 'const' reference"),
             );
@@ -85,7 +85,7 @@ impl Validator {
                 &dealiased_addr,
                 &self.type_table,
             ) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     addr.get_span(),
                     format_args!(
                         "Indirection address expression does not evaluate to an integer type",
@@ -124,13 +124,13 @@ impl Validator {
             *is_compile_eval = false;
 
             if super::is_type_reference(left) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     left.get_span(),
                     format_args!("Operand is not a variable or constant reference"),
                 );
             }
             if super::is_type_reference(right) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     right.get_span(),
                     format_args!("Operand is not a variable or constant reference"),
                 );
@@ -192,28 +192,32 @@ impl Validator {
                             // Report the error message!
                             match msg {
                                 ValueApplyError::InvalidOperand => match op {
-                                    BinaryOp::Shl | BinaryOp::Shr => self.reporter.report_error(
-                                        right.get_span(),
-                                        format_args!(
+                                    BinaryOp::Shl | BinaryOp::Shr => {
+                                        self.context.borrow_mut().reporter.report_error(
+                                            right.get_span(),
+                                            format_args!(
                                             "Negative shift amount in compile-time '{}' expression",
                                             op
                                         ),
-                                    ),
-                                    _ => self.reporter.report_error(
+                                        )
+                                    }
+                                    _ => self.context.borrow_mut().reporter.report_error(
                                         right.get_span(),
                                         format_args!("Invalid operand in compile-time expression"),
                                     ),
                                 },
                                 ValueApplyError::DivisionByZero => {
                                     // Recoverable
-                                    self.reporter.report_warning(
+                                    self.context.borrow_mut().reporter.report_warning(
                                         &loc,
                                         format_args!("Compile-time '{}' by zero", op),
                                     );
                                 }
-                                other => {
-                                    self.reporter.report_error(&loc, format_args!("{}", other))
-                                }
+                                other => self
+                                    .context
+                                    .borrow_mut()
+                                    .reporter
+                                    .report_error(&loc, format_args!("{}", other)),
                             }
 
                             // Remove the compile-time evaluability status
@@ -232,38 +236,38 @@ impl Validator {
 
                 match op {
                     BinaryOp::Add =>
-                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
+                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
                     BinaryOp::Sub | BinaryOp::Mul =>
-                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
+                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
                     BinaryOp::RealDiv | BinaryOp::Div | BinaryOp::Mod | BinaryOp::Rem | BinaryOp::Exp =>
-                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
+                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
                     BinaryOp::And | BinaryOp::Or | BinaryOp::Xor =>
-                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
+                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
                     BinaryOp::Shl | BinaryOp::Shr =>
-                        self.reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
+                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
                     BinaryOp::Less | BinaryOp::LessEq | BinaryOp::Greater | BinaryOp::GreaterEq => {
                         if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-                            self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
+                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
                         } else {
-                            self.reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
+                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
                         }
                     },
                     BinaryOp::NotEqual | BinaryOp::Equal => {
                         if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-                            self.reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
+                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
                         } else {
-                            self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
+                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
                         }
                     },
                     BinaryOp::In | BinaryOp::NotIn => {
                         if !types::is_set(right_type, &self.type_table) {
-                            self.reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
+                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
                         } else {
-                            self.reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
+                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
                         }
                     },
                     BinaryOp::Imply =>
-                    self.reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
+                    self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
                     _ => unreachable!(),
                 }
 
@@ -296,7 +300,7 @@ impl Validator {
             // Operand is a type reference, can't perform operations on it
             *eval_type = TypeRef::TypeError;
             *is_compile_eval = false;
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 right.get_span(),
                 format_args!("Operand is not a variable or constant reference"),
             );
@@ -342,11 +346,17 @@ impl Validator {
 
                     return if let Err(msg) = result {
                         match msg {
-                            ValueApplyError::Overflow => self.reporter.report_error(
-                                &right.get_span(),
-                                format_args!("Overflow in compile-time expression"),
-                            ),
-                            other => self.reporter.report_error(&loc, format_args!("{}", other)),
+                            ValueApplyError::Overflow => {
+                                self.context.borrow_mut().reporter.report_error(
+                                    &right.get_span(),
+                                    format_args!("Overflow in compile-time expression"),
+                                )
+                            }
+                            other => self
+                                .context
+                                .borrow_mut()
+                                .reporter
+                                .report_error(&loc, format_args!("{}", other)),
                         }
 
                         // Revoke compile-time evaluability status
@@ -365,11 +375,11 @@ impl Validator {
                 *is_compile_eval = false;
 
                 match op {
-                    UnaryOp::Not => self.reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
-                    UnaryOp::Identity => self.reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
-                    UnaryOp::Negate => self.reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
-                    UnaryOp::Deref => self.reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
-                    UnaryOp::NatCheat => self.reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
+                    UnaryOp::Not => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
+                    UnaryOp::Identity => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
+                    UnaryOp::Negate => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
+                    UnaryOp::Deref => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
+                    UnaryOp::NatCheat => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
                 }
 
                 // Produce no value
@@ -467,7 +477,7 @@ impl Validator {
                 Some(Type::Pointer { to: _, .. }) => {
                     // Pointer specialization
                     if args.len() != 1 {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             paren_at,
                             format_args!(
                                 "Pointer specialization requires only 1 argument to be present"
@@ -476,7 +486,7 @@ impl Validator {
                     }
 
                     // TODO: Fill out for both collection & class types
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &left.get_span(),
                         format_args!("Pointer specialization expressions are not supported yet"),
                     );
@@ -493,7 +503,7 @@ impl Validator {
             // Call expression is a CharSeq subscripting
             // - Must be 1 param, param type should be an expr, a subscript, or a subscript pair
             // TODO: Fill out after parsing subscript and subscript pairs
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &left.get_span(),
                 format_args!("String subscript expressions are not supported yet"),
             );
@@ -534,7 +544,7 @@ impl Validator {
                         TypeRef::TypeError
                     } else {
                         // Procedures not allowed in this position
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             left.get_span(),
                             format_args!(
                                 "Reference is to a procedure and cannot be used in expressions"
@@ -560,12 +570,12 @@ impl Validator {
 
     fn report_uncallable_expr(&self, left: &Expr) {
         if let Some(ident) = super::get_reference_ident(left) {
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &ident.location,
                 format_args!("'{}' cannot be called or have subscripts", ident.name),
             );
         } else if !matches!(*left, Expr::Empty) {
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 left.get_span(),
                 format_args!("Expression cannot be called or have subscripts",),
             );
@@ -577,7 +587,7 @@ impl Validator {
         // All params must be assignable to range type
         // TODO: Handle `all` token
         if args.is_empty() {
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &at_paren,
                 format_args!("Set constructors require at least 1 parameter"),
             );
@@ -587,7 +597,7 @@ impl Validator {
             let element_dealiased = types::dealias_ref(&element.get_eval_type(), &self.type_table);
 
             if !types::is_assignable_to(index_type, &element_dealiased, &self.type_table) {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     element.get_span(),
                     format_args!("Element parameter is not compatible with set element type"),
                 );
@@ -610,7 +620,7 @@ impl Validator {
 
                 if super::is_type_reference(arg) {
                     // Is a type ref, error!
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         arg.get_span(),
                         format_args!(
                             "Cannot use a type reference as a function or procedure parameter"
@@ -621,7 +631,7 @@ impl Validator {
                         // Parameter must be var to be passed as a ref
                         if let Some(ident) = super::get_reference_ident(arg) {
                             if ident.is_const {
-                                self.reporter.report_error(
+                                self.context.borrow_mut().reporter.report_error(
                                     arg.get_span(),
                                     format_args!(
                                         "Cannot pass a reference parameter to a constant reference"
@@ -630,7 +640,7 @@ impl Validator {
                             }
                         } else if !matches!(arg, Expr::Empty) {
                             // Not a var!
-                            self.reporter.report_error(
+                            self.context.borrow_mut().reporter.report_error(
                                 arg.get_span(),
                                 format_args!("Cannot pass a reference parameter to an expression"),
                             );
@@ -642,7 +652,7 @@ impl Validator {
                         && !matches!(arg, Expr::Empty)
                     {
                         // Report error if the expr is not an empty expr and the type isn't coerced
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             arg.get_span(),
                             format_args!("Argument is the wrong type"),
                         );
@@ -662,7 +672,7 @@ impl Validator {
         match arg_count.cmp(&param_type_count) {
             Ordering::Less => {
                 // Not enough arguments
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &at_paren,
                     format_args!(
                         "Missing {} arguments for call expression",
@@ -672,7 +682,7 @@ impl Validator {
             }
             Ordering::Greater => {
                 // Too many arguments
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &at_paren,
                     format_args!(
                         "{} extra arguments for call expression",
@@ -692,7 +702,7 @@ impl Validator {
             if !types::is_assignable_to(dim_type, &arg.get_eval_type(), &self.type_table)
                 && !matches!(arg, Expr::Empty)
             {
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     arg.get_span(),
                     format_args!("Expression evaluates to the wrong type"),
                 );
@@ -707,7 +717,7 @@ impl Validator {
         match arg_count.cmp(&dim_count) {
             Ordering::Less => {
                 // Not enough arguments
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &at_paren,
                     format_args!(
                         "Missing {} dimensions for array subscript",
@@ -717,7 +727,7 @@ impl Validator {
             }
             Ordering::Greater => {
                 // Too many arguments
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &at_paren,
                     format_args!(
                         "{} extra dimensions for array subscript",
@@ -811,7 +821,7 @@ impl Validator {
                         *eval_type = TypeRef::TypeError;
 
                         // Grabbing the identifier as the enum type name is a best-effort guess
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &field.location,
                             format_args!(
                                 "'{}' is not a field of the enum type '{}'",
@@ -826,7 +836,7 @@ impl Validator {
                 Type::Pointer { .. } => {
                     // Not a compound type, special report (for using ->)
                     *eval_type = TypeRef::TypeError;
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &left.get_span(),
                         format_args!(
                             "Left side of '.' is not a compound type (did you mean to use '->')"
@@ -836,7 +846,7 @@ impl Validator {
                 _ => {
                     // Not a compound type, produces a type error
                     *eval_type = TypeRef::TypeError;
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &left.get_span(),
                         format_args!("Left side of '.' is not a compound type"),
                     );
@@ -845,7 +855,7 @@ impl Validator {
         } else {
             // Not a compound type, produces a type error
             *eval_type = TypeRef::TypeError;
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &left.get_span(),
                 format_args!("Left side of '.' is not a compound type"),
             );
@@ -865,7 +875,7 @@ impl Validator {
 
         // Arrow expressions are not validated yet
         // TODO: Validate arrow expressions (blocking on compound types)
-        self.reporter.report_error(
+        self.context.borrow_mut().reporter.report_error(
             &field.location,
             format_args!("Arrow expressions are not validated yet"),
         );
@@ -887,7 +897,7 @@ impl Validator {
         if !is_declared {
             // Identifier has not been declared at all before this point, report it
             // Only reported once everytime something is not declared
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 &ident.location,
                 format_args!("'{}' has not been declared yet", ident.name),
             );

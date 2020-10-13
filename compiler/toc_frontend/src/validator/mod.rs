@@ -13,15 +13,16 @@ mod expr_resolve;
 mod stmt_resolve;
 mod type_resolve;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::rc::{Rc, Weak};
+use crate::context::CompileContext;
 use toc_ast::ast::{Expr, Identifier, Stmt, VisitorMut};
 use toc_ast::block::CodeBlock;
 use toc_ast::types::{self, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
-use toc_core::StatusReporter;
+
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::rc::{Rc, Weak};
 
 // An identifier info entry associated with one instance of an identifier
 #[derive(Debug)]
@@ -174,8 +175,8 @@ enum ResolveContext {
 
 /// Validator Instance
 pub struct Validator {
-    /// Status reporter for the type validator
-    pub reporter: StatusReporter,
+    /// Compile Context
+    context: Rc<RefCell<CompileContext>>,
     /// Type table to use
     type_table: TypeTable,
     /// Actively parsed scope
@@ -187,9 +188,13 @@ pub struct Validator {
 type ResolveResult = Option<TypeRef>;
 
 impl Validator {
-    pub fn new(root_block: &Rc<RefCell<CodeBlock>>, type_table: TypeTable) -> Self {
+    pub fn new(
+        root_block: &Rc<RefCell<CodeBlock>>,
+        type_table: TypeTable,
+        context: Rc<RefCell<CompileContext>>,
+    ) -> Self {
         Self {
-            reporter: StatusReporter::new(),
+            context,
             type_table,
             active_block: Some(Rc::downgrade(root_block)),
             scope_infos: vec![ScopeInfo::new()],
@@ -265,7 +270,7 @@ impl Validator {
                 if ident_info.ident.is_declared && ident_info.uses == 0 {
                     // No uses, warn
                     let ident = &ident_info.ident;
-                    self.reporter.report_warning(
+                    self.context.borrow_mut().reporter.report_warning(
                         &ident.location,
                         format_args!("This declaration of '{}' is never used", ident.name),
                     );
@@ -433,11 +438,11 @@ mod test {
         // Build the main unit
         let code_unit = CodeUnit::new(true);
         let context = Rc::new(RefCell::new(CompileContext::new()));
-        let scanner = Scanner::scan_source(&source, context);
+        let scanner = Scanner::scan_source(&source, context.clone());
 
         // Ignore the parser status, as the validator needs to handle
         // invalid parser ASTs
-        let mut parser = Parser::new(scanner, &source, code_unit);
+        let mut parser = Parser::new(scanner, &source, code_unit, context);
         let successful_parse = parser.parse();
 
         // Take the unit back from the parser
@@ -445,11 +450,18 @@ mod test {
         let type_table = code_unit.take_types();
 
         // Validate AST
-        let mut validator = Validator::new(code_unit.root_block(), type_table);
+        let validator_context = Rc::new(RefCell::new(CompileContext::new()));
+        let mut validator = Validator::new(
+            code_unit.root_block(),
+            type_table,
+            validator_context.clone(),
+        );
         code_unit.visit_ast_mut(&mut validator);
         code_unit.put_types(validator.take_types());
 
-        let successful_validate = !validator.reporter.has_error();
+        // Ok for now until we start doing funky stuff with contexts
+        // TODO: Use a unified context when using file-based test harness
+        let successful_validate = !validator_context.borrow().reporter.has_error();
 
         (successful_validate && successful_parse, code_unit)
     }

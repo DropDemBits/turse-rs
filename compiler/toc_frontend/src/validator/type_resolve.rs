@@ -36,7 +36,7 @@ impl Validator {
                                 Literal::Int(len) => {
                                     if *len < 0 {
                                         // Negative length is invalid
-                                        self.reporter.report_error(
+                                        self.context.borrow_mut().reporter.report_error(
                                             expr.get_span(),
                                             format_args!(
                                                 "Compile-time string length specifier is negative"
@@ -49,7 +49,7 @@ impl Validator {
                                 }
                                 _ => {
                                     // Wrong length type
-                                    self.reporter.report_error(
+                                    self.context.borrow_mut().reporter.report_error(
                                         expr.get_span(),
                                         format_args!("Wrong type for a string length specifier"),
                                     );
@@ -58,7 +58,7 @@ impl Validator {
                             }
                         } else {
                             // Not a compile-time expression!
-                            self.reporter.report_error(
+                            self.context.borrow_mut().reporter.report_error(
                                 &expr.get_span(),
                                 format_args!(
                                     "String length specifier is not a compile-time expression"
@@ -71,7 +71,7 @@ impl Validator {
                             // Check if the size is within the correct range
                             if size == 0 {
                                 // Is zero, not directly specified by star
-                                self.reporter.report_error(
+                                self.context.borrow_mut().reporter.report_error(
                                     &expr.get_span(),
                                     format_args!("Invalid maximum string length of '0'"),
                                 );
@@ -79,7 +79,7 @@ impl Validator {
                                 types::get_char_seq_base_type(base_ref)
                             } else if size as usize >= types::MAX_STRING_SIZE {
                                 // Greater than max length, never valid
-                                self.reporter.report_error(
+                                self.context.borrow_mut().reporter.report_error(
                                     &expr.get_span(),
                                     format_args!(
                                         "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
@@ -205,7 +205,7 @@ impl Validator {
 
         if !expr.is_compile_eval() || eval.is_none() {
             // Is not a compile-time expression, give back a type error
-            self.reporter.report_error(
+            self.context.borrow_mut().reporter.report_error(
                 expr.get_span(),
                 format_args!("Expression is not a compile-time expression"),
             );
@@ -250,7 +250,7 @@ impl Validator {
                         if end.is_compile_eval() && *size == Some(0) {
                             // Zero sized ranges aren't allowed in compile-time array types
                             let range_span = start.get_span().span_to(end.get_span());
-                            self.reporter.report_error(
+                            self.context.borrow_mut().reporter.report_error(
                                 &range_span,
                                 format_args!("Range bounds creates a zero-sized range"),
                             );
@@ -324,7 +324,7 @@ impl Validator {
             // Otherwise, error is already reported at the end bound's location
             if !matches!(**start, Expr::Empty) {
                 // Span over the start bound
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     start.get_span(),
                     format_args!("Start bound must be a compile-time expression"),
                 );
@@ -348,7 +348,7 @@ impl Validator {
                     // Otherwise, error is already reported at the end bound's location
                     if !matches!(**end, Expr::Empty) {
                         // Span over the end bound
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             end.get_span(),
                             format_args!("End bound must be a compile-time expression"),
                         );
@@ -379,7 +379,7 @@ impl Validator {
 
         if !types::is_equivalent_to(&start_type, &end_type, &self.type_table) {
             // Range eval types do not match
-            self.reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
+            self.context.borrow_mut().reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
 
             return Some(TypeRef::TypeError);
         } else if (types::is_char_seq_type(&start_type)
@@ -388,7 +388,7 @@ impl Validator {
                 && types::get_sized_len(&end_type).unwrap_or(0) != 1)
         {
             // Range eval types are the wrong types
-            self.reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
+            self.context.borrow_mut().reporter.report_error(&range_span, format_args!("Range bounds must be both integers, characters, booleans, or elements from the same enumeration"));
 
             return Some(TypeRef::TypeError);
         }
@@ -401,7 +401,7 @@ impl Validator {
                 match size_err {
                     RangeSizeError::Overflow => {
                         // Cap the size to usize max
-                        self.reporter.report_warning(
+                        self.context.borrow_mut().reporter.report_warning(
                             &range_span,
                             format_args!("Range bound size exceeds the maximum representable size"),
                         );
@@ -409,7 +409,7 @@ impl Validator {
                         *size = Some(usize::MAX);
                     }
                     RangeSizeError::NegativeSize => {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &range_span,
                             format_args!("Range bounds creates a negative-sized range"),
                         );
@@ -417,7 +417,7 @@ impl Validator {
                     }
                     RangeSizeError::WrongTypes => {
                         // Wrong types, handle here!
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &range_span,
                             format_args!("Range bounds must both be integers, charachers, booleans, or elements from the same enumeration"),
                         );
@@ -472,7 +472,7 @@ impl Validator {
                     let member_ident = super::get_reference_ident(left);
 
                     if let Some(ident) = member_ident {
-                        self.reporter.report_error(
+                        self.context.borrow_mut().reporter.report_error(
                             &field.location,
                             format_args!(
                                 "Field '{}' of '{}' does not refer to a type",
@@ -489,7 +489,7 @@ impl Validator {
             }
             Expr::Reference { ident, .. } => {
                 if !ident.is_typedef {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &ident.location,
                         format_args!("'{}' does not refer to a type", ident.name),
                     );
@@ -509,14 +509,14 @@ impl Validator {
         if let Some(Type::Forward { is_resolved }) = self.type_table.type_from_ref(&type_ref) {
             if !*is_resolved {
                 // The type is not resolved at all, replace with TypeError
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &reference_locate,
                     format_args!("Type reference is not resolved in the current unit"),
                 );
                 return Some(TypeRef::TypeError);
             } else if matches!(resolving_context, ResolveContext::CompileTime(false)) {
                 // The type ref is required to be resolved at this point, replace with TypeError
-                self.reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &reference_locate,
                     format_args!("Type reference is required to be resolved at this point"),
                 );
@@ -549,7 +549,7 @@ impl Validator {
                 if let Some(Type::Reference { expr }) =
                     self.type_table.type_from_ref(&old_index_ref)
                 {
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         expr.get_span(),
                         format_args!("Set index is not a range, char, boolean, or enumerated type"),
                     );
@@ -567,7 +567,7 @@ impl Validator {
                 if *size == Some(0) {
                     // Zero sized ranges aren't allowed in set types
                     let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
-                    self.reporter.report_error(
+                    self.context.borrow_mut().reporter.report_error(
                         &range_span,
                         format_args!("Range bounds creates a zero-sized range"),
                     );
