@@ -2,7 +2,7 @@
 use super::Validator;
 
 use std::cmp::Ordering;
-use toc_ast::ast::{BinaryOp, Expr, Identifier, Literal, UnaryOp, VisitorMut};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, Identifier, Literal, UnaryOp, VisitorMut};
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
@@ -23,7 +23,7 @@ impl Validator {
                     expr.get_span(),
                     format_args!("Reference does not refer to a variable or constant"),
                 );
-            } else if !matches!(expr, Expr::Empty) && !expr.is_compile_eval() {
+            } else if !expr.is_compile_eval() {
                 self.context.borrow_mut().reporter.report_error(
                     expr.get_span(),
                     format_args!("Expression is not a compile-time expression"),
@@ -77,7 +77,7 @@ impl Validator {
                 addr.get_span(),
                 format_args!("Indirection address reference is not a 'var' or 'const' reference"),
             );
-        } else if !matches!(**addr, Expr::Empty) {
+        } else {
             let dealiased_addr = types::dealias_ref(&addr.get_eval_type(), &self.type_table);
 
             if !types::is_assignable_to(
@@ -405,7 +405,7 @@ impl Validator {
             let value = self.visit_expr(expr);
 
             // Don't fold for dot and reference exprs
-            if !matches!(expr, Expr::Reference { .. } | Expr::Dot { .. }) {
+            if !matches!(expr.kind, ExprKind::Reference { .. } | ExprKind::Dot { .. }) {
                 super::replace_with_folded(expr, value);
             }
         });
@@ -574,7 +574,7 @@ impl Validator {
                 &ident.location,
                 format_args!("'{}' cannot be called or have subscripts", ident.name),
             );
-        } else if !matches!(*left, Expr::Empty) {
+        } else {
             self.context.borrow_mut().reporter.report_error(
                 left.get_span(),
                 format_args!("Expression cannot be called or have subscripts",),
@@ -638,7 +638,7 @@ impl Validator {
                                     ),
                                 );
                             }
-                        } else if !matches!(arg, Expr::Empty) {
+                        } else {
                             // Not a var!
                             self.context.borrow_mut().reporter.report_error(
                                 arg.get_span(),
@@ -649,7 +649,6 @@ impl Validator {
 
                     if !param_def.force_type
                         && !types::is_assignable_to(&param_dealias, &arg_dealias, &self.type_table)
-                        && !matches!(arg, Expr::Empty)
                     {
                         // Report error if the expr is not an empty expr and the type isn't coerced
                         self.context.borrow_mut().reporter.report_error(
@@ -700,7 +699,7 @@ impl Validator {
         // Check dimension type compatibility
         for (dim_type, arg) in ranges.iter().zip(args.iter()) {
             if !types::is_assignable_to(dim_type, &arg.get_eval_type(), &self.type_table)
-                && !matches!(arg, Expr::Empty)
+                && !matches!(arg.kind, ExprKind::Error)
             {
                 self.context.borrow_mut().reporter.report_error(
                     arg.get_span(),

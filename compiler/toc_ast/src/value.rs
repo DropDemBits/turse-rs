@@ -1,5 +1,5 @@
 //! Intermediate values for compile-time evaluation
-use crate::ast::{BinaryOp, Expr, Identifier, Literal, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ExprKind, Identifier, Literal, UnaryOp};
 use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
@@ -63,11 +63,11 @@ pub enum Value {
 
 impl Value {
     /// Produces a value from an expression.
-    pub fn from_expr(value: Expr, type_table: &TypeTable) -> Result<Value, &'static str> {
-        match value {
-            Expr::Literal { value, .. } => Value::from_literal(value),
-            Expr::Dot { eval_type, .. } => {
-                if let Some(field_id) = types::get_type_id(&eval_type) {
+    pub fn from_expr(expr: Expr, type_table: &TypeTable) -> Result<Value, &'static str> {
+        match expr.kind {
+            ExprKind::Literal { value, .. } => Value::from_literal(value),
+            ExprKind::Dot { .. } => {
+                if let Some(field_id) = types::get_type_id(&expr.get_eval_type()) {
                     if let Type::EnumField { ordinal, enum_type } = type_table.get_type(field_id) {
                         let enum_id = types::get_type_id(enum_type).unwrap();
                         return Ok(Value::EnumValue(field_id, enum_id, *ordinal));
@@ -97,9 +97,9 @@ impl Value {
 impl TryFrom<Expr> for Value {
     type Error = &'static str;
 
-    fn try_from(value: Expr) -> Result<Value, Self::Error> {
-        match value {
-            Expr::Literal { value, .. } => Value::from_literal(value),
+    fn try_from(expr: Expr) -> Result<Value, Self::Error> {
+        match expr.kind {
+            ExprKind::Literal { value, .. } => Value::from_literal(value),
             _ => Err("Cannot convert non-literal expression into a value"),
         }
     }
@@ -161,12 +161,18 @@ impl TryFrom<Value> for Expr {
                     0,
                 );
 
-                Ok(Expr::Dot {
-                    left: Box::new(Expr::Reference {
-                        ident: enum_ident,
-                        eval_type: TypeRef::Named(enum_id),
-                    }),
-                    field: field_ident,
+                let ref_expr = Expr {
+                    kind: ExprKind::Reference { ident: enum_ident },
+                    eval_type: TypeRef::Named(enum_id),
+                    is_compile_eval: true,
+                    span: Location::new(),
+                };
+
+                Ok(Expr {
+                    kind: ExprKind::Dot {
+                        left: Box::new(ref_expr),
+                        field: field_ident,
+                    },
                     is_compile_eval: true,
                     eval_type: TypeRef::Named(field_id),
                     span: Location::new(),
@@ -295,8 +301,9 @@ pub fn is_enum(value: &Value) -> bool {
 }
 
 fn make_literal(value: Literal, eval_type: TypeRef) -> Expr {
-    Expr::Literal {
-        value,
+    Expr {
+        kind: ExprKind::Literal { value },
+        is_compile_eval: true,
         eval_type,
         span: Location::new(),
     }

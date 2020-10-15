@@ -1,6 +1,6 @@
 //! Validator fragment, resolves all type specifications
 use super::{ResolveContext, ResolveResult, Validator};
-use toc_ast::ast::{Expr, Literal, VisitorMut};
+use toc_ast::ast::{Expr, ExprKind, Literal, VisitorMut};
 use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, ValueApplyError};
 
@@ -30,7 +30,7 @@ impl Validator {
 
                     // Grab the expression id, verify it's a literal, as well as being the correct type (int/nat/intnat)
                     if let Type::SizeExpr { expr } = self.type_table.get_type(expr_id) {
-                        let computed_size = if let Expr::Literal { value, .. } = &**expr {
+                        let computed_size = if let ExprKind::Literal { value, .. } = &expr.kind {
                             match value {
                                 Literal::Nat(len) => Some(*len), // Direct correspondence
                                 Literal::Int(len) => {
@@ -322,7 +322,7 @@ impl Validator {
 
             // Report error if the bound is not an empty
             // Otherwise, error is already reported at the end bound's location
-            if !matches!(**start, Expr::Empty) {
+            if !matches!(start.kind, ExprKind::Error) {
                 // Span over the start bound
                 self.context.borrow_mut().reporter.report_error(
                     start.get_span(),
@@ -346,7 +346,7 @@ impl Validator {
 
                     // Report the error if it's not an empty
                     // Otherwise, error is already reported at the end bound's location
-                    if !matches!(**end, Expr::Empty) {
+                    if !matches!(end.kind, ExprKind::Error) {
                         // Span over the end bound
                         self.context.borrow_mut().reporter.report_error(
                             end.get_span(),
@@ -464,8 +464,8 @@ impl Validator {
         let reference_locate;
 
         // Ensure that the top-most expression resolves to a type
-        match &**expr {
-            Expr::Dot { left, field, .. } => {
+        match &expr.kind {
+            ExprKind::Dot { left, field, .. } => {
                 if !field.is_typedef {
                     // Should always either be a dot, or a reference
                     // Otherwise, the expr is an empty
@@ -487,7 +487,7 @@ impl Validator {
 
                 reference_locate = field.location;
             }
-            Expr::Reference { ident, .. } => {
+            ExprKind::Reference { ident, .. } => {
                 if !ident.is_typedef {
                     self.context.borrow_mut().reporter.report_error(
                         &ident.location,

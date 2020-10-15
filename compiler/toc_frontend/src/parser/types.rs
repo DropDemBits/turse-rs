@@ -2,7 +2,7 @@
 use super::Parser;
 use crate::token::TokenType;
 use std::collections::HashMap;
-use toc_ast::ast::Expr;
+use toc_ast::ast::{Expr, ExprKind};
 use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef};
 
 impl<'s> Parser<'s> {
@@ -245,22 +245,20 @@ impl<'s> Parser<'s> {
                 }
 
                 // Put the parsed expression into a type table reference
-                match size_expr {
-                    Ok(expr) => Ok(SequenceSize::CompileExpr(
-                        types::get_type_id(&self.declare_type(Type::SizeExpr {
-                            expr: Box::new(expr),
-                        }))
-                        .unwrap(),
-                    )),
-                    Err(_) => {
+                match size_expr.kind {
+                    ExprKind::Error => {
                         self.context.borrow_mut().reporter.report_error(
                             &self.current().location,
-                            format_args!(
-                        "Length specifier is not a '*' or a non-zero compile time expression"
-                    ),
+                            format_args!("Length specifier is not a '*' or a non-zero compile time expression"),
                         );
                         Err(())
                     }
+                    _ => Ok(SequenceSize::CompileExpr(
+                        types::get_type_id(&self.declare_type(Type::SizeExpr {
+                            expr: Box::new(size_expr),
+                        }))
+                        .unwrap(),
+                    )),
                 }
             }
         }
@@ -499,11 +497,16 @@ impl<'s> Parser<'s> {
 
     /// Try to parse either a reference, or a range.
     /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(())`
-    /// if the reference expression is nested too deeply
+    /// if the reference expression is an ExprKind::Error
     fn type_reference_or_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
         // Bail out on err (i.e. too deep in the expr nesting or not a
         // expression at all)
-        let primary_expr = self.expr().map_err(|_| ())?;
+        let primary_expr = self.expr();
+
+        if matches!(primary_expr.kind, ExprKind::Error) {
+            // Not a valid type reference
+            return Err(());
+        }
 
         if self.current().token_type == TokenType::Range {
             // Pass off to the range parser
@@ -514,10 +517,10 @@ impl<'s> Parser<'s> {
             let mut current_expr = &primary_expr;
 
             loop {
-                match current_expr {
-                    Expr::Dot { left, .. } => current_expr = &left, // Move through the chain
-                    Expr::Reference { .. } => break, // Reached the end of the dot expression
-                    Expr::Empty => break,            // Error has been reported already
+                match &current_expr.kind {
+                    ExprKind::Dot { left, .. } => current_expr = &left, // Move through the chain
+                    ExprKind::Reference { .. } => break, // Reached the end of the dot expression
+                    ExprKind::Error => break,            // Error has been reported already
                     _ => {
                         // Not completely a dot expression
                         self.context.borrow_mut().reporter.report_error(
@@ -566,10 +569,13 @@ impl<'s> Parser<'s> {
                 None
             }
             // Explicit range
-            _ => self.expr().ok().or(Some(Expr::Empty)),
+            _ => Some(self.expr()),
         };
 
-        if matches!(end_range, Some(Expr::Empty)) {
+        if matches!(
+            end_range.as_ref().map(|expr| &expr.kind),
+            Some(ExprKind::Error)
+        ) {
             // End range is not a valid range
             self.context.borrow_mut().reporter.report_error(
                 &range_tok.location,

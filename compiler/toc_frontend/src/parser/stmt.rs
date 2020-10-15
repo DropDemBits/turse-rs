@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all statements and declarations
 use super::{Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, Identifier, Stmt};
+use toc_ast::ast::{Expr, ExprKind, Identifier, Stmt, StmtKind};
 use toc_ast::block::BlockKind;
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
@@ -50,6 +50,7 @@ impl<'s> Parser<'s> {
 
         // Consume decl_tok
         let decl_tok = self.next_token();
+        let span = decl_tok.location;
 
         // Grab identifier token
         let ident_tokens = {
@@ -116,9 +117,7 @@ impl<'s> Parser<'s> {
                 self.expr()
             };
 
-            asn_expr
-                .map(|expr| Some(Box::new(expr)))
-                .unwrap_or_else(|_| None)
+            Some(Box::new(asn_expr))
         } else {
             has_init_expr = false;
             None
@@ -185,17 +184,24 @@ impl<'s> Parser<'s> {
             })
             .collect();
 
-        Ok(Stmt::VarDecl {
-            idents,
-            type_spec,
-            value: assign_expr,
-            is_const,
+        // Make the span
+        let span = span.span_to(&self.previous().location);
+
+        Ok(Stmt {
+            kind: StmtKind::VarDecl {
+                idents,
+                type_spec,
+                value: assign_expr,
+                is_const,
+            },
+            span,
         })
     }
 
     fn decl_type(&mut self) -> Result<Stmt, ParsingStatus> {
         // Nom "type"
         let type_tok = self.next_token();
+        let span = type_tok.location;
 
         // Expect identifier (continue parsing after the identifier)
         let ident_tok = self
@@ -225,6 +231,8 @@ impl<'s> Parser<'s> {
             Some(self.parse_type(&type_tok.token_type))
         };
 
+        let span = span.span_to(&self.previous().location);
+
         if ident_tok.is_none() {
             // If None, give an err (cannot declare a forward named type without an identifier)
             // Else, create a dummy type decl (provide validator access to any refs inside the type)
@@ -241,10 +249,13 @@ impl<'s> Parser<'s> {
                         0, // Not imported, just a dummy
                     );
 
-                    Ok(Stmt::TypeDecl {
-                        ident: dummy_ident,
-                        resolved_type: Some(type_spec),
-                        is_new_def: false, // Doesn't really matter
+                    Ok(Stmt {
+                        kind: StmtKind::TypeDecl {
+                            ident: dummy_ident,
+                            resolved_type: Some(type_spec),
+                            is_new_def: false, // Doesn't really matter
+                        },
+                        span,
                     })
                 }
                 None => Err(ParsingStatus::Error),
@@ -255,13 +266,14 @@ impl<'s> Parser<'s> {
         let ident_tok = ident_tok.unwrap();
         let old_ident = self.get_ident(self.get_token_lexeme(&ident_tok));
 
-        if let Some(Type::Forward { is_resolved: false }) = old_ident.as_ref().and_then(|ident| {
-            self.unit
-                .as_ref()
-                .unwrap()
-                .types()
-                .type_from_ref(&ident.type_spec)
-        }) {
+        let kind = if let Some(Type::Forward { is_resolved: false }) =
+            old_ident.as_ref().and_then(|ident| {
+                self.unit
+                    .as_ref()
+                    .unwrap()
+                    .types()
+                    .type_from_ref(&ident.type_spec)
+            }) {
             // Resolve forwards (otherwise `is_resolved` would be true)
 
             // We known that the old ident is valid (from above condtion)
@@ -276,11 +288,11 @@ impl<'s> Parser<'s> {
                     let mut ident = old_ident;
                     ident.location = ident_tok.location;
 
-                    Ok(Stmt::TypeDecl {
+                    StmtKind::TypeDecl {
                         ident,
                         resolved_type: Some(resolve_type),
                         is_new_def: false,
-                    })
+                    }
                 }
                 None => {
                     // Redeclaring forward, keep the same type
@@ -292,11 +304,11 @@ impl<'s> Parser<'s> {
                     let mut ident = old_ident;
                     ident.location = ident_tok.location;
 
-                    Ok(Stmt::TypeDecl {
+                    StmtKind::TypeDecl {
                         ident,
                         resolved_type: None,
                         is_new_def: false,
-                    })
+                    }
                 }
             }
         } else {
@@ -306,28 +318,30 @@ impl<'s> Parser<'s> {
                     let alias_type = self.declare_type(Type::Alias { to: type_spec });
 
                     // Normal declare
-                    Ok(Stmt::TypeDecl {
+                    StmtKind::TypeDecl {
                         ident: self
                             .declare_ident(ident_tok, alias_type, true, true)
                             .unwrap_or_else(|err| err.into()),
                         resolved_type: Some(alias_type),
                         is_new_def: true,
-                    })
+                    }
                 }
                 None => {
                     let forward_type = self.declare_type(Type::Forward { is_resolved: false });
 
                     // Forward declare
-                    Ok(Stmt::TypeDecl {
+                    StmtKind::TypeDecl {
                         ident: self
                             .declare_ident(ident_tok, forward_type, true, true)
                             .unwrap_or_else(|err| err.into()),
                         resolved_type: None,
                         is_new_def: true,
-                    })
+                    }
                 }
             }
-        }
+        };
+
+        Ok(Stmt { kind, span })
     }
 
     // --- Stmt Parsing --- //
@@ -386,15 +400,13 @@ impl<'s> Parser<'s> {
         // Identifiers & References can begin either an assignment or a procedure call
         // Both take references as the primary expression
 
-        // If the reference expr can't be parsed, replace it with an empty expression
-        // instead of bailing out
-        //
-        // Referring to an identifier still has side effects in an invalid parse, as
-        // it may use an undefined identifier
-        let reference = self.expr_reference().unwrap_or(Expr::Empty);
+        let span = self.current().location;
+
+        // Parse the reference expr
+        let reference = self.expr_reference();
         let is_compound_assign = self.is_compound_assignment();
 
-        if is_compound_assign || self.is_simple_assignment() {
+        let kind = if is_compound_assign || self.is_simple_assignment() {
             // Is a (compound) assignment or '='
             // '=' is checked for as it's a common mistake to have '=' instead of ':='
             let assign_tok = self.next_token();
@@ -432,37 +444,44 @@ impl<'s> Parser<'s> {
                 // Nom the expr anyways
                 self.next_token();
                 // Parse the init expression as it may use undefined identifiers
-                self.expr_init().unwrap_or(Expr::Empty)
+                self.expr_init()
             } else {
                 // Parse a regular expr
-                self.expr().unwrap_or(Expr::Empty)
+                self.expr()
             };
 
-            Ok(Stmt::Assign {
+            StmtKind::Assign {
                 var_ref: Box::new(reference),
                 op: assign_op,
                 value: Box::new(value),
-            })
+            }
         } else {
             // Is a procedure call
-            let proc_ref = if matches!(reference, Expr::Call { .. }) {
+            let proc_ref = if matches!(reference.kind, ExprKind::Call { .. }) {
                 reference
             } else {
                 // Reference is not a call expression, wrap it in one
-                Expr::Call {
-                    arg_list: vec![],
+                Expr {
                     span: *reference.get_span(),
                     eval_type: TypeRef::Unknown,
                     is_compile_eval: false,
-                    paren_at: self.previous().location,
-                    left: Box::new(reference),
+                    kind: ExprKind::Call {
+                        left: Box::new(reference),
+                        paren_at: self.previous().location,
+                        arg_list: vec![],
+                    },
                 }
             };
 
-            Ok(Stmt::ProcedureCall {
+            StmtKind::ProcedureCall {
                 proc_ref: Box::new(proc_ref),
-            })
-        }
+            }
+        };
+
+        // Make span
+        let span = span.span_to(&self.previous().location);
+
+        Ok(Stmt { kind, span })
     }
 
     fn stmt_block(&mut self) -> Result<Stmt, ParsingStatus> {
@@ -498,8 +517,12 @@ impl<'s> Parser<'s> {
 
         // Close the block
         let block = self.pop_block();
+        let span = begin_loc.span_to(&self.previous().location);
 
-        Ok(Stmt::Block { block, stmts })
+        Ok(Stmt {
+            kind: StmtKind::Block { block, stmts },
+            span,
+        })
     }
 
     // --- Helpers --- //

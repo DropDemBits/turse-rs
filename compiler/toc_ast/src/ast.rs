@@ -219,113 +219,71 @@ impl fmt::Display for Literal {
     }
 }
 
-/// Common expression node
-///
-/// `eval_type` is the type produced after evaluating the expression.
-/// For reference and dot expressions, the evaluation type may be different from the identifier type spec
-#[derive(Clone)]
-pub enum Expr {
-    /// Empty expression, always evaluates to a type error.
-    /// Only used as a placeholder in "init" expressions.
-    Empty,
+/// Expression Node Kind
+#[derive(Debug, Clone)]
+pub enum ExprKind {
+    /// Error expression, always evaluates to a type error.
+    Error,
     /// Binary expression
     BinaryOp {
         /// Left operand for the binary operation
-        left: Box<Self>,
+        left: Box<Expr>,
         /// Operator of the binary expression
         op: (BinaryOp, Location),
         /// Right operand for the binary operation
-        right: Box<Self>,
-        /// The expression evaluation type
-        eval_type: TypeRef,
-        /// If the expression is compile-time evaluable
-        is_compile_eval: bool,
-        /// The span of the expression
-        span: Location,
+        right: Box<Expr>,
     },
     /// Unary expression
     UnaryOp {
         /// Operator of the unary expression
         op: (UnaryOp, Location),
         /// Operand for the unary operation
-        right: Box<Self>,
-        /// The expression evaluation type
-        eval_type: TypeRef,
-        /// If the expression is compile-time evaluable
-        is_compile_eval: bool,
-        /// The span of the expression
-        span: Location,
+        right: Box<Expr>,
     },
     /// Common literal value
     Literal {
         /// The literal value
         value: Literal,
-        /// The evaluation type
-        eval_type: TypeRef,
-        /// The span of the expression
-        span: Location,
     },
     // Note: Some functions & procedures may be in the AST as pure references (in the middle of expressions)
     // This is checked in the validator stage
     Reference {
         /// The identifier associated with this referenece
         ident: Identifier,
-        /// The expression evaluation type
-        eval_type: TypeRef,
     },
     /// Funcion call expression
     Call {
         /// Expression evaluating to a reference
-        left: Box<Self>,
+        left: Box<Expr>,
         /// Token location
         paren_at: Location,
         /// The argument list for the call
-        arg_list: Vec<Self>, // Parens may be omitted, indicated by left's eval type
-        /// The expression evaluation type
-        eval_type: TypeRef,
-        /// If the expression is compile-time evaluable
-        is_compile_eval: bool,
-        /// The span of the expression
-        span: Location,
+        arg_list: Vec<Expr>, // Parens may be omitted, indicated by left's eval type
     },
     /// Dot/field expression
     Dot {
         /// Expression evaluating to a reference
-        left: Box<Self>,
+        left: Box<Expr>,
         /// Field to be referenced
         // While the type is an identifier, it is not a direct reference to an
         // identifier in the current scope
         field: Identifier,
-        /// The expression evaluation type
-        eval_type: TypeRef,
-        /// If the expression is compile-time evaluable
-        is_compile_eval: bool,
-        /// The span of the expression
-        span: Location,
     },
     /// Arrow expression
     Arrow {
         /// Expression evaluating to a reference
-        left: Box<Self>,
+        left: Box<Expr>,
         /// Field to be referenced
         // While the type is an identifier, it is not a direct reference to an
         // identifier in the current scope
         field: Identifier,
-        /// The expression evaluation type
-        eval_type: TypeRef,
-        /// If the expression is compile-time evaluable
-        is_compile_eval: bool,
-        /// The span of the expression
-        span: Location,
     },
     /// "init" expression
     Init {
         /// Location of "init"
         init: Location,
         /// Expressions part of the "init"
-        exprs: Vec<Self>,
-        /// The span of the expression
-        span: Location,
+        exprs: Vec<Expr>,
     },
     /// "Indirect" expression
     Indirect {
@@ -337,99 +295,22 @@ pub enum Expr {
         addr: Box<Expr>,
         /// The type to read at the address.
         /// If TypeRef::Unknown, type is derived from the reference expression
-        eval_type: TypeRef,
-        /// The span of the expression
-        span: Location,
+        indirect_type: TypeRef,
     },
 }
 
-impl Expr {
-    /// Gets the evaluation type produced by the expression
-    pub fn get_eval_type(&self) -> TypeRef {
-        match self {
-            Expr::Empty => TypeRef::TypeError,
-            Expr::Init { .. } => TypeRef::TypeError, // Doesn't evaluate to anything
-            Expr::Indirect { eval_type, .. } => *eval_type,
-            Expr::BinaryOp { eval_type, .. } => *eval_type,
-            Expr::UnaryOp { eval_type, .. } => *eval_type,
-            Expr::Literal { eval_type, .. } => *eval_type,
-            Expr::Call { eval_type, .. } => *eval_type,
-            Expr::Dot { eval_type, .. } => *eval_type,
-            Expr::Arrow { eval_type, .. } => *eval_type,
-            Expr::Reference { eval_type, .. } => *eval_type,
-        }
-    }
-
-    /// Gets the span of the location
-    pub fn get_span(&self) -> &Location {
-        match self {
-            Expr::Empty => panic!("Can't get span for empty expression"),
-            Expr::Indirect { span, .. } => span,
-            Expr::Init { span, .. } => span,
-            Expr::BinaryOp { span, .. } => span,
-            Expr::UnaryOp { span, .. } => span,
-            Expr::Literal { span, .. } => span,
-            Expr::Call { span, .. } => span,
-            Expr::Dot { span, .. } => span,
-            Expr::Arrow { span, .. } => span,
-            Expr::Reference { ident, .. } => &ident.location,
-        }
-    }
-
-    pub fn set_span(&mut self, at: Location) {
-        match self {
-            Expr::Empty => {}
-            Expr::Init { span, .. } => *span = at,
-            Expr::Indirect { span, .. } => *span = at,
-            Expr::BinaryOp { span, .. } => *span = at,
-            Expr::UnaryOp { span, .. } => *span = at,
-            Expr::Literal { span, .. } => *span = at,
-            Expr::Call { span, .. } => *span = at,
-            Expr::Dot { span, .. } => *span = at,
-            Expr::Arrow { span, .. } => *span = at,
-            Expr::Reference { ident, .. } => ident.location = at,
-        }
-    }
-
-    /// Gets the compile evaluability status of the expression
-    pub fn is_compile_eval(&self) -> bool {
-        match self {
-            Expr::Empty => false,
-            Expr::Init { .. } => false, // Never directly evaluable at compile-time
-            Expr::Indirect { .. } => false, // Never compile-time evaluable
-            Expr::BinaryOp {
-                is_compile_eval, ..
-            } => *is_compile_eval,
-            Expr::UnaryOp {
-                is_compile_eval, ..
-            } => *is_compile_eval,
-            Expr::Literal { value, .. } => !matches!(&value, Literal::Nil), // Literals (except nil) are already evaluated
-            Expr::Call {
-                is_compile_eval, ..
-            } => *is_compile_eval,
-            Expr::Dot {
-                is_compile_eval, ..
-            } => *is_compile_eval,
-            Expr::Arrow {
-                is_compile_eval, ..
-            } => *is_compile_eval,
-            Expr::Reference { ident, .. } => ident.is_compile_eval,
-        }
-    }
-}
-
-impl fmt::Debug for Expr {
+impl fmt::Display for ExprKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Expr::*;
+        use ExprKind::*;
 
         match self {
-            Empty => f.write_str("<empty>"),
+            Error => f.write_str("<error>"),
             Init { exprs, .. } => f.write_fmt(format_args!("init({:?})", exprs)),
             Indirect {
-                eval_type,
+                indirect_type,
                 reference,
                 ..
-            } => f.write_fmt(format_args!("({:?} @ ({:?}))", eval_type, reference)),
+            } => f.write_fmt(format_args!("({:?} @ ({:?}))", indirect_type, reference)),
             BinaryOp {
                 left, op, right, ..
             } => f.write_fmt(format_args!("({} {:?} {:?})", &op.0, left, right)),
@@ -445,9 +326,45 @@ impl fmt::Debug for Expr {
     }
 }
 
-/// Common statement node
+/// Common expression node
+///
+/// `eval_type` is the type produced after evaluating the expression.
+/// For reference and dot expressions, the evaluation type may be different from the identifier type spec
 #[derive(Debug, Clone)]
-pub enum Stmt {
+pub struct Expr {
+    pub kind: ExprKind,
+    /// The expression evaluation type
+    pub eval_type: TypeRef,
+    /// If the expression is compile-time evaluable
+    pub is_compile_eval: bool,
+    /// The span of the expression
+    pub span: Location,
+}
+
+impl Expr {
+    /// Gets the evaluation type produced by the expression
+    pub fn get_eval_type(&self) -> TypeRef {
+        self.eval_type
+    }
+
+    /// Gets the span of the location
+    pub fn get_span(&self) -> &Location {
+        &self.span
+    }
+
+    pub fn set_span(&mut self, at: Location) {
+        self.span = at;
+    }
+
+    /// Gets the compile evaluability status of the expression
+    pub fn is_compile_eval(&self) -> bool {
+        self.is_compile_eval
+    }
+}
+
+/// Statement Node Variant
+#[derive(Debug, Clone)]
+pub enum StmtKind {
     // Decls
     /// Variable & Constant declaration
     VarDecl {
@@ -490,8 +407,16 @@ pub enum Stmt {
         /// The associated code block
         block: Rc<RefCell<CodeBlock>>,
         /// Statements as part of the block
-        stmts: Vec<Self>,
+        stmts: Vec<Stmt>,
     },
+}
+/// Common statement node
+#[derive(Debug, Clone)]
+pub struct Stmt {
+    /// The kind of statement node
+    pub kind: StmtKind,
+    /// The span of the statement
+    pub span: Location,
 }
 
 /// Mutable Visitor for a generated AST.

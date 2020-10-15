@@ -7,7 +7,7 @@ mod types;
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
-use toc_ast::ast::{BinaryOp, Identifier, UnaryOp};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, Identifier, UnaryOp};
 use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
 use toc_ast::scope::IdentError;
 use toc_ast::types::{Type, TypeRef};
@@ -19,6 +19,9 @@ use std::rc::Rc;
 
 /// Maximum nesting depth during parsing
 const MAX_NESTING_DEPTH: usize = 256;
+
+/// Parse Result Type
+type ParseResult<T> = T;
 
 /// Main parser
 #[derive(Debug)]
@@ -414,13 +417,23 @@ fn try_into_unary(op: TokenType) -> Result<UnaryOp, ParsingStatus> {
     }
 }
 
+/// Makes an error expression at the given location
+fn make_error_expr(error_at: Location) -> Expr {
+    Expr {
+        kind: ExprKind::Error,
+        eval_type: TypeRef::TypeError,
+        is_compile_eval: false,
+        span: error_at,
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::context::CompileContext;
     use crate::scanner::Scanner;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::ast::{self, Expr, Stmt};
+    use toc_ast::ast::{self, ExprKind, Stmt, StmtKind};
     use toc_ast::types::{self, *};
 
     fn make_test_parser(source: &str) -> Parser {
@@ -473,6 +486,7 @@ mod test {
             .type_spec
     }
 
+    #[track_caller]
     fn check_ident_expected_type(parser: &Parser, name: &str, expected: TypeRef) {
         assert_eq!(get_ident_type(parser, name), expected);
     }
@@ -673,7 +687,7 @@ mod test {
         let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts[2..].iter().zip(expected_ops.iter()) {
-            if let Stmt::Assign { op, .. } = test_stmt.0 {
+            if let StmtKind::Assign { op, .. } = &test_stmt.0.kind {
                 if op.ne(test_stmt.1) {
                     panic!(
                         "Mismatch between expected {:?} and parsed {:?}",
@@ -706,7 +720,7 @@ mod test {
         let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts[1..].iter().zip(expected_ops.iter()) {
-            if let Stmt::Assign { op, .. } = test_stmt.0 {
+            if let StmtKind::Assign { op, .. } = &test_stmt.0.kind {
                 if op.ne(test_stmt.1) {
                     panic!(
                         "Mismatch between expected {:?} and parsed {:?}",
@@ -771,7 +785,7 @@ mod test {
         let root_stmts = parser.unit.as_ref().unwrap().stmts();
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
-            if let Stmt::VarDecl { ref idents, .. } = test_stmt.0 {
+            if let StmtKind::VarDecl { idents, .. } = &test_stmt.0.kind {
                 assert_eq!(&idents[0].type_spec, test_stmt.1);
             }
         }
@@ -1275,7 +1289,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let Stmt::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[1] {
+        if let StmtKind::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[1].kind {
             // Inner scope is still int
             assert_eq!(
                 block
@@ -1312,7 +1326,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let Stmt::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[0] {
+        if let StmtKind::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[0].kind {
             // Innermost scope is still int
             assert_eq!(
                 block
@@ -1352,8 +1366,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(!parser.parse());
         assert!(get_ident(&parser, "a").is_some());
         let type_ref = get_ident(&parser, "a").unwrap().type_spec;
-        assert_eq!(
-            true,
+        assert!(
             matches!(
                 parser
                     .unit
@@ -1365,8 +1378,14 @@ type enumeration : enum (a, b, c, d, e, f)
                     to: TypeRef::TypeError,
                 })
             ),
-            "From ref {:?}",
-            type_ref
+            "From ref {:?} to {:?}",
+            type_ref,
+            parser
+                .unit
+                .as_ref()
+                .unwrap()
+                .types()
+                .type_from_ref(&type_ref)
         );
         assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 
@@ -1458,12 +1477,12 @@ type enumeration : enum (a, b, c, d, e, f)
     #[test]
     fn test_init_expr() {
         fn nab_init_len(stmt: &Stmt) -> Option<usize> {
-            if let Stmt::VarDecl {
+            if let StmtKind::VarDecl {
                 value: Some(init_expr),
                 ..
-            } = stmt
+            } = &stmt.kind
             {
-                if let Expr::Init { exprs, .. } = &**init_expr {
+                if let ExprKind::Init { exprs, .. } = &init_expr.kind {
                     Some(exprs.len())
                 } else {
                     None
@@ -1747,12 +1766,12 @@ type enumeration : enum (a, b, c, d, e, f)
         );
         assert_eq!(parser.parse(), false);
         for stmt in parser.unit.as_ref().unwrap().stmts() {
-            if let Stmt::VarDecl {
+            if let StmtKind::VarDecl {
                 value: Some(some_val),
                 ..
-            } = stmt
+            } = &stmt.kind
             {
-                assert!(matches!(**some_val, Expr::Indirect { .. }));
+                assert!(matches!(some_val.kind, ExprKind::Indirect { .. }));
             }
         }
 
@@ -1769,38 +1788,38 @@ type enumeration : enum (a, b, c, d, e, f)
         // Address expression should be empty in these cases
         let mut parser = make_test_parser("var a := int @ ()");
         assert_eq!(parser.parse(), false);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
         {
-            if let Expr::Indirect { addr, .. } = &**indirect {
-                assert!(matches!(**addr, Expr::Empty), "Is {:?}", addr);
+            if let ExprKind::Indirect { addr, .. } = &indirect.kind {
+                assert!(matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
             }
         }
 
         let mut parser = make_test_parser("var a := int @ ");
         assert_eq!(parser.parse(), false);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
         {
-            if let Expr::Indirect { addr, .. } = &**indirect {
-                assert!(matches!(**addr, Expr::Empty), "Is {:?}", addr);
+            if let ExprKind::Indirect { addr, .. } = &indirect.kind {
+                assert!(matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
             }
         }
 
         // Should not be a bare empty
         let mut parser = make_test_parser("var a := int @ (+)");
         assert_eq!(parser.parse(), false);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
         {
-            if let Expr::Indirect { addr, .. } = &**indirect {
-                assert!(!matches!(**addr, Expr::Empty), "Is {:?}", addr);
+            if let ExprKind::Indirect { addr, .. } = &indirect.kind {
+                assert!(!matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
             }
         }
     }
@@ -1809,12 +1828,12 @@ type enumeration : enum (a, b, c, d, e, f)
     fn test_call_stmt() {
         let mut parser = make_test_parser("var p : proc _\np");
         assert_eq!(parser.parse(), true);
-        if let Stmt::ProcedureCall {
+        if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
         {
             assert!(
-                !matches!(**proc_call, Expr::Call { .. }),
+                !matches!(proc_call.kind, ExprKind::Call { .. }),
                 "Is {:?}",
                 proc_call
             );
@@ -1822,12 +1841,12 @@ type enumeration : enum (a, b, c, d, e, f)
 
         let mut parser = make_test_parser("var p : proc _\np()");
         assert_eq!(parser.parse(), true);
-        if let Stmt::ProcedureCall {
+        if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
         {
             assert!(
-                !matches!(**proc_call, Expr::Call { .. }),
+                !matches!(proc_call.kind, ExprKind::Call { .. }),
                 "Is {:?}",
                 proc_call
             );
@@ -1835,12 +1854,12 @@ type enumeration : enum (a, b, c, d, e, f)
 
         let mut parser = make_test_parser("var p : fcn _ (__ : int) : int\np(1)");
         assert_eq!(parser.parse(), true);
-        if let Stmt::ProcedureCall {
+        if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.unit.as_ref().unwrap().stmts()[0]
+        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
         {
             assert!(
-                !matches!(**proc_call, Expr::Call { .. }),
+                !matches!(proc_call.kind, ExprKind::Call { .. }),
                 "Is {:?}",
                 proc_call
             );

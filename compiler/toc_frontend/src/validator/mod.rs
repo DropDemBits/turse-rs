@@ -14,7 +14,7 @@ mod stmt_resolve;
 mod type_resolve;
 
 use crate::context::CompileContext;
-use toc_ast::ast::{Expr, Identifier, Stmt, VisitorMut};
+use toc_ast::ast::{Expr, ExprKind, Identifier, Stmt, StmtKind, VisitorMut};
 use toc_ast::block::CodeBlock;
 use toc_ast::types::{self, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
@@ -282,102 +282,102 @@ impl Validator {
 
 impl VisitorMut<(), Option<Value>> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
-        match visit_stmt {
-            Stmt::VarDecl {
+        match &mut visit_stmt.kind {
+            StmtKind::VarDecl {
                 idents,
                 type_spec,
                 value,
                 is_const,
             } => self.resolve_decl_var(idents, type_spec, value, *is_const),
-            Stmt::TypeDecl {
+            StmtKind::TypeDecl {
                 ident,
                 resolved_type,
                 is_new_def,
             } => self.resolve_decl_type(ident, resolved_type, *is_new_def),
-            Stmt::Assign { var_ref, op, value } => {
+            StmtKind::Assign { var_ref, op, value } => {
                 self.resolve_stmt_assign(var_ref, op.as_mut(), value)
             }
-            Stmt::ProcedureCall { proc_ref } => {
-                if let Expr::Call {
+            StmtKind::ProcedureCall { proc_ref } => {
+                if let ExprKind::Call {
                     left,
                     paren_at,
                     arg_list,
-                    eval_type,
-                    is_compile_eval,
                     ..
-                } = &mut **proc_ref
+                } = &mut proc_ref.kind
                 {
                     // Defer to expression resolution
                     let _ = self.resolve_expr_call(
                         left,
                         paren_at,
                         arg_list,
-                        eval_type,
-                        is_compile_eval,
+                        &mut proc_ref.eval_type,
+                        &mut proc_ref.is_compile_eval,
                         true,
                     );
                 } else {
                     unreachable!();
                 }
             }
-            Stmt::Block { block, stmts } => self.resolve_stmt_block(block, stmts),
+            StmtKind::Block { block, stmts } => self.resolve_stmt_block(block, stmts),
         }
     }
 
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
     fn visit_expr(&mut self, visit_expr: &mut Expr) -> Option<Value> {
-        match visit_expr {
-            Expr::Empty => None,
-            Expr::Init { exprs, .. } => self.resolve_expr_init(exprs),
-            Expr::Indirect {
-                reference,
-                addr,
-                eval_type,
-                ..
-            } => self.resolve_expr_indirect(reference, addr, eval_type),
-            Expr::BinaryOp {
+        match &mut visit_expr.kind {
+            ExprKind::Error => None,
+            ExprKind::Init { exprs, .. } => self.resolve_expr_init(exprs),
+            ExprKind::Indirect {
+                reference, addr, ..
+            } => self.resolve_expr_indirect(reference, addr, &mut visit_expr.eval_type),
+            ExprKind::BinaryOp {
+                left, op, right, ..
+            } => self.resolve_expr_binary(
                 left,
                 op,
                 right,
-                eval_type,
-                is_compile_eval,
-                ..
-            } => self.resolve_expr_binary(left, op, right, eval_type, is_compile_eval),
-            Expr::UnaryOp {
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+            ),
+            ExprKind::UnaryOp { op, right, .. } => self.resolve_expr_unary(
                 op,
                 right,
-                eval_type,
-                is_compile_eval,
-                ..
-            } => self.resolve_expr_unary(op, right, eval_type, is_compile_eval),
-            Expr::Call {
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+            ),
+            ExprKind::Call {
                 left,
                 paren_at,
                 arg_list,
-                eval_type,
-                is_compile_eval,
                 ..
-            } => {
-                self.resolve_expr_call(left, paren_at, arg_list, eval_type, is_compile_eval, false)
+            } => self.resolve_expr_call(
+                left,
+                paren_at,
+                arg_list,
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+                false,
+            ),
+            ExprKind::Dot { left, field, .. } => self.resolve_expr_dot(
+                left,
+                field,
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+            ),
+            ExprKind::Arrow { left, field, .. } => self.resolve_expr_arrow(
+                left,
+                field,
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+            ),
+            ExprKind::Reference { ident } => {
+                let value = self.resolve_expr_reference(ident, &mut visit_expr.eval_type);
+                visit_expr.is_compile_eval = ident.is_compile_eval;
+                value
             }
-            Expr::Dot {
-                left,
-                field,
-                eval_type,
-                is_compile_eval,
-                ..
-            } => self.resolve_expr_dot(left, field, eval_type, is_compile_eval),
-            Expr::Arrow {
-                left,
-                field,
-                eval_type,
-                is_compile_eval,
-                ..
-            } => self.resolve_expr_arrow(left, field, eval_type, is_compile_eval),
-            Expr::Reference { ident, eval_type } => self.resolve_expr_reference(ident, eval_type),
-            Expr::Literal {
-                value, eval_type, ..
-            } => self.resolve_expr_literal(value, eval_type),
+            ExprKind::Literal { value, .. } => {
+                self.resolve_expr_literal(value, &mut visit_expr.eval_type)
+            }
         }
     }
 
@@ -391,16 +391,16 @@ impl VisitorMut<(), Option<Value>> for Validator {
 
 /// Gets the reference identifier, if there is one
 fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
-    match ref_expr {
-        Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => Some(ident),
+    match &ref_expr.kind {
+        ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => Some(ident),
         _ => None,
     }
 }
 
 /// Checks if the expression evaluates to a type reference
 fn is_type_reference(expr: &Expr) -> bool {
-    match expr {
-        Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => {
+    match &expr.kind {
+        ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => {
             // It's a type reference based on the identifier
             ident.is_typedef
         }
@@ -413,10 +413,10 @@ fn is_type_reference(expr: &Expr) -> bool {
 /// Appropriately carries over the associated expr's span
 fn replace_with_folded(expr: &mut Expr, folded_expr: Option<Value>) {
     if let Some(value) = folded_expr {
-        let span = *expr.get_span();
         // Conversion is infalliable (should be using either Into or From)
-        *expr = Expr::try_from(value).unwrap();
-        expr.set_span(span);
+        let value_expr = Expr::try_from(value).unwrap();
+        expr.kind = value_expr.kind;
+        expr.eval_type = value_expr.eval_type;
     }
 }
 
@@ -2387,9 +2387,9 @@ mod test {
         // Folds should chain together
         let (success, unit) = make_validator("var a : int := 1 - 1 - 1 - 1 - 1");
         assert_eq!(true, success);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(expr), ..
-        } = &unit.stmts()[0]
+        } = &unit.stmts()[0].kind
         {
             assert_eq!(
                 Value::from_expr(*expr.clone(), unit.types()).unwrap(),
@@ -2440,9 +2440,9 @@ mod test {
         // Folding should be able to fold enum comparisons
         let (success, unit) = make_validator("type e0 : enum (a, b, c)\nvar a := e0.a < e0.c");
         assert_eq!(true, success);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(expr), ..
-        } = &unit.stmts()[1]
+        } = &unit.stmts()[1].kind
         {
             assert_eq!(
                 Value::from_expr(*expr.clone(), unit.types()).unwrap(),
@@ -2455,9 +2455,9 @@ mod test {
         let (success, unit) =
             make_validator("type e0 : enum (a, b, c)\nconst c : e0 := e0.c\nvar a := e0.a < c");
         assert_eq!(true, success);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(expr), ..
-        } = &unit.stmts()[2]
+        } = &unit.stmts()[2].kind
         {
             assert_eq!(
                 Value::from_expr(*expr.clone(), unit.types()).unwrap(),
@@ -2470,9 +2470,9 @@ mod test {
         let (success, unit) =
             make_validator("type e0 : enum (a, b, c)\nconst c := e0.c\nvar a := e0.a < c");
         assert_eq!(true, success);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(expr), ..
-        } = &unit.stmts()[2]
+        } = &unit.stmts()[2].kind
         {
             assert_eq!(
                 Value::from_expr(*expr.clone(), unit.types()).unwrap(),
@@ -2511,9 +2511,9 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         ",
         );
         assert_eq!(true, success);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(expr), ..
-        } = &unit.stmts().last().unwrap()
+        } = &unit.stmts().last().unwrap().kind
         {
             assert_eq!(
                 Value::from_expr(*expr.clone(), unit.types()).unwrap(),
@@ -2533,14 +2533,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         ",
         );
         assert_eq!(false, success);
-        if let Stmt::VarDecl {
+        if let StmtKind::VarDecl {
             value: Some(expr), ..
-        } = &unit.stmts().last().unwrap()
+        } = &unit.stmts().last().unwrap().kind
         {
-            if let Expr::BinaryOp { left, right, .. } = *expr.clone() {
+            if let ExprKind::BinaryOp { left, right, .. } = expr.clone().kind {
                 // Check that (a + b) was folded, but not the + c
-                assert!(!matches!(*left, Expr::BinaryOp { .. }));
-                assert!(matches!(*right, Expr::Reference { .. }));
+                assert!(!matches!(left.kind, ExprKind::BinaryOp { .. }));
+                assert!(matches!(right.kind, ExprKind::Reference { .. }));
             } else {
                 panic!("Something wrong happened! (folding did weird things!)");
             }

@@ -139,8 +139,8 @@ impl IrVisitor {
 
 impl ast::Visitor<(), Reference> for IrVisitor {
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
-        match stmt {
-            ast::Stmt::VarDecl { idents, value, .. } => {
+        match &stmt.kind {
+            ast::StmtKind::VarDecl { idents, value, .. } => {
                 // ???: Handle constant variables?
                 // Const Variables are just single assignment vars, don't see a need to handle them
 
@@ -167,7 +167,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                     if let Some(ref value_ref) = value_ref {
                         // TODO: Decide whether to generate stores or moves, based on address space
                         let asn_inst = Instruction::new(
-                            &ident.location,
+                            &stmt.span,
                             InstructionOp::Move {
                                 dest: ident_ref,
                                 src: value_ref.clone(),
@@ -178,7 +178,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                     }
                 });
             }
-            ast::Stmt::Assign { var_ref, op, value } => {
+            ast::StmtKind::Assign { var_ref, op, value } => {
                 let asn_ref = self.visit_expr(var_ref);
                 let value_ref = self.visit_expr(value);
 
@@ -187,7 +187,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                     let new_value = self.make_temporary(asn_ref.type_ref);
 
                     let bin_op = Instruction::new(
-                        var_ref.get_span(),
+                        &stmt.span,
                         InstructionOp::BinaryOp {
                             dest: new_value.clone(),
                             lhs: asn_ref.clone(),
@@ -210,7 +210,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                     self.make_assign_ref(&asn_ref.name, &asn_ref.type_ref, asn_ref.address_space);
 
                 let asn_inst = Instruction::new(
-                    var_ref.get_span(),
+                    &stmt.span,
                     InstructionOp::Move {
                         dest: asn_ref,
                         src: value_ref,
@@ -219,7 +219,7 @@ impl ast::Visitor<(), Reference> for IrVisitor {
 
                 self.insert_instruction(asn_inst);
             }
-            ast::Stmt::Block { stmts, .. } => {
+            ast::StmtKind::Block { stmts, .. } => {
                 // As a test, split block up into other things
                 let inner_block = self.graph.as_mut().unwrap().create_block();
 
@@ -250,17 +250,13 @@ impl ast::Visitor<(), Reference> for IrVisitor {
     }
 
     fn visit_expr(&mut self, expr: &ast::Expr) -> Reference {
-        match expr {
-            ast::Expr::BinaryOp {
-                left,
-                op,
-                right,
-                eval_type,
-                ..
+        match &expr.kind {
+            ast::ExprKind::BinaryOp {
+                left, op, right, ..
             } => {
                 let left_eval = self.visit_expr(&left);
                 let right_eval = self.visit_expr(&right);
-                let eval_ref = self.make_temporary(*eval_type);
+                let eval_ref = self.make_temporary(expr.eval_type);
 
                 // TODO: Check if any conversions are needed
                 // TODO: If any are global refs, load values from locations
@@ -280,14 +276,9 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::Expr::UnaryOp {
-                op,
-                right,
-                eval_type,
-                ..
-            } => {
+            ast::ExprKind::UnaryOp { op, right, .. } => {
                 let right_eval = self.visit_expr(&right);
-                let eval_ref = self.make_temporary(*eval_type);
+                let eval_ref = self.make_temporary(expr.eval_type);
 
                 // TODO: Check if any conversions are needed
                 // TODO: If `right` is global refs, load value from location
@@ -306,16 +297,12 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::Expr::Literal {
-                value,
-                eval_type,
-                span,
-            } => {
-                let eval_ref = self.make_temporary(*eval_type);
+            ast::ExprKind::Literal { value } => {
+                let eval_ref = self.make_temporary(expr.eval_type);
 
                 // TODO: May want to use a constant table reference, but for now, use a Value
                 let const_inst = Instruction::new(
-                    span,
+                    expr.get_span(),
                     InstructionOp::LoadConst {
                         dest: eval_ref.clone(),
                         constant: value::Value::from_literal(value.clone())
@@ -328,9 +315,9 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::Expr::Reference { ident, .. } => {
+            ast::ExprKind::Reference { ident, .. } => {
                 // Fetch the reference
-                self.make_use_ref(ident)
+                self.make_use_ref(&ident)
             }
             _ => todo!(),
         }

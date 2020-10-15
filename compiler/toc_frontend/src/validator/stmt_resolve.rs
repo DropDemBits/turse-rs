@@ -4,7 +4,7 @@ use super::{ResolveContext, ScopeInfo, Validator};
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use toc_ast::ast::{BinaryOp, Expr, Identifier, Stmt, UnaryOp, VisitorMut};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, Identifier, Stmt, UnaryOp, VisitorMut};
 use toc_ast::block::CodeBlock;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
@@ -139,7 +139,7 @@ impl Validator {
         // If value is an init expression, verify compatibility
         if !types::is_error(type_spec) {
             if let Some(expr) = value {
-                if let Expr::Init { init, exprs, .. } = &**expr {
+                if let ExprKind::Init { init, exprs, .. } = &expr.kind {
                     // Check if the type can accept the "init"
                     // Only valid for arrays, records, and unions
                     let mut field_types = if let Some(type_info) =
@@ -206,14 +206,14 @@ impl Validator {
 
                             let (init_expr, init_type) = init_field.unwrap();
 
-                            if !matches!(*init_expr, Expr::Empty)
+                            if !matches!(init_expr.kind, ExprKind::Error)
                                 && !types::is_assignable_to(
                                     field_type,
                                     &init_type,
                                     &self.type_table,
                                 )
                             {
-                                // Wrong types (skipping over empty expressions as those are produced by the parser)
+                                // Wrong types (skipping over error expressions as those are produced by the parser)
                                 // ???: Report field name for records?
                                 self.context.borrow_mut().reporter.report_error(
                                     init_expr.get_span(),
@@ -228,13 +228,7 @@ impl Validator {
                         match next_init {
                             Some((next_expr, _)) if !has_fields_remaining => {
                                 // Too many init fields
-                                let report_at = if !matches!(next_expr, Expr::Empty) {
-                                    next_expr.get_span()
-                                } else {
-                                    // If empty, at init
-                                    // No other close location to report at
-                                    init
-                                };
+                                let report_at = next_expr.get_span();
 
                                 self.context.borrow_mut().reporter.report_error(
                                     report_at,
@@ -243,8 +237,8 @@ impl Validator {
                             }
                             None if has_fields_remaining => {
                                 // Too few init
-                                let report_at = if !matches!(exprs.last(), Some(Expr::Empty)) {
-                                    exprs.last().unwrap().get_span()
+                                let report_at = if let Some(expr) = exprs.last() {
+                                    expr.get_span()
                                 } else {
                                     // If empty, at init
                                     // Empty case captured by Parser
@@ -503,14 +497,14 @@ impl Validator {
 /// Checks if the given `ref_expr` references a variable or a mutable reference.
 /// Assumes the `ref_expr` has already had the types propogated.
 fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
-    match ref_expr {
-        Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => {
+    match &ref_expr.kind {
+        ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => {
             // Can only assign to a variable reference
             !ident.is_const && !ident.is_typedef
         }
-        Expr::Call { left, .. } => {
-            match &**left {
-                Expr::Reference { ident, .. } | Expr::Dot { field: ident, .. } => {
+        ExprKind::Call { left, .. } => {
+            match &left.kind {
+                ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => {
                     let dealiased_ref = types::dealias_ref(&ident.type_spec, type_table);
                     let type_info = type_table.type_from_ref(&dealiased_ref);
 
@@ -523,11 +517,11 @@ fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
                 _ => can_assign_to_ref_expr(&left, type_table), // Go further down the chain
             }
         }
-        Expr::UnaryOp { op, eval_type, .. } => {
+        ExprKind::UnaryOp { op, .. } => {
             // Only assignable if the expression is a deref, and the eval type isn't an error
-            matches!(op.0, UnaryOp::Deref) && !types::is_error(eval_type)
+            matches!(op.0, UnaryOp::Deref) && !types::is_error(&ref_expr.get_eval_type())
         }
-        Expr::Indirect { .. } => true, // Can always assign to an indirect expression
-        _ => false,                    // Not one of the above, likely unable to assign to
+        ExprKind::Indirect { .. } => true, // Can always assign to an indirect expression
+        _ => false,                        // Not one of the above, likely unable to assign to
     }
 }

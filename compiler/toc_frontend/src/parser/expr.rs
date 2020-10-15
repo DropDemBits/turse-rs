@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all expressions
-use super::{Parser, ParsingStatus};
+use super::{ParseResult, Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, Identifier, Literal};
+use toc_ast::ast::{Expr, ExprKind, Identifier, Literal};
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
@@ -125,8 +125,8 @@ impl Precedence {
 // The contents of the Parser are valid for the entire lifetime of the parser,
 // but the mutable reference is only bound to the lifetime of the
 // PrecedenceRule reference
-type PrefixRule<'s, 'local> = fn(&'local mut Parser<'s>) -> Result<Expr, ParsingStatus>;
-type InfixRule<'s, 'local> = fn(&'local mut Parser<'s>, Expr) -> Result<Expr, ParsingStatus>;
+type PrefixRule<'s, 'local> = fn(&'local mut Parser<'s>) -> ParseResult<Expr>;
+type InfixRule<'s, 'local> = fn(&'local mut Parser<'s>, Expr) -> ParseResult<Expr>;
 
 struct PrecedenceRule<'s, 'local> {
     precedence: Precedence,
@@ -137,21 +137,21 @@ struct PrecedenceRule<'s, 'local> {
 impl<'s> Parser<'s> {
     // --- Expr Parsing --- //
 
-    pub(super) fn expr(&mut self) -> Result<Expr, ParsingStatus> {
+    pub(super) fn expr(&mut self) -> ParseResult<Expr> {
         let last_nesting = self.expr_nesting;
         let expr = self.expr_precedence(Precedence::Imply);
         assert_eq!(self.expr_nesting, last_nesting);
         expr
     }
 
-    pub(super) fn expr_reference(&mut self) -> Result<Expr, ParsingStatus> {
+    pub(super) fn expr_reference(&mut self) -> ParseResult<Expr> {
         let last_nesting = self.expr_nesting;
         let expr = self.expr_precedence(Precedence::Arrow);
         assert_eq!(self.expr_nesting, last_nesting);
         expr
     }
 
-    fn expr_precedence(&mut self, min_precedence: Precedence) -> Result<Expr, ParsingStatus> {
+    fn expr_precedence(&mut self, min_precedence: Precedence) -> ParseResult<Expr> {
         // Update the nesting depth
         self.expr_nesting = self.expr_nesting.saturating_add(1);
 
@@ -167,9 +167,13 @@ impl<'s> Parser<'s> {
                 .checked_sub(1)
                 .expect("Mismatched nesting counts");
 
-            // nom the token!
-            self.next_token();
-            return Err(ParsingStatus::Error);
+            // nom the token! and make error expr
+            let error_expr = super::make_error_expr(self.next_token().location);
+
+            // Skip to a safe point
+            self.skip_to_safe_point();
+
+            return error_expr;
         }
 
         // Keep track of last token
@@ -209,28 +213,23 @@ impl<'s> Parser<'s> {
         });
 
         if prefix_rule.is_err() {
+            // Make error at op location
+            let error_expr = super::make_error_expr(op.location);
+
             // Reduce depth
             self.expr_nesting = self
                 .expr_nesting
                 .checked_sub(1)
                 .expect("Mismatched nesting counts");
 
-            return Err(ParsingStatus::Error);
+            return error_expr;
         }
         let prefix_rule = prefix_rule.unwrap();
 
         // Consume the token
         self.next_token();
 
-        let mut expr = prefix_rule(self)
-            .map_err(|e| {
-                self.expr_nesting = self
-                    .expr_nesting
-                    .checked_sub(1)
-                    .expect("Mismatched nesting counts");
-                e
-            })
-            .unwrap();
+        let mut expr = prefix_rule(self);
 
         // Go over infix operators
         while !self.is_at_end()
@@ -250,7 +249,7 @@ impl<'s> Parser<'s> {
                     .expr_nesting
                     .checked_sub(1)
                     .expect("Mismatched nesting counts");
-                return Ok(expr);
+                return expr;
             }
 
             let infix_rule = infix.infix_rule;
@@ -267,7 +266,7 @@ impl<'s> Parser<'s> {
                     .expr_nesting
                     .checked_sub(1)
                     .expect("Mismatched nesting counts");
-                return Ok(expr);
+                return expr;
             }
 
             // Consume token for infix rule
@@ -275,15 +274,7 @@ impl<'s> Parser<'s> {
 
             // Produce the next expression
             let infix_rule = infix_rule.unwrap();
-            expr = infix_rule(self, expr)
-                .map_err(|e| {
-                    self.expr_nesting = self
-                        .expr_nesting
-                        .checked_sub(1)
-                        .expect("Mismatched nesting counts");
-                    e
-                })
-                .unwrap();
+            expr = infix_rule(self, expr);
         }
 
         // Reduce nesting
@@ -292,19 +283,11 @@ impl<'s> Parser<'s> {
             .checked_sub(1)
             .expect("Mismatched nesting counts");
         // Give back parsed expression
-        Ok(expr)
+        expr
     }
 
-    fn expr_grouping(&mut self) -> Result<Expr, ParsingStatus> {
-        let expr = match self.expr() {
-            Ok(expr) => expr,
-            Err(_) => {
-                // Fatal error encountered
-                // Skip all tokens until we reach a safe point
-                self.skip_to_safe_point();
-                return Ok(Expr::Empty);
-            }
-        };
+    fn expr_grouping(&mut self) -> ParseResult<Expr> {
+        let expr = self.expr();
 
         let _ = self.expects(
             TokenType::RightParen,
@@ -312,56 +295,56 @@ impl<'s> Parser<'s> {
         );
 
         // Give back inner expr
-        Ok(expr)
+        expr
     }
 
-    fn expr_binary(&mut self, lhs: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_binary(&mut self, lhs: Expr) -> ParseResult<Expr> {
         let op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence.up();
-        // Get rhs
-        let rhs = self.expr_precedence(precedence).ok();
+        let rhs = self.expr_precedence(precedence);
 
-        if rhs.is_none() {
-            // Return back the lhs
-            return Ok(lhs);
-        }
-
-        let rhs = rhs.unwrap();
         let span = lhs.get_span().span_to(&self.previous().location);
 
-        Ok(Expr::BinaryOp {
-            left: Box::new(lhs),
-            op: (super::try_into_binary(op.token_type)?, op.location),
-            right: Box::new(rhs),
+        Expr {
+            kind: ExprKind::BinaryOp {
+                left: Box::new(lhs),
+                op: (
+                    super::try_into_binary(op.token_type).expect("Missing BinaryOp mapping"),
+                    op.location,
+                ),
+                right: Box::new(rhs),
+            },
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
             span,
-        })
+        }
     }
 
-    fn expr_unary(&mut self) -> Result<Expr, ParsingStatus> {
+    fn expr_unary(&mut self) -> ParseResult<Expr> {
         let op = self.previous().clone();
-        let right = self
-            .expr_precedence(Precedence::Unary)
-            .ok()
-            .unwrap_or(Expr::Empty);
+        let right = self.expr_precedence(Precedence::Unary);
         let span = op.location.span_to(&self.previous().location);
 
         let location = op.location;
 
-        Ok(Expr::UnaryOp {
-            op: (super::try_into_unary(op.token_type)?, location),
-            right: Box::new(right),
+        Expr {
+            kind: ExprKind::UnaryOp {
+                op: (
+                    super::try_into_unary(op.token_type).expect("Missing UnaryOp mapping"),
+                    location,
+                ),
+                right: Box::new(right),
+            },
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
             span,
-        })
+        }
     }
 
-    fn expr_unary_rule(&mut self) -> Result<Expr, ParsingStatus> {
+    fn expr_unary_rule(&mut self) -> ParseResult<Expr> {
         let mut op = self.previous().clone();
         let precedence = Parser::get_rule(&op.token_type).precedence;
-        let right = self.expr_precedence(precedence).ok().unwrap_or(Expr::Empty);
+        let right = self.expr_precedence(precedence);
         let span = op.location.span_to(&self.previous().location);
 
         if op.token_type == TokenType::Tilde {
@@ -369,42 +352,49 @@ impl<'s> Parser<'s> {
             op.token_type = TokenType::Not;
         }
 
-        Ok(Expr::UnaryOp {
-            op: (super::try_into_unary(op.token_type)?, op.location),
-            right: Box::new(right),
+        Expr {
+            kind: ExprKind::UnaryOp {
+                op: (
+                    super::try_into_unary(op.token_type).expect("Missing UnaryOp mapping"),
+                    op.location,
+                ),
+                right: Box::new(right),
+            },
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
             span,
-        })
+        }
     }
 
-    fn expr_call(&mut self, func_ref: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_call(&mut self, func_ref: Expr) -> ParseResult<Expr> {
         let op = self.previous().clone();
         let arg_list = self.make_arg_list().unwrap();
         let span = func_ref.get_span().span_to(&self.previous().location);
 
-        Ok(Expr::Call {
-            left: Box::new(func_ref),
-            paren_at: op.location,
-            arg_list,
+        Expr {
+            kind: ExprKind::Call {
+                left: Box::new(func_ref),
+                paren_at: op.location,
+                arg_list,
+            },
             eval_type: TypeRef::Unknown,
             is_compile_eval: false,
             span,
-        })
+        }
     }
 
-    fn expr_dot(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_dot(&mut self, var_ref: Expr) -> ParseResult<Expr> {
         self.parse_dot(var_ref, false)
     }
 
-    fn expr_arrow(&mut self, var_ref: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_arrow(&mut self, var_ref: Expr) -> ParseResult<Expr> {
         // Arrow expression may desugar into either a pointer specialization
         // or deref-dot pair depending on the reference type
         self.parse_dot(var_ref, true)
     }
 
     /// Parses a dot, either producing an Expr::Dot or an Expr::Arrow
-    fn parse_dot(&mut self, var_ref: Expr, as_arrow: bool) -> Result<Expr, ParsingStatus> {
+    fn parse_dot(&mut self, var_ref: Expr, as_arrow: bool) -> ParseResult<Expr> {
         // Get the ident
         let ident = self.expects(
             TokenType::Identifier,
@@ -413,7 +403,7 @@ impl<'s> Parser<'s> {
 
         // Return the var_ref on error
         if ident.is_err() {
-            return Ok(var_ref);
+            return var_ref;
         }
 
         let ident = ident.unwrap();
@@ -434,60 +424,79 @@ impl<'s> Parser<'s> {
             0,
         );
 
-        if as_arrow {
-            Ok(Expr::Arrow {
+        let kind = if as_arrow {
+            ExprKind::Arrow {
                 left: Box::new(var_ref),
                 field,
-                eval_type: TypeRef::Unknown,
-                is_compile_eval: false,
-                span,
-            })
+            }
         } else {
-            Ok(Expr::Dot {
+            ExprKind::Dot {
                 left: Box::new(var_ref),
                 field,
-                eval_type: TypeRef::Unknown,
-                is_compile_eval: false,
-                span,
-            })
+            }
+        };
+
+        Expr {
+            kind,
+            eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
+            span,
         }
     }
 
-    fn expr_primary(&mut self) -> Result<Expr, ParsingStatus> {
+    fn expr_primary(&mut self) -> ParseResult<Expr> {
         let token = self.previous().clone();
         let token_type = token.token_type.clone();
 
         match token_type {
-            TokenType::StringLiteral(s) => Ok(Expr::Literal {
+            TokenType::StringLiteral(s) => Expr {
                 eval_type: TypeRef::Primitive(types::get_string_kind(&s)),
-                value: Literal::StrSequence(s),
+                kind: ExprKind::Literal {
+                    value: Literal::StrSequence(s),
+                },
+                is_compile_eval: true,
                 span: token.location,
-            }),
-            TokenType::CharLiteral(s) => Ok(Expr::Literal {
+            },
+            TokenType::CharLiteral(s) => Expr {
                 eval_type: TypeRef::Primitive(types::get_char_kind(&s)),
-                value: Literal::CharSequence(s),
+                kind: ExprKind::Literal {
+                    value: Literal::CharSequence(s),
+                },
+                is_compile_eval: true,
                 span: token.location,
-            }),
-            TokenType::NatLiteral(v) => Ok(Expr::Literal {
-                value: Literal::Nat(v),
+            },
+            TokenType::NatLiteral(v) => Expr {
+                kind: ExprKind::Literal {
+                    value: Literal::Nat(v),
+                },
+                is_compile_eval: true,
                 eval_type: TypeRef::Primitive(types::get_intnat_kind(v)),
                 span: token.location,
-            }),
-            TokenType::RealLiteral(v) => Ok(Expr::Literal {
-                value: Literal::Real(v),
+            },
+            TokenType::RealLiteral(v) => Expr {
+                kind: ExprKind::Literal {
+                    value: Literal::Real(v),
+                },
+                is_compile_eval: true,
                 eval_type: TypeRef::Primitive(PrimitiveType::Real),
                 span: token.location,
-            }),
-            TokenType::True => Ok(Expr::Literal {
-                value: Literal::Bool(true),
+            },
+            TokenType::True => Expr {
+                kind: ExprKind::Literal {
+                    value: Literal::Bool(true),
+                },
+                is_compile_eval: true,
                 eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
                 span: token.location,
-            }),
-            TokenType::False => Ok(Expr::Literal {
-                value: Literal::Bool(false),
+            },
+            TokenType::False => Expr {
+                kind: ExprKind::Literal {
+                    value: Literal::Bool(false),
+                },
+                is_compile_eval: true,
                 eval_type: TypeRef::Primitive(PrimitiveType::Boolean),
                 span: token.location,
-            }),
+            },
             TokenType::Nil => {
                 // Consume optional collection / class id
 
@@ -503,11 +512,14 @@ impl<'s> Parser<'s> {
                     );
                 }
 
-                Ok(Expr::Literal {
-                    value: Literal::Nil,
+                Expr {
+                    kind: ExprKind::Literal {
+                        value: Literal::Nil,
+                    },
                     eval_type: TypeRef::Primitive(PrimitiveType::Nil),
                     span: token.location,
-                })
+                    is_compile_eval: false,
+                }
             }
             _ => {
                 // Unexpected token
@@ -515,13 +527,13 @@ impl<'s> Parser<'s> {
                     &token.location,
                     format_args!("Unexpected token '{}'", self.get_token_lexeme(&token)),
                 );
-                // Give back an empty expression
-                Ok(Expr::Empty)
+                // Give back an error expression
+                super::make_error_expr(token.location)
             }
         }
     }
 
-    fn expr_ident(&mut self) -> Result<Expr, ParsingStatus> {
+    fn expr_ident(&mut self) -> ParseResult<Expr> {
         let ident_tok = self.previous().clone();
 
         if let TokenType::Identifier = &ident_tok.token_type {
@@ -529,10 +541,14 @@ impl<'s> Parser<'s> {
             // something imported unqualified from another file. These
             // references will be resolved at validator time, and that
             // is where the error will be reported
-            Ok(Expr::Reference {
-                ident: self.use_ident(ident_tok).unwrap_or_else(|err| err.into()),
+            Expr {
+                is_compile_eval: false,
                 eval_type: TypeRef::Unknown,
-            })
+                span: ident_tok.location,
+                kind: ExprKind::Reference {
+                    ident: self.use_ident(ident_tok).unwrap_or_else(|err| err.into()),
+                },
+            }
         } else {
             panic!(
                 "Identifier found but also not found (at {:?})",
@@ -542,7 +558,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parses an indirection expr, using a type reference expression
-    fn expr_indirect_ref(&mut self, type_ref: Expr) -> Result<Expr, ParsingStatus> {
+    fn expr_indirect_ref(&mut self, type_ref: Expr) -> ParseResult<Expr> {
         self.expr_indirect(
             *type_ref.get_span(),
             Some(Box::new(type_ref)),
@@ -551,7 +567,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parses an indirection expr, using a primitive type reference
-    fn expr_indirect_type(&mut self) -> Result<Expr, ParsingStatus> {
+    fn expr_indirect_type(&mut self) -> ParseResult<Expr> {
         // Valid primitive types are:
         // - `addressint`
         // - `int`, `int1`, `int2`, `int4`
@@ -572,12 +588,16 @@ impl<'s> Parser<'s> {
             self.expr_indirect(start_span, None, type_ref)
         } else {
             // Make a dummy expression
-            Ok(Expr::Indirect {
-                reference: None,
-                addr: Box::new(Expr::Empty),
-                eval_type: type_ref,
+            Expr {
+                kind: ExprKind::Indirect {
+                    reference: None,
+                    addr: Box::new(super::make_error_expr(self.current().location)),
+                    indirect_type: type_ref,
+                },
+                is_compile_eval: false,
+                eval_type: TypeRef::Unknown,
                 span: start_span,
-            })
+            }
         }
     }
 
@@ -587,24 +607,28 @@ impl<'s> Parser<'s> {
         span_from: Location,
         reference: Option<Box<Expr>>,
         eval_type: TypeRef,
-    ) -> Result<Expr, ParsingStatus> {
+    ) -> ParseResult<Expr> {
         // ... '@' '(' expr ')'
         assert_eq!(self.previous().token_type, TokenType::At);
 
         let _ = self.expects(TokenType::LeftParen, format_args!("Expected '(' after '@'"));
-        let addr = Box::new(self.expr().unwrap_or(Expr::Empty));
+        let addr = Box::new(self.expr());
         let _ = self.expects(
             TokenType::RightParen,
             format_args!("Expected ')' after address expression"),
         );
         let span = span_from.span_to(&self.previous().location);
 
-        Ok(Expr::Indirect {
-            reference,
-            addr,
+        Expr {
+            kind: ExprKind::Indirect {
+                reference,
+                addr,
+                indirect_type: TypeRef::Unknown,
+            },
+            is_compile_eval: false,
             eval_type,
             span,
-        })
+        }
     }
 
     /// Parses an init expression.
@@ -613,7 +637,7 @@ impl<'s> Parser<'s> {
     /// While not a true expression, it is in expression position.
     ///
     /// `init` `(` expr (`,` expr)+ `)`
-    pub(super) fn expr_init(&mut self) -> Result<Expr, ParsingStatus> {
+    pub(super) fn expr_init(&mut self) -> ParseResult<Expr> {
         let init_token = self.previous().clone();
 
         let _ = self.expects(
@@ -626,7 +650,7 @@ impl<'s> Parser<'s> {
             let next_expr = self.expr();
 
             // Always fill positions with something
-            exprs.push(next_expr.unwrap_or(Expr::Empty));
+            exprs.push(next_expr);
 
             if !self.optional(TokenType::Comma) {
                 // No more commas
@@ -639,11 +663,15 @@ impl<'s> Parser<'s> {
             format_args!("Expected ')' after the last expression"),
         );
 
-        Ok(Expr::Init {
+        Expr {
+            kind: ExprKind::Init {
+                init: init_token.location,
+                exprs,
+            },
+            is_compile_eval: false,
+            eval_type: TypeRef::TypeError, // Doesn't evaluate to anything
             span: init_token.location.span_to(&self.previous().location),
-            init: init_token.location,
-            exprs,
-        })
+        }
     }
 
     // --- Helpers --- //
@@ -660,7 +688,7 @@ impl<'s> Parser<'s> {
         if self.current().token_type != TokenType::RightParen {
             loop {
                 // Fill arguments with something
-                arg_list.push(self.expr().ok().unwrap_or(Expr::Empty));
+                arg_list.push(self.expr());
 
                 if self.current().token_type != TokenType::Comma {
                     break;
