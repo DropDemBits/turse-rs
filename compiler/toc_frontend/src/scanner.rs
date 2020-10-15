@@ -277,8 +277,14 @@ impl<'s> Scanner<'s> {
         let base_numerals = self.cursor;
 
         match self.peek {
-            '.' | 'e' | 'E' => {
-                // Nom '.' or 'e'
+            '.' if self.peek != '.' => {
+                // Don't consume a TokenType::Range accidentally
+                // Nom '.'
+                self.next_char();
+                self.make_number_real(base_numerals)
+            }
+            'e' | 'E' => {
+                // Nom 'e'
                 self.next_char();
                 self.make_number_real(base_numerals)
             }
@@ -1581,5 +1587,30 @@ mod test {
             vec![TokenType::Function, TokenType::Procedure,]
         );
         assert!(!context.borrow().reporter.has_error());
+    }
+
+    // Other Tests
+    // Covers any tests that don't really fit in the above categories, or are regression tests
+
+    #[test]
+    fn test_nat_literal_before_range() {
+        // Dot should not form a RealLiteral
+        let (mut scanner, context) = make_scanner("1..");
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(1));
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Range);
+        assert!(!context.borrow().reporter.has_error());
+
+        // Should scan as `RealLiteral(0.0)` and `ggy`
+        let source: &str = "1eggy";
+        let (mut scanner, context) = make_scanner(source);
+        assert_eq!(
+            scanner.next().unwrap().token_type,
+            TokenType::RealLiteral(0.0)
+        );
+
+        let ident = scanner.next().unwrap();
+        assert_eq!(ident.token_type, TokenType::Identifier);
+        assert_eq!(ident.location.get_lexeme(source), "ggy");
+        assert!(context.borrow().reporter.has_error());
     }
 }
