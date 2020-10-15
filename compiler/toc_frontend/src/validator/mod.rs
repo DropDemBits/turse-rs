@@ -9,14 +9,15 @@
 //! resolving types in declaration statements
 
 // Validator fragments
-mod expr_resolve;
-mod stmt_resolve;
-mod type_resolve;
+mod expr;
+mod stmt;
+mod types;
 
 use crate::context::CompileContext;
 use toc_ast::ast::{Expr, ExprKind, Identifier, Stmt, StmtKind, VisitorMut};
 use toc_ast::block::CodeBlock;
-use toc_ast::types::{self, Type, TypeRef, TypeTable};
+use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
+use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
 
 use std::cell::RefCell;
@@ -208,7 +209,7 @@ impl Validator {
 
     /// De-aliases a type ref, following through `Type::Alias`'s and resolving `Type::Reference`s.
     fn dealias_resolve_type(&mut self, type_ref: TypeRef) -> TypeRef {
-        let type_id = if let Some(id) = types::get_type_id(&type_ref) {
+        let type_id = if let Some(id) = ty::get_type_id(&type_ref) {
             id
         } else {
             // Non-named types don't need to be dealiased (already at the base type)
@@ -236,7 +237,7 @@ impl Validator {
         // parser should not produce such a alias cyclic chain, and when using
         // external libraries, the type references should be validated to not
         // produce a cyclic reference chain.
-        while let Some(current_id) = types::get_type_id(&current_ref) {
+        while let Some(current_id) = ty::get_type_id(&current_ref) {
             // Reference types should already be resolved
             let mut type_info = self.type_table.get_type(current_id).clone();
             debug_assert!(!matches!(type_info, Type::Reference { .. }));

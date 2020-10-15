@@ -1,5 +1,5 @@
 //! Validator fragment, resolves all statements and declarations
-use super::expr_resolve;
+use super::expr;
 use super::{ResolveContext, ScopeInfo, Validator};
 
 use std::cell::RefCell;
@@ -413,7 +413,7 @@ impl Validator {
 
         if let Some(op) = op {
             let produce_type =
-                expr_resolve::check_binary_operands(left_type, *op, right_type, &self.type_table);
+                expr::check_binary_operands(left_type, *op, right_type, &self.type_table);
             if produce_type.is_err()
                 || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
             {
