@@ -34,6 +34,7 @@ pub struct Scanner<'a> {
 }
 
 impl<'s> Scanner<'s> {
+    /// Creates a scanner for the given source and `CompileContext`
     pub fn scan_source(source: &'s str, context: Rc<RefCell<CompileContext>>) -> Self {
         let mut next_indicies = source.char_indices();
         let mut chars = source.chars();
@@ -41,7 +42,7 @@ impl<'s> Scanner<'s> {
         // Skip over first char
         next_indicies.next();
 
-        let current = '\0'; // next_char must be the first call
+        let current = chars.next().unwrap_or('\0');
         let peek = chars.next().unwrap_or('\0');
 
         Self {
@@ -96,8 +97,6 @@ impl<'s> Scanner<'s> {
     /// or `None` if at the end of the file
     fn skip_whitespace(&mut self) -> char {
         loop {
-            self.next_char();
-
             match self.current {
                 // Whitespace
                 ' ' => self.cursor.columns(1),
@@ -118,6 +117,7 @@ impl<'s> Scanner<'s> {
             }
 
             // Step over whitespace
+            self.next_char();
             self.cursor.step();
         }
     }
@@ -134,18 +134,18 @@ impl<'s> Scanner<'s> {
         } else {
             let token = match chr {
                 // Meaningful tokens
-                '(' => self.make_token(TokenType::LeftParen, 1),
-                ')' => self.make_token(TokenType::RightParen, 1),
-                '@' => self.make_token(TokenType::At, 1),
-                '^' => self.make_token(TokenType::Caret, 1),
-                ',' => self.make_token(TokenType::Comma, 1),
-                '#' => self.make_token(TokenType::Pound, 1),
-                '+' => self.make_token(TokenType::Plus, 1),
-                ';' => self.make_token(TokenType::Semicolon, 1),
-                '~' => self.make_token(TokenType::Tilde, 1),
-                '&' => self.make_token(TokenType::And, 1),
-                '|' => self.make_token(TokenType::Or, 1),
-                '/' => self.make_token(TokenType::Slash, 1),
+                '(' => self.make_and_advance(TokenType::LeftParen),
+                ')' => self.make_and_advance(TokenType::RightParen),
+                '@' => self.make_and_advance(TokenType::At),
+                '^' => self.make_and_advance(TokenType::Caret),
+                ',' => self.make_and_advance(TokenType::Comma),
+                '#' => self.make_and_advance(TokenType::Pound),
+                '+' => self.make_and_advance(TokenType::Plus),
+                ';' => self.make_and_advance(TokenType::Semicolon),
+                '~' => self.make_and_advance(TokenType::Tilde),
+                '&' => self.make_and_advance(TokenType::And),
+                '|' => self.make_and_advance(TokenType::Or),
+                '/' => self.make_and_advance(TokenType::Slash),
                 '-' => self.make_or_default('>', TokenType::Arrow, TokenType::Minus),
                 '=' => self.make_or_default('>', TokenType::Imply, TokenType::Equ),
                 ':' => self.make_or_default('=', TokenType::Assign, TokenType::Colon),
@@ -169,6 +169,9 @@ impl<'s> Scanner<'s> {
                             format_args!("Unrecognized character '{}'", chr),
                         );
 
+                        // Step over invalid char
+                        self.next_char();
+
                         // Create an error token
                         self.make_token(TokenType::Error, 1)
                     }
@@ -179,7 +182,7 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    /// Makes a token and adds it to the token list
+    /// Makes a token
     /// Also steps the cursor's columns
     fn make_token(&mut self, token_type: TokenType, steps: usize) -> Token<'s> {
         self.cursor.columns(steps);
@@ -187,18 +190,31 @@ impl<'s> Scanner<'s> {
         Token::new(token_type, self.cursor)
     }
 
+    /// Makes a token and steps over the current character
+    /// Also steps the cursor's columns
+    fn make_and_advance(&mut self, token_type: TokenType) -> Token<'s> {
+        self.next_char();
+        self.make_token(token_type, 1)
+    }
+
     /// Makes the `does_match` token if the char matched, otherwise makes the `no_match` token
+    ///
+    /// Also steps over the component characters
     fn make_or_default(
         &mut self,
         expect: char,
         does_match: TokenType,
         no_match: TokenType,
     ) -> Token<'s> {
-        if self.match_next(expect) {
-            self.make_token(does_match, 2)
+        let (production, steps) = if self.match_next(expect) {
+            (does_match, 2)
         } else {
-            self.make_token(no_match, 1)
-        }
+            (no_match, 1)
+        };
+
+        // Nom the unnom'd char
+        self.next_char();
+        self.make_token(production, steps)
     }
 
     /// Skips over a block comment
@@ -260,6 +276,7 @@ impl<'s> Scanner<'s> {
         }
     }
 
+    /// Scans a number literal
     fn make_number(&mut self) -> Token<'s> {
         // 3 main number formats
         // numeric+
@@ -267,37 +284,26 @@ impl<'s> Scanner<'s> {
         // numeric* '.' (numeric+)? ([eE] numeric+)?
 
         // Go over main digits first
-        if matches!(self.current, '0'..='9') {
-            while matches!(self.peek, '0'..='9') {
-                self.next_char();
-            }
+        while matches!(self.current, '0'..='9') {
+            self.next_char();
         }
 
         // Grab the base numerals before continuing
         let base_numerals = self.cursor;
 
-        match self.peek {
+        match self.current {
             '.' if self.peek != '.' => {
                 // Don't consume a TokenType::Range accidentally
-                // Nom '.'
-                self.next_char();
                 self.make_number_real(base_numerals)
             }
-            'e' | 'E' => {
-                // Nom 'e'
-                self.next_char();
-                self.make_number_real(base_numerals)
-            }
-            '#' => {
-                // Nom '#'
-                self.next_char();
-                self.make_number_radix(base_numerals)
-            }
+            'e' | 'E' => self.make_number_real(base_numerals),
+            '#' => self.make_number_radix(base_numerals),
             // No nom as `self.peek` may not be a valid base 10 numeral
             _ => self.make_number_basic(base_numerals),
         }
     }
 
+    /// Scans a plain old NatLiteral, only accepting base 10 digits
     fn make_number_basic(&mut self, numerals: Location) -> Token<'s> {
         // End normal NatLiteral
         let numerals = numerals.get_lexeme(self.source);
@@ -330,21 +336,25 @@ impl<'s> Scanner<'s> {
         // Done
     }
 
+    /// Scans an integer literal with a customizable base (between 2 - 36)
     fn make_number_radix(&mut self, base_numerals: Location) -> Token<'s> {
+        // Nom '#'
+        self.next_char();
+
         // Base has already been parsed
         let base_numerals = base_numerals.get_lexeme(self.source).to_string();
 
         // Go over the rest of the digits
-        let mut radix_locate = self.cursor;
-        radix_locate.step();
+        let mut radix_cursor = self.cursor;
+        radix_cursor.step();
 
-        while self.peek.is_ascii_alphanumeric() {
+        while self.current.is_ascii_alphanumeric() {
             self.next_char();
         }
 
         // Select the rest of the radix digits
-        radix_locate.current_to_other(&self.cursor);
-        let radix_numerals = radix_locate
+        radix_cursor.current_to_other(&self.cursor);
+        let radix_numerals = radix_cursor
             .get_lexeme(self.source)
             .to_string()
             .to_ascii_lowercase();
@@ -442,25 +452,25 @@ impl<'s> Scanner<'s> {
         }
     }
 
+    /// Makes a RealLiteral, complete with parsing decimal digits and scientific notation exponents
     fn make_number_real(&mut self, numerals: Location) -> Token<'s> {
-        let mut numerals = numerals;
+        // First part of significand has already been parsed
 
         if self.current == '.' {
-            // First part of significand has already been parsed
+            // Nom '.'
+            self.next_char();
 
             // Get the rest of the significand
-            while matches!(self.peek, '0'..='9') {
-                self.next_char();
-            }
-
-            if matches!(self.peek, 'e' | 'E') {
-                // Nom 'e' for below
+            while matches!(self.current, '0'..='9') {
                 self.next_char();
             }
         }
 
         let requires_exponent_digits = if matches!(self.current, 'e' | 'E') {
-            if matches!(self.peek, '-' | '+') {
+            // Nom 'e'
+            self.next_char();
+
+            if matches!(self.current, '-' | '+') {
                 // Consume exponent sign
                 self.next_char();
             }
@@ -468,7 +478,7 @@ impl<'s> Scanner<'s> {
             // Parse the exponent digits
             let mut found_exponent_digits = false;
 
-            while matches!(self.peek, '0'..='9') {
+            while matches!(self.current, '0'..='9') {
                 self.next_char();
                 found_exponent_digits = true;
             }
@@ -481,6 +491,7 @@ impl<'s> Scanner<'s> {
         };
 
         // Try to parse the value
+        let mut numerals = numerals;
         numerals.current_to_other(&self.cursor);
         let digits = numerals.get_lexeme(self.source);
         let digits_len = digits.len();
@@ -527,54 +538,58 @@ impl<'s> Scanner<'s> {
         self.make_token(TokenType::RealLiteral(parsed_value), 0)
     }
 
-    fn make_str_literal(&mut self, is_str_literal: bool, s: String, width: usize) -> Token<'s> {
-        if is_str_literal {
-            self.make_token(TokenType::StringLiteral(s), width)
-        } else {
-            self.make_token(TokenType::CharLiteral(s), width)
-        }
-    }
-
+    /// Makes a char sequence, handling all of the escapes and stuff
     fn make_char_sequence(&mut self, is_str_literal: bool) -> Token<'s> {
+        // Step over starting delimeter
+        self.next_char();
+
         let ending_delimiter = if is_str_literal { '"' } else { '\'' };
         let literal_text = self.extract_char_sequence(ending_delimiter);
 
-        // Get the width of the lexeme
+        // Get lexeme (the entire text including the starting delimiter) and lexeme width
         let lexeme = self.cursor.get_lexeme(self.source);
-        let part_width = UnicodeSegmentation::graphemes(lexeme, true).count();
-        // Advance to the correct location
-        self.cursor.columns(part_width);
+        let lexeme_partial_width = UnicodeSegmentation::graphemes(lexeme, true).count();
 
-        let real_width;
+        // Advance column width to the correct location
+        self.cursor.columns(lexeme_partial_width);
 
-        match self.peek {
+        // Get width adjustment based on ending delimeter
+        let width_adjust = match self.current {
             '\r' | '\n' => {
                 self.context.borrow_mut().reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the line"),
                 );
-                real_width = 0;
+
+                0
             }
             '\0' => {
                 self.context.borrow_mut().reporter.report_error(
                     &self.cursor,
                     format_args!("String literal ends at the end of the file"),
                 );
-                real_width = part_width;
+
+                0
             }
             _ => {
-                assert!((self.peek == '\'' || self.peek == '"'));
+                assert!(matches!(self.current, '\'' | '"'));
 
                 // Consume other delimiter
                 self.next_char();
 
-                // Adjust part_width by 1 to account for ending delimiter
-                real_width = 1;
+                // Adjust width by 1 to account for ending delimiter
+                1
             }
-        }
+        };
 
         // Make it!
-        self.make_str_literal(is_str_literal, literal_text, real_width)
+        let kind = if is_str_literal {
+            TokenType::StringLiteral(literal_text)
+        } else {
+            TokenType::CharLiteral(literal_text)
+        };
+
+        self.make_token(kind, width_adjust)
     }
 
     /// Extracts the character sequence from the source, handling escape sequences
@@ -595,23 +610,30 @@ impl<'s> Scanner<'s> {
         // this issue by lossy converting the UTF-8 strings into ASCII strings.
 
         // Keep going along the string until the end of the line, or the delimiter
-        while self.peek != ending_delimiter && !matches!(self.peek, '\r' | '\n' | '\0') {
-            let current = self.next_char();
-            match current {
-                '^' | '\\' if matches!(self.peek, '\r' | '\n' | '\0') => break, // Reached the end of the literal
+        while self.current != ending_delimiter && !matches!(self.current, '\r' | '\n' | '\0') {
+            let chr = self.current;
+            // Always nom on character
+            self.next_char();
+
+            match chr {
+                '^' | '\\' if matches!(self.current, '\r' | '\n' | '\0') => break, // Reached the end of the literal
                 '\\' => self.scan_slash_escape(&mut literal_text),
                 '^' => self.scan_caret_escape(&mut literal_text),
-                _ => literal_text.push(current),
+                current => literal_text.push(current),
             }
         }
 
         literal_text
     }
 
+    /// Scans a slash escape, pushing the escaped character into `literal_text`
     fn scan_slash_escape(&mut self, literal_text: &mut String) {
         // Parse escape character
-        let escaped_at = self.cursor;
-        let escaped = self.next_char();
+        let escaped = self.current;
+        let escape_start = self.cursor;
+
+        // Character will always be nom'd (this noms the char after the slash)
+        self.next_char();
 
         match escaped {
             '\'' => {
@@ -650,14 +672,15 @@ impl<'s> Scanner<'s> {
             }
             '0'..='7' => {
                 // Octal str, {1-3}, 0 - 377
-                let mut octal_cursor = escaped_at;
+                let mut octal_cursor = escape_start;
 
                 // Start at the first digit
                 octal_cursor.step();
 
                 // Nom the rest of the octal digits
+                // First one already has been nom'd
                 for _ in 1..3 {
-                    if !matches!(self.peek, '0'..='7') {
+                    if !matches!(self.current, '0'..='7') {
                         break;
                     }
 
@@ -687,7 +710,7 @@ impl<'s> Scanner<'s> {
                     literal_text.push((to_chr as u8) as char);
                 }
             }
-            'x' if self.peek.is_ascii_hexdigit() => {
+            'x' if self.current.is_ascii_hexdigit() => {
                 // Hex sequence, {1-2} digits
                 let mut hex_cursor = self.cursor;
 
@@ -696,7 +719,7 @@ impl<'s> Scanner<'s> {
 
                 // Nom all of the hex digits
                 for _ in 0..2 {
-                    if !self.peek.is_ascii_hexdigit() {
+                    if !self.current.is_ascii_hexdigit() {
                         break;
                     }
 
@@ -713,7 +736,7 @@ impl<'s> Scanner<'s> {
                 // Push the parsed char
                 literal_text.push(to_chr as char);
             }
-            'u' | 'U' if self.peek.is_ascii_hexdigit() => {
+            'u' | 'U' if self.current.is_ascii_hexdigit() => {
                 // u: unicode character {4-8} `char::REPLACEMENT_CHARACTER` if out of range
                 let mut hex_cursor = self.cursor;
 
@@ -722,7 +745,7 @@ impl<'s> Scanner<'s> {
 
                 // Nom all of the hex digits
                 for _ in 0..8 {
-                    if !self.peek.is_ascii_hexdigit() {
+                    if !self.current.is_ascii_hexdigit() {
                         break;
                     }
 
@@ -758,7 +781,7 @@ impl<'s> Scanner<'s> {
             }
             _ => {
                 // Fetch the location
-                let mut bad_escape = escaped_at;
+                let mut bad_escape = escape_start;
 
                 // Select the escape sequence
                 bad_escape.step();
@@ -793,14 +816,17 @@ impl<'s> Scanner<'s> {
 
                 // Add escaped to the string
                 literal_text.push(escaped);
+                // Skip over it
+                self.next_char();
             }
         }
     }
 
+    /// Scans a caret escape, pushing the escaped character into `literal_text`
     fn scan_caret_escape(&mut self, literal_text: &mut String) {
         // Parse caret notation
         // ASCII character range from '@' to '_', includes '?' (DEL)
-        let escaped = self.peek;
+        let escaped = self.current;
         match escaped {
             '@'..='_' | 'a'..='z' => {
                 let parsed = (escaped.to_ascii_uppercase() as u8) & 0x1F;
@@ -842,14 +868,17 @@ impl<'s> Scanner<'s> {
         self.next_char();
     }
 
+    /// Makes an identifier
     fn make_ident(&mut self) -> Token<'s> {
         // Consume all of the identifier digits
-        while is_ident_char_or_digit(self.peek) {
+        while is_ident_char_or_digit(self.current) {
             self.next_char();
         }
 
+        let ident_cursor = self.cursor;
+
         // Produce the identifier
-        let ident_slice = self.cursor.get_lexeme(self.source);
+        let ident_slice = ident_cursor.get_lexeme(self.source);
         let len = UnicodeSegmentation::graphemes(ident_slice, true).count();
 
         let token_type = match ident_slice {
@@ -1008,6 +1037,9 @@ enum IntErrKind {
     Other(ParseIntError),
 }
 
+/// Tries to parse an int, giving back one of the above errors.
+///
+/// Just a wrapper around `u64::from_str_radix`.
 fn try_parse_int(digits: &str, base: u32) -> Result<u64, IntErrKind> {
     match u64::from_str_radix(&digits, base) {
         Ok(num) => Ok(num),
@@ -1559,9 +1591,18 @@ mod test {
     #[test]
     fn test_line_comment() {
         // Line comment
-        let (mut scanner, context) = make_scanner("% abcd asd\n asd");
-        assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
-        assert_eq!(scanner.next(), None);
+        let source = "% abcd asd\n asd";
+        let (mut scanner, context) = make_scanner(source);
+        let e = scanner.next().unwrap();
+        assert_eq!(e.token_type, TokenType::Identifier);
+
+        let eof = scanner.next();
+        assert_eq!(
+            &eof,
+            &None,
+            "is {:?}",
+            eof.as_ref().map(|tok| tok.location.get_lexeme(source))
+        );
         assert!(!context.borrow().reporter.has_error());
 
         // End of file
@@ -1576,6 +1617,14 @@ mod test {
         // Keyword as the corresponding keyword
         let (mut scanner, context) = make_scanner("and");
         assert_eq!(scanner.next().unwrap().token_type, TokenType::And);
+        assert!(!context.borrow().reporter.has_error());
+
+        // Multiple keywords in sequence
+        let (mut scanner, context) = make_scanner("var ident : int");
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Var);
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Colon);
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Int);
         assert!(!context.borrow().reporter.has_error());
     }
 
