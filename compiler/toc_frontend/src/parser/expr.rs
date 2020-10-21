@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all expressions
 use super::{ParseResult, Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, ExprKind, Identifier, Literal};
+use toc_ast::ast::{Expr, ExprKind, IdentRef, Identifier, Literal};
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
@@ -414,15 +414,7 @@ impl<'s> Parser<'s> {
         let name = ident.location.get_lexeme(&self.source).to_string();
         let span = var_ref.get_span().span_to(&self.previous().location);
         // Field info will be updated to the correct type at validator time
-        let field = Identifier::new(
-            ident.location,
-            TypeRef::Unknown,
-            name,
-            false,
-            false,
-            true,
-            0,
-        );
+        let field = (name, TypeRef::Unknown, ident.location);
 
         let kind = if as_arrow {
             ExprKind::Arrow {
@@ -500,7 +492,8 @@ impl<'s> Parser<'s> {
             TokenType::Nil => {
                 // Consume optional collection / class id
 
-                // TODO: validate that theses are the same as the pointer type (ie produce nil for a given type id)
+                // TODO: Make validator validate that theses are the same as the pointer type (ie produce nil for given type id)
+                // TODO: Parse as a type reference
                 // For classes, both must have a common ancestor
                 if self.optional(TokenType::LeftParen) {
                     // Consume optional identifier & parens
@@ -536,24 +529,26 @@ impl<'s> Parser<'s> {
     fn expr_ident(&mut self) -> ParseResult<Expr> {
         let ident_tok = self.previous().clone();
 
-        if let TokenType::Identifier = &ident_tok.token_type {
-            // Ignore the error right now, as the identifier may reference
-            // something imported unqualified from another file. These
-            // references will be resolved at validator time, and that
-            // is where the error will be reported
-            Expr {
-                is_compile_eval: false,
-                eval_type: TypeRef::Unknown,
-                span: ident_tok.location,
-                kind: ExprKind::Reference {
-                    ident: self.use_ident(ident_tok).unwrap_or_else(|err| err.into()),
-                },
-            }
-        } else {
-            panic!(
-                "Identifier found but also not found (at {:?})",
-                ident_tok.location
-            )
+        assert_eq!(
+            &ident_tok.token_type,
+            &TokenType::Identifier,
+            "Identifier found but also not found (at {:?})",
+            ident_tok.location
+        );
+
+        // Ignore the error right now, as the identifier may reference
+        // something imported unqualified from another file. These
+        // references will be resolved at validator time, and that
+        // is where the error will be reported
+        let span = ident_tok.location;
+
+        Expr {
+            kind: ExprKind::Reference {
+                ident: IdentRef(self.use_ident(ident_tok), span),
+            },
+            is_compile_eval: false,
+            eval_type: TypeRef::Unknown,
+            span,
         }
     }
 

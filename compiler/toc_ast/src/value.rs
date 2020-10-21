@@ -140,6 +140,10 @@ impl TryFrom<Value> for Expr {
                 ))
             }
             Value::EnumValue(field_id, enum_id, _) => {
+                // NB: IdentId's for both will be stored in types, so no need to cons new ones
+                // TODO(resolver): Uncomment this stuff once names are bundled in
+
+                /*
                 // No location information for both of them
                 let enum_ident = Identifier::new(
                     Location::new(),
@@ -176,7 +180,8 @@ impl TryFrom<Value> for Expr {
                     is_compile_eval: true,
                     eval_type: TypeRef::Named(field_id),
                     span: Location::new(),
-                })
+                })*/
+                todo!("redo for new system")
             }
         }
     }

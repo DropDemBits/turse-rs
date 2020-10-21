@@ -4,7 +4,7 @@ pub mod context;
 pub mod parser;
 pub mod scanner;
 pub mod token;
-pub mod validator;
+//pub mod validator; // TODO: Re-enable validator once resolver mess is done
 
 extern crate toc_ast;
 extern crate toc_core;

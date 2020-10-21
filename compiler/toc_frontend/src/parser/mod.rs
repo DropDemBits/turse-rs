@@ -7,13 +7,14 @@ mod types;
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, Identifier, UnaryOp};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentId, Identifier, UnaryOp};
 use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
-use toc_ast::scope::IdentError;
+use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
@@ -39,16 +40,21 @@ pub struct Parser<'s> {
     current: Token<'s>,
     /// Next token to parse
     peek: Token<'s>,
+
     /// Parsed Code Unit
     unit: Option<CodeUnit>,
     /// Actively parsed blocks
     blocks: Vec<Rc<RefCell<CodeBlock>>>,
+
     /// Expression nesting depth
     expr_nesting: usize,
     /// Statement nesting depth
     stmt_nesting: usize,
     /// Type nesting depth
     type_nesting: usize,
+
+    /// UnitScope handling identifier import semantics
+    unit_scope: scope::UnitScope,
 }
 
 #[derive(Debug)]
@@ -83,6 +89,8 @@ impl<'s> Parser<'s> {
             expr_nesting: 0,
             stmt_nesting: 0,
             type_nesting: 0,
+
+            unit_scope: scope::UnitScope::new(),
         }
     }
 
@@ -290,11 +298,51 @@ impl<'s> Parser<'s> {
         }
     }
 
-    // -- Wrappers around the scope list -- //
-    // See `Scope` for the documentation of these functions
-
-    /// Declares an identifer in the current scope
+    /// Declares an identifer in the current scope.
+    ///
+    /// Replaces any previous declaration of an identifier, if any exists.
     fn declare_ident(
+        &mut self,
+        ident: Token,
+        type_spec: TypeRef,
+        is_const: bool,
+        is_typedef: bool,
+        is_pervasive: bool,
+    ) -> IdentId {
+        let decl_location = ident.location;
+        let name = decl_location.get_lexeme(self.source).to_string();
+
+        self.unit_scope.declare_ident(
+            name,
+            decl_location,
+            type_spec,
+            is_const,
+            is_typedef,
+            is_pervasive,
+        )
+    }
+
+    /// Uses an identifer.
+    ///
+    /// If an identifier is not declared, a new identifier is made.
+    fn use_ident(&mut self, ident: Token) -> IdentId {
+        let name = ident.location.get_lexeme(self.source);
+        self.unit_scope.use_ident(name, ident.location)
+    }
+
+    /// Gets the identifier id from the current scope by name.
+    ///
+    /// Note: The latest identifier declaration is fetched, instead of a specific declaration
+    fn get_ident(&self, name: &str) -> Option<IdentId> {
+        self.unit_scope.get_ident_id(name)
+    }
+
+    /// Gets the identifier info for the given id
+    fn get_ident_info(&self, id: &IdentId) -> &Identifier {
+        self.unit_scope.get_ident_info(id)
+    }
+
+    /*fn declare_ident(
         &self,
         ident: Token,
         type_spec: TypeRef,
@@ -311,7 +359,6 @@ impl<'s> Parser<'s> {
             .declare_ident(ident.location, name, type_spec, is_const, is_typedef)
     }
 
-    /// Uses an identifer
     fn use_ident(&self, ident: Token) -> Result<Identifier, IdentError> {
         let name = ident.location.get_lexeme(self.source);
 
@@ -323,7 +370,6 @@ impl<'s> Parser<'s> {
             .use_ident(ident.location, name)
     }
 
-    /// Gets the identifier from the current scope
     fn get_ident(&self, name: &str) -> Option<Identifier> {
         self.blocks
             .last()
@@ -332,7 +378,7 @@ impl<'s> Parser<'s> {
             .scope
             .get_ident(name)
             .cloned()
-    }
+    }*/
 
     // -- Wrappers around the type table -- //
 
@@ -366,11 +412,15 @@ impl<'s> Parser<'s> {
 
         // Add the block to the list
         self.blocks.push(Rc::new(RefCell::new(block)));
+
+        // Push scope block
+        self.unit_scope.push_block(block_kind);
     }
 
     /// Pops a block off of the block list, returning the block
-    fn pop_block(&mut self) -> Rc<RefCell<CodeBlock>> {
-        self.blocks.pop().unwrap()
+    fn pop_block(&mut self) -> scope::ScopeBlock {
+        // Pop scope block
+        self.unit_scope.pop_block()
     }
 }
 
@@ -446,44 +496,17 @@ mod test {
     // Get the latest version of the identifier
     fn get_ident(parser: &Parser, name: &str) -> Option<Identifier> {
         parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .root_block()
-            .borrow()
-            .scope
             .get_ident(name)
-            .cloned()
+            .map(|id| parser.get_ident_info(&id).to_owned())
     }
 
     // Gets the identifier with the specified instance
-    fn get_ident_instance(
-        parser: &Parser,
-        name: &str,
-        instance: ast::IdentInstance,
-    ) -> Option<Identifier> {
-        parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .root_block()
-            .borrow()
-            .scope
-            .get_ident_instance(name, instance)
-            .cloned()
+    fn get_ident_instance(parser: &Parser, id: IdentId) -> Option<Identifier> {
+        Some(parser.get_ident_info(&id).to_owned())
     }
 
     fn get_ident_type(parser: &Parser, name: &str) -> TypeRef {
-        parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .root_block()
-            .borrow()
-            .scope
-            .get_ident(name)
-            .unwrap()
-            .type_spec
+        get_ident(parser, name).expect("No identifier").type_spec
     }
 
     #[track_caller]
@@ -786,7 +809,8 @@ mod test {
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
             if let StmtKind::VarDecl { idents, .. } = &test_stmt.0.kind {
-                assert_eq!(&idents[0].type_spec, test_stmt.1);
+                let ident = parser.get_ident_info(&idents[0].0);
+                assert_eq!(&ident.type_spec, test_stmt.1);
             }
         }
 
@@ -1291,14 +1315,10 @@ type enumeration : enum (a, b, c, d, e, f)
         // Validate the types
         if let StmtKind::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[1].kind {
             // Inner scope is still int
+            let id = block.get_ident_id("yay").expect("Ident not declared");
+
             assert_eq!(
-                block
-                    .as_ref()
-                    .borrow()
-                    .scope
-                    .get_ident("yay")
-                    .unwrap()
-                    .type_spec,
+                parser.unit_scope.get_ident_info(&id).type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
             );
         } else {
@@ -1328,14 +1348,10 @@ type enumeration : enum (a, b, c, d, e, f)
         // Validate the types
         if let StmtKind::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[0].kind {
             // Innermost scope is still int
+            let id = block.get_ident_id("yay").expect("Ident not declared");
+
             assert_eq!(
-                block
-                    .as_ref()
-                    .borrow()
-                    .scope
-                    .get_ident("yay")
-                    .unwrap()
-                    .type_spec,
+                parser.unit_scope.get_ident_info(&id).type_spec,
                 TypeRef::Primitive(PrimitiveType::Int)
             );
         } else {
@@ -1452,12 +1468,12 @@ type enumeration : enum (a, b, c, d, e, f)
                     .as_ref()
                     .unwrap()
                     .types()
-                    .type_from_ref(&get_ident_instance(&parser, "a", 2).unwrap().type_spec),
+                    .type_from_ref(&get_ident_instance(&parser, IdentId(1)).unwrap().type_spec),
                 Some(Type::Forward { is_resolved: false })
             )
         );
 
-        // Duplicate forward refs should not affect resolved state
+        // Duplicate forward refs should not affect resolved state (and should share IdentId)
         let mut parser = make_test_parser("type a : forward\ntype a : forward\ntype a : int");
         assert!(!parser.parse());
         assert_eq!(
@@ -1468,7 +1484,7 @@ type enumeration : enum (a, b, c, d, e, f)
                     .as_ref()
                     .unwrap()
                     .types()
-                    .type_from_ref(&get_ident_instance(&parser, "a", 1).unwrap().type_spec),
+                    .type_from_ref(&get_ident_instance(&parser, IdentId(0)).unwrap().type_spec),
                 Some(Type::Forward { is_resolved: true })
             )
         );

@@ -11,6 +11,6 @@ license = "MIT"
 toc_ast = { path = "../toc_ast" }
 toc_core = { path = "../toc_core" }
 toc_frontend = { path = "../toc_frontend" }
-toc_ir = { path = "../toc_ir" }
+# toc_ir = { path = "../toc_ir" } # TODO: Re-enable once resolver mess is finished
 
 getopts = "^0.2"

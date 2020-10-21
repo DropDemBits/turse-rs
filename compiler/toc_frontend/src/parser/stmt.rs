@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all statements and declarations
 use super::{Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, ExprKind, Identifier, Stmt, StmtKind};
+use toc_ast::ast::{Expr, ExprKind, IdentId, IdentRef, Identifier, Stmt, StmtKind};
 use toc_ast::block::BlockKind;
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
@@ -54,10 +54,14 @@ impl<'s> Parser<'s> {
 
         // Grab identifier token
         let ident_tokens = {
-            let mut idents = vec![self.expects(
+            // !!! This will drop parsing the rest of the stmt, which maybe contain a valid type spec
+            // TODO: Give back an empty list of tokens instead of bailing out
+            let first_ident = self.expects(
                 TokenType::Identifier,
                 format_args!("Expected an identifier for the declared {}", decl_name),
-            )?];
+            )?;
+
+            let mut idents = vec![first_ident];
 
             while self.current().token_type == TokenType::Comma {
                 // Consume comma
@@ -176,11 +180,15 @@ impl<'s> Parser<'s> {
         }
 
         // Declare the identifiers
-        let idents: Vec<Identifier> = ident_tokens
+        let idents: Vec<IdentRef> = ident_tokens
             .into_iter()
             .map(|token| {
-                self.declare_ident(token, type_spec, is_const, false)
-                    .unwrap_or_else(|err| err.into())
+                let location = token.location;
+
+                IdentRef(
+                    self.declare_ident(token, type_spec, is_const, false, false),
+                    location,
+                )
             })
             .collect();
 
@@ -237,21 +245,15 @@ impl<'s> Parser<'s> {
             // If None, give an err (cannot declare a forward named type without an identifier)
             // Else, create a dummy type decl (provide validator access to any refs inside the type)
             return match type_spec {
+                // TODO: Wrap ident behind optional so that type can be visited (same with var)
                 Some(type_spec) => {
                     // Can take a token from the previous, as the location doesn't matter
-                    let dummy_ident = Identifier::new(
-                        Location::new(),
-                        TypeRef::TypeError,
-                        "<dummy>".to_string(),
-                        false,
-                        false,
-                        false,
-                        0, // Not imported, just a dummy
-                    );
+                    let location = Location::new();
+                    let dummy_ident = self.unit_scope.use_ident("<dummy_ident>", location);
 
                     Ok(Stmt {
                         kind: StmtKind::TypeDecl {
-                            ident: dummy_ident,
+                            ident: IdentRef(dummy_ident, location),
                             resolved_type: Some(type_spec),
                             is_new_def: false, // Doesn't really matter
                         },
@@ -267,7 +269,9 @@ impl<'s> Parser<'s> {
         let old_ident = self.get_ident(self.get_token_lexeme(&ident_tok));
 
         let kind = if let Some(Type::Forward { is_resolved: false }) =
-            old_ident.as_ref().and_then(|ident| {
+            old_ident.as_ref().and_then(|id| {
+                let ident = self.get_ident_info(id);
+
                 self.unit
                     .as_ref()
                     .unwrap()
@@ -277,19 +281,16 @@ impl<'s> Parser<'s> {
             // Resolve forwards (otherwise `is_resolved` would be true)
 
             // We known that the old ident is valid (from above condtion)
-            let old_ident = old_ident.unwrap();
+            let old_ident_id = old_ident.unwrap();
+            let old_ident_tyspec = self.get_ident_info(&old_ident_id).type_spec;
 
             match type_spec {
                 Some(resolve_type) => {
                     // Resolving forward, update old resolving type
-                    self.replace_type(&old_ident.type_spec, Type::Forward { is_resolved: true });
-
-                    // Use the resolved type in the type decl
-                    let mut ident = old_ident;
-                    ident.location = ident_tok.location;
+                    self.replace_type(&old_ident_tyspec, Type::Forward { is_resolved: true });
 
                     StmtKind::TypeDecl {
-                        ident,
+                        ident: IdentRef(old_ident_id, ident_tok.location),
                         resolved_type: Some(resolve_type),
                         is_new_def: false,
                     }
@@ -301,11 +302,8 @@ impl<'s> Parser<'s> {
                         format_args!("Duplicate forward type declaration"),
                     );
 
-                    let mut ident = old_ident;
-                    ident.location = ident_tok.location;
-
                     StmtKind::TypeDecl {
-                        ident,
+                        ident: IdentRef(old_ident_id, ident_tok.location),
                         resolved_type: None,
                         is_new_def: false,
                     }
@@ -316,24 +314,24 @@ impl<'s> Parser<'s> {
             match type_spec {
                 Some(type_spec) => {
                     let alias_type = self.declare_type(Type::Alias { to: type_spec });
+                    let location = ident_tok.location;
+                    let new_id = self.declare_ident(ident_tok, alias_type, true, true, false);
 
                     // Normal declare
                     StmtKind::TypeDecl {
-                        ident: self
-                            .declare_ident(ident_tok, alias_type, true, true)
-                            .unwrap_or_else(|err| err.into()),
+                        ident: IdentRef(new_id, location),
                         resolved_type: Some(alias_type),
                         is_new_def: true,
                     }
                 }
                 None => {
                     let forward_type = self.declare_type(Type::Forward { is_resolved: false });
+                    let location = ident_tok.location;
+                    let new_id = self.declare_ident(ident_tok, forward_type, true, true, false);
 
                     // Forward declare
                     StmtKind::TypeDecl {
-                        ident: self
-                            .declare_ident(ident_tok, forward_type, true, true)
-                            .unwrap_or_else(|err| err.into()),
+                        ident: IdentRef(new_id, location),
                         resolved_type: None,
                         is_new_def: true,
                     }

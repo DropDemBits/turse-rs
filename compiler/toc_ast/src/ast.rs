@@ -1,5 +1,5 @@
 //! AST structure definitions
-use crate::block::CodeBlock;
+use crate::scope::ScopeBlock;
 use crate::types::TypeRef;
 use toc_core::Location;
 
@@ -11,10 +11,20 @@ use std::rc::Rc;
 /// Type of the identifier instance
 pub type IdentInstance = u16;
 
+/// Identifier id, associated with a unique declaration of an identifier
+#[derive(Debug, Hash, Copy, Clone, Eq, PartialEq)]
+pub struct IdentId(pub u32);
+
+/// A reference to an identifier in the AST.
+///
+/// Just a named reference to both
+#[derive(Debug, Copy, Clone)]
+pub struct IdentRef(pub IdentId, pub Location);
+
 /// Definition of an identifier
 #[derive(Debug, Clone)]
 pub struct Identifier {
-    /// The location of this identifier reference in the source code.
+    /// The declaration location of this identifier in the source code.
     pub location: Location,
     /// The name of the identifier.
     pub name: String,
@@ -249,7 +259,7 @@ pub enum ExprKind {
     // This is checked in the validator stage
     Reference {
         /// The identifier associated with this referenece
-        ident: Identifier,
+        ident: IdentRef,
     },
     /// Funcion call expression
     Call {
@@ -264,19 +274,19 @@ pub enum ExprKind {
     Dot {
         /// Expression evaluating to a reference
         left: Box<Expr>,
-        /// Field to be referenced
-        // While the type is an identifier, it is not a direct reference to an
-        // identifier in the current scope
-        field: Identifier,
+        /// Field to be referenced.
+        ///
+        /// A tuple of the name of the field, the field's type, and the location of the field
+        field: (String, TypeRef, Location),
     },
     /// Arrow expression
     Arrow {
         /// Expression evaluating to a reference
         left: Box<Expr>,
-        /// Field to be referenced
-        // While the type is an identifier, it is not a direct reference to an
-        // identifier in the current scope
-        field: Identifier,
+        /// Field to be referenced.
+        ///
+        /// A tuple of the name of the field, and the location of the field
+        field: (String, TypeRef, Location),
     },
     /// "init" expression
     Init {
@@ -318,10 +328,8 @@ impl fmt::Display for ExprKind {
             Literal { value, .. } => f.write_fmt(format_args!("{}", value)),
             Reference { ident, .. } => f.write_fmt(format_args!("ref({:#?})", ident)),
             Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
-            Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.name)),
-            Arrow { left, field, .. } => {
-                f.write_fmt(format_args!("(-> {:?} {:?})", left, field.name))
-            }
+            Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.0)),
+            Arrow { left, field, .. } => f.write_fmt(format_args!("(-> {:?} {:?})", left, field.0)),
         }
     }
 }
@@ -369,7 +377,7 @@ pub enum StmtKind {
     /// Variable & Constant declaration
     VarDecl {
         /// The identifier(s) declared
-        idents: Vec<Identifier>,
+        idents: Vec<IdentRef>,
         /// The type spec for all of the identifiers
         type_spec: TypeRef,
         /// The (semi-optional) initialization value
@@ -381,7 +389,7 @@ pub enum StmtKind {
     /// The type_spec of `ident` is the declared type
     TypeDecl {
         /// The identifier associated with this type declare
-        ident: Identifier,
+        ident: IdentRef,
         /// Resolved type for a forward type declare
         resolved_type: Option<TypeRef>,
         /// If the identifier actually declares a new identifier
@@ -405,7 +413,7 @@ pub enum StmtKind {
     /// Block of statements
     Block {
         /// The associated code block
-        block: Rc<RefCell<CodeBlock>>,
+        block: ScopeBlock,
         /// Statements as part of the block
         stmts: Vec<Stmt>,
     },

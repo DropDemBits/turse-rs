@@ -1,5 +1,5 @@
-use crate::ast::{self, IdentInstance, Identifier};
-use crate::block::CodeBlock;
+use crate::ast::{self, IdentId, IdentInstance, Identifier};
+use crate::block::{BlockKind, CodeBlock};
 use crate::types::TypeRef;
 use toc_core::Location;
 
@@ -58,6 +58,272 @@ impl From<IdentError> for Identifier {
             IdentError::Undeclared(ident) => ident,
             IdentError::Redeclared(ident) => ident,
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum ImportBoundary {
+    None,
+    Implicit,
+    Hard,
+}
+
+/// A scoping block for identifiers
+#[derive(Debug, Clone)]
+pub struct ScopeBlock {
+    /// Variant of block
+    kind: BlockKind,
+    /// Import boundary conditions
+    import_boundary: ImportBoundary,
+    /// Mapping of Strings to IdentId's, grouped by block.
+    /// Each later mapping in the list builds upon mappings from the previous one
+    id_mappings: HashMap<String, IdentId>,
+}
+
+impl ScopeBlock {
+    /// Creates a new scope block
+    pub fn new(kind: BlockKind) -> Self {
+        Self {
+            kind,
+            import_boundary: ImportBoundary::None,
+            id_mappings: HashMap::new(),
+        }
+    }
+
+    /// Gets an identifier id
+    pub fn get_ident_id(&self, name: &str) -> Option<IdentId> {
+        self.id_mappings.get(name).cloned()
+    }
+}
+
+/// The root scope for a unit.
+/// Handles lower scope groups and stuff, but only gives out IdentId's.
+///
+/// A block is a collection of identifiers.
+#[derive(Debug)]
+pub struct UnitScope {
+    /// Next IdentId spot
+    next_ident_id: u32,
+    /// Mapping of IdentId's to Identifiers
+    ident_ids: HashMap<IdentId, Identifier>,
+    /// Scoping blocks
+    blocks: Vec<ScopeBlock>,
+    /// Current scope depth
+    scope_depth: usize,
+}
+
+impl UnitScope {
+    /// Creates a new scope group
+    pub fn new() -> Self {
+        // BlockKind::Unit and BlockKind::Main share the same properties, so it doesn't matter too much
+        let kind = BlockKind::Main;
+
+        Self {
+            next_ident_id: 0,
+            ident_ids: HashMap::new(),
+            blocks: vec![ScopeBlock::new(kind)],
+            scope_depth: 0,
+        }
+    }
+
+    /// Pushes an identifier scope block.
+    pub fn push_block(&mut self, block_kind: BlockKind) {
+        // Increase scope depth
+        self.scope_depth = self
+            .scope_depth
+            .checked_add(1)
+            .expect("Too many scopes pushed");
+
+        // Push new block
+        let block = ScopeBlock::new(block_kind);
+        self.blocks.push(block);
+    }
+
+    /// Pops the last identifier scope block, restoring state.
+    ///
+    /// # Panics
+    /// If the only block present is the root block, a panic from an assertion is produced,
+    /// as it is an error to pop off the root block
+    ///
+    /// # Returns
+    /// Returns the scope block associated with the last scope, as it is no longer needed
+    pub fn pop_block(&mut self) -> ScopeBlock {
+        // Decrease scope depth
+        self.scope_depth = self
+            .scope_depth
+            .checked_sub(1)
+            .expect("Mismatch of `push_block`s to `pop_block`s");
+
+        // Pop it!
+        self.blocks
+            .pop()
+            .expect("Mismatch of `push_block`s to `pop_block`s")
+    }
+
+    /// Declares an identifier in the current block under a given name.
+    ///
+    /// If an identifier is already declared under this given name, or is accessable in a higher block,
+    /// the previous definition replaces the old definition within the boundaries of the block.
+    ///
+    /// # Parameters
+    /// - `name`: The name of the new identifier
+    /// - `decl_location`: The location where the identifier is declared
+    /// - `type_spec`: The type specification for the identifier
+    /// - `is_const`: If the new identifier isn't mutable at runtime
+    /// - `is_typedef`: If the new identifier is for a type definition
+    /// - `is_pervasive`: If the identifier definition is allowed to be implicitly imported through hard
+    ///                   import boundaries.
+    ///
+    /// # Returns
+    /// Returns an `IdentId` corresponding to the new definition of the identifier
+    pub fn declare_ident(
+        &mut self,
+        name: String,
+        decl_location: Location,
+        type_spec: TypeRef,
+        is_const: bool,
+        is_typedef: bool,
+        is_pervasive: bool,
+    ) -> IdentId {
+        self._declare_ident(
+            name,
+            decl_location,
+            type_spec,
+            is_const,
+            is_typedef,
+            is_pervasive,
+            true,
+        )
+    }
+
+    /// Uses an identifier.
+    ///
+    /// Should an identifier not be declared at this point, a new identifier is declared within the current block.
+    ///
+    /// `use_ident` relies on `get_ident_id` for IdentId lookup. See `get_ident_id` for more info on lookup rules.
+    ///
+    /// # Parameters
+    /// - `name`: The name of the identifier to use
+    /// - `use_location`: The location where the identifier is used
+    ///
+    /// # Returns
+    /// Returns the IdentId referencing this identifier.
+    pub fn use_ident(&mut self, name: &str, use_location: Location) -> IdentId {
+        if let Some(use_id) = self.get_ident_id(name) {
+            use_id
+        } else {
+            // Declare a new undeclared identifier
+            let name = name.to_string();
+
+            self._declare_ident(
+                name,
+                use_location,
+                TypeRef::TypeError,
+                false,
+                false,
+                false,
+                false,
+            )
+        }
+    }
+
+    /// Gets the IdentId for a given identifier name.
+    /// Always gives the most recent IdentId for a given name.
+    ///
+    /// Currently, not all import rules are followed.
+    /// (todo: explain import boundaries & pervasive identifiers here or in design doc)
+    ///
+    /// # Parameters
+    /// - `name`: The name of the identifier to lookup
+    ///
+    /// # Returns
+    /// Returns `Some(IdentId)` if an identifier has been declared, or `None` otherwise.
+    pub fn get_ident_id(&self, name: &str) -> Option<IdentId> {
+        // Top-down search through all blocks for an id
+        for block in self.blocks.iter().rev() {
+            if let Some(id) = block.id_mappings.get(name) {
+                return Some(*id);
+            }
+        }
+
+        // TODO(resolver): Deal with pervasive import rules
+
+        // No identifier found
+        None
+    }
+
+    /// Gets the associated `Identifier` info for a given IdentId
+    ///
+    /// # Panics
+    /// Will panic with "No Identifier for given IdentId" if the given IdentId has no associated `Identifier`.
+    ///
+    /// # Parameters
+    /// - `id`: The IdentId to use for looking up the identifier info
+    ///
+    /// # Returns
+    /// Returns the associated identifier info
+    pub fn get_ident_info(&self, id: &IdentId) -> &Identifier {
+        self.ident_ids
+            .get(id)
+            .as_ref()
+            .expect("No Identifier for given IdentId")
+    }
+
+    fn current_block_mut(&mut self) -> &mut ScopeBlock {
+        self.blocks.last_mut().unwrap()
+    }
+
+    /// Makes a new identifier id
+    fn make_ident_id(&mut self) -> IdentId {
+        let new_id = self.next_ident_id;
+
+        // If there are too many identifier ids, then die.
+        // can't have more than 4 billion declarations
+        self.next_ident_id = self
+            .next_ident_id
+            .checked_add(1)
+            .expect("Too many declared identifiers");
+
+        IdentId(new_id)
+    }
+
+    /// Same as `UnitScope::declare_ident`, but allows for declaring "undeclared" identifiers
+    #[allow(clippy::too_many_arguments)] // Is an internal function, don't care about this
+    fn _declare_ident(
+        &mut self,
+        name: String,
+        decl_location: Location,
+        type_spec: TypeRef,
+        is_const: bool,
+        is_typedef: bool,
+        _is_pervasive: bool,
+        as_declared: bool,
+    ) -> IdentId {
+        let new_id = self.make_ident_id();
+
+        let info = Identifier::new(
+            decl_location,
+            type_spec,
+            name.clone(),
+            is_const,
+            is_typedef,
+            as_declared,
+            0,
+        );
+
+        // TODO(resolver): Handle pervasive identifiers
+
+        // Replace the old mapping
+        self.current_block_mut().id_mappings.insert(name, new_id);
+        assert!(self.ident_ids.insert(new_id, info).is_none()); // Must be a new entry
+
+        new_id
+    }
+}
+
+impl Default for UnitScope {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
