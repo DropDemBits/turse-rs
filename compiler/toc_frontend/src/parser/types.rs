@@ -634,9 +634,7 @@ impl<'s> Parser<'s> {
 
             if ranges.is_empty() {
                 // Pushing the first range, check for implicit range
-                if let Some(Type::Range { ref end, .. }) =
-                    self.unit.as_ref().unwrap().types().type_from_ref(&range)
-                {
+                if let Some(Type::Range { ref end, .. }) = self.type_table.type_from_ref(&range) {
                     if is_flexible && end.is_none() {
                         // Flexible array cannot have an implicit range specifier
                         self.context.borrow_mut().reporter.report_error(
@@ -658,9 +656,7 @@ impl<'s> Parser<'s> {
                 );
             } else {
                 // Pushing in an additional range, where an additional range is accepted
-                if let Some(Type::Range { ref end, .. }) =
-                    self.unit.as_ref().unwrap().types().type_from_ref(&range)
-                {
+                if let Some(Type::Range { ref end, .. }) = self.type_table.type_from_ref(&range) {
                     // Report if the range is an implicit range
                     if end.is_none() {
                         self.context.borrow_mut().reporter.report_error(

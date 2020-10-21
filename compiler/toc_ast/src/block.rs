@@ -1,5 +1,5 @@
 use crate::ast::{Stmt, Visitor, VisitorMut};
-//use crate::scope::Scope;
+use crate::scope::UnitScope;
 use crate::types::TypeTable;
 
 use std::cell::RefCell;
@@ -54,28 +54,27 @@ impl CodeBlock {
 
 #[derive(Debug)]
 pub struct CodeUnit {
-    /// Root block of the unit
-    root_block: Rc<RefCell<CodeBlock>>,
     /// Root statements
     stmts: Vec<Stmt>,
+    /// Unit scope
+    /// May be moved into and outside of the unit for mutability purposes
+    unit_scope: Option<UnitScope>,
     /// Type table associated with the unit.
     /// May be moved into and outside of the unit for mutability purposes
     types: Option<TypeTable>,
 }
 
 impl CodeUnit {
-    pub fn new(is_main: bool) -> Self {
+    pub fn new(
+        _is_main: bool,
+        stmts: Vec<Stmt>,
+        unit_scope: UnitScope,
+        type_table: TypeTable,
+    ) -> Self {
         Self {
-            root_block: Rc::new(RefCell::new(CodeBlock::new(
-                if is_main {
-                    BlockKind::Main
-                } else {
-                    BlockKind::Unit
-                },
-                &[],
-            ))),
-            stmts: vec![],
-            types: Some(TypeTable::new()),
+            stmts,
+            unit_scope: Some(unit_scope),
+            types: Some(type_table),
         }
     }
 
@@ -112,17 +111,24 @@ impl CodeUnit {
         &self.stmts
     }
 
+    pub fn unit_scope(&self) -> &UnitScope {
+        self.unit_scope.as_ref().unwrap()
+    }
+
+    pub fn types(&self) -> &TypeTable {
+        self.types.as_ref().unwrap()
+    }
+
     pub fn stmts_mut(&mut self) -> &mut Vec<Stmt> {
         &mut self.stmts
     }
 
-    pub fn root_block(&self) -> &Rc<RefCell<CodeBlock>> {
-        &self.root_block
+    pub fn unit_scope_mut(&mut self) -> &mut UnitScope {
+        self.unit_scope.as_mut().unwrap()
     }
 
-    #[allow(dead_code)] // Will be used when resolving external idents
-    pub fn root_block_mut(&mut self) -> &mut Rc<RefCell<CodeBlock>> {
-        &mut self.root_block
+    pub fn types_mut(&mut self) -> &mut TypeTable {
+        self.types.as_mut().unwrap()
     }
 
     // TODO: Revisit these when dealing with multiple files, as requirements will change
@@ -135,11 +141,11 @@ impl CodeUnit {
         self.types.replace(table);
     }
 
-    pub fn types_mut(&mut self) -> &mut TypeTable {
-        self.types.as_mut().unwrap()
+    pub fn take_unit_scope(&mut self) -> UnitScope {
+        self.unit_scope.take().unwrap()
     }
 
-    pub fn types(&self) -> &TypeTable {
-        self.types.as_ref().unwrap()
+    pub fn put_unit_scope(&mut self, unit_scope: UnitScope) {
+        self.unit_scope.replace(unit_scope);
     }
 }

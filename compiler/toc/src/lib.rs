@@ -27,15 +27,14 @@ pub fn compile_run_file(path: &str) {
 /// Compiles a single file into a single code unit
 pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<CompileContext>>) {
     // Build the main unit
-    let code_unit = CodeUnit::new(true);
     let context = Rc::new(RefCell::new(CompileContext::new()));
 
     let scanner = Scanner::scan_source(contents, context.clone());
-    let mut parser = Parser::new(scanner, contents, code_unit, context.clone());
+    let mut parser = Parser::new(scanner, contents, true, context.clone());
 
     parser.parse();
 
-    // Take the unit back from the parser
+    // Take the parsed unit from the parser
     (parser.take_unit(), context)
 }
 

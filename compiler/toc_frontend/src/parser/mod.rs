@@ -7,10 +7,10 @@ mod types;
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentId, Identifier, UnaryOp};
-use toc_ast::block::{BlockKind, CodeBlock, CodeUnit};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentId, Identifier, Stmt, UnaryOp};
+use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::scope;
-use toc_ast::types::{Type, TypeRef};
+use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_core::Location;
 
 use std::cell::RefCell;
@@ -40,11 +40,6 @@ pub struct Parser<'s> {
     /// Next token to parse
     peek: Token<'s>,
 
-    /// Parsed Code Unit
-    unit: Option<CodeUnit>,
-    /// Actively parsed blocks
-    blocks: Vec<Rc<RefCell<CodeBlock>>>,
-
     /// Expression nesting depth
     expr_nesting: usize,
     /// Statement nesting depth
@@ -52,8 +47,15 @@ pub struct Parser<'s> {
     /// Type nesting depth
     type_nesting: usize,
 
+    // Fragments of a code unit //
+    /// If the parser is for the root unit
+    is_main: bool,
     /// UnitScope handling identifier import semantics
     unit_scope: scope::UnitScope,
+    /// Parsed statements
+    stmts: Vec<Stmt>,
+    /// TypeTable for types
+    type_table: TypeTable,
 }
 
 #[derive(Debug)]
@@ -68,7 +70,7 @@ impl<'s> Parser<'s> {
     pub fn new(
         mut scanner: Scanner<'s>,
         source: &'s str,
-        unit: CodeUnit,
+        is_main: bool,
         context: Rc<RefCell<CompileContext>>,
     ) -> Self {
         Self {
@@ -83,13 +85,14 @@ impl<'s> Parser<'s> {
                 .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
             scanner,
             // Clone a ref to the root block
-            blocks: vec![unit.root_block().clone()],
-            unit: Some(unit),
             expr_nesting: 0,
             stmt_nesting: 0,
             type_nesting: 0,
 
+            is_main,
             unit_scope: scope::UnitScope::new(),
+            stmts: vec![],
+            type_table: TypeTable::new(),
         }
     }
 
@@ -98,23 +101,20 @@ impl<'s> Parser<'s> {
     pub fn parse(&mut self) -> bool {
         // TODO: Check if the root block is a unit block
         // Parse the statements
-        let mut stmts = vec![];
-
         while !self.is_at_end() {
             if let Ok(stmt) = self.decl() {
-                stmts.push(stmt);
+                self.stmts.push(stmt);
             }
         }
-
-        // Transfer statements over to the CodeUnit
-        self.unit.as_mut().unwrap().stmts_mut().append(&mut stmts);
 
         !self.context.borrow().reporter.has_error()
     }
 
     /// Takes the unit from the parser
-    pub fn take_unit(&mut self) -> CodeUnit {
-        self.unit.take().unwrap()
+    /// The parser cannot be used after this point
+    pub fn take_unit(self) -> CodeUnit {
+        // Move fragements into the CodeUnit
+        CodeUnit::new(self.is_main, self.stmts, self.unit_scope, self.type_table)
     }
 
     /// Gets the previous token in the stream
@@ -341,63 +341,15 @@ impl<'s> Parser<'s> {
         self.unit_scope.get_ident_info(id)
     }
 
-    /*fn declare_ident(
-        &self,
-        ident: Token,
-        type_spec: TypeRef,
-        is_const: bool,
-        is_typedef: bool,
-    ) -> Result<Identifier, IdentError> {
-        let name = ident.location.get_lexeme(self.source).to_string();
-
-        self.blocks
-            .last()
-            .unwrap()
-            .borrow_mut()
-            .scope
-            .declare_ident(ident.location, name, type_spec, is_const, is_typedef)
-    }
-
-    fn use_ident(&self, ident: Token) -> Result<Identifier, IdentError> {
-        let name = ident.location.get_lexeme(self.source);
-
-        self.blocks
-            .last()
-            .unwrap()
-            .borrow_mut()
-            .scope
-            .use_ident(ident.location, name)
-    }
-
-    fn get_ident(&self, name: &str) -> Option<Identifier> {
-        self.blocks
-            .last()
-            .unwrap()
-            .borrow_mut()
-            .scope
-            .get_ident(name)
-            .cloned()
-    }*/
-
     // -- Wrappers around the type table -- //
 
     fn declare_type(&mut self, type_info: Type) -> TypeRef {
-        TypeRef::Named(
-            self.unit
-                .as_mut()
-                .unwrap()
-                .types_mut()
-                .declare_type(type_info),
-        )
+        TypeRef::Named(self.type_table.declare_type(type_info))
     }
 
     fn replace_type(&mut self, type_ref: &TypeRef, new_info: Type) {
         if let TypeRef::Named(replace_id) = type_ref {
-            self.unit
-                .as_mut()
-                .unwrap()
-                .types_mut()
-                .replace_type(*replace_id, new_info);
+            self.type_table.replace_type(*replace_id, new_info);
         } else {
             panic!("Not a named type ref");
         }
@@ -407,11 +359,6 @@ impl<'s> Parser<'s> {
 
     /// Pushes a new block onto the block list
     fn push_block(&mut self, block_kind: BlockKind) {
-        let block = CodeBlock::new(block_kind, &self.blocks);
-
-        // Add the block to the list
-        self.blocks.push(Rc::new(RefCell::new(block)));
-
         // Push scope block
         self.unit_scope.push_block(block_kind);
     }
@@ -489,7 +436,7 @@ mod test {
         let context = Rc::new(RefCell::new(CompileContext::new()));
         let scanner = Scanner::scan_source(source, context.clone());
 
-        Parser::new(scanner, source, CodeUnit::new(true), context)
+        Parser::new(scanner, source, true, context)
     }
 
     // Get the latest version of the identifier
@@ -517,7 +464,7 @@ mod test {
         types::is_equivalent_to(
             &get_ident_type(&parser, lhs),
             &get_ident_type(&parser, rhs),
-            parser.unit.as_ref().unwrap().types(),
+            &parser.type_table,
         )
     }
 
@@ -706,7 +653,7 @@ mod test {
             None,
         ];
 
-        let root_stmts = parser.unit.as_ref().unwrap().stmts();
+        let root_stmts = parser.stmts;
 
         for test_stmt in root_stmts[2..].iter().zip(expected_ops.iter()) {
             if let StmtKind::Assign { op, .. } = &test_stmt.0.kind {
@@ -739,7 +686,7 @@ mod test {
             Some(BinaryOp::Or),
         ];
 
-        let root_stmts = parser.unit.as_ref().unwrap().stmts();
+        let root_stmts = parser.stmts;
 
         for test_stmt in root_stmts[1..].iter().zip(expected_ops.iter()) {
             if let StmtKind::Assign { op, .. } = &test_stmt.0.kind {
@@ -804,7 +751,7 @@ mod test {
             TypeRef::Primitive(PrimitiveType::AddressInt),
         ];
 
-        let root_stmts = parser.unit.as_ref().unwrap().stmts();
+        let root_stmts = &parser.stmts;
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
             if let StmtKind::VarDecl { idents, .. } = &test_stmt.0.kind {
@@ -1118,10 +1065,7 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var inv : array 1 .. *, char of real");
         assert!(!parser.parse());
         if let Some(Type::Array { ranges, .. }) = parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .types()
+            .type_table
             .type_from_ref(&get_ident_type(&parser, "inv"))
         {
             assert_eq!(ranges.len(), 1);
@@ -1132,10 +1076,7 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var inv : array 1 .. *, 1 .. *, char of real");
         assert!(!parser.parse());
         if let Some(Type::Array { ranges, .. }) = parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .types()
+            .type_table
             .type_from_ref(&get_ident_type(&parser, "inv"))
         {
             assert_eq!(ranges.len(), 1);
@@ -1147,10 +1088,7 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var inv : array 1 .. 2, 1 .. *, char of real");
         assert!(!parser.parse());
         if let Some(Type::Array { ranges, .. }) = parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .types()
+            .type_table
             .type_from_ref(&get_ident_type(&parser, "inv"))
         {
             assert_eq!(ranges.len(), 3);
@@ -1236,12 +1174,7 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var a : enum (a, b, c)");
         assert!(!parser.parse());
         let type_ref = get_ident_type(&parser, "a");
-        let type_of = parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .types()
-            .type_from_ref(&type_ref);
+        let type_of = parser.type_table.type_from_ref(&type_ref);
         assert!(
             matches!(type_of, Some(Type::Enum { .. })),
             "Is of type {:?} from {:?}",
@@ -1252,12 +1185,7 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("const a : enum (a, b, c) := 2");
         assert!(!parser.parse());
         let type_ref = get_ident_type(&parser, "a");
-        let type_of = parser
-            .unit
-            .as_ref()
-            .unwrap()
-            .types()
-            .type_from_ref(&type_ref);
+        let type_of = parser.type_table.type_from_ref(&type_ref);
         assert!(
             matches!(type_of, Some(Type::Enum { .. })),
             "Is of type {:?} from {:?}",
@@ -1312,7 +1240,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let StmtKind::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[1].kind {
+        if let StmtKind::Block { block, .. } = &parser.stmts[1].kind {
             // Inner scope is still int
             let id = block.get_ident_id("yay").expect("Ident not declared");
 
@@ -1345,7 +1273,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let StmtKind::Block { block, .. } = &parser.unit.as_ref().unwrap().stmts()[0].kind {
+        if let StmtKind::Block { block, .. } = &parser.stmts[0].kind {
             // Innermost scope is still int
             let id = block.get_ident_id("yay").expect("Ident not declared");
 
@@ -1374,7 +1302,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(!parser.parse());
         // The 'type' stmt should still produce a statement. providing validator access to 'a'
         // The a := 1 should not produce a statement (the a should be consumed by "type")
-        assert_eq!(parser.unit.unwrap().stmts().len(), 1);
+        assert_eq!(parser.stmts.len(), 1);
 
         // Requires colon, will parse the rest and produce a declaration
         let mut parser = make_test_parser("var a : string\ntype a");
@@ -1383,24 +1311,14 @@ type enumeration : enum (a, b, c, d, e, f)
         let type_ref = get_ident(&parser, "a").unwrap().type_spec;
         assert!(
             matches!(
-                parser
-                    .unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
-                    .type_from_ref(&type_ref),
+                parser.type_table.type_from_ref(&type_ref),
                 Some(Type::Alias {
                     to: TypeRef::TypeError,
                 })
             ),
             "From ref {:?} to {:?}",
             type_ref,
-            parser
-                .unit
-                .as_ref()
-                .unwrap()
-                .types()
-                .type_from_ref(&type_ref)
+            parser.type_table.type_from_ref(&type_ref)
         );
         assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
 
@@ -1412,10 +1330,7 @@ type enumeration : enum (a, b, c, d, e, f)
             true,
             matches!(
                 parser
-                    .unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
+                    .type_table
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
                 Some(Type::Alias {
                     to: TypeRef::Primitive(PrimitiveType::Int),
@@ -1431,10 +1346,7 @@ type enumeration : enum (a, b, c, d, e, f)
             true,
             matches!(
                 parser
-                    .unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
+                    .type_table
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
                 Some(Type::Forward { is_resolved: false })
             )
@@ -1447,10 +1359,7 @@ type enumeration : enum (a, b, c, d, e, f)
             true,
             matches!(
                 parser
-                    .unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
+                    .type_table
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
                 Some(Type::Forward { is_resolved: true })
             )
@@ -1463,10 +1372,7 @@ type enumeration : enum (a, b, c, d, e, f)
             true,
             matches!(
                 parser
-                    .unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
+                    .type_table
                     .type_from_ref(&get_ident_instance(&parser, IdentId(1)).unwrap().type_spec),
                 Some(Type::Forward { is_resolved: false })
             )
@@ -1479,10 +1385,7 @@ type enumeration : enum (a, b, c, d, e, f)
             true,
             matches!(
                 parser
-                    .unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
+                    .type_table
                     .type_from_ref(&get_ident_instance(&parser, IdentId(0)).unwrap().type_spec),
                 Some(Type::Forward { is_resolved: true })
             )
@@ -1510,73 +1413,46 @@ type enumeration : enum (a, b, c, d, e, f)
         // Size checking & compile-time checking is performed by the validator
         let mut parser = make_test_parser("var a : array 1 .. 3 of int := init(1, 2, 3)");
         assert!(parser.parse());
-        assert_eq!(
-            Some(3),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(3), nab_init_len(&parser.stmts[0]));
 
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1)");
         assert!(parser.parse());
-        assert_eq!(
-            Some(1),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
 
         // Expect at least one expression
         let mut parser = make_test_parser("var a : array 1 .. * of int := init() begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(1),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
 
         // Expect closing paren
         let mut parser = make_test_parser("var a : array 1 .. * of int := init( begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(1),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
 
         // Expect starting paren
         let mut parser = make_test_parser("var a : array 1 .. * of int := init) begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(1),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
 
         // Expect parens
         let mut parser = make_test_parser("var a : array 1 .. * of int := init begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(1),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
 
         // Expect expr after comma (length 2)
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,) begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(2),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(2), nab_init_len(&parser.stmts[0]));
 
         // Expect expr after comma (length 3)
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,,) begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(3),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(3), nab_init_len(&parser.stmts[0]));
 
         // Bad exprs should still contribute to length
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,+,+,4) begin end");
         assert!(!parser.parse());
-        assert_eq!(
-            Some(4),
-            nab_init_len(&parser.unit.as_ref().unwrap().stmts()[0])
-        );
+        assert_eq!(Some(4), nab_init_len(&parser.stmts[0]));
 
         // Can only be used in initalization of const's & var's
         let mut parser = make_test_parser("var a : array 1 .. 3 of int\n a := init(1,2,3)");
@@ -1780,7 +1656,7 @@ type enumeration : enum (a, b, c, d, e, f)
             ",
         );
         assert_eq!(parser.parse(), false);
-        for stmt in parser.unit.as_ref().unwrap().stmts() {
+        for stmt in parser.stmts {
             if let StmtKind::VarDecl {
                 value: Some(some_val),
                 ..
@@ -1806,7 +1682,7 @@ type enumeration : enum (a, b, c, d, e, f)
         if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
+        } = &parser.stmts[0].kind
         {
             if let ExprKind::Indirect { addr, .. } = &indirect.kind {
                 assert!(matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
@@ -1818,7 +1694,7 @@ type enumeration : enum (a, b, c, d, e, f)
         if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
+        } = &parser.stmts[0].kind
         {
             if let ExprKind::Indirect { addr, .. } = &indirect.kind {
                 assert!(matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
@@ -1831,7 +1707,7 @@ type enumeration : enum (a, b, c, d, e, f)
         if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
+        } = &parser.stmts[0].kind
         {
             if let ExprKind::Indirect { addr, .. } = &indirect.kind {
                 assert!(!matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
@@ -1845,7 +1721,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
+        } = &parser.stmts[0].kind
         {
             assert!(
                 !matches!(proc_call.kind, ExprKind::Call { .. }),
@@ -1858,7 +1734,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
+        } = &parser.stmts[0].kind
         {
             assert!(
                 !matches!(proc_call.kind, ExprKind::Call { .. }),
@@ -1871,7 +1747,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.unit.as_ref().unwrap().stmts()[0].kind
+        } = &parser.stmts[0].kind
         {
             assert!(
                 !matches!(proc_call.kind, ExprKind::Call { .. }),

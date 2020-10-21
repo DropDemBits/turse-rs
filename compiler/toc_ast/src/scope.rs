@@ -109,12 +109,10 @@ impl UnitScope {
         self.scope_depth = self
             .scope_depth
             .checked_sub(1)
-            .expect("Mismatch of `push_block`s to `pop_block`s");
+            .expect("Cannot pop off root block");
 
         // Pop it!
-        self.blocks
-            .pop()
-            .expect("Mismatch of `push_block`s to `pop_block`s")
+        self.blocks.pop().expect("Cannot pop off root block")
     }
 
     /// Declares an identifier in the current block under a given name.

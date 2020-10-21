@@ -130,13 +130,7 @@ impl<'s> Parser<'s> {
         // Check if the init expression was required to be present or absent
         // Required to be present when the type_spec is an array, and is init-sized
         // Required to be absent in the case of a missing type spec
-        if let Some(Type::Array { is_init_sized, .. }) = self
-            .unit
-            .as_ref()
-            .unwrap()
-            .types()
-            .type_from_ref(&type_spec)
-        {
+        if let Some(Type::Array { is_init_sized, .. }) = self.type_table.type_from_ref(&type_spec) {
             if *is_init_sized && !has_init_expr {
                 // Error: Requires to have init, but has no init
                 self.context.borrow_mut().reporter.report_error(
@@ -272,11 +266,7 @@ impl<'s> Parser<'s> {
             old_ident.as_ref().and_then(|id| {
                 let ident = self.get_ident_info(id);
 
-                self.unit
-                    .as_ref()
-                    .unwrap()
-                    .types()
-                    .type_from_ref(&ident.type_spec)
+                self.type_table.type_from_ref(&ident.type_spec)
             }) {
             // Resolve forwards (otherwise `is_resolved` would be true)
 
