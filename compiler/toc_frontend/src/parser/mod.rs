@@ -14,7 +14,6 @@ use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
@@ -483,7 +482,7 @@ mod test {
     use crate::context::CompileContext;
     use crate::scanner::Scanner;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::ast::{self, ExprKind, Stmt, StmtKind};
+    use toc_ast::ast::{ExprKind, Stmt, StmtKind};
     use toc_ast::types::{self, *};
 
     fn make_test_parser(source: &str) -> Parser {

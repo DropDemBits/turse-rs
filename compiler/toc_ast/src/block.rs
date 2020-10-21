@@ -1,5 +1,5 @@
 use crate::ast::{Stmt, Visitor, VisitorMut};
-use crate::scope::Scope;
+//use crate::scope::Scope;
 use crate::types::TypeTable;
 
 use std::cell::RefCell;
@@ -34,7 +34,7 @@ pub struct CodeBlock {
     /// The current kind of block
     pub block_kind: BlockKind,
     /// The associated scope
-    pub scope: Scope,
+    //pub scope: Scope,
     /// Blocks that enclose the current ont
     pub enclosing_blocks: Vec<Weak<RefCell<Self>>>,
 }
@@ -43,7 +43,7 @@ impl CodeBlock {
     pub fn new(block_kind: BlockKind, enclosing_blocks: &[Rc<RefCell<Self>>]) -> Self {
         Self {
             block_kind,
-            scope: Scope::new(enclosing_blocks),
+            //scope: Scope::new(enclosing_blocks),
             enclosing_blocks: enclosing_blocks
                 .iter()
                 .map(|block| Rc::downgrade(block))

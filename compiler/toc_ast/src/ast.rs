@@ -3,13 +3,7 @@ use crate::scope::ScopeBlock;
 use crate::types::TypeRef;
 use toc_core::Location;
 
-use std::cell::RefCell;
 use std::fmt;
-use std::num::NonZeroU32;
-use std::rc::Rc;
-
-/// Type of the identifier instance
-pub type IdentInstance = u16;
 
 /// Identifier id, associated with a unique declaration of an identifier
 #[derive(Debug, Hash, Copy, Clone, Eq, PartialEq)]
@@ -41,21 +35,9 @@ pub struct Identifier {
     pub is_declared: bool,
     /// If the identifier references a value that can be evaluated at compile time.
     pub is_compile_eval: bool,
-    /// The import index of the identifier.
-    /// If None, the identifier is local to the scope.
-    /// If Some, this is the index (plus one) to the corresponding entry into the
-    /// current scope's import table.
-    pub import_index: Option<NonZeroU32>,
-    /// The instance of the identifier.
-    ///
-    /// Each redeclaration of an identifier or usage before declaration creates
-    /// a new instance of the identifier, and this field distinguishes between
-    /// the versions.
-    ///
-    /// The current scope stores all instances of the identifier so that the
-    /// validator can grab the correct instance of the identifier, instead of
-    /// always grabbing the latest declaration of the identifier.
-    pub instance: IdentInstance,
+    /// If the identifier is pervasive and is able to be implicitly imported into
+    /// child scopes
+    pub is_pervasive: bool,
 }
 
 impl Identifier {
@@ -69,7 +51,7 @@ impl Identifier {
         is_const: bool,
         is_typedef: bool,
         is_declared: bool,
-        import_index: u32,
+        is_pervasive: bool,
     ) -> Self {
         Self {
             location,
@@ -78,9 +60,8 @@ impl Identifier {
             is_const,
             is_typedef,
             is_declared,
-            import_index: NonZeroU32::new(import_index),
+            is_pervasive,
             is_compile_eval: false,
-            instance: 0, // All identifiers start with instance 0
         }
     }
 }

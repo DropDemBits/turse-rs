@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all expressions
 use super::{ParseResult, Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, ExprKind, IdentRef, Identifier, Literal};
+use toc_ast::ast::{Expr, ExprKind, IdentRef, Literal};
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
