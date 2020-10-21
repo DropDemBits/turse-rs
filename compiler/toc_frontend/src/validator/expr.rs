@@ -2,7 +2,7 @@
 use super::Validator;
 
 use std::cmp::Ordering;
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, Identifier, Literal, UnaryOp, VisitorMut};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, FieldDef, IdentRef, Literal, UnaryOp, VisitorMut};
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
@@ -18,7 +18,7 @@ impl Validator {
             // Replace with folded expression
             super::replace_with_folded(expr, value);
 
-            if super::is_type_reference(expr) {
+            if self.is_type_reference(expr) {
                 self.context.borrow_mut().reporter.report_error(
                     expr.get_span(),
                     format_args!("Reference does not refer to a variable or constant"),
@@ -50,7 +50,7 @@ impl Validator {
 
         // `reference` must be a type reference
         if let Some(reference) = reference {
-            if !super::is_type_reference(reference) {
+            if !self.is_type_reference(reference) {
                 self.context.borrow_mut().reporter.report_error(
                     reference.get_span(),
                     format_args!("Reference does not refer to a type"),
@@ -72,7 +72,7 @@ impl Validator {
         }
 
         // `addr` must evaluate to a `nat` or `int` type, not evaluating to a type reference
-        if super::is_type_reference(addr) {
+        if self.is_type_reference(addr) {
             self.context.borrow_mut().reporter.report_error(
                 addr.get_span(),
                 format_args!("Indirection address reference is not a 'var' or 'const' reference"),
@@ -118,18 +118,18 @@ impl Validator {
         // Validate that the types are assignable with the given operation
         // eval_type is the type of the expr result
 
-        if super::is_type_reference(left) || super::is_type_reference(right) {
+        if self.is_type_reference(left) || self.is_type_reference(right) {
             // Left or right operand is a type reference, can't perform operations on them
             *eval_type = TypeRef::TypeError;
             *is_compile_eval = false;
 
-            if super::is_type_reference(left) {
+            if self.is_type_reference(left) {
                 self.context.borrow_mut().reporter.report_error(
                     left.get_span(),
                     format_args!("Operand is not a variable or constant reference"),
                 );
             }
-            if super::is_type_reference(right) {
+            if self.is_type_reference(right) {
                 self.context.borrow_mut().reporter.report_error(
                     right.get_span(),
                     format_args!("Operand is not a variable or constant reference"),
@@ -296,7 +296,7 @@ impl Validator {
         let loc = &op.1;
         let op = op.0;
 
-        if super::is_type_reference(right) {
+        if self.is_type_reference(right) {
             // Operand is a type reference, can't perform operations on it
             *eval_type = TypeRef::TypeError;
             *is_compile_eval = false;
@@ -427,9 +427,9 @@ impl Validator {
         *is_compile_eval = false;
         *eval_type = TypeRef::TypeError;
 
-        let left_type = if let Some(ident) = super::get_reference_ident(&left) {
+        let left_type = if let Some((_, tyspec, _, _, _)) = self.get_reference_ident(&left) {
             // We care about the subroutine reference and not the evaluation type in a reference expr
-            ident.type_spec
+            *tyspec
         } else {
             // Take the eval type as we may get the callable from an expr eval
             left.get_eval_type()
@@ -454,7 +454,7 @@ impl Validator {
         // - Discriminants:
         //   - If left is a type ref
         //   - Type of left
-        if super::is_type_reference(left) {
+        if self.is_type_reference(left) {
             // Call expression should fall under the 2 types
             // - Set constructor (left.eval_type = Type::Set)
             //   - Params must be equivalent to base index type
@@ -569,10 +569,10 @@ impl Validator {
     }
 
     fn report_uncallable_expr(&self, left: &Expr) {
-        if let Some(ident) = super::get_reference_ident(left) {
+        if let Some((name, _, _, _, location)) = self.get_reference_ident(left) {
             self.context.borrow_mut().reporter.report_error(
-                &ident.location,
-                format_args!("'{}' cannot be called or have subscripts", ident.name),
+                location,
+                format_args!("'{}' cannot be called or have subscripts", name),
             );
         } else {
             self.context.borrow_mut().reporter.report_error(
@@ -618,7 +618,7 @@ impl Validator {
                 let param_dealias = types::dealias_ref(&param_def.type_spec, &self.type_table);
                 let arg_dealias = types::dealias_ref(&arg.get_eval_type(), &self.type_table);
 
-                if super::is_type_reference(arg) {
+                if self.is_type_reference(arg) {
                     // Is a type ref, error!
                     self.context.borrow_mut().reporter.report_error(
                         arg.get_span(),
@@ -629,8 +629,8 @@ impl Validator {
                 } else {
                     if param_def.pass_by_ref {
                         // Parameter must be var to be passed as a ref
-                        if let Some(ident) = super::get_reference_ident(arg) {
-                            if ident.is_const {
+                        if let Some((_, _, _, is_const, _)) = self.get_reference_ident(arg) {
+                            if *is_const {
                                 self.context.borrow_mut().reporter.report_error(
                                     arg.get_span(),
                                     format_args!(
@@ -741,7 +741,7 @@ impl Validator {
     pub(super) fn resolve_expr_dot(
         &mut self,
         left: &mut Box<Expr>,
-        field: &mut Identifier,
+        field_def: &mut (FieldDef, Location),
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
     ) -> Option<Value> {
@@ -777,6 +777,8 @@ impl Validator {
             left_ref
         );
 
+        let field = &mut field_def.0;
+
         if types::is_error(&left_ref) {
             // Is a type error, silently propogate error
             field.type_spec = TypeRef::TypeError;
@@ -787,12 +789,12 @@ impl Validator {
         if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
             // Match based on the type info
             match type_info {
-                Type::Enum { fields } => {
+                Type::Enum { fields, .. } => {
                     let enum_field = fields.get(&field.name);
                     // Check if the field is a part of the compound type
                     if let Some(field_ref) = enum_field {
                         // Link field type_spec & our type_spec to the field reference
-                        field.type_spec = *field_ref;
+                        field.type_spec = TypeRef::TypeError;
                         *eval_type = *field_ref;
 
                         // Update the field ident info
@@ -800,7 +802,6 @@ impl Validator {
                         field.is_typedef = false; // Not typedef
 
                         // Enum fields are compile-time evaluable
-                        field.is_compile_eval = true;
                         *is_compile_eval = true;
 
                         let enum_id = types::get_type_id(&left_ref).unwrap();
@@ -821,12 +822,12 @@ impl Validator {
 
                         // Grabbing the identifier as the enum type name is a best-effort guess
                         self.context.borrow_mut().reporter.report_error(
-                            &field.location,
+                            &field_def.1,
                             format_args!(
                                 "'{}' is not a field of the enum type '{}'",
                                 field.name,
-                                super::get_reference_ident(left)
-                                    .map(|ident| ident.name.as_str())
+                                self.get_reference_ident(left)
+                                    .map(|(name, _, _, _, _)| name.as_str())
                                     .unwrap_or("<unknown>")
                             ),
                         );
@@ -866,7 +867,7 @@ impl Validator {
     pub(super) fn resolve_expr_arrow(
         &mut self,
         left: &mut Box<Expr>,
-        field: &mut Identifier,
+        field_def: &mut (FieldDef, Location),
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
     ) -> Option<Value> {
@@ -875,7 +876,7 @@ impl Validator {
         // Arrow expressions are not validated yet
         // TODO: Validate arrow expressions (blocking on compound types)
         self.context.borrow_mut().reporter.report_error(
-            &field.location,
+            &field_def.1,
             format_args!("Arrow expressions are not validated yet"),
         );
 
@@ -887,63 +888,55 @@ impl Validator {
 
     pub(super) fn resolve_expr_reference(
         &mut self,
-        ident: &mut Identifier,
+        ident: &mut IdentRef,
         eval_type: &mut TypeRef,
     ) -> Option<Value> {
         // Use the identifier and grab the associated value
-        let (compile_value, is_declared) = self.scope_infos.last_mut().unwrap().use_ident(&ident);
+        let compile_value = self.compile_values.get(&ident.0);
+        // Flatten
+        let compile_value = if let Some(Some(value)) = compile_value {
+            Some(value.clone())
+        } else {
+            None
+        };
 
-        if !is_declared {
+        let info = self.unit_scope.get_ident_info_mut(&ident.0);
+
+        if !info.is_declared {
             // Identifier has not been declared at all before this point, report it
             // Only reported once everytime something is not declared
             self.context.borrow_mut().reporter.report_error(
-                &ident.location,
-                format_args!("'{}' has not been declared yet", ident.name),
+                &ident.1,
+                format_args!("'{}' has not been declared yet", info.name),
             );
         }
 
-        if ident.is_declared {
-            // Grab the correct identifier information (including the
-            // type_spec) in the current scope info
-            let new_info = self
-                .scope_infos
-                .last()
-                .unwrap()
-                .get_ident(&ident.name, ident.instance.into())
-                .unwrap();
-
-            // Update the necessary info
-            ident.import_index = new_info.import_index;
-            ident.is_declared = new_info.is_declared;
-            ident.is_typedef = new_info.is_typedef;
-
-            if matches!(new_info.type_spec, TypeRef::Unknown) {
+        if info.is_declared {
+            if matches!(info.type_spec, TypeRef::Unknown) {
                 // If the type is still unknown at this point, force it into a TypeError
-                ident.type_spec = TypeRef::TypeError;
-            } else {
-                ident.type_spec = new_info.type_spec;
+                info.type_spec = TypeRef::TypeError;
             }
 
             // Fetch the eval type based on the ident type spec
-            if ident.is_typedef {
+            if info.is_typedef {
                 // Take the type from the type spec
-                *eval_type = ident.type_spec;
+                *eval_type = info.type_spec;
             } else if let Some(Type::Function {
                 params: None,
                 result: Some(result),
-            }) = self.type_table.type_from_ref(&ident.type_spec)
+            }) = self.type_table.type_from_ref(&info.type_spec)
             {
                 // Evaluation type is the bare function's result type
                 *eval_type = *result;
             } else {
-                *eval_type = ident.type_spec;
+                *eval_type = info.type_spec;
             }
 
             // An identifier is compile-time evaluable if and only if there is an associated expression
-            ident.is_compile_eval = compile_value.is_some();
+            info.is_compile_eval = compile_value.is_some();
         } else {
             // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
-            *eval_type = ident.type_spec;
+            *eval_type = info.type_spec;
         }
 
         // Return the reference's associated compile-time value

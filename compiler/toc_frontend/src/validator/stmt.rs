@@ -1,11 +1,9 @@
 //! Validator fragment, resolves all statements and declarations
 use super::expr;
-use super::{ResolveContext, ScopeInfo, Validator};
+use super::{ResolveContext, Validator};
 
-use std::cell::RefCell;
-use std::rc::Rc;
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, Identifier, Stmt, UnaryOp, VisitorMut};
-use toc_ast::block::CodeBlock;
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentRef, Stmt, UnaryOp, VisitorMut};
+use toc_ast::scope::ScopeBlock;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
 
@@ -14,7 +12,7 @@ impl Validator {
 
     pub(super) fn resolve_decl_var(
         &mut self,
-        idents: &mut Vec<Identifier>,
+        idents: &mut Vec<IdentRef>,
         type_spec: &mut TypeRef,
         value: &mut Option<Box<Expr>>,
         is_const: bool,
@@ -26,7 +24,9 @@ impl Validator {
             debug_assert_eq!(
                 idents
                     .iter()
-                    .filter(|ident| !types::is_error(&ident.type_spec))
+                    .filter(|ident| !types::is_error(
+                        &self.unit_scope.get_ident_info(&ident.0).type_spec
+                    ))
                     .count(),
                 0
             );
@@ -42,7 +42,7 @@ impl Validator {
 
             is_compile_eval = expr.is_compile_eval();
 
-            if super::is_type_reference(expr) {
+            if self.is_type_reference(expr) {
                 self.context.borrow_mut().reporter.report_error(
                     expr.get_span(),
                     format_args!("A type reference cannot be used as an initializer value"),
@@ -125,7 +125,7 @@ impl Validator {
                 if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
                     // Value to assign is the wrong type, just report the error
                     self.context.borrow_mut().reporter.report_error(
-                        &idents.last().as_ref().unwrap().location,
+                        &idents.last().as_ref().unwrap().1,
                         format_args!("Initialization value is the wrong type"),
                     );
                 } else {
@@ -277,25 +277,17 @@ impl Validator {
 
         // Update the identifiers to the new identifier type
         for ident in idents.iter_mut() {
-            ident.type_spec = *type_spec;
+            let info = self.unit_scope.get_ident_info_mut(&ident.0);
+            info.type_spec = *type_spec;
+
             // Only compile-time evaluable if the identifier referencences a constant
-            ident.is_compile_eval = is_compile_eval && ident.is_const;
-            let resolved_ident = self
-                .active_block
-                .as_ref()
-                .unwrap()
-                .upgrade()
-                .unwrap()
-                .borrow_mut()
-                .scope
-                .resolve_ident(&ident.name, &ident);
+            info.is_compile_eval = is_compile_eval && info.is_const;
+            // Push compile time value
+            self.compile_values.insert(ident.0, const_val.clone());
 
-            // Must always be a defined identifier
-            let resolved_ident = resolved_ident
-                .expect("Internal Compiler Error: Consistency of identifiers has been broken");
-
+            // TODO(resolver): Check for redecleration errors in resolver
             // Add identifier to the scope info (including the compile-time value)
-            if self
+            /*if self
                 .scope_infos
                 .last_mut()
                 .unwrap()
@@ -306,17 +298,19 @@ impl Validator {
                     &ident.location,
                     format_args!("'{}' has already been declared", ident.name),
                 );
-            }
+            }*/
         }
     }
 
     pub(super) fn resolve_decl_type(
         &mut self,
-        ident: &mut Identifier,
+        ident: &mut IdentRef,
         resolved_type: &mut Option<TypeRef>,
         is_new_def: bool,
     ) {
-        if !ident.is_declared {
+        let info = self.unit_scope.get_ident_info(&ident.0);
+
+        if !info.is_declared {
             // This is a dummy type declare, and only provides resolving access
             // Resolve the type, and return
             let dummy_ref = resolved_type.take().unwrap();
@@ -329,20 +323,23 @@ impl Validator {
         if is_new_def {
             if resolved_type.is_some() {
                 // Resolve the associated type (do not allow forward references)
-                ident.type_spec =
-                    self.resolve_type(ident.type_spec, ResolveContext::CompileTime(false));
+                let ty_spec = info.type_spec;
+                let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
+                let info = self.unit_scope.get_ident_info_mut(&ident.0);
+                info.type_spec = ty_spec;
             } else if let Some(Type::Forward { is_resolved: false }) =
-                self.type_table.type_from_ref(&ident.type_spec)
+                self.type_table.type_from_ref(&info.type_spec)
             {
                 // Not resolved in the current unit
                 self.context.borrow_mut().reporter.report_error(
-                    &ident.location,
-                    format_args!("'{}' is not resolved in the current unit", ident.name),
+                    &ident.1,
+                    format_args!("'{}' is not resolved in the current unit", info.name),
                 );
             }
 
             // Declare the identifier and check for redeclaration errors
-            if self
+            // TODO(resolver): Check for redecleration errors
+            /*if self
                 .scope_infos
                 .last_mut()
                 .unwrap()
@@ -352,24 +349,26 @@ impl Validator {
                     &ident.location,
                     format_args!("'{}' has already been declared", ident.name),
                 );
-            }
+            }*/
+            self.compile_values.insert(ident.0, None);
         } else {
             // Use the identifier
             // Must be defined
-            let is_defined = self.scope_infos.last_mut().unwrap().use_ident(&ident).1;
-            assert!(is_defined);
+            assert!(info.is_declared);
 
             if let Some(resolve_ref) = resolved_type {
                 // This is a type resolution statement, update the associated type reference
-                if let TypeRef::Named(replace_id) = ident.type_spec {
+                if let TypeRef::Named(replace_id) = info.type_spec {
                     // Make an alias to the resolved type
                     self.type_table
                         .replace_type(replace_id, Type::Alias { to: *resolve_ref });
                 }
 
                 // Resolve the rest of the type
-                ident.type_spec =
-                    self.resolve_type(ident.type_spec, ResolveContext::CompileTime(false));
+                let ty_spec = info.type_spec;
+                let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
+                let info = self.unit_scope.get_ident_info_mut(&ident.0);
+                info.type_spec = ty_spec;
             } else {
                 // This is a redeclared forward, and is safe to ignore
             }
@@ -402,7 +401,7 @@ impl Validator {
         }
 
         // Check the reference expression
-        if !can_assign_to_ref_expr(&var_ref, &self.type_table) {
+        if !self.can_assign_to_ref_expr(&var_ref, &self.type_table) {
             // Not a var ref
             self.context.borrow_mut().reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
             return;
@@ -432,11 +431,8 @@ impl Validator {
         }
     }
 
-    pub(super) fn resolve_stmt_block(
-        &mut self,
-        block: &Rc<RefCell<CodeBlock>>,
-        stmts: &mut Vec<Stmt>,
-    ) {
+    pub(super) fn resolve_stmt_block(&mut self, _block: &ScopeBlock, stmts: &mut Vec<Stmt>) {
+        /*
         let mut scope_info = ScopeInfo::new();
 
         // Import all of the identifiers from above scopes
@@ -480,48 +476,61 @@ impl Validator {
         // Change the active block and push the new scope info
         let previous_scope = self.active_block.replace(Rc::downgrade(block));
         self.scope_infos.push(scope_info);
+        */
 
         for stmt in stmts.iter_mut() {
             self.visit_stmt(stmt);
         }
 
+        /*
         // Revert to previous scope and pop the last scope info
         self.active_block.replace(previous_scope.unwrap());
         let last_info = self.scope_infos.pop().unwrap();
 
         // Report unused identifiers
         self.report_unused_identifiers(&last_info);
+        */
     }
-}
 
-/// Checks if the given `ref_expr` references a variable or a mutable reference.
-/// Assumes the `ref_expr` has already had the types propogated.
-fn can_assign_to_ref_expr(ref_expr: &Expr, type_table: &TypeTable) -> bool {
-    match &ref_expr.kind {
-        ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => {
-            // Can only assign to a variable reference
-            !ident.is_const && !ident.is_typedef
-        }
-        ExprKind::Call { left, .. } => {
-            match &left.kind {
-                ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => {
-                    let dealiased_ref = types::dealias_ref(&ident.type_spec, type_table);
-                    let type_info = type_table.type_from_ref(&dealiased_ref);
-
-                    // Can only assign if the ref is to an array variable
-                    // Can't assign to a const ref or a type def
-                    !ident.is_const
-                        && !ident.is_typedef
-                        && matches!(type_info, Some(Type::Array { .. }))
-                }
-                _ => can_assign_to_ref_expr(&left, type_table), // Go further down the chain
+    /// Checks if the given `ref_expr` references a variable or a mutable reference.
+    /// Assumes the `ref_expr` has already had the types propogated.
+    fn can_assign_to_ref_expr(&self, ref_expr: &Expr, type_table: &TypeTable) -> bool {
+        match &ref_expr.kind {
+            ExprKind::Reference { ident, .. } => {
+                let info = self.unit_scope.get_ident_info(&ident.0);
+                // Can only assign to a variable reference
+                !info.is_const && !info.is_typedef
             }
+            ExprKind::Dot { .. } => {
+                // For now, we don't have compound types (with or without type reference), so assume they are not var ref exprs
+                false
+            }
+            ExprKind::Call { left, .. } => {
+                match &left.kind {
+                    ExprKind::Reference { ident, .. } => {
+                        let info = self.unit_scope.get_ident_info(&ident.0);
+                        let dealiased_ref = types::dealias_ref(&info.type_spec, type_table);
+                        let type_info = type_table.type_from_ref(&dealiased_ref);
+
+                        // Can only assign if the ref is to an array variable
+                        // Can't assign to a const ref or a type def
+                        !info.is_const
+                            && !info.is_typedef
+                            && matches!(type_info, Some(Type::Array { .. }))
+                    }
+                    ExprKind::Dot { field: _ident, .. } => {
+                        // Same reasoning as beforehand
+                        false
+                    }
+                    _ => self.can_assign_to_ref_expr(&left, type_table), // Go further down the chain
+                }
+            }
+            ExprKind::UnaryOp { op, .. } => {
+                // Only assignable if the expression is a deref, and the eval type isn't an error
+                matches!(op.0, UnaryOp::Deref) && !types::is_error(&ref_expr.get_eval_type())
+            }
+            ExprKind::Indirect { .. } => true, // Can always assign to an indirect expression
+            _ => false,                        // Not one of the above, likely unable to assign to
         }
-        ExprKind::UnaryOp { op, .. } => {
-            // Only assignable if the expression is a deref, and the eval type isn't an error
-            matches!(op.0, UnaryOp::Deref) && !types::is_error(&ref_expr.get_eval_type())
-        }
-        ExprKind::Indirect { .. } => true, // Can always assign to an indirect expression
-        _ => false,                        // Not one of the above, likely unable to assign to
     }
 }

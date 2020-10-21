@@ -12,6 +12,7 @@ pub struct IdentId(pub u32);
 /// A reference to an identifier in the AST.
 ///
 /// Just a named reference to both
+// TODO(resolver): De-anonymize IdentRef fields
 #[derive(Debug, Copy, Clone)]
 pub struct IdentRef(pub IdentId, pub Location);
 
@@ -210,6 +211,14 @@ impl fmt::Display for Literal {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct FieldDef {
+    pub name: String,
+    pub type_spec: TypeRef,
+    pub is_const: bool,
+    pub is_typedef: bool,
+}
+
 /// Expression Node Kind
 #[derive(Debug, Clone)]
 pub enum ExprKind {
@@ -257,8 +266,8 @@ pub enum ExprKind {
         left: Box<Expr>,
         /// Field to be referenced.
         ///
-        /// A tuple of the name of the field, the field's type, and the location of the field
-        field: (String, TypeRef, Location),
+        /// A tuple of the field def, and the location of the field
+        field: (FieldDef, Location),
     },
     /// Arrow expression
     Arrow {
@@ -266,8 +275,8 @@ pub enum ExprKind {
         left: Box<Expr>,
         /// Field to be referenced.
         ///
-        /// A tuple of the name of the field, and the location of the field
-        field: (String, TypeRef, Location),
+        /// A tuple of the field def, and the location of the field
+        field: (FieldDef, Location),
     },
     /// "init" expression
     Init {

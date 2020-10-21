@@ -465,18 +465,22 @@ impl Validator {
 
         // Ensure that the top-most expression resolves to a type
         match &expr.kind {
-            ExprKind::Dot { left, field, .. } => {
+            ExprKind::Dot {
+                left,
+                field: (field, location),
+                ..
+            } => {
                 if !field.is_typedef {
                     // Should always either be a dot, or a reference
-                    // Otherwise, the expr is an empty
-                    let member_ident = super::get_reference_ident(left);
+                    // Otherwise, the expr is an error
+                    let member_ident = self.get_reference_ident(left);
 
-                    if let Some(ident) = member_ident {
+                    if let Some((base_name, _, _, _, _)) = member_ident {
                         self.context.borrow_mut().reporter.report_error(
-                            &field.location,
+                            &location,
                             format_args!(
                                 "Field '{}' of '{}' does not refer to a type",
-                                field.name, ident.name
+                                field.name, base_name
                             ),
                         );
                     }
@@ -485,20 +489,21 @@ impl Validator {
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = field.location;
+                reference_locate = *location;
             }
             ExprKind::Reference { ident, .. } => {
-                if !ident.is_typedef {
+                let info = self.unit_scope.get_ident_info(&ident.0);
+                if !info.is_typedef {
                     self.context.borrow_mut().reporter.report_error(
-                        &ident.location,
-                        format_args!("'{}' does not refer to a type", ident.name),
+                        &ident.1,
+                        format_args!("'{}' does not refer to a type", info.name),
                     );
 
                     // Produce a type error
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = ident.location;
+                reference_locate = ident.1;
             }
             _ => return Some(TypeRef::TypeError), // No other expressions allowed, produce a type error
         }

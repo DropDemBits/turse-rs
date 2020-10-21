@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all expressions
 use super::{ParseResult, Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, ExprKind, IdentRef, Literal};
+use toc_ast::ast::{Expr, ExprKind, FieldDef, IdentRef, Literal};
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
@@ -414,7 +414,13 @@ impl<'s> Parser<'s> {
         let name = ident.location.get_lexeme(&self.source).to_string();
         let span = var_ref.get_span().span_to(&self.previous().location);
         // Field info will be updated to the correct type at validator time
-        let field = (name, TypeRef::Unknown, ident.location);
+        let field_def = FieldDef {
+            name,
+            type_spec: TypeRef::Unknown,
+            is_const: false,
+            is_typedef: false,
+        };
+        let field = (field_def, ident.location);
 
         let kind = if as_arrow {
             ExprKind::Arrow {

@@ -6,6 +6,7 @@ use toc_core::Location;
 use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[allow(dead_code)] // No variants constructed right now, deal with it later
 enum ImportBoundary {
     None,
     Implicit,

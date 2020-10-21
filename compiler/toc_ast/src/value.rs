@@ -1,5 +1,5 @@
 //! Intermediate values for compile-time evaluation
-use crate::ast::{BinaryOp, Expr, ExprKind, Literal, UnaryOp};
+use crate::ast::{self, BinaryOp, Expr, ExprKind, Literal, UnaryOp};
 use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
@@ -141,32 +141,14 @@ impl TryFrom<Value> for Expr {
             }
             Value::EnumValue(field_id, enum_id, _) => {
                 // NB: IdentId's for both will be stored in types, so no need to cons new ones
-                // TODO(resolver): Uncomment this stuff once names are bundled in
+                // TODO(resolver): Use the actual names for the fields
 
-                /*
                 // No location information for both of them
-                let enum_ident = Identifier::new(
-                    Location::new(),
-                    TypeRef::Named(enum_id),
-                    String::from("<unknown>"),
-                    true,
-                    true,
-                    true,
-                    0,
-                );
-
-                let field_ident = Identifier::new(
-                    Location::new(),
-                    TypeRef::Named(field_id),
-                    String::from("<unknown.field>"),
-                    true,
-                    false,
-                    true,
-                    0,
-                );
 
                 let ref_expr = Expr {
-                    kind: ExprKind::Reference { ident: enum_ident },
+                    kind: ExprKind::Reference {
+                        ident: ast::IdentRef(ast::IdentId(0), Location::new()),
+                    },
                     eval_type: TypeRef::Named(enum_id),
                     is_compile_eval: true,
                     span: Location::new(),
@@ -175,13 +157,20 @@ impl TryFrom<Value> for Expr {
                 Ok(Expr {
                     kind: ExprKind::Dot {
                         left: Box::new(ref_expr),
-                        field: field_ident,
+                        field: (
+                            ast::FieldDef {
+                                name: "<unknown>".to_string(),
+                                type_spec: TypeRef::Named(field_id),
+                                is_typedef: false,
+                                is_const: true,
+                            },
+                            Location::new(),
+                        ),
                     },
                     is_compile_eval: true,
                     eval_type: TypeRef::Named(field_id),
                     span: Location::new(),
-                })*/
-                todo!("redo for new system")
+                })
             }
         }
     }

@@ -40,7 +40,7 @@ pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<Compil
 
 /// Resolves the unit into the corresponding IR graph
 pub fn resolve_unit(mut code_unit: CodeUnit, context: Rc<RefCell<CompileContext>>) {
-    let type_table = code_unit.take_types();
+    let _type_table = code_unit.take_types();
 
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
     // TODO: Provide external type resolution stage

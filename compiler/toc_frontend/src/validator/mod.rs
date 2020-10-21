@@ -14,155 +14,17 @@ mod stmt;
 mod types;
 
 use crate::context::CompileContext;
-use toc_ast::ast::{Expr, ExprKind, Identifier, Stmt, StmtKind, VisitorMut};
-use toc_ast::block::CodeBlock;
+use toc_ast::ast::{Expr, ExprKind, IdentId, Stmt, StmtKind, VisitorMut};
+use toc_ast::scope::UnitScope;
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
 use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
+use toc_core::Location;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::rc::{Rc, Weak};
-
-// An identifier info entry associated with one instance of an identifier
-#[derive(Debug)]
-struct IdentInfo {
-    /// The identifier associated with this info
-    ident: Identifier,
-    /// How many uses (for the current instance) of the identfier
-    uses: usize,
-    /// The associated compile-time value of the identifier, if it
-    /// is compile-time evaluable
-    compile_value: Option<Value>,
-}
-
-/// Info for a scope
-#[derive(Debug)]
-struct ScopeInfo {
-    /// All identifiers used within the scope,
-    /// with all identifier name conflicts tracked
-    local_idents: HashMap<String, Vec<IdentInfo>>,
-}
-
-impl ScopeInfo {
-    pub fn new() -> Self {
-        Self {
-            local_idents: HashMap::new(),
-        }
-    }
-
-    /// Uses an identifier declared in the current scope.
-    /// Any imported identifiers in the current scope must refer to the ScopeInfo
-    /// where the imported identifier is declared in.
-    ///
-    /// # Return Values (in a tuple)
-    /// `Option<Value>`     Associated compile-time value. \
-    /// `bool`              True if the identifier has been declared before.
-    pub fn use_ident(&mut self, ident: &Identifier) -> (Option<Value>, bool) {
-        let mut is_already_declared = true;
-
-        // Grab the compile-time value
-        let compile_value = self
-            .local_idents
-            .entry(ident.name.clone())
-            .and_modify(|all_idents| {
-                // Increment use of the associated identifier
-                // The given instance must exist already, otherwise a declaration
-                // was skipped or the instance counter is not being incremented properly
-                let entry = &mut all_idents[ident.instance as usize];
-                entry.uses = entry.uses.saturating_add(1);
-            })
-            .or_insert_with(|| {
-                // Notify of the identifer never being declared
-                is_already_declared = false;
-
-                // Make sure this is the first time we're seeing this identifer
-                assert_eq!(
-                    ident.instance, 0,
-                    "Not the first time seeing the identifier '{:#?}'",
-                    ident
-                );
-
-                // Create a new identifier info group
-                vec![IdentInfo {
-                    ident: ident.clone(),
-                    uses: 1,
-                    compile_value: None,
-                }]
-            })[ident.instance as usize]
-            .compile_value
-            .clone();
-
-        (compile_value, is_already_declared)
-    }
-
-    /// Grab info of given instance of identifier
-    pub fn get_ident(&self, ident_name: &str, instance: usize) -> Option<Identifier> {
-        self.local_idents
-            .get(ident_name)
-            .map(|infos| infos[instance].ident.clone())
-    }
-
-    /// Declares an identifier, creating the associated IdentInfo entry.
-    ///
-    /// # Return Values
-    /// `bool`  If the current declaration is redeclaring an identifier (i.e.
-    /// the identifier has already been declared)
-    pub fn decl_ident(&mut self, ident: Identifier) -> bool {
-        self.decl_ident_with(ident, None)
-    }
-
-    /// Declares an identifier, creating the associated IdentInfo entry and
-    /// associating a compile-time value with the identifier.
-    ///
-    /// # Return Values
-    /// `bool`  If the current declaration is redeclaring an identifier (i.e.
-    /// the identifier has already been declared)
-    pub fn decl_ident_with(&mut self, ident: Identifier, compile_value: Option<Value>) -> bool {
-        let mut is_redeclare = false;
-
-        self.local_idents
-            .entry(ident.name.clone())
-            .and_modify(|_| {
-                // Notify of redeclare
-                is_redeclare = true
-            })
-            .or_insert_with(|| {
-                if ident.instance == 0 {
-                    // Give back an empty vec, populated on next insert
-                    vec![]
-                } else {
-                    // Ensure that this usage is the first of the instance
-                    assert_eq!(
-                        ident.instance, 1,
-                        "Not the first usage of this identifier '{:?}'",
-                        ident
-                    );
-
-                    // Insert a dummy info entry into the returned vec
-                    let mut dummy_ident = ident.clone();
-                    dummy_ident.name = String::from("<not a real entry>");
-                    dummy_ident.is_declared = false;
-                    dummy_ident.type_spec = TypeRef::TypeError;
-                    dummy_ident.instance = 0;
-
-                    vec![IdentInfo {
-                        ident: dummy_ident,
-                        uses: 0,
-                        compile_value: None,
-                    }]
-                }
-            })
-            .push(IdentInfo {
-                ident: ident.clone(),
-                uses: 0,
-                compile_value,
-            });
-
-        is_redeclare
-    }
-}
+use std::rc::Rc;
 
 /// Type resolving context
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -180,31 +42,33 @@ pub struct Validator {
     context: Rc<RefCell<CompileContext>>,
     /// Type table to use
     type_table: TypeTable,
-    /// Actively parsed scope
-    active_block: Option<Weak<RefCell<CodeBlock>>>,
-    /// Associated scope info
-    scope_infos: Vec<ScopeInfo>,
+    /// Unit scope to take identifiers from
+    unit_scope: UnitScope,
+    /// Mapping of all compile-time values
+    compile_values: HashMap<IdentId, Option<Value>>,
 }
 
 type ResolveResult = Option<TypeRef>;
 
 impl Validator {
     pub fn new(
-        root_block: &Rc<RefCell<CodeBlock>>,
+        unit_scope: UnitScope,
         type_table: TypeTable,
         context: Rc<RefCell<CompileContext>>,
     ) -> Self {
         Self {
             context,
             type_table,
-            active_block: Some(Rc::downgrade(root_block)),
-            scope_infos: vec![ScopeInfo::new()],
+            unit_scope,
+            compile_values: HashMap::new(),
         }
     }
 
-    /// Takes the type_table from the validator
-    pub fn take_types(&mut self) -> TypeTable {
-        std::mem::replace(&mut self.type_table, TypeTable::new())
+    /// Takes the type_table and unit_scope from the validator
+    pub fn take_code_unit_parts(&mut self) -> (TypeTable, UnitScope) {
+        let type_table = std::mem::replace(&mut self.type_table, TypeTable::new());
+        let unit_scope = std::mem::replace(&mut self.unit_scope, UnitScope::new());
+        (type_table, unit_scope)
     }
 
     /// De-aliases a type ref, following through `Type::Alias`'s and resolving `Type::Reference`s.
@@ -263,6 +127,8 @@ impl Validator {
         current_ref
     }
 
+    // TODO(resolver): Count usages inside of Identifier
+    /*
     /// Reports unused identifiers in the given scope
     fn report_unused_identifiers(&self, info: &ScopeInfo) {
         for (_, idents) in info.local_idents.iter() {
@@ -277,6 +143,85 @@ impl Validator {
                     );
                 }
             }
+        }
+    }
+    */
+
+    // --- Associated Helpers --- //
+
+    /// Gets the reference identifier (info), if there is one
+    /// Does not return an actual identifier (yet) because of field stuff
+    ///
+    /// Returns (in order):
+    /// - `ref_name`
+    /// - `ref_type_spec`
+    /// - `is_typedef`
+    /// - `is_const`
+    /// - `use_location`
+    fn get_reference_ident<'a, 'b: 'a>(
+        &'a self,
+        ref_expr: &'b Expr,
+    ) -> Option<(&'a String, &'a TypeRef, &'a bool, &'a bool, &'a Location)> {
+        match &ref_expr.kind {
+            ExprKind::Reference { ident, .. } => {
+                let info = self.unit_scope.get_ident_info(&ident.0);
+                Some((
+                    &info.name,
+                    &info.type_spec,
+                    &info.is_typedef,
+                    &info.is_const,
+                    &ident.1,
+                ))
+            }
+            ExprKind::Dot {
+                field: (field, location),
+                ..
+            } => Some((
+                &field.name,
+                &field.type_spec,
+                &field.is_typedef,
+                &field.is_const,
+                &location,
+            )),
+            _ => None,
+        }
+    }
+
+    /// Checks if the expression evaluates to a type reference
+    fn is_type_reference(&self, expr: &Expr) -> bool {
+        match &expr.kind {
+            ExprKind::Reference { ident, .. } => {
+                // It's a type reference based on the identifier
+                let info = self.unit_scope.get_ident_info(&ident.0);
+                info.is_typedef
+            }
+            ExprKind::Dot {
+                left,
+                field: (field_def, _),
+                ..
+            } => {
+                let base_type = left.get_eval_type();
+                let field_type = field_def.type_spec;
+
+                if ty::is_enum_type(&base_type, &self.type_table)
+                    || ty::is_enum_type(&field_type, &self.type_table)
+                {
+                    // Enum fields are definitely not types
+                    false
+                } else {
+                    // Right now, we don't have compound types that contain type references (e.g. in modules)
+                    // If we did, we'd refer to the `var_ref`'s eval_type (i.e. the container type) and look
+                    // at the field definition
+
+                    // TODO(compound_types): Fill this out once compound types with typedefs are added
+                    assert!(
+                        !field_def.is_typedef,
+                        "Don't have compound types with type defs yet"
+                    );
+                    false
+                }
+            }
+            _ => false, // Most likely not a type reference
         }
     }
 }
@@ -373,7 +318,8 @@ impl VisitorMut<(), Option<Value>> for Validator {
             ),
             ExprKind::Reference { ident } => {
                 let value = self.resolve_expr_reference(ident, &mut visit_expr.eval_type);
-                visit_expr.is_compile_eval = ident.is_compile_eval;
+                visit_expr.is_compile_eval =
+                    self.unit_scope.get_ident_info(&ident.0).is_compile_eval;
                 value
             }
             ExprKind::Literal { value, .. } => {
@@ -384,30 +330,12 @@ impl VisitorMut<(), Option<Value>> for Validator {
 
     fn end_visit(&mut self) {
         // Report any unused identifiers in the main scope
-        self.report_unused_identifiers(&self.scope_infos[0]);
+        // TODO(resolver): Hand off unused ident reporting to the resolver
+        //self.report_unused_identifiers(&self.scope_infos[0]);
     }
 }
 
 // --- Helpers --- //
-
-/// Gets the reference identifier, if there is one
-fn get_reference_ident(ref_expr: &Expr) -> Option<&Identifier> {
-    match &ref_expr.kind {
-        ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => Some(ident),
-        _ => None,
-    }
-}
-
-/// Checks if the expression evaluates to a type reference
-fn is_type_reference(expr: &Expr) -> bool {
-    match &expr.kind {
-        ExprKind::Reference { ident, .. } | ExprKind::Dot { field: ident, .. } => {
-            // It's a type reference based on the identifier
-            ident.is_typedef
-        }
-        _ => false, // Most likely not a type reference
-    }
-}
 
 /// Replaces an expression with the folded version of the value
 ///
@@ -429,6 +357,7 @@ mod test {
     use crate::scanner::Scanner;
     use rand::prelude::*;
     use std::{cell::RefCell, rc::Rc};
+    use toc_ast::ast::Identifier;
     use toc_ast::block::CodeUnit;
     use toc_ast::types::{PrimitiveType, SequenceSize};
 
@@ -437,28 +366,27 @@ mod test {
     /// Returns true if the AST is valid, and the validated code unit
     fn make_validator(source: &str) -> (bool, CodeUnit) {
         // Build the main unit
-        let code_unit = CodeUnit::new(true);
         let context = Rc::new(RefCell::new(CompileContext::new()));
         let scanner = Scanner::scan_source(&source, context.clone());
 
         // Ignore the parser status, as the validator needs to handle
         // invalid parser ASTs
-        let mut parser = Parser::new(scanner, &source, code_unit, context);
+        let mut parser = Parser::new(scanner, &source, true, context);
         let successful_parse = parser.parse();
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
         let type_table = code_unit.take_types();
+        let unit_scope = code_unit.take_unit_scope();
 
         // Validate AST
         let validator_context = Rc::new(RefCell::new(CompileContext::new()));
-        let mut validator = Validator::new(
-            code_unit.root_block(),
-            type_table,
-            validator_context.clone(),
-        );
+        let mut validator = Validator::new(unit_scope, type_table, validator_context.clone());
         code_unit.visit_ast_mut(&mut validator);
-        code_unit.put_types(validator.take_types());
+
+        let (type_table, unit_scope) = validator.take_code_unit_parts();
+        code_unit.put_types(type_table);
+        code_unit.put_unit_scope(unit_scope);
 
         // Ok for now until we start doing funky stuff with contexts
         // TODO: Use a unified context when using file-based test harness
@@ -472,6 +400,16 @@ mod test {
     /// Returns true if the AST is valid
     fn run_validator(source: &str) -> bool {
         make_validator(source).0
+    }
+
+    fn get_ident_for_unit<'u>(unit: &'u CodeUnit, name: &str) -> Option<&'u Identifier> {
+        let id = unit.unit_scope().get_ident_id(name)?;
+        let info = unit.unit_scope().get_ident_info(&id);
+        Some(&info)
+    }
+
+    fn get_info_for_unit(unit: &'_ CodeUnit, id: IdentId) -> &'_ Identifier {
+        unit.unit_scope().get_ident_info(&id)
     }
 
     #[test]
@@ -2556,26 +2494,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("var a := 1 + 1\na := -1");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
 
         let (success, unit) = make_validator("var a := 1\na := -1");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
 
@@ -2583,26 +2509,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("const sz := 3\nconst a : string(sz) := 'aaa'");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(3)))
         );
 
         let (success, unit) = make_validator("const sz := 3\nconst a : char(sz + 10) := 'aaa'");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::CharN(SequenceSize::Size(13)))
         );
 
@@ -2613,26 +2527,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("const sz := 0\nconst a : string(sz) := 'aaa'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
 
         let (success, unit) = make_validator("const sz := 0\nconst a : char(sz + 1 - 1) := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Char)
         );
 
@@ -2640,26 +2542,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("const sz := -2\nconst a : string(sz) := 'aaa'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
 
         let (success, unit) = make_validator("const a : char(5 - 10) := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Char)
         );
 
@@ -2668,26 +2558,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             make_validator("const sz := 16#10000 - 5 + 5\nconst a : string(sz) := 'aaa'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
 
         let (success, unit) = make_validator("const a : char(65530 + 10) := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Char)
         );
 
@@ -2695,26 +2573,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("const a : char(65530 + 0.0) := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Char)
         );
 
         let (success, unit) = make_validator("const a : string('noop' + 'boop') := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
 
@@ -2722,13 +2588,7 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("var depend := 65530\nconst a : char(depend) := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Char)
         );
 
@@ -2736,13 +2596,7 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             make_validator("var depend := 65530\nconst a : string(1 + depend + 1) := 'a'");
         assert_eq!(false, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
 
@@ -2776,88 +2630,36 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         // v decl use
         let (success, unit) = make_validator("var a : int := 1\na += 1");
         assert_eq!(true, success);
+        assert_eq!(true, get_ident_for_unit(&unit, "a").unwrap().is_declared);
         assert_eq!(
-            true,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
 
         // x use decl
         let (success, unit) = make_validator("a += 1\nvar b : int := 1");
         assert_eq!(false, success);
+        assert_eq!(false, get_ident_for_unit(&unit, "a").unwrap().is_declared);
         assert_eq!(
-            false,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::TypeError
         );
 
         // x use use decl (only 1 error produced)
         let (success, unit) = make_validator("a += 1\na += 1\nvar b : int := 1");
         assert_eq!(false, success);
+        assert_eq!(false, get_ident_for_unit(&unit, "a").unwrap().is_declared);
         assert_eq!(
-            false,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::TypeError
         );
 
         // x use
         let (success, unit) = make_validator("a += 1\n");
         assert_eq!(false, success);
+        assert_eq!(false, get_ident_for_unit(&unit, "a").unwrap().is_declared);
         assert_eq!(
-            false,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::TypeError
         );
 
@@ -2865,165 +2667,64 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) =
             make_validator("a := a + 1\nvar a : int\nvar a : string % final type\n");
         assert_eq!(false, success);
+        assert_eq!(false, get_info_for_unit(&unit, IdentId(0)).is_declared);
         assert_eq!(
-            false,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 0)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            true,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 1)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            true,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 2)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 0)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(0)).type_spec,
             TypeRef::TypeError
         );
+
+        assert_eq!(true, get_info_for_unit(&unit, IdentId(1)).is_declared);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 1)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(1)).type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
+
+        assert_eq!(true, get_info_for_unit(&unit, IdentId(2)).is_declared);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 2)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(2)).type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
+
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         ); // Final type
 
         // x decl decl
         let (success, unit) = make_validator("var a : string\nvar a : real8 % final type");
         assert_eq!(false, success);
+        assert_eq!(true, get_info_for_unit(&unit, IdentId(0)).is_declared);
         assert_eq!(
-            true,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 1)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            true,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 2)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 1)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(0)).type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
+
+        assert_eq!(true, get_info_for_unit(&unit, IdentId(1)).is_declared);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 2)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(1)).type_spec,
             TypeRef::Primitive(PrimitiveType::Real8)
         );
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Real8)
         ); // Final type
 
         // x use-in-init decl
         let (success, unit) = make_validator("var a : string := a + \"oops\"");
         assert_eq!(false, success);
+        assert_eq!(false, get_info_for_unit(&unit, IdentId(0)).is_declared);
         assert_eq!(
-            false,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 0)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            true,
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 1)
-                .unwrap()
-                .is_declared
-        );
-        assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 0)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(0)).type_spec,
             TypeRef::TypeError
         );
+
+        assert_eq!(true, get_info_for_unit(&unit, IdentId(1)).is_declared);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident_instance("a", 1)
-                .unwrap()
-                .type_spec,
+            get_info_for_unit(&unit, IdentId(1)).type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         );
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::String_)
         ); // Final type
 
@@ -3128,78 +2829,42 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         let (success, unit) = make_validator("var a := 16#7FFFFFFF");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Int)
         );
 
         let (success, unit) = make_validator("var a := 16#80000000");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::Nat)
         );
 
         let (success, unit) = make_validator("var a := 16#100000000");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::LongInt)
         );
 
         let (success, unit) = make_validator("var a := 16#100000000 + 16#100000000");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::LongInt)
         );
 
         let (success, unit) = make_validator("var a := 16#8000000000000000");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::LongNat)
         );
 
         let (success, unit) = make_validator("var a := 16#8000000000000000 + 1");
         assert_eq!(true, success);
         assert_eq!(
-            unit.root_block()
-                .borrow()
-                .scope
-                .get_ident("a")
-                .as_ref()
-                .unwrap()
-                .type_spec,
+            get_ident_for_unit(&unit, "a").as_ref().unwrap().type_spec,
             TypeRef::Primitive(PrimitiveType::LongNat)
         );
     }
