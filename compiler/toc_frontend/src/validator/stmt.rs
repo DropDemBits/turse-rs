@@ -25,7 +25,7 @@ impl Validator {
                 idents
                     .iter()
                     .filter(|ident| !types::is_error(
-                        &self.unit_scope.get_ident_info(&ident.0).type_spec
+                        &self.unit_scope.get_ident_info(&ident.id).type_spec
                     ))
                     .count(),
                 0
@@ -125,7 +125,7 @@ impl Validator {
                 if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
                     // Value to assign is the wrong type, just report the error
                     self.context.borrow_mut().reporter.report_error(
-                        &idents.last().as_ref().unwrap().1,
+                        &expr.get_span(),
                         format_args!("Initialization value is the wrong type"),
                     );
                 } else {
@@ -277,13 +277,13 @@ impl Validator {
 
         // Update the identifiers to the new identifier type
         for ident in idents.iter_mut() {
-            let info = self.unit_scope.get_ident_info_mut(&ident.0);
+            let info = self.unit_scope.get_ident_info_mut(&ident.id);
             info.type_spec = *type_spec;
 
             // Only compile-time evaluable if the identifier referencences a constant
             info.is_compile_eval = is_compile_eval && info.is_const;
             // Push compile time value
-            self.compile_values.insert(ident.0, const_val.clone());
+            self.compile_values.insert(ident.id, const_val.clone());
 
             // TODO(resolver): Check for redecleration errors in resolver
             // Add identifier to the scope info (including the compile-time value)
@@ -308,7 +308,7 @@ impl Validator {
         resolved_type: &mut Option<TypeRef>,
         is_new_def: bool,
     ) {
-        let info = self.unit_scope.get_ident_info(&ident.0);
+        let info = self.unit_scope.get_ident_info(&ident.id);
 
         if !info.is_declared {
             // This is a dummy type declare, and only provides resolving access
@@ -325,14 +325,14 @@ impl Validator {
                 // Resolve the associated type (do not allow forward references)
                 let ty_spec = info.type_spec;
                 let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
-                let info = self.unit_scope.get_ident_info_mut(&ident.0);
+                let info = self.unit_scope.get_ident_info_mut(&ident.id);
                 info.type_spec = ty_spec;
             } else if let Some(Type::Forward { is_resolved: false }) =
                 self.type_table.type_from_ref(&info.type_spec)
             {
                 // Not resolved in the current unit
                 self.context.borrow_mut().reporter.report_error(
-                    &ident.1,
+                    &ident.location,
                     format_args!("'{}' is not resolved in the current unit", info.name),
                 );
             }
@@ -350,7 +350,7 @@ impl Validator {
                     format_args!("'{}' has already been declared", ident.name),
                 );
             }*/
-            self.compile_values.insert(ident.0, None);
+            self.compile_values.insert(ident.id, None);
         } else {
             // Use the identifier
             // Must be defined
@@ -367,7 +367,7 @@ impl Validator {
                 // Resolve the rest of the type
                 let ty_spec = info.type_spec;
                 let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
-                let info = self.unit_scope.get_ident_info_mut(&ident.0);
+                let info = self.unit_scope.get_ident_info_mut(&ident.id);
                 info.type_spec = ty_spec;
             } else {
                 // This is a redeclared forward, and is safe to ignore
@@ -497,7 +497,7 @@ impl Validator {
     fn can_assign_to_ref_expr(&self, ref_expr: &Expr, type_table: &TypeTable) -> bool {
         match &ref_expr.kind {
             ExprKind::Reference { ident, .. } => {
-                let info = self.unit_scope.get_ident_info(&ident.0);
+                let info = self.unit_scope.get_ident_info(&ident.id);
                 // Can only assign to a variable reference
                 !info.is_const && !info.is_typedef
             }
@@ -508,7 +508,7 @@ impl Validator {
             ExprKind::Call { left, .. } => {
                 match &left.kind {
                     ExprKind::Reference { ident, .. } => {
-                        let info = self.unit_scope.get_ident_info(&ident.0);
+                        let info = self.unit_scope.get_ident_info(&ident.id);
                         let dealiased_ref = types::dealias_ref(&info.type_spec, type_table);
                         let type_info = type_table.type_from_ref(&dealiased_ref);
 

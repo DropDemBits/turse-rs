@@ -164,13 +164,13 @@ impl Validator {
     ) -> Option<(&'a String, &'a TypeRef, &'a bool, &'a bool, &'a Location)> {
         match &ref_expr.kind {
             ExprKind::Reference { ident, .. } => {
-                let info = self.unit_scope.get_ident_info(&ident.0);
+                let info = self.unit_scope.get_ident_info(&ident.id);
                 Some((
                     &info.name,
                     &info.type_spec,
                     &info.is_typedef,
                     &info.is_const,
-                    &ident.1,
+                    &ident.location,
                 ))
             }
             ExprKind::Dot {
@@ -192,7 +192,7 @@ impl Validator {
         match &expr.kind {
             ExprKind::Reference { ident, .. } => {
                 // It's a type reference based on the identifier
-                let info = self.unit_scope.get_ident_info(&ident.0);
+                let info = self.unit_scope.get_ident_info(&ident.id);
                 info.is_typedef
             }
             ExprKind::Dot {
@@ -316,12 +316,11 @@ impl VisitorMut<(), Option<Value>> for Validator {
                 &mut visit_expr.eval_type,
                 &mut visit_expr.is_compile_eval,
             ),
-            ExprKind::Reference { ident } => {
-                let value = self.resolve_expr_reference(ident, &mut visit_expr.eval_type);
-                visit_expr.is_compile_eval =
-                    self.unit_scope.get_ident_info(&ident.0).is_compile_eval;
-                value
-            }
+            ExprKind::Reference { ident } => self.resolve_expr_reference(
+                ident,
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+            ),
             ExprKind::Literal { value, .. } => {
                 self.resolve_expr_literal(value, &mut visit_expr.eval_type)
             }

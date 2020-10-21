@@ -178,11 +178,9 @@ impl<'s> Parser<'s> {
             .into_iter()
             .map(|token| {
                 let location = token.location;
+                let use_id = self.declare_ident(token, type_spec, is_const, false, false);
 
-                IdentRef(
-                    self.declare_ident(token, type_spec, is_const, false, false),
-                    location,
-                )
+                IdentRef::new(use_id, location)
             })
             .collect();
 
@@ -247,7 +245,7 @@ impl<'s> Parser<'s> {
 
                     Ok(Stmt {
                         kind: StmtKind::TypeDecl {
-                            ident: IdentRef(dummy_ident, location),
+                            ident: IdentRef::new(dummy_ident, location),
                             resolved_type: Some(type_spec),
                             is_new_def: false, // Doesn't really matter
                         },
@@ -280,7 +278,7 @@ impl<'s> Parser<'s> {
                     self.replace_type(&old_ident_tyspec, Type::Forward { is_resolved: true });
 
                     StmtKind::TypeDecl {
-                        ident: IdentRef(old_ident_id, ident_tok.location),
+                        ident: IdentRef::new(old_ident_id, ident_tok.location),
                         resolved_type: Some(resolve_type),
                         is_new_def: false,
                     }
@@ -293,7 +291,7 @@ impl<'s> Parser<'s> {
                     );
 
                     StmtKind::TypeDecl {
-                        ident: IdentRef(old_ident_id, ident_tok.location),
+                        ident: IdentRef::new(old_ident_id, ident_tok.location),
                         resolved_type: None,
                         is_new_def: false,
                     }
@@ -309,7 +307,7 @@ impl<'s> Parser<'s> {
 
                     // Normal declare
                     StmtKind::TypeDecl {
-                        ident: IdentRef(new_id, location),
+                        ident: IdentRef::new(new_id, location),
                         resolved_type: Some(alias_type),
                         is_new_def: true,
                     }
@@ -321,7 +319,7 @@ impl<'s> Parser<'s> {
 
                     // Forward declare
                     StmtKind::TypeDecl {
-                        ident: IdentRef(new_id, location),
+                        ident: IdentRef::new(new_id, location),
                         resolved_type: None,
                         is_new_def: true,
                     }

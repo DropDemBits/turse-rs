@@ -547,10 +547,11 @@ impl<'s> Parser<'s> {
         // references will be resolved at validator time, and that
         // is where the error will be reported
         let span = ident_tok.location;
+        let use_id = self.use_ident(ident_tok);
 
         Expr {
             kind: ExprKind::Reference {
-                ident: IdentRef(self.use_ident(ident_tok), span),
+                ident: IdentRef::new(use_id, span),
             },
             is_compile_eval: false,
             eval_type: TypeRef::Unknown,

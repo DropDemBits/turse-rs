@@ -755,7 +755,7 @@ mod test {
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
             if let StmtKind::VarDecl { idents, .. } = &test_stmt.0.kind {
-                let ident = parser.get_ident_info(&idents[0].0);
+                let ident = parser.get_ident_info(&idents[0].id);
                 assert_eq!(&ident.type_spec, test_stmt.1);
             }
         }

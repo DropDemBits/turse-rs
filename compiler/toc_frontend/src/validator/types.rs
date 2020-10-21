@@ -483,6 +483,12 @@ impl Validator {
                                 field.name, base_name
                             ),
                         );
+                    } else {
+                        // Report error, but not the name
+                        self.context.borrow_mut().reporter.report_error(
+                            &location,
+                            format_args!("Field '{}' does not refer to a type", field.name),
+                        );
                     }
 
                     // Produce a type error
@@ -492,10 +498,10 @@ impl Validator {
                 reference_locate = *location;
             }
             ExprKind::Reference { ident, .. } => {
-                let info = self.unit_scope.get_ident_info(&ident.0);
+                let info = self.unit_scope.get_ident_info(&ident.id);
                 if !info.is_typedef {
                     self.context.borrow_mut().reporter.report_error(
-                        &ident.1,
+                        &ident.location,
                         format_args!("'{}' does not refer to a type", info.name),
                     );
 
@@ -503,7 +509,7 @@ impl Validator {
                     return Some(TypeRef::TypeError);
                 }
 
-                reference_locate = ident.1;
+                reference_locate = ident.location;
             }
             _ => return Some(TypeRef::TypeError), // No other expressions allowed, produce a type error
         }

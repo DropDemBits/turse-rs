@@ -890,9 +890,10 @@ impl Validator {
         &mut self,
         ident: &mut IdentRef,
         eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
     ) -> Option<Value> {
         // Use the identifier and grab the associated value
-        let compile_value = self.compile_values.get(&ident.0);
+        let compile_value = self.compile_values.get(&ident.id);
         // Flatten
         let compile_value = if let Some(Some(value)) = compile_value {
             Some(value.clone())
@@ -900,13 +901,13 @@ impl Validator {
             None
         };
 
-        let info = self.unit_scope.get_ident_info_mut(&ident.0);
+        let info = self.unit_scope.get_ident_info_mut(&ident.id);
 
         if !info.is_declared {
             // Identifier has not been declared at all before this point, report it
             // Only reported once everytime something is not declared
             self.context.borrow_mut().reporter.report_error(
-                &ident.1,
+                &ident.location,
                 format_args!("'{}' has not been declared yet", info.name),
             );
         }
@@ -934,6 +935,7 @@ impl Validator {
 
             // An identifier is compile-time evaluable if and only if there is an associated expression
             info.is_compile_eval = compile_value.is_some();
+            *is_compile_eval = compile_value.is_some();
         } else {
             // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
             *eval_type = info.type_spec;

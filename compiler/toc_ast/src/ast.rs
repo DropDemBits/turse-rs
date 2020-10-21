@@ -12,9 +12,19 @@ pub struct IdentId(pub u32);
 /// A reference to an identifier in the AST.
 ///
 /// Just a named reference to both
-// TODO(resolver): De-anonymize IdentRef fields
 #[derive(Debug, Copy, Clone)]
-pub struct IdentRef(pub IdentId, pub Location);
+pub struct IdentRef {
+    /// Id of the referenced identifier
+    pub id: IdentId,
+    /// Location of the reference
+    pub location: Location,
+}
+
+impl IdentRef {
+    pub fn new(id: IdentId, location: Location) -> Self {
+        Self { id, location }
+    }
+}
 
 /// Definition of an identifier
 #[derive(Debug, Clone)]
