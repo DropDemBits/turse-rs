@@ -1,5 +1,5 @@
 //! Intermediate values for compile-time evaluation
-use crate::ast::{self, BinaryOp, Expr, ExprKind, Literal, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ExprKind, Literal, UnaryOp};
 use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
@@ -64,18 +64,27 @@ pub enum Value {
 impl Value {
     /// Produces a value from an expression.
     pub fn from_expr(expr: Expr, type_table: &TypeTable) -> Result<Value, &'static str> {
-        match expr.kind {
-            ExprKind::Literal { value, .. } => Value::from_literal(value),
-            ExprKind::Dot { .. } => {
-                if let Some(field_id) = types::get_type_id(&expr.get_eval_type()) {
-                    if let Type::EnumField { ordinal, enum_type } = type_table.get_type(field_id) {
-                        let enum_id = types::get_type_id(enum_type).unwrap();
-                        return Ok(Value::EnumValue(field_id, enum_id, *ordinal));
-                    }
-                }
+        let eval_type = expr.get_eval_type();
 
-                Err("Cannot convert non-literal expression into a value")
+        match expr.kind {
+            ExprKind::Dot { .. } | ExprKind::Literal { .. }
+                if types::is_enum_type(&eval_type, type_table) =>
+            {
+                if let Some(Type::EnumField { ordinal, enum_type }) =
+                    type_table.type_from_ref(&eval_type)
+                {
+                    // Infaillable, must both be TypeRef's
+                    let field_id = types::get_type_id(&eval_type)
+                        .expect("Infaillable conversion from TypeRef to TypeId");
+                    let enum_id = types::get_type_id(enum_type)
+                        .expect("Infaillable conversion from TypeRef to TypeId");
+
+                    Ok(Value::EnumValue(field_id, enum_id, *ordinal))
+                } else {
+                    Err("Cannot convert non-literal expression into a value")
+                }
             }
+            ExprKind::Literal { value } => Value::from_literal(value),
             _ => Err("Cannot convert non-literal expression into a value"),
         }
     }
@@ -139,38 +148,12 @@ impl TryFrom<Value> for Expr {
                     TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(size))),
                 ))
             }
-            Value::EnumValue(field_id, enum_id, _) => {
-                // NB: IdentId's for both will be stored in types, so no need to cons new ones
-                // TODO(resolver): Use the actual names for the fields
-
-                // No location information for both of them
-
-                let ref_expr = Expr {
-                    kind: ExprKind::Reference {
-                        ident: ast::IdentRef(ast::IdentId(0), Location::new()),
-                    },
-                    eval_type: TypeRef::Named(enum_id),
-                    is_compile_eval: true,
-                    span: Location::new(),
-                };
-
-                Ok(Expr {
-                    kind: ExprKind::Dot {
-                        left: Box::new(ref_expr),
-                        field: (
-                            ast::FieldDef {
-                                name: "<unknown>".to_string(),
-                                type_spec: TypeRef::Named(field_id),
-                                is_typedef: false,
-                                is_const: true,
-                            },
-                            Location::new(),
-                        ),
-                    },
-                    is_compile_eval: true,
-                    eval_type: TypeRef::Named(field_id),
-                    span: Location::new(),
-                })
+            Value::EnumValue(field_id, _, ordinal) => {
+                // While we do lose *some* type information, it can be inferred back from the eval_type
+                Ok(value::make_literal(
+                    Literal::Nat(ordinal as u64),
+                    TypeRef::Named(field_id),
+                ))
             }
         }
     }
