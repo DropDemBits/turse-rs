@@ -699,10 +699,19 @@ mod test {
             }
         }
 
-        // The forbidden not expression is invalid in RsProlog
+        // The forbidden not expression is invalid in `toc`
         let mut parser = make_test_parser("var a : boolean := true\na ~==~ a");
         assert!(!parser.parse());
         let mut parser = make_test_parser("var a : boolean := true\na not==not a");
+        assert!(!parser.parse());
+    }
+
+    #[test]
+    fn test_equ_equ_hint_reporting() {
+        // Using == instead of = for equality comparison
+
+        // Should report
+        let mut parser = make_test_parser("var q := a == true");
         assert!(!parser.parse());
     }
 
@@ -1721,39 +1730,45 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.stmts[0].kind
+        } = &parser.stmts[1].kind
         {
             assert!(
-                !matches!(proc_call.kind, ExprKind::Call { .. }),
-                "Is {:?}",
+                matches!(proc_call.kind, ExprKind::Call { .. }),
+                "Is {:#?}",
                 proc_call
             );
+        } else {
+            unreachable!();
         }
 
         let mut parser = make_test_parser("var p : proc _\np()");
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.stmts[0].kind
+        } = &parser.stmts[1].kind
         {
             assert!(
-                !matches!(proc_call.kind, ExprKind::Call { .. }),
-                "Is {:?}",
+                matches!(proc_call.kind, ExprKind::Call { .. }),
+                "Is {:#?}",
                 proc_call
             );
+        } else {
+            unreachable!();
         }
 
         let mut parser = make_test_parser("var p : fcn _ (__ : int) : int\np(1)");
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.stmts[0].kind
+        } = &parser.stmts[1].kind
         {
             assert!(
-                !matches!(proc_call.kind, ExprKind::Call { .. }),
-                "Is {:?}",
+                matches!(proc_call.kind, ExprKind::Call { .. }),
+                "Is {:#?}",
                 proc_call
             );
+        } else {
+            unreachable!();
         }
 
         // TODO: Check for calls behind dot, arrow, and deref exprs

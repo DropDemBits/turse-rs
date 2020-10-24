@@ -187,14 +187,10 @@ impl<'s> Parser<'s> {
             // Try to figure out if the typo was a reasonable one
             // ???: Rework this system to use a hashmap with key (token_type, token_type)?
 
-            let hint = if before_op.location != op.location {
-                if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ {
-                    "(Did you mean '=' instead of '=='?)"
-                } else {
-                    ""
-                }
+            let hint = if before_op.token_type == TokenType::Equ && op.token_type == TokenType::Equ
+            {
+                "(Did you mean '=' instead of '=='?)"
             } else {
-                // No hints for looking back at the start or end of the file
                 ""
             };
 
