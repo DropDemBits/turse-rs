@@ -35,7 +35,8 @@ impl Validator {
         // Visit the expression to update the eval type
         if value.is_some() {
             let expr = value.as_mut().unwrap();
-            let init_eval = self.visit_expr(expr);
+            self.visit_expr(expr);
+            let init_eval = self.eval_expr(expr).ok().flatten();
 
             // Try to replace the initializer value with the folded value
             super::replace_with_folded(expr, init_eval);
@@ -139,118 +140,7 @@ impl Validator {
         // If value is an init expression, verify compatibility
         if !types::is_error(type_spec) {
             if let Some(expr) = value {
-                if let ExprKind::Init { init, exprs, .. } = &expr.kind {
-                    // Check if the type can accept the "init"
-                    // Only valid for arrays, records, and unions
-                    let mut field_types = if let Some(type_info) =
-                        self.type_table.type_from_ref(type_spec)
-                    {
-                        match type_info {
-                            Type::Array {
-                                ranges,
-                                element_type,
-                                is_init_sized,
-                                is_flexible,
-                            } => {
-                                // `did_overflow` indicates it was capped at usize::MAX
-                                let (elem_count, did_overflow) =
-                                    types::get_array_element_count(ranges, &self.type_table);
-
-                                if ranges.is_empty() {
-                                    // No ranges on the array, error reported by the parser
-                                    None
-                                } else if *is_flexible {
-                                    self.context.borrow_mut().reporter.report_error(init, format_args!("'init' initializers are not allowed for flexible arrays"));
-                                    None
-                                } else if elem_count == 0 && !is_init_sized {
-                                    // We know it to be dynamic, as one of the ranges isn't a compile-time expression and it isn't a flexible array
-                                    self.context.borrow_mut().reporter.report_error(init, format_args!("'init' initializers are not allowed for dynamic arrays"));
-                                    None
-                                } else if did_overflow {
-                                    // Array has more elements than can be handled
-                                    // Definitely an error (stop yourself, for your own sake)
-                                    self.context.borrow_mut().reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
-                                    None
-                                } else if *is_init_sized {
-                                    // Match type count with init size
-                                    Some(std::iter::once(element_type).cycle().take(exprs.len()))
-                                } else {
-                                    // Build type iter on array count sizes
-                                    Some(std::iter::once(element_type).cycle().take(elem_count))
-                                }
-                            }
-                            _ => {
-                                // Not the requested type
-                                None
-                            }
-                        }
-                    } else {
-                        // Nope!
-                        None
-                    };
-
-                    // If a none, errors are already produced
-                    if let Some(field_types) = field_types.as_mut() {
-                        // Iterate over the init types
-                        let mut init_types = exprs.iter().map(|e| (e, e.get_eval_type()));
-                        let mut has_fields_remaining = false;
-
-                        for field_type in field_types {
-                            let init_field = init_types.next();
-
-                            if init_field.is_none() {
-                                has_fields_remaining = true;
-                                // None left
-                                break;
-                            }
-
-                            let (init_expr, init_type) = init_field.unwrap();
-
-                            if !matches!(init_expr.kind, ExprKind::Error)
-                                && !types::is_assignable_to(
-                                    field_type,
-                                    &init_type,
-                                    &self.type_table,
-                                )
-                            {
-                                // Wrong types (skipping over error expressions as those are produced by the parser)
-                                // ???: Report field name for records?
-                                self.context.borrow_mut().reporter.report_error(
-                                    init_expr.get_span(),
-                                    format_args!("Initializer value evaluates to the wrong type"),
-                                );
-                            }
-                        }
-
-                        // Check if there are any remaining
-                        let next_init = init_types.next();
-
-                        match next_init {
-                            Some((next_expr, _)) if !has_fields_remaining => {
-                                // Too many init fields
-                                let report_at = next_expr.get_span();
-
-                                self.context.borrow_mut().reporter.report_error(
-                                    report_at,
-                                    format_args!("Too many initializer values"),
-                                );
-                            }
-                            None if has_fields_remaining => {
-                                // Too few init
-                                // If empty, report at init
-                                let report_at = exprs.last().map_or(init, |expr| expr.get_span());
-
-                                // ???: Report field name for records?
-                                // ???: Report missing count for arrays?
-                                self.context.borrow_mut().reporter.report_error(
-                                    report_at,
-                                    format_args!("Too few initializer values"),
-                                );
-                            }
-                            _ => {}
-                        }
-                    }
-                }
+                self.check_init_value_in_initializer(expr, type_spec);
             }
         }
 
@@ -278,7 +168,130 @@ impl Validator {
             // Only compile-time evaluable if the identifier referencences a constant
             info.is_compile_eval = is_compile_eval && info.is_const;
             // Post compile time value
-            self.compile_values.insert(ident.id, const_val.clone());
+            if let Some(const_val) = &const_val {
+                self.compile_values.insert(ident.id, const_val.clone());
+            }
+        }
+    }
+
+    /// Check compatibility with initializer and `type_spec`
+    fn check_init_value_in_initializer(&self, expr: &Expr, type_spec: &TypeRef) {
+        if let ExprKind::Init { init, exprs, .. } = &expr.kind {
+            // Check if the type can accept the "init"
+            // Only valid for arrays, records, and unions
+            let mut field_types = if let Some(type_info) = self.type_table.type_from_ref(type_spec)
+            {
+                match type_info {
+                    Type::Array {
+                        ranges,
+                        element_type,
+                        is_init_sized,
+                        is_flexible,
+                    } => {
+                        // `did_overflow` indicates it was capped at usize::MAX
+                        let (elem_count, did_overflow) =
+                            types::get_array_element_count(ranges, &self.type_table);
+
+                        if ranges.is_empty() {
+                            // No ranges on the array, error reported by the parser
+                            None
+                        } else if *is_flexible {
+                            self.context.borrow_mut().reporter.report_error(
+                                init,
+                                format_args!(
+                                    "'init' initializers are not allowed for flexible arrays"
+                                ),
+                            );
+                            None
+                        } else if elem_count == 0 && !is_init_sized {
+                            // We know it to be dynamic, as one of the ranges isn't a compile-time expression and it isn't a flexible array
+                            self.context.borrow_mut().reporter.report_error(
+                                init,
+                                format_args!(
+                                    "'init' initializers are not allowed for dynamic arrays"
+                                ),
+                            );
+                            None
+                        } else if did_overflow {
+                            // Array has more elements than can be handled
+                            // Definitely an error (stop yourself, for your own sake)
+                            self.context.borrow_mut().reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
+                            None
+                        } else if *is_init_sized {
+                            // Match type count with init size
+                            Some(std::iter::once(element_type).cycle().take(exprs.len()))
+                        } else {
+                            // Build type iter on array count sizes
+                            Some(std::iter::once(element_type).cycle().take(elem_count))
+                        }
+                    }
+                    _ => {
+                        // Not the requested type
+                        None
+                    }
+                }
+            } else {
+                // Nope!
+                None
+            };
+
+            // If a none, errors are already produced
+            if let Some(field_types) = field_types.as_mut() {
+                // Iterate over the init types
+                let mut init_types = exprs.iter().map(|e| (e, e.get_eval_type()));
+                let mut has_fields_remaining = false;
+
+                for field_type in field_types {
+                    let init_field = init_types.next();
+
+                    if init_field.is_none() {
+                        has_fields_remaining = true;
+                        // None left
+                        break;
+                    }
+
+                    let (init_expr, init_type) = init_field.unwrap();
+
+                    if !matches!(init_expr.kind, ExprKind::Error)
+                        && !types::is_assignable_to(field_type, &init_type, &self.type_table)
+                    {
+                        // Wrong types (skipping over error expressions as those are produced by the parser)
+                        // ???: Report field name for records?
+                        self.context.borrow_mut().reporter.report_error(
+                            init_expr.get_span(),
+                            format_args!("Initializer value evaluates to the wrong type"),
+                        );
+                    }
+                }
+
+                // Check if there are any remaining
+                let next_init = init_types.next();
+
+                match next_init {
+                    Some((next_expr, _)) if !has_fields_remaining => {
+                        // Too many init fields
+                        let report_at = next_expr.get_span();
+
+                        self.context
+                            .borrow_mut()
+                            .reporter
+                            .report_error(report_at, format_args!("Too many initializer values"));
+                    }
+                    None if has_fields_remaining => {
+                        // Too few init
+                        // If empty, report at init
+                        let report_at = exprs.last().map_or(init, |expr| expr.get_span());
+
+                        // ???: Report field name for records?
+                        // ???: Report missing count for arrays?
+                        self.context
+                            .borrow_mut()
+                            .reporter
+                            .report_error(report_at, format_args!("Too few initializer values"));
+                    }
+                    _ => {}
+                }
+            }
         }
     }
 
@@ -316,9 +329,6 @@ impl Validator {
                     format_args!("'{}' is not resolved in the current unit", info.name),
                 );
             }
-
-            // Post `None` compile time value
-            self.compile_values.insert(ident.id, None);
         } else {
             // Use the identifier
             // Must be defined
@@ -353,10 +363,12 @@ impl Validator {
         op: Option<&mut BinaryOp>,
         value: &mut Box<Expr>,
     ) {
-        let ref_eval = self.visit_expr(var_ref);
-        let value_eval = self.visit_expr(value);
+        self.visit_expr(var_ref);
+        self.visit_expr(value);
 
         // Try to replace the operands with the folded values
+        let ref_eval = self.eval_expr(var_ref).ok().flatten();
+        let value_eval = self.eval_expr(value).ok().flatten();
         super::replace_with_folded(var_ref, ref_eval);
         super::replace_with_folded(value, value_eval);
 

@@ -4,18 +4,18 @@ use super::Validator;
 use std::cmp::Ordering;
 use toc_ast::ast::{BinaryOp, Expr, ExprKind, FieldDef, IdentRef, Literal, UnaryOp, VisitorMut};
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
-use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
 
 impl Validator {
     // --- Expr Resolvers --- //
 
     // Resolves an "init" expression
-    pub(super) fn resolve_expr_init(&mut self, exprs: &mut Vec<Expr>) -> Option<Value> {
+    pub(super) fn resolve_expr_init(&mut self, exprs: &mut Vec<Expr>) {
         for expr in exprs.iter_mut() {
-            let value = self.visit_expr(expr);
+            self.visit_expr(expr);
 
             // Replace with folded expression
+            let value = self.eval_expr(expr).ok().flatten();
             super::replace_with_folded(expr, value);
 
             if self.is_type_reference(expr) {
@@ -30,7 +30,6 @@ impl Validator {
                 );
             }
         }
-        None
     }
 
     /// Resolves an indirection expression
@@ -39,14 +38,20 @@ impl Validator {
         reference: &mut Option<Box<Expr>>,
         addr: &mut Box<Expr>,
         eval_type: &mut TypeRef,
-    ) -> Option<Value> {
+    ) {
         if let Some(reference) = reference {
-            let ref_eval = self.visit_expr(reference);
-            super::replace_with_folded(reference, ref_eval);
+            self.visit_expr(reference);
+
+            // Try to fold the reference expression
+            let ref_value = self.eval_expr(reference).ok().flatten();
+            super::replace_with_folded(reference, ref_value);
         }
 
-        let addr_eval = self.visit_expr(addr);
-        super::replace_with_folded(addr, addr_eval);
+        self.visit_expr(addr);
+
+        // Try to fold the address expression
+        let addr_value = self.eval_expr(addr).ok().flatten();
+        super::replace_with_folded(addr, addr_value);
 
         // `reference` must be a type reference
         if let Some(reference) = reference {
@@ -95,25 +100,18 @@ impl Validator {
         }
 
         // ???: Warn about null address accesses?
-
-        // Never return a value
-        None
     }
 
     pub(super) fn resolve_expr_binary(
         &mut self,
         left: &mut Box<Expr>,
-        op: &mut (BinaryOp, Location),
+        (op, location): &(BinaryOp, Location),
         right: &mut Box<Expr>,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
-    ) -> Option<Value> {
-        let left_eval = self.visit_expr(left);
-        let right_eval = self.visit_expr(right);
-
-        // Replace the operands with the folded values
-        super::replace_with_folded(left, left_eval);
-        super::replace_with_folded(right, right_eval);
+    ) {
+        self.visit_expr(left);
+        self.visit_expr(right);
 
         // Validate that the types are assignable with the given operation
         // eval_type is the type of the expr result
@@ -136,11 +134,8 @@ impl Validator {
                 );
             }
 
-            return None;
+            return;
         }
-
-        let loc = &op.1;
-        let op = op.0;
 
         let left_type = &self.dealias_resolve_type(left.get_eval_type());
         let right_type = &self.dealias_resolve_type(right.get_eval_type());
@@ -148,163 +143,90 @@ impl Validator {
         if types::is_error(left_type) || types::is_error(right_type) {
             // Either one is a type error
             // Set default type & return no value (no need to report an error as this is just propoagtion)
-            *eval_type = binary_default(op);
+            *eval_type = binary_default(*op);
             *is_compile_eval = false;
-            return None;
+            return;
         }
 
         debug_assert!(types::is_base_type(left_type, &self.type_table));
         debug_assert!(types::is_base_type(right_type, &self.type_table));
 
-        match check_binary_operands(left_type, op, right_type, &self.type_table) {
+        match check_binary_operands(left_type, *op, right_type, &self.type_table) {
             Ok(good_eval) => {
                 // Only evaluable if the operands are not type errors and are applicable to the current op
                 *is_compile_eval = left.is_compile_eval() && right.is_compile_eval();
                 *eval_type = good_eval;
-
-                if *is_compile_eval {
-                    // Try to fold the current expression
-                    let lvalue =
-                        Value::from_expr(*left.clone(), &self.type_table).unwrap_or_else(|msg| {
-                            panic!(
-                                "Left operand is not a compile-time value {:?} ({})",
-                                left, msg
-                            )
-                        });
-                    let rvalue =
-                        Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
-                            panic!(
-                                "Right operand is not a compile-time value {:?} ({})",
-                                left, msg
-                            )
-                        });
-
-                    let result = value::apply_binary(
-                        lvalue,
-                        op,
-                        rvalue,
-                        value::EvalConstraints { as_64_bit: false },
-                    );
-
-                    match result {
-                        Ok(v) => Some(v),
-                        Err(msg) => {
-                            // Report the error message!
-                            match msg {
-                                ValueApplyError::InvalidOperand => match op {
-                                    BinaryOp::Shl | BinaryOp::Shr => {
-                                        self.context.borrow_mut().reporter.report_error(
-                                            right.get_span(),
-                                            format_args!(
-                                            "Negative shift amount in compile-time '{}' expression",
-                                            op
-                                        ),
-                                        )
-                                    }
-                                    _ => self.context.borrow_mut().reporter.report_error(
-                                        right.get_span(),
-                                        format_args!("Invalid operand in compile-time expression"),
-                                    ),
-                                },
-                                ValueApplyError::DivisionByZero => {
-                                    // Recoverable
-                                    self.context.borrow_mut().reporter.report_warning(
-                                        &loc,
-                                        format_args!("Compile-time '{}' by zero", op),
-                                    );
-                                }
-                                other => self
-                                    .context
-                                    .borrow_mut()
-                                    .reporter
-                                    .report_error(&loc, format_args!("{}", other)),
-                            }
-
-                            // Remove the compile-time evaluability status
-                            *is_compile_eval = false;
-                            None
-                        }
-                    }
-                } else {
-                    // Can't fold the current expression
-                    None
-                }
             }
             Err(bad_eval) => {
                 *eval_type = bad_eval;
                 *is_compile_eval = false;
 
+                let context = self.context.borrow_mut();
+
                 match op {
                     BinaryOp::Add =>
-                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
+                        context.reporter.report_error(&location, format_args!("Operands of '{}' must both be scalars (int, real, or nat), strings, or compatible sets", op), ),
                     BinaryOp::Sub | BinaryOp::Mul =>
-                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
+                        context.reporter.report_error(&location, format_args!("Operands of '{}' must both be scalars (int, real, or nat), or compatible sets", op)),
                     BinaryOp::RealDiv | BinaryOp::Div | BinaryOp::Mod | BinaryOp::Rem | BinaryOp::Exp =>
-                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
+                        context.reporter.report_error(&location, format_args!("Operands of '{}' must both be scalars (int, real, or nat)", op)),
                     BinaryOp::And | BinaryOp::Or | BinaryOp::Xor =>
-                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
+                        context.reporter.report_error(&location, format_args!("Operands of '{}' must both be scalars (int, real, or nat) or booleans", op)),
                     BinaryOp::Shl | BinaryOp::Shr =>
-                        self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
+                        context.reporter.report_error(&location, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
                     BinaryOp::Less | BinaryOp::LessEq | BinaryOp::Greater | BinaryOp::GreaterEq => {
                         if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op))
+                            context.reporter.report_error(&location, format_args!("Operands of '{}' must be the same type", op))
                         } else {
-                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
+                            context.reporter.report_error(&location, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
                         }
                     },
                     BinaryOp::NotEqual | BinaryOp::Equal => {
                         if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must be the same type", op));
+                            context.reporter.report_error(&location, format_args!("Operands of '{}' must be the same type", op));
                         } else {
-                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
+                            context.reporter.report_error(&location, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
                         }
                     },
                     BinaryOp::In | BinaryOp::NotIn => {
                         if !types::is_set(right_type, &self.type_table) {
-                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Right operand of '{}' must be a set type", op));
+                            context.reporter.report_error(&location, format_args!("Right operand of '{}' must be a set type", op));
                         } else {
-                            self.context.borrow_mut().reporter.report_error(loc, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
+                            context.reporter.report_error(&location, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
                         }
                     },
                     BinaryOp::Imply =>
-                    self.context.borrow_mut().reporter.report_error(loc, format_args!("Operands of '{}' must both be booleans", op)),
+                        context.reporter.report_error(&location, format_args!("Operands of '{}' must both be booleans", op)),
                     _ => unreachable!(),
                 }
-
-                // Produce no value
-                None
             }
         }
     }
 
     pub(super) fn resolve_expr_unary(
         &mut self,
-        op: &mut (UnaryOp, Location),
+        (op, location): &(UnaryOp, Location),
         right: &mut Box<Expr>,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
-    ) -> Option<Value> {
-        let right_eval = self.visit_expr(right);
-
-        // Replace operand with the folded value
-        super::replace_with_folded(right, right_eval);
+    ) {
+        self.visit_expr(right);
 
         // Validate that the unary operator can be applied to the rhs
         // eval_type is the result of the operation (usually the same
         // as rhs)
 
-        let loc = &op.1;
-        let op = op.0;
-
         if self.is_type_reference(right) {
             // Operand is a type reference, can't perform operations on it
             *eval_type = TypeRef::TypeError;
             *is_compile_eval = false;
+
             self.context.borrow_mut().reporter.report_error(
                 right.get_span(),
                 format_args!("Operand is not a variable or constant reference"),
             );
-            return None;
+
+            return;
         }
 
         let right_type = &self.dealias_resolve_type(right.get_eval_type());
@@ -313,77 +235,43 @@ impl Validator {
             // Right operand is a type error
 
             // Propogate error
-            *eval_type = unary_default(op);
+            *eval_type = unary_default(*op);
             *is_compile_eval = false;
-            return None;
+
+            return;
         }
 
         debug_assert!(types::is_base_type(right_type, &self.type_table));
 
-        match check_unary_operand(op, right_type, &self.type_table) {
+        match check_unary_operand(*op, right_type, &self.type_table) {
             Ok(good_eval) => {
                 *eval_type = good_eval;
                 // Compile-time evaluability is dependend on the right operand
                 *is_compile_eval = right.is_compile_eval();
 
-                if op == UnaryOp::Deref {
+                if op == &UnaryOp::Deref {
                     // Pointers are never compile-time evaluable
                     *is_compile_eval = false;
                 }
-
-                if *is_compile_eval {
-                    // Try to fold the expression
-                    let rvalue =
-                        Value::from_expr(*right.clone(), &self.type_table).unwrap_or_else(|msg| {
-                            panic!(
-                                "Right operand is not a compile-time value {:?} ({})",
-                                right, msg
-                            )
-                        });
-
-                    let result =
-                        value::apply_unary(op, rvalue, value::EvalConstraints { as_64_bit: false });
-
-                    return if let Err(msg) = result {
-                        match msg {
-                            ValueApplyError::Overflow => {
-                                self.context.borrow_mut().reporter.report_error(
-                                    &right.get_span(),
-                                    format_args!("Overflow in compile-time expression"),
-                                )
-                            }
-                            other => self
-                                .context
-                                .borrow_mut()
-                                .reporter
-                                .report_error(&loc, format_args!("{}", other)),
-                        }
-
-                        // Revoke compile-time evaluability status
-                        *is_compile_eval = false;
-                        None
-                    } else {
-                        result.ok()
-                    };
-                }
-
-                // Produce no value
-                None
             }
             Err(bad_eval) => {
                 *eval_type = bad_eval;
                 *is_compile_eval = false;
 
-                match op {
-                    UnaryOp::Not => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
-                    UnaryOp::Identity => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
-                    UnaryOp::Negate => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
-                    UnaryOp::Deref => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of pointer dereference must be a pointer")),
-                    UnaryOp::NatCheat => self.context.borrow_mut().reporter.report_error(loc, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
-                }
+                let context = self.context.borrow_mut();
 
-                // Produce no value
-                None
+                match op {
+                    UnaryOp::Not =>
+                        context.reporter.report_error(&location, format_args!("Operand of 'not' must be an integer (int or nat) or a boolean")),
+                    UnaryOp::Identity =>
+                        context.reporter.report_error(&location, format_args!("Operand of prefix '+' must be a scalar (int, real, or nat)")),
+                    UnaryOp::Negate =>
+                        context.reporter.report_error(&location, format_args!("Operand of unary negation must be a scalar (int, real, or nat)")),
+                    UnaryOp::Deref =>
+                        context.reporter.report_error(&location, format_args!("Operand of pointer dereference must be a pointer")),
+                    UnaryOp::NatCheat =>
+                        context.reporter.report_error(&location, format_args!("Operand of nat cheat must be a literal, or a reference to a variable or constant")),
+                }
             }
         }
     }
@@ -397,15 +285,16 @@ impl Validator {
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
         allow_procedure: bool,
-    ) -> Option<Value> {
+    ) {
         // Visit given exprs
         self.visit_expr(left);
 
         args.iter_mut().for_each(|expr| {
-            let value = self.visit_expr(expr);
+            self.visit_expr(expr);
 
             // Don't fold for dot and reference exprs
             if !matches!(expr.kind, ExprKind::Reference { .. } | ExprKind::Dot { .. }) {
+                let value = self.eval_expr(expr).ok().flatten();
                 super::replace_with_folded(expr, value);
             }
         });
@@ -471,8 +360,6 @@ impl Validator {
                     *eval_type = left.get_eval_type();
                     // Never compile-time evaluable
                     *is_compile_eval = false;
-
-                    None
                 }
                 Some(Type::Pointer { to: _, .. }) => {
                     // Pointer specialization
@@ -490,13 +377,10 @@ impl Validator {
                         &left.get_span(),
                         format_args!("Pointer specialization expressions are not supported yet"),
                     );
-
-                    None
                 }
                 _ => {
                     // Can't call given expr
                     self.report_uncallable_expr(left);
-                    None
                 }
             }
         } else if types::is_char_seq_type(&left_dealiased) {
@@ -507,8 +391,6 @@ impl Validator {
                 &left.get_span(),
                 format_args!("String subscript expressions are not supported yet"),
             );
-
-            None
         } else {
             // Call expression should fall under the 2 types
             // - Array subscripting
@@ -528,8 +410,6 @@ impl Validator {
                     *eval_type = *element_type;
                     // Never compile-time evaluable
                     *is_compile_eval = false;
-
-                    None
                 }
                 Some(Type::Function { params, result }) => {
                     // Typecheck the function arguments
@@ -553,16 +433,13 @@ impl Validator {
                         TypeRef::TypeError
                     };
 
-                    // We don't know if the expr call is compile-time unless it's a predef,
+                    // We don't know if the expr call is compile-time unless it's a predef or builtin,
                     // so by default, everything is not compile-time evaluable
                     *is_compile_eval = false;
-
-                    None
                 }
                 _ => {
                     // Can't call given expr
                     self.report_uncallable_expr(left);
-                    None
                 }
             }
         }
@@ -740,7 +617,7 @@ impl Validator {
         field_def: &mut (FieldDef, Location),
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
-    ) -> Option<Value> {
+    ) {
         self.visit_expr(left);
         // Validate that the field exists in the given type
         // eval_type is the field type
@@ -779,7 +656,7 @@ impl Validator {
             // Is a type error, silently propogate error
             field.type_spec = TypeRef::TypeError;
             *eval_type = TypeRef::TypeError;
-            return None;
+            return;
         }
 
         if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
@@ -799,18 +676,6 @@ impl Validator {
 
                         // Enum fields are compile-time evaluable
                         *is_compile_eval = true;
-
-                        let enum_id = types::get_type_id(&left_ref).unwrap();
-                        let field_id = types::get_type_id(&field_ref).unwrap();
-                        let ordinal = if let Type::EnumField { ordinal, .. } =
-                            self.type_table.get_type(field_id)
-                        {
-                            *ordinal
-                        } else {
-                            0
-                        };
-
-                        return Some(Value::EnumValue(field_id, enum_id, ordinal));
                     } else {
                         // Field name is not a part of the enum
                         field.type_spec = TypeRef::TypeError;
@@ -826,6 +691,9 @@ impl Validator {
                                     .map_or("<unknown>", |(name, _, _, _, _)| name.as_str())
                             ),
                         );
+
+                        // Not compile-time evaluable
+                        *is_compile_eval = false;
                     }
                 }
                 Type::Pointer { .. } => {
@@ -855,8 +723,6 @@ impl Validator {
                 format_args!("Left side of '.' is not a compound type"),
             );
         }
-
-        None
     }
 
     pub(super) fn resolve_expr_arrow(
@@ -865,7 +731,7 @@ impl Validator {
         field_def: &mut (FieldDef, Location),
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
-    ) -> Option<Value> {
+    ) {
         self.visit_expr(left);
 
         // Arrow expressions are not validated yet
@@ -877,8 +743,6 @@ impl Validator {
 
         *eval_type = TypeRef::TypeError;
         *is_compile_eval = false;
-
-        None
     }
 
     pub(super) fn resolve_expr_reference(
@@ -886,16 +750,9 @@ impl Validator {
         ident: &mut IdentRef,
         eval_type: &mut TypeRef,
         is_compile_eval: &mut bool,
-    ) -> Option<Value> {
+    ) {
         // Use the identifier and grab the associated value
         let compile_value = self.compile_values.get(&ident.id);
-        // Flatten
-        let compile_value = if let Some(Some(value)) = compile_value {
-            Some(value.clone())
-        } else {
-            None
-        };
-
         let info = self.unit_scope.get_ident_info_mut(&ident.id);
 
         if !info.is_declared {
@@ -935,36 +792,13 @@ impl Validator {
             // Not declared, don't touch the `type_spec` (preserves error checking "correctness")
             *eval_type = info.type_spec;
         }
-
-        // Return the reference's associated compile-time value
-        compile_value
     }
 
-    pub(super) fn resolve_expr_literal(
-        &mut self,
-        value: &mut Literal,
-        eval_type: &mut TypeRef,
-    ) -> Option<Value> {
+    pub(super) fn resolve_expr_literal(&mut self, _value: &mut Literal, eval_type: &mut TypeRef) {
         // Literal values already have the type resolved, unless the eval type is an IntNat
-
         if matches!(eval_type, TypeRef::Primitive(PrimitiveType::IntNat)) {
             // Force IntNats into Ints
             *eval_type = TypeRef::Primitive(PrimitiveType::Int);
-        }
-
-        if matches!(value, Literal::Nil) {
-            // Don't produce a compile-time value for 'nil'
-            None
-        } else {
-            // Produce the corresponding literal value
-            let v = Value::from_literal(value.clone()).unwrap_or_else(|msg| {
-                panic!(
-                    "Literal '{:?}' cannot be converted into a compile-time value ({})",
-                    value, msg
-                );
-            });
-
-            Some(v)
         }
     }
 }

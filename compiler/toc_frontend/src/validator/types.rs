@@ -199,10 +199,12 @@ impl Validator {
     }
 
     fn resolve_type_size(&mut self, expr: &mut Box<Expr>) -> ResolveResult {
-        // Visit the expr, producing a compile-time value
-        let eval = self.visit_expr(expr);
+        // Visit the expr
+        self.visit_expr(expr);
+        // Try to eval
+        let eval = self.eval_expr(expr);
 
-        if !expr.is_compile_eval() || eval.is_none() {
+        if eval.is_err() || eval.as_ref().unwrap().is_none() {
             // Is not a compile-time expression, give back a type error
             self.context.borrow_mut().reporter.report_error(
                 expr.get_span(),
@@ -214,6 +216,7 @@ impl Validator {
         // Value type-checking should be done by the destination type type
 
         // Type should be valid, replace with eval_value
+        let eval = eval.expect("Error passed through");
         super::replace_with_folded(expr, eval);
 
         // Nothing to replace
@@ -302,9 +305,15 @@ impl Validator {
         *base_type = TypeRef::TypeError;
 
         // Visit the bound expressions
-        let start_eval = self.visit_expr(start);
+        let start_eval = {
+            self.visit_expr(start);
+            self.eval_expr(start).ok().flatten()
+        };
+
         let end_eval = if end.is_some() {
-            self.visit_expr(end.as_mut().unwrap())
+            let end = end.as_mut().unwrap();
+            self.visit_expr(end);
+            self.eval_expr(end).ok().flatten()
         } else {
             None
         };

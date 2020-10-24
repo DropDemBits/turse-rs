@@ -14,11 +14,11 @@ mod stmt;
 mod types;
 
 use crate::context::CompileContext;
-use toc_ast::ast::{Expr, ExprKind, IdentId, Stmt, StmtKind, VisitorMut};
+use toc_ast::ast::{Expr, ExprKind, IdentId, Literal, Stmt, StmtKind, VisitorMut};
 use toc_ast::scope::{ScopeBlock, UnitScope};
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
 use toc_ast::types::{Type, TypeRef, TypeTable};
-use toc_ast::value::Value;
+use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
 
 use std::cell::RefCell;
@@ -45,7 +45,7 @@ pub struct Validator {
     /// Unit scope to take identifiers from
     unit_scope: UnitScope,
     /// Mapping of all compile-time values
-    compile_values: HashMap<IdentId, Option<Value>>,
+    compile_values: HashMap<IdentId, Value>,
 }
 
 type ResolveResult = Option<TypeRef>;
@@ -242,9 +242,203 @@ impl Validator {
             _ => false, // Most likely not a type reference
         }
     }
+
+    // Evaluates expression.
+    // Expected to be called after visiting the expression root.
+    //
+    // If an expresssion is not compile-time evaluable, `Ok(None)` is produced
+    // If an error occurred during evaluation, an error is reported and the specific
+    // error is produced.
+    fn eval_expr(&self, expr: &Expr) -> Result<Option<Value>, ValueApplyError> {
+        // Only used here, and may be moved later on
+        use toc_ast::ast::BinaryOp;
+
+        if !expr.is_compile_eval {
+            // Will never produce a value
+            return Ok(None);
+        }
+
+        match &expr.kind {
+            ExprKind::BinaryOp {
+                left,
+                op: (op, location),
+                right,
+            } => {
+                // Evaluate operands
+                let lvalue = if let Some(value) = self.eval_expr(left)? {
+                    value
+                } else {
+                    return Ok(None);
+                };
+
+                let rvalue = if let Some(value) = self.eval_expr(right)? {
+                    value
+                } else {
+                    return Ok(None);
+                };
+
+                let result = value::apply_binary(
+                    lvalue,
+                    *op,
+                    rvalue,
+                    value::EvalConstraints { as_64_bit: false },
+                );
+
+                if let Err(msg) = result {
+                    // Report the error message!
+                    let context = self.context.borrow_mut();
+
+                    match &msg {
+                        ValueApplyError::InvalidOperand
+                            if matches!(op, BinaryOp::Shl | BinaryOp::Shr) =>
+                        {
+                            context.reporter.report_error(
+                                right.get_span(),
+                                format_args!(
+                                    "Negative shift amount in compile-time '{}' expression",
+                                    op
+                                ),
+                            );
+                        }
+                        ValueApplyError::InvalidOperand => {
+                            context.reporter.report_error(
+                                right.get_span(),
+                                format_args!("Invalid operand in compile-time expression"),
+                            );
+                        }
+                        ValueApplyError::DivisionByZero => {
+                            // Recoverable
+                            context.reporter.report_warning(
+                                &location,
+                                format_args!("Compile-time '{}' by zero", op),
+                            );
+                        }
+                        other => {
+                            // Other, non specialized message
+                            context
+                                .reporter
+                                .report_error(&location, format_args!("{}", other));
+                        }
+                    }
+
+                    Err(msg)
+                } else {
+                    Ok(result.ok())
+                }
+            }
+            ExprKind::UnaryOp {
+                op: (op, location),
+                right,
+            } => {
+                let rvalue = if let Some(value) = self.eval_expr(right)? {
+                    value
+                } else {
+                    return Ok(None);
+                };
+
+                let result =
+                    value::apply_unary(*op, rvalue, value::EvalConstraints { as_64_bit: false });
+
+                if let Err(msg) = result {
+                    let context = self.context.borrow_mut();
+
+                    match &msg {
+                        ValueApplyError::Overflow => {
+                            context.reporter.report_error(
+                                &right.get_span(),
+                                format_args!("Overflow in compile-time expression"),
+                            );
+                        }
+                        other => {
+                            context
+                                .reporter
+                                .report_error(&location, format_args!("{}", other));
+                        }
+                    }
+
+                    Err(msg)
+                } else {
+                    Ok(result.ok())
+                }
+            }
+            ExprKind::Dot { left, field } => {
+                // Enum, known const
+                /*
+
+                */
+
+                // Dealias left type
+                let left_ref = ty::dealias_ref(&left.get_eval_type(), &self.type_table);
+                let field = &field.0;
+
+                if ty::is_error(&left_ref) {
+                    // Is a type error, no value
+                    return Ok(None);
+                }
+
+                if let Some(type_info) = self.type_table.type_from_ref(&left_ref) {
+                    // Match based on the type info
+                    match type_info {
+                        Type::Enum { fields, .. } => {
+                            let enum_field = fields.get(&field.name);
+                            // Check if the field is a part of the compound type
+                            if let Some(field_ref) = enum_field {
+                                // Build Enum value
+                                let enum_id = ty::get_type_id(&left_ref).unwrap();
+                                let field_id = ty::get_type_id(&field_ref).unwrap();
+                                let ordinal = if let Type::EnumField { ordinal, .. } =
+                                    self.type_table.get_type(field_id)
+                                {
+                                    *ordinal
+                                } else {
+                                    0
+                                };
+
+                                Ok(Some(Value::EnumValue(field_id, enum_id, ordinal)))
+                            } else {
+                                unreachable!("Validated to be an enum field")
+                            }
+                        }
+                        _ => Ok(None),
+                    }
+                } else {
+                    unreachable!("Is compile eval but no associated dot/arrow conversion")
+                }
+            }
+            ExprKind::Reference { ident } => {
+                // From `compile_values map`
+                Ok(self.compile_values.get(&ident.id).cloned())
+            }
+            ExprKind::Literal { value } => {
+                // Known literal
+                if matches!(value, Literal::Nil) {
+                    // Don't produce a compile-time value for 'nil';
+                    Ok(None)
+                } else {
+                    // Produce the corresponding literal value
+                    let v = Value::from_literal(value.clone()).unwrap_or_else(|msg| {
+                        panic!(
+                            "Literal '{:?}' cannot be converted into a compile-time value ({})",
+                            value, msg
+                        );
+                    });
+
+                    Ok(Some(v))
+                }
+            }
+            ExprKind::Call { .. } => {
+                // Only builtins & known predefs would produce a value
+                Ok(None)
+            }
+            _ => {
+                // No Compile-time value produced
+                Ok(None)
+            }
+        }
+    }
 }
 
-impl VisitorMut<(), Option<Value>> for Validator {
+impl VisitorMut<(), ()> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
             StmtKind::VarDecl {
@@ -287,9 +481,9 @@ impl VisitorMut<(), Option<Value>> for Validator {
     }
 
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
-    fn visit_expr(&mut self, visit_expr: &mut Expr) -> Option<Value> {
+    fn visit_expr(&mut self, visit_expr: &mut Expr) {
         match &mut visit_expr.kind {
-            ExprKind::Error => None,
+            ExprKind::Error => (),
             ExprKind::Init { exprs, .. } => self.resolve_expr_init(exprs),
             ExprKind::Indirect {
                 reference, addr, ..
@@ -2481,7 +2675,7 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             panic!("Fold failed");
         }
 
-        // Stop folding constants in the event of an error
+        // Don't fold binary & unary expressions in the event of an error
         let (success, unit) = make_validator(
             "
 const a := 4
@@ -2496,14 +2690,14 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
         } = &unit.stmts().last().unwrap().kind
         {
             if let ExprKind::BinaryOp { left, right, .. } = expr.clone().kind {
-                // Check that (a + b) was folded, but not the + c
-                assert!(!matches!(left.kind, ExprKind::BinaryOp { .. }));
+                // Check that (a + b) and c was not folded
+                assert!(matches!(left.kind, ExprKind::BinaryOp { .. }));
                 assert!(matches!(right.kind, ExprKind::Reference { .. }));
             } else {
-                panic!("Something wrong happened! (folding did weird things!)");
+                panic!("Something wrong happened! (folding should not have occurred!)");
             }
         } else {
-            panic!("Something wrong happened! (not a var_decl!)");
+            unreachable!("Something wrong happened! (not a var_decl!)");
         }
 
         // Constant folding tests with inner scopes are tested in the dedicated block stmt test
