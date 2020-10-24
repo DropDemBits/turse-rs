@@ -5,11 +5,144 @@ use toc_core::Location;
 
 use std::cell::RefCell;
 use std::char;
+use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::rc::Rc;
 use unicode_segmentation::UnicodeSegmentation;
 
 extern crate strtod;
+
+lazy_static! {
+    /// List of all Turing keywords
+    static ref KEYWORD_MAP: HashMap<&'static str, TokenType> = {
+        let mut map = HashMap::new();
+
+        map.insert("addressint", TokenType::Addressint);
+        map.insert("all", TokenType::All);
+        map.insert("and", TokenType::And);
+        map.insert("array", TokenType::Array);
+        map.insert("asm", TokenType::Asm);
+        map.insert("assert", TokenType::Assert);
+        map.insert("begin", TokenType::Begin);
+        map.insert("bind", TokenType::Bind);
+        map.insert("bits", TokenType::Bits);
+        map.insert("body", TokenType::Body);
+        map.insert("boolean", TokenType::Boolean);
+        map.insert("break", TokenType::Break);
+        map.insert("by", TokenType::By);
+        map.insert("case", TokenType::Case);
+        map.insert("char", TokenType::Char);
+        map.insert("cheat", TokenType::Cheat);
+        map.insert("checked", TokenType::Checked);
+        map.insert("class", TokenType::Class);
+        map.insert("close", TokenType::Close);
+        map.insert("collection", TokenType::Collection);
+        map.insert("condition", TokenType::Condition);
+        map.insert("const", TokenType::Const);
+        map.insert("decreasing", TokenType::Decreasing);
+        map.insert("def", TokenType::Def);
+        map.insert("deferred", TokenType::Deferred);
+        map.insert("div", TokenType::Div);
+        map.insert("elif", TokenType::Elif);
+        map.insert("else", TokenType::Else);
+        map.insert("elseif", TokenType::Elseif);
+        map.insert("elsif", TokenType::Elsif);
+        map.insert("end", TokenType::End);
+        map.insert("endcase", TokenType::EndCase);
+        map.insert("endfor", TokenType::EndFor);
+        map.insert("endif", TokenType::EndIf);
+        map.insert("endloop", TokenType::EndLoop);
+        map.insert("enum", TokenType::Enum);
+        map.insert("exit", TokenType::Exit);
+        map.insert("export", TokenType::Export);
+        map.insert("external", TokenType::External);
+        map.insert("false", TokenType::False);
+        map.insert("fcn", TokenType::Function);
+        map.insert("flexible", TokenType::Flexible);
+        map.insert("for", TokenType::For);
+        map.insert("fork", TokenType::Fork);
+        map.insert("function", TokenType::Function);
+        map.insert("forward", TokenType::Forward);
+        map.insert("free", TokenType::Free);
+        map.insert("get", TokenType::Get);
+        map.insert("handler", TokenType::Handler);
+        map.insert("if", TokenType::If);
+        map.insert("implement", TokenType::Implement);
+        map.insert("import", TokenType::Import);
+        map.insert("in", TokenType::In);
+        map.insert("include", TokenType::Include);
+        map.insert("inherit", TokenType::Inherit);
+        map.insert("init", TokenType::Init);
+        map.insert("int", TokenType::Int);
+        map.insert("int1", TokenType::Int1);
+        map.insert("int2", TokenType::Int2);
+        map.insert("int4", TokenType::Int4);
+        map.insert("invariant", TokenType::Invariant);
+        map.insert("label", TokenType::Label);
+        map.insert("loop", TokenType::Loop);
+        map.insert("mod", TokenType::Mod);
+        map.insert("module", TokenType::Module);
+        map.insert("monitor", TokenType::Monitor);
+        map.insert("nat", TokenType::Nat);
+        map.insert("nat1", TokenType::Nat1);
+        map.insert("nat2", TokenType::Nat2);
+        map.insert("nat4", TokenType::Nat4);
+        map.insert("new", TokenType::New);
+        map.insert("nil", TokenType::Nil);
+        map.insert("not", TokenType::Not);
+        map.insert("objectclass", TokenType::ObjectClass);
+        map.insert("of", TokenType::Of);
+        map.insert("opaque", TokenType::Opaque);
+        map.insert("open", TokenType::Open);
+        map.insert("or", TokenType::Or);
+        map.insert("packed", TokenType::Packed);
+        map.insert("pause", TokenType::Pause);
+        map.insert("pervasive", TokenType::Pervasive);
+        map.insert("pointer", TokenType::Pointer);
+        map.insert("post", TokenType::Post);
+        map.insert("pre", TokenType::Pre);
+        map.insert("priority", TokenType::Priority);
+        map.insert("proc", TokenType::Procedure);
+        map.insert("procedure", TokenType::Procedure);
+        map.insert("process", TokenType::Process);
+        map.insert("put", TokenType::Put);
+        map.insert("quit", TokenType::Quit);
+        map.insert("read", TokenType::Read);
+        map.insert("real", TokenType::Real);
+        map.insert("real4", TokenType::Real4);
+        map.insert("real8", TokenType::Real8);
+        map.insert("record", TokenType::Record);
+        map.insert("register", TokenType::Register);
+        map.insert("rem", TokenType::Rem);
+        map.insert("result", TokenType::Result_);
+        map.insert("return", TokenType::Return);
+        map.insert("seek", TokenType::Seek);
+        map.insert("self", TokenType::Self_);
+        map.insert("set", TokenType::Set);
+        map.insert("shl", TokenType::Shl);
+        map.insert("shr", TokenType::Shr);
+        map.insert("signal", TokenType::Signal);
+        map.insert("skip", TokenType::Skip);
+        map.insert("string", TokenType::String_);
+        map.insert("tag", TokenType::Tag);
+        map.insert("tell", TokenType::Tell);
+        map.insert("then", TokenType::Then);
+        map.insert("timeout", TokenType::Timeout);
+        map.insert("to", TokenType::To);
+        map.insert("true", TokenType::True);
+        map.insert("type", TokenType::Type);
+        map.insert("unchecked", TokenType::Unchecked);
+        map.insert("union", TokenType::Union);
+        map.insert("unqualified", TokenType::Unqualified);
+        map.insert("var", TokenType::Var);
+        map.insert("wait", TokenType::Wait);
+        map.insert("when", TokenType::When);
+        map.insert("write", TokenType::Write);
+        map.insert("xor", TokenType::Xor);
+
+        map
+    };
+}
 
 /// Scanner for tokens
 #[derive(Debug)]
@@ -859,129 +992,10 @@ impl<'s> Scanner<'s> {
         let ident_slice = ident_cursor.get_lexeme(self.source);
         let len = UnicodeSegmentation::graphemes(ident_slice, true).count();
 
-        let token_type = match ident_slice {
-            "addressint" => TokenType::Addressint,
-            "all" => TokenType::All,
-            "and" => TokenType::And,
-            "array" => TokenType::Array,
-            "asm" => TokenType::Asm,
-            "assert" => TokenType::Assert,
-            "begin" => TokenType::Begin,
-            "bind" => TokenType::Bind,
-            "bits" => TokenType::Bits,
-            "body" => TokenType::Body,
-            "boolean" => TokenType::Boolean,
-            "break" => TokenType::Break,
-            "by" => TokenType::By,
-            "case" => TokenType::Case,
-            "char" => TokenType::Char,
-            "cheat" => TokenType::Cheat,
-            "checked" => TokenType::Checked,
-            "class" => TokenType::Class,
-            "close" => TokenType::Close,
-            "collection" => TokenType::Collection,
-            "condition" => TokenType::Condition,
-            "const" => TokenType::Const,
-            "decreasing" => TokenType::Decreasing,
-            "def" => TokenType::Def,
-            "deferred" => TokenType::Deferred,
-            "div" => TokenType::Div,
-            "elif" => TokenType::Elif,
-            "else" => TokenType::Else,
-            "elseif" => TokenType::Elseif,
-            "elsif" => TokenType::Elsif,
-            "end" => TokenType::End,
-            "endcase" => TokenType::EndCase,
-            "endfor" => TokenType::EndFor,
-            "endif" => TokenType::EndIf,
-            "endloop" => TokenType::EndLoop,
-            "enum" => TokenType::Enum,
-            "exit" => TokenType::Exit,
-            "export" => TokenType::Export,
-            "external" => TokenType::External,
-            "false" => TokenType::False,
-            "fcn" | "function" => TokenType::Function,
-            "flexible" => TokenType::Flexible,
-            "for" => TokenType::For,
-            "fork" => TokenType::Fork,
-            "forward" => TokenType::Forward,
-            "free" => TokenType::Free,
-            "get" => TokenType::Get,
-            "handler" => TokenType::Handler,
-            "if" => TokenType::If,
-            "implement" => TokenType::Implement,
-            "import" => TokenType::Import,
-            "in" => TokenType::In,
-            "include" => TokenType::Include,
-            "inherit" => TokenType::Inherit,
-            "init" => TokenType::Init,
-            "int" => TokenType::Int,
-            "int1" => TokenType::Int1,
-            "int2" => TokenType::Int2,
-            "int4" => TokenType::Int4,
-            "invariant" => TokenType::Invariant,
-            "label" => TokenType::Label,
-            "loop" => TokenType::Loop,
-            "mod" => TokenType::Mod,
-            "module" => TokenType::Module,
-            "monitor" => TokenType::Monitor,
-            "nat" => TokenType::Nat,
-            "nat1" => TokenType::Nat1,
-            "nat2" => TokenType::Nat2,
-            "nat4" => TokenType::Nat4,
-            "new" => TokenType::New,
-            "nil" => TokenType::Nil,
-            "not" => TokenType::Not,
-            "objectclass" => TokenType::ObjectClass,
-            "of" => TokenType::Of,
-            "opaque" => TokenType::Opaque,
-            "open" => TokenType::Open,
-            "or" => TokenType::Or,
-            "packed" => TokenType::Packed,
-            "pause" => TokenType::Pause,
-            "pervasive" => TokenType::Pervasive,
-            "pointer" => TokenType::Pointer,
-            "post" => TokenType::Post,
-            "pre" => TokenType::Pre,
-            "priority" => TokenType::Priority,
-            "proc" | "procedure" => TokenType::Procedure,
-            "process" => TokenType::Process,
-            "put" => TokenType::Put,
-            "quit" => TokenType::Quit,
-            "read" => TokenType::Read,
-            "real" => TokenType::Real,
-            "real4" => TokenType::Real4,
-            "real8" => TokenType::Real8,
-            "record" => TokenType::Record,
-            "register" => TokenType::Register,
-            "rem" => TokenType::Rem,
-            "result" => TokenType::Result_,
-            "return" => TokenType::Return,
-            "seek" => TokenType::Seek,
-            "self" => TokenType::Self_,
-            "set" => TokenType::Set,
-            "shl" => TokenType::Shl,
-            "shr" => TokenType::Shr,
-            "signal" => TokenType::Signal,
-            "skip" => TokenType::Skip,
-            "string" => TokenType::String_,
-            "tag" => TokenType::Tag,
-            "tell" => TokenType::Tell,
-            "then" => TokenType::Then,
-            "timeout" => TokenType::Timeout,
-            "to" => TokenType::To,
-            "true" => TokenType::True,
-            "type" => TokenType::Type,
-            "unchecked" => TokenType::Unchecked,
-            "union" => TokenType::Union,
-            "unqualified" => TokenType::Unqualified,
-            "var" => TokenType::Var,
-            "wait" => TokenType::Wait,
-            "when" => TokenType::When,
-            "write" => TokenType::Write,
-            "xor" => TokenType::Xor,
-            _ => TokenType::Identifier,
-        };
+        let token_type = KEYWORD_MAP
+            .get(&ident_slice)
+            .cloned()
+            .unwrap_or(TokenType::Identifier);
 
         self.make_token(token_type, len)
     }

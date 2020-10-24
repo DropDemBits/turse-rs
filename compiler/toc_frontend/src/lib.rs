@@ -9,6 +9,9 @@ pub mod validator;
 extern crate toc_ast;
 extern crate toc_core;
 
+#[macro_use]
+extern crate lazy_static;
+
 #[cfg(test)]
 extern crate rand;
 extern crate unicode_segmentation;
