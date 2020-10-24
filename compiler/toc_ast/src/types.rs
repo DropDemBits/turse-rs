@@ -903,7 +903,7 @@ pub fn get_index_length(index_ref: &TypeRef, type_table: &TypeTable) -> usize {
     if let TypeRef::Primitive(prim_type) = index_ref {
         match prim_type {
             PrimitiveType::Boolean => 2,
-            PrimitiveType::Char => 0x200000, // Over the entire range of unicode characters
+            PrimitiveType::Char => 0x20_0000, // Over the entire range of unicode characters
             _ => 0,
         }
     } else if let TypeRef::Named(type_id) = index_ref {

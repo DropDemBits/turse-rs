@@ -806,6 +806,13 @@ pub fn apply_binary(
 ///
 /// `constraints` modifies how the binary operation is applied. Currently,
 /// evaluation constraints are not used for unary operations.
+///
+/// # Errors
+/// Produces `ValueApplyError::WrongTypes` if the unary operation cannot
+/// be applied on the given value.
+///
+/// Produces `ValueApplyError::Overflow` if the unary operation experiences
+/// an overflow
 pub fn apply_unary(
     op: UnaryOp,
     rhs: Value,
@@ -884,6 +891,11 @@ pub fn apply_unary(
 
 /// Applies the 'ord' function on the given expression operand, producing a
 /// new Value.
+///
+/// # Errors
+/// Will produce a `ValueApplyError::WrongTypes` if the value cannot have
+/// `ord` applied on it.
+///
 pub fn apply_ord(expr: &Expr, type_table: &TypeTable) -> Result<Value, ValueApplyError> {
     // Can apply 'ord' on:
     // - char

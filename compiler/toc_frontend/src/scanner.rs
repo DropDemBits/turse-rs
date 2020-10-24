@@ -303,7 +303,7 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    /// Scans a plain old NatLiteral, only accepting base 10 digits
+    /// Scans a plain old `NatLiteral`, only accepting base 10 digits
     fn make_number_basic(&mut self, numerals: Location) -> Token<'s> {
         // End normal NatLiteral
         let numerals = numerals.get_lexeme(self.source);
@@ -452,7 +452,7 @@ impl<'s> Scanner<'s> {
         }
     }
 
-    /// Makes a RealLiteral, complete with parsing decimal digits and scientific notation exponents
+    /// Makes a `RealLiteral`, complete with parsing decimal digits and scientific notation exponents
     fn make_number_real(&mut self, numerals: Location) -> Token<'s> {
         // First part of significand has already been parsed
 
@@ -636,40 +636,17 @@ impl<'s> Scanner<'s> {
         self.next_char();
 
         match escaped {
-            '\'' => {
-                literal_text.push('\'');
-            }
-            '"' => {
-                literal_text.push('"');
-            }
-            '\\' => {
-                literal_text.push('\\');
-            }
-            'b' | 'B' => {
-                literal_text.push('\x08');
-            }
-            'd' | 'D' => {
-                literal_text.push('\x7F');
-            }
-            'e' | 'E' => {
-                literal_text.push('\x1B');
-            }
-            'f' | 'F' => {
-                literal_text.push('\x0C');
-            }
-            'r' | 'R' => {
-                literal_text.push('\r');
-            }
-            'n' | 'N' => {
-                literal_text.push('\n');
-            }
-            't' | 'T' => {
-                literal_text.push('\t');
-            }
-            '^' => {
-                // Unescaped version is parsed in Caret Notation
-                literal_text.push('^');
-            }
+            '\'' => literal_text.push('\''),
+            '"' => literal_text.push('"'),
+            '\\' => literal_text.push('\\'),
+            'b' | 'B' => literal_text.push('\x08'),
+            'd' | 'D' => literal_text.push('\x7F'),
+            'e' | 'E' => literal_text.push('\x1B'),
+            'f' | 'F' => literal_text.push('\x0C'),
+            'r' | 'R' => literal_text.push('\r'),
+            'n' | 'N' => literal_text.push('\n'),
+            't' | 'T' => literal_text.push('\t'),
+            '^' => literal_text.push('^'), // Unescaped version is parsed in Caret Notation
             '0'..='7' => {
                 // Octal str, {1-3}, 0 - 377
                 let mut octal_cursor = escape_start;
@@ -707,6 +684,7 @@ impl<'s> Scanner<'s> {
 
                     literal_text.push(char::REPLACEMENT_CHARACTER);
                 } else {
+                    // Truncated into 0 - 255 range since that's the max that octal should support
                     literal_text.push((to_chr as u8) as char);
                 }
             }
@@ -922,13 +900,12 @@ impl<'s> Scanner<'s> {
             "export" => TokenType::Export,
             "external" => TokenType::External,
             "false" => TokenType::False,
-            "fcn" => TokenType::Function,
+            "fcn" | "function" => TokenType::Function,
             "flexible" => TokenType::Flexible,
             "for" => TokenType::For,
             "fork" => TokenType::Fork,
             "forward" => TokenType::Forward,
             "free" => TokenType::Free,
-            "function" => TokenType::Function,
             "get" => TokenType::Get,
             "handler" => TokenType::Handler,
             "if" => TokenType::If,
@@ -967,8 +944,7 @@ impl<'s> Scanner<'s> {
             "post" => TokenType::Post,
             "pre" => TokenType::Pre,
             "priority" => TokenType::Priority,
-            "proc" => TokenType::Procedure,
-            "procedure" => TokenType::Procedure,
+            "proc" | "procedure" => TokenType::Procedure,
             "process" => TokenType::Process,
             "put" => TokenType::Put,
             "quit" => TokenType::Quit,

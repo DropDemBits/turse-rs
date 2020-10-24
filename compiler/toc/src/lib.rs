@@ -23,7 +23,7 @@ pub fn compile_run_file(path: &str) {
     };
 
     let (unit, context) = compile_file(path, &file_contents);
-    resolve_unit(unit, context);
+    resolve_unit(unit, &context);
 }
 
 /// Compiles a single file into a single code unit
@@ -41,7 +41,7 @@ pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<Compil
 }
 
 /// Resolves the unit into the corresponding IR graph
-pub fn resolve_unit(mut code_unit: CodeUnit, context: Rc<RefCell<CompileContext>>) {
+pub fn resolve_unit(mut code_unit: CodeUnit, context: &Rc<RefCell<CompileContext>>) {
     let type_table = code_unit.take_types();
     let unit_scope = code_unit.take_unit_scope();
 

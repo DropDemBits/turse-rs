@@ -97,7 +97,7 @@ enum Precedence {
 
 impl Precedence {
     /// Gets the next precedence up
-    pub fn up(&self) -> Self {
+    pub fn up(self) -> Self {
         use Precedence::*;
 
         match self {
@@ -384,17 +384,17 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_dot(&mut self, var_ref: Expr) -> ParseResult<Expr> {
-        self.parse_dot(var_ref, false)
+        self.parse_dot_or_arrow(var_ref, false)
     }
 
     fn expr_arrow(&mut self, var_ref: Expr) -> ParseResult<Expr> {
         // Arrow expression may desugar into either a pointer specialization
         // or deref-dot pair depending on the reference type
-        self.parse_dot(var_ref, true)
+        self.parse_dot_or_arrow(var_ref, true)
     }
 
-    /// Parses a dot, either producing an Expr::Dot or an Expr::Arrow
-    fn parse_dot(&mut self, var_ref: Expr, as_arrow: bool) -> ParseResult<Expr> {
+    /// Parses a dot, either producing an `Expr::Dot` or an `Expr::Arrow`
+    fn parse_dot_or_arrow(&mut self, var_ref: Expr, as_arrow: bool) -> ParseResult<Expr> {
         // Get the ident
         let ident = self.expects(
             TokenType::Identifier,
@@ -501,9 +501,9 @@ impl<'s> Parser<'s> {
                 // TODO: Make validator validate that theses are the same as the pointer type (ie produce nil for given type id)
                 // TODO: Parse as a type reference
                 // For classes, both must have a common ancestor
-                if self.optional(TokenType::LeftParen) {
+                if self.optional(&TokenType::LeftParen) {
                     // Consume optional identifier & parens
-                    self.optional(TokenType::Identifier);
+                    self.optional(&TokenType::Identifier);
 
                     let _ = self.expects(
                         TokenType::RightParen,
@@ -547,7 +547,7 @@ impl<'s> Parser<'s> {
         // references will be resolved at validator time, and that
         // is where the error will be reported
         let span = ident_tok.location;
-        let use_id = self.use_ident(ident_tok);
+        let use_id = self.use_ident(&ident_tok);
 
         Expr {
             kind: ExprKind::Reference {
@@ -654,7 +654,7 @@ impl<'s> Parser<'s> {
             // Always fill positions with something
             exprs.push(next_expr);
 
-            if !self.optional(TokenType::Comma) {
+            if !self.optional(&TokenType::Comma) {
                 // No more commas
                 break;
             }

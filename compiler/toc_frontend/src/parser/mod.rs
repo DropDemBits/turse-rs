@@ -207,8 +207,8 @@ impl<'s> Parser<'s> {
     /// If the current token matches the expected token, the current token is
     /// consumed and true is returned.
     /// Otherwise, false is returned.
-    fn optional(&mut self, optional_type: TokenType) -> bool {
-        if self.current().token_type == optional_type {
+    fn optional(&mut self, optional_type: &TokenType) -> bool {
+        if &self.current().token_type == optional_type {
             self.next_token();
             true
         } else {
@@ -302,7 +302,7 @@ impl<'s> Parser<'s> {
     /// Replaces any previous declaration of an identifier, if any exists.
     fn declare_ident(
         &mut self,
-        ident: Token,
+        ident: &Token,
         type_spec: TypeRef,
         is_const: bool,
         is_typedef: bool,
@@ -324,7 +324,7 @@ impl<'s> Parser<'s> {
     /// Uses an identifer.
     ///
     /// If an identifier is not declared, a new identifier is made.
-    fn use_ident(&mut self, ident: Token) -> IdentId {
+    fn use_ident(&mut self, ident: &Token) -> IdentId {
         let name = ident.location.get_lexeme(self.source);
         self.unit_scope.use_ident(name, ident.location)
     }

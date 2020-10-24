@@ -1,5 +1,5 @@
-//! Builds an IR Control-Flow-Graph from a given CodeUnit
-use crate::graph::*;
+//! Builds an IR Control-Flow-Graph from a given `CodeUnit`
+use crate::graph::{BlockIndex, Instruction, InstructionOp, IrGraph, Reference};
 use crate::{AddressSpace, ReferenceNode};
 use toc_ast::ast;
 use toc_ast::block::{BlockKind, CodeUnit};
@@ -14,7 +14,8 @@ pub struct IrBuilder {
 }
 
 impl IrBuilder {
-    /// Creates a new IrBuilder, with the CodeUnit to generate from
+    /// Creates a new `IrBuilder`, with the `CodeUnit` to generate from
+    #[must_use]
     pub fn new(unit: CodeUnit) -> Self {
         Self { unit }
     }
@@ -155,11 +156,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
                 // $t0 := value
                 // [ident] := alloc_global [type_spec]
                 // store [ident] $t0
-                let value_ref = if let Some(expr) = value {
-                    Some(self.visit_expr(&expr))
-                } else {
-                    None
-                };
+                let value_ref = value.as_ref().map(|expr| self.visit_expr(expr));
 
                 // For now, always allocate space in the locals area
                 let alloc_space = AddressSpace::Local;

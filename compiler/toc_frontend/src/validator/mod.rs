@@ -64,7 +64,7 @@ impl Validator {
         }
     }
 
-    /// Takes the type_table and unit_scope from the validator
+    /// Takes the `type_table` and `unit_scope` from the validator
     pub fn take_code_unit_parts(&mut self) -> (TypeTable, UnitScope) {
         let type_table = std::mem::replace(&mut self.type_table, TypeTable::new());
         let unit_scope = std::mem::replace(&mut self.unit_scope, UnitScope::new());
@@ -130,7 +130,7 @@ impl Validator {
     /// Reports unused identifiers in the given scope
     fn report_unused_identifiers(&self, block: &ScopeBlock) {
         let mut unique_undeclared = std::collections::HashSet::new();
-        let idents = block.declared_idents().map(|id| *id);
+        let idents = block.declared_idents().cloned();
         let idents = block
             .shadowed_idents()
             .map(|(_, id)| *id)

@@ -237,13 +237,8 @@ impl Validator {
                             }
                             None if has_fields_remaining => {
                                 // Too few init
-                                let report_at = if let Some(expr) = exprs.last() {
-                                    expr.get_span()
-                                } else {
-                                    // If empty, at init
-                                    // Empty case captured by Parser
-                                    init
-                                };
+                                // If empty, report at init
+                                let report_at = exprs.last().map_or(init, |expr| expr.get_span());
 
                                 // ???: Report field name for records?
                                 // ???: Report missing count for arrays?
@@ -340,6 +335,8 @@ impl Validator {
                 // Resolve the rest of the type
                 let ty_spec = info.type_spec;
                 let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
+
+                // Mutate identifier
                 let info = self.unit_scope.get_ident_info_mut(&ident.id);
                 info.type_spec = ty_spec;
             } else {
@@ -424,8 +421,14 @@ impl Validator {
                 // Can only assign to a variable reference
                 !info.is_const && !info.is_typedef
             }
-            ExprKind::Dot { .. } => {
+            ExprKind::Dot {
+                field: (field, _), ..
+            } => {
                 // For now, we don't have compound types (with or without type reference), so assume they are not var ref exprs
+                assert_eq!(
+                    field.is_typedef, false,
+                    "No compound types with type refs exist yet"
+                );
                 false
             }
             ExprKind::Call { left, .. } => {

@@ -178,7 +178,7 @@ impl<'s> Parser<'s> {
             .into_iter()
             .map(|token| {
                 let location = token.location;
-                let use_id = self.declare_ident(token, type_spec, is_const, false, false);
+                let use_id = self.declare_ident(&token, type_spec, is_const, false, false);
 
                 IdentRef::new(use_id, location)
             })
@@ -220,11 +220,11 @@ impl<'s> Parser<'s> {
         } else {
             // If there is a ':', consume it
             // Otherwise, continue onwards
-            let _ = self.optional(TokenType::Colon);
+            let _ = self.optional(&TokenType::Colon);
         }
 
         // Get either the type spec, or the forward keyword
-        let type_spec = if self.optional(TokenType::Forward) {
+        let type_spec = if self.optional(&TokenType::Forward) {
             None
         } else {
             // Get the type spec (in the type declaration context)
@@ -272,57 +272,51 @@ impl<'s> Parser<'s> {
             let old_ident_id = old_ident.unwrap();
             let old_ident_tyspec = self.get_ident_info(&old_ident_id).type_spec;
 
-            match type_spec {
-                Some(resolve_type) => {
-                    // Resolving forward, update old resolving type
-                    self.replace_type(&old_ident_tyspec, Type::Forward { is_resolved: true });
+            if let Some(resolve_type) = type_spec {
+                // Resolving forward, update old resolving type
+                self.replace_type(&old_ident_tyspec, Type::Forward { is_resolved: true });
 
-                    StmtKind::TypeDecl {
-                        ident: IdentRef::new(old_ident_id, ident_tok.location),
-                        resolved_type: Some(resolve_type),
-                        is_new_def: false,
-                    }
+                StmtKind::TypeDecl {
+                    ident: IdentRef::new(old_ident_id, ident_tok.location),
+                    resolved_type: Some(resolve_type),
+                    is_new_def: false,
                 }
-                None => {
-                    // Redeclaring forward, keep the same type
-                    self.context.borrow_mut().reporter.report_error(
-                        &ident_tok.location,
-                        format_args!("Duplicate forward type declaration"),
-                    );
+            } else {
+                // Redeclaring forward, keep the same type
+                self.context.borrow_mut().reporter.report_error(
+                    &ident_tok.location,
+                    format_args!("Duplicate forward type declaration"),
+                );
 
-                    StmtKind::TypeDecl {
-                        ident: IdentRef::new(old_ident_id, ident_tok.location),
-                        resolved_type: None,
-                        is_new_def: false,
-                    }
+                StmtKind::TypeDecl {
+                    ident: IdentRef::new(old_ident_id, ident_tok.location),
+                    resolved_type: None,
+                    is_new_def: false,
                 }
             }
         } else {
             // Normal declaration
-            match type_spec {
-                Some(type_spec) => {
-                    let alias_type = self.declare_type(Type::Alias { to: type_spec });
-                    let location = ident_tok.location;
-                    let new_id = self.declare_ident(ident_tok, alias_type, true, true, false);
+            if let Some(type_spec) = type_spec {
+                let alias_type = self.declare_type(Type::Alias { to: type_spec });
+                let location = ident_tok.location;
+                let new_id = self.declare_ident(&ident_tok, alias_type, true, true, false);
 
-                    // Normal declare
-                    StmtKind::TypeDecl {
-                        ident: IdentRef::new(new_id, location),
-                        resolved_type: Some(alias_type),
-                        is_new_def: true,
-                    }
+                // Normal declare
+                StmtKind::TypeDecl {
+                    ident: IdentRef::new(new_id, location),
+                    resolved_type: Some(alias_type),
+                    is_new_def: true,
                 }
-                None => {
-                    let forward_type = self.declare_type(Type::Forward { is_resolved: false });
-                    let location = ident_tok.location;
-                    let new_id = self.declare_ident(ident_tok, forward_type, true, true, false);
+            } else {
+                let forward_type = self.declare_type(Type::Forward { is_resolved: false });
+                let location = ident_tok.location;
+                let new_id = self.declare_ident(&ident_tok, forward_type, true, true, false);
 
-                    // Forward declare
-                    StmtKind::TypeDecl {
-                        ident: IdentRef::new(new_id, location),
-                        resolved_type: None,
-                        is_new_def: true,
-                    }
+                // Forward declare
+                StmtKind::TypeDecl {
+                    ident: IdentRef::new(new_id, location),
+                    resolved_type: None,
+                    is_new_def: true,
                 }
             }
         };

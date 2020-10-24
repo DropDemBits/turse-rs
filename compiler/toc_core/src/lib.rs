@@ -25,6 +25,7 @@ pub struct Location {
 }
 
 impl Location {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             start: 0,
@@ -37,6 +38,7 @@ impl Location {
     }
 
     /// Creates a new location spanning from this location to the other location, including the end location's token
+    #[must_use = "creates a new spanning Location instead of mutating the current one"]
     pub fn span_to(&self, other: &Self) -> Self {
         // Compute the correct span ends
         let line_span = other.line.saturating_sub(self.line);
@@ -93,6 +95,7 @@ impl Location {
     }
 
     /// Gets the lexeme corresponding to this location
+    #[must_use = "will use the lexeme produced from the source"]
     pub fn get_lexeme<'a>(&self, source: &'a str) -> &'a str {
         &source[self.start..self.end]
     }

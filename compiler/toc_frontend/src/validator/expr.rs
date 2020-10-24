@@ -661,11 +661,7 @@ impl Validator {
         }
 
         // Check arg count
-        let param_type_count = if let Some(param_types) = params {
-            param_types.len()
-        } else {
-            0
-        };
+        let param_type_count = params.map_or(0, |params| params.len());
         let arg_count = args.len();
 
         match arg_count.cmp(&param_type_count) {
@@ -689,7 +685,7 @@ impl Validator {
                     ),
                 );
             }
-            _ => {}
+            Ordering::Equal => {} // Nothing to do
         }
     }
 
@@ -734,7 +730,7 @@ impl Validator {
                     ),
                 );
             }
-            _ => {}
+            Ordering::Equal => {} // Nothing to do
         }
     }
 
@@ -827,8 +823,7 @@ impl Validator {
                                 "'{}' is not a field of the enum type '{}'",
                                 field.name,
                                 self.get_reference_ident(left)
-                                    .map(|(name, _, _, _, _)| name.as_str())
-                                    .unwrap_or("<unknown>")
+                                    .map_or("<unknown>", |(name, _, _, _, _)| name.as_str())
                             ),
                         );
                     }

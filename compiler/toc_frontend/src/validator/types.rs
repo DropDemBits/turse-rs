@@ -158,8 +158,7 @@ impl Validator {
                 *is_init_sized,
                 resolving_context,
             ),
-            Type::Enum { .. } => None,      // Already resolved, do nothing
-            Type::EnumField { .. } => None, // Already resolved, do nothing
+            Type::EnumField { .. } | Type::Enum { .. } => None, // Already resolved, do nothing
             Type::Forward { is_resolved } => self.resolve_type_forward(is_resolved),
             Type::Function { params, result } => self.resolve_type_function(params, result),
             Type::Pointer { to, .. } => self.resolve_type_pointer(to),
@@ -596,13 +595,13 @@ impl Validator {
     }
 
     fn resolve_type_forward(&mut self, is_resolved: &mut bool) -> ResolveResult {
-        if !*is_resolved {
+        if *is_resolved {
+            // Type has been resolved in the unit, but will be replaced with the real type later
+            None
+        } else {
             // Type has not been resolved in the unit
             // Replace with a type error
             Some(TypeRef::TypeError)
-        } else {
-            // Type has been resolved in the unit, but will be replaced with the real type later
-            None
         }
     }
 

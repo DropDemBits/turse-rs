@@ -7,8 +7,8 @@ use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef}
 
 impl<'s> Parser<'s> {
     // --- Type Parsing --- //
-    /// Tries to parse the given type, returning TypeRef::TypeError if the parsing couldn't be salvaged.
-    /// If a TypeRef::TypeError is produced, the token that caused the error is not consumed.
+    /// Tries to parse the given type, returning `TypeRef::TypeError` if the parsing couldn't be salvaged.
+    /// If a `TypeRef::TypeError` is produced, the token that caused the error is not consumed.
     ///
     /// `parse_context`     The token type describing where the type is being parsed
     pub(super) fn parse_type(&mut self, parse_context: &TokenType) -> TypeRef {
@@ -141,8 +141,8 @@ impl<'s> Parser<'s> {
     }
 
     /// Tries to parse a primitive type from the previous token, returning
-    /// TypeRef::TypeError if the parsing couldn't be salvaged.
-    /// If a Type::TypeError is produced, no further tokens have been consumed.
+    /// `TypeRef::TypeError` if the parsing couldn't be salvaged.
+    /// If a `Type::TypeError` is produced, no further tokens have been consumed.
     ///
     /// This is only used to parse a primitive type in an indirection
     /// expression.
@@ -307,7 +307,7 @@ impl<'s> Parser<'s> {
     /// Parse pointer to another type
     fn type_pointer(&mut self, parse_context: &TokenType) -> TypeRef {
         // Consume optional 'unchecked' attribute
-        let is_unchecked = self.optional(TokenType::Unchecked);
+        let is_unchecked = self.optional(&TokenType::Unchecked);
 
         // Consume "pointer" or '^'
         if let TokenType::Pointer = &self.next_token().token_type {
@@ -427,8 +427,8 @@ impl<'s> Parser<'s> {
         // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
 
         // Attributes apply to all idents
-        let pass_by_ref = self.optional(TokenType::Var);
-        let bind_to_register = self.optional(TokenType::Register);
+        let pass_by_ref = self.optional(&TokenType::Var);
+        let bind_to_register = self.optional(&TokenType::Register);
         let mut idents = vec![];
 
         // Gather all identifiers
@@ -438,12 +438,14 @@ impl<'s> Parser<'s> {
                     TokenType::Identifier,
                     format_args!("Expected identifier for parameter name"),
                 )
-                .map(|tok| tok.location.get_lexeme(self.source).to_string())
-                .unwrap_or_else(|_| String::new());
+                .map_or_else(
+                    |_| String::new(),
+                    |tok| tok.location.get_lexeme(self.source).to_string(),
+                );
 
             idents.push(ident);
 
-            if !self.optional(TokenType::Comma) {
+            if !self.optional(&TokenType::Comma) {
                 break;
             }
         }
@@ -453,7 +455,7 @@ impl<'s> Parser<'s> {
             format_args!("Expected ':' after parameter name"),
         );
 
-        let force_type = self.optional(TokenType::Cheat);
+        let force_type = self.optional(&TokenType::Cheat);
         let type_spec = self.parse_type(parse_context);
 
         // Unfold the ident list into the individual parameter types
@@ -481,8 +483,10 @@ impl<'s> Parser<'s> {
                 TokenType::Identifier,
                 format_args!("Expected identifier for parameter name"),
             )
-            .map(|tok| tok.location.get_lexeme(self.source).to_string())
-            .unwrap_or_else(|_| String::new());
+            .map_or_else(
+                |_| String::new(),
+                |tok| tok.location.get_lexeme(self.source).to_string(),
+            );
 
         let type_spec = self.type_function(parse_context, has_result);
 
@@ -497,7 +501,7 @@ impl<'s> Parser<'s> {
 
     /// Try to parse either a reference, or a range.
     /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(())`
-    /// if the reference expression is an ExprKind::Error
+    /// if the reference expression is an `ExprKind::Error`
     fn type_reference_or_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
         // Bail out on err (i.e. too deep in the expr nesting or not a
         // expression at all)
@@ -519,8 +523,7 @@ impl<'s> Parser<'s> {
             loop {
                 match &current_expr.kind {
                     ExprKind::Dot { left, .. } => current_expr = &left, // Move through the chain
-                    ExprKind::Reference { .. } => break, // Reached the end of the dot expression
-                    ExprKind::Error => break,            // Error has been reported already
+                    ExprKind::Reference { .. } | ExprKind::Error => break, // Reached the end of the dot expression (if it's an error, no need to report it)
                     _ => {
                         // Not completely a dot expression
                         self.context.borrow_mut().reporter.report_error(
@@ -608,7 +611,7 @@ impl<'s> Parser<'s> {
     fn type_array(&mut self, parse_context: &TokenType) -> TypeRef {
         // "flexible"? "array" range_spec (',' range_spec)* "of" type_spec
 
-        let is_flexible = self.optional(TokenType::Flexible);
+        let is_flexible = self.optional(&TokenType::Flexible);
         let flexible_tok = self.previous().clone();
 
         // Guarranteed to always be called with array as the current or next token
@@ -623,7 +626,7 @@ impl<'s> Parser<'s> {
             let range = self.type_index(&TokenType::Array);
 
             if range.is_err() {
-                let _ = self.context.borrow_mut().reporter.report_error(
+                self.context.borrow_mut().reporter.report_error(
                     &self.current().location,
                     format_args!("Expected a range specifier after ','"),
                 );
@@ -669,7 +672,7 @@ impl<'s> Parser<'s> {
                 // Add the range
                 ranges.push(range);
             }
-            if !self.optional(TokenType::Comma) {
+            if !self.optional(&TokenType::Comma) {
                 break;
             }
         }
@@ -792,13 +795,12 @@ impl<'s> Parser<'s> {
                         oops_text, current_text
                     ),
                 )
-                .map(|_| current_text)
-                .unwrap_or_else(|_| String::new());
+                .map_or_else(|_| String::new(), |_| current_text);
 
             fields.push(ident);
 
             // If there is no comma, there's no more identifiers to nab
-            if !self.optional(TokenType::Comma) {
+            if !self.optional(&TokenType::Comma) {
                 // End of the value declarations
                 break;
             }
