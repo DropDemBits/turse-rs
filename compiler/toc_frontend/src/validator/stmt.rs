@@ -282,23 +282,8 @@ impl Validator {
 
             // Only compile-time evaluable if the identifier referencences a constant
             info.is_compile_eval = is_compile_eval && info.is_const;
-            // Push compile time value
+            // Post compile time value
             self.compile_values.insert(ident.id, const_val.clone());
-
-            // TODO(resolver): Check for redecleration errors in resolver
-            // Add identifier to the scope info (including the compile-time value)
-            /*if self
-                .scope_infos
-                .last_mut()
-                .unwrap()
-                .decl_ident_with(resolved_ident, const_val.clone())
-            {
-                // Report the error
-                self.context.borrow_mut().reporter.report_error(
-                    &ident.location,
-                    format_args!("'{}' has already been declared", ident.name),
-                );
-            }*/
         }
     }
 
@@ -337,19 +322,7 @@ impl Validator {
                 );
             }
 
-            // Declare the identifier and check for redeclaration errors
-            // TODO(resolver): Check for redecleration errors
-            /*if self
-                .scope_infos
-                .last_mut()
-                .unwrap()
-                .decl_ident(ident.clone())
-            {
-                self.context.borrow_mut().reporter.report_error(
-                    &ident.location,
-                    format_args!("'{}' has already been declared", ident.name),
-                );
-            }*/
+            // Post `None` compile time value
             self.compile_values.insert(ident.id, None);
         } else {
             // Use the identifier
@@ -431,65 +404,15 @@ impl Validator {
         }
     }
 
-    pub(super) fn resolve_stmt_block(&mut self, _block: &ScopeBlock, stmts: &mut Vec<Stmt>) {
-        /*
-        let mut scope_info = ScopeInfo::new();
-
-        // Import all of the identifiers from above scopes
-        // Don't need to worry about the "pervasive" import attribute,
-        // as that is handled by the parser
-        // An identifier is only in the import table if and only if it
-        // has been used
-        {
-            // Drop the scope ref after importing everything
-            let scope = &block.borrow().scope;
-
-            for import in scope.import_table() {
-                let imported_info = &mut self.scope_infos[import.downscopes];
-
-                // Fetch ident from the new scope
-                let base_ident = imported_info.get_ident(&import.name, import.instance.into());
-
-                if let Some(mut base_ident) = base_ident {
-                    // Use identifier from the imported scope
-                    let imported_ident = base_ident.clone();
-                    // Should be the same
-                    assert_eq!(imported_ident.instance, import.instance);
-
-                    // Get compile value from the imported scope info
-                    let (compile_value, is_declared) = imported_info.use_ident(&imported_ident);
-                    assert!(is_declared, "Imported identifier was never declared");
-
-                    // Import into the new scope info
-                    base_ident.instance = 0;
-                    assert!(
-                        !scope_info.decl_ident_with(base_ident, compile_value),
-                        "Duplicate import identifier?"
-                    );
-                }
-
-                // If None, identfifier is not declared in the imported scope
-                // Error will be reported later on, so don't need ro do anything
-            }
-        }
-
-        // Change the active block and push the new scope info
-        let previous_scope = self.active_block.replace(Rc::downgrade(block));
-        self.scope_infos.push(scope_info);
-        */
+    pub(super) fn resolve_stmt_block(&mut self, block: &ScopeBlock, stmts: &mut Vec<Stmt>) {
+        // Report unused identifiers
+        self.report_unused_identifiers(&block);
+        // Report redeclared identifiers
+        self.report_redeclared_identifiers(&block);
 
         for stmt in stmts.iter_mut() {
             self.visit_stmt(stmt);
         }
-
-        /*
-        // Revert to previous scope and pop the last scope info
-        self.active_block.replace(previous_scope.unwrap());
-        let last_info = self.scope_infos.pop().unwrap();
-
-        // Report unused identifiers
-        self.report_unused_identifiers(&last_info);
-        */
     }
 
     /// Checks if the given `ref_expr` references a variable or a mutable reference.

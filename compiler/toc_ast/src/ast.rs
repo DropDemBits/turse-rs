@@ -49,6 +49,8 @@ pub struct Identifier {
     /// If the identifier is pervasive and is able to be implicitly imported into
     /// child scopes
     pub is_pervasive: bool,
+    /// The number of times this identifier has been used
+    pub usages: usize,
 }
 
 impl Identifier {
@@ -73,6 +75,7 @@ impl Identifier {
             is_declared,
             is_pervasive,
             is_compile_eval: false,
+            usages: 0,
         }
     }
 }

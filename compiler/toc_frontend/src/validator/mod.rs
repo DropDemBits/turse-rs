@@ -15,7 +15,7 @@ mod types;
 
 use crate::context::CompileContext;
 use toc_ast::ast::{Expr, ExprKind, IdentId, Stmt, StmtKind, VisitorMut};
-use toc_ast::scope::UnitScope;
+use toc_ast::scope::{ScopeBlock, UnitScope};
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
 use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
@@ -127,25 +127,43 @@ impl Validator {
         current_ref
     }
 
-    // TODO(resolver): Count usages inside of Identifier
-    /*
     /// Reports unused identifiers in the given scope
-    fn report_unused_identifiers(&self, info: &ScopeInfo) {
-        for (_, idents) in info.local_idents.iter() {
-            for ident_info in idents.iter() {
-                // Only report for declared identifiers
-                if ident_info.ident.is_declared && ident_info.uses == 0 {
-                    // No uses, warn
-                    let ident = &ident_info.ident;
-                    self.context.borrow_mut().reporter.report_warning(
-                        &ident.location,
-                        format_args!("This declaration of '{}' is never used", ident.name),
-                    );
-                }
-            }
+    fn report_unused_identifiers(&self, block: &ScopeBlock) {
+        let mut unique_undeclared = std::collections::HashSet::new();
+        let idents = block.declared_idents().map(|id| *id);
+        let idents = block
+            .shadowed_idents()
+            .map(|(_, id)| *id)
+            .chain(idents)
+            .filter(|id| {
+                let info = self.unit_scope.get_ident_info(&id);
+                // Select all declared & unused identifiers
+                info.is_declared && info.usages == 0
+            });
+        idents.for_each(|id| {
+            unique_undeclared.insert(id);
+        });
+
+        // Report all undeclared identifiers
+        for id in unique_undeclared {
+            let ident = self.unit_scope.get_ident_info(&id);
+            self.context.borrow_mut().reporter.report_warning(
+                &ident.location,
+                format_args!("This declaration of '{}' is never used", ident.name),
+            );
         }
     }
-    */
+
+    fn report_redeclared_identifiers(&self, block: &ScopeBlock) {
+        for (_, new_id) in block.shadowed_idents() {
+            let info = self.unit_scope.get_ident_info(&new_id);
+
+            self.context.borrow_mut().reporter.report_error(
+                &info.location,
+                format_args!("'{}' has already been declared", &info.name),
+            );
+        }
+    }
 
     // --- Associated Helpers --- //
 
@@ -329,8 +347,10 @@ impl VisitorMut<(), Option<Value>> for Validator {
 
     fn end_visit(&mut self) {
         // Report any unused identifiers in the main scope
-        // TODO(resolver): Hand off unused ident reporting to the resolver
-        //self.report_unused_identifiers(&self.scope_infos[0]);
+        // TODO(resolver): Eventually hand off unused ident reporting to the resolver
+        let root_block = self.unit_scope.current_block();
+        self.report_unused_identifiers(root_block);
+        self.report_redeclared_identifiers(root_block);
     }
 }
 
@@ -1869,7 +1889,7 @@ mod test {
         // Parser checks all primitive eval types
         assert_eq!(
             true,
-            run_validator("type into : int\nvar adr : addressint\nvar k := into @ (adr)") // ???
+            run_validator("type into : int\nvar adr : addressint\nvar k := into @ (adr)")
         );
         assert_eq!(
             true,
@@ -2644,6 +2664,28 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             TypeRef::TypeError
         );
 
+        // x use decl behind scope
+        let (success, unit) = make_validator("a += 1\nbegin var a : int := 1 end");
+        assert_eq!(false, success);
+
+        assert_eq!(false, get_info_for_unit(&unit, IdentId(0)).is_declared);
+        assert_eq!(
+            get_info_for_unit(&unit, IdentId(0)).type_spec,
+            TypeRef::TypeError
+        );
+
+        assert_eq!(true, get_info_for_unit(&unit, IdentId(1)).is_declared);
+        assert_eq!(
+            get_info_for_unit(&unit, IdentId(1)).type_spec,
+            TypeRef::Primitive(PrimitiveType::Int)
+        );
+
+        assert_eq!(false, get_ident_for_unit(&unit, "a").unwrap().is_declared);
+        assert_eq!(
+            get_ident_for_unit(&unit, "a").unwrap().type_spec,
+            TypeRef::TypeError
+        );
+
         // x use use decl (only 1 error produced)
         let (success, unit) = make_validator("a += 1\na += 1\nvar b : int := 1");
         assert_eq!(false, success);
@@ -3050,9 +3092,9 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
             false,
             run_validator(
                 "var cant_shadow := 'eep'
-            begin
-                var cant_shadow := 'eep'
-            end"
+        begin
+            var cant_shadow := 'eep'
+        end"
             )
         );
 
