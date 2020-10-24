@@ -2,12 +2,14 @@
 extern crate toc_ast;
 extern crate toc_core;
 extern crate toc_frontend;
-// extern crate toc_ir; // TODO: Re-enable once resolver mess is finished
+extern crate toc_ir;
 
 use std::fs;
 use std::{cell::RefCell, rc::Rc};
 use toc_ast::block::CodeUnit;
-use toc_frontend::{context::CompileContext, parser::Parser, scanner::Scanner};
+use toc_frontend::{
+    context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
+};
 
 /// Compiles and runs the given file
 pub fn compile_run_file(path: &str) {
@@ -40,17 +42,18 @@ pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<Compil
 
 /// Resolves the unit into the corresponding IR graph
 pub fn resolve_unit(mut code_unit: CodeUnit, context: Rc<RefCell<CompileContext>>) {
-    let _type_table = code_unit.take_types();
+    let type_table = code_unit.take_types();
+    let unit_scope = code_unit.take_unit_scope();
 
+    // TODO: Provide inter-unit type resolution stage
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
-    // TODO: Provide external type resolution stage
 
-    /*
     // Validate AST
-    let mut validator = Validator::new(code_unit.root_block(), type_table, context.clone());
+    let mut validator = Validator::new(unit_scope, type_table, context.clone());
     code_unit.visit_ast_mut(&mut validator);
-    code_unit.put_types(validator.take_types());
-    */
+    let (type_table, unit_scope) = validator.take_code_unit_parts();
+    code_unit.put_types(type_table);
+    code_unit.put_unit_scope(unit_scope);
 
     // Validator must run successfully
     if context.borrow().reporter.has_error() {

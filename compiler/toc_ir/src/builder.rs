@@ -3,6 +3,7 @@ use crate::graph::*;
 use crate::{AddressSpace, ReferenceNode};
 use toc_ast::ast;
 use toc_ast::block::{BlockKind, CodeUnit};
+use toc_ast::scope::UnitScope;
 use toc_ast::types;
 use toc_ast::value;
 use toc_core::Location;
@@ -20,7 +21,9 @@ impl IrBuilder {
 
     /// Generates IR for the given IR, returning the IR representation
     pub fn generate_ir(&self) -> Option<IrGraph> {
-        let mut visitor = IrVisitor::new(self.unit.root_block().borrow().block_kind);
+        let block_context = BlockKind::Main;
+        let unit_context = self.unit.unit_scope();
+        let mut visitor = IrVisitor::new(block_context, unit_context);
 
         // Prepare the visitor for building the IrGraph
         // Create the root block
@@ -39,7 +42,7 @@ impl IrBuilder {
     }
 }
 
-struct IrVisitor {
+struct IrVisitor<'unit> {
     /// The generated IR graph
     graph: Option<IrGraph>,
     /// Next temporary identifier
@@ -54,13 +57,16 @@ struct IrVisitor {
     line: u32,
     /// Most recent unit location from the last inserted instruction
     unit_id: u32,
+    /// UnitScope for all identifiers
+    unit_scope: &'unit UnitScope,
 }
 
-impl IrVisitor {
+impl<'unit> IrVisitor<'unit> {
     /// Creates a new IR visitor.
     ///
-    /// `block_context`: The starting context for the block
-    pub fn new(block_context: BlockKind) -> Self {
+    /// - `block_context`: The starting context for the block
+    /// - `unit`: The unit the block is part of
+    pub fn new(block_context: BlockKind, unit_scope: &'unit UnitScope) -> IrVisitor<'unit> {
         Self {
             graph: Some(IrGraph::new()),
             next_temporary: 0,
@@ -69,6 +75,7 @@ impl IrVisitor {
             reference_scope: ReferenceNode::new(),
             line: 0,
             unit_id: 0,
+            unit_scope,
         }
     }
 
@@ -137,7 +144,7 @@ impl IrVisitor {
     }
 }
 
-impl ast::Visitor<(), Reference> for IrVisitor {
+impl ast::Visitor<(), Reference> for IrVisitor<'_> {
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &stmt.kind {
             ast::StmtKind::VarDecl { idents, value, .. } => {
@@ -160,8 +167,8 @@ impl ast::Visitor<(), Reference> for IrVisitor {
                 // Build assignments for each identifier
                 idents.iter().for_each(|ident| {
                     // TODO: If something is a global var, allocate space for it
-                    let ident_ref =
-                        self.make_assign_ref(&ident.name, &ident.type_spec, alloc_space);
+                    let info = self.unit_scope.get_ident_info(&ident.id);
+                    let ident_ref = self.make_assign_ref(&info.name, &info.type_spec, alloc_space);
 
                     // If there is an assignment value, assign it to everyone
                     if let Some(ref value_ref) = value_ref {
@@ -317,7 +324,8 @@ impl ast::Visitor<(), Reference> for IrVisitor {
             }
             ast::ExprKind::Reference { ident, .. } => {
                 // Fetch the reference
-                self.make_use_ref(&ident)
+                let info = self.unit_scope.get_ident_info(&ident.id);
+                self.make_use_ref(&info)
             }
             _ => todo!(),
         }
@@ -330,7 +338,6 @@ mod test {
 
     use super::*;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::block::CodeUnit;
     use toc_frontend::{
         context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
     };
@@ -338,21 +345,23 @@ mod test {
     /// Generates a graph from a string source
     fn generate_graph(source: &str) -> (bool, Option<IrGraph>) {
         // Build the main unit
-        let code_unit = CodeUnit::new(true);
         let context = Rc::new(RefCell::new(CompileContext::new()));
 
         let scanner = Scanner::scan_source(source, context.clone());
-        let mut parser = Parser::new(scanner, &source, code_unit, context.clone());
+        let mut parser = Parser::new(scanner, &source, true, context.clone());
         assert!(parser.parse(), "Parser failed to parse the source");
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
         let type_table = code_unit.take_types();
+        let unit_scope = code_unit.take_unit_scope();
 
         // Validate AST
-        let mut validator = Validator::new(code_unit.root_block(), type_table, context.clone());
+        let mut validator = Validator::new(unit_scope, type_table, context.clone());
         code_unit.visit_ast_mut(&mut validator);
-        code_unit.put_types(validator.take_types());
+        let (type_table, unit_scope) = validator.take_code_unit_parts();
+        code_unit.put_types(type_table);
+        code_unit.put_unit_scope(unit_scope);
 
         assert!(
             !context.borrow().reporter.has_error(),
