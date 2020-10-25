@@ -11,23 +11,30 @@ use toc_frontend::{
     context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
 };
 
-/// Compiles and runs the given file
-pub fn compile_run_file(path: &str) {
-    // Load file & exec
+/// Compiles the given file
+///
+/// # Returns
+/// Returns whether compilation was successful or not
+pub fn compile_file(path: &str) -> bool {
+    // Load file
     let file_contents = match fs::read_to_string(path) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Failed to read in file: {}", e.to_string());
-            return;
+            return false;
         }
     };
 
-    let (unit, context) = compile_file(path, &file_contents);
-    resolve_unit(unit, &context);
+    let (unit, context) = compile_file_source(path, &file_contents);
+    if resolve_unit(unit, &context).is_err() {
+        return false;
+    }
+
+    return true;
 }
 
 /// Compiles a single file into a single code unit
-pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<CompileContext>>) {
+pub fn compile_file_source(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<CompileContext>>) {
     // Build the main unit
     let context = Rc::new(RefCell::new(CompileContext::new()));
 
@@ -41,7 +48,10 @@ pub fn compile_file(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<Compil
 }
 
 /// Resolves the unit into the corresponding IR graph
-pub fn resolve_unit(mut code_unit: CodeUnit, context: &Rc<RefCell<CompileContext>>) {
+pub fn resolve_unit(
+    mut code_unit: CodeUnit,
+    context: &Rc<RefCell<CompileContext>>,
+) -> Result<(), ()> {
     let type_table = code_unit.take_types();
     let unit_scope = code_unit.take_unit_scope();
 
@@ -57,7 +67,7 @@ pub fn resolve_unit(mut code_unit: CodeUnit, context: &Rc<RefCell<CompileContext
 
     // Validator must run successfully
     if context.borrow().reporter.has_error() {
-        return;
+        return Err(());
     }
 
     // Generate IR for the given unit
@@ -72,4 +82,6 @@ pub fn resolve_unit(mut code_unit: CodeUnit, context: &Rc<RefCell<CompileContext
     for edge in edge_iter {
         println!("ed {:?}", edge);
     }*/
+
+    Ok(())
 }

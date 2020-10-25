@@ -16,18 +16,17 @@ fn main() {
     opts.long_only(true);
     opts.optopt(
         "",
-        "file",
-        "Run a compiled Turing program from a bytecode file",
+        "build",
+        "Compile a Turing program from a source file",
         "FILE_PATH",
     );
     opts.optopt(
         "",
-        "run",
-        "Compile and run a Turing program from a source file",
+        "rebuild",
+        "Rebuilds a compiled Turing program from a bytecode file or executable",
         "FILE_PATH",
     );
     opts.optflag("", "help", "Shows this help message");
-    opts.optflag("", "repl", "Launches the REPL interpreter");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -44,17 +43,13 @@ fn main() {
         return;
     }
 
-    if matches.opt_present("repl") {
-        println!("Launching REPL interpreter (Not Supported Yet)");
-    } else if let Some(source_path) = matches.opt_str("run") {
-        toc::compile_run_file(&source_path);
-    } else if let Some(bytecode_path) = matches.opt_str("file") {
-        println!(
-            "Launching program from {} (Not Supported Yet)",
-            bytecode_path
-        );
-    } else if matches.free.is_empty() {
-        println!("Running from embedded file (Not Supported Yet)");
+    if let Some(source_path) = matches.opt_str("build") {
+        if !toc::compile_file(&source_path) {
+            // Exit with a non-zero status
+            std::process::exit(-1);
+        }
+    } else if let Some(bytecode_path) = matches.opt_str("rebuild") {
+        todo!("Recompiling file {} (Not Supported Yet)", bytecode_path);
     } else {
         show_usage(&program, &opts);
     }
