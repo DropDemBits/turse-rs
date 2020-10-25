@@ -223,7 +223,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
 
                 self.insert_instruction(asn_inst);
             }
-            ast::StmtKind::Block { stmts, .. } => {
+            ast::StmtKind::Block { block, .. } => {
                 // As a test, split block up into other things
                 let inner_block = self.graph.as_mut().unwrap().create_block();
 
@@ -245,7 +245,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
                 self.insert_block = inner_block;
 
                 // Insert the rest statements into the block
-                for stmt in stmts {
+                for stmt in &block.stmts {
                     self.visit_stmt(stmt);
                 }
             }

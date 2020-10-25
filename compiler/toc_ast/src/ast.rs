@@ -12,7 +12,7 @@ pub struct IdentId(pub u32);
 /// A reference to an identifier in the AST.
 ///
 /// Just a named reference to both
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct IdentRef {
     /// Id of the referenced identifier
     pub id: IdentId,
@@ -192,7 +192,7 @@ impl fmt::Display for UnaryOp {
 }
 
 /// Literal values
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     /// String sequence (`"abcd"`)
     StrSequence(String),
@@ -224,7 +224,7 @@ impl fmt::Display for Literal {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FieldDef {
     pub name: String,
     pub type_spec: TypeRef,
@@ -233,7 +233,7 @@ pub struct FieldDef {
 }
 
 /// Expression Node Kind
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     /// Error expression, always evaluates to a type error.
     Error,
@@ -341,7 +341,7 @@ impl fmt::Display for ExprKind {
 ///
 /// `eval_type` is the type produced after evaluating the expression.
 /// For reference and dot expressions, the evaluation type may be different from the identifier type spec
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
     /// The expression evaluation type
@@ -373,9 +373,21 @@ impl Expr {
     }
 }
 
+/// A grouping of statements.
+/// Used in multiple statements.
+#[derive(Debug, Clone)]
+pub struct Block {
+    /// Associated scope block
+    pub block: ScopeBlock,
+    /// Statements as part of the block
+    pub stmts: Vec<Stmt>,
+}
+
 /// Statement Node Variant
 #[derive(Debug, Clone)]
 pub enum StmtKind {
+    /// Error statement, only produced in recursion failures
+    Error,
     // Decls
     /// Variable & Constant declaration
     VarDecl {
@@ -414,11 +426,15 @@ pub enum StmtKind {
         proc_ref: Box<Expr>,
     },
     /// Block of statements
-    Block {
-        /// The associated code block
-        block: ScopeBlock,
-        /// Statements as part of the block
-        stmts: Vec<Stmt>,
+    Block { block: Block },
+    /// If statement and associated else(if)
+    If {
+        /// The condition of the if statement
+        condition: Box<Expr>,
+        /// Link to true branch statement
+        true_branch: Box<Stmt>,
+        /// Link to false branch statement
+        false_branch: Option<Box<Stmt>>,
     },
 }
 /// Common statement node

@@ -171,7 +171,7 @@ impl<'s> Parser<'s> {
             let error_expr = super::make_error_expr(self.next_token().location);
 
             // Skip to a safe point
-            self.skip_to_safe_point();
+            self.skip_to_safe_point(|_| false);
 
             return error_expr;
         }

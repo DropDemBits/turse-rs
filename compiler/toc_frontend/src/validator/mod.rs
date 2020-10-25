@@ -130,7 +130,7 @@ impl Validator {
     /// Reports unused identifiers in the given scope
     fn report_unused_identifiers(&self, block: &ScopeBlock) {
         let mut unique_undeclared = std::collections::HashSet::new();
-        let idents = block.declared_idents().cloned();
+        let idents = block.declared_idents().copied();
         let idents = block
             .shadowed_idents()
             .map(|(_, id)| *id)
@@ -441,6 +441,7 @@ impl Validator {
 impl VisitorMut<(), ()> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
+            StmtKind::Error => {}
             StmtKind::VarDecl {
                 idents,
                 type_spec,
@@ -476,7 +477,12 @@ impl VisitorMut<(), ()> for Validator {
                     unreachable!();
                 }
             }
-            StmtKind::Block { block, stmts } => self.resolve_stmt_block(block, stmts),
+            StmtKind::Block { block } => self.resolve_stmt_block(block),
+            StmtKind::If {
+                condition,
+                true_branch,
+                false_branch,
+            } => self.resolve_stmt_if(condition, true_branch, false_branch),
         }
     }
 
@@ -3337,6 +3343,92 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
                 "
             )
         );
+    }
+
+    #[test]
+    fn test_resolve_if_stmt() {
+        assert_eq!(true, run_validator(r#"if true then var k := 1 end if"#));
+        assert_eq!(
+            true,
+            run_validator(r#"if true then var k := 1 elsif true then var k := 2 end if"#)
+        );
+        assert_eq!(
+            true,
+            run_validator(
+                r#"if true then var k := 1 elsif true then var k := 2 else var k := 3 end if"#
+            )
+        );
+
+        // false_branch should be visited
+        assert_eq!(
+            false,
+            run_validator(r#"if true then elsif true then a end if"#)
+        );
+
+        assert_eq!(false, run_validator(r#"if true then else a end if"#));
+
+        // Only boolean expressions are allowed in the conditional
+        assert_eq!(false, run_validator(r#"if 1 then var k := 2 end if"#));
+        assert_eq!(false, run_validator(r#"if 1.0 then var k := 2 end if"#));
+        assert_eq!(false, run_validator(r#"if 'yee' then var k := 2 end if"#));
+        assert_eq!(false, run_validator(r#"if nil then var k := 2 end if"#));
+
+        assert_eq!(
+            false,
+            run_validator(r#"if true then elsif 1 then var k := 2 end if"#)
+        );
+        assert_eq!(
+            false,
+            run_validator(r#"if true then elsif 1.0 then var k := 2 end if"#)
+        );
+        assert_eq!(
+            false,
+            run_validator(r#"if true then elsif 'yee' then var k := 2 end if"#)
+        );
+        assert_eq!(
+            false,
+            run_validator(r#"if true then elsif nil then var k := 2 end if"#)
+        );
+
+        // Conditional expression should be folded
+        let (success, code_unit) = make_validator(r#"if true & true then var k := 2 end if"#);
+        assert_eq!(true, success);
+
+        if let StmtKind::If { condition, .. } = &code_unit.stmts()[0].kind {
+            assert_eq!(
+                &condition.kind,
+                &ExprKind::Literal {
+                    value: Literal::Bool(true)
+                }
+            );
+        } else {
+            unreachable!();
+        }
+
+        let (success, code_unit) = make_validator(
+            r#"if false & false then var k := 2 elsif true & true then var c := 3 end if"#,
+        );
+        assert_eq!(true, success);
+
+        if let StmtKind::If {
+            false_branch: Some(false_block),
+            ..
+        } = &code_unit.stmts()[0].kind
+        {
+            // peek into false branch
+            if let StmtKind::If { condition, .. } = &false_block.kind {
+                assert_eq!(
+                    &condition.kind,
+                    &ExprKind::Literal {
+                        value: Literal::Bool(true)
+                    }
+                );
+            } else {
+                unreachable!()
+            }
+        } else {
+            unreachable!();
+        }
     }
 
     #[test]

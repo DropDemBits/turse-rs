@@ -2,8 +2,7 @@
 use super::expr;
 use super::{ResolveContext, Validator};
 
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentRef, Stmt, UnaryOp, VisitorMut};
-use toc_ast::scope::ScopeBlock;
+use toc_ast::ast::{self, BinaryOp, Expr, ExprKind, IdentRef, Stmt, UnaryOp, VisitorMut};
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
 
@@ -413,14 +412,45 @@ impl Validator {
         }
     }
 
-    pub(super) fn resolve_stmt_block(&mut self, block: &ScopeBlock, stmts: &mut Vec<Stmt>) {
+    pub(super) fn resolve_stmt_block(&mut self, block: &mut ast::Block) {
         // Report unused identifiers
-        self.report_unused_identifiers(&block);
+        self.report_unused_identifiers(&block.block);
         // Report redeclared identifiers
-        self.report_redeclared_identifiers(&block);
+        self.report_redeclared_identifiers(&block.block);
 
-        for stmt in stmts.iter_mut() {
+        for stmt in &mut block.stmts {
             self.visit_stmt(stmt);
+        }
+    }
+
+    pub(super) fn resolve_stmt_if(
+        &mut self,
+        condition: &mut Box<Expr>,
+        true_branch: &mut Box<Stmt>,
+        false_branch: &mut Option<Box<Stmt>>,
+    ) {
+        // Visit conditional
+        self.visit_expr(condition);
+
+        // Optionally fold
+        let condition_val = self.eval_expr(condition).ok().flatten();
+        super::replace_with_folded(condition, condition_val);
+
+        // Then `true_branch`
+        self.visit_stmt(true_branch);
+
+        // Then `false_branch`
+        if let Some(block) = false_branch.as_mut() {
+            self.visit_stmt(block);
+        }
+
+        // Typecheck the condition
+        let dealias_eval = types::dealias_ref(&condition.get_eval_type(), &self.type_table);
+        if !types::is_boolean(&dealias_eval) {
+            self.context.borrow_mut().reporter.report_error(
+                &condition.get_span(),
+                format_args!("If condition expression is not the right type"),
+            );
         }
     }
 

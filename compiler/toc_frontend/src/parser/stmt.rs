@@ -1,7 +1,7 @@
 //! Parser fragment, parsing all statements and declarations
 use super::{Parser, ParsingStatus};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, ExprKind, IdentRef, Stmt, StmtKind};
+use toc_ast::ast::{self, Expr, ExprKind, IdentRef, Stmt, StmtKind};
 use toc_ast::block::BlockKind;
 use toc_ast::types::{Type, TypeRef};
 use toc_core::Location;
@@ -9,8 +9,11 @@ use toc_core::Location;
 impl<'s> Parser<'s> {
     // --- Decl Parsing --- //
 
-    pub(super) fn decl(&mut self) -> Result<Stmt, ParsingStatus> {
-        // Update nesting
+    /// Performs a parse, updating the stmt nesting count
+    fn with_stmt_nesting_tracking<F>(&mut self, mut f: F) -> Result<Stmt, ParsingStatus>
+    where
+        F: FnMut(&mut Parser) -> Result<Stmt, ParsingStatus>,
+    {
         self.stmt_nesting = self.stmt_nesting.saturating_add(1);
 
         if self.stmt_nesting > super::MAX_NESTING_DEPTH {
@@ -25,23 +28,47 @@ impl<'s> Parser<'s> {
                 .checked_sub(1)
                 .expect("Mismatched nesting counts");
 
-            // nom the token!
-            self.next_token();
-            return Err(ParsingStatus::Error);
+            let err_stmt = Stmt {
+                kind: StmtKind::Error,
+                span: self.current().location,
+            };
+
+            return Ok(err_stmt);
         }
 
-        let nom = self.current();
-        let decl = match nom.token_type {
-            TokenType::Var => self.decl_var(false),
-            TokenType::Const => self.decl_var(true),
-            TokenType::Type => self.decl_type(),
-            _ => self.stmt(),
-        };
+        // Call it (give ref to self)
+        let result = f(self);
 
         self.stmt_nesting = self
             .stmt_nesting
             .checked_sub(1)
             .expect("Mismatched nesting counts");
+
+        result
+    }
+
+    pub(super) fn decl(&mut self) -> Result<Stmt, ParsingStatus> {
+        // Update nesting
+        let decl = self.with_stmt_nesting_tracking(|self_| {
+            let nom = self_.current();
+            let decl = match nom.token_type {
+                TokenType::Var => self_.decl_var(false),
+                TokenType::Const => self_.decl_var(true),
+                TokenType::Type => self_.decl_type(),
+                _ => self_.stmt(),
+            };
+            decl
+        });
+
+        if let Ok(Stmt {
+            kind: StmtKind::Error,
+            ..
+        }) = decl
+        {
+            // Skip to safe point
+            self.skip_to_safe_point(|_| false);
+        }
+
         decl
     }
 
@@ -103,7 +130,7 @@ impl<'s> Parser<'s> {
         let assign_expr = if self.is_simple_assignment() {
             if self.current().token_type == TokenType::Equ {
                 // Warn of mistake
-                self.warn_equ_as_assign(self.current().location);
+                self.warn_found_as_something_else("=", ":=", &self.current().location);
             }
 
             // Consume assign
@@ -351,6 +378,9 @@ impl<'s> Parser<'s> {
                 self.stmt_reference()
             }
             TokenType::Begin => self.stmt_block(),
+            TokenType::If => self.stmt_if(false),
+            TokenType::Elseif | TokenType::Elsif | TokenType::Elif => self.stmt_err_elseif(),
+            TokenType::Else => self.stmt_err_else(),
             TokenType::Semicolon => {
                 // Consume extra semicolon
                 self.next_token();
@@ -399,7 +429,7 @@ impl<'s> Parser<'s> {
                 // Current assignment op is '=', not ':='
                 // Warn of mistake, convert into ':='
                 let locate = self.previous().location;
-                self.warn_equ_as_assign(locate);
+                self.warn_found_as_something_else("=", ":=", &locate);
 
                 None
             } else {
@@ -467,18 +497,9 @@ impl<'s> Parser<'s> {
     fn stmt_block(&mut self) -> Result<Stmt, ParsingStatus> {
         // Nom begin
         let begin_loc = self.next_token().location;
-
-        self.push_block(BlockKind::InnerBlock);
-
-        let mut stmts = vec![];
-        while !matches!(self.current().token_type, TokenType::End | TokenType::Eof) {
-            let stmt = self.decl();
-
-            // Only add the Stmt if it was parsed successfully
-            if let Ok(stmt) = stmt {
-                stmts.push(stmt);
-            }
-        }
+        let block = self.parse_block(BlockKind::InnerBlock, |tok_type| {
+            !matches!(tok_type, TokenType::End)
+        });
 
         if matches!(self.current().token_type, TokenType::Eof) {
             // If at the end of file, do nothing
@@ -495,17 +516,197 @@ impl<'s> Parser<'s> {
             );
         }
 
-        // Close the block
-        let block = self.pop_block();
         let span = begin_loc.span_to(&self.previous().location);
 
         Ok(Stmt {
-            kind: StmtKind::Block { block, stmts },
+            kind: StmtKind::Block { block },
             span,
         })
     }
 
+    fn stmt_if(&mut self, as_elsif: bool) -> Result<Stmt, ParsingStatus> {
+        // Nom 'if'
+        let if_loc = self.next_token().location;
+
+        if as_elsif {
+            debug_assert!(matches!(
+                self.previous().token_type,
+                TokenType::Elsif | TokenType::Elif | TokenType::Elseif
+            ));
+
+            // Canonical version is `elsif`, warn about the alternates
+            match &self.previous().token_type {
+                TokenType::Elseif => {
+                    self.warn_found_as_something_else("elseif", "elsif", &self.current().location)
+                }
+                TokenType::Elif => {
+                    self.warn_found_as_something_else("elif", "elsif", &self.current().location)
+                }
+                _ => {}
+            }
+        } else {
+            debug_assert!(matches!(self.previous().token_type, TokenType::If));
+        }
+
+        // Parse conditional
+        let condition = self.expr();
+        let condition = Box::new(condition);
+
+        let _ = self.expects(
+            TokenType::Then,
+            format_args!("Expected 'then' after boolean expression"),
+        );
+
+        // Parse true branch
+        let true_branch = self.parse_block(BlockKind::InnerBlock, |tok_type| {
+            !matches!(
+                tok_type,
+                TokenType::End
+                    | TokenType::EndIf
+                    | TokenType::Elsif
+                    | TokenType::Elif
+                    | TokenType::Elseif
+                    | TokenType::Else
+            )
+        });
+
+        // Make a span to the end of the first if block
+        let top_span = if_loc.span_to(&self.previous().location);
+
+        // Nom either elsif or else
+        let false_branch = if matches!(
+            &self.current().token_type,
+            TokenType::Elsif | TokenType::Elif | TokenType::Elseif
+        ) {
+            // Update nesting count
+            let stmt = self
+                .with_stmt_nesting_tracking(|self_| self_.stmt_if(true))
+                .expect("Not at safe point?");
+
+            if let StmtKind::Error = &stmt.kind {
+                // Skip to known end point
+                self.skip_to(|maybe_safe| matches!(maybe_safe, TokenType::End | TokenType::EndIf));
+                self.nom_endif_or_end_if();
+            }
+
+            Some(stmt)
+        } else {
+            let branch = if matches!(self.current().token_type, TokenType::Else) {
+                // Nom optional else block
+                Some(self.parse_else_block())
+            } else {
+                None
+            };
+
+            // Either nom `end` `if` or `endif`
+            self.nom_endif_or_end_if();
+            branch
+        };
+
+        let true_branch = Box::new(Stmt {
+            kind: StmtKind::Block { block: true_branch },
+            span: top_span,
+        });
+        let false_branch = false_branch.map(|stmt| Box::new(stmt));
+
+        // Give back top level if statement
+        Ok(Stmt {
+            kind: StmtKind::If {
+                condition,
+                true_branch,
+                false_branch,
+            },
+            span: top_span,
+        })
+    }
+
+    fn parse_else_block(&mut self) -> Stmt {
+        // Nom 'else'
+        let else_loc = self.next_token().location;
+        debug_assert_eq!(&self.previous().token_type, &TokenType::Else);
+
+        let block = self.parse_block(BlockKind::InnerBlock, |tok_type| {
+            !matches!(tok_type, TokenType::End | TokenType::EndIf)
+        });
+
+        let span = else_loc.span_to(&self.previous().location);
+
+        Stmt {
+            kind: StmtKind::Block { block },
+            span,
+        }
+    }
+
+    /// Error recovery for else on a top level block
+    fn stmt_err_else(&mut self) -> Result<Stmt, ParsingStatus> {
+        self.context.borrow_mut().reporter.report_error(
+            &self.current().location,
+            format_args!("'else' without matching 'if'"),
+        );
+
+        let else_stmt = self.parse_else_block();
+        self.nom_endif_or_end_if();
+        Ok(else_stmt)
+    }
+
+    // Error recovery for elseif on a top level block
+    fn stmt_err_elseif(&mut self) -> Result<Stmt, ParsingStatus> {
+        self.context.borrow_mut().reporter.report_error(
+            &self.current().location,
+            format_args!("'{}' without matching 'if'", &self.current().token_type),
+        );
+
+        // Parse as a regular elsif
+        self.stmt_if(true)
+    }
+
     // --- Helpers --- //
+
+    fn nom_endif_or_end_if(&mut self) {
+        if self.optional(&TokenType::EndIf) {
+            // report warning!
+            self.warn_found_as_something_else("endif", "end if", &self.previous().location);
+        } else {
+            // Nom `end` `if`
+            let _ = self.expects(
+                TokenType::End,
+                format_args!("Expected 'end' at the end of the if statement"),
+            );
+            let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
+        }
+    }
+
+    /// Parses a block of statements.
+    ///
+    /// # Parameters:
+    /// - `block_kind`: The block kind the statements exist in.
+    /// - `end_predicate`: A function that, if evaluates to false, will stop parsing statements.
+    ///
+    /// # Returns
+    /// Returns an `ast::Block` containing the parsed statements and associated scope block.
+    fn parse_block<T>(&mut self, block_kind: BlockKind, end_predicate: T) -> ast::Block
+    where
+        T: Fn(&TokenType) -> bool,
+    {
+        self.push_block(block_kind);
+
+        let mut stmts = vec![];
+        while !matches!(&self.current().token_type, &TokenType::Eof)
+            && end_predicate(&self.current().token_type)
+        {
+            let stmt = self.decl();
+
+            // Only add the Stmt if it was parsed successfully
+            if let Ok(stmt) = stmt {
+                stmts.push(stmt);
+            }
+        }
+
+        // Close the block
+        let block = self.pop_block();
+
+        ast::Block { block, stmts }
+    }
 
     /// Checks if the current tokens form a compound assignment (operator '=')
     fn is_compound_assignment(&self) -> bool {
