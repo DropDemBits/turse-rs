@@ -7,7 +7,7 @@ mod types;
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentId, Identifier, Stmt, UnaryOp};
+use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentId, Identifier, Stmt, StmtKind, UnaryOp};
 use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef, TypeTable};
@@ -58,14 +58,6 @@ pub struct Parser<'s> {
     type_table: TypeTable,
 }
 
-#[derive(Debug)]
-enum ParsingStatus {
-    /// Error during parsing
-    Error,
-    /// Skipping tokens during parsing
-    Skip,
-}
-
 impl<'s> Parser<'s> {
     pub fn new(
         mut scanner: Scanner<'s>,
@@ -102,8 +94,14 @@ impl<'s> Parser<'s> {
         // TODO: Check if the root block is a unit block
         // Parse the statements
         while !self.is_at_end() {
-            if let Ok(stmt) = self.decl() {
+            let stmt = self.decl();
+
+            if !matches!(stmt.kind, StmtKind::Nop | StmtKind::Error) {
+                // Don't push No-ops
                 self.stmts.push(stmt);
+            } else if let StmtKind::Error = stmt.kind {
+                // Skip to safe point
+                self.skip_to_safe_point(|_| false);
             }
         }
 
@@ -187,11 +185,7 @@ impl<'s> Parser<'s> {
     /// Expects a certain token to be next in the stream. \
     /// If the current token matches the expected token, the current token is consumed.
     /// Otherwise an error message is reported.
-    fn expects(
-        &mut self,
-        expected_type: TokenType,
-        message: Arguments,
-    ) -> Result<Token<'s>, ParsingStatus> {
+    fn expects(&mut self, expected_type: TokenType, message: Arguments) -> Result<Token<'s>, ()> {
         if self.current().token_type == expected_type {
             Ok(self.next_token())
         } else {
@@ -199,7 +193,8 @@ impl<'s> Parser<'s> {
                 .borrow_mut()
                 .reporter
                 .report_error(&self.current().location, message);
-            Err(ParsingStatus::Error)
+
+            Err(())
         }
     }
 
@@ -395,7 +390,7 @@ impl<'s> Parser<'s> {
 }
 
 /// Tries to convert the given token type into the corresponding biary operator
-fn try_into_binary(op: TokenType) -> Result<BinaryOp, ParsingStatus> {
+fn try_into_binary(op: TokenType) -> Result<BinaryOp, ()> {
     match op {
         TokenType::Plus => Ok(BinaryOp::Add),
         TokenType::Minus => Ok(BinaryOp::Sub),
@@ -421,19 +416,19 @@ fn try_into_binary(op: TokenType) -> Result<BinaryOp, ParsingStatus> {
         TokenType::Imply => Ok(BinaryOp::Imply),
         TokenType::Dot => Ok(BinaryOp::Dot),
         TokenType::Arrow => Ok(BinaryOp::Arrow),
-        _ => Err(ParsingStatus::Error),
+        _ => Err(()),
     }
 }
 
 /// Tries to convert the given token type into the corresponding unary operator
-fn try_into_unary(op: TokenType) -> Result<UnaryOp, ParsingStatus> {
+fn try_into_unary(op: TokenType) -> Result<UnaryOp, ()> {
     match op {
         TokenType::Pound => Ok(UnaryOp::NatCheat),
         TokenType::Caret => Ok(UnaryOp::Deref),
         TokenType::Plus => Ok(UnaryOp::Identity),
         TokenType::Minus => Ok(UnaryOp::Negate),
         TokenType::Not => Ok(UnaryOp::Not),
-        _ => Err(ParsingStatus::Error),
+        _ => Err(()),
     }
 }
 
@@ -787,7 +782,11 @@ mod test {
         let root_stmts = &parser.stmts;
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
-            if let StmtKind::VarDecl { idents, .. } = &test_stmt.0.kind {
+            if let StmtKind::VarDecl {
+                idents: Some(idents),
+                ..
+            } = &test_stmt.0.kind
+            {
                 let ident = parser.get_ident_info(&idents[0].id);
                 assert_eq!(&ident.type_spec, test_stmt.1);
             }
@@ -1609,28 +1608,6 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("const ba := 2\nconst a := 1 ^ba");
         assert_eq!(parser.parse(), true);
     }
-
-    // Nesting limit is increased by a lot, so might not be feasable to test in this file
-    /*#[test]
-    fn test_nesting_limit() {
-        // Should not panic
-
-        // Expr limit, unary
-        let mut parser = make_test_parser("var k := ####################################################################################################################################################################################################################################################################################1");
-        assert_eq!(parser.parse(), false);
-
-        // Expr limit, binary
-        let mut parser = make_test_parser("var k := 1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
-        assert_eq!(parser.parse(), false);
-
-        // Stmt limit
-        let mut parser = make_test_parser("begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin begin ");
-        assert_eq!(parser.parse(), false);
-
-        // Type limit
-        let mut parser = make_test_parser("type k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : proc a (k : int))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
-        assert_eq!(parser.parse(), false);
-    }*/
 
     #[test]
     fn test_indirect_expr() {

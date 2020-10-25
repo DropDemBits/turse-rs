@@ -11,11 +11,21 @@ impl Validator {
 
     pub(super) fn resolve_decl_var(
         &mut self,
-        idents: &mut Vec<IdentRef>,
+        idents: &mut Option<Vec<IdentRef>>,
         type_spec: &mut TypeRef,
         value: &mut Option<Box<Expr>>,
         is_const: bool,
     ) {
+        if idents.is_none() {
+            // This is a dummy var declare, and only provides resolving access
+            // Resolve the type, and return
+            let dummy_ref = self.resolve_type(*type_spec, ResolveContext::CompileTime(false));
+            *type_spec = dummy_ref;
+
+            return;
+        }
+
+        let idents = idents.as_mut().unwrap();
         let mut is_compile_eval = false;
 
         if types::is_error(type_spec) {
@@ -296,13 +306,11 @@ impl Validator {
 
     pub(super) fn resolve_decl_type(
         &mut self,
-        ident: &mut IdentRef,
+        ident: &mut Option<IdentRef>,
         resolved_type: &mut Option<TypeRef>,
         is_new_def: bool,
     ) {
-        let info = self.unit_scope.get_ident_info(&ident.id);
-
-        if !info.is_declared {
+        if ident.is_none() {
             // This is a dummy type declare, and only provides resolving access
             // Resolve the type, and return
             let dummy_ref = resolved_type.take().unwrap();
@@ -311,6 +319,9 @@ impl Validator {
 
             return;
         }
+
+        let ident = ident.as_mut().unwrap();
+        let info = self.unit_scope.get_ident_info(&ident.id);
 
         if is_new_def {
             if resolved_type.is_some() {

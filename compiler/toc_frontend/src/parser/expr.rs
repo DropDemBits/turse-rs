@@ -1,5 +1,5 @@
 //! Parser fragment, parsing all expressions
-use super::{ParseResult, Parser, ParsingStatus};
+use super::{ParseResult, Parser};
 use crate::token::TokenType;
 use toc_ast::ast::{Expr, ExprKind, FieldDef, IdentRef, Literal};
 use toc_ast::types::{self, PrimitiveType, TypeRef};
@@ -183,7 +183,7 @@ impl<'s> Parser<'s> {
         let op = self.current();
 
         let prefix = Parser::get_rule(&op.token_type);
-        let prefix_rule = prefix.prefix_rule.ok_or_else(|| {
+        let prefix_rule = prefix.prefix_rule.or_else(|| {
             // Try to figure out if the typo was a reasonable one
             // ???: Rework this system to use a hashmap with key (token_type, token_type)?
 
@@ -205,10 +205,10 @@ impl<'s> Parser<'s> {
                 ),
             );
 
-            ParsingStatus::Error
+            None
         });
 
-        if prefix_rule.is_err() {
+        if prefix_rule.is_none() {
             // Make error at op location
             let error_expr = super::make_error_expr(op.location);
 

@@ -386,13 +386,16 @@ pub struct Block {
 /// Statement Node Variant
 #[derive(Debug, Clone)]
 pub enum StmtKind {
-    /// Error statement, only produced in recursion failures
+    /// No-op statement, does nothing (produced by semi-colons)
+    Nop,
+    /// Error statement, produced if a valid statement could not be parsed (e.g. in nesting errors or unknown statments)
     Error,
     // Decls
     /// Variable & Constant declaration
     VarDecl {
         /// The identifier(s) declared
-        idents: Vec<IdentRef>,
+        /// If `None`, this statement is a no-op, and only present to allow access to the `type_spec` & `expr`
+        idents: Option<Vec<IdentRef>>,
         /// The type spec for all of the identifiers
         type_spec: TypeRef,
         /// The (semi-optional) initialization value
@@ -403,8 +406,9 @@ pub enum StmtKind {
     /// `type` statement declaration.
     /// The type_spec of `ident` is the declared type
     TypeDecl {
-        /// The identifier associated with this type declare
-        ident: IdentRef,
+        /// The identifier associated with this type declare.
+        /// If `None`, this statement is a no-op, and only allows access to the `resolved_type`
+        ident: Option<IdentRef>,
         /// Resolved type for a forward type declare
         resolved_type: Option<TypeRef>,
         /// If the identifier actually declares a new identifier

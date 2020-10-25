@@ -1,18 +1,17 @@
 //! Parser fragment, parsing all statements and declarations
-use super::{Parser, ParsingStatus};
+use super::{ParseResult, Parser};
 use crate::token::TokenType;
 use toc_ast::ast::{self, Expr, ExprKind, IdentRef, Stmt, StmtKind};
 use toc_ast::block::BlockKind;
 use toc_ast::types::{Type, TypeRef};
-use toc_core::Location;
 
 impl<'s> Parser<'s> {
     // --- Decl Parsing --- //
 
     /// Performs a parse, updating the stmt nesting count
-    fn with_stmt_nesting_tracking<F>(&mut self, mut f: F) -> Result<Stmt, ParsingStatus>
+    fn with_stmt_nesting_tracking<F>(&mut self, mut f: F) -> ParseResult<Stmt>
     where
-        F: FnMut(&mut Parser) -> Result<Stmt, ParsingStatus>,
+        F: FnMut(&mut Parser) -> ParseResult<Stmt>,
     {
         self.stmt_nesting = self.stmt_nesting.saturating_add(1);
 
@@ -33,7 +32,7 @@ impl<'s> Parser<'s> {
                 span: self.current().location,
             };
 
-            return Ok(err_stmt);
+            return err_stmt;
         }
 
         // Call it (give ref to self)
@@ -47,7 +46,7 @@ impl<'s> Parser<'s> {
         result
     }
 
-    pub(super) fn decl(&mut self) -> Result<Stmt, ParsingStatus> {
+    pub(super) fn decl(&mut self) -> ParseResult<Stmt> {
         // Update nesting
         let decl = self.with_stmt_nesting_tracking(|self_| {
             let nom = self_.current();
@@ -60,11 +59,7 @@ impl<'s> Parser<'s> {
             decl
         });
 
-        if let Ok(Stmt {
-            kind: StmtKind::Error,
-            ..
-        }) = decl
-        {
+        if let StmtKind::Error = &decl.kind {
             // Skip to safe point
             self.skip_to_safe_point(|_| false);
         }
@@ -72,7 +67,7 @@ impl<'s> Parser<'s> {
         decl
     }
 
-    fn decl_var(&mut self, is_const: bool) -> Result<Stmt, ParsingStatus> {
+    fn decl_var(&mut self, is_const: bool) -> ParseResult<Stmt> {
         let decl_name = if is_const { "const" } else { "var" };
 
         // Consume decl_tok
@@ -81,19 +76,9 @@ impl<'s> Parser<'s> {
 
         // Grab identifier token
         let ident_tokens = {
-            // !!! This will drop parsing the rest of the stmt, which maybe contain a valid type spec
-            // TODO: Give back an empty list of tokens instead of bailing out
-            let first_ident = self.expects(
-                TokenType::Identifier,
-                format_args!("Expected an identifier for the declared {}", decl_name),
-            )?;
+            let mut idents = vec![];
 
-            let mut idents = vec![first_ident];
-
-            while self.current().token_type == TokenType::Comma {
-                // Consume comma
-                self.next_token();
-
+            loop {
                 // Identifier expected, but can break out of loop
                 let token = self.expects(
                     TokenType::Identifier,
@@ -106,9 +91,17 @@ impl<'s> Parser<'s> {
 
                 // Add to identifier list
                 idents.push(token.unwrap());
+
+                if !self.optional(&TokenType::Comma) {
+                    break;
+                }
             }
 
-            idents
+            if idents.is_empty() {
+                None
+            } else {
+                Some(idents)
+            }
         };
 
         // Grab typespec
@@ -201,20 +194,21 @@ impl<'s> Parser<'s> {
         }
 
         // Declare the identifiers
-        let idents: Vec<IdentRef> = ident_tokens
-            .into_iter()
-            .map(|token| {
-                let location = token.location;
-                let use_id = self.declare_ident(&token, type_spec, is_const, false, false);
+        let idents: Option<Vec<IdentRef>> = ident_tokens.map(|toks| {
+            toks.into_iter()
+                .map(|token| {
+                    let location = token.location;
+                    let use_id = self.declare_ident(&token, type_spec, is_const, false, false);
 
-                IdentRef::new(use_id, location)
-            })
-            .collect();
+                    IdentRef::new(use_id, location)
+                })
+                .collect()
+        });
 
         // Make the span
         let span = span.span_to(&self.previous().location);
 
-        Ok(Stmt {
+        Stmt {
             kind: StmtKind::VarDecl {
                 idents,
                 type_spec,
@@ -222,10 +216,10 @@ impl<'s> Parser<'s> {
                 is_const,
             },
             span,
-        })
+        }
     }
 
-    fn decl_type(&mut self) -> Result<Stmt, ParsingStatus> {
+    fn decl_type(&mut self) -> ParseResult<Stmt> {
         // Nom "type"
         let type_tok = self.next_token();
         let span = type_tok.location;
@@ -263,24 +257,18 @@ impl<'s> Parser<'s> {
         if ident_tok.is_none() {
             // If None, give an err (cannot declare a forward named type without an identifier)
             // Else, create a dummy type decl (provide validator access to any refs inside the type)
-            return match type_spec {
-                // TODO: Wrap ident behind optional so that type can be visited (same with var)
+            let kind = match type_spec {
                 Some(type_spec) => {
-                    // Can take a token from the previous, as the location doesn't matter
-                    let location = Location::new();
-                    let dummy_ident = self.unit_scope.use_ident("<dummy_ident>", location);
-
-                    Ok(Stmt {
-                        kind: StmtKind::TypeDecl {
-                            ident: IdentRef::new(dummy_ident, location),
-                            resolved_type: Some(type_spec),
-                            is_new_def: false, // Doesn't really matter
-                        },
-                        span,
-                    })
+                    StmtKind::TypeDecl {
+                        ident: None,
+                        resolved_type: Some(type_spec),
+                        is_new_def: false, // Doesn't really matter
+                    }
                 }
-                None => Err(ParsingStatus::Error),
+                None => StmtKind::Error,
             };
+
+            return Stmt { kind, span };
         }
 
         // Declare the actual type
@@ -299,15 +287,11 @@ impl<'s> Parser<'s> {
             let old_ident_id = old_ident.unwrap();
             let old_ident_tyspec = self.get_ident_info(&old_ident_id).type_spec;
 
-            if let Some(resolve_type) = type_spec {
+            let resolved_type = if let Some(resolve_type) = type_spec {
                 // Resolving forward, update old resolving type
                 self.replace_type(&old_ident_tyspec, Type::Forward { is_resolved: true });
 
-                StmtKind::TypeDecl {
-                    ident: IdentRef::new(old_ident_id, ident_tok.location),
-                    resolved_type: Some(resolve_type),
-                    is_new_def: false,
-                }
+                Some(resolve_type)
             } else {
                 // Redeclaring forward, keep the same type
                 self.context.borrow_mut().reporter.report_error(
@@ -315,45 +299,45 @@ impl<'s> Parser<'s> {
                     format_args!("Duplicate forward type declaration"),
                 );
 
-                StmtKind::TypeDecl {
-                    ident: IdentRef::new(old_ident_id, ident_tok.location),
-                    resolved_type: None,
-                    is_new_def: false,
-                }
+                None
+            };
+
+            StmtKind::TypeDecl {
+                ident: Some(IdentRef::new(old_ident_id, ident_tok.location)),
+                resolved_type,
+                is_new_def: false,
             }
         } else {
-            // Normal declaration
-            if let Some(type_spec) = type_spec {
+            // New declaration
+            let (ident, resolved_type) = if let Some(type_spec) = type_spec {
                 let alias_type = self.declare_type(Type::Alias { to: type_spec });
                 let location = ident_tok.location;
                 let new_id = self.declare_ident(&ident_tok, alias_type, true, true, false);
 
                 // Normal declare
-                StmtKind::TypeDecl {
-                    ident: IdentRef::new(new_id, location),
-                    resolved_type: Some(alias_type),
-                    is_new_def: true,
-                }
+                ((IdentRef::new(new_id, location)), Some(alias_type))
             } else {
                 let forward_type = self.declare_type(Type::Forward { is_resolved: false });
                 let location = ident_tok.location;
                 let new_id = self.declare_ident(&ident_tok, forward_type, true, true, false);
 
                 // Forward declare
-                StmtKind::TypeDecl {
-                    ident: IdentRef::new(new_id, location),
-                    resolved_type: None,
-                    is_new_def: true,
-                }
+                ((IdentRef::new(new_id, location)), None)
+            };
+
+            StmtKind::TypeDecl {
+                ident: Some(ident),
+                resolved_type,
+                is_new_def: true,
             }
         };
 
-        Ok(Stmt { kind, span })
+        Stmt { kind, span }
     }
 
     // --- Stmt Parsing --- //
 
-    fn stmt(&mut self) -> Result<Stmt, ParsingStatus> {
+    fn stmt(&mut self) -> ParseResult<Stmt> {
         match self.current().token_type {
             TokenType::Identifier | TokenType::Caret => self.stmt_reference(),
             // TODO: Looks dirty, please merge with above
@@ -386,7 +370,10 @@ impl<'s> Parser<'s> {
                 self.next_token();
 
                 // Nothing produced
-                Err(ParsingStatus::Skip)
+                Stmt {
+                    kind: StmtKind::Nop,
+                    span: self.previous().location,
+                }
             }
             _ => {
                 // Nom as token isn't consumed by anything else
@@ -400,13 +387,16 @@ impl<'s> Parser<'s> {
                     ),
                 );
 
-                // Cause an error
-                Err(ParsingStatus::Error)
+                // Nothing produced
+                Stmt {
+                    kind: StmtKind::Error,
+                    span: self.previous().location,
+                }
             }
         }
     }
 
-    fn stmt_reference(&mut self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_reference(&mut self) -> ParseResult<Stmt> {
         // Identifiers & References can begin either an assignment or a procedure call
         // Both take references as the primary expression
 
@@ -491,10 +481,10 @@ impl<'s> Parser<'s> {
         // Make span
         let span = span.span_to(&self.previous().location);
 
-        Ok(Stmt { kind, span })
+        Stmt { kind, span }
     }
 
-    fn stmt_block(&mut self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_block(&mut self) -> ParseResult<Stmt> {
         // Nom begin
         let begin_loc = self.next_token().location;
         let block = self.parse_block(BlockKind::InnerBlock, |tok_type| {
@@ -518,13 +508,13 @@ impl<'s> Parser<'s> {
 
         let span = begin_loc.span_to(&self.previous().location);
 
-        Ok(Stmt {
+        Stmt {
             kind: StmtKind::Block { block },
             span,
-        })
+        }
     }
 
-    fn stmt_if(&mut self, as_elsif: bool) -> Result<Stmt, ParsingStatus> {
+    fn stmt_if(&mut self, as_elsif: bool) -> ParseResult<Stmt> {
         // Nom 'if'
         let if_loc = self.next_token().location;
 
@@ -579,9 +569,7 @@ impl<'s> Parser<'s> {
             TokenType::Elsif | TokenType::Elif | TokenType::Elseif
         ) {
             // Update nesting count
-            let stmt = self
-                .with_stmt_nesting_tracking(|self_| self_.stmt_if(true))
-                .expect("Not at safe point?");
+            let stmt = self.with_stmt_nesting_tracking(|self_| self_.stmt_if(true));
 
             if let StmtKind::Error = &stmt.kind {
                 // Skip to known end point
@@ -610,17 +598,17 @@ impl<'s> Parser<'s> {
         let false_branch = false_branch.map(|stmt| Box::new(stmt));
 
         // Give back top level if statement
-        Ok(Stmt {
+        Stmt {
             kind: StmtKind::If {
                 condition,
                 true_branch,
                 false_branch,
             },
             span: top_span,
-        })
+        }
     }
 
-    fn parse_else_block(&mut self) -> Stmt {
+    fn parse_else_block(&mut self) -> ParseResult<Stmt> {
         // Nom 'else'
         let else_loc = self.next_token().location;
         debug_assert_eq!(&self.previous().token_type, &TokenType::Else);
@@ -638,7 +626,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Error recovery for else on a top level block
-    fn stmt_err_else(&mut self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_err_else(&mut self) -> ParseResult<Stmt> {
         self.context.borrow_mut().reporter.report_error(
             &self.current().location,
             format_args!("'else' without matching 'if'"),
@@ -646,11 +634,11 @@ impl<'s> Parser<'s> {
 
         let else_stmt = self.parse_else_block();
         self.nom_endif_or_end_if();
-        Ok(else_stmt)
+        else_stmt
     }
 
     // Error recovery for elseif on a top level block
-    fn stmt_err_elseif(&mut self) -> Result<Stmt, ParsingStatus> {
+    fn stmt_err_elseif(&mut self) -> ParseResult<Stmt> {
         self.context.borrow_mut().reporter.report_error(
             &self.current().location,
             format_args!("'{}' without matching 'if'", &self.current().token_type),
@@ -697,8 +685,11 @@ impl<'s> Parser<'s> {
             let stmt = self.decl();
 
             // Only add the Stmt if it was parsed successfully
-            if let Ok(stmt) = stmt {
+            if !matches!(stmt.kind, StmtKind::Nop | StmtKind::Error) {
                 stmts.push(stmt);
+            } else if matches!(stmt.kind, StmtKind::Error) {
+                // Skip to safe point
+                self.skip_to_safe_point(|_| false);
             }
         }
 

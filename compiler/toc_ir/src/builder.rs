@@ -149,6 +149,13 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &stmt.kind {
             ast::StmtKind::VarDecl { idents, value, .. } => {
+                if idents.is_none() {
+                    // Skip over this, no use
+                    return;
+                }
+
+                let idents = idents.as_ref().unwrap();
+
                 // ???: Handle constant variables?
                 // Const Variables are just single assignment vars, don't see a need to handle them
 

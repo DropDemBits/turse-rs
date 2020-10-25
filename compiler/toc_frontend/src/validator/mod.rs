@@ -441,6 +441,7 @@ impl Validator {
 impl VisitorMut<(), ()> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
+            StmtKind::Nop => {}
             StmtKind::Error => {}
             StmtKind::VarDecl {
                 idents,
