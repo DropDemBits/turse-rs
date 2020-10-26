@@ -15,18 +15,25 @@ fn main() {
     let mut opts = Options::new();
     opts.long_only(true);
     opts.optopt(
-        "",
+        "b",
         "build",
         "Compile a Turing program from a source file",
         "FILE_PATH",
     );
     opts.optopt(
-        "",
+        "r",
         "rebuild",
         "Rebuilds a compiled Turing program from a bytecode file or executable",
         "FILE_PATH",
     );
     opts.optflag("", "help", "Shows this help message");
+    opts.optmulti(
+        "",
+        "dump",
+        "Dumps the specified structure (can be one of 'ast', 'scope', 'types')",
+        "DUMP_IT",
+    );
+    //opts.optflag("", "dump_ast", "Dumps the pretty printed AST to stdout");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -44,7 +51,9 @@ fn main() {
     }
 
     if let Some(source_path) = matches.opt_str("build") {
-        if !toc::compile_file(&source_path) {
+        let dump_out = matches.opt_strs("dump");
+
+        if !toc::compile_file(&source_path, dump_out) {
             // Exit with a non-zero status
             std::process::exit(-1);
         }

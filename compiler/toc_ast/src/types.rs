@@ -970,3 +970,139 @@ mod test {
         assert_ne!(TypeRef::Named(1), TypeRef::Named(5));
     }
 }
+
+mod pretty_print {
+    use super::{ParamDef, Type, TypeRef, TypeTable};
+    use crate::pretty_print;
+    use std::fmt;
+
+    impl fmt::Display for TypeRef {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                TypeRef::Unknown => f.write_str("ty_unknown"),
+                TypeRef::TypeError => f.write_str("ty_error"),
+                TypeRef::Primitive(prim) => f.write_fmt(format_args!("ty_prim[{:?}]", prim)),
+                TypeRef::Named(id) => f.write_fmt(format_args!("ty_id[{}]", id)),
+            }
+        }
+    }
+
+    impl fmt::Display for ParamDef {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let props = [
+                ("cheat", &self.force_type),
+                ("var", &self.pass_by_ref),
+                ("register", &self.bind_to_register),
+            ];
+
+            for (name, is_present) in props.iter() {
+                if **is_present {
+                    f.write_str(name)?;
+                    f.write_str(" ")?;
+                }
+            }
+
+            f.write_fmt(format_args!("{} : {}", self.name, self.type_spec))
+        }
+    }
+
+    impl fmt::Display for Type {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Type::Reference { expr } => f.write_fmt(format_args!("{{ ref_expr {} }}", expr))?,
+                Type::SizeExpr { expr } => f.write_fmt(format_args!("{{ size_expr {} }}", expr))?,
+                Type::Range {
+                    start,
+                    end,
+                    size,
+                    base_type,
+                } => {
+                    f.write_str("{ range ")?;
+
+                    if let Some(end) = end {
+                        f.write_fmt(format_args!("{} .. {} ", start, end))?;
+                    } else {
+                        f.write_fmt(format_args!("{} .. * ", start))?;
+                    }
+
+                    if let Some(size) = size {
+                        f.write_fmt(format_args!("({})", size))?;
+                    }
+
+                    f.write_fmt(format_args!(" {} }}", base_type))?;
+                }
+                Type::Alias { to } => f.write_fmt(format_args!("{{ alias to {} }}", to))?,
+                Type::Array {
+                    ranges,
+                    element_type,
+                    is_flexible,
+                    ..
+                } => {
+                    f.write_str("Array { ")?;
+                    if *is_flexible {
+                        f.write_str("flexible ")?;
+                    }
+                    pretty_print::print_list(f, ranges.iter())?;
+                    f.write_fmt(format_args!(" of {} }}", element_type))?;
+                }
+                Type::Enum { fields } => {
+                    f.write_str("{ enum ( ")?;
+                    for (name, id) in fields {
+                        f.write_fmt(format_args!("{}({}) ", name, id))?;
+                    }
+                    f.write_str(")")?;
+                }
+                Type::EnumField { enum_type, ordinal } => f.write_fmt(format_args!(
+                    "{{ enum_field({}) of {} }}",
+                    ordinal, enum_type
+                ))?,
+                Type::Set { range } => f.write_fmt(format_args! {"{{ set of {} }}", range})?,
+                Type::Forward { is_resolved } => {
+                    if *is_resolved {
+                        f.write_str("{ resolved forward }")?;
+                    } else {
+                        f.write_str("{ forward }")?;
+                    }
+                }
+                Type::Pointer { to, is_unchecked } => {
+                    if *is_unchecked {
+                        f.write_fmt(format_args!("{{ unchecked pointer to {} }}", to))?
+                    } else {
+                        f.write_fmt(format_args!("{{ pointer to {} }}", to))?
+                    }
+                }
+                Type::Function { params, result } => {
+                    if result.is_some() {
+                        f.write_str("{ function ")?;
+                    } else {
+                        f.write_str("{ procedure ")?;
+                    }
+
+                    if let Some(params) = params {
+                        f.write_str("(")?;
+                        pretty_print::print_list(f, params.iter())?;
+                        f.write_str(")")?;
+                    }
+
+                    if let Some(result) = result {
+                        f.write_fmt(format_args!("-> {}", result))?
+                    }
+
+                    f.write_str(" }")?;
+                }
+            }
+
+            Ok(())
+        }
+    }
+
+    impl fmt::Display for TypeTable {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("[\n")?;
+            for (id, ty) in self.types.iter().enumerate() {
+                f.write_fmt(format_args!("{:8} -> {}\n", id, ty))?;
+            }
+            f.write_str("]")
+        }
+    }
+}

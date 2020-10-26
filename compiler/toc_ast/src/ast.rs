@@ -312,31 +312,6 @@ pub enum ExprKind {
     },
 }
 
-impl fmt::Display for ExprKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ExprKind::*;
-
-        match self {
-            Error => f.write_str("<error>"),
-            Init { exprs, .. } => f.write_fmt(format_args!("init({:?})", exprs)),
-            Indirect {
-                indirect_type,
-                reference,
-                ..
-            } => f.write_fmt(format_args!("({:?} @ ({:?}))", indirect_type, reference)),
-            BinaryOp {
-                left, op, right, ..
-            } => f.write_fmt(format_args!("({} {:?} {:?})", &op.0, left, right)),
-            UnaryOp { op, right, .. } => f.write_fmt(format_args!("({} {:?})", &op.0, right)),
-            Literal { value, .. } => f.write_fmt(format_args!("{}", value)),
-            Reference { ident, .. } => f.write_fmt(format_args!("ref({:#?})", ident)),
-            Call { left, arg_list, .. } => f.write_fmt(format_args!("{:?}({:?})", left, arg_list)),
-            Dot { left, field, .. } => f.write_fmt(format_args!("(. {:?} {:?})", left, field.0)),
-            Arrow { left, field, .. } => f.write_fmt(format_args!("(-> {:?} {:?})", left, field.0)),
-        }
-    }
-}
-
 /// Common expression node
 ///
 /// `eval_type` is the type produced after evaluating the expression.
@@ -441,6 +416,7 @@ pub enum StmtKind {
         false_branch: Option<Box<Stmt>>,
     },
 }
+
 /// Common statement node
 #[derive(Debug, Clone)]
 pub struct Stmt {
@@ -482,4 +458,189 @@ pub trait Visitor<St, Ex> {
 
     /// Ends a visit to the tree. Allows the visitor to perform any cleanup
     fn end_visit(&mut self) {}
+}
+
+mod pretty_print {
+    use super::{Expr, ExprKind, IdentId, IdentRef, Identifier, Stmt, StmtKind};
+    use crate::pretty_print;
+    use std::fmt::{self, Write};
+
+    impl fmt::Display for IdentId {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_fmt(format_args!("id:{}", self.0))
+        }
+    }
+
+    impl fmt::Display for IdentRef {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.id.fmt(f)
+        }
+    }
+
+    impl fmt::Display for Identifier {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_fmt(format_args!(
+                "{} {{ty: {}, used: {}",
+                self.name, self.type_spec, self.usages
+            ))?;
+
+            match (self.is_typedef, self.is_const) {
+                (false, false) => f.write_str(", var")?,
+                (false, true) => f.write_str(", const")?,
+                (true, _) => f.write_str(", tydef")?,
+            }
+
+            let props = [
+                ("decl", &self.is_declared),
+                ("pervasive", &self.is_pervasive),
+                ("comp_eval", &self.is_compile_eval),
+            ];
+
+            for (name, is_present) in props.iter() {
+                if **is_present {
+                    f.write_str(", ")?;
+                    f.write_str(name)?;
+                }
+            }
+
+            f.write_str("}\n")
+        }
+    }
+
+    impl fmt::Display for ExprKind {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                ExprKind::Error => f.write_str("<error>"),
+                ExprKind::Init { exprs, .. } => {
+                    f.write_str("init(")?;
+                    pretty_print::print_list(f, exprs.iter())?;
+                    f.write_str(")")
+                }
+                ExprKind::Indirect {
+                    indirect_type,
+                    reference,
+                    addr,
+                    ..
+                } => {
+                    if let Some(reference) = &reference {
+                        f.write_fmt(format_args!("({}) @ ({})", reference, addr))
+                    } else {
+                        f.write_fmt(format_args!("({}) @ ({})", indirect_type, addr))
+                    }
+                }
+                ExprKind::BinaryOp {
+                    left, op, right, ..
+                } => f.write_fmt(format_args!("({0}) {1} ({2})", left, &op.0, right)),
+                ExprKind::UnaryOp { op, right, .. } => {
+                    f.write_fmt(format_args!("{0}({1})", &op.0, right))
+                }
+                ExprKind::Literal { value, .. } => f.write_fmt(format_args!("{}", value)),
+                ExprKind::Reference { ident, .. } => f.write_fmt(format_args!("ref({})", ident)),
+                ExprKind::Call { left, arg_list, .. } => {
+                    f.write_fmt(format_args!("{}(", left))?;
+                    pretty_print::print_list(f, arg_list.iter())?;
+                    f.write_str(")")
+                }
+                ExprKind::Dot { left, field, .. } => {
+                    f.write_fmt(format_args!("{} . {}", left, field.0.name))
+                }
+                ExprKind::Arrow { left, field, .. } => {
+                    f.write_fmt(format_args!("{} -> {}", left, field.0.name))
+                }
+            }
+        }
+    }
+
+    impl fmt::Display for Expr {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.kind.fmt(f)
+        }
+    }
+
+    impl fmt::Display for StmtKind {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                StmtKind::Nop => f.write_str("<nop>")?,
+                StmtKind::Error => f.write_str("<error>")?,
+                StmtKind::VarDecl {
+                    idents,
+                    type_spec,
+                    is_const,
+                    value,
+                } => {
+                    f.write_str(if *is_const { "const [" } else { "var [" })?;
+                    if let Some(idents) = idents {
+                        pretty_print::print_list(f, idents.iter())?;
+                    }
+                    f.write_fmt(format_args!("] : {}", type_spec))?;
+
+                    if let Some(value) = value {
+                        f.write_fmt(format_args!(" := {}", value))?;
+                    }
+                }
+                StmtKind::TypeDecl {
+                    ident,
+                    resolved_type,
+                    ..
+                } => {
+                    f.write_str("type [")?;
+                    if let Some(ident) = ident {
+                        ident.fmt(f)?;
+                    }
+                    f.write_str("] : ")?;
+
+                    if let Some(resolved_type) = resolved_type {
+                        resolved_type.fmt(f)?;
+                    } else {
+                        f.write_str("forward")?;
+                    }
+                }
+                StmtKind::Assign { var_ref, op, value } => {
+                    if let Some(op) = op {
+                        f.write_fmt(format_args!("{0} {1}= {2}", var_ref, op, value))?;
+                    } else {
+                        f.write_fmt(format_args!("{0} := {1}", var_ref, value))?;
+                    }
+                }
+                StmtKind::ProcedureCall { proc_ref } => proc_ref.fmt(f)?,
+                StmtKind::Block { block } => {
+                    // use '{' and '}' for block delimiter as it's nicer
+                    f.write_char('{')?;
+
+                    if !block.stmts.is_empty() {
+                        f.write_char('\n')?;
+                    }
+
+                    {
+                        let mut indenter = pretty_print::IndentWriter::new(f);
+
+                        for stmt in &block.stmts {
+                            indenter.write_fmt(format_args!("{}\n", stmt))?;
+                        }
+                    }
+
+                    f.write_char('}')?;
+                }
+                StmtKind::If {
+                    condition,
+                    true_branch,
+                    false_branch,
+                } => {
+                    f.write_fmt(format_args!("if ({}) then {}", condition, true_branch))?;
+
+                    if let Some(false_branch) = false_branch {
+                        f.write_fmt(format_args!("\nelse {}", false_branch))?;
+                    }
+                }
+            }
+
+            Ok(())
+        }
+    }
+
+    impl fmt::Display for Stmt {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.kind.fmt(f)
+        }
+    }
 }

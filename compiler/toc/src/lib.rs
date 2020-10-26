@@ -15,7 +15,7 @@ use toc_frontend::{
 ///
 /// # Returns
 /// Returns whether compilation was successful or not
-pub fn compile_file(path: &str) -> bool {
+pub fn compile_file(path: &str, dump_out: Vec<String>) -> bool {
     // Load file
     let file_contents = match fs::read_to_string(path) {
         Ok(s) => s,
@@ -26,11 +26,28 @@ pub fn compile_file(path: &str) -> bool {
     };
 
     let (unit, context) = compile_file_source(path, &file_contents);
-    if resolve_unit(unit, &context).is_err() {
-        return false;
+    let (unit, success) = resolve_unit(unit, &context);
+
+    if dump_out.iter().any(|elem| elem == "ast") {
+        // Pretty-print AST
+        println!("\nast: {{");
+        for stmt in unit.stmts() {
+            println!("{}", stmt);
+        }
+        println!("}}");
     }
 
-    return true;
+    if dump_out.iter().any(|elem| elem == "scope") {
+        // Pretty-print unit scope
+        println!("\nscope: {}", unit.unit_scope());
+    }
+
+    if dump_out.iter().any(|elem| elem == "types") {
+        // Pretty-print types
+        println!("\ntypes: {}", unit.types());
+    }
+
+    return success;
 }
 
 /// Compiles a single file into a single code unit
@@ -51,7 +68,7 @@ pub fn compile_file_source(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell
 pub fn resolve_unit(
     mut code_unit: CodeUnit,
     context: &Rc<RefCell<CompileContext>>,
-) -> Result<(), ()> {
+) -> (CodeUnit, bool) {
     let type_table = code_unit.take_types();
     let unit_scope = code_unit.take_unit_scope();
 
@@ -67,7 +84,7 @@ pub fn resolve_unit(
 
     // Validator must run successfully
     if context.borrow().reporter.has_error() {
-        return Err(());
+        return (code_unit, false);
     }
 
     // Generate IR for the given unit
@@ -83,5 +100,5 @@ pub fn resolve_unit(
         println!("ed {:?}", edge);
     }*/
 
-    Ok(())
+    (code_unit, true)
 }

@@ -5,5 +5,6 @@ pub mod block;
 pub mod scope;
 pub mod types;
 pub mod value;
+pub(crate) mod pretty_print;
 
 extern crate toc_core;

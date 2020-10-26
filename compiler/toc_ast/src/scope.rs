@@ -383,6 +383,27 @@ impl Default for UnitScope {
     }
 }
 
+mod pretty_print {
+    use super::{IdentId, UnitScope};
+    use std::fmt;
+
+    impl fmt::Display for UnitScope {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            // Just dump the identifier table
+            f.write_str("[\n")?;
+            for (id, _) in self.ident_ids.keys().enumerate() {
+                let info = self
+                    .ident_ids
+                    .get(&IdentId(id as u32))
+                    .expect("infalliable");
+
+                f.write_fmt(format_args!("{:8} -> {}", id, info))?;
+            }
+            f.write_str("]")
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
