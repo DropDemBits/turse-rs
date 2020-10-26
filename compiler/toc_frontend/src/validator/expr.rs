@@ -9,6 +9,20 @@ use toc_core::Location;
 impl Validator {
     // --- Expr Resolvers --- //
 
+    // Resolves a parentheses expression
+    pub(super) fn resolve_expr_parens(
+        &mut self,
+        inner: &mut Box<Expr>,
+        eval_type: &mut TypeRef,
+        is_compile_eval: &mut bool,
+    ) {
+        self.visit_expr(inner);
+
+        // Carry over properties
+        *eval_type = inner.eval_type;
+        *is_compile_eval = inner.is_compile_eval;
+    }
+
     // Resolves an "init" expression
     pub(super) fn resolve_expr_init(&mut self, exprs: &mut Vec<Expr>) {
         for expr in exprs.iter_mut() {

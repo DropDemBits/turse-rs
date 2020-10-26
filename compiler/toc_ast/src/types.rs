@@ -1081,14 +1081,14 @@ mod pretty_print {
                     if let Some(params) = params {
                         f.write_str("(")?;
                         pretty_print::print_list(f, params.iter())?;
-                        f.write_str(")")?;
+                        f.write_str(") ")?;
                     }
 
                     if let Some(result) = result {
-                        f.write_fmt(format_args!("-> {}", result))?
+                        f.write_fmt(format_args!("-> {} ", result))?
                     }
 
-                    f.write_str(" }")?;
+                    f.write_str("}")?;
                 }
             }
 

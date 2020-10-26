@@ -138,7 +138,7 @@ impl fmt::Display for BinaryOp {
         match self {
             BinaryOp::Add => f.write_str("+"),
             BinaryOp::Sub => f.write_str("-"),
-            BinaryOp::Mul => f.write_str("mul"),
+            BinaryOp::Mul => f.write_str("*"),
             BinaryOp::Div => f.write_str("div"),
             BinaryOp::RealDiv => f.write_str("/"),
             BinaryOp::Mod => f.write_str("mod"),
@@ -154,7 +154,7 @@ impl fmt::Display for BinaryOp {
             BinaryOp::Greater => f.write_str(">"),
             BinaryOp::GreaterEq => f.write_str(">="),
             BinaryOp::Equal => f.write_str("="),
-            BinaryOp::NotEqual => f.write_str("not ="),
+            BinaryOp::NotEqual => f.write_str("not="),
             BinaryOp::In => f.write_str("in"),
             BinaryOp::NotIn => f.write_str("not in"),
             BinaryOp::Imply => f.write_str("=>"),
@@ -237,6 +237,11 @@ pub struct FieldDef {
 pub enum ExprKind {
     /// Error expression, always evaluates to a type error.
     Error,
+    /// Parentheses, only used to preserve operand order in AST dumping
+    Parens {
+        /// Inner parentheses expression
+        inner: Box<Expr>,
+    },
     /// Binary expression
     BinaryOp {
         /// Left operand for the binary operation
@@ -480,14 +485,14 @@ mod pretty_print {
     impl fmt::Display for Identifier {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             f.write_fmt(format_args!(
-                "{} {{ty: {}, used: {}",
+                "{{ {} ty: {}, used: {}, ",
                 self.name, self.type_spec, self.usages
             ))?;
 
             match (self.is_typedef, self.is_const) {
-                (false, false) => f.write_str(", var")?,
-                (false, true) => f.write_str(", const")?,
-                (true, _) => f.write_str(", tydef")?,
+                (false, false) => f.write_str("var")?,
+                (false, true) => f.write_str("const")?,
+                (true, _) => f.write_str("tydef")?,
             }
 
             let props = [
@@ -498,12 +503,12 @@ mod pretty_print {
 
             for (name, is_present) in props.iter() {
                 if **is_present {
-                    f.write_str(", ")?;
+                    f.write_str(" ")?;
                     f.write_str(name)?;
                 }
             }
 
-            f.write_str("}\n")
+            f.write_str(" }\n")
         }
     }
 
@@ -523,16 +528,21 @@ mod pretty_print {
                     ..
                 } => {
                     if let Some(reference) = &reference {
-                        f.write_fmt(format_args!("({}) @ ({})", reference, addr))
+                        f.write_fmt(format_args!("[{}] @ ({})", reference, addr))
                     } else {
-                        f.write_fmt(format_args!("({}) @ ({})", indirect_type, addr))
+                        f.write_fmt(format_args!("[{}] @ ({})", indirect_type, addr))
                     }
                 }
+                ExprKind::Parens { inner } => f.write_fmt(format_args!("({})", inner)),
                 ExprKind::BinaryOp {
                     left, op, right, ..
-                } => f.write_fmt(format_args!("({0}) {1} ({2})", left, &op.0, right)),
+                } => f.write_fmt(format_args!("{0} {1} {2}", left, &op.0, right)),
                 ExprKind::UnaryOp { op, right, .. } => {
-                    f.write_fmt(format_args!("{0}({1})", &op.0, right))
+                    if op.0 == super::UnaryOp::Not {
+                        f.write_fmt(format_args!("{0} {1}", &op.0, right))
+                    } else {
+                        f.write_fmt(format_args!("{0}{1}", &op.0, right))
+                    }
                 }
                 ExprKind::Literal { value, .. } => f.write_fmt(format_args!("{}", value)),
                 ExprKind::Reference { ident, .. } => f.write_fmt(format_args!("ref({})", ident)),

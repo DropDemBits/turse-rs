@@ -30,21 +30,21 @@ pub fn compile_file(path: &str, dump_out: Vec<String>) -> bool {
 
     if dump_out.iter().any(|elem| elem == "ast") {
         // Pretty-print AST
-        println!("\nast: {{");
+        println!("ast: [");
         for stmt in unit.stmts() {
             println!("{}", stmt);
         }
-        println!("}}");
+        println!("]");
     }
 
     if dump_out.iter().any(|elem| elem == "scope") {
         // Pretty-print unit scope
-        println!("\nscope: {}", unit.unit_scope());
+        println!("scope: {}", unit.unit_scope());
     }
 
     if dump_out.iter().any(|elem| elem == "types") {
         // Pretty-print types
-        println!("\ntypes: {}", unit.types());
+        println!("types: {}", unit.types());
     }
 
     return success;

@@ -181,6 +181,7 @@ impl Validator {
         ref_expr: &'b Expr,
     ) -> Option<(&'a String, &'a TypeRef, &'a bool, &'a bool, &'a Location)> {
         match &ref_expr.kind {
+            ExprKind::Parens { inner } => self.get_reference_ident(inner),
             ExprKind::Reference { ident, .. } => {
                 let info = self.unit_scope.get_ident_info(&ident.id);
                 Some((
@@ -208,6 +209,7 @@ impl Validator {
     /// Checks if the expression evaluates to a type reference
     fn is_type_reference(&self, expr: &Expr) -> bool {
         match &expr.kind {
+            ExprKind::Parens { inner } => self.is_type_reference(inner),
             ExprKind::Reference { ident, .. } => {
                 // It's a type reference based on the identifier
                 let info = self.unit_scope.get_ident_info(&ident.id);
@@ -259,6 +261,7 @@ impl Validator {
         }
 
         match &expr.kind {
+            ExprKind::Parens { inner } => self.eval_expr(inner), // Evaluate inner
             ExprKind::BinaryOp {
                 left,
                 op: (op, location),
@@ -362,10 +365,7 @@ impl Validator {
                 }
             }
             ExprKind::Dot { left, field } => {
-                // Enum, known const
-                /*
-
-                */
+                // Enum, or known const
 
                 // Dealias left type
                 let left_ref = ty::dealias_ref(&left.get_eval_type(), &self.type_table);
@@ -491,6 +491,11 @@ impl VisitorMut<(), ()> for Validator {
     fn visit_expr(&mut self, visit_expr: &mut Expr) {
         match &mut visit_expr.kind {
             ExprKind::Error => (),
+            ExprKind::Parens { inner } => self.resolve_expr_parens(
+                inner,
+                &mut visit_expr.eval_type,
+                &mut visit_expr.is_compile_eval,
+            ),
             ExprKind::Init { exprs, .. } => self.resolve_expr_init(exprs),
             ExprKind::Indirect {
                 reference, addr, ..

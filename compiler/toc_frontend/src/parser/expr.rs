@@ -283,15 +283,24 @@ impl<'s> Parser<'s> {
     }
 
     fn expr_grouping(&mut self) -> ParseResult<Expr> {
+        let span = self.previous().location;
         let expr = self.expr();
 
         let _ = self.expects(
             TokenType::RightParen,
             format_args!("Expected ')' to close off parenthetical grouping"),
         );
+        let span = span.span_to(&self.previous().location);
 
-        // Give back inner expr
-        expr
+        // Wrap in `Parens` expression
+        Expr {
+            kind: ExprKind::Parens {
+                inner: Box::new(expr),
+            },
+            eval_type: TypeRef::Unknown,
+            is_compile_eval: false,
+            span,
+        }
     }
 
     fn expr_binary(&mut self, lhs: Expr) -> ParseResult<Expr> {
