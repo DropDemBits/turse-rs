@@ -4,7 +4,7 @@ use getopts::Options;
 use std::env;
 
 fn show_usage(program_name: &str, opts: &Options) {
-    let brief = format!("Usage: {} [options]", program_name);
+    let brief = format!("Usage: {} [options] [main file]", program_name);
     print!("{}", opts.usage(&brief));
 }
 
@@ -18,22 +18,21 @@ fn main() {
         "b",
         "build",
         "Compile a Turing program from a source file",
-        "FILE_PATH",
+        "PATH",
     );
     opts.optopt(
         "r",
         "rebuild",
         "Rebuilds a compiled Turing program from a bytecode file or executable",
-        "FILE_PATH",
+        "PATH",
     );
-    opts.optflag("", "help", "Shows this help message");
     opts.optmulti(
         "",
         "dump",
-        "Dumps the specified structure (can be one of 'ast', 'scope', 'types')",
-        "DUMP_IT",
+        "Dumps the specified structure\n('KIND' can 'ast', 'scope', or 'types')",
+        "KIND",
     );
-    //opts.optflag("", "dump_ast", "Dumps the pretty printed AST to stdout");
+    opts.optflag("", "help", "Shows this help message");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
