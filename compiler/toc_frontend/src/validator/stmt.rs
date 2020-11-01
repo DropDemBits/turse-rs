@@ -402,24 +402,38 @@ impl Validator {
         debug_assert!(types::is_base_type(left_type, &self.type_table));
         debug_assert!(types::is_base_type(right_type, &self.type_table));
 
-        if let Some(op) = op {
+        let is_valid_assignment = if let Some(op) = op {
             let produce_type =
                 expr::check_binary_operands(left_type, *op, right_type, &self.type_table);
+
             if produce_type.is_err()
                 || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
             {
-                // Value to assign is the wrong type
+                // Types are not compatible, or is incompatible with the result type
+                false
+            } else {
+                true
+            }
+        } else if !types::is_assignable_to(left_type, right_type, &self.type_table) {
+            // Types are not compatible, can't assign to each other
+            false
+        } else {
+            true
+        };
+
+        if !is_valid_assignment {
+            // Value to assign is the wrong type
+            if self.is_type_reference(value) {
+                self.context.borrow_mut().reporter.report_error(
+                    &value.get_span(),
+                    format_args!("Expression is a type reference, and cannot be used here"),
+                );
+            } else {
                 self.context.borrow_mut().reporter.report_error(
                     &value.get_span(),
                     format_args!("Assignment value is the wrong type"),
                 );
             }
-        } else if !types::is_assignable_to(left_type, right_type, &self.type_table) {
-            // Value to assign is the wrong type
-            self.context.borrow_mut().reporter.report_error(
-                &value.get_span(),
-                format_args!("Assignment value is the wrong type"),
-            );
         }
     }
 

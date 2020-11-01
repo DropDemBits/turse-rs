@@ -290,7 +290,7 @@ impl Validator {
         }
     }
 
-    // `allow_procedure`: Should procedure calls be allowed in this position
+    /// `allow_procedure`: Should procedure calls be allowed in this position
     pub(super) fn resolve_expr_call(
         &mut self,
         left: &mut Box<Expr>,
@@ -322,9 +322,9 @@ impl Validator {
         // - fcn / proc call
         // Distinguished by the identifier type
 
-        // TODO: Type check call expressions
-        // For now, call expressions default to runtime-time only, and evaluating to a
-        // TypeError.
+        // TODO: Type check the rest of the call expressions
+        // Call expressions default to runtime-time only and evaluating to a
+        // TypeError if type check fails.
         // A call expression would be compile-time evaluable if it had no side effects,
         // but we don't check that right now
         *is_compile_eval = false;
@@ -345,11 +345,6 @@ impl Validator {
         // x Pointer specialization (not a pointer, wrong arg count, etc...)
         // x CharSeq subscript
         // - Array subscript
-
-        // TODO: Integrate written tests into test code
-        // - Procedure & Function call
-        // - Bare Procedure & Function call
-        // - Bare function calls in expr position
 
         // TODO: Check for bare function calls in dot exprs with fields (records, unions, classes, modules, monitors)
 
@@ -377,13 +372,38 @@ impl Validator {
                 }
                 Some(Type::Pointer { to: _, .. }) => {
                     // Pointer specialization
-                    if args.len() != 1 {
+                    if args.len() > 1 {
+                        // Too many args
+                        let last_arg = args
+                            .last()
+                            .map(|expr| expr.get_span())
+                            .expect("No args in a many args expr");
+
                         self.context.borrow_mut().reporter.report_error(
-                            paren_at,
+                            last_arg,
                             format_args!(
-                                "Pointer specialization requires only 1 argument to be present"
+                                "Too many arguments for pointer specialization (expected 1, found {})", args.len()
                             ),
                         )
+                    } else if args.len() == 0 {
+                        // Not enough args
+                        self.context.borrow_mut().reporter.report_error(
+                            paren_at,
+                            format_args!("Pointer specialization requires 1 argument"),
+                        )
+                    }
+
+                    if let Some(expr) = args.first() {
+                        if self.is_type_reference(expr) {
+                            // Not a const/var ref
+
+                            self.context.borrow_mut().reporter.report_error(
+                                &expr.get_span(),
+                                format_args!(
+                                    "Expression refers to a type, and is not allowed here"
+                                ),
+                            )
+                        }
                     }
 
                     // TODO: Fill out for both collection & class types
@@ -475,7 +495,6 @@ impl Validator {
 
     /// Typechecks the given set constructor, checking for type compatibility
     fn typecheck_set_constructor(&self, index_type: &TypeRef, args: &[Expr], at_paren: &Location) {
-        // All params must be assignable to range type
         // TODO: Handle `all` token
         if args.is_empty() {
             self.context.borrow_mut().reporter.report_error(
@@ -484,6 +503,7 @@ impl Validator {
             );
         }
 
+        // All params must be assignable to range type
         args.iter().for_each(|element| {
             let element_dealiased = types::dealias_ref(&element.get_eval_type(), &self.type_table);
 
