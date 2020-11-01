@@ -490,7 +490,7 @@ impl VisitorMut<(), ()> for Validator {
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
     fn visit_expr(&mut self, visit_expr: &mut Expr) {
         match &mut visit_expr.kind {
-            ExprKind::Error => (),
+            ExprKind::Error => {},
             ExprKind::Parens { inner } => self.resolve_expr_parens(
                 inner,
                 &mut visit_expr.eval_type,

@@ -14,3 +14,6 @@ toc_frontend = { path = "../toc_frontend" }
 toc_ir = { path = "../toc_ir" }
 
 getopts = "^0.2"
+
+[dev-dependencies]
+goldentests = "0.3"
