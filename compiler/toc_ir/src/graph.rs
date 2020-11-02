@@ -4,7 +4,7 @@ use petgraph::prelude::*;
 use petgraph::stable_graph::StableDiGraph;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use toc_ast::ast::{BinaryOp, UnaryOp};
+use toc_ast::ast::expr::{BinaryOp, UnaryOp};
 use toc_ast::types::TypeRef;
 use toc_ast::value::Value;
 use toc_core::Location;

@@ -1,7 +1,9 @@
 //! Parser fragment, parsing all statements and declarations
 use super::{ParseResult, Parser};
 use crate::token::TokenType;
-use toc_ast::ast::{self, Expr, ExprKind, IdentRef, Stmt, StmtKind};
+use toc_ast::ast::expr::{Expr, ExprKind};
+use toc_ast::ast::ident::{IdentRef, RefKind};
+use toc_ast::ast::stmt::{self, Stmt, StmtKind};
 use toc_ast::block::BlockKind;
 use toc_ast::types::{Type, TypeRef};
 
@@ -193,12 +195,18 @@ impl<'s> Parser<'s> {
             type_spec = TypeRef::TypeError;
         }
 
+        let ref_kind = if is_const {
+            RefKind::Const
+        } else {
+            RefKind::Var
+        };
+
         // Declare the identifiers
         let idents: Option<Vec<IdentRef>> = ident_tokens.map(|toks| {
             toks.into_iter()
                 .map(|token| {
                     let location = token.location;
-                    let use_id = self.declare_ident(&token, type_spec, is_const, false, false);
+                    let use_id = self.declare_ident(&token, type_spec, ref_kind, false);
 
                     IdentRef::new(use_id, location)
                 })
@@ -312,14 +320,14 @@ impl<'s> Parser<'s> {
             let (ident, resolved_type) = if let Some(type_spec) = type_spec {
                 let alias_type = self.declare_type(Type::Alias { to: type_spec });
                 let location = ident_tok.location;
-                let new_id = self.declare_ident(&ident_tok, alias_type, true, true, false);
+                let new_id = self.declare_ident(&ident_tok, alias_type, RefKind::Type, false);
 
                 // Normal declare
                 ((IdentRef::new(new_id, location)), Some(alias_type))
             } else {
                 let forward_type = self.declare_type(Type::Forward { is_resolved: false });
                 let location = ident_tok.location;
-                let new_id = self.declare_ident(&ident_tok, forward_type, true, true, false);
+                let new_id = self.declare_ident(&ident_tok, forward_type, RefKind::Type, false);
 
                 // Forward declare
                 ((IdentRef::new(new_id, location)), None)
@@ -672,7 +680,7 @@ impl<'s> Parser<'s> {
     ///
     /// # Returns
     /// Returns an `ast::Block` containing the parsed statements and associated scope block.
-    fn parse_block<T>(&mut self, block_kind: BlockKind, end_predicate: T) -> ast::Block
+    fn parse_block<T>(&mut self, block_kind: BlockKind, end_predicate: T) -> stmt::Block
     where
         T: Fn(&TokenType) -> bool,
     {
@@ -696,7 +704,7 @@ impl<'s> Parser<'s> {
         // Close the block
         let block = self.pop_block();
 
-        ast::Block { block, stmts }
+        stmt::Block { block, stmts }
     }
 
     /// Checks if the current tokens form a compound assignment (operator '=')

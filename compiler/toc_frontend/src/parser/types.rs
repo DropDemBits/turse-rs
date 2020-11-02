@@ -2,7 +2,7 @@
 use super::Parser;
 use crate::token::TokenType;
 use std::collections::HashMap;
-use toc_ast::ast::{Expr, ExprKind};
+use toc_ast::ast::expr::{Expr, ExprKind};
 use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef};
 
 impl<'s> Parser<'s> {

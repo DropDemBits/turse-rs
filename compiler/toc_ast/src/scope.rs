@@ -1,4 +1,4 @@
-use crate::ast::{IdentId, Identifier};
+use crate::ast::ident::{IdentId, Identifier, RefKind};
 use crate::block::BlockKind;
 use crate::types::TypeRef;
 use toc_core::Location;
@@ -193,19 +193,10 @@ impl UnitScope {
         name: String,
         decl_location: Location,
         type_spec: TypeRef,
-        is_const: bool,
-        is_typedef: bool,
+        ref_kind: RefKind,
         is_pervasive: bool,
     ) -> IdentId {
-        self._declare_ident(
-            name,
-            decl_location,
-            type_spec,
-            is_const,
-            is_typedef,
-            is_pervasive,
-            true,
-        )
+        self._declare_ident(name, decl_location, type_spec, ref_kind, is_pervasive, true)
     }
 
     /// Uses an identifier.
@@ -234,8 +225,7 @@ impl UnitScope {
                 name,
                 use_location,
                 TypeRef::TypeError,
-                false,
-                false,
+                RefKind::Var,
                 false,
                 false,
             )
@@ -333,14 +323,12 @@ impl UnitScope {
     }
 
     /// Same as `UnitScope::declare_ident`, but allows for declaring "undeclared" identifiers
-    #[allow(clippy::too_many_arguments)] // Is an internal function, don't care about this
     fn _declare_ident(
         &mut self,
         name: String,
         decl_location: Location,
         type_spec: TypeRef,
-        is_const: bool,
-        is_typedef: bool,
+        ref_kind: RefKind,
         is_pervasive: bool,
         as_declared: bool,
     ) -> IdentId {
@@ -350,8 +338,7 @@ impl UnitScope {
             decl_location,
             type_spec,
             name.clone(),
-            is_const,
-            is_typedef,
+            ref_kind,
             as_declared,
             is_pervasive,
         );
@@ -420,8 +407,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Primitive(PrimitiveType::Int),
-            false,
-            false,
+            RefKind::Var,
             false,
         );
         let info = unit_scope.get_ident_info(&id);
@@ -441,8 +427,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Primitive(PrimitiveType::Int),
-            false,
-            false,
+            RefKind::Var,
             false,
         );
 
@@ -451,8 +436,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Primitive(PrimitiveType::String_),
-            false,
-            false,
+            RefKind::Var,
             false,
         );
 
@@ -479,8 +463,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Primitive(PrimitiveType::Int),
-            false,
-            false,
+            RefKind::Var,
             false,
         );
         assert_eq!(
@@ -495,8 +478,7 @@ mod test {
                 String::from("a"),
                 Location::new(),
                 TypeRef::Primitive(PrimitiveType::Real),
-                false,
-                false,
+                RefKind::Var,
                 false,
             );
 
@@ -532,8 +514,7 @@ mod test {
                 String::from("a"),
                 Location::new(),
                 TypeRef::Primitive(PrimitiveType::Real),
-                false,
-                false,
+                RefKind::Var,
                 false,
             );
             assert_eq!(
@@ -552,8 +533,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Primitive(PrimitiveType::Int),
-            false,
-            false,
+            RefKind::Var,
             false,
         );
 
@@ -576,8 +556,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Unknown,
-            false,
-            false,
+            RefKind::Var,
             false,
         );
         // Should stay as TypeRef::Unknown
@@ -631,8 +610,7 @@ mod test {
             String::from("a"),
             Location::new(),
             TypeRef::Primitive(PrimitiveType::Int),
-            false,
-            false,
+            RefKind::Var,
             false,
         );
         assert_eq!(

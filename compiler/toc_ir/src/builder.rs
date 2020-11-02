@@ -1,7 +1,7 @@
 //! Builds an IR Control-Flow-Graph from a given `CodeUnit`
 use crate::graph::{BlockIndex, Instruction, InstructionOp, IrGraph, Reference};
 use crate::{AddressSpace, ReferenceNode};
-use toc_ast::ast;
+use toc_ast::ast::{self, expr, ident, stmt};
 use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::scope::UnitScope;
 use toc_ast::types;
@@ -127,7 +127,7 @@ impl<'unit> IrVisitor<'unit> {
     }
 
     /// Uses an existsing reference from any reference scope
-    fn make_use_ref(&self, ident: &ast::Identifier) -> Reference {
+    fn make_use_ref(&self, ident: &ident::Identifier) -> Reference {
         self.reference_scope.use_ref(&ident.name)
     }
 
@@ -146,9 +146,9 @@ impl<'unit> IrVisitor<'unit> {
 }
 
 impl ast::Visitor<(), Reference> for IrVisitor<'_> {
-    fn visit_stmt(&mut self, stmt: &ast::Stmt) {
+    fn visit_stmt(&mut self, stmt: &stmt::Stmt) {
         match &stmt.kind {
-            ast::StmtKind::VarDecl { idents, value, .. } => {
+            stmt::StmtKind::VarDecl { idents, value, .. } => {
                 if idents.is_none() {
                     // Skip over this, no use
                     return;
@@ -189,7 +189,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
                     }
                 });
             }
-            ast::StmtKind::Assign { var_ref, op, value } => {
+            stmt::StmtKind::Assign { var_ref, op, value } => {
                 let asn_ref = self.visit_expr(var_ref);
                 let value_ref = self.visit_expr(value);
 
@@ -230,7 +230,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
 
                 self.insert_instruction(asn_inst);
             }
-            ast::StmtKind::Block { block, .. } => {
+            stmt::StmtKind::Block { block, .. } => {
                 // As a test, split block up into other things
                 let inner_block = self.graph.as_mut().unwrap().create_block();
 
@@ -260,9 +260,9 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
         }
     }
 
-    fn visit_expr(&mut self, expr: &ast::Expr) -> Reference {
+    fn visit_expr(&mut self, expr: &expr::Expr) -> Reference {
         match &expr.kind {
-            ast::ExprKind::BinaryOp {
+            expr::ExprKind::BinaryOp {
                 left, op, right, ..
             } => {
                 let left_eval = self.visit_expr(&left);
@@ -287,7 +287,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::ExprKind::UnaryOp { op, right, .. } => {
+            expr::ExprKind::UnaryOp { op, right, .. } => {
                 let right_eval = self.visit_expr(&right);
                 let eval_ref = self.make_temporary(expr.eval_type);
 
@@ -308,7 +308,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::ExprKind::Literal { value } => {
+            expr::ExprKind::Literal { value } => {
                 let eval_ref = self.make_temporary(expr.eval_type);
 
                 // TODO: May want to use a constant table reference, but for now, use a Value
@@ -326,7 +326,7 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
                 // Give back the eval reference
                 eval_ref
             }
-            ast::ExprKind::Reference { ident, .. } => {
+            expr::ExprKind::Reference { ident, .. } => {
                 // Fetch the reference
                 let info = self.unit_scope.get_ident_info(&ident.id);
                 self.make_use_ref(&info)

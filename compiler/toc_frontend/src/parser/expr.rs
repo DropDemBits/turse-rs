@@ -1,7 +1,8 @@
 //! Parser fragment, parsing all expressions
 use super::{ParseResult, Parser};
 use crate::token::TokenType;
-use toc_ast::ast::{Expr, ExprKind, FieldDef, IdentRef, Literal};
+use toc_ast::ast::expr::{Expr, ExprKind, FieldDef, Literal};
+use toc_ast::ast::ident::IdentRef;
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
@@ -422,8 +423,7 @@ impl<'s> Parser<'s> {
         let field_def = FieldDef {
             name,
             type_spec: TypeRef::Unknown,
-            is_const: false,
-            is_typedef: false,
+            ref_kind: toc_ast::ast::ident::RefKind::Var,
         };
         let field = (field_def, ident.location);
 

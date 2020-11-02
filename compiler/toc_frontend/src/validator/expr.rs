@@ -2,7 +2,9 @@
 use super::Validator;
 
 use std::cmp::Ordering;
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, FieldDef, IdentRef, Literal, UnaryOp, VisitorMut};
+use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, FieldDef, Literal, UnaryOp};
+use toc_ast::ast::ident::{IdentRef, RefKind};
+use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
@@ -330,7 +332,7 @@ impl Validator {
         *is_compile_eval = false;
         *eval_type = TypeRef::TypeError;
 
-        let left_type = if let Some((_, tyspec, _, _, _)) = self.get_reference_ident(&left) {
+        let left_type = if let Some((_, tyspec, _, _)) = self.get_reference_ident(&left) {
             // We care about the subroutine reference and not the evaluation type in a reference expr
             *tyspec
         } else {
@@ -480,7 +482,7 @@ impl Validator {
     }
 
     fn report_uncallable_expr(&self, left: &Expr) {
-        if let Some((name, _, _, _, location)) = self.get_reference_ident(left) {
+        if let Some((name, .., location)) = self.get_reference_ident(left) {
             self.context.borrow_mut().reporter.report_error(
                 location,
                 format_args!("'{}' cannot be called or have subscripts", name),
@@ -540,8 +542,8 @@ impl Validator {
                 } else {
                     if param_def.pass_by_ref {
                         // Parameter must be var to be passed as a ref
-                        if let Some((_, _, _, is_const, _)) = self.get_reference_ident(arg) {
-                            if *is_const {
+                        if let Some((_, _, ref_kind, _)) = self.get_reference_ident(arg) {
+                            if *ref_kind != RefKind::Var {
                                 self.context.borrow_mut().reporter.report_error(
                                     arg.get_span(),
                                     format_args!(
@@ -705,8 +707,7 @@ impl Validator {
                         *eval_type = *field_ref;
 
                         // Update the field ident info
-                        field.is_const = true; // Not mutable
-                        field.is_typedef = false; // Not typedef
+                        field.ref_kind = RefKind::Const; // Not mutable, not typedef
 
                         // Enum fields are compile-time evaluable
                         *is_compile_eval = true;
@@ -722,7 +723,7 @@ impl Validator {
                                 "'{}' is not a field of the enum type '{}'",
                                 field.name,
                                 self.get_reference_ident(left)
-                                    .map_or("<unknown>", |(name, _, _, _, _)| name.as_str())
+                                    .map_or("<unknown>", |(name, ..)| name.as_str())
                             ),
                         );
 
@@ -805,7 +806,7 @@ impl Validator {
             }
 
             // Fetch the eval type based on the ident type spec
-            if info.is_typedef {
+            if info.ref_kind == RefKind::Type {
                 // Take the type from the type spec
                 *eval_type = info.type_spec;
             } else if let Some(Type::Function {

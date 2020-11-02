@@ -7,7 +7,9 @@ mod types;
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
-use toc_ast::ast::{BinaryOp, Expr, ExprKind, IdentId, Identifier, Stmt, StmtKind, UnaryOp};
+use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
+use toc_ast::ast::ident::{IdentId, Identifier, RefKind};
+use toc_ast::ast::stmt::{Stmt, StmtKind};
 use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef, TypeTable};
@@ -323,21 +325,14 @@ impl<'s> Parser<'s> {
         &mut self,
         ident: &Token,
         type_spec: TypeRef,
-        is_const: bool,
-        is_typedef: bool,
+        ref_kind: RefKind,
         is_pervasive: bool,
     ) -> IdentId {
         let decl_location = ident.location;
         let name = decl_location.get_lexeme(self.source).to_string();
 
-        self.unit_scope.declare_ident(
-            name,
-            decl_location,
-            type_spec,
-            is_const,
-            is_typedef,
-            is_pervasive,
-        )
+        self.unit_scope
+            .declare_ident(name, decl_location, type_spec, ref_kind, is_pervasive)
     }
 
     /// Uses an identifer.
@@ -448,7 +443,7 @@ mod test {
     use crate::context::CompileContext;
     use crate::scanner::Scanner;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::ast::{ExprKind, Stmt, StmtKind};
+    use toc_ast::ast::{expr::ExprKind, stmt::Stmt, stmt::StmtKind};
     use toc_ast::types::{self, *};
 
     fn make_test_parser(source: &str) -> Parser {
@@ -1039,24 +1034,24 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("var a : set of 1 .. 3");
         assert!(!parser.parse());
         assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
-        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, false);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Var);
 
         // Set type declarations expect 'of'
         let mut parser = make_test_parser("type a : set 1 .. 3");
         assert!(!parser.parse());
         assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
-        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
 
         let mut parser = make_test_parser("type a : set");
         assert!(!parser.parse());
         assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
-        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
 
         // Set type declarations expect a range
         let mut parser = make_test_parser("type a : set of ");
         assert!(!parser.parse());
         assert_eq!(get_ident(&parser, "a").unwrap().is_declared, true);
-        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
     }
 
     #[test]
@@ -1352,12 +1347,12 @@ type enumeration : enum (a, b, c, d, e, f)
             type_ref,
             parser.type_table.type_from_ref(&type_ref)
         );
-        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
 
         let mut parser = make_test_parser("var a : string\ntype a int");
         assert!(!parser.parse());
         assert!(get_ident(&parser, "a").is_some());
-        assert!(get_ident(&parser, "a").unwrap().is_typedef);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
         assert_eq!(
             true,
             matches!(
@@ -1369,7 +1364,7 @@ type enumeration : enum (a, b, c, d, e, f)
                 })
             )
         );
-        assert_eq!(get_ident(&parser, "a").unwrap().is_typedef, true);
+        assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
 
         // Check that the forward reference is updated
         let mut parser = make_test_parser("type a : forward");

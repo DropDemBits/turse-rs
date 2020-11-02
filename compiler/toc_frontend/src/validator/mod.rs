@@ -14,7 +14,10 @@ mod stmt;
 mod types;
 
 use crate::context::CompileContext;
-use toc_ast::ast::{Expr, ExprKind, IdentId, Literal, Stmt, StmtKind, VisitorMut};
+use toc_ast::ast::expr::{Expr, ExprKind, Literal};
+use toc_ast::ast::ident::{IdentId, RefKind};
+use toc_ast::ast::stmt::{Stmt, StmtKind};
+use toc_ast::ast::VisitorMut;
 use toc_ast::scope::{ScopeBlock, UnitScope};
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
 use toc_ast::types::{Type, TypeRef, TypeTable};
@@ -173,35 +176,22 @@ impl Validator {
     /// Returns (in order):
     /// - `ref_name`
     /// - `ref_type_spec`
-    /// - `is_typedef`
-    /// - `is_const`
+    /// - `ref_kind`
     /// - `use_location`
     fn get_reference_ident<'a, 'b: 'a>(
         &'a self,
         ref_expr: &'b Expr,
-    ) -> Option<(&'a String, &'a TypeRef, &'a bool, &'a bool, &'a Location)> {
+    ) -> Option<(&'a String, &'a TypeRef, &'a RefKind, &'a Location)> {
         match &ref_expr.kind {
             ExprKind::Parens { inner } => self.get_reference_ident(inner),
             ExprKind::Reference { ident, .. } => {
                 let info = self.unit_scope.get_ident_info(&ident.id);
-                Some((
-                    &info.name,
-                    &info.type_spec,
-                    &info.is_typedef,
-                    &info.is_const,
-                    &ident.location,
-                ))
+                Some((&info.name, &info.type_spec, &info.ref_kind, &ident.location))
             }
             ExprKind::Dot {
                 field: (field, location),
                 ..
-            } => Some((
-                &field.name,
-                &field.type_spec,
-                &field.is_typedef,
-                &field.is_const,
-                &location,
-            )),
+            } => Some((&field.name, &field.type_spec, &field.ref_kind, &location)),
             _ => None,
         }
     }
@@ -213,7 +203,7 @@ impl Validator {
             ExprKind::Reference { ident, .. } => {
                 // It's a type reference based on the identifier
                 let info = self.unit_scope.get_ident_info(&ident.id);
-                info.is_typedef
+                info.ref_kind == RefKind::Type
             }
             ExprKind::Dot {
                 left,
@@ -234,8 +224,9 @@ impl Validator {
                     // at the field definition
 
                     // TODO(compound_types): Fill this out once compound types with typedefs are added
-                    assert!(
-                        !field_def.is_typedef,
+                    assert_ne!(
+                        field_def.ref_kind,
+                        RefKind::Type,
                         "Don't have compound types with type defs yet"
                     );
                     false
@@ -253,7 +244,7 @@ impl Validator {
     // error is produced.
     fn eval_expr(&self, expr: &Expr) -> Result<Option<Value>, ValueApplyError> {
         // Only used here, and may be moved later on
-        use toc_ast::ast::BinaryOp;
+        use toc_ast::ast::expr::BinaryOp;
 
         if !expr.is_compile_eval {
             // Will never produce a value
@@ -490,7 +481,7 @@ impl VisitorMut<(), ()> for Validator {
     // Note: If the eval_type is still TypeRef::Unknown, propagate the type error
     fn visit_expr(&mut self, visit_expr: &mut Expr) {
         match &mut visit_expr.kind {
-            ExprKind::Error => {},
+            ExprKind::Error => {}
             ExprKind::Parens { inner } => self.resolve_expr_parens(
                 inner,
                 &mut visit_expr.eval_type,
@@ -582,7 +573,7 @@ mod test {
     use crate::scanner::Scanner;
     use rand::prelude::*;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::ast::Identifier;
+    use toc_ast::ast::ident::Identifier;
     use toc_ast::block::CodeUnit;
     use toc_ast::types::{PrimitiveType, SequenceSize};
 

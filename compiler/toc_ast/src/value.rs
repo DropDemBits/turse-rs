@@ -1,5 +1,5 @@
 //! Intermediate values for compile-time evaluation
-use crate::ast::{BinaryOp, Expr, ExprKind, Literal, UnaryOp};
+use crate::ast::expr::{BinaryOp, Expr, ExprKind, Literal, UnaryOp};
 use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_core::Location;
 

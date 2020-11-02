@@ -1,6 +1,8 @@
 //! Validator fragment, resolves all type specifications
 use super::{ResolveContext, ResolveResult, Validator};
-use toc_ast::ast::{Expr, ExprKind, Literal, VisitorMut};
+use toc_ast::ast::expr::{Expr, ExprKind, Literal};
+use toc_ast::ast::ident::RefKind;
+use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_ast::value;
 
@@ -478,12 +480,12 @@ impl Validator {
                 field: (field, location),
                 ..
             } => {
-                if !field.is_typedef {
+                if field.ref_kind != RefKind::Type {
                     // Should always either be a dot, or a reference
                     // Otherwise, the expr is an error
                     let member_ident = self.get_reference_ident(left);
 
-                    if let Some((base_name, _, _, _, _)) = member_ident {
+                    if let Some((base_name, ..)) = member_ident {
                         self.context.borrow_mut().reporter.report_error(
                             &location,
                             format_args!(
@@ -507,7 +509,7 @@ impl Validator {
             }
             ExprKind::Reference { ident, .. } => {
                 let info = self.unit_scope.get_ident_info(&ident.id);
-                if !info.is_typedef {
+                if info.ref_kind != RefKind::Type {
                     self.context.borrow_mut().reporter.report_error(
                         &ident.location,
                         format_args!("'{}' does not refer to a type", info.name),

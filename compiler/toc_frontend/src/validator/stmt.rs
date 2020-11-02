@@ -2,7 +2,10 @@
 use super::expr;
 use super::{ResolveContext, Validator};
 
-use toc_ast::ast::{self, BinaryOp, Expr, ExprKind, IdentRef, Stmt, UnaryOp, VisitorMut};
+use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
+use toc_ast::ast::ident::{IdentRef, RefKind};
+use toc_ast::ast::stmt::{self, Stmt};
+use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
 
@@ -175,7 +178,7 @@ impl Validator {
             info.type_spec = *type_spec;
 
             // Only compile-time evaluable if the identifier referencences a constant
-            info.is_compile_eval = is_compile_eval && info.is_const;
+            info.is_compile_eval = is_compile_eval && info.ref_kind == RefKind::Const;
             // Post compile time value
             if let Some(const_val) = &const_val {
                 self.compile_values.insert(ident.id, const_val.clone());
@@ -437,7 +440,7 @@ impl Validator {
         }
     }
 
-    pub(super) fn resolve_stmt_block(&mut self, block: &mut ast::Block) {
+    pub(super) fn resolve_stmt_block(&mut self, block: &mut stmt::Block) {
         // Report unused identifiers
         self.report_unused_identifiers(&block.block);
         // Report redeclared identifiers
@@ -486,14 +489,15 @@ impl Validator {
             ExprKind::Reference { ident, .. } => {
                 let info = self.unit_scope.get_ident_info(&ident.id);
                 // Can only assign to a variable reference
-                !info.is_const && !info.is_typedef
+                info.ref_kind == RefKind::Var
             }
             ExprKind::Dot {
                 field: (field, _), ..
             } => {
                 // For now, we don't have compound types (with or without type reference), so assume they are not var ref exprs
-                assert_eq!(
-                    field.is_typedef, false,
+                assert_ne!(
+                    field.ref_kind,
+                    RefKind::Type,
                     "No compound types with type refs exist yet"
                 );
                 false
@@ -505,10 +509,9 @@ impl Validator {
                         let dealiased_ref = types::dealias_ref(&info.type_spec, type_table);
                         let type_info = type_table.type_from_ref(&dealiased_ref);
 
-                        // Can only assign if the ref is to an array variable
+                        // Can only assign if the ref is to a var array variable
                         // Can't assign to a const ref or a type def
-                        !info.is_const
-                            && !info.is_typedef
+                        info.ref_kind == RefKind::Var
                             && matches!(type_info, Some(Type::Array { .. }))
                     }
                     ExprKind::Dot { field: _ident, .. } => {
