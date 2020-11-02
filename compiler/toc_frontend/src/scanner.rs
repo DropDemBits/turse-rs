@@ -640,7 +640,7 @@ impl<'s> Scanner<'s> {
                     .borrow_mut()
                     .reporter
                     .report_error(&self.cursor, format_args!("Real literal is too large"));
-                0f64
+                0_f64
             }
             Some(num) if num.is_nan() => {
                 // Capture NaNs (What impl does)
@@ -648,7 +648,7 @@ impl<'s> Scanner<'s> {
                     .borrow_mut()
                     .reporter
                     .report_error(&self.cursor, format_args!("Invalid real literal (is NaN)"));
-                0f64
+                0_f64
             }
             Some(_num) if requires_exponent_digits.eq(&Some(false)) => {
                 // Missing exponent digits
@@ -656,14 +656,14 @@ impl<'s> Scanner<'s> {
                     .borrow_mut()
                     .reporter
                     .report_error(&self.cursor, format_args!("Invalid real literal"));
-                0f64
+                0_f64
             }
             None => {
                 self.context
                     .borrow_mut()
                     .reporter
                     .report_error(&self.cursor, format_args!("Invalid real literal"));
-                0f64
+                0_f64
             }
             Some(num) => num,
         };
@@ -871,7 +871,7 @@ impl<'s> Scanner<'s> {
                     .expect("Unicode escape parsing is infalliable");
 
                 // Check if the parsed char is in range and not a surrogate character
-                if to_chr > 0x10FFFF {
+                if to_chr > 0x10_FFFF {
                     self.context.borrow_mut().reporter.report_error(
                         &hex_cursor,
                         format_args!("Unicode codepoint value is greater than U+10FFFF"),

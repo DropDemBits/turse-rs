@@ -226,10 +226,10 @@ impl<'s> Parser<'s> {
     fn get_token_lexeme(&self, token: &Token) -> &str {
         let token_content = token.location.get_lexeme(self.source);
 
-        if !token_content.is_empty() {
-            token_content
-        } else {
+        if token_content.is_empty() {
             "<end of file>"
+        } else {
+            token_content
         }
     }
 
@@ -293,12 +293,12 @@ impl<'s> Parser<'s> {
                 | TokenType::Quit
                 | TokenType::Semicolon
                 | TokenType::Eof => {
-                    if !(exclude)(&self.current().token_type) {
-                        // Not in the exclusion list, continue
-                        break;
-                    } else {
-                        // Nom away
+                    if exclude(&self.current().token_type) {
+                        // In the exclusion list, skip over
                         self.next_token();
+                    } else {
+                        // Not in the exclusion list, continue parsing
+                        break;
                     }
                 }
                 _ => {

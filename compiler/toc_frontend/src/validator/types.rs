@@ -36,7 +36,7 @@ impl Validator {
                             match value {
                                 Literal::Nat(len) => Some(*len), // Direct correspondence
                                 Literal::Int(len) => {
-                                    if *len < 0 {
+                                    if len.is_negative() {
                                         // Negative length is invalid
                                         self.context.borrow_mut().reporter.report_error(
                                             expr.get_span(),
@@ -648,12 +648,10 @@ pub(super) fn get_range_size(
 
     // Converts value into i128's
     fn to_i128(value: value::Value) -> Result<i128, RangeSizeError> {
-        if let value::Value::IntValue(v) = value {
-            Ok(v as i128)
-        } else if let value::Value::NatValue(v) = value {
-            Ok(v as i128)
-        } else {
-            Err(RangeSizeError::WrongTypes)
+        match value {
+            value::Value::IntValue(v) => Ok(i128::from(v)),
+            value::Value::NatValue(v) => Ok(i128::from(v)),
+            _ => Err(RangeSizeError::WrongTypes),
         }
     }
 

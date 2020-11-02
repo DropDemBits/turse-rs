@@ -114,10 +114,8 @@ impl Validator {
                 // (larger sizes are automatically converted into the appropriate type)
                 *type_spec = TypeRef::Primitive(PrimitiveType::Int);
             }
-        } else if value.is_some() {
+        } else if let Some(expr) = value {
             // Type of the identifier is known, validate that the types are assignable
-            let expr = value.as_ref().unwrap();
-
             let left_type = &self.dealias_resolve_type(*type_spec);
             let right_type = &self.dealias_resolve_type(expr.get_eval_type());
 
@@ -135,15 +133,15 @@ impl Validator {
                 );
 
                 // Validate that the types are assignable
-                if !types::is_assignable_to(&left_type, &right_type, &self.type_table) {
+                if types::is_assignable_to(&left_type, &right_type, &self.type_table) {
+                    // Update compile-time evaluability status
+                    is_compile_eval = expr.is_compile_eval();
+                } else {
                     // Value to assign is the wrong type, just report the error
                     self.context.borrow_mut().reporter.report_error(
                         &expr.get_span(),
                         format_args!("Initialization value is the wrong type"),
                     );
-                } else {
-                    // Update compile-time evaluability status
-                    is_compile_eval = value.as_ref().unwrap().is_compile_eval();
                 }
             }
         }
@@ -359,9 +357,11 @@ impl Validator {
                 let ty_spec = info.type_spec;
                 let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
 
-                // Mutate identifier
-                let info = self.unit_scope.get_ident_info_mut(&ident.id);
-                info.type_spec = ty_spec;
+                {
+                    // Upgrade info to &mut
+                    let info = self.unit_scope.get_ident_info_mut(&ident.id);
+                    info.type_spec = ty_spec;
+                }
             } else {
                 // This is a redeclared forward, and is safe to ignore
             }

@@ -419,6 +419,7 @@ impl Validator {
             }
             ExprKind::Call { .. } => {
                 // Only builtins & known predefs would produce a value
+                // TODO: Add compile-time evals for known built-ins
                 Ok(None)
             }
             _ => {
@@ -432,8 +433,7 @@ impl Validator {
 impl VisitorMut<(), ()> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
-            StmtKind::Nop => {}
-            StmtKind::Error => {}
+            StmtKind::Nop | StmtKind::Error => {}
             StmtKind::VarDecl {
                 idents,
                 type_spec,
@@ -457,7 +457,7 @@ impl VisitorMut<(), ()> for Validator {
                 } = &mut proc_ref.kind
                 {
                     // Defer to expression resolution
-                    let _ = self.resolve_expr_call(
+                    self.resolve_expr_call(
                         left,
                         paren_at,
                         arg_list,

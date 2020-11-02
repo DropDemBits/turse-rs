@@ -36,6 +36,7 @@ impl fmt::Display for ValueApplyError {
 }
 
 /// Constraints for evaluation operations
+#[derive(Debug, Copy, Clone)]
 pub struct EvalConstraints {
     /// Whether to perform operations at the 64-bit width for integer types
     pub as_64_bit: bool,
@@ -96,9 +97,8 @@ impl Value {
             Literal::Int(v) => Ok(Value::IntValue(v)),
             Literal::Nat(v) => Ok(Value::NatValue(v)),
             Literal::Real(v) => Ok(Value::RealValue(v)),
-            Literal::StrSequence(v) => Ok(Value::StringValue(v)),
-            Literal::CharSequence(v) => Ok(Value::StringValue(v)),
-            _ => Err("Cannot convert complex literal into a value"),
+            Literal::CharSequence(v) | Literal::StrSequence(v) => Ok(Value::StringValue(v)),
+            Literal::Nil => Err("Cannot convert 'nil' into a compile-time value"),
         }
     }
 }
@@ -512,11 +512,12 @@ pub fn apply_binary(
             rhs,
             |l, r| {
                 if l < r {
+                    let l = i64::try_from(l).map_err(|_| ValueApplyError::Overflow)?;
+                    let r = i64::try_from(r).map_err(|_| ValueApplyError::Overflow)?;
+
                     // Convert into an integer value
                     Ok(Value::from(
-                        (l as i64)
-                            .checked_sub(r as i64)
-                            .ok_or(ValueApplyError::Overflow)?,
+                        l.checked_sub(r).ok_or(ValueApplyError::Overflow)?,
                     ))
                 } else {
                     Ok(Value::from(
@@ -569,18 +570,26 @@ pub fn apply_binary(
                     lhs,
                     rhs,
                     |l, r| {
-                        Ok(Value::from(
-                            l.checked_div(r)
-                                .ok_or(ValueApplyError::DivisionByZero)
-                                .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
-                        ))
+                        let v = l.checked_div(r).ok_or_else(|| {
+                            if r == 0 {
+                                ValueApplyError::DivisionByZero
+                            } else {
+                                ValueApplyError::Overflow
+                            }
+                        })?;
+
+                        Ok(Value::from(v))
                     },
                     |l, r| {
-                        Ok(Value::from(
-                            l.checked_div(r)
-                                .ok_or(ValueApplyError::DivisionByZero)
-                                .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
-                        ))
+                        let v = l.checked_div(r).ok_or_else(|| {
+                            if r == 0 {
+                                ValueApplyError::DivisionByZero
+                            } else {
+                                ValueApplyError::Overflow
+                            }
+                        })?;
+
+                        Ok(Value::from(v))
                     },
                 )
             } else if is_number_value(&lhs) && is_number_value(&rhs) {
@@ -588,6 +597,7 @@ pub fn apply_binary(
                 let rvalue = value_into_f64(rhs)?;
                 let res = lvalue / rvalue;
 
+                // Trunc into int is expected
                 if rvalue.abs() <= f64::EPSILON {
                     Err(ValueApplyError::DivisionByZero)
                 } else if res.is_infinite() || res > i64::MAX as f64 {
@@ -618,18 +628,26 @@ pub fn apply_binary(
             lhs,
             rhs,
             |l, r| {
-                Ok(Value::from(
-                    l.checked_rem(r)
-                        .ok_or(ValueApplyError::DivisionByZero)
-                        .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
-                ))
+                let v = l.checked_rem(r).ok_or_else(|| {
+                    if r == 0 {
+                        ValueApplyError::DivisionByZero
+                    } else {
+                        ValueApplyError::Overflow
+                    }
+                })?;
+
+                Ok(Value::from(v))
             },
             |l, r| {
-                Ok(Value::from(
-                    l.checked_rem(r)
-                        .ok_or(ValueApplyError::DivisionByZero)
-                        .map_err(|e| if r != 0 { ValueApplyError::Overflow } else { e })?,
-                ))
+                let v = l.checked_rem(r).ok_or_else(|| {
+                    if r == 0 {
+                        ValueApplyError::DivisionByZero
+                    } else {
+                        ValueApplyError::Overflow
+                    }
+                })?;
+
+                Ok(Value::from(v))
             },
             |l, r| {
                 let res = l % r;
@@ -645,22 +663,20 @@ pub fn apply_binary(
             lhs,
             rhs,
             |l, r| {
-                if r >= (u32::MAX as u64) {
-                    Err(ValueApplyError::Overflow)
-                } else {
-                    Ok(Value::from(
-                        l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)?,
-                    ))
-                }
+                let exp = u32::try_from(r).map_err(|_| ValueApplyError::Overflow)?;
+
+                Ok(Value::from(
+                    l.checked_pow(exp).ok_or(ValueApplyError::Overflow)?,
+                ))
             },
             |l, r| {
-                if r < 0 {
+                if r.is_negative() {
                     Err(ValueApplyError::InvalidOperand)
-                } else if r >= (u32::MAX as i64) {
-                    Err(ValueApplyError::Overflow)
                 } else {
+                    let exp = u32::try_from(r).map_err(|_| ValueApplyError::Overflow)?;
+
                     Ok(Value::from(
-                        l.checked_pow(r as u32).ok_or(ValueApplyError::Overflow)?,
+                        l.checked_pow(exp).ok_or(ValueApplyError::Overflow)?,
                     ))
                 }
             },
@@ -726,12 +742,14 @@ pub fn apply_binary(
                 if rvalue < 0 {
                     Err(ValueApplyError::InvalidOperand)
                 } else {
+                    let rvalue = rvalue as u32;
+
                     let result = if constraints.as_64_bit {
                         // Mask into the 0 - 63 range for 64-bit integers
-                        lvalue.overflowing_shl((rvalue as u32) & 0x3F).0 as u64
+                        lvalue.overflowing_shl(rvalue & 0x3F).0 as u64
                     } else {
                         // Mask into the 0 - 31 range for 64-bit integers, and truncate to 32 bits
-                        (lvalue.overflowing_shl((rvalue as u32) & 0x1F).0 as u64) & 0xFFFFFFFF
+                        (lvalue.overflowing_shl(rvalue & 0x1F).0 as u64) & 0xFFFF_FFFF
                     };
 
                     Ok(Value::from(result))
@@ -749,12 +767,15 @@ pub fn apply_binary(
                 if rvalue < 0 {
                     Err(ValueApplyError::InvalidOperand)
                 } else {
+                    let rvalue = rvalue as u32;
+
                     let result = if constraints.as_64_bit {
                         // Mask into the 0 - 63 range for 64-bit integers
-                        lvalue.overflowing_shr((rvalue as u32) & 0x3F).0 as u64
+                        lvalue.overflowing_shr(rvalue & 0x3F).0
                     } else {
                         // Truncate lvalue to 32 bits and mask shift into the 0 - 31 range for 64-bit integers
-                        (lvalue as u32).overflowing_shr((rvalue as u32) & 0x1F).0 as u64
+                        let lvalue = lvalue as u32;
+                        u64::from(lvalue.overflowing_shr(rvalue & 0x1F).0)
                     };
 
                     Ok(Value::from(result))
@@ -846,7 +867,7 @@ pub fn apply_unary(
                     .bytes()
                     .chain(std::iter::once(0).cycle())
                     .take(8)
-                    .fold(0u64, |acc, v| ((acc << 8) | v as u64));
+                    .fold(0_u64, |acc, v| acc.overflowing_shl(8).0 | u64::from(v));
 
                 // Produce the converted type (after swapping bytes)
                 Ok(Value::from(value.swap_bytes()))
@@ -863,21 +884,18 @@ pub fn apply_unary(
         }
         UnaryOp::Negate => match rhs {
             Value::NatValue(v) => {
-                if v <= (i64::MAX as u64) {
-                    Ok(Value::from(-(v as i64)))
-                } else {
-                    Err(ValueApplyError::Overflow)
-                }
+                let v = i64::try_from(v).map_err(|_| ValueApplyError::Overflow)?;
+                let v = v.checked_neg().ok_or(ValueApplyError::Overflow)?;
+
+                Ok(Value::from(v))
             }
             Value::IntValue(v) => {
-                if v != i64::MIN {
-                    Ok(Value::from(-v))
-                } else {
-                    Err(ValueApplyError::Overflow)
-                }
+                let v = v.checked_neg().ok_or(ValueApplyError::Overflow)?;
+
+                Ok(Value::from(v))
             }
             Value::RealValue(v) => {
-                if !v.is_infinite() {
+                if v.is_finite() {
                     Ok(Value::from(-v))
                 } else {
                     Err(ValueApplyError::Overflow)
@@ -885,7 +903,7 @@ pub fn apply_unary(
             }
             _ => Err(ValueApplyError::WrongTypes),
         },
-        _ => unreachable!(),
+        UnaryOp::Deref => Err(ValueApplyError::InvalidOperand), // Never compile time evaluable
     }
 }
 
@@ -1029,6 +1047,7 @@ mod test {
 
             // Subtraction
              2u64 Sub 1u64 == 1u64;
+             1u64 Sub 2u64 == -1i64;
             21i64 Sub 1u64 == 20i64;
              2u64 Sub 0.5f64 == 1.5f64;
 

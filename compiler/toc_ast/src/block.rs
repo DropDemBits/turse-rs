@@ -52,14 +52,14 @@ impl CodeUnit {
         }
     }
 
-    /// Visits the AST using the given VisitorMut, providing mutable access
+    /// Visits the AST using the given `VisitorMut`, providing mutable access
     pub fn visit_ast_mut<T, St, Ex>(&mut self, visitor: &mut T)
     where
         T: VisitorMut<St, Ex>,
     {
         visitor.start_visit();
 
-        for stmt in self.stmts.iter_mut() {
+        for stmt in &mut self.stmts {
             visitor.visit_stmt(stmt);
         }
 
@@ -73,7 +73,7 @@ impl CodeUnit {
     {
         visitor.start_visit();
 
-        for stmt in self.stmts.iter() {
+        for stmt in &self.stmts {
             visitor.visit_stmt(stmt);
         }
 

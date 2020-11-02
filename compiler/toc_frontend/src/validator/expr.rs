@@ -191,24 +191,24 @@ impl Validator {
                     BinaryOp::Shl | BinaryOp::Shr =>
                         context.reporter.report_error(&location, format_args!("Operands of '{}' must both be integers (int, or nat)", op)),
                     BinaryOp::Less | BinaryOp::LessEq | BinaryOp::Greater | BinaryOp::GreaterEq => {
-                        if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-                            context.reporter.report_error(&location, format_args!("Operands of '{}' must be the same type", op))
-                        } else {
+                        if types::is_equivalent_to(left_type, right_type, &self.type_table) {
                             context.reporter.report_error(&location, format_args!("Operands of '{}' must both be scalars (int, real, or nat), sets, enumerations, strings, or object classes", op))
+                        } else {
+                            context.reporter.report_error(&location, format_args!("Operands of '{}' must be the same type", op))
                         }
                     },
                     BinaryOp::NotEqual | BinaryOp::Equal => {
-                        if !types::is_equivalent_to(left_type, right_type, &self.type_table) {
-                            context.reporter.report_error(&location, format_args!("Operands of '{}' must be the same type", op));
-                        } else {
+                        if types::is_equivalent_to(left_type, right_type, &self.type_table) {
                             context.reporter.report_error(&location, format_args!("Operands of '{}' must both be booleans, scalars (int, real, or nat), sets, enumerations, strings, object classes, or pointers of equivalent types", op));
+                        } else {
+                            context.reporter.report_error(&location, format_args!("Operands of '{}' must be the same type", op));
                         }
                     },
                     BinaryOp::In | BinaryOp::NotIn => {
-                        if !types::is_set(right_type, &self.type_table) {
-                            context.reporter.report_error(&location, format_args!("Right operand of '{}' must be a set type", op));
-                        } else {
+                        if types::is_set(right_type, &self.type_table) {
                             context.reporter.report_error(&location, format_args!("Left operand of '{}' must be compatible with the set's index type", op));
+                        } else {
+                            context.reporter.report_error(&location, format_args!("Right operand of '{}' must be a set type", op));
                         }
                     },
                     BinaryOp::Imply =>
@@ -378,7 +378,7 @@ impl Validator {
                         // Too many args
                         let last_arg = args
                             .last()
-                            .map(|expr| expr.get_span())
+                            .map(Expr::get_span)
                             .expect("No args in a many args expr");
 
                         self.context.borrow_mut().reporter.report_error(
@@ -574,7 +574,7 @@ impl Validator {
         }
 
         // Check arg count
-        let param_type_count = params.map_or(0, |params| params.len());
+        let param_type_count = params.map_or(0, Vec::len);
         let arg_count = args.len();
 
         match arg_count.cmp(&param_type_count) {

@@ -422,15 +422,16 @@ impl<'s> Parser<'s> {
             let assign_op = if is_compound_assign {
                 // Nom the other equ in the compound assignment
                 self.next_token();
-                Some(super::try_into_binary(assign_tok.token_type).expect("Not a binary operator"))
-            } else if assign_tok.token_type != TokenType::Assign {
-                // Current assignment op is '=', not ':='
-                // Warn of mistake, convert into ':='
-                let locate = self.previous().location;
-                self.warn_found_as_something_else("=", ":=", &locate);
 
-                None
+                Some(super::try_into_binary(assign_tok.token_type).expect("Not a binary operator"))
             } else {
+                if assign_tok.token_type == TokenType::Equ {
+                    // Current assignment op is '=', not ':='
+                    // Warn of mistake, convert into ':='
+                    let locate = self.previous().location;
+                    self.warn_found_as_something_else("=", ":=", &locate);
+                }
+
                 None
             };
 

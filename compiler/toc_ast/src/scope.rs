@@ -61,12 +61,11 @@ impl ScopeBlock {
     pub fn is_ident_shadowed(&self, name: &str) -> bool {
         self.id_mappings
             .get(name)
-            .map(|(_, is_shadowed)| *is_shadowed)
-            .unwrap_or(false)
+            .map_or(false, |(_, is_shadowed)| *is_shadowed)
     }
 
     /// Gets an iterator over all of the identifiers shadowed in this scope block.
-    /// The ordering is (old_id, new_id)
+    /// The ordering is (`old_id`, `new_id`)
     pub fn shadowed_idents(&self) -> impl std::iter::Iterator<Item = &(IdentId, IdentId)> {
         self.shadowed_by.iter()
     }
@@ -89,8 +88,8 @@ impl ScopeBlock {
     /// Removes an identifier from the undeclared set of identifiers.
     /// Used when an undeclared identifier is really an import, and is therefore
     /// declared elsewhere.
-    pub fn remove_undeclared_id(&mut self, id: &IdentId) {
-        self.undeclared_ids.remove(id);
+    pub fn remove_undeclared_id(&mut self, id: IdentId) {
+        self.undeclared_ids.remove(&id);
     }
 
     /// Declares an identifier in the scope, indicating whether it shadows
@@ -104,14 +103,14 @@ impl ScopeBlock {
         self.used_ids.insert(used_id);
     }
 
-    /// Adds a shadowed by entry to the ScopeBlock
+    /// Adds a shadowed by entry to the `ScopeBlock`
     fn add_shadowed_ident(&mut self, shadowed: IdentId, shadowed_by: IdentId) {
         self.shadowed_by.push((shadowed, shadowed_by));
     }
 }
 
 /// The root scope for a unit.
-/// Handles lower scope groups and stuff, but only gives out IdentId's.
+/// Handles lower scope groups and stuff, but only gives out `IdentId`'s.
 ///
 /// A block is a collection of identifiers.
 #[derive(Debug)]
@@ -203,18 +202,16 @@ impl UnitScope {
     ///
     /// Should an identifier not be declared at this point, a new identifier is declared within the current block.
     ///
-    /// `use_ident` relies on `get_ident_id` for IdentId lookup. See `get_ident_id` for more info on lookup rules.
+    /// `use_ident` relies on `get_ident_id` for `IdentId` lookup. See `get_ident_id` for more info on lookup rules.
     ///
     /// # Parameters
     /// - `name`: The name of the identifier to use
     /// - `use_location`: The location where the identifier is used
     ///
     /// # Returns
-    /// Returns the IdentId referencing this identifier.
+    /// Returns the `IdentId` referencing this identifier.
     pub fn use_ident(&mut self, name: &str, use_location: Location) -> IdentId {
-        let use_id = if let Some(use_id) = self.get_ident_id(name) {
-            use_id
-        } else {
+        let use_id = self.get_ident_id(name).unwrap_or_else(|| {
             // Declare a new undeclared identifier
             let name = name.to_string();
 
@@ -229,7 +226,7 @@ impl UnitScope {
                 false,
                 false,
             )
-        };
+        });
 
         // Increment the usage count
         self.ident_ids
@@ -242,8 +239,8 @@ impl UnitScope {
         use_id
     }
 
-    /// Gets the IdentId for a given identifier name.
-    /// Always gives the most recent IdentId for a given name.
+    /// Gets the `IdentId` for a given identifier name.
+    /// Always gives the most recent `IdentId` for a given name.
     ///
     /// Currently, not all import rules are followed.
     /// (todo: explain import boundaries & pervasive identifiers here or in design doc)
@@ -267,13 +264,13 @@ impl UnitScope {
         None
     }
 
-    /// Gets the associated `Identifier` info for a given IdentId
+    /// Gets the associated `Identifier` info for a given `IdentId`
     ///
     /// # Panics
-    /// Will panic with "No Identifier for given IdentId" if the given IdentId has no associated `Identifier`.
+    /// Will panic with "No Identifier for given IdentId" if the given `IdentId` has no associated `Identifier`.
     ///
     /// # Parameters
-    /// - `id`: The IdentId to use for looking up the identifier info
+    /// - `id`: The `IdentId` to use for looking up the identifier info
     ///
     /// # Returns
     /// Returns the associated identifier info
@@ -283,13 +280,13 @@ impl UnitScope {
             .expect("No Identifier for given IdentId")
     }
 
-    /// Gets a mutable reference to the associated `Identifier` info for a given IdentId
+    /// Gets a mutable reference to the associated `Identifier` info for a given `IdentId`
     ///
     /// # Panics
-    /// Will panic with "No Identifier for given IdentId" if the given IdentId has no associated `Identifier`.
+    /// Will panic with "No Identifier for given IdentId" if the given `IdentId` has no associated `Identifier`.
     ///
     /// # Parameters
-    /// - `id`: The IdentId to use for looking up the identifier info
+    /// - `id`: The `IdentId` to use for looking up the identifier info
     ///
     /// # Returns
     /// Returns the mutable reference to the associated identifier info
@@ -299,7 +296,7 @@ impl UnitScope {
             .expect("No Identifier for given IdentId")
     }
 
-    /// Fetches the highest level ScopeBlock
+    /// Fetches the highest level `ScopeBlock`
     pub fn current_block(&self) -> &ScopeBlock {
         self.blocks.last().expect("No blocks to fetch")
     }

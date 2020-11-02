@@ -142,7 +142,7 @@ impl StatusReporter {
         }
     }
 
-    fn report_at(&self, reporting: ReportMessage) {
+    fn report_at(reporting: &ReportMessage) {
         let end_column = reporting.at.column + reporting.at.width;
         eprintln!(
             "{} line:{} column:{}-{} {}",
@@ -151,7 +151,7 @@ impl StatusReporter {
     }
 
     pub fn report_error(&self, at: &Location, message: Arguments) {
-        self.report_at(ReportMessage {
+        StatusReporter::report_at(&ReportMessage {
             kind: ReportKind::Error,
             at: *at,
             message,
@@ -161,7 +161,7 @@ impl StatusReporter {
     }
 
     pub fn report_warning(&self, at: &Location, message: Arguments) {
-        self.report_at(ReportMessage {
+        StatusReporter::report_at(&ReportMessage {
             kind: ReportKind::Warning,
             at: *at,
             message,

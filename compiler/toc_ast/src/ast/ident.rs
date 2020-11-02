@@ -113,13 +113,13 @@ mod pretty_print {
             }
 
             let props = [
-                ("decl", &self.is_declared),
-                ("pervasive", &self.is_pervasive),
-                ("comp_eval", &self.is_compile_eval),
+                ("decl", self.is_declared),
+                ("pervasive", self.is_pervasive),
+                ("comp_eval", self.is_compile_eval),
             ];
 
-            for (name, is_present) in props.iter() {
-                if **is_present {
+            for (name, is_present) in &props {
+                if *is_present {
                     f.write_str(" ")?;
                     f.write_str(name)?;
                 }

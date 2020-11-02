@@ -115,7 +115,7 @@ pub enum PrimitiveType {
 }
 
 /// Parameter definition
-/// Two parameter definitions (ParamDef's) are equivalent if, and only if, all
+/// Two parameter definitions (`ParamDef`'s) are equivalent if, and only if, all
 /// fields except for name are equivalent.
 #[derive(Debug, Clone)]
 pub struct ParamDef {
@@ -293,7 +293,7 @@ pub fn get_char_kind(s: &str) -> PrimitiveType {
 
 /// Gets the appropriate int type for the given integer value
 pub fn get_int_kind(v: i64) -> PrimitiveType {
-    if i32::MIN as i64 >= v && v <= i32::MAX as i64 {
+    if i32::try_from(v).is_ok() {
         PrimitiveType::Int
     } else {
         PrimitiveType::LongInt
@@ -302,11 +302,11 @@ pub fn get_int_kind(v: i64) -> PrimitiveType {
 
 /// Gets the appropriate int/nat type for the given integer value
 pub fn get_intnat_kind(v: u64) -> PrimitiveType {
-    if v <= i32::MAX as u64 {
+    if i32::try_from(v).is_ok() {
         PrimitiveType::IntNat
-    } else if v <= u32::MAX as u64 {
+    } else if u32::try_from(v).is_ok() {
         PrimitiveType::Nat
-    } else if v <= i64::MAX as u64 {
+    } else if i64::try_from(v).is_ok() {
         PrimitiveType::LongInt
     } else {
         PrimitiveType::LongNat
@@ -314,14 +314,12 @@ pub fn get_intnat_kind(v: u64) -> PrimitiveType {
 }
 
 /// Gets the appropriate character sequence base type for the given
-/// primitive TypeRef.
+/// primitive `TypeRef`.
 pub fn get_char_seq_base_type(seq_ref: TypeRef) -> TypeRef {
     if let TypeRef::Primitive(primitive) = seq_ref {
         let base_primivite = match primitive {
-            PrimitiveType::CharN(_) => PrimitiveType::Char,
-            PrimitiveType::StringN(_) => PrimitiveType::String_,
-            PrimitiveType::String_ => PrimitiveType::String_,
-            PrimitiveType::Char => PrimitiveType::Char,
+            PrimitiveType::StringN(_) | PrimitiveType::String_ => PrimitiveType::String_,
+            PrimitiveType::CharN(_) | PrimitiveType::Char => PrimitiveType::Char,
             _ => panic!("Tried to convert a non char sequence type into a char sequence base type"),
         };
 
@@ -541,12 +539,11 @@ pub fn is_boolean(type_ref: &TypeRef) -> bool {
 }
 
 /// Checks if the given `type_ref` references a base type (i.e. the
-/// reference does not point to a Type::Alias, Type::Reference, Type::Forward, or TypeRef::Unknown)
+/// reference does not point to a `Type::Alias`, `Type::Reference`, `Type::Forward`, or `TypeRef::Unknown`)
 pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     match type_ref {
         TypeRef::Unknown => false,
-        TypeRef::TypeError => true,
-        TypeRef::Primitive(_) => true,
+        TypeRef::Primitive(_) | TypeRef::TypeError => true,
         TypeRef::Named(type_id) => !matches!(
             type_table.get_type(*type_id),
             Type::Alias { .. } | Type::Reference { .. } | Type::Forward { .. }
@@ -554,7 +551,7 @@ pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     }
 }
 
-/// Checks if the given `type_ref` references a set type (Type::Set)
+/// Checks if the given `type_ref` references a set type (`Type::Set`)
 /// Requires that `type_ref` is de-aliased (i.e. all aliased references are
 /// forwarded to the base type)
 pub fn is_set(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
@@ -562,14 +559,14 @@ pub fn is_set(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
 }
 
 /// Checks if the given `type_ref` references either an enum type, or a field of an enum type
-/// (Type::Enum, Type::EnumField).
+/// (`Type::Enum`, `Type::EnumField`).
 /// Requires that `type_ref` is de-aliased (i.e. all aliased references are
 /// forwarded to the base type).
 pub fn is_enum_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
     matches!(type_table.type_from_ref(type_ref), Some(Type::Enum { .. }) | Some(Type::EnumField { .. }))
 }
 
-/// Checks if the given `type_ref` references a pointer type (Type::Pointer).
+/// Checks if the given `type_ref` references a pointer type (`Type::Pointer`).
 /// Requires that `type_ref` is de-aliased (i.e. all aliased references are
 /// forwarded to the base type).
 pub fn is_pointer(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
@@ -849,11 +846,10 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                                     )
                                     .ok()
                                 })
-                                .map(|v| {
+                                .map_or(false, |v| {
                                     let is_eq: bool = v.into();
                                     is_eq
                                 })
-                                .unwrap_or(false)
                         };
 
                         // Compare the range sizes
@@ -872,7 +868,7 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
 
 /// Dealiases the given ref, using the given type table.
 /// Does not perform resolving of any types, and requires the previous
-/// resolution of any Type::Reference found along the chain.
+/// resolution of any `Type::Reference` found along the chain.
 pub fn dealias_ref(type_ref: &TypeRef, type_table: &TypeTable) -> TypeRef {
     let mut current_ref = type_ref;
 
@@ -990,13 +986,13 @@ mod pretty_print {
     impl fmt::Display for ParamDef {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let props = [
-                ("cheat", &self.force_type),
-                ("var", &self.pass_by_ref),
-                ("register", &self.bind_to_register),
+                ("cheat", self.force_type),
+                ("var", self.pass_by_ref),
+                ("register", self.bind_to_register),
             ];
 
-            for (name, is_present) in props.iter() {
-                if **is_present {
+            for (name, is_present) in &props {
+                if *is_present {
                     f.write_str(name)?;
                     f.write_str(" ")?;
                 }
