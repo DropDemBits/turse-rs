@@ -47,7 +47,7 @@ pub fn compile_file(path: &str, dump_out: Vec<String>) -> bool {
         println!("types: {}", unit.types());
     }
 
-    return success;
+    success
 }
 
 /// Compiles a single file into a single code unit

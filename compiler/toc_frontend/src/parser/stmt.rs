@@ -52,13 +52,13 @@ impl<'s> Parser<'s> {
         // Update nesting
         let decl = self.with_stmt_nesting_tracking(|self_| {
             let nom = self_.current();
-            let decl = match nom.token_type {
+
+            match nom.token_type {
                 TokenType::Var => self_.decl_var(false),
                 TokenType::Const => self_.decl_var(true),
                 TokenType::Type => self_.decl_type(),
                 _ => self_.stmt(),
-            };
-            decl
+            }
         });
 
         if let StmtKind::Error = &decl.kind {
@@ -603,7 +603,7 @@ impl<'s> Parser<'s> {
             kind: StmtKind::Block { block: true_branch },
             span: top_span,
         });
-        let false_branch = false_branch.map(|stmt| Box::new(stmt));
+        let false_branch = false_branch.map(Box::new);
 
         // Give back top level if statement
         Stmt {

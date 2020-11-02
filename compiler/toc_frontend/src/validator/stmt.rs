@@ -409,19 +409,12 @@ impl Validator {
             let produce_type =
                 expr::check_binary_operands(left_type, *op, right_type, &self.type_table);
 
-            if produce_type.is_err()
-                || !types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
-            {
-                // Types are not compatible, or is incompatible with the result type
-                false
-            } else {
-                true
-            }
-        } else if !types::is_assignable_to(left_type, right_type, &self.type_table) {
-            // Types are not compatible, can't assign to each other
-            false
+            // Assignment is ok if a type is produced & compatible with the return value
+            produce_type.is_ok()
+                && types::is_assignable_to(left_type, &produce_type.unwrap(), &self.type_table)
         } else {
-            true
+            // Assignment is only valid if types are compatible
+            types::is_assignable_to(left_type, right_type, &self.type_table)
         };
 
         if !is_valid_assignment {

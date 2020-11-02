@@ -659,9 +659,9 @@ pub(super) fn get_range_size(
 
     // Apply 'ord' to convert into appropriate ranges
     let start_bound = value::apply_ord(start_bound, type_table)
-        .map_or_else(|_| Err(RangeSizeError::WrongTypes), |value| to_i128(value))?;
+        .map_or_else(|_| Err(RangeSizeError::WrongTypes), to_i128)?;
     let end_bound = value::apply_ord(end_bound, type_table)
-        .map_or_else(|_| Err(RangeSizeError::WrongTypes), |value| to_i128(value))?;
+        .map_or_else(|_| Err(RangeSizeError::WrongTypes), to_i128)?;
 
     // Compute range size (inclusive of end bound)
     let range_size = (end_bound + 1) - start_bound;

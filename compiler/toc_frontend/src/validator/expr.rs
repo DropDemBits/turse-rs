@@ -387,7 +387,7 @@ impl Validator {
                                 "Too many arguments for pointer specialization (expected 1, found {})", args.len()
                             ),
                         )
-                    } else if args.len() == 0 {
+                    } else if args.is_empty() {
                         // Not enough args
                         self.context.borrow_mut().reporter.report_error(
                             paren_at,
