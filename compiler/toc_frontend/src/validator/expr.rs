@@ -177,7 +177,7 @@ impl Validator {
                 *eval_type = bad_eval;
                 *is_compile_eval = false;
 
-                let context = self.context.borrow_mut();
+                let mut context = self.context.borrow_mut();
 
                 match op {
                     BinaryOp::Add =>
@@ -274,7 +274,7 @@ impl Validator {
                 *eval_type = bad_eval;
                 *is_compile_eval = false;
 
-                let context = self.context.borrow_mut();
+                let mut context = self.context.borrow_mut();
 
                 match op {
                     UnaryOp::Not =>

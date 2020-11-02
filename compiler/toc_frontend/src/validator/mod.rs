@@ -279,7 +279,7 @@ impl Validator {
 
                 if let Err(msg) = result {
                     // Report the error message!
-                    let context = self.context.borrow_mut();
+                    let mut context = self.context.borrow_mut();
 
                     match &msg {
                         ValueApplyError::InvalidOperand
@@ -333,7 +333,7 @@ impl Validator {
                     value::apply_unary(*op, rvalue, value::EvalConstraints { as_64_bit: false });
 
                 if let Err(msg) = result {
-                    let context = self.context.borrow_mut();
+                    let mut context = self.context.borrow_mut();
 
                     match &msg {
                         ValueApplyError::Overflow => {

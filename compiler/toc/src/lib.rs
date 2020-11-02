@@ -15,7 +15,7 @@ use toc_frontend::{
 ///
 /// # Returns
 /// Returns whether compilation was successful or not
-pub fn compile_file(path: &str, dump_out: Vec<String>) -> bool {
+pub fn compile_file(path: &str, dump_out: Vec<String>, mute_warnings: bool) -> bool {
     // Load file
     let file_contents = match fs::read_to_string(path) {
         Ok(s) => s,
@@ -27,6 +27,9 @@ pub fn compile_file(path: &str, dump_out: Vec<String>) -> bool {
 
     let (unit, context) = compile_file_source(path, &file_contents);
     let (unit, success) = resolve_unit(unit, &context);
+
+    // Dump all messages
+    context.borrow_mut().reporter.report_messages(mute_warnings);
 
     if dump_out.iter().any(|elem| elem == "ast") {
         // Pretty-print AST

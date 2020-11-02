@@ -32,6 +32,7 @@ fn main() {
         "Dumps the specified structure\n('KIND' can 'ast', 'scope', or 'types')",
         "KIND",
     );
+    opts.optflag("M", "mute_warnings", "Mutes all warnings");
     opts.optflag("", "help", "Shows this help message");
 
     let matches = match opts.parse(&args[1..]) {
@@ -51,8 +52,9 @@ fn main() {
 
     if let Some(source_path) = matches.opt_str("build") {
         let dump_out = matches.opt_strs("dump");
+        let mute_warnings = matches.opt_present("mute_warnings");
 
-        if !toc::compile_file(&source_path, dump_out) {
+        if !toc::compile_file(&source_path, dump_out, mute_warnings) {
             // Exit with a non-zero status
             std::process::exit(-1);
         }

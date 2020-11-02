@@ -2,7 +2,7 @@
 //! Includes
 //! - Common location information
 //! - Common status reporting facility
-use std::cell::Cell;
+use std::cmp::Ordering;
 use std::fmt::{self, Arguments, Display, Formatter};
 
 /// Location of a token in a file/text stream
@@ -108,6 +108,7 @@ impl Default for Location {
 }
 
 // Status reporter
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ReportKind {
     Error,
     Warning,
@@ -122,54 +123,85 @@ impl Display for ReportKind {
     }
 }
 
-struct ReportMessage<'a> {
+#[derive(Debug)]
+struct ReportMessage {
     kind: ReportKind,
     at: Location,
-    message: Arguments<'a>,
+    message: String,
 }
 
 /// Common status reporter
 #[derive(Debug)]
 pub struct StatusReporter {
     /// If the reporter has reported an error
-    has_error: Cell<bool>,
+    has_error: bool,
+    /// Messages to report
+    messages: Vec<ReportMessage>,
 }
 
 impl StatusReporter {
     pub fn new() -> Self {
         Self {
-            has_error: Cell::new(false),
+            has_error: false,
+            messages: vec![],
         }
     }
 
-    fn report_at(reporting: &ReportMessage) {
-        let end_column = reporting.at.column + reporting.at.width;
-        eprintln!(
-            "{} line:{} column:{}-{} {}",
-            reporting.kind, reporting.at.line, reporting.at.column, end_column, reporting.message
-        );
-    }
+    /// Reports all stored messages
+    pub fn report_messages(&mut self, mute_warnings: bool) {
+        self.messages.sort_by(|a, b| {
+            // All errors before warnings
+            let ordering = a.kind.cmp(&b.kind);
 
-    pub fn report_error(&self, at: &Location, message: Arguments) {
-        StatusReporter::report_at(&ReportMessage {
-            kind: ReportKind::Error,
-            at: *at,
-            message,
+            if ordering == Ordering::Equal {
+                a.at.start.cmp(&b.at.start)
+            } else {
+                ordering
+            }
         });
 
-        self.has_error.set(true);
+        for reporting in &self.messages {
+            if mute_warnings && reporting.kind == ReportKind::Warning {
+                continue;
+            }
+
+            let end_column = reporting.at.column + reporting.at.width;
+
+            eprintln!(
+                "{} line:{} column:{}-{} {}",
+                reporting.kind,
+                reporting.at.line,
+                reporting.at.column,
+                end_column,
+                reporting.message
+            );
+        }
     }
 
-    pub fn report_warning(&self, at: &Location, message: Arguments) {
-        StatusReporter::report_at(&ReportMessage {
+    fn report_at(&mut self, reporting: ReportMessage) {
+        self.messages.push(reporting);
+    }
+
+    pub fn report_error<'k>(&'k mut self, at: &Location, message: Arguments<'k>) {
+        self.has_error = true;
+
+        self.report_at(ReportMessage {
+            kind: ReportKind::Error,
+            at: *at,
+            message: message.to_string(),
+        });
+    }
+
+    pub fn report_warning<'k>(&'k mut self, at: &Location, message: Arguments<'k>) {
+        self.report_at(ReportMessage {
             kind: ReportKind::Warning,
             at: *at,
-            message,
+            message: message.to_string(),
         });
     }
 
     pub fn has_error(&self) -> bool {
-        self.has_error.get()
+        self.has_error
     }
 }
 
