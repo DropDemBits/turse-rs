@@ -128,13 +128,10 @@ pub struct UnitScope {
 impl UnitScope {
     /// Creates a new scope group
     pub fn new() -> Self {
-        // BlockKind::Unit and BlockKind::Main share the same properties, so it doesn't matter too much
-        let kind = BlockKind::Main;
-
         Self {
             next_ident_id: 0,
             ident_ids: HashMap::new(),
-            blocks: vec![ScopeBlock::new(kind)],
+            blocks: vec![],
             scope_depth: 0,
         }
     }
@@ -155,8 +152,7 @@ impl UnitScope {
     /// Pops the last identifier scope block, restoring state.
     ///
     /// # Panics
-    /// If the only block present is the root block, a panic from an assertion is produced,
-    /// as it is an error to pop off the root block
+    /// If there are no blocks present, a panic will occur with the message "No scopes to pop off"
     ///
     /// # Returns
     /// Returns the scope block associated with the last scope, as it is no longer needed
@@ -165,10 +161,10 @@ impl UnitScope {
         self.scope_depth = self
             .scope_depth
             .checked_sub(1)
-            .expect("Cannot pop off root block");
+            .expect("No scopes to pop off");
 
         // Pop it!
-        self.blocks.pop().expect("Cannot pop off root block")
+        self.blocks.pop().expect("No scopes to pop off")
     }
 
     /// Declares an identifier in the current block under a given name.
@@ -241,6 +237,8 @@ impl UnitScope {
 
     /// Gets the `IdentId` for a given identifier name.
     /// Always gives the most recent `IdentId` for a given name.
+    /// If the root block has been popped off, use the root block's
+    /// `get_ident_id` associated method instead
     ///
     /// Currently, not all import rules are followed.
     /// (todo: explain import boundaries & pervasive identifiers here or in design doc)
@@ -297,6 +295,13 @@ impl UnitScope {
     }
 
     /// Fetches the highest level `ScopeBlock`
+    ///
+    /// # Panics
+    /// Will panic with "No blocks to fetch" if the root block has been popped
+    /// off (e.g. after parsing)
+    ///
+    /// # Returns
+    /// Returns a reference to the current / highest level `ScopeBlock`
     pub fn current_block(&self) -> &ScopeBlock {
         self.blocks.last().expect("No blocks to fetch")
     }
@@ -399,6 +404,7 @@ mod test {
     fn test_ident_declare_use() {
         // declare | usage
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         let id = unit_scope.declare_ident(
             String::from("a"),
@@ -418,6 +424,7 @@ mod test {
     #[test]
     fn test_ident_redeclare() {
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         // First decl, pass
         let initial_id = unit_scope.declare_ident(
@@ -454,6 +461,7 @@ mod test {
     fn test_ident_declare_shadow() {
         // Identifier shadowing is not allow within inner scopes, but is detected later on
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         // Outer declare
         let declare_id = unit_scope.declare_ident(
@@ -503,6 +511,7 @@ mod test {
     fn test_ident_declare_no_shadow() {
         // Declaring outer after inner scopes should not cause issues
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         // Inner declare
         unit_scope.push_block(BlockKind::InnerBlock);
@@ -548,6 +557,7 @@ mod test {
     #[test]
     fn test_resolve_defined() {
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         let ident = unit_scope.declare_ident(
             String::from("a"),
@@ -579,6 +589,8 @@ mod test {
     #[should_panic(expected = "No Identifier for given IdentId")]
     fn test_resolve_undefined() {
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
+
         // Panics!
         let _info = unit_scope.get_ident_info_mut(&IdentId(0));
     }
@@ -586,6 +598,7 @@ mod test {
     #[test]
     fn test_use_undefined() {
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         let ident = unit_scope.use_ident("a", Location::new());
         // Should be the first identifier
@@ -601,6 +614,7 @@ mod test {
     fn test_use_import() {
         // External identifiers should be imported into the current scope (i.e share the same IdentId)
         let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
 
         // Root declare
         let declare_id = unit_scope.declare_ident(
@@ -627,6 +641,13 @@ mod test {
             // Should use the same id
             assert_eq!(import_id, declare_id);
         }
+        unit_scope.pop_block();
+    }
+
+    #[test]
+    #[should_panic(expected = "No scopes to pop off")]
+    fn test_pop_all() {
+        let mut unit_scope = UnitScope::new();
         unit_scope.pop_block();
     }
 }

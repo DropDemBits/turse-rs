@@ -9,7 +9,7 @@ use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
 use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
 use toc_ast::ast::ident::{IdentId, Identifier, RefKind};
-use toc_ast::ast::stmt::{Stmt, StmtKind};
+use toc_ast::ast::stmt::{Block, Stmt, StmtKind};
 use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef, TypeTable};
@@ -54,8 +54,8 @@ pub struct Parser<'s> {
     is_main: bool,
     /// UnitScope handling identifier import semantics
     unit_scope: scope::UnitScope,
-    /// Parsed statements
-    stmts: Vec<Stmt>,
+    /// Root Statement
+    root_stmt: Option<Box<Stmt>>,
     /// TypeTable for types
     type_table: TypeTable,
 }
@@ -85,7 +85,7 @@ impl<'s> Parser<'s> {
 
             is_main,
             unit_scope: scope::UnitScope::new(),
-            stmts: vec![],
+            root_stmt: None,
             type_table: TypeTable::new(),
         }
     }
@@ -94,18 +94,35 @@ impl<'s> Parser<'s> {
     /// Returns if the parse has no errors
     pub fn parse(&mut self) -> bool {
         // TODO: Check if the root block is a unit block
+        // Push root block
+        self.unit_scope.push_block(BlockKind::Main);
+
         // Parse the statements
+        let mut stmts = vec![];
+
         while !self.is_at_end() {
             let stmt = self.decl();
 
             if !matches!(stmt.kind, StmtKind::Nop | StmtKind::Error) {
                 // Don't push No-ops
-                self.stmts.push(stmt);
+                stmts.push(stmt);
             } else if let StmtKind::Error = stmt.kind {
                 // Skip to safe point
                 self.skip_to_safe_point(|_| false);
             }
         }
+
+        // Pop off root block
+        let block = self.unit_scope.pop_block();
+        let block = Block { block, stmts };
+
+        // Make the root block
+        let root_stmt = Stmt {
+            kind: StmtKind::Block { block },
+            span: Default::default(),
+        };
+
+        self.root_stmt = Some(Box::new(root_stmt));
 
         !self.context.borrow().reporter.has_error()
     }
@@ -114,7 +131,21 @@ impl<'s> Parser<'s> {
     /// The parser cannot be used after this point
     pub fn take_unit(self) -> CodeUnit {
         // Move fragements into the CodeUnit
-        CodeUnit::new(self.is_main, self.stmts, self.unit_scope, self.type_table)
+        CodeUnit::new(
+            self.is_main,
+            self.root_stmt.expect("needs parsing"),
+            self.unit_scope,
+            self.type_table,
+        )
+    }
+
+    #[allow(dead_code)] // Only used by the tests
+    fn stmts(&self) -> &Vec<Stmt> {
+        if let StmtKind::Block { block } = &self.root_stmt.as_ref().expect("needs parsing").kind {
+            &block.stmts
+        } else {
+            unreachable!("not a StmtKind::Block!!!")
+        }
     }
 
     /// Gets the previous token in the stream
@@ -456,7 +487,15 @@ mod test {
     // Get the latest version of the identifier
     fn get_ident(parser: &Parser, name: &str) -> Option<Identifier> {
         parser
-            .get_ident(name)
+            .root_stmt
+            .as_ref()
+            .and_then(|block| {
+                if let StmtKind::Block { block } = &block.kind {
+                    block.block.get_ident_id(name)
+                } else {
+                    None
+                }
+            })
             .map(|id| parser.get_ident_info(&id).to_owned())
     }
 
@@ -667,7 +706,7 @@ mod test {
             None,
         ];
 
-        let root_stmts = parser.stmts;
+        let root_stmts = parser.stmts();
 
         for test_stmt in root_stmts[2..].iter().zip(expected_ops.iter()) {
             if let StmtKind::Assign { op, .. } = &test_stmt.0.kind {
@@ -700,7 +739,7 @@ mod test {
             Some(BinaryOp::Or),
         ];
 
-        let root_stmts = parser.stmts;
+        let root_stmts = parser.stmts();
 
         for test_stmt in root_stmts[1..].iter().zip(expected_ops.iter()) {
             if let StmtKind::Assign { op, .. } = &test_stmt.0.kind {
@@ -774,7 +813,7 @@ mod test {
             TypeRef::Primitive(PrimitiveType::AddressInt),
         ];
 
-        let root_stmts = &parser.stmts;
+        let root_stmts = &parser.stmts();
 
         for test_stmt in root_stmts.iter().zip(expected_types.iter()) {
             if let StmtKind::VarDecl {
@@ -1267,7 +1306,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let StmtKind::Block { block, .. } = &parser.stmts[1].kind {
+        if let StmtKind::Block { block, .. } = &parser.stmts()[1].kind {
             // Inner scope is still int
             let id = block.block.get_ident_id("yay").expect("Ident not declared");
 
@@ -1300,7 +1339,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
-        if let StmtKind::Block { block, .. } = &parser.stmts[0].kind {
+        if let StmtKind::Block { block, .. } = &parser.stmts()[0].kind {
             // Innermost scope is still int
             let id = block.block.get_ident_id("yay").expect("Ident not declared");
 
@@ -1329,7 +1368,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(!parser.parse());
         // The 'type' stmt should still produce a statement. providing validator access to 'a'
         // The a := 1 should not produce a statement (the a should be consumed by "type")
-        assert_eq!(parser.stmts.len(), 1);
+        assert_eq!(parser.stmts().len(), 1);
 
         // Requires colon, will parse the rest and produce a declaration
         let mut parser = make_test_parser("var a : string\ntype a");
@@ -1440,46 +1479,46 @@ type enumeration : enum (a, b, c, d, e, f)
         // Size checking & compile-time checking is performed by the validator
         let mut parser = make_test_parser("var a : array 1 .. 3 of int := init(1, 2, 3)");
         assert!(parser.parse());
-        assert_eq!(Some(3), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(3), nab_init_len(&parser.stmts()[0]));
 
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1)");
         assert!(parser.parse());
-        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(1), nab_init_len(&parser.stmts()[0]));
 
         // Expect at least one expression
         let mut parser = make_test_parser("var a : array 1 .. * of int := init() begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(1), nab_init_len(&parser.stmts()[0]));
 
         // Expect closing paren
         let mut parser = make_test_parser("var a : array 1 .. * of int := init( begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(1), nab_init_len(&parser.stmts()[0]));
 
         // Expect starting paren
         let mut parser = make_test_parser("var a : array 1 .. * of int := init) begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(1), nab_init_len(&parser.stmts()[0]));
 
         // Expect parens
         let mut parser = make_test_parser("var a : array 1 .. * of int := init begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(1), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(1), nab_init_len(&parser.stmts()[0]));
 
         // Expect expr after comma (length 2)
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,) begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(2), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(2), nab_init_len(&parser.stmts()[0]));
 
         // Expect expr after comma (length 3)
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,,) begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(3), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(3), nab_init_len(&parser.stmts()[0]));
 
         // Bad exprs should still contribute to length
         let mut parser = make_test_parser("var a : array 1 .. * of int := init(1,+,+,4) begin end");
         assert!(!parser.parse());
-        assert_eq!(Some(4), nab_init_len(&parser.stmts[0]));
+        assert_eq!(Some(4), nab_init_len(&parser.stmts()[0]));
 
         // Can only be used in initalization of const's & var's
         let mut parser = make_test_parser("var a : array 1 .. 3 of int\n a := init(1,2,3)");
@@ -1662,7 +1701,7 @@ type enumeration : enum (a, b, c, d, e, f)
             ",
         );
         assert_eq!(parser.parse(), false);
-        for stmt in parser.stmts {
+        for stmt in parser.stmts() {
             if let StmtKind::VarDecl {
                 value: Some(some_val),
                 ..
@@ -1688,7 +1727,7 @@ type enumeration : enum (a, b, c, d, e, f)
         if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.stmts[0].kind
+        } = &parser.stmts()[0].kind
         {
             if let ExprKind::Indirect { addr, .. } = &indirect.kind {
                 assert!(matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
@@ -1700,7 +1739,7 @@ type enumeration : enum (a, b, c, d, e, f)
         if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.stmts[0].kind
+        } = &parser.stmts()[0].kind
         {
             if let ExprKind::Indirect { addr, .. } = &indirect.kind {
                 assert!(matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
@@ -1713,7 +1752,7 @@ type enumeration : enum (a, b, c, d, e, f)
         if let StmtKind::VarDecl {
             value: Some(indirect),
             ..
-        } = &parser.stmts[0].kind
+        } = &parser.stmts()[0].kind
         {
             if let ExprKind::Indirect { addr, .. } = &indirect.kind {
                 assert!(!matches!(addr.kind, ExprKind::Error), "Is {:?}", addr);
@@ -1727,7 +1766,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.stmts[1].kind
+        } = &parser.stmts()[1].kind
         {
             assert!(
                 matches!(proc_call.kind, ExprKind::Call { .. }),
@@ -1742,7 +1781,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.stmts[1].kind
+        } = &parser.stmts()[1].kind
         {
             assert!(
                 matches!(proc_call.kind, ExprKind::Call { .. }),
@@ -1757,7 +1796,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert_eq!(parser.parse(), true);
         if let StmtKind::ProcedureCall {
             proc_ref: proc_call,
-        } = &parser.stmts[1].kind
+        } = &parser.stmts()[1].kind
         {
             assert!(
                 matches!(proc_call.kind, ExprKind::Call { .. }),
@@ -1801,7 +1840,7 @@ end if"#,
         assert_eq!(parser.parse(), true);
 
         // No undeclareds
-        if let StmtKind::If { true_branch, .. } = &parser.stmts[1].kind {
+        if let StmtKind::If { true_branch, .. } = &parser.stmts()[1].kind {
             if let StmtKind::Block { block } = &true_branch.kind {
                 assert_eq!(block.block.undeclared_idents().count(), 0);
             } else {
@@ -1818,20 +1857,20 @@ end if"#,
         // Bare elsif is not okay, but should parse as an if
         let mut parser = make_test_parser(r#"elsif true then end if"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::If {..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::If {..}));
 
         let mut parser = make_test_parser(r#"elif true then end if"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::If {..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::If {..}));
 
         let mut parser = make_test_parser(r#"elseif true then end if"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::If {..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::If {..}));
 
         // Bare else is not okay, but should parse as a block
         let mut parser = make_test_parser(r#"else end if"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::Block {..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::Block {..}));
 
         // Accept `endif` as terminator
         let mut parser = make_test_parser(r#"if true then endif"#);
@@ -1848,15 +1887,15 @@ end if"#,
         // Should be able to handle expr errors fine
         let mut parser = make_test_parser(r#"if + then endif"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::If {..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::If {..}));
 
         let mut parser = make_test_parser(r#"if + then else endif"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::If {false_branch: Some(_), ..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::If {false_branch: Some(_), ..}));
 
         let mut parser = make_test_parser(r#"if + then elsif - then endif"#);
         assert_eq!(parser.parse(), false);
-        assert!(matches!(&parser.stmts[0].kind, &StmtKind::If {false_branch: Some(_), ..}));
+        assert!(matches!(&parser.stmts()[0].kind, &StmtKind::If {false_branch: Some(_), ..}));
 
         // semantic highlight testing
         let true_branch = true;

@@ -1,4 +1,4 @@
-use crate::ast::stmt::Stmt;
+use crate::ast::stmt::{self, Stmt, StmtKind};
 use crate::ast::{Visitor, VisitorMut};
 use crate::scope::UnitScope;
 use crate::types::TypeTable;
@@ -28,8 +28,8 @@ pub enum BlockKind {
 
 #[derive(Debug)]
 pub struct CodeUnit {
-    /// Root statements
-    stmts: Vec<Stmt>,
+    /// Root stmt
+    root_stmt: Box<Stmt>,
     /// Unit scope
     /// May be moved into and outside of the unit for mutability purposes
     unit_scope: Option<UnitScope>,
@@ -41,12 +41,12 @@ pub struct CodeUnit {
 impl CodeUnit {
     pub fn new(
         _is_main: bool,
-        stmts: Vec<Stmt>,
+        root_stmt: Box<Stmt>,
         unit_scope: UnitScope,
         type_table: TypeTable,
     ) -> Self {
         Self {
-            stmts,
+            root_stmt,
             unit_scope: Some(unit_scope),
             types: Some(type_table),
         }
@@ -58,11 +58,7 @@ impl CodeUnit {
         T: VisitorMut<St, Ex>,
     {
         visitor.start_visit();
-
-        for stmt in &mut self.stmts {
-            visitor.visit_stmt(stmt);
-        }
-
+        visitor.visit_stmt(&mut self.root_stmt);
         visitor.end_visit();
     }
 
@@ -72,17 +68,25 @@ impl CodeUnit {
         T: Visitor<St, Ex>,
     {
         visitor.start_visit();
-
-        for stmt in &self.stmts {
-            visitor.visit_stmt(stmt);
-        }
-
+        visitor.visit_stmt(&self.root_stmt);
         visitor.end_visit();
     }
 
-    #[allow(dead_code)] // Used only by the tests right now
+    #[allow(dead_code)] // Used only by the tests, visit_ast should be used
     pub fn stmts(&self) -> &Vec<Stmt> {
-        &self.stmts
+        if let StmtKind::Block { block } = &self.root_stmt.kind {
+            &block.stmts
+        } else {
+            unreachable!("not a StmtKind::Block!!!")
+        }
+    }
+
+    pub fn root_block(&self) -> &stmt::Block {
+        if let StmtKind::Block { block } = &self.root_stmt.kind {
+            &block
+        } else {
+            unreachable!("not a StmtKind::Block!!!")
+        }
     }
 
     pub fn unit_scope(&self) -> &UnitScope {
@@ -91,10 +95,6 @@ impl CodeUnit {
 
     pub fn types(&self) -> &TypeTable {
         self.types.as_ref().unwrap()
-    }
-
-    pub fn stmts_mut(&mut self) -> &mut Vec<Stmt> {
-        &mut self.stmts
     }
 
     pub fn unit_scope_mut(&mut self) -> &mut UnitScope {

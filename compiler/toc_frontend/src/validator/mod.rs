@@ -170,8 +170,7 @@ impl Validator {
 
     // --- Associated Helpers --- //
 
-    /// Gets the reference identifier (info), if there is one
-    /// Does not return an actual identifier (yet) because of field stuff
+    /// Gets the reference info, if there is some
     ///
     /// Returns (in order):
     /// - `ref_name`
@@ -541,14 +540,6 @@ impl VisitorMut<(), ()> for Validator {
             }
         }
     }
-
-    fn end_visit(&mut self) {
-        // Report any unused identifiers in the main scope
-        // TODO(resolver): Eventually hand off unused ident reporting to the resolver
-        let root_block = self.unit_scope.current_block();
-        self.report_unused_identifiers(root_block);
-        self.report_redeclared_identifiers(root_block);
-    }
 }
 
 // --- Helpers --- //
@@ -619,7 +610,7 @@ mod test {
     }
 
     fn get_ident_for_unit<'u>(unit: &'u CodeUnit, name: &str) -> Option<&'u Identifier> {
-        let id = unit.unit_scope().get_ident_id(name)?;
+        let id = unit.root_block().block.get_ident_id(name)?;
         let info = unit.unit_scope().get_ident_info(&id);
         Some(&info)
     }
