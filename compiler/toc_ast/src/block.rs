@@ -57,9 +57,7 @@ impl CodeUnit {
     where
         T: VisitorMut<St, Ex>,
     {
-        visitor.start_visit();
         visitor.visit_stmt(&mut self.root_stmt);
-        visitor.end_visit();
     }
 
     /// Visits the AST using the given Visitor, only providing immutable access
@@ -67,9 +65,7 @@ impl CodeUnit {
     where
         T: Visitor<St, Ex>,
     {
-        visitor.start_visit();
         visitor.visit_stmt(&self.root_stmt);
-        visitor.end_visit();
     }
 
     #[allow(dead_code)] // Used only by the tests, visit_ast should be used
