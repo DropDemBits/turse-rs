@@ -1043,6 +1043,17 @@ mod pretty_print {
                 }
                 Type::Enum { fields } => {
                     f.write_str("{ enum ( ")?;
+
+                    // Sort fields to maintain stable printing order
+                    let mut fields: Vec<(&String, &TypeRef)> = fields.iter().collect();
+                    fields.sort_by(|a, b| match a.1 {
+                        TypeRef::Named(a) => match b.1 {
+                            TypeRef::Named(b) => a.cmp(b),
+                            _ => std::cmp::Ordering::Equal,
+                        },
+                        _ => std::cmp::Ordering::Equal,
+                    });
+
                     for (name, id) in fields {
                         f.write_fmt(format_args!("{}({}) ", name, id))?;
                     }
