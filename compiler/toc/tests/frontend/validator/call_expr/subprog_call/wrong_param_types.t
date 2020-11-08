@@ -43,14 +43,14 @@ vp5(vc0)
 %%% expected exit status: 255
 
 %%% expected stderr:
-%%% error line:28 column:5-7 Expected expression before 'to' 
-%%% error line:28 column:5-7 Missing ')' after parameter list
-%%% error line:28 column:5-7 'to' does not begin a statement or declaration
 %%% error line:15 column:5-7 Cannot use a type reference as a function or procedure parameter
 %%% error line:15 column:9-11 Cannot use a type reference as a function or procedure parameter
 %%% error line:15 column:13-15 Cannot use a type reference as a function or procedure parameter
 %%% error line:16 column:5-7 Cannot use a type reference as a function or procedure parameter
 %%% error line:22 column:5-8 Cannot pass a reference parameter to a constant reference
 %%% error line:25 column:5-29 Cannot pass a reference parameter to an expression
+%%% error line:28 column:5-7 Expected expression before 'to' 
+%%% error line:28 column:5-7 Missing ')' after parameter list
+%%% error line:28 column:5-7 'to' does not begin a statement or declaration
 %%% error line:28 column:5-7 Cannot pass a reference parameter to an expression
 %%% error line:28 column:5-7 Argument is the wrong type

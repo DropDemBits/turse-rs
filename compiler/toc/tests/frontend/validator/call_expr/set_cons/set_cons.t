@@ -35,6 +35,6 @@ s_es := es(e.d, e.d, e.d, e.a)
 s_es := es(e.a, e.b, e.c, e.d)
 
 %%% args: -b
-%%% expected status code: 0
+%%% expected exit status: 0
 
 %%% expected stderr:

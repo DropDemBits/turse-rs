@@ -429,7 +429,7 @@ impl Validator {
                         // Wrong types, handle here!
                         self.context.borrow_mut().reporter.report_error(
                             &range_span,
-                            format_args!("Range bounds must both be integers, charachers, booleans, or elements from the same enumeration"),
+                            format_args!("Range bounds must both be integers, characters, booleans, or elements from the same enumeration"),
                         );
 
                         return Some(TypeRef::TypeError);

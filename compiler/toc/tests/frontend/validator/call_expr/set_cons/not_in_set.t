@@ -28,7 +28,7 @@ s_es := es(e0.a, e0.b, e0.c, e0.d)
 s_es := es(e0.a, e0.b, e.c, e.d)
 
 %%% args: -b
-%%% expected status code: 255
+%%% expected exit status: 255
 
 %%% expected stderr:
 %%% error line:27 column:12-16 Element parameter is not compatible with set element type

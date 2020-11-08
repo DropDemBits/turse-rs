@@ -15,5 +15,5 @@ dst := b0
 %%% expected stdout:
  
 %%% expected stderr:
-%%% warn line:7 column:15-16 Function type declarations must specifiy '()' after the identifier
 %%% error line:11 column:8-10 Expression is a type reference, and cannot be used here
+%%% warn line:7 column:15-16 Function type declarations must specifiy '()' after the identifier

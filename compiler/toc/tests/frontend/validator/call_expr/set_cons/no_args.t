@@ -24,7 +24,7 @@ s_efs := s_efs
 s_es := s_es
 
 %%% args: -b
-%%% expected status code: 255
+%%% expected exit status: 255
 
 %%% expected stderr:
 %%% error line:13 column:20-21 Set constructors require at least 1 parameter
