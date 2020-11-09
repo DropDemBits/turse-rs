@@ -11,7 +11,7 @@ a += 1 % should reference id(0)
 %%% ast: [
 %%% ref(id:0) += nat(1)
 %%% {
-%%%     var [id:1] : ty_prim[Int] := nat(1)
+%%%     var [id:1] : { prim Int } := nat(1)
 %%% }
 %%% ref(id:0) += nat(1)
 %%% ]

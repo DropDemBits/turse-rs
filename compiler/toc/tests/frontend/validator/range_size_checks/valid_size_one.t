@@ -26,18 +26,17 @@ end
 
 %%% expected stdout:
 %%% types: [
-%%%        0 -> { range "a" .. "a" (1) ty_prim[StringN(Size(1))] }
-%%%        1 -> { range nat(1) .. nat(1) (1) ty_prim[Int] }
-%%%        2 -> { range bool(true) .. bool(true) (1) ty_prim[Boolean] }
-%%%        3 -> { range bool(false) .. bool(false) (1) ty_prim[Boolean] }
-%%%        4 -> { enum ( a(ty_id[5]) b(ty_id[6]) )
-%%%        5 -> { enum_field(0) of ty_id[4] }
-%%%        6 -> { enum_field(1) of ty_id[4] }
-%%%        7 -> { alias to ty_id[4] }
-%%%        8 -> { range nat(0) .. nat(0) (1) ty_id[4] }
-%%%        9 -> { ref_expr ref(id:4) }
-%%%       10 -> { range nat(0) .. nat(0) (1) ty_id[4] }
-%%%       11 -> { range nat(0) .. nat(0) (1) ty_prim[Int] }
+%%%        0 -> { alias to ty_id[5] }
+%%%        1 -> { range 97 .. 97 (1) ty_prim[StringN(Size(1))] }
+%%%        2 -> { range 1 .. 1 (1) ty_prim[Int] }
+%%%        3 -> { range 1 .. 1 (1) ty_prim[Boolean] }
+%%%        4 -> { range 0 .. 0 (1) ty_prim[Boolean] }
+%%%        5 -> { enum ( a(ty_id[6]) b(ty_id[7]) ) }
+%%%        6 -> { enum_field(0) of ty_id[5] }
+%%%        7 -> { enum_field(1) of ty_id[5] }
+%%%        8 -> { range 0 .. 0 (1) ty_id[5] }
+%%%        9 -> { range 0 .. 0 (1) ty_id[5] }
+%%%       10 -> { range 0 .. 0 (1) ty_prim[Int] }
 %%% ]
 
 %%% expected stderr:

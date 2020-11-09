@@ -91,7 +91,7 @@ end
 %%% error line:47 column:9-12 'ye0' has already been declared
 %%% error line:47 column:15-18 'ye0' does not refer to a type
 %%% error line:50 column:5-8 Expected expression before 'end' 
-%%% error line:55 column:13-16 Set types can only be declared inside of 'type' statements
+%%% error line:55 column:13-18 Set types can only be declared inside of 'type' statements
 %%% error line:55 column:17-18 Expected 'of' after 'set'
 %%% error line:55 column:17-18 'a' has not been declared yet
 %%% error line:55 column:17-18 'a' does not refer to a type

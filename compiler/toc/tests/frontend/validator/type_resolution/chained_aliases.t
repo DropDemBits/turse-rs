@@ -9,10 +9,8 @@ type c : b
 %%% expected stdout:
 %%% types: [
 %%%        0 -> { alias to ty_prim[Int] }
-%%%        1 -> { ref_expr ref(id:0) }
+%%%        1 -> { alias to ty_prim[Int] }
 %%%        2 -> { alias to ty_prim[Int] }
-%%%        3 -> { ref_expr ref(id:1) }
-%%%        4 -> { alias to ty_prim[Int] }
 %%% ]
 
 %%% expected stderr:

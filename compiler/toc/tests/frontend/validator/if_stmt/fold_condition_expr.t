@@ -19,15 +19,15 @@ end if
 %%% expected stdout:
 %%% ast: [
 %%% if (bool(true)) then {
-%%%     var [id:0] : ty_prim[Int] := nat(2)
+%%%     var [id:0] := nat(2)
 %%%     ref(id:0) := ref(id:0)
 %%% }
 %%% if (bool(false)) then {
-%%%     var [id:1] : ty_prim[Int] := nat(2)
+%%%     var [id:1] := nat(2)
 %%%     ref(id:1) := ref(id:1)
 %%% }
 %%% else if (bool(true)) then {
-%%%     var [id:2] : ty_prim[Int] := nat(3)
+%%%     var [id:2] := nat(3)
 %%%     ref(id:2) := ref(id:2)
 %%% }
 %%% ]

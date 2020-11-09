@@ -6,7 +6,7 @@ var a : int := 1 - 1 - 1 - 1 - 1
 
 %%% expected stdout:
 %%% ast: [
-%%% var [id:0] : ty_prim[Int] := int(-3)
+%%% var [id:0] : { prim Int } := int(-3)
 %%% ]
 
 %%% expected stderr:

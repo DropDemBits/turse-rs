@@ -23,24 +23,22 @@ end
 
 %%% expected stdout:
 %%% types: [
-%%%        0 -> { enum ( a(ty_id[1]) b(ty_id[2]) )
-%%%        1 -> { enum_field(0) of ty_id[0] }
-%%%        2 -> { enum_field(1) of ty_id[0] }
-%%%        3 -> { alias to ty_id[0] }
-%%%        4 -> { range nat(9223372036854775808) .. nat(9223372036854775807) (0) ty_prim[LongInt] }
+%%%        0 -> { alias to ty_id[1] }
+%%%        1 -> { enum ( a(ty_id[2]) b(ty_id[3]) ) }
+%%%        2 -> { enum_field(0) of ty_id[1] }
+%%%        3 -> { enum_field(1) of ty_id[1] }
+%%%        4 -> { range 9223372036854775808 .. 9223372036854775807 (0) ty_prim[LongInt] }
 %%%        5 -> Array { flexible ty_id[4] of ty_prim[Int] }
-%%%        6 -> { range bool(true) .. bool(false) (0) ty_prim[Boolean] }
+%%%        6 -> { range 1 .. 0 (0) ty_prim[Boolean] }
 %%%        7 -> Array { flexible ty_id[6] of ty_prim[Int] }
-%%%        8 -> { range "D" .. "C" (0) ty_prim[StringN(Size(1))] }
+%%%        8 -> { range 68 .. 67 (0) ty_prim[StringN(Size(1))] }
 %%%        9 -> Array { flexible ty_id[8] of ty_prim[Int] }
-%%%       10 -> { range nat(1) .. nat(0) (0) ty_id[0] }
+%%%       10 -> { range 1 .. 0 (0) ty_id[1] }
 %%%       11 -> Array { flexible ty_id[10] of ty_prim[Int] }
-%%%       12 -> { ref_expr ref(id:0) }
-%%%       13 -> { ref_expr ref(id:0) }
-%%%       14 -> { range nat(1) .. nat(0) (0) ty_id[0] }
+%%%       12 -> { range 1 .. 0 (0) ty_id[1] }
+%%%       13 -> Array { flexible ty_id[12] of ty_prim[Int] }
+%%%       14 -> { range 1 .. 0 (0) ty_prim[Int] }
 %%%       15 -> Array { flexible ty_id[14] of ty_prim[Int] }
-%%%       16 -> { range nat(1) .. nat(0) (0) ty_prim[Int] }
-%%%       17 -> Array { flexible ty_id[16] of ty_prim[Int] }
 %%% ]
 
 %%% expected stderr:

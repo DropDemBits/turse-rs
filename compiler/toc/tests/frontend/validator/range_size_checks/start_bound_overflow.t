@@ -7,8 +7,6 @@ var b : 16#ffffffffffffffff .. 16#7fffffffffffffff
 
 %%% expected stdout:
 %%% types: [
-%%%        0 -> { range nat(18446744073709551615) .. -nat(3)  ty_unknown }
-%%%        1 -> { range nat(18446744073709551615) .. nat(9223372036854775807)  ty_unknown }
 %%% ]
 
 %%% expected stderr:

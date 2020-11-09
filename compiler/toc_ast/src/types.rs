@@ -1047,7 +1047,7 @@ mod pretty_print {
                     for (name, id) in fields {
                         f.write_fmt(format_args!("{}({}) ", name, id))?;
                     }
-                    f.write_str(")")?;
+                    f.write_str(") }")?;
                 }
                 Type::EnumField { enum_type, ordinal } => f.write_fmt(format_args!(
                     "{{ enum_field({}) of {} }}",

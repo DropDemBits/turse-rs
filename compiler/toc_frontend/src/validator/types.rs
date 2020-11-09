@@ -354,7 +354,7 @@ impl Validator {
                 }
 
                 // Not required to be compile-time, unless we are in a compile-time context
-                let mut range_ref = *range.type_ref();
+                let mut range_ref = types::dealias_ref(range.type_ref(), &self.type_table);
 
                 if !is_flexible && !is_init_sized {
                     // If the following holds true
@@ -453,10 +453,10 @@ impl Validator {
         };
 
         // Apply the folded values
-        super::replace_with_folded(start, start_eval.clone());
+        super::replace_with_folded(start, start_eval);
 
         if let SeqSize::Sized(end) = end {
-            super::replace_with_folded(end, end_eval.clone());
+            super::replace_with_folded(end, end_eval);
         }
 
         if !start.is_compile_eval() {
@@ -594,9 +594,17 @@ impl Validator {
             base_type = TypeRef::Primitive(PrimitiveType::Int);
         }
 
-        // Make range type
-        let start = start_eval.map_or(types::RangeBound::Unknown, |v| v.into());
-        let end = end_eval.map_or(types::RangeBound::Unknown, |v| v.into());
+        // Make range type (bounds are made by flattening through ords)
+        let start = value::apply_ord(&start, &self.type_table)
+            .ok()
+            .map_or(types::RangeBound::Unknown, |v| v.into());
+        let end = if let SeqSize::Sized(end) = end {
+            value::apply_ord(&end, &self.type_table)
+                .ok()
+                .map_or(types::RangeBound::Unknown, |v| v.into())
+        } else {
+            types::RangeBound::Unknown
+        };
 
         let ty_range = self.type_table.declare_type(Type::Range {
             start,
@@ -662,6 +670,7 @@ impl Validator {
             }
             ExprKind::Reference { ident, .. } => {
                 let info = self.unit_scope.get_ident_info(&ident.id);
+
                 if info.ref_kind != RefKind::Type {
                     self.context.borrow_mut().reporter.report_error(
                         &ident.location,
@@ -682,6 +691,9 @@ impl Validator {
                 return;
             }
         }
+
+        // De-alias ref type
+        let ref_type = types::dealias_ref(&ref_type, &self.type_table);
 
         // Check if the eval type leads to a forward
         if let Some(Type::Forward { is_resolved }) = self.type_table.type_from_ref(&ref_type) {

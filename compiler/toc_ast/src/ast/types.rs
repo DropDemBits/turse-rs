@@ -120,10 +120,10 @@ mod pretty_print {
                     f.write_str("{ enum ( ")?;
 
                     for name in fields {
-                        f.write_fmt(format_args!("{} ", name))?;
+                        f.write_fmt(format_args!("{}, ", name))?;
                     }
 
-                    f.write_str(")")?;
+                    f.write_str(") }")?;
                 }
                 TypeKind::Set { range } => f.write_fmt(format_args! {"{{ set of {} }}", range})?,
                 TypeKind::Forward => {
@@ -166,9 +166,9 @@ mod pretty_print {
                     f.write_str("}")?;
                 }
                 TypeKind::Primitive(p) => f.write_fmt(format_args!("{{ prim {:?} }}", p))?,
-                TypeKind::CharN { size } => f.write_fmt(format_args!("{{ char(*) {} }}", size))?,
+                TypeKind::CharN { size } => f.write_fmt(format_args!("{{ char({}) }}", size))?,
                 TypeKind::StringN { size } => {
-                    f.write_fmt(format_args!("{{ string(*) {} }}", size))?
+                    f.write_fmt(format_args!("{{ string({}) }}", size))?
                 }
             }
 

@@ -26,14 +26,14 @@ end
 %%% expected stdout:
 
 %%% expected stderr:
-%%% error line:3 column:23-49 Range bounds creates a zero-sized range
-%%% error line:4 column:23-36 Range bounds creates a zero-sized range
-%%% error line:5 column:23-33 Range bounds creates a zero-sized range
-%%% error line:6 column:23-49 Range bounds creates a zero-sized range
-%%% error line:7 column:23-36 Range bounds creates a zero-sized range
-%%% error line:8 column:23-33 Range bounds creates a zero-sized range
-%%% error line:9 column:23-34 Range bounds creates a zero-sized range
-%%% error line:10 column:23-33 Range bounds creates a zero-sized range
-%%% error line:15 column:14-24 Range bounds creates a zero-sized range
-%%% error line:15 column:14-24 Range bounds creates a zero-sized range
-%%% error line:15 column:14-24 Range bounds creates a zero-sized range
+%%% error line:3 column:61-62 Range bounds creates a zero-sized range
+%%% error line:4 column:61-62 Range bounds creates a zero-sized range
+%%% error line:5 column:61-62 Range bounds creates a zero-sized range
+%%% error line:6 column:69-70 Range bounds creates a zero-sized range
+%%% error line:7 column:69-70 Range bounds creates a zero-sized range
+%%% error line:8 column:69-70 Range bounds creates a zero-sized range
+%%% error line:9 column:69-70 Range bounds creates a zero-sized range
+%%% error line:10 column:68-69 Range bounds creates a zero-sized range
+%%% error line:18 column:13-14 Range bounds creates a zero-sized range
+%%% error line:19 column:21-22 Range bounds creates a zero-sized range
+%%% error line:20 column:20-21 Range bounds creates a zero-sized range

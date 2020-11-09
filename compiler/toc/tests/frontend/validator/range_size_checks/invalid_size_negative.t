@@ -19,19 +19,11 @@ end
 
 %%% expected stdout:
 %%% types: [
-%%%        0 -> { range nat(2147483648) .. nat(2147483646)  ty_unknown }
-%%%        1 -> { range nat(18446744073709551615) .. nat(18446744073709551613)  ty_unknown }
-%%%        2 -> { range 'D' .. 'B'  ty_unknown }
-%%%        3 -> { range -nat(1) + nat(3) .. nat(0)  ty_unknown }
-%%%        4 -> { enum ( a(ty_id[5]) b(ty_id[6]) c(ty_id[7]) )
-%%%        5 -> { enum_field(0) of ty_id[4] }
-%%%        6 -> { enum_field(1) of ty_id[4] }
-%%%        7 -> { enum_field(2) of ty_id[4] }
-%%%        8 -> { alias to ty_id[4] }
-%%%        9 -> { range ref(id:4) . c .. ref(id:4) . a  ty_unknown }
-%%%       10 -> { ref_expr ref(id:4) }
-%%%       11 -> { ref_expr ref(id:4) }
-%%%       12 -> { range ref(id:6) .. ref(id:7)  ty_unknown }
+%%%        0 -> { alias to ty_id[1] }
+%%%        1 -> { enum ( a(ty_id[2]) b(ty_id[3]) c(ty_id[4]) ) }
+%%%        2 -> { enum_field(0) of ty_id[1] }
+%%%        3 -> { enum_field(1) of ty_id[1] }
+%%%        4 -> { enum_field(2) of ty_id[1] }
 %%% ]
 
 %%% expected stderr:

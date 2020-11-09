@@ -7,8 +7,8 @@ var b := a + (1 + 1)
 
 %%% expected stdout:
 %%% ast: [
-%%% var [id:0] : ty_prim[Nat] := nat(1)
-%%% var [id:1] : ty_prim[Int] := ref(id:0) + (nat(1) + nat(1))
+%%% var [id:0] : { prim Nat } := nat(1)
+%%% var [id:1] := ref(id:0) + (nat(1) + nat(1))
 %%% ]
 
 %%% expected stderr:
