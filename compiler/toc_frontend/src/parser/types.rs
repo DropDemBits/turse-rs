@@ -292,7 +292,15 @@ impl<'s> Parser<'s> {
     /// Parse character sequence (string, char, char(n))
     fn type_char_seq(&mut self, is_char_type: bool, parse_context: &TokenType) -> Type {
         // Nom 'char' or 'string'
-        self.next_token();
+        if matches!(
+            self.current().token_type,
+            TokenType::Char | TokenType::String_
+        ) {
+            // Optional nom because this may be a part of an indirection expression,
+            // where the leading token is already consumed
+            self.next_token();
+        }
+
         let span = self.previous().location;
 
         // If left paren, construct sized type

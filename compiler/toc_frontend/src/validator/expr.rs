@@ -64,15 +64,17 @@ impl Validator {
         super::replace_with_folded(addr, addr_value);
 
         // `reference` must be a type reference or a primitive type
-        if matches!(indirect_type.kind, TypeKind::Reference {..}) {
-            self.context.borrow_mut().reporter.report_error(
-                &indirect_type.span,
-                format_args!("Reference does not refer to a type"),
-            );
+        if let TypeKind::Reference { ref_expr, .. } = &indirect_type.kind {
+            if !self.is_type_reference(ref_expr) {
+                self.context.borrow_mut().reporter.report_error(
+                    &indirect_type.span,
+                    format_args!("Reference does not refer to a type"),
+                );
 
-            if *eval_type == TypeRef::Unknown {
-                // Force into a type error
-                *eval_type = TypeRef::TypeError;
+                if *eval_type == TypeRef::Unknown {
+                    // Force into a type error
+                    *eval_type = TypeRef::TypeError;
+                }
             }
         }
 
