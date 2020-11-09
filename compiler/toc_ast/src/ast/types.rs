@@ -1,6 +1,5 @@
 //! Type AST Nodes
 use crate::ast::expr::Expr;
-use crate::ast::ident::IdentRef;
 use crate::types::{ParamDef, PrimitiveType, TypeRef};
 
 use toc_core::Location;
@@ -19,7 +18,8 @@ pub enum TypeKind {
     /// Sized StringN node, with an arbitrary compile-time expression
     StringN { size: Box<Expr> },
     /// Reference to a named type.
-    Reference { ident: IdentRef },
+    /// Arbitrary expression type, and may not be a valid reference type
+    Reference { ref_expr: Box<Expr> },
     /// Forward reference to a type
     Forward { is_resolved: bool },
     /// Pointer to another Type
@@ -56,4 +56,102 @@ pub struct Type {
     pub type_ref: Option<TypeRef>,
     /// The span of the type node
     pub span: Location,
+}
+
+mod pretty_print {
+    use super::{Type, TypeKind};
+    use crate::pretty_print;
+    use std::fmt;
+
+    impl fmt::Display for TypeKind {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                TypeKind::Error => f.write_str("{ error }")?,
+                TypeKind::Reference { ref_expr } => {
+                    f.write_fmt(format_args!("{{ ref_expr {} }}", ref_expr))?
+                }
+                TypeKind::Range { start, end } => {
+                    f.write_str("{ range ")?;
+
+                    if let Some(end) = end {
+                        f.write_fmt(format_args!("{} .. {} ", start, end))?;
+                    } else {
+                        f.write_fmt(format_args!("{} .. * ", start))?;
+                    }
+
+                    f.write_str(" }}")?;
+                }
+                TypeKind::Array {
+                    ranges,
+                    element_type,
+                    is_flexible,
+                    ..
+                } => {
+                    f.write_str("{ ")?;
+                    if *is_flexible {
+                        f.write_str("flexible ")?;
+                    }
+                    f.write_str("array ")?;
+                    pretty_print::print_list(f, ranges.iter())?;
+                    f.write_fmt(format_args!(" of {} }}", element_type))?;
+                }
+                TypeKind::Enum { fields } => {
+                    f.write_str("{ enum ( ")?;
+
+                    for name in fields {
+                        f.write_fmt(format_args!("{} ", name))?;
+                    }
+
+                    f.write_str(")")?;
+                }
+                TypeKind::Set { range } => f.write_fmt(format_args! {"{{ set of {} }}", range})?,
+                TypeKind::Forward { is_resolved } => {
+                    if *is_resolved {
+                        f.write_str("{ resolved forward }")?;
+                    } else {
+                        f.write_str("{ forward }")?;
+                    }
+                }
+                TypeKind::Pointer { to, is_unchecked } => {
+                    if *is_unchecked {
+                        f.write_fmt(format_args!("{{ unchecked pointer to {} }}", to))?
+                    } else {
+                        f.write_fmt(format_args!("{{ pointer to {} }}", to))?
+                    }
+                }
+                TypeKind::Function { params, result } => {
+                    if result.is_some() {
+                        f.write_str("{ function ")?;
+                    } else {
+                        f.write_str("{ procedure ")?;
+                    }
+
+                    if let Some(params) = params {
+                        f.write_str("(")?;
+                        pretty_print::print_list(f, params.iter())?;
+                        f.write_str(") ")?;
+                    }
+
+                    if let Some(result) = result {
+                        f.write_fmt(format_args!("-> {} ", result))?
+                    }
+
+                    f.write_str("}")?;
+                }
+                TypeKind::Primitive(p) => f.write_fmt(format_args!("{{ prim {:?} }}", p))?,
+                TypeKind::CharN { size } => f.write_fmt(format_args!("{{ char(*) {} }}", size))?,
+                TypeKind::StringN { size } => {
+                    f.write_fmt(format_args!("{{ string(*) {} }}", size))?
+                }
+            }
+
+            Ok(())
+        }
+    }
+
+    impl fmt::Display for Type {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.kind.fmt(f)
+        }
+    }
 }
