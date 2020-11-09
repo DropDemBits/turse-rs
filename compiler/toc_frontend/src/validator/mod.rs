@@ -634,6 +634,12 @@ mod test {
         code_unit.put_types(type_table);
         code_unit.put_unit_scope(unit_scope);
 
+        // Emit all pending erros & warnings
+        validator_context
+            .borrow_mut()
+            .reporter
+            .report_messages(false);
+
         // Ok for now until we start doing funky stuff with contexts
         // TODO: Use a unified context when using file-based test harness
         let successful_validate = !validator_context.borrow().reporter.has_error();
@@ -1463,6 +1469,7 @@ mod test {
 
         // Allowed to be used in reference position
         assert_eq!(true, run_validator("int @ (0) := 1"));
+        //assert_eq!(true, run_validator("char(3) @ (1) := 'aaa'")); // not fully checked!
         assert_eq!(true, run_validator("type bambam : int\nbambam @ (0) := 1"));
     }
 
