@@ -1,8 +1,8 @@
 //! Stmt AST Nodes
 use crate::ast::expr::{BinaryOp, Expr};
 use crate::ast::ident::IdentRef;
+use crate::ast::types::Type;
 use crate::scope::ScopeBlock;
-use crate::types::TypeRef;
 use toc_core::Location;
 
 /// A grouping of statements.
@@ -29,7 +29,7 @@ pub enum StmtKind {
         /// If `None`, this statement is a no-op, and only present to allow access to the `type_spec` & `expr`
         idents: Option<Vec<IdentRef>>,
         /// The type spec for all of the identifiers
-        type_spec: TypeRef,
+        type_spec: Option<Box<Type>>,
         /// The (semi-optional) initialization value
         value: Option<Box<Expr>>,
         /// If the declare is for a const declaration
@@ -42,7 +42,7 @@ pub enum StmtKind {
         /// If `None`, this statement is a no-op, and only allows access to the `resolved_type`
         ident: Option<IdentRef>,
         /// Resolved type for a forward type declare
-        resolved_type: Option<TypeRef>,
+        resolved_type: Option<Box<Type>>,
         /// If the identifier actually declares a new identifier
         is_new_def: bool,
     },
@@ -103,7 +103,12 @@ mod pretty_print {
                     if let Some(idents) = idents {
                         pretty_print::print_list(f, idents.iter())?;
                     }
-                    f.write_fmt(format_args!("] : {}", type_spec))?;
+
+                    if let Some(type_spec) = type_spec {
+                        f.write_fmt(format_args!("] : {}", type_spec))?;
+                    } else {
+                        f.write_str("] ")?;
+                    }
 
                     if let Some(value) = value {
                         f.write_fmt(format_args!(" := {}", value))?;

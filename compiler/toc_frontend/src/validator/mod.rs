@@ -488,8 +488,10 @@ impl VisitorMut<(), ()> for Validator {
             ),
             ExprKind::Init { exprs, .. } => self.resolve_expr_init(exprs),
             ExprKind::Indirect {
-                reference, addr, ..
-            } => self.resolve_expr_indirect(reference, addr, &mut visit_expr.eval_type),
+                indirect_type,
+                addr,
+                ..
+            } => self.resolve_expr_indirect(indirect_type, addr, &mut visit_expr.eval_type),
             ExprKind::BinaryOp {
                 left, op, right, ..
             } => self.resolve_expr_binary(

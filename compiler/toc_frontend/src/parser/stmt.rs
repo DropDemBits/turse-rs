@@ -4,8 +4,9 @@ use crate::token::TokenType;
 use toc_ast::ast::expr::{Expr, ExprKind};
 use toc_ast::ast::ident::{IdentRef, RefKind};
 use toc_ast::ast::stmt::{self, Stmt, StmtKind};
+use toc_ast::ast::types::{Type, TypeKind};
 use toc_ast::block::BlockKind;
-use toc_ast::types::{Type, TypeRef};
+use toc_ast::types::TypeRef;
 
 impl<'s> Parser<'s> {
     // --- Decl Parsing --- //
@@ -107,17 +108,12 @@ impl<'s> Parser<'s> {
         };
 
         // Grab typespec
-        let mut type_spec = if self.current().token_type == TokenType::Colon {
-            // Consume colon
-            self.next_token();
-
+        let mut type_spec = if self.optional(&TokenType::Colon) {
             // Parse the type spec
-            // If type parsing fails (i.e. TypeRef::TypeError is produced), the
-            // assignment value is automagically skipped
-            self.parse_type(&decl_tok.token_type)
+            Some(Box::new(self.parse_type(&decl_tok.token_type)))
         } else {
             // Will be resolved in the validation stage
-            TypeRef::Unknown
+            None
         };
 
         // Grab assign value
@@ -152,7 +148,7 @@ impl<'s> Parser<'s> {
         // Check if the init expression was required to be present or absent
         // Required to be present when the type_spec is an array, and is init-sized
         // Required to be absent in the case of a missing type spec
-        if let Some(Type::Array { is_init_sized, .. }) = self.type_table.type_from_ref(&type_spec) {
+        if let Some(TypeKind::Array { is_init_sized, .. }) = type_spec.as_ref().map(|ty| &ty.kind) {
             if *is_init_sized && !has_init_expr {
                 // Error: Requires to have init, but has no init
                 self.context.borrow_mut().reporter.report_error(
@@ -160,14 +156,18 @@ impl<'s> Parser<'s> {
                     format_args!("Arrays with '*' as an end bound require an 'init' initializer"),
                 );
             }
-        } else if type_spec == TypeRef::Unknown && has_init_expr {
+        } else if type_spec.is_none() && has_init_expr {
             // Error: Requires to not have init, but 'init' present
             // Force into a TypeError
             self.context.borrow_mut().reporter.report_error(
                 &self.current().location,
                 format_args!("Cannot infer a type from an 'init' initializer"),
             );
-            type_spec = TypeRef::TypeError;
+            type_spec = Some(Box::new(Type {
+                kind: TypeKind::Error,
+                type_ref: None,
+                span: self.current().location,
+            }));
         }
 
         // Validate if the other declaration requirements have been met
@@ -181,10 +181,14 @@ impl<'s> Parser<'s> {
                 format_args!("const declaration requires an initial value"),
             );
 
-            if matches!(type_spec, TypeRef::Unknown) {
-                type_spec = TypeRef::TypeError;
+            if type_spec.is_none() {
+                type_spec = Some(Box::new(Type {
+                    kind: TypeKind::Error,
+                    type_ref: None,
+                    span: decl_tok.location,
+                }));
             }
-        } else if type_spec == TypeRef::Unknown && assign_expr.is_none() {
+        } else if type_spec.is_none() && assign_expr.is_none() {
             // No type inferrable
             // Recoverable error, just use TypeError as the type_spec
             self.context.borrow_mut().reporter.report_error(
@@ -192,7 +196,11 @@ impl<'s> Parser<'s> {
                 format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name)
             );
 
-            type_spec = TypeRef::TypeError;
+            type_spec = Some(Box::new(Type {
+                kind: TypeKind::Error,
+                type_ref: None,
+                span: decl_tok.location,
+            }));
         }
 
         let ref_kind = if is_const {
@@ -206,7 +214,7 @@ impl<'s> Parser<'s> {
             toks.into_iter()
                 .map(|token| {
                     let location = token.location;
-                    let use_id = self.declare_ident(&token, type_spec, ref_kind, false);
+                    let use_id = self.declare_ident(&token, TypeRef::Unknown, ref_kind, false);
 
                     IdentRef::new(use_id, location)
                 })
@@ -254,90 +262,86 @@ impl<'s> Parser<'s> {
 
         // Get either the type spec, or the forward keyword
         let type_spec = if self.optional(&TokenType::Forward) {
-            None
+            Type {
+                kind: TypeKind::Forward { is_resolved: false },
+                type_ref: None,
+                span: self.previous().location,
+            }
         } else {
             // Get the type spec (in the type declaration context)
-            Some(self.parse_type(&type_tok.token_type))
+            self.parse_type(&type_tok.token_type)
         };
+        let type_spec = Box::new(type_spec);
 
         let span = span.span_to(&self.previous().location);
 
         if ident_tok.is_none() {
-            // If None, give an err (cannot declare a forward named type without an identifier)
+            // If TypeKind::Forward, give an err (cannot declare a forward named type without an identifier)
             // Else, create a dummy type decl (provide validator access to any refs inside the type)
-            let kind = match type_spec {
-                Some(type_spec) => {
+            let kind = match &type_spec.kind {
+                TypeKind::Forward { .. } => StmtKind::Error,
+                _ => {
                     StmtKind::TypeDecl {
                         ident: None,
                         resolved_type: Some(type_spec),
                         is_new_def: false, // Doesn't really matter
                     }
                 }
-                None => StmtKind::Error,
             };
 
             return Stmt { kind, span };
         }
 
-        // Declare the actual type
-        let ident_tok = ident_tok.unwrap();
-        let old_ident = self.get_ident(self.get_token_lexeme(&ident_tok));
+        let (ident, is_new_def) = {
+            let ident_tok = ident_tok.unwrap();
+            let name = self.get_token_lexeme(&ident_tok);
+            let is_new_forward_ref = matches!(type_spec.kind, TypeKind::Forward {..});
+            let old_id = self.get_ident(name);
 
-        let kind = if let Some(Type::Forward { is_resolved: false }) =
-            old_ident.as_ref().and_then(|id| {
-                let ident = self.get_ident_info(id);
+            let is_new_def = if let Some(old_id) = old_id {
+                if self.forward_refs.contains(&old_id) {
+                    if is_new_forward_ref {
+                        // Duplicate forward ref, report error
+                        self.context.borrow_mut().reporter.report_error(
+                            &ident_tok.location,
+                            format_args!("Duplicate forward type declaration"),
+                        );
+                    } else {
+                        // Found matching forward ref, remove entry
+                        self.forward_refs.remove(&old_id);
+                    }
 
-                self.type_table.type_from_ref(&ident.type_spec)
-            }) {
-            // Resolve forwards (otherwise `is_resolved` would be true)
-
-            // We known that the old ident is valid (from above condtion)
-            let old_ident_id = old_ident.unwrap();
-            let old_ident_tyspec = self.get_ident_info(&old_ident_id).type_spec;
-
-            let resolved_type = if let Some(resolve_type) = type_spec {
-                // Resolving forward, update old resolving type
-                self.replace_type(&old_ident_tyspec, Type::Forward { is_resolved: true });
-
-                Some(resolve_type)
+                    // In either case, not a new def
+                    false
+                } else {
+                    // Not a type forward ref, new declare
+                    true
+                }
             } else {
-                // Redeclaring forward, keep the same type
-                self.context.borrow_mut().reporter.report_error(
-                    &ident_tok.location,
-                    format_args!("Duplicate forward type declaration"),
-                );
-
-                None
+                // As a new def
+                true
             };
 
-            StmtKind::TypeDecl {
-                ident: Some(IdentRef::new(old_ident_id, ident_tok.location)),
-                resolved_type,
-                is_new_def: false,
-            }
-        } else {
-            // New declaration
-            let (ident, resolved_type) = if let Some(type_spec) = type_spec {
-                let alias_type = self.declare_type(Type::Alias { to: type_spec });
-                let location = ident_tok.location;
-                let new_id = self.declare_ident(&ident_tok, alias_type, RefKind::Type, false);
+            let id = if is_new_def {
+                let id = self.declare_ident(&ident_tok, TypeRef::Unknown, RefKind::Type, false);
 
-                // Normal declare
-                ((IdentRef::new(new_id, location)), Some(alias_type))
+                if matches!(type_spec.kind, TypeKind::Forward {..}) {
+                    // Add to forwarded id
+                    self.forward_refs.insert(id);
+                }
+
+                id
             } else {
-                let forward_type = self.declare_type(Type::Forward { is_resolved: false });
-                let location = ident_tok.location;
-                let new_id = self.declare_ident(&ident_tok, forward_type, RefKind::Type, false);
-
-                // Forward declare
-                ((IdentRef::new(new_id, location)), None)
+                old_id.expect("no old id")
             };
 
-            StmtKind::TypeDecl {
-                ident: Some(ident),
-                resolved_type,
-                is_new_def: true,
-            }
+            (IdentRef::new(id, ident_tok.location), is_new_def)
+        };
+
+        let kind = StmtKind::TypeDecl {
+            ident: Some(ident),
+            resolved_type: Some(type_spec),
+            is_new_def,
         };
 
         Stmt { kind, span }

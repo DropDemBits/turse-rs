@@ -3,6 +3,7 @@ use super::{ParseResult, Parser};
 use crate::token::TokenType;
 use toc_ast::ast::expr::{Expr, ExprKind, FieldDef, Literal};
 use toc_ast::ast::ident::IdentRef;
+use toc_ast::ast::types::{Type, TypeKind};
 use toc_ast::types::{self, PrimitiveType, TypeRef};
 use toc_core::Location;
 
@@ -566,11 +567,15 @@ impl<'s> Parser<'s> {
 
     /// Parses an indirection expr, using a type reference expression
     fn expr_indirect_ref(&mut self, type_ref: Expr) -> ParseResult<Expr> {
-        self.expr_indirect(
-            *type_ref.get_span(),
-            Some(Box::new(type_ref)),
-            TypeRef::Unknown,
-        )
+        let type_ref = Type {
+            span: type_ref.span,
+            type_ref: None,
+            kind: TypeKind::Reference {
+                ref_expr: Box::new(type_ref),
+            },
+        };
+
+        self.expr_indirect(type_ref.span, Box::new(type_ref))
     }
 
     /// Parses an indirection expr, using a primitive type reference
@@ -592,14 +597,13 @@ impl<'s> Parser<'s> {
         );
 
         if at.is_ok() {
-            self.expr_indirect(start_span, None, type_ref)
+            self.expr_indirect(start_span, Box::new(type_ref))
         } else {
             // Make a dummy expression
             Expr {
                 kind: ExprKind::Indirect {
-                    reference: None,
                     addr: Box::new(super::make_error_expr(self.current().location)),
-                    indirect_type: type_ref,
+                    indirect_type: Box::new(type_ref),
                 },
                 is_compile_eval: false,
                 eval_type: TypeRef::Unknown,
@@ -612,8 +616,7 @@ impl<'s> Parser<'s> {
     fn expr_indirect(
         &mut self,
         span_from: Location,
-        reference: Option<Box<Expr>>,
-        eval_type: TypeRef,
+        indirect_type: Box<Type>,
     ) -> ParseResult<Expr> {
         // ... '@' '(' expr ')'
         assert_eq!(self.previous().token_type, TokenType::At);
@@ -628,12 +631,11 @@ impl<'s> Parser<'s> {
 
         Expr {
             kind: ExprKind::Indirect {
-                reference,
                 addr,
-                indirect_type: TypeRef::Unknown,
+                indirect_type,
             },
             is_compile_eval: false,
-            eval_type,
+            eval_type: TypeRef::Unknown,
             span,
         }
     }

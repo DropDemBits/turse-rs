@@ -4,6 +4,7 @@ use super::Validator;
 use std::cmp::Ordering;
 use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, FieldDef, Literal, UnaryOp};
 use toc_ast::ast::ident::{IdentRef, RefKind};
+use toc_ast::ast::types::{Type as TypeNode, TypeKind};
 use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_core::Location;
@@ -51,40 +52,30 @@ impl Validator {
     /// Resolves an indirection expression
     pub(super) fn resolve_expr_indirect(
         &mut self,
-        reference: &mut Option<Box<Expr>>,
+        reference: &mut Box<TypeNode>,
         addr: &mut Box<Expr>,
         eval_type: &mut TypeRef,
     ) {
-        if let Some(reference) = reference {
-            self.visit_expr(reference);
-
-            // Try to fold the reference expression
-            let ref_value = self.eval_expr(reference).ok().flatten();
-            super::replace_with_folded(reference, ref_value);
-        }
-
         self.visit_expr(addr);
 
         // Try to fold the address expression
         let addr_value = self.eval_expr(addr).ok().flatten();
         super::replace_with_folded(addr, addr_value);
 
-        // `reference` must be a type reference
-        if let Some(reference) = reference {
-            if !self.is_type_reference(reference) {
-                self.context.borrow_mut().reporter.report_error(
-                    reference.get_span(),
-                    format_args!("Reference does not refer to a type"),
-                );
+        // `reference` must be a type reference or a primitive type
+        if matches!(reference.kind, TypeKind::Reference {..}) {
+            self.context.borrow_mut().reporter.report_error(
+                &reference.span,
+                format_args!("Reference does not refer to a type"),
+            );
 
-                if *eval_type == TypeRef::Unknown {
-                    // Force into a type error
-                    *eval_type = TypeRef::TypeError;
-                }
-            } else if *eval_type == TypeRef::Unknown {
-                // Use type eval of reference expr
-                *eval_type = reference.get_eval_type();
+            if *eval_type == TypeRef::Unknown {
+                // Force into a type error
+                *eval_type = TypeRef::TypeError;
             }
+        } else if *eval_type == TypeRef::Unknown {
+            // Use resolved type
+            *eval_type = reference.type_ref.expect("unresolved type");
         }
 
         // Resolve `eval_type` & de-alias it

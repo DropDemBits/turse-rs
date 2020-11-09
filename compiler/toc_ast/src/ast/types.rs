@@ -1,8 +1,32 @@
 //! Type AST Nodes
 use crate::ast::expr::Expr;
-use crate::types::{ParamDef, PrimitiveType, TypeRef};
+use crate::types::{PrimitiveType, TypeRef};
 
 use toc_core::Location;
+
+/// Sequence Size
+#[derive(Debug, Clone)]
+pub enum SeqSize {
+    /// Size is based on other factors
+    Any,
+    /// Size is based on an expression
+    Sized(Box<Expr>),
+}
+
+/// AST node version of a ParamDef
+#[derive(Debug, Clone)]
+pub struct ParamDef {
+    /// The name of the parameter
+    pub name: String,
+    /// The type_spec for the parameter
+    pub type_spec: Box<Type>,
+    // Whether to pass the parameter by reference, allowing the function to modify the value (specified by "var")
+    pub pass_by_ref: bool,
+    // Whether to bind the parameter into a register (specified by "register")
+    pub bind_to_register: bool,
+    /// Whether to coerece the type of the input argument into binding the declared type
+    pub force_type: bool,
+}
 
 /// Type Node Variants.
 /// Most of these type variants have a corresponding struction in `toc_ast::types::Type`
@@ -13,10 +37,10 @@ pub enum TypeKind {
     Error,
     /// Primitive type, with the final primitive type
     Primitive(PrimitiveType),
-    /// Sized CharN node, with an arbitrary compile-time expression
-    CharN { size: Box<Expr> },
-    /// Sized StringN node, with an arbitrary compile-time expression
-    StringN { size: Box<Expr> },
+    /// Sized CharN node, with a given sequence size
+    CharN { size: SeqSize },
+    /// Sized StringN node, with a given sequence size
+    StringN { size: SeqSize },
     /// Reference to a named type.
     /// Arbitrary expression type, and may not be a valid reference type
     Reference { ref_expr: Box<Expr> },
@@ -30,10 +54,7 @@ pub enum TypeKind {
     Enum { fields: Vec<String> },
     /// Inclusive range type.
     /// Does not contain the base type or the range size.
-    Range {
-        start: Box<Expr>,
-        end: Option<Box<Expr>>,
-    },
+    Range { start: Box<Expr>, end: SeqSize },
     /// Function / Procedure Type
     Function {
         params: Option<Vec<ParamDef>>,
@@ -59,9 +80,37 @@ pub struct Type {
 }
 
 mod pretty_print {
-    use super::{Type, TypeKind};
+    use super::{ParamDef, SeqSize, Type, TypeKind};
     use crate::pretty_print;
     use std::fmt;
+
+    impl fmt::Display for SeqSize {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                SeqSize::Any => f.write_str("*"),
+                SeqSize::Sized(expr) => expr.fmt(f),
+            }
+        }
+    }
+
+    impl fmt::Display for ParamDef {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let props = [
+                ("cheat", self.force_type),
+                ("var", self.pass_by_ref),
+                ("register", self.bind_to_register),
+            ];
+
+            for (name, is_present) in &props {
+                if *is_present {
+                    f.write_str(name)?;
+                    f.write_str(" ")?;
+                }
+            }
+
+            f.write_fmt(format_args!("{} : {}", self.name, self.type_spec))
+        }
+    }
 
     impl fmt::Display for TypeKind {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -71,15 +120,7 @@ mod pretty_print {
                     f.write_fmt(format_args!("{{ ref_expr {} }}", ref_expr))?
                 }
                 TypeKind::Range { start, end } => {
-                    f.write_str("{ range ")?;
-
-                    if let Some(end) = end {
-                        f.write_fmt(format_args!("{} .. {} ", start, end))?;
-                    } else {
-                        f.write_fmt(format_args!("{} .. * ", start))?;
-                    }
-
-                    f.write_str(" }}")?;
+                    f.write_fmt(format_args!("{{ range {} .. {} }}", start, end))?;
                 }
                 TypeKind::Array {
                     ranges,

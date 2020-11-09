@@ -16,6 +16,7 @@ use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_core::Location;
 
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
@@ -49,6 +50,9 @@ pub struct Parser<'s> {
     /// Type nesting depth
     type_nesting: usize,
 
+    /// All identifiers being used as forward references
+    forward_refs: HashSet<IdentId>,
+
     // Fragments of a code unit //
     /// If the parser is for the root unit
     is_main: bool,
@@ -78,10 +82,12 @@ impl<'s> Parser<'s> {
                 .next()
                 .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
             scanner,
-            // Clone a ref to the root block
+
             expr_nesting: 0,
             stmt_nesting: 0,
             type_nesting: 0,
+
+            forward_refs: HashSet::new(),
 
             is_main,
             unit_scope: scope::UnitScope::new(),
