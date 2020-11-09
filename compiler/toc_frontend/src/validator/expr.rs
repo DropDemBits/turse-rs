@@ -6,7 +6,7 @@ use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, FieldDef, Literal, UnaryOp};
 use toc_ast::ast::ident::{IdentRef, RefKind};
 use toc_ast::ast::types::{Type as TypeNode, TypeKind};
 use toc_ast::ast::VisitorMut;
-use toc_ast::types::{self, ParamDef, PrimitiveType, Type, TypeRef, TypeTable};
+use toc_ast::types::{self, ParamInfo, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
 impl Validator {
@@ -52,20 +52,21 @@ impl Validator {
     /// Resolves an indirection expression
     pub(super) fn resolve_expr_indirect(
         &mut self,
-        reference: &mut Box<TypeNode>,
+        indirect_type: &mut Box<TypeNode>,
         addr: &mut Box<Expr>,
         eval_type: &mut TypeRef,
     ) {
         self.visit_expr(addr);
+        self.visit_type(indirect_type);
 
         // Try to fold the address expression
         let addr_value = self.eval_expr(addr).ok().flatten();
         super::replace_with_folded(addr, addr_value);
 
         // `reference` must be a type reference or a primitive type
-        if matches!(reference.kind, TypeKind::Reference {..}) {
+        if matches!(indirect_type.kind, TypeKind::Reference {..}) {
             self.context.borrow_mut().reporter.report_error(
-                &reference.span,
+                &indirect_type.span,
                 format_args!("Reference does not refer to a type"),
             );
 
@@ -73,15 +74,10 @@ impl Validator {
                 // Force into a type error
                 *eval_type = TypeRef::TypeError;
             }
-        } else if *eval_type == TypeRef::Unknown {
-            // Use resolved type
-            *eval_type = reference.type_ref.expect("unresolved type");
         }
 
-        // Resolve `eval_type` & de-alias it
-        if !types::is_error(eval_type) {
-            *eval_type = self.dealias_resolve_type(*eval_type);
-        }
+        // Use resolved type
+        *eval_type = types::dealias_ref(indirect_type.type_ref(), &self.type_table);
 
         // `addr` must evaluate to a `nat` or `int` type, not evaluating to a type reference
         if self.is_type_reference(addr) {
@@ -144,8 +140,8 @@ impl Validator {
             return;
         }
 
-        let left_type = &self.dealias_resolve_type(left.get_eval_type());
-        let right_type = &self.dealias_resolve_type(right.get_eval_type());
+        let left_type = &types::dealias_ref(&left.get_eval_type(), &self.type_table);
+        let right_type = &types::dealias_ref(&right.get_eval_type(), &self.type_table);
 
         if types::is_error(left_type) || types::is_error(right_type) {
             // Either one is a type error
@@ -236,7 +232,7 @@ impl Validator {
             return;
         }
 
-        let right_type = &self.dealias_resolve_type(right.get_eval_type());
+        let right_type = &types::dealias_ref(&right.get_eval_type(), &self.type_table);
 
         if types::is_error(right_type) {
             // Right operand is a type error
@@ -513,13 +509,13 @@ impl Validator {
     /// and the correct argument count.
     pub(super) fn typecheck_function_arguments(
         &self,
-        params: Option<&Vec<ParamDef>>,
+        params: Option<&Vec<(TypeRef, ParamInfo)>>,
         args: &[Expr],
         at_paren: &Location,
     ) {
         if let Some(param_types) = params {
-            for (param_def, arg) in param_types.iter().zip(args.iter()) {
-                let param_dealias = types::dealias_ref(&param_def.type_spec, &self.type_table);
+            for ((param_type, param_def), arg) in param_types.iter().zip(args.iter()) {
+                let param_dealias = types::dealias_ref(&param_type, &self.type_table);
                 let arg_dealias = types::dealias_ref(&arg.get_eval_type(), &self.type_table);
 
                 if self.is_type_reference(arg) {
@@ -668,8 +664,8 @@ impl Validator {
         // All dot expressions default to runtime evaluation
         *is_compile_eval = false;
 
-        // Dealias & resolve left type
-        let left_ref = self.dealias_resolve_type(left.get_eval_type());
+        // Dealias left type
+        let left_ref = types::dealias_ref(&left.get_eval_type(), &self.type_table);
 
         debug_assert!(
             types::is_base_type(&left_ref, &self.type_table),

@@ -2,8 +2,8 @@
 use super::{ParseResult, Parser};
 use crate::token::TokenType;
 use toc_ast::ast::expr::{Expr, ExprKind, Literal};
-use toc_ast::ast::types::{ParamDef, SeqSize, Type, TypeKind};
-use toc_ast::types::{self, PrimitiveType, TypeRef};
+use toc_ast::ast::types::{SeqSize, Type, TypeKind};
+use toc_ast::types::{self, ParamInfo, PrimitiveType, TypeRef};
 
 impl<'s> Parser<'s> {
     // --- Type Parsing --- //
@@ -470,7 +470,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Parses a sequence of function variable-type parameters, producing one or more parameter definitions
-    fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<ParamDef> {
+    fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<(Box<Type>, ParamInfo)> {
         // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
 
         // Attributes apply to all idents
@@ -508,18 +508,21 @@ impl<'s> Parser<'s> {
         // Unfold the ident list into the individual parameter types
         idents
             .into_iter()
-            .map(|name| ParamDef {
-                name,
-                type_spec: type_spec.clone(),
-                pass_by_ref,
-                bind_to_register,
-                force_type,
+            .map(|name| {
+                let info = ParamInfo {
+                    name,
+                    pass_by_ref,
+                    bind_to_register,
+                    force_type,
+                };
+
+                (type_spec.clone(), info)
             })
             .collect()
     }
 
     /// Parses a single function subprogram-type parameter, producing one parameter definition
-    fn type_subprogram_param(&mut self, parse_context: &TokenType) -> ParamDef {
+    fn type_subprogram_param(&mut self, parse_context: &TokenType) -> (Box<Type>, ParamInfo) {
         // "function" | "procedure" identifier param_list
 
         // Consume "function" or "procedure"
@@ -537,13 +540,14 @@ impl<'s> Parser<'s> {
 
         let type_spec = Box::new(self.type_function(parse_context, has_result));
 
-        ParamDef {
+        let info = ParamInfo {
             name,
-            type_spec,
             pass_by_ref: false,
             bind_to_register: false,
             force_type: false,
-        }
+        };
+
+        (type_spec, info)
     }
 
     /// Try to parse either a reference, or a range.

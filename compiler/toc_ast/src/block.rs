@@ -53,17 +53,17 @@ impl CodeUnit {
     }
 
     /// Visits the AST using the given `VisitorMut`, providing mutable access
-    pub fn visit_ast_mut<T, St, Ex>(&mut self, visitor: &mut T)
+    pub fn visit_ast_mut<T, St, Ex, Ty>(&mut self, visitor: &mut T)
     where
-        T: VisitorMut<St, Ex>,
+        T: VisitorMut<St, Ex, Ty>,
     {
         visitor.visit_stmt(&mut self.root_stmt);
     }
 
     /// Visits the AST using the given Visitor, only providing immutable access
-    pub fn visit_ast<T, St, Ex>(&self, visitor: &mut T)
+    pub fn visit_ast<T, St, Ex, Ty>(&self, visitor: &mut T)
     where
-        T: Visitor<St, Ex>,
+        T: Visitor<St, Ex, Ty>,
     {
         visitor.visit_stmt(&self.root_stmt);
     }
@@ -83,6 +83,14 @@ impl CodeUnit {
         } else {
             unreachable!("not a StmtKind::Block!!!")
         }
+    }
+
+    pub fn root_stmt(&self) -> &Stmt {
+        &self.root_stmt
+    }
+
+    pub fn root_stmt_mut(&mut self) -> &mut Stmt {
+        &mut self.root_stmt
     }
 
     pub fn unit_scope(&self) -> &UnitScope {

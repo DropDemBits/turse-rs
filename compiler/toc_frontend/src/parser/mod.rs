@@ -1382,12 +1382,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(get_ident(&parser, "a").is_some());
         let type_ref = get_ident(&parser, "a").unwrap().type_spec;
         assert!(
-            matches!(
-                parser.type_table.type_from_ref(&type_ref),
-                Some(Type::Alias {
-                    to: TypeRef::TypeError,
-                })
-            ),
+            matches!(parser.type_table.type_from_ref(&type_ref), None),
             "From ref {:?} to {:?}",
             type_ref,
             parser.type_table.type_from_ref(&type_ref)
@@ -1404,9 +1399,7 @@ type enumeration : enum (a, b, c, d, e, f)
                 parser
                     .type_table
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
-                Some(Type::Alias {
-                    to: TypeRef::Primitive(PrimitiveType::Int),
-                })
+                Some(Type::Forward { .. }) // Not resolved until the validator stage
             )
         );
         assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);

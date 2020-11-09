@@ -1,6 +1,6 @@
 //! Type AST Nodes
 use crate::ast::expr::Expr;
-use crate::types::{PrimitiveType, TypeRef};
+use crate::types::{ParamInfo, PrimitiveType, TypeRef};
 
 use toc_core::Location;
 
@@ -11,21 +11,6 @@ pub enum SeqSize {
     Any,
     /// Size is based on an expression
     Sized(Box<Expr>),
-}
-
-/// AST node version of a ParamDef
-#[derive(Debug, Clone)]
-pub struct ParamDef {
-    /// The name of the parameter
-    pub name: String,
-    /// The type_spec for the parameter
-    pub type_spec: Box<Type>,
-    // Whether to pass the parameter by reference, allowing the function to modify the value (specified by "var")
-    pub pass_by_ref: bool,
-    // Whether to bind the parameter into a register (specified by "register")
-    pub bind_to_register: bool,
-    /// Whether to coerece the type of the input argument into binding the declared type
-    pub force_type: bool,
 }
 
 /// Type Node Variants.
@@ -45,7 +30,7 @@ pub enum TypeKind {
     /// Arbitrary expression type, and may not be a valid reference type
     Reference { ref_expr: Box<Expr> },
     /// Forward reference to a type
-    Forward { is_resolved: bool },
+    Forward,
     /// Pointer to another Type
     Pointer { to: Box<Type>, is_unchecked: bool },
     /// Set type
@@ -57,7 +42,7 @@ pub enum TypeKind {
     Range { start: Box<Expr>, end: SeqSize },
     /// Function / Procedure Type
     Function {
-        params: Option<Vec<ParamDef>>,
+        params: Option<Vec<(Box<Type>, ParamInfo)>>,
         result: Option<Box<Type>>,
     },
     /// Array type
@@ -79,8 +64,22 @@ pub struct Type {
     pub span: Location,
 }
 
+impl Type {
+    pub fn new(kind: TypeKind, span: Location) -> Self {
+        Self {
+            kind,
+            type_ref: None,
+            span,
+        }
+    }
+
+    pub fn type_ref(&self) -> &TypeRef {
+        self.type_ref.as_ref().expect("unresolved type")
+    }
+}
+
 mod pretty_print {
-    use super::{ParamDef, SeqSize, Type, TypeKind};
+    use super::{SeqSize, Type, TypeKind};
     use crate::pretty_print;
     use std::fmt;
 
@@ -90,25 +89,6 @@ mod pretty_print {
                 SeqSize::Any => f.write_str("*"),
                 SeqSize::Sized(expr) => expr.fmt(f),
             }
-        }
-    }
-
-    impl fmt::Display for ParamDef {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let props = [
-                ("cheat", self.force_type),
-                ("var", self.pass_by_ref),
-                ("register", self.bind_to_register),
-            ];
-
-            for (name, is_present) in &props {
-                if *is_present {
-                    f.write_str(name)?;
-                    f.write_str(" ")?;
-                }
-            }
-
-            f.write_fmt(format_args!("{} : {}", self.name, self.type_spec))
         }
     }
 
@@ -146,12 +126,8 @@ mod pretty_print {
                     f.write_str(")")?;
                 }
                 TypeKind::Set { range } => f.write_fmt(format_args! {"{{ set of {} }}", range})?,
-                TypeKind::Forward { is_resolved } => {
-                    if *is_resolved {
-                        f.write_str("{ resolved forward }")?;
-                    } else {
-                        f.write_str("{ forward }")?;
-                    }
+                TypeKind::Forward => {
+                    f.write_str("{ forward }")?;
                 }
                 TypeKind::Pointer { to, is_unchecked } => {
                     if *is_unchecked {
@@ -169,7 +145,17 @@ mod pretty_print {
 
                     if let Some(params) = params {
                         f.write_str("(")?;
-                        pretty_print::print_list(f, params.iter())?;
+
+                        let mut peek_enumerate = params.iter().peekable();
+
+                        while let Some((tyref, info)) = peek_enumerate.next() {
+                            f.write_fmt(format_args!("{} : {}", info, tyref))?;
+
+                            if peek_enumerate.peek().is_some() {
+                                f.write_str(", ")?;
+                            }
+                        }
+
                         f.write_str(") ")?;
                     }
 

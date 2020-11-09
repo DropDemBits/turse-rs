@@ -6,7 +6,7 @@ use toc_ast::ast::ident::{IdentRef, RefKind};
 use toc_ast::ast::stmt::{self, Stmt, StmtKind};
 use toc_ast::ast::types::{Type, TypeKind};
 use toc_ast::block::BlockKind;
-use toc_ast::types::TypeRef;
+use toc_ast::types::{Type as TypeInfo, TypeRef};
 
 impl<'s> Parser<'s> {
     // --- Decl Parsing --- //
@@ -263,7 +263,7 @@ impl<'s> Parser<'s> {
         // Get either the type spec, or the forward keyword
         let type_spec = if self.optional(&TokenType::Forward) {
             Type {
-                kind: TypeKind::Forward { is_resolved: false },
+                kind: TypeKind::Forward,
                 type_ref: None,
                 span: self.previous().location,
             }
@@ -271,19 +271,19 @@ impl<'s> Parser<'s> {
             // Get the type spec (in the type declaration context)
             self.parse_type(&type_tok.token_type)
         };
-        let type_spec = Box::new(type_spec);
 
+        let type_spec = Box::new(type_spec);
         let span = span.span_to(&self.previous().location);
 
         if ident_tok.is_none() {
             // If TypeKind::Forward, give an err (cannot declare a forward named type without an identifier)
             // Else, create a dummy type decl (provide validator access to any refs inside the type)
             let kind = match &type_spec.kind {
-                TypeKind::Forward { .. } => StmtKind::Error,
+                TypeKind::Forward => StmtKind::Error,
                 _ => {
                     StmtKind::TypeDecl {
                         ident: None,
-                        resolved_type: Some(type_spec),
+                        new_type: type_spec,
                         is_new_def: false, // Doesn't really matter
                     }
                 }
@@ -295,8 +295,9 @@ impl<'s> Parser<'s> {
         let (ident, is_new_def) = {
             let ident_tok = ident_tok.unwrap();
             let name = self.get_token_lexeme(&ident_tok);
-            let is_new_forward_ref = matches!(type_spec.kind, TypeKind::Forward {..});
+            let is_new_forward_ref = matches!(type_spec.kind, TypeKind::Forward);
             let old_id = self.get_ident(name);
+            let mut is_resolved = false;
 
             let is_new_def = if let Some(old_id) = old_id {
                 if self.forward_refs.contains(&old_id) {
@@ -315,24 +316,36 @@ impl<'s> Parser<'s> {
                     false
                 } else {
                     // Not a type forward ref, new declare
+                    is_resolved = true;
                     true
                 }
             } else {
-                // As a new def
+                // As a new def, new type
+                is_resolved = !is_new_forward_ref;
                 true
             };
 
             let id = if is_new_def {
-                let id = self.declare_ident(&ident_tok, TypeRef::Unknown, RefKind::Type, false);
+                // Make new forward placeholder type (can nab later)
+                let forward_ref = self.declare_type(TypeInfo::Forward { is_resolved });
+                let id = self.declare_ident(&ident_tok, forward_ref, RefKind::Type, false);
 
-                if matches!(type_spec.kind, TypeKind::Forward {..}) {
+                if is_new_forward_ref {
                     // Add to forwarded id
                     self.forward_refs.insert(id);
                 }
 
                 id
             } else {
-                old_id.expect("no old id")
+                let old_id = old_id.expect("no old id");
+
+                if !is_new_forward_ref {
+                    // Replace old type with the resolved version
+                    let info_spec = self.get_ident_info(&old_id).type_spec;
+                    self.replace_type(&info_spec, TypeInfo::Forward { is_resolved: true });
+                }
+
+                old_id
             };
 
             (IdentRef::new(id, ident_tok.location), is_new_def)
@@ -340,7 +353,7 @@ impl<'s> Parser<'s> {
 
         let kind = StmtKind::TypeDecl {
             ident: Some(ident),
-            resolved_type: Some(type_spec),
+            new_type: type_spec,
             is_new_def,
         };
 

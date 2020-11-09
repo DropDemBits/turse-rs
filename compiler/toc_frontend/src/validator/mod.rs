@@ -17,10 +17,11 @@ use crate::context::CompileContext;
 use toc_ast::ast::expr::{Expr, ExprKind, Literal};
 use toc_ast::ast::ident::{IdentId, RefKind};
 use toc_ast::ast::stmt::{Stmt, StmtKind};
+use toc_ast::ast::types::{Type as TypeNode, TypeKind};
 use toc_ast::ast::VisitorMut;
 use toc_ast::scope::{ScopeBlock, UnitScope};
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
-use toc_ast::types::{Type, TypeRef, TypeTable};
+use toc_ast::types::{PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
 
@@ -28,16 +29,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
-
-/// Type resolving context
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-enum ResolveContext {
-    /// Any resolution phase (runtime/compile-time) is valid
-    Any,
-    /// Everything must be resolved at compile time
-    /// `bool` is for whether 'forward' unnamed types is allowed
-    CompileTime(bool),
-}
 
 /// Validator Instance
 pub struct Validator {
@@ -50,8 +41,6 @@ pub struct Validator {
     /// Mapping of all compile-time values
     compile_values: HashMap<IdentId, Value>,
 }
-
-type ResolveResult = Option<TypeRef>;
 
 impl Validator {
     pub fn new(
@@ -75,7 +64,7 @@ impl Validator {
     }
 
     /// De-aliases a type ref, following through `Type::Alias`'s and resolving `Type::Reference`s.
-    fn dealias_resolve_type(&mut self, type_ref: TypeRef) -> TypeRef {
+    /*fn dealias_resolve_type(&mut self, type_ref: TypeRef) -> TypeRef {
         let type_id = if let Some(id) = ty::get_type_id(&type_ref) {
             id
         } else {
@@ -128,7 +117,7 @@ impl Validator {
 
         // At the end of the aliasing chain
         current_ref
-    }
+    }*/
 
     /// Reports unused identifiers in the given scope
     fn report_unused_identifiers(&self, block: &ScopeBlock) {
@@ -429,7 +418,7 @@ impl Validator {
     }
 }
 
-impl VisitorMut<(), ()> for Validator {
+impl VisitorMut<(), (), ()> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
             StmtKind::Nop | StmtKind::Error => {}
@@ -441,9 +430,9 @@ impl VisitorMut<(), ()> for Validator {
             } => self.resolve_decl_var(idents, type_spec, value, *is_const),
             StmtKind::TypeDecl {
                 ident,
-                resolved_type,
+                new_type,
                 is_new_def,
-            } => self.resolve_decl_type(ident, resolved_type, *is_new_def),
+            } => self.resolve_decl_type(ident, new_type, *is_new_def),
             StmtKind::Assign { var_ref, op, value } => {
                 self.resolve_stmt_assign(var_ref, op.as_mut(), value)
             }
@@ -540,6 +529,56 @@ impl VisitorMut<(), ()> for Validator {
             ExprKind::Literal { value, .. } => {
                 self.resolve_expr_literal(value, &mut visit_expr.eval_type)
             }
+        }
+    }
+
+    fn visit_type(&mut self, ty: &mut TypeNode) {
+        if ty.type_ref.is_some() {
+            // Already resolved
+            return;
+        }
+
+        match &mut ty.kind {
+            TypeKind::Error => ty.type_ref = Some(TypeRef::TypeError),
+            TypeKind::Primitive(prim) => {
+                // Primitive should not be either of the sized types
+                assert!(!matches!(prim, PrimitiveType::CharN(_) | PrimitiveType::StringN(_)));
+                ty.type_ref = Some(TypeRef::Primitive(*prim))
+            }
+            TypeKind::CharN { size } => {
+                self.resolve_type_char_seq(&mut ty.type_ref, PrimitiveType::Char, size)
+            }
+            TypeKind::StringN { size } => {
+                self.resolve_type_char_seq(&mut ty.type_ref, PrimitiveType::String_, size)
+            }
+            TypeKind::Reference { ref_expr } => {
+                self.resolve_type_reference(&mut ty.type_ref, ref_expr, false)
+            }
+            TypeKind::Forward => self.resolve_type_forward(&mut ty.type_ref),
+            TypeKind::Pointer { is_unchecked, to } => {
+                self.resolve_type_pointer(&mut ty.type_ref, *is_unchecked, to)
+            }
+            TypeKind::Set { range } => self.resolve_type_set(&mut ty.type_ref, range),
+            TypeKind::Enum { fields } => self.resolve_type_enum(&mut ty.type_ref, fields),
+            TypeKind::Range { start, end } => {
+                self.resolve_type_range(&mut ty.type_ref, start, end, &ty.span, false)
+            }
+            TypeKind::Function { params, result } => {
+                self.resolve_type_function(&mut ty.type_ref, params, result)
+            }
+            TypeKind::Array {
+                ranges,
+                element_type,
+                is_flexible,
+                is_init_sized,
+            } => self.resolve_type_array(
+                &mut ty.type_ref,
+                ranges,
+                element_type,
+                *is_flexible,
+                *is_init_sized,
+                false,
+            ),
         }
     }
 }
