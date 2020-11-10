@@ -673,13 +673,31 @@ impl<'s> Parser<'s> {
             // report warning!
             self.warn_found_as_something_else("endif", "end if", &self.previous().location);
         } else {
-            // Nom `end` `if`
-            let _ = self.expects(
+            // Nom `end`
+            let end_tok = self.expects(
                 TokenType::End,
                 format_args!("Expected 'end' at the end of the if statement"),
             );
-            // TODO: warn about `end` and `if` not being on the same line
-            let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
+
+            if let Ok(end_tok) = end_tok {
+                // Check for 'if' after end_tok
+
+                // `if` and `end` are likely on the same line, so don't nom the following `if` token
+                // as that wouldn't allow the next if statement to be parsed
+
+                if matches!(self.current().token_type, TokenType::If)
+                    && end_tok.location.line == self.current().location.line
+                {
+                    // Nom 'if' normally
+                    let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
+                } else {
+                    // Warn about missing `if`
+                    self.context.borrow_mut().reporter.report_error(
+                        &end_tok.location,
+                        format_args!("Missing 'if' after 'end' to finish statement"),
+                    );
+                }
+            }
         }
     }
 
