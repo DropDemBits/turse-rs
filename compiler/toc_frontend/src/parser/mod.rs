@@ -815,7 +815,7 @@ mod test {
         assert!(!parser.parse());
     }
 
-    #[test]
+    //#[test] // Disabled before migration to file-based testing
     fn test_primitive_type_parser() {
         let mut parser = make_test_parser(
             "
