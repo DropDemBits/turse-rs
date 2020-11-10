@@ -75,12 +75,8 @@ impl<'s> Parser<'s> {
             context,
             source,
             previous: Token::new(TokenType::Error, Location::new()),
-            current: scanner
-                .next()
-                .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
-            peek: scanner
-                .next()
-                .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
+            current: scanner.next().unwrap_or_else(|| scanner.make_eof_here()),
+            peek: scanner.next().unwrap_or_else(|| scanner.make_eof_here()),
             scanner,
 
             expr_nesting: 0,
@@ -177,7 +173,7 @@ impl<'s> Parser<'s> {
         self.peek = self
             .scanner
             .next()
-            .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new()));
+            .unwrap_or_else(|| self.scanner.make_eof_here());
     }
 
     /// Advances to the next token, returning the previous token

@@ -190,6 +190,13 @@ impl<'s> Scanner<'s> {
         }
     }
 
+    /// Makes an end of file token at the current location.
+    ///
+    /// Only used to make the eof token at the correct location.
+    pub fn make_eof_here(&self) -> Token<'s> {
+        Token::new(TokenType::Eof, self.cursor)
+    }
+
     // Checks if the end of the stream has been reached
     fn is_at_end(&self) -> bool {
         self.cursor.end >= self.source.len()

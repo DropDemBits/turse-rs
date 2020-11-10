@@ -678,6 +678,7 @@ impl<'s> Parser<'s> {
                 TokenType::End,
                 format_args!("Expected 'end' at the end of the if statement"),
             );
+            // TODO: warn about `end` and `if` not being on the same line
             let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
         }
     }
