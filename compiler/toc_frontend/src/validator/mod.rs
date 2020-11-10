@@ -1413,7 +1413,7 @@ mod test {
 
         // Allowed to be used in reference position
         assert_eq!(true, run_validator("int @ (0) := 1"));
-        //assert_eq!(true, run_validator("char(3) @ (1) := 'aaa'")); // not fully checked!
+        assert_eq!(true, run_validator("char(3) @ (1) := 'aaa'"));
         assert_eq!(true, run_validator("type bambam : int\nbambam @ (0) := 1"));
     }
 

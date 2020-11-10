@@ -356,9 +356,9 @@ impl<'s> Parser<'s> {
 
     fn stmt(&mut self) -> ParseResult<Stmt> {
         match self.current().token_type {
-            TokenType::Identifier | TokenType::Caret => self.stmt_reference(),
-            // TODO: Looks dirty, please merge with above
-            TokenType::Addressint
+            TokenType::Identifier
+            | TokenType::Caret
+            | TokenType::Addressint
             | TokenType::Int
             | TokenType::Int1
             | TokenType::Int2
@@ -372,10 +372,9 @@ impl<'s> Parser<'s> {
             | TokenType::Real8
             | TokenType::Boolean
             | TokenType::Char
-            | TokenType::String_
-                if matches!(self.peek().token_type, TokenType::At) =>
-            {
-                // Part of an indirect reference
+            | TokenType::String_ => {
+                // Identifier & caret begin a regular reference
+                // Primitive types form part of an indirect reference
                 self.stmt_reference()
             }
             TokenType::Begin => self.stmt_block(),
