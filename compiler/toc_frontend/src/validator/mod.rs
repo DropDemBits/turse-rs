@@ -63,62 +63,6 @@ impl Validator {
         (type_table, unit_scope)
     }
 
-    /// De-aliases a type ref, following through `Type::Alias`'s and resolving `Type::Reference`s.
-    /*fn dealias_resolve_type(&mut self, type_ref: TypeRef) -> TypeRef {
-        let type_id = if let Some(id) = ty::get_type_id(&type_ref) {
-            id
-        } else {
-            // Non-named types don't need to be dealiased (already at the base type)
-            return type_ref;
-        };
-
-        if !self.type_table.is_indirect_alias(type_id) {
-            // Any compound types that aren't Alias or Reference do not need to be
-            // dealiased (already pointing to the base types)
-            return type_ref;
-        }
-
-        // Type is either an alias, or a reference (to resolve)
-        // Walk the alias tree
-        let mut current_ref = type_ref;
-
-        if matches!(self.type_table.get_type(type_id), Type::Reference { .. }) {
-            // Resolve an immediate reference
-            current_ref = self.resolve_type(current_ref, ResolveContext::CompileTime(false));
-        }
-
-        // Walk the aliasing list
-        //
-        // We do not have to worry about a cyclic chain of aliases as the
-        // parser should not produce such a alias cyclic chain, and when using
-        // external libraries, the type references should be validated to not
-        // produce a cyclic reference chain.
-        while let Some(current_id) = ty::get_type_id(&current_ref) {
-            // Reference types should already be resolved
-            let mut type_info = self.type_table.get_type(current_id).clone();
-            debug_assert!(!matches!(type_info, Type::Reference { .. }));
-
-            match &mut type_info {
-                Type::Alias { to } => {
-                    if let Some(Type::Reference { .. }) = self.type_table.type_from_ref(&to) {
-                        *to = self.resolve_type(*to, ResolveContext::CompileTime(false));
-                    }
-
-                    // Walk to the next id
-                    current_ref = *to;
-                }
-                Type::Reference { .. } => panic!("Unresolved reference type"),
-                _ => break, // Not either of the above, can stop
-            }
-
-            // Update the alias reference
-            self.type_table.replace_type(current_id, type_info);
-        }
-
-        // At the end of the aliasing chain
-        current_ref
-    }*/
-
     /// Reports unused identifiers in the given scope
     fn report_unused_identifiers(&self, block: &ScopeBlock) {
         let mut unique_undeclared = std::collections::HashSet::new();

@@ -71,13 +71,11 @@ impl<'s> Parser<'s> {
     }
 
     fn decl_var(&mut self, is_const: bool) -> ParseResult<Stmt> {
-        let decl_name = if is_const { "const" } else { "var" };
-
-        // Consume decl_tok
+        // Consume decl_tok (const or var)
         let decl_tok = self.next_token();
         let span = decl_tok.location;
 
-        // Grab identifier token
+        // Grab identifier tokens
         let ident_tokens = {
             let mut idents = vec![];
 
@@ -96,10 +94,12 @@ impl<'s> Parser<'s> {
                 idents.push(token.unwrap());
 
                 if !self.optional(&TokenType::Comma) {
+                    // No more, break out
                     break;
                 }
             }
 
+            // Transform an empty vec to a None to mean no identifiers at all
             if idents.is_empty() {
                 None
             } else {
@@ -117,7 +117,6 @@ impl<'s> Parser<'s> {
         };
 
         // Grab assign value
-        let has_init_expr;
         let assign_expr = if self.is_simple_assignment() {
             if self.current().token_type == TokenType::Equ {
                 // Warn of mistake
@@ -127,12 +126,9 @@ impl<'s> Parser<'s> {
             // Consume assign
             self.next_token();
 
-            has_init_expr = matches!(self.current().token_type, TokenType::Init);
-
             // Get the assign expression
-            let asn_expr = if has_init_expr {
+            let asn_expr = if self.optional(&TokenType::Init) {
                 // Parse the init expr
-                self.next_token();
                 self.expr_init()
             } else {
                 // Parse a normal expr
@@ -141,9 +137,14 @@ impl<'s> Parser<'s> {
 
             Some(Box::new(asn_expr))
         } else {
-            has_init_expr = false;
+            // Token is not a simple assignment, so no initializing expr
             None
         };
+
+        let has_init_expr = matches!(
+            assign_expr.as_ref().map(|v| &v.kind),
+            Some(ExprKind::Init { .. })
+        );
 
         // Check if the init expression was required to be present or absent
         // Required to be present when the type_spec is an array, and is init-sized
@@ -163,10 +164,11 @@ impl<'s> Parser<'s> {
                 &self.current().location,
                 format_args!("Cannot infer a type from an 'init' initializer"),
             );
-            type_spec = Some(Box::new(Type {
+
+            type_spec.replace(Box::new(Type {
                 kind: TypeKind::Error,
                 type_ref: None,
-                span: self.current().location,
+                span: Default::default(),
             }));
         }
 
@@ -174,6 +176,7 @@ impl<'s> Parser<'s> {
         // Otherwise, produce an error and a TypeError
         if is_const && assign_expr.is_none() {
             // const declares require the assignment expression
+
             // Recoverable error
             // If the type is still unknown, just use TypeError as the type_spec
             self.context.borrow_mut().reporter.report_error(
@@ -181,22 +184,20 @@ impl<'s> Parser<'s> {
                 format_args!("const declaration requires an initial value"),
             );
 
-            if type_spec.is_none() {
-                type_spec = Some(Box::new(Type {
-                    kind: TypeKind::Error,
-                    type_ref: None,
-                    span: decl_tok.location,
-                }));
-            }
+            type_spec.replace(Box::new(Type {
+                kind: TypeKind::Error,
+                type_ref: None,
+                span: decl_tok.location,
+            }));
         } else if type_spec.is_none() && assign_expr.is_none() {
             // No type inferrable
             // Recoverable error, just use TypeError as the type_spec
             self.context.borrow_mut().reporter.report_error(
                 &decl_tok.location,
-                format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_name)
+                format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_tok.token_type)
             );
 
-            type_spec = Some(Box::new(Type {
+            type_spec.replace(Box::new(Type {
                 kind: TypeKind::Error,
                 type_ref: None,
                 span: decl_tok.location,
@@ -248,17 +249,11 @@ impl<'s> Parser<'s> {
             )
             .ok();
 
-        if ident_tok.is_some() {
-            // Only require a colon if there was an identifier
-            let _ = self.expects(
-                TokenType::Colon,
-                format_args!("Expected ':' after identifier"),
-            );
-        } else {
-            // If there is a ':', consume it
-            // Otherwise, continue onwards
-            let _ = self.optional(&TokenType::Colon);
-        }
+        // Expect ':'
+        let _ = self.expects(
+            TokenType::Colon,
+            format_args!("Expected ':' after identifier"),
+        );
 
         // Get either the type spec, or the forward keyword
         let type_spec = if self.optional(&TokenType::Forward) {
@@ -276,29 +271,25 @@ impl<'s> Parser<'s> {
         let span = span.span_to(&self.previous().location);
 
         if ident_tok.is_none() {
-            // If TypeKind::Forward, give an err (cannot declare a forward named type without an identifier)
-            // Else, create a dummy type decl (provide validator access to any refs inside the type)
-            let kind = match &type_spec.kind {
-                TypeKind::Forward => StmtKind::Error,
-                _ => {
-                    StmtKind::TypeDecl {
-                        ident: None,
-                        new_type: type_spec,
-                        is_new_def: false, // Doesn't really matter
-                    }
-                }
+            // Create a dummy type decl to provide validator access & report any errors
+            let kind = StmtKind::TypeDecl {
+                ident: None,
+                new_type: type_spec,
+                is_new_def: false, // Doesn't really matter
             };
 
             return Stmt { kind, span };
         }
 
+        let ident_tok = ident_tok.unwrap();
+
         let (ident, is_new_def) = {
-            let ident_tok = ident_tok.unwrap();
-            let name = self.get_token_lexeme(&ident_tok);
             let is_new_forward_ref = matches!(type_spec.kind, TypeKind::Forward);
+            let name = self.get_token_lexeme(&ident_tok);
             let old_id = self.get_ident(name);
             let mut is_resolved = false;
 
+            // Check if it's a new type definition
             let is_new_def = if let Some(old_id) = old_id {
                 if self.forward_refs.contains(&old_id) {
                     if is_new_forward_ref {
@@ -325,13 +316,14 @@ impl<'s> Parser<'s> {
                 true
             };
 
+            // Either take the old id to replace the ref later, or create a new type declaration
             let id = if is_new_def {
                 // Make new forward placeholder type (can nab later)
-                let forward_ref = self.declare_type(TypeInfo::Forward { is_resolved });
-                let id = self.declare_ident(&ident_tok, forward_ref, RefKind::Type, false);
+                let ty_forward = self.declare_type(TypeInfo::Forward { is_resolved });
+                let id = self.declare_ident(&ident_tok, ty_forward, RefKind::Type, false);
 
                 if is_new_forward_ref {
-                    // Add to forwarded id
+                    // Add to forwarded ids
                     self.forward_refs.insert(id);
                 }
 
@@ -340,7 +332,7 @@ impl<'s> Parser<'s> {
                 let old_id = old_id.expect("no old id");
 
                 if !is_new_forward_ref {
-                    // Replace old type with the resolved version
+                    // Replace old forward type with the resolved forward version
                     let info_spec = self.get_ident_info(&old_id).type_spec;
                     self.replace_type(&info_spec, TypeInfo::Forward { is_resolved: true });
                 }

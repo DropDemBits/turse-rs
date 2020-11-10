@@ -206,7 +206,7 @@ impl<'s> Parser<'s> {
 
     /// Gets the size specifier for a char(n) or string(n)
     fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<SeqSize, ()> {
-        match self.current().token_type {
+        let maybe_seq_size = match self.current().token_type {
             TokenType::NatLiteral(size)
                 if matches!(self.peek().token_type, TokenType::RightParen) =>
             {
@@ -268,13 +268,7 @@ impl<'s> Parser<'s> {
                 // Resolved at validator time
                 let size_expr = self.expr();
 
-                // Expect a right paren after the expression
-                if !matches!(self.current().token_type, TokenType::RightParen) {
-                    // Let the caller handle it
-                    return Err(());
-                }
-
-                // Put the parsed expression into a type table reference
+                // Put the parsed expression into a box
                 match size_expr.kind {
                     ExprKind::Error => {
                         self.context.borrow_mut().reporter.report_error(
@@ -286,7 +280,15 @@ impl<'s> Parser<'s> {
                     _ => Ok(SeqSize::Sized(Box::new(size_expr))),
                 }
             }
-        }
+        };
+
+        // Expect a right paren after the length specifier
+        let _ = self.expects(
+            TokenType::RightParen,
+            format_args!("Expected ')' after length specifier"),
+        );
+
+        maybe_seq_size
     }
 
     /// Parse character sequence (string, char, char(n))
@@ -308,24 +310,12 @@ impl<'s> Parser<'s> {
             // Try to get the size
             let parsed_size = self.get_size_specifier(parse_context);
 
-            // Missing ) is recoverable
-            let _ = self.expects(
-                TokenType::RightParen,
-                format_args!("Expected ')' after length specifier"),
-            );
-
-            if is_char_type {
-                match parsed_size {
-                    Ok(size) => TypeKind::CharN { size },
-                    // Try to return as a single char, for preserving validator semantics and preserving compatibility with Turing proper
-                    Err(_) => TypeKind::Primitive(PrimitiveType::Char),
-                }
-            } else {
-                match parsed_size {
-                    Ok(size) => TypeKind::StringN { size },
-                    // Try to return as a normal string, for preserving validator semantics
-                    Err(_) => TypeKind::Primitive(PrimitiveType::String_),
-                }
+            match parsed_size {
+                Ok(size) if is_char_type => TypeKind::CharN { size },
+                Ok(size) => TypeKind::StringN { size },
+                // Try to return as the base type, for preserving validator semantics and preserving compatibility with Turing proper
+                Err(_) if is_char_type => TypeKind::Primitive(PrimitiveType::Char),
+                Err(_) => TypeKind::Primitive(PrimitiveType::String_),
             }
         } else {
             // Produce base versions
