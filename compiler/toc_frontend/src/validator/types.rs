@@ -154,15 +154,13 @@ impl Validator {
                     {
                         // Not being `flexible` nor `init`-sized does not guarrantee that `end`
                         // is an `EndBound::Constant` (e.g. something hidden behind an alias)
-                        if !matches!(end, types::RangeBound::Unknown) {
-                            if *size == Some(0) {
-                                // Zero sized ranges aren't allowed in compile-time array types
-                                self.context.borrow_mut().reporter.report_error(
-                                    &range.span,
-                                    format_args!("Range bounds creates a zero-sized range"),
-                                );
-                                range_ref = TypeRef::TypeError;
-                            }
+                        if !matches!(end, types::RangeBound::Unknown) && *size == Some(0) {
+                            // Zero sized ranges aren't allowed in compile-time array types
+                            self.context.borrow_mut().reporter.report_error(
+                                &range.span,
+                                format_args!("Range bounds creates a zero-sized range"),
+                            );
+                            range_ref = TypeRef::TypeError;
                         }
                     }
                 }
@@ -581,11 +579,7 @@ impl Validator {
         *type_ref = Some(TypeRef::Named(ptr));
     }
 
-    pub(super) fn resolve_type_enum(
-        &mut self,
-        type_ref: &mut Option<TypeRef>,
-        fields: &Vec<String>,
-    ) {
+    pub(super) fn resolve_type_enum(&mut self, type_ref: &mut Option<TypeRef>, fields: &[String]) {
         // Make enum stuff
         let parent_enum = self
             .type_table

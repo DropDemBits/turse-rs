@@ -634,7 +634,7 @@ impl<'s> Parser<'s> {
         };
 
         if let SeqSize::Sized(expr) = &end_range {
-            if let &ExprKind::Error = &expr.kind {
+            if let ExprKind::Error = expr.kind {
                 // End range is not a valid range
                 self.context.borrow_mut().reporter.report_error(
                     &range_tok.location,
