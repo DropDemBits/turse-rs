@@ -32,6 +32,11 @@ fn main() {
         "Dumps the specified structure\n('KIND' can 'ast', 'scope', or 'types')",
         "KIND",
     );
+    opts.optflag(
+        "",
+        "only_parser",
+        "Only runs the parser stage. Used for testing",
+    );
     opts.optflag("M", "mute_warnings", "Mutes all warnings");
     opts.optflag("", "help", "Shows this help message");
 
@@ -53,8 +58,9 @@ fn main() {
     if let Some(source_path) = matches.opt_str("build") {
         let dump_out = matches.opt_strs("dump");
         let mute_warnings = matches.opt_present("mute_warnings");
+        let only_parser = matches.opt_present("only_parser");
 
-        if !toc::compile_file(&source_path, dump_out, mute_warnings) {
+        if !toc::compile_file(&source_path, dump_out, mute_warnings, only_parser) {
             // Exit with a non-zero status
             std::process::exit(-1);
         }

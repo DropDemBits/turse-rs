@@ -11,26 +11,7 @@ use toc_frontend::{
     context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
 };
 
-/// Compiles the given file
-///
-/// # Returns
-/// Returns whether compilation was successful or not
-pub fn compile_file(path: &str, dump_out: Vec<String>, mute_warnings: bool) -> bool {
-    // Load file
-    let file_contents = match fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Failed to read in file: {}", e.to_string());
-            return false;
-        }
-    };
-
-    let (unit, context) = compile_file_source(path, &file_contents);
-    let (unit, success) = resolve_unit(unit, &context);
-
-    // Dump all messages
-    context.borrow_mut().reporter.report_messages(mute_warnings);
-
+fn dump_info(unit: &CodeUnit, dump_out: &[String]) {
     if dump_out.iter().any(|elem| elem == "ast") {
         // Pretty-print AST
         println!("ast: [");
@@ -49,6 +30,44 @@ pub fn compile_file(path: &str, dump_out: Vec<String>, mute_warnings: bool) -> b
         // Pretty-print types
         println!("types: {}", unit.types());
     }
+}
+
+/// Compiles the given file
+///
+/// # Returns
+/// Returns whether compilation was successful or not
+pub fn compile_file(
+    path: &str,
+    dump_out: Vec<String>,
+    mute_warnings: bool,
+    only_parser: bool,
+) -> bool {
+    // Load file
+    let file_contents = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to read in file: {}", e.to_string());
+            return false;
+        }
+    };
+
+    let (unit, context) = compile_file_source(path, &file_contents);
+
+    if only_parser {
+        // Dump everything now
+        dump_info(&unit, &dump_out);
+        let success = !context.borrow().reporter.has_error();
+        context.borrow_mut().reporter.report_messages(mute_warnings);
+
+        // Don't bother continuing
+        return success;
+    }
+
+    let (unit, success) = resolve_unit(unit, &context);
+
+    // Dump all messages
+    dump_info(&unit, &dump_out);
+    context.borrow_mut().reporter.report_messages(mute_warnings);
 
     success
 }
@@ -76,6 +95,7 @@ pub fn resolve_unit(
     let unit_scope = code_unit.take_unit_scope();
 
     // TODO: Provide inter-unit type resolution stage
+
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
 
     // Validate AST
