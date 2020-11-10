@@ -83,15 +83,13 @@ end
 %%% ]
 
 %%% expected stderr:
-%%% error line:7 column:20-30 Invalid maximum string length of '0'
-%%% error line:8 column:22-24 Invalid maximum string length of '0'
-%%% error line:14 column:20-26 Compile-time string length specifier is negative
-%%% error line:15 column:22-24 Compile-time string length specifier is negative
-%%% error line:21 column:20-30 '65540' is larger than or equal to the maximum string length of '65536' (after including the end byte)
-%%% error line:22 column:22-24 '65536' is larger than or equal to the maximum string length of '65536' (after including the end byte)
-%%% error line:27 column:20-31 Wrong type for a string length specifier
-%%% error line:28 column:22-37 Wrong type for a string length specifier
-%%% error line:34 column:20-26 Expression is not a compile-time expression
-%%% error line:34 column:20-26 String length specifier is not a compile-time expression
-%%% error line:35 column:22-36 Expression is not a compile-time expression
-%%% error line:35 column:22-36 String length specifier is not a compile-time expression
+%%% error line:7 column:20-30 Expression results in a length of 0
+%%% error line:8 column:22-24 Expression results in a length of 0
+%%% error line:14 column:20-26 Expression results in a negative length
+%%% error line:15 column:22-24 Expression results in a negative length
+%%% error line:21 column:20-30 '65540' is larger than or equal to the maximum length of 65536
+%%% error line:22 column:22-24 '65536' is larger than or equal to the maximum length of 65536
+%%% error line:27 column:20-31 Wrong type for a length specifier
+%%% error line:28 column:22-37 Wrong type for a length specifier
+%%% error line:34 column:20-26 Length specifier is not a compile-time expression
+%%% error line:35 column:22-36 Length specifier is not a compile-time expression

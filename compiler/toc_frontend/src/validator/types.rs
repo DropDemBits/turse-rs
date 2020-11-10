@@ -21,19 +21,18 @@ impl Validator {
         match size {
             SeqSize::Any => {
                 // `Any` is 0 size
-                *type_ref = match prim_type {
-                    PrimitiveType::Char => Some(TypeRef::Primitive(PrimitiveType::CharN(
-                        SequenceSize::Size(0),
-                    ))),
-                    PrimitiveType::String_ => Some(TypeRef::Primitive(PrimitiveType::StringN(
-                        SequenceSize::Size(0),
-                    ))),
-                    _ => None, // will fail later down the line
-                }
+                let prim_ref = match prim_type {
+                    PrimitiveType::Char => PrimitiveType::CharN(SequenceSize::Size(0)),
+                    PrimitiveType::String_ => PrimitiveType::StringN(SequenceSize::Size(0)),
+                    _ => unreachable!("invalid primitive type"),
+                };
+
+                *type_ref = Some(TypeRef::Primitive(prim_ref))
             }
             SeqSize::Sized(expr) => {
                 // Compute size
-                let computed_size = self.check_compile_time_expr(expr);
+                self.visit_expr(expr);
+                let computed_size = self.eval_expr(expr);
 
                 if let Ok(computed_size) = computed_size {
                     let computed_size = match computed_size {
@@ -43,9 +42,7 @@ impl Validator {
                                 // Negative length is invalid
                                 self.context.borrow_mut().reporter.report_error(
                                     expr.get_span(),
-                                    format_args!(
-                                        "Compile-time string length specifier is negative"
-                                    ),
+                                    format_args!("Expression results in a negative length"),
                                 );
                                 None
                             } else {
@@ -56,7 +53,7 @@ impl Validator {
                             // Wrong length type
                             self.context.borrow_mut().reporter.report_error(
                                 expr.get_span(),
-                                format_args!("Wrong type for a string length specifier"),
+                                format_args!("Wrong type for a length specifier"),
                             );
                             None
                         }
@@ -64,9 +61,7 @@ impl Validator {
                             // Not a compile-time expression!
                             self.context.borrow_mut().reporter.report_error(
                                 &expr.get_span(),
-                                format_args!(
-                                    "String length specifier is not a compile-time expression"
-                                ),
+                                format_args!("Length specifier is not a compile-time expression"),
                             );
                             None
                         }
@@ -75,10 +70,10 @@ impl Validator {
                     let final_ref = computed_size.and_then(|computed_size| {
                         // Check if the size is within the correct range
                         if computed_size == 0 {
-                            // Is zero, not directly specified by star
+                            // Evaluates to zero, invalid
                             self.context.borrow_mut().reporter.report_error(
                                 &expr.get_span(),
-                                format_args!("Invalid maximum string length of '0'"),
+                                format_args!("Expression results in a length of 0"),
                             );
 
                             None
@@ -87,7 +82,7 @@ impl Validator {
                             self.context.borrow_mut().reporter.report_error(
                                 &expr.get_span(),
                                 format_args!(
-                                    "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
+                                    "'{}' is larger than or equal to the maximum length of {}",
                                     computed_size,
                                     types::MAX_STRING_SIZE
                                 ),
@@ -96,15 +91,17 @@ impl Validator {
                             None
                         } else {
                             // Return the correct size type
-                            match prim_type {
-                                PrimitiveType::Char => Some(TypeRef::Primitive(PrimitiveType::CharN(
+                            let prim_ref = match prim_type {
+                                PrimitiveType::Char => {
+                                    PrimitiveType::CharN(SequenceSize::Size(computed_size as usize))
+                                }
+                                PrimitiveType::String_ => PrimitiveType::StringN(
                                     SequenceSize::Size(computed_size as usize),
-                                ))),
-                                PrimitiveType::String_ => Some(TypeRef::Primitive(PrimitiveType::StringN(
-                                    SequenceSize::Size(computed_size as usize),
-                                ))),
-                                _ => None, // will fail later down the line
-                            }
+                                ),
+                                _ => unreachable!("invalid primitive type"),
+                            };
+
+                            Some(TypeRef::Primitive(prim_ref))
                         }
                     });
 
@@ -116,215 +113,6 @@ impl Validator {
                 }
             }
         }
-    }
-
-    /*
-    fn resolve_char_seq_size(
-        &mut self,
-        base_ref: TypeRef,
-        resolving_context: ResolveContext,
-    ) -> TypeRef {
-        match base_ref {
-            TypeRef::Primitive(PrimitiveType::CharN(seq_size))
-            | TypeRef::Primitive(PrimitiveType::StringN(seq_size)) => {
-                if let SequenceSize::CompileExpr(type_id) = seq_size {
-                    // Resolve the type id first
-                    let resolved_ref =
-                        self.resolve_type(TypeRef::Named(type_id), resolving_context);
-
-                    if types::is_error(&resolved_ref) {
-                        // Not a valid size
-                        // Convert to the corresponding base type (matching Turing behaviour)
-                        return types::get_char_seq_base_type(base_ref);
-                    }
-
-                    let expr_id = types::get_type_id(&resolved_ref).unwrap();
-
-                    // Grab the expression id, verify it's a literal, as well as being the correct type (int/nat/intnat)
-                    if let Type::SizeExpr { expr } = self.type_table.get_type(expr_id) {
-                        let computed_size = if let ExprKind::Literal { value, .. } = &expr.kind {
-                            match value {
-                                Literal::Nat(len) => Some(*len), // Direct correspondence
-                                Literal::Int(len) => {
-                                    if len.is_negative() {
-                                        // Negative length is invalid
-                                        self.context.borrow_mut().reporter.report_error(
-                                            expr.get_span(),
-                                            format_args!(
-                                                "Compile-time string length specifier is negative"
-                                            ),
-                                        );
-                                        None
-                                    } else {
-                                        Some(*len as u64)
-                                    }
-                                }
-                                _ => {
-                                    // Wrong length type
-                                    self.context.borrow_mut().reporter.report_error(
-                                        expr.get_span(),
-                                        format_args!("Wrong type for a string length specifier"),
-                                    );
-                                    None
-                                }
-                            }
-                        } else {
-                            // Not a compile-time expression!
-                            self.context.borrow_mut().reporter.report_error(
-                                &expr.get_span(),
-                                format_args!(
-                                    "String length specifier is not a compile-time expression"
-                                ),
-                            );
-                            None
-                        };
-
-                        if let Some(size) = computed_size {
-                            // Check if the size is within the correct range
-                            if size == 0 {
-                                // Is zero, not directly specified by star
-                                self.context.borrow_mut().reporter.report_error(
-                                    &expr.get_span(),
-                                    format_args!("Invalid maximum string length of '0'"),
-                                );
-
-                                types::get_char_seq_base_type(base_ref)
-                            } else if size as usize >= types::MAX_STRING_SIZE {
-                                // Greater than max length, never valid
-                                self.context.borrow_mut().reporter.report_error(
-                                    &expr.get_span(),
-                                    format_args!(
-                                        "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
-                                        size,
-                                        types::MAX_STRING_SIZE
-                                    ),
-                                );
-
-                                types::get_char_seq_base_type(base_ref)
-                            } else {
-                                // Return the correct size type
-                                if types::is_charn(&base_ref) {
-                                    TypeRef::Primitive(PrimitiveType::CharN(SequenceSize::Size(
-                                        size as usize,
-                                    )))
-                                } else {
-                                    TypeRef::Primitive(PrimitiveType::StringN(SequenceSize::Size(
-                                        size as usize,
-                                    )))
-                                }
-                            }
-                        } else {
-                            // Not a valid size, error reported previously
-                            types::get_char_seq_base_type(base_ref)
-                        }
-                    } else {
-                        // There should always be a SizeExpr here, unless some bad input was fed through a pre-compiled library
-                        unreachable!()
-                    }
-                } else {
-                    // Already resolved, don't need to do anything
-                    base_ref
-                }
-            }
-            _ => unreachable!(), // Invalid primitive type or type ref for length resolving, called on wrong path?
-        }
-    }
-    */
-    /// Resolves the given type, validating that the type is a valid type
-    /// Returns the resolved typedef
-    /*pub(super) fn resolve_type(
-        &mut self,
-        base_ref: TypeRef,
-        resolving_context: ResolveContext,
-    ) -> TypeRef {
-        if types::is_sized_char_seq_type(&base_ref) {
-            // Try and resolve the size of the char(n)
-            return self.resolve_char_seq_size(base_ref, resolving_context);
-        } else if !types::is_named(&base_ref) {
-            // Not a named ref, no resolving needs to be done
-            return base_ref;
-        }
-
-        let type_id = if let TypeRef::Named(id) = base_ref {
-            id
-        } else {
-            unreachable!()
-        };
-
-        // Clone is used to appease the borrow checker so that `self` and
-        // `self.type_table` aren't borrowed, allowing nested exprs
-        // ???: Take type, automatically breaking chains?
-        let mut type_info = self.type_table.get_type(type_id).clone();
-
-        let replace_ref = match &mut type_info {
-            Type::Alias { to } => self.resolve_type_alias(to, resolving_context),
-            Type::Array {
-                ranges,
-                element_type,
-                is_flexible,
-                is_init_sized,
-            } => self.resolve_type_array(
-                ranges,
-                element_type,
-                *is_flexible,
-                *is_init_sized,
-                resolving_context,
-            ),
-            Type::EnumField { .. } | Type::Enum { .. } => None, // Already resolved, do nothing
-            Type::Forward { is_resolved } => self.resolve_type_forward(is_resolved),
-            Type::Function { params, result } => self.resolve_type_function(params, result),
-            Type::Pointer { to, .. } => self.resolve_type_pointer(to),
-            Type::Range {
-                start,
-                end,
-                base_type,
-                size,
-            } => self.resolve_type_range(start, end, base_type, size, resolving_context),
-            Type::Reference { expr } => self.resolve_type_reference(expr, resolving_context),
-            Type::Set { range: index } => self.resolve_type_set(index),
-            Type::SizeExpr { expr } => self.resolve_type_size(expr),
-        };
-
-        if replace_ref.is_none() {
-            // Replace the type with the updated type
-            self.type_table.replace_type(type_id, type_info);
-        }
-
-        replace_ref.unwrap_or(base_ref)
-    }*/
-
-    /*fn resolve_type_alias(&mut self, to: &mut TypeRef, resolving_context: ResolveContext) {
-        if types::is_error(to) {
-            // Apply type error to `to`
-            *to = TypeRef::TypeError;
-        } else {
-            // Resolve the `to`
-            *to = self.resolve_type(*to, resolving_context);
-        }
-
-        // Nothing to replace
-        None
-    }*/
-
-    fn check_compile_time_expr(
-        &mut self,
-        expr: &mut Box<Expr>,
-    ) -> Result<Option<value::Value>, value::ValueApplyError> {
-        // Visit the expr
-        self.visit_expr(expr);
-        // Try to eval
-        let eval = self.eval_expr(expr);
-
-        if eval.is_err() || eval.as_ref().unwrap().is_none() {
-            // Is not a compile-time expression, give back a type error
-            self.context.borrow_mut().reporter.report_error(
-                expr.get_span(),
-                format_args!("Expression is not a compile-time expression"),
-            );
-        }
-
-        // Value type-checking should be done by the destination type type
-        eval
     }
 
     pub(super) fn resolve_type_array(
