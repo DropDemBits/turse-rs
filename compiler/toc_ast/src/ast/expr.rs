@@ -1,5 +1,6 @@
 //! Expr AST Nodes
 use crate::ast::ident::{IdentRef, RefKind};
+use crate::ast::types::Type;
 use crate::types::TypeRef;
 use toc_core::Location;
 
@@ -155,7 +156,7 @@ pub struct FieldDef {
 }
 
 /// Expression Node Kind
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum ExprKind {
     /// Error expression, always evaluates to a type error.
     Error,
@@ -227,15 +228,10 @@ pub enum ExprKind {
     },
     /// "Indirect" expression
     Indirect {
-        // The reference type in the indirect expression.
-        // If None, the type is a primitive and is contained in `eval_type`.
-        // Must be a type reference.
-        reference: Option<Box<Expr>>,
+        /// The type to read at the address.
+        indirect_type: Box<Type>,
         /// The address section of the indirect expression
         addr: Box<Expr>,
-        /// The type to read at the address.
-        /// If TypeRef::Unknown, type is derived from the reference expression
-        indirect_type: TypeRef,
     },
 }
 
@@ -243,7 +239,7 @@ pub enum ExprKind {
 ///
 /// `eval_type` is the type produced after evaluating the expression.
 /// For reference and dot expressions, the evaluation type may be different from the identifier type spec
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Expr {
     pub kind: ExprKind,
     /// The expression evaluation type
@@ -291,16 +287,9 @@ mod pretty_print {
                 }
                 ExprKind::Indirect {
                     indirect_type,
-                    reference,
                     addr,
                     ..
-                } => {
-                    if let Some(reference) = &reference {
-                        f.write_fmt(format_args!("[{}] @ ({})", reference, addr))
-                    } else {
-                        f.write_fmt(format_args!("[{}] @ ({})", indirect_type, addr))
-                    }
-                }
+                } => f.write_fmt(format_args!("[{}] @ ({})", indirect_type, addr)),
                 ExprKind::Parens { inner } => f.write_fmt(format_args!("({})", inner)),
                 ExprKind::BinaryOp {
                     left, op, right, ..

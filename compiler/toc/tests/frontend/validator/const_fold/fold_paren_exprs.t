@@ -7,8 +7,8 @@ const d := (1 + 1)
 
 %%% expected stdout:
 %%% ast: [
-%%% const [id:0] : ty_prim[Int] := nat(0)
-%%% const [id:1] : ty_prim[Int] := nat(2)
+%%% const [id:0] := nat(0)
+%%% const [id:1] := nat(2)
 %%% ]
 
 %%% expected stderr:

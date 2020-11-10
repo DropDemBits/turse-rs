@@ -1,10 +1,11 @@
 //! Validator fragment, resolves all statements and declarations
 use super::expr;
-use super::{ResolveContext, Validator};
+use super::Validator;
 
 use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
 use toc_ast::ast::ident::{IdentRef, RefKind};
 use toc_ast::ast::stmt::{self, Stmt};
+use toc_ast::ast::types::{Type as TypeNode, TypeKind};
 use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
@@ -15,34 +16,23 @@ impl Validator {
     pub(super) fn resolve_decl_var(
         &mut self,
         idents: &mut Option<Vec<IdentRef>>,
-        type_spec: &mut TypeRef,
+        type_spec: &mut Option<Box<TypeNode>>,
         value: &mut Option<Box<Expr>>,
         is_const: bool,
     ) {
         if idents.is_none() {
             // This is a dummy var declare, and only provides resolving access
-            // Resolve the type, and return
-            let dummy_ref = self.resolve_type(*type_spec, ResolveContext::CompileTime(false));
-            *type_spec = dummy_ref;
+            // Do nothing
+
+            if let Some(ty_node) = type_spec {
+                self.visit_type(ty_node);
+            }
 
             return;
         }
 
         let idents = idents.as_mut().unwrap();
         let mut is_compile_eval = false;
-
-        if types::is_error(type_spec) {
-            // The identifiers should all have matching values
-            debug_assert_eq!(
-                idents
-                    .iter()
-                    .filter(|ident| !types::is_error(
-                        &self.unit_scope.get_ident_info(&ident.id).type_spec
-                    ))
-                    .count(),
-                0
-            );
-        }
 
         // Visit the expression to update the eval type
         if value.is_some() {
@@ -64,93 +54,106 @@ impl Validator {
             }
         }
 
-        // Resolve the identifier type spec or sized char sequence type spec, if possible
-        if types::is_named(type_spec) || types::is_sized_char_seq_type(type_spec) {
-            // Only required to be compile-time if the decl is a const decl, or if the type spec
-            // is not directly an array
-            let resolving_context = if is_const
-                || !matches!(
-                    self.type_table.type_from_ref(type_spec),
-                    Some(Type::Array { .. })
-                ) {
-                ResolveContext::CompileTime(false)
-            } else {
-                ResolveContext::Any
-            };
-
-            *type_spec = self.resolve_type(*type_spec, resolving_context);
-
-            // If the `type_spec` is a range, verify it is not a zero sized range
-            if let Some(Type::Range {
-                start, end, size, ..
-            }) = self.type_table.type_from_ref(&type_spec)
+        if let Some(type_spec) = type_spec {
+            // Visit type
+            if let TypeKind::Array {
+                ranges,
+                element_type,
+                is_flexible,
+                is_init_sized,
+            } = &mut type_spec.kind
             {
-                // No guarrantess that end is a Some
-                if end.is_none() {
+                self.resolve_type_array(
+                    &mut type_spec.type_ref,
+                    ranges,
+                    element_type,
+                    *is_flexible,
+                    *is_init_sized,
+                    !is_const,
+                )
+            } else {
+                self.visit_type(type_spec);
+            }
+
+            if let Some(Type::Range { end, size, .. }) =
+                self.type_table.type_from_ref(type_spec.type_ref())
+            {
+                // No guarrantess that the end bound is known
+                if matches!(end, types::RangeBound::Unknown) {
                     // Error should be reported by parser
-                    *type_spec = TypeRef::TypeError;
+                    type_spec.type_ref = Some(TypeRef::TypeError);
                 } else if *size == Some(0) {
                     // Zero sized ranges aren't allowed in variable/constant range types
-                    let range_span = start.get_span().span_to(end.as_ref().unwrap().get_span());
                     self.context.borrow_mut().reporter.report_error(
-                        &range_span,
+                        &type_spec.span,
                         format_args!("Range bounds creates a zero-sized range"),
                     );
-                    *type_spec = TypeRef::TypeError;
+
+                    type_spec.type_ref = Some(TypeRef::TypeError);
                 }
             }
         }
 
+        let type_spec = type_spec.as_ref().map(|ty| ty.type_ref());
+
         // Handle the type spec propogation
-        if *type_spec == TypeRef::Unknown {
-            // Unknown type, use the type of the expr
+        let final_spec = if let Some(type_spec) = type_spec {
+            if let Some(expr) = value {
+                // Type of the identifier & value to initialize with is known,
+                // validate that the types are assignable
+                let left_type = &types::dealias_ref(&type_spec, &self.type_table);
+                let right_type = &types::dealias_ref(&expr.get_eval_type(), &self.type_table);
+
+                // If both of the types are not an error, check for assignability
+                if !types::is_error(left_type) && !types::is_error(right_type) {
+                    debug_assert!(
+                        types::is_base_type(left_type, &self.type_table),
+                        "Of type {:?}",
+                        left_type
+                    );
+                    debug_assert!(
+                        types::is_base_type(right_type, &self.type_table),
+                        "Of type {:?}",
+                        right_type
+                    );
+
+                    // Validate that the types are assignable
+                    if types::is_assignable_to(&left_type, &right_type, &self.type_table) {
+                        // Update compile-time evaluability status
+                        is_compile_eval = expr.is_compile_eval();
+                    } else {
+                        // Value to assign is the wrong type, just report the error
+                        self.context.borrow_mut().reporter.report_error(
+                            &expr.get_span(),
+                            format_args!("Initialization value is the wrong type"),
+                        );
+                    }
+                }
+            }
+
+            // Preserve original type
+            *type_spec
+        } else {
+            // Unknown type, use the type of the value expr
             // Safe to unwrap as if no expr was provided, the type_spec would be TypeError
 
             let expr = value.as_ref().unwrap();
-            *type_spec = expr.get_eval_type();
+            let mut final_spec = expr.get_eval_type();
 
-            if types::is_intnat(type_spec) {
+            if types::is_intnat(&final_spec) {
                 // Always convert IntNats into Ints
                 // (larger sizes are automatically converted into the appropriate type)
-                *type_spec = TypeRef::Primitive(PrimitiveType::Int);
+                final_spec = TypeRef::Primitive(PrimitiveType::Int);
             }
-        } else if let Some(expr) = value {
-            // Type of the identifier is known, validate that the types are assignable
-            let left_type = &self.dealias_resolve_type(*type_spec);
-            let right_type = &self.dealias_resolve_type(expr.get_eval_type());
 
-            // If both of the types are not an error, check for assignability
-            if !types::is_error(left_type) && !types::is_error(right_type) {
-                debug_assert!(
-                    types::is_base_type(left_type, &self.type_table),
-                    "Of type {:?}",
-                    left_type
-                );
-                debug_assert!(
-                    types::is_base_type(right_type, &self.type_table),
-                    "Of type {:?}",
-                    right_type
-                );
-
-                // Validate that the types are assignable
-                if types::is_assignable_to(&left_type, &right_type, &self.type_table) {
-                    // Update compile-time evaluability status
-                    is_compile_eval = expr.is_compile_eval();
-                } else {
-                    // Value to assign is the wrong type, just report the error
-                    self.context.borrow_mut().reporter.report_error(
-                        &expr.get_span(),
-                        format_args!("Initialization value is the wrong type"),
-                    );
-                }
-            }
-        }
+            final_spec
+        };
         // Variable declarations with no assignment value will have the type already given
 
         // If value is an init expression, verify compatibility
-        if !types::is_error(type_spec) {
+        if !types::is_error(&final_spec) {
             if let Some(expr) = value {
-                self.check_init_value_in_initializer(expr, type_spec);
+                self.check_init_value_in_initializer(expr, &final_spec);
             }
         }
 
@@ -173,7 +176,7 @@ impl Validator {
         // Update the identifiers to the new identifier type
         for ident in idents.iter_mut() {
             let info = self.unit_scope.get_ident_info_mut(&ident.id);
-            info.type_spec = *type_spec;
+            info.type_spec = final_spec;
 
             // Only compile-time evaluable if the identifier referencences a constant
             info.is_compile_eval = is_compile_eval && info.ref_kind == RefKind::Const;
@@ -308,16 +311,15 @@ impl Validator {
     pub(super) fn resolve_decl_type(
         &mut self,
         ident: &mut Option<IdentRef>,
-        resolved_type: &mut Option<TypeRef>,
+        new_type: &mut Box<TypeNode>,
         is_new_def: bool,
     ) {
+        // Visit the associated type
+        self.visit_type(new_type);
+
         if ident.is_none() {
             // This is a dummy type declare, and only provides resolving access
-            // Resolve the type, and return
-            let dummy_ref = resolved_type.take().unwrap();
-            let dummy_ref = self.resolve_type(dummy_ref, ResolveContext::CompileTime(false));
-            resolved_type.replace(dummy_ref);
-
+            // Nothing else to do
             return;
         }
 
@@ -325,12 +327,18 @@ impl Validator {
         let info = self.unit_scope.get_ident_info(&ident.id);
 
         if is_new_def {
-            if resolved_type.is_some() {
-                // Resolve the associated type (do not allow forward references)
-                let ty_spec = info.type_spec;
-                let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
-                let info = self.unit_scope.get_ident_info_mut(&ident.id);
-                info.type_spec = ty_spec;
+            if !matches!(new_type.kind, TypeKind::Forward) {
+                // Replace the old type with an alias
+                let info = self.unit_scope.get_ident_info(&ident.id);
+
+                if let Some(id) = types::get_type_id(&info.type_spec) {
+                    self.type_table.replace_type(
+                        id,
+                        Type::Alias {
+                            to: types::dealias_ref(new_type.type_ref(), &self.type_table),
+                        },
+                    )
+                }
             } else if let Some(Type::Forward { is_resolved: false }) =
                 self.type_table.type_from_ref(&info.type_spec)
             {
@@ -345,23 +353,17 @@ impl Validator {
             // Must be defined
             assert!(info.is_declared);
 
-            if let Some(resolve_ref) = resolved_type {
+            if !matches!(new_type.kind, TypeKind::Forward) {
                 // This is a type resolution statement, update the associated type reference
-                if let TypeRef::Named(replace_id) = info.type_spec {
+                if let Some(ty_id) = types::get_type_id(&info.type_spec) {
                     // Make an alias to the resolved type
-                    self.type_table
-                        .replace_type(replace_id, Type::Alias { to: *resolve_ref });
-                }
-
-                // Resolve the rest of the type
-                let ty_spec = info.type_spec;
-                let ty_spec = self.resolve_type(ty_spec, ResolveContext::CompileTime(false));
-
-                {
-                    // Upgrade info to &mut
-                    let info = self.unit_scope.get_ident_info_mut(&ident.id);
-                    info.type_spec = ty_spec;
-                }
+                    self.type_table.replace_type(
+                        ty_id,
+                        Type::Alias {
+                            to: types::dealias_ref(new_type.type_ref(), &self.type_table),
+                        },
+                    );
+                };
             } else {
                 // This is a redeclared forward, and is safe to ignore
             }
@@ -386,8 +388,8 @@ impl Validator {
         super::replace_with_folded(value, value_eval);
 
         // Resolve types first
-        let left_type = &self.dealias_resolve_type(var_ref.get_eval_type());
-        let right_type = &self.dealias_resolve_type(value.get_eval_type());
+        let left_type = &types::dealias_ref(&var_ref.get_eval_type(), &self.type_table);
+        let right_type = &types::dealias_ref(&value.get_eval_type(), &self.type_table);
 
         // Validate that the types are assignable for the given operation
         if types::is_error(left_type) || types::is_error(right_type) {

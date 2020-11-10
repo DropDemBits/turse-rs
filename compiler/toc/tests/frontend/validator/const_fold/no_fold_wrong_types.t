@@ -12,13 +12,13 @@ var g := --#-3
 
 %%% expected stdout:
 %%% ast: [
-%%% var [id:0] : ty_prim[Int] := nat(1) - nat(1) - "bad" - nat(1) - nat(1)
-%%% var [id:1] : ty_prim[Int] := nat(1) - nat(1) ** (nat(0) - nat(1)) - nat(1) - nat(1)
-%%% var [id:2] : ty_prim[Real] := real(10) ** (nat(300) + nat(7)) * nat(100)
-%%% var [id:3] : ty_prim[Real] := real(10) ** (nat(300) + nat(10))
-%%% var [id:4] : ty_prim[Boolean] := bool(false) = nat(0) = -#-nat(3)
-%%% var [id:5] : ty_prim[Nat4] := -#-nat(3)
-%%% var [id:6] : ty_prim[Nat4] := --#-nat(3)
+%%% var [id:0] : { prim Int } := nat(1) - nat(1) - "bad" - nat(1) - nat(1)
+%%% var [id:1] : { prim Int } := nat(1) - nat(1) ** (nat(0) - nat(1)) - nat(1) - nat(1)
+%%% var [id:2] : { prim Real } := real(10) ** (nat(300) + nat(7)) * nat(100)
+%%% var [id:3] : { prim Real } := real(10) ** (nat(300) + nat(10))
+%%% var [id:4] := bool(false) = nat(0) = -#-nat(3)
+%%% var [id:5] := -#-nat(3)
+%%% var [id:6] := --#-nat(3)
 %%% ]
 
 %%% expected stderr:

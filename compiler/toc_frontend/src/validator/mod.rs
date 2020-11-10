@@ -17,10 +17,11 @@ use crate::context::CompileContext;
 use toc_ast::ast::expr::{Expr, ExprKind, Literal};
 use toc_ast::ast::ident::{IdentId, RefKind};
 use toc_ast::ast::stmt::{Stmt, StmtKind};
+use toc_ast::ast::types::{Type as TypeNode, TypeKind};
 use toc_ast::ast::VisitorMut;
 use toc_ast::scope::{ScopeBlock, UnitScope};
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
-use toc_ast::types::{Type, TypeRef, TypeTable};
+use toc_ast::types::{PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
 use toc_core::Location;
 
@@ -28,16 +29,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
-
-/// Type resolving context
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-enum ResolveContext {
-    /// Any resolution phase (runtime/compile-time) is valid
-    Any,
-    /// Everything must be resolved at compile time
-    /// `bool` is for whether 'forward' unnamed types is allowed
-    CompileTime(bool),
-}
 
 /// Validator Instance
 pub struct Validator {
@@ -50,8 +41,6 @@ pub struct Validator {
     /// Mapping of all compile-time values
     compile_values: HashMap<IdentId, Value>,
 }
-
-type ResolveResult = Option<TypeRef>;
 
 impl Validator {
     pub fn new(
@@ -72,62 +61,6 @@ impl Validator {
         let type_table = std::mem::replace(&mut self.type_table, TypeTable::new());
         let unit_scope = std::mem::replace(&mut self.unit_scope, UnitScope::new());
         (type_table, unit_scope)
-    }
-
-    /// De-aliases a type ref, following through `Type::Alias`'s and resolving `Type::Reference`s.
-    fn dealias_resolve_type(&mut self, type_ref: TypeRef) -> TypeRef {
-        let type_id = if let Some(id) = ty::get_type_id(&type_ref) {
-            id
-        } else {
-            // Non-named types don't need to be dealiased (already at the base type)
-            return type_ref;
-        };
-
-        if !self.type_table.is_indirect_alias(type_id) {
-            // Any compound types that aren't Alias or Reference do not need to be
-            // dealiased (already pointing to the base types)
-            return type_ref;
-        }
-
-        // Type is either an alias, or a reference (to resolve)
-        // Walk the alias tree
-        let mut current_ref = type_ref;
-
-        if matches!(self.type_table.get_type(type_id), Type::Reference { .. }) {
-            // Resolve an immediate reference
-            current_ref = self.resolve_type(current_ref, ResolveContext::CompileTime(false));
-        }
-
-        // Walk the aliasing list
-        //
-        // We do not have to worry about a cyclic chain of aliases as the
-        // parser should not produce such a alias cyclic chain, and when using
-        // external libraries, the type references should be validated to not
-        // produce a cyclic reference chain.
-        while let Some(current_id) = ty::get_type_id(&current_ref) {
-            // Reference types should already be resolved
-            let mut type_info = self.type_table.get_type(current_id).clone();
-            debug_assert!(!matches!(type_info, Type::Reference { .. }));
-
-            match &mut type_info {
-                Type::Alias { to } => {
-                    if let Some(Type::Reference { .. }) = self.type_table.type_from_ref(&to) {
-                        *to = self.resolve_type(*to, ResolveContext::CompileTime(false));
-                    }
-
-                    // Walk to the next id
-                    current_ref = *to;
-                }
-                Type::Reference { .. } => panic!("Unresolved reference type"),
-                _ => break, // Not either of the above, can stop
-            }
-
-            // Update the alias reference
-            self.type_table.replace_type(current_id, type_info);
-        }
-
-        // At the end of the aliasing chain
-        current_ref
     }
 
     /// Reports unused identifiers in the given scope
@@ -429,7 +362,7 @@ impl Validator {
     }
 }
 
-impl VisitorMut<(), ()> for Validator {
+impl VisitorMut<(), (), ()> for Validator {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
             StmtKind::Nop | StmtKind::Error => {}
@@ -441,9 +374,9 @@ impl VisitorMut<(), ()> for Validator {
             } => self.resolve_decl_var(idents, type_spec, value, *is_const),
             StmtKind::TypeDecl {
                 ident,
-                resolved_type,
+                new_type,
                 is_new_def,
-            } => self.resolve_decl_type(ident, resolved_type, *is_new_def),
+            } => self.resolve_decl_type(ident, new_type, *is_new_def),
             StmtKind::Assign { var_ref, op, value } => {
                 self.resolve_stmt_assign(var_ref, op.as_mut(), value)
             }
@@ -488,8 +421,10 @@ impl VisitorMut<(), ()> for Validator {
             ),
             ExprKind::Init { exprs, .. } => self.resolve_expr_init(exprs),
             ExprKind::Indirect {
-                reference, addr, ..
-            } => self.resolve_expr_indirect(reference, addr, &mut visit_expr.eval_type),
+                indirect_type,
+                addr,
+                ..
+            } => self.resolve_expr_indirect(indirect_type, addr, &mut visit_expr.eval_type),
             ExprKind::BinaryOp {
                 left, op, right, ..
             } => self.resolve_expr_binary(
@@ -538,6 +473,56 @@ impl VisitorMut<(), ()> for Validator {
             ExprKind::Literal { value, .. } => {
                 self.resolve_expr_literal(value, &mut visit_expr.eval_type)
             }
+        }
+    }
+
+    fn visit_type(&mut self, ty: &mut TypeNode) {
+        if ty.type_ref.is_some() {
+            // Already resolved
+            return;
+        }
+
+        match &mut ty.kind {
+            TypeKind::Error => ty.type_ref = Some(TypeRef::TypeError),
+            TypeKind::Primitive(prim) => {
+                // Primitive should not be either of the sized types
+                assert!(!matches!(prim, PrimitiveType::CharN(_) | PrimitiveType::StringN(_)));
+                ty.type_ref = Some(TypeRef::Primitive(*prim))
+            }
+            TypeKind::CharN { size } => {
+                self.resolve_type_char_seq(&mut ty.type_ref, PrimitiveType::Char, size)
+            }
+            TypeKind::StringN { size } => {
+                self.resolve_type_char_seq(&mut ty.type_ref, PrimitiveType::String_, size)
+            }
+            TypeKind::Reference { ref_expr } => {
+                self.resolve_type_reference(&mut ty.type_ref, ref_expr, false)
+            }
+            TypeKind::Forward => self.resolve_type_forward(&mut ty.type_ref),
+            TypeKind::Pointer { is_unchecked, to } => {
+                self.resolve_type_pointer(&mut ty.type_ref, *is_unchecked, to)
+            }
+            TypeKind::Set { range } => self.resolve_type_set(&mut ty.type_ref, range),
+            TypeKind::Enum { fields } => self.resolve_type_enum(&mut ty.type_ref, fields),
+            TypeKind::Range { start, end } => {
+                self.resolve_type_range(&mut ty.type_ref, start, end, &ty.span, false)
+            }
+            TypeKind::Function { params, result } => {
+                self.resolve_type_function(&mut ty.type_ref, params, result)
+            }
+            TypeKind::Array {
+                ranges,
+                element_type,
+                is_flexible,
+                is_init_sized,
+            } => self.resolve_type_array(
+                &mut ty.type_ref,
+                ranges,
+                element_type,
+                *is_flexible,
+                *is_init_sized,
+                false,
+            ),
         }
     }
 }
@@ -592,6 +577,12 @@ mod test {
         let (type_table, unit_scope) = validator.take_code_unit_parts();
         code_unit.put_types(type_table);
         code_unit.put_unit_scope(unit_scope);
+
+        // Emit all pending erros & warnings
+        validator_context
+            .borrow_mut()
+            .reporter
+            .report_messages(false);
 
         // Ok for now until we start doing funky stuff with contexts
         // TODO: Use a unified context when using file-based test harness
@@ -1422,6 +1413,7 @@ mod test {
 
         // Allowed to be used in reference position
         assert_eq!(true, run_validator("int @ (0) := 1"));
+        //assert_eq!(true, run_validator("char(3) @ (1) := 'aaa'")); // not fully checked!
         assert_eq!(true, run_validator("type bambam : int\nbambam @ (0) := 1"));
     }
 

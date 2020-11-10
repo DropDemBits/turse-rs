@@ -11,8 +11,8 @@ var b : s .. e
 
 %%% expected stdout:
 %%% types: [
-%%%        0 -> { range nat(1) .. nat(16) (16) ty_prim[Int] }
-%%%        1 -> { range nat(0) .. nat(10) (11) ty_prim[Int] }
+%%%        0 -> { range 1 .. 16 (16) ty_prim[Int] }
+%%%        1 -> { range 0 .. 10 (11) ty_prim[Int] }
 %%% ]
 
 %%% expected stderr:

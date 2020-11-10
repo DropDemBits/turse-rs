@@ -9,10 +9,10 @@ const d := a + b + c    % 4*4 + 1 + 1 + 1
 
 %%% expected stdout:
 %%% ast: [
-%%% const [id:0] : ty_prim[Int] := nat(4)
-%%% const [id:1] : ty_prim[Int] := nat(5)
-%%% const [id:2] : ty_error := ref(id:1) + nat(1) + ref(id:0) + "beep beep"
-%%% const [id:3] : ty_error := ref(id:0) + ref(id:1) + ref(id:2)
+%%% const [id:0] := nat(4)
+%%% const [id:1] := nat(5)
+%%% const [id:2] := ref(id:1) + nat(1) + ref(id:0) + "beep beep"
+%%% const [id:3] := ref(id:0) + ref(id:1) + ref(id:2)
 %%% ]
 
 %%% expected stderr:

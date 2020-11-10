@@ -5,9 +5,8 @@
 //!   - Any type including a range (e.g. 'set', 'array')
 //!   - Any type including a grouping of other types
 //! Otherwise, the type is considered to be a 'Primative' type
-use crate::ast::expr::{BinaryOp, Expr};
-use crate::value::{self, Value};
 
+use crate::value::Value;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
@@ -114,15 +113,16 @@ pub enum PrimitiveType {
     Nil,
 }
 
-/// Parameter definition
-/// Two parameter definitions (`ParamDef`'s) are equivalent if, and only if, all
+/// Parameter Info (does not include the type spec)
+/// Two `ParamInfo`s are equivalent if, and only if, all
 /// fields except for name are equivalent.
+///
+/// The type spec is not packed in, as this is reused by both the
+//// type table representation and the AST node representation
 #[derive(Debug, Clone)]
-pub struct ParamDef {
+pub struct ParamInfo {
     /// The name of the parameter
     pub name: String,
-    /// The type_spec for the parameter
-    pub type_spec: TypeRef,
     // Whether to pass the parameter by reference, allowing the function to modify the value (specified by "var")
     pub pass_by_ref: bool,
     // Whether to bind the parameter into a register (specified by "register")
@@ -131,12 +131,33 @@ pub struct ParamDef {
     pub force_type: bool,
 }
 
-impl PartialEq for ParamDef {
+impl PartialEq for ParamInfo {
     fn eq(&self, other: &Self) -> bool {
-        self.type_spec == other.type_spec
-            && self.pass_by_ref == other.pass_by_ref
+        self.pass_by_ref == other.pass_by_ref
             && self.bind_to_register == other.bind_to_register
             && self.force_type == other.force_type
+    }
+}
+
+/// Bound of a given range
+#[derive(Debug, Clone, PartialEq)]
+pub enum RangeBound {
+    /// Unknown bound value (either init-sized, or a runtime size)
+    Unknown,
+    /// Positive bound value
+    Positive(u64),
+    /// Negative bound value
+    Negative(i64),
+}
+
+impl From<Value> for RangeBound {
+    fn from(v: Value) -> Self {
+        match v {
+            Value::IntValue(v) if v.is_negative() => RangeBound::Negative(v),
+            Value::IntValue(v) if v >= 0 => RangeBound::Positive(v as u64),
+            Value::NatValue(v) => RangeBound::Positive(v),
+            _ => RangeBound::Unknown,
+        }
     }
 }
 
@@ -182,7 +203,7 @@ pub enum Type {
     /// parameterless declarations, and between functions and procedures
     Function {
         /// Parameter specification for the function
-        params: Option<Vec<ParamDef>>,
+        params: Option<Vec<(TypeRef, ParamInfo)>>,
         /// Result type for the function
         result: Option<TypeRef>,
     },
@@ -199,27 +220,19 @@ pub enum Type {
     /// that can be a runtime dependent value
     Range {
         /// Start of the range
-        start: Box<Expr>,
+        start: RangeBound,
         /// End of the range
-        /// None is equivalent to specifiying *
-        end: Option<Box<Expr>>,
+        end: RangeBound,
         /// Base type for the range.
         /// Can be an int, enum type, char, or boolean, depending on the range evaluation.
-        /// This is always a de-aliased type.
         base_type: TypeRef,
         /// Size of the range, in elements
-        /// May or may not be computed
+        /// May or may not be computed at compile-time
         size: Option<usize>,
     },
-    /// A reference to a named type.
-    /// This type is resolved into the corresponding type at the validation stage,
-    /// as imports are resovled before validation
-    Reference { expr: Box<Expr> },
     /// Set of values in a given range.
     /// The start and end expressions of the range must be compile-time evaluable.
     Set { range: TypeRef },
-    /// Expression holding the size of a Char(n) or a String(n)
-    SizeExpr { expr: Box<Expr> },
 }
 
 /// Table of all named references defined in the scope
@@ -272,7 +285,7 @@ impl TypeTable {
     /// Checks if the given type is an indirect alias for another type.
     /// This includes both Alias and Reference types.
     pub fn is_indirect_alias(&self, type_id: usize) -> bool {
-        matches!(self.get_type(type_id), Type::Alias{ .. } | Type::Reference { .. })
+        matches!(self.get_type(type_id), Type::Alias{ .. })
     }
 }
 
@@ -546,7 +559,7 @@ pub fn is_base_type(type_ref: &TypeRef, type_table: &TypeTable) -> bool {
         TypeRef::Primitive(_) | TypeRef::TypeError => true,
         TypeRef::Named(type_id) => !matches!(
             type_table.get_type(*type_id),
-            Type::Alias { .. } | Type::Reference { .. } | Type::Forward { .. }
+            Type::Alias { .. } | Type::Forward { .. }
         ),
     }
 }
@@ -825,37 +838,15 @@ pub fn is_equivalent_to(lhs: &TypeRef, rhs: &TypeRef, type_table: &TypeTable) ->
                         }
 
                         // Check the end range presence
-                        // If either is absent, the ranges are not equivalent
-                        if !end.is_none() && other_end.is_none() {
+                        // If either is `Unknown`, the ranges are not equivalent
+                        if matches!(end, RangeBound::Unknown)
+                            || matches!(other_end, RangeBound::Unknown)
+                        {
                             return false;
                         }
 
-                        // Compare the start ranges
-                        let is_start_eq = {
-                            let start_value = Value::try_from(*start.clone()).ok();
-                            let other_start_value = Value::try_from(*other_start.clone()).ok();
-
-                            start_value
-                                .zip(other_start_value)
-                                .and_then(|(a, b)| {
-                                    value::apply_binary(
-                                        a,
-                                        BinaryOp::Equal,
-                                        b,
-                                        value::EvalConstraints { as_64_bit: false },
-                                    )
-                                    .ok()
-                                })
-                                .map_or(false, |v| {
-                                    let is_eq: bool = v.into();
-                                    is_eq
-                                })
-                        };
-
-                        // Compare the range sizes
-                        let is_end_eq = size == other_size;
-
-                        return is_start_eq && is_end_eq;
+                        // Compare the start bounds & the sizes
+                        return start == other_start && size == other_size;
                     }
                 }
                 _ => todo!("??? {:?} & {:?}", left_info, right_info),
@@ -885,10 +876,6 @@ pub fn dealias_ref(type_ref: &TypeRef, type_table: &TypeTable) -> TypeRef {
             current_ref = to;
         } else {
             // Reached a non alias type
-            debug_assert!(
-                !matches!(type_table.get_type(type_id), Type::Reference { .. }),
-                "A reference was not resolved at this point"
-            );
             break *current_ref;
         }
     }
@@ -968,9 +955,19 @@ mod test {
 }
 
 mod pretty_print {
-    use super::{ParamDef, Type, TypeRef, TypeTable};
+    use super::{ParamInfo, RangeBound, Type, TypeRef, TypeTable};
     use crate::pretty_print;
     use std::fmt;
+
+    impl fmt::Display for RangeBound {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                RangeBound::Positive(v) => v.fmt(f),
+                RangeBound::Negative(v) => v.fmt(f),
+                RangeBound::Unknown => f.write_str("*"),
+            }
+        }
+    }
 
     impl fmt::Display for TypeRef {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -983,7 +980,7 @@ mod pretty_print {
         }
     }
 
-    impl fmt::Display for ParamDef {
+    impl fmt::Display for ParamInfo {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let props = [
                 ("cheat", self.force_type),
@@ -998,15 +995,13 @@ mod pretty_print {
                 }
             }
 
-            f.write_fmt(format_args!("{} : {}", self.name, self.type_spec))
+            f.write_fmt(format_args!("{}", self.name))
         }
     }
 
     impl fmt::Display for Type {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
-                Type::Reference { expr } => f.write_fmt(format_args!("{{ ref_expr {} }}", expr))?,
-                Type::SizeExpr { expr } => f.write_fmt(format_args!("{{ size_expr {} }}", expr))?,
                 Type::Range {
                     start,
                     end,
@@ -1014,12 +1009,7 @@ mod pretty_print {
                     base_type,
                 } => {
                     f.write_str("{ range ")?;
-
-                    if let Some(end) = end {
-                        f.write_fmt(format_args!("{} .. {} ", start, end))?;
-                    } else {
-                        f.write_fmt(format_args!("{} .. * ", start))?;
-                    }
+                    f.write_fmt(format_args!("{} .. {} ", start, end))?;
 
                     if let Some(size) = size {
                         f.write_fmt(format_args!("({})", size))?;
@@ -1057,7 +1047,7 @@ mod pretty_print {
                     for (name, id) in fields {
                         f.write_fmt(format_args!("{}({}) ", name, id))?;
                     }
-                    f.write_str(")")?;
+                    f.write_str(") }")?;
                 }
                 Type::EnumField { enum_type, ordinal } => f.write_fmt(format_args!(
                     "{{ enum_field({}) of {} }}",
@@ -1087,7 +1077,17 @@ mod pretty_print {
 
                     if let Some(params) = params {
                         f.write_str("(")?;
-                        pretty_print::print_list(f, params.iter())?;
+
+                        let mut peek_enumerate = params.iter().peekable();
+
+                        while let Some((tyref, info)) = peek_enumerate.next() {
+                            f.write_fmt(format_args!("{} : {}", info, tyref))?;
+
+                            if peek_enumerate.peek().is_some() {
+                                f.write_str(", ")?;
+                            }
+                        }
+
                         f.write_str(") ")?;
                     }
 

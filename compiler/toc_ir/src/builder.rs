@@ -1,7 +1,7 @@
 //! Builds an IR Control-Flow-Graph from a given `CodeUnit`
 use crate::graph::{BlockIndex, Instruction, InstructionOp, IrGraph, Reference};
 use crate::{AddressSpace, ReferenceNode};
-use toc_ast::ast::{self, expr, ident, stmt};
+use toc_ast::ast::{self, expr, ident, stmt, types as ty_ast};
 use toc_ast::block::{BlockKind, CodeUnit};
 use toc_ast::scope::UnitScope;
 use toc_ast::types;
@@ -145,7 +145,7 @@ impl<'unit> IrVisitor<'unit> {
     }
 }
 
-impl ast::Visitor<(), Reference> for IrVisitor<'_> {
+impl ast::Visitor<(), Reference, ()> for IrVisitor<'_> {
     fn visit_stmt(&mut self, stmt: &stmt::Stmt) {
         match &stmt.kind {
             stmt::StmtKind::VarDecl { idents, value, .. } => {
@@ -334,6 +334,8 @@ impl ast::Visitor<(), Reference> for IrVisitor<'_> {
             _ => todo!(),
         }
     }
+
+    fn visit_type(&mut self, _ty: &ty_ast::Type) {}
 }
 
 #[cfg(test)]

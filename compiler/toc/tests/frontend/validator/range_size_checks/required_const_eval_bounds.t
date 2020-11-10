@@ -10,15 +10,12 @@ type g : set of a..a
 
 %%% expected stdout:
 %%% types: [
-%%%        0 -> { range ref(id:0) .. nat(0)  ty_unknown }
-%%%        1 -> { set of ty_error }
-%%%        2 -> { alias to ty_id[1] }
-%%%        3 -> { range nat(0) .. ref(id:0)  ty_unknown }
+%%%        0 -> { alias to ty_id[3] }
+%%%        1 -> { alias to ty_id[4] }
+%%%        2 -> { alias to ty_id[5] }
+%%%        3 -> { set of ty_error }
 %%%        4 -> { set of ty_error }
-%%%        5 -> { alias to ty_id[4] }
-%%%        6 -> { range ref(id:0) .. ref(id:0)  ty_unknown }
-%%%        7 -> { set of ty_error }
-%%%        8 -> { alias to ty_id[7] }
+%%%        5 -> { set of ty_error }
 %%% ]
 
 %%% expected stderr:

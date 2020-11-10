@@ -23,17 +23,17 @@ end
 
 %%% expected stdout:
 %%% ast: [
-%%% type [id:0] : ty_id[4]
+%%% type [id:0] : { enum ( a, b, c, ) }
 %%% {
-%%%     var [id:1] : ty_prim[Boolean] := bool(true)
+%%%     var [id:1] := bool(true)
 %%% }
 %%% {
-%%%     const [id:2] : ty_id[0] := nat(2)
-%%%     var [id:3] : ty_prim[Boolean] := bool(true)
+%%%     const [id:2] : { ref_expr ref(id:0) } := nat(2)
+%%%     var [id:3] := bool(true)
 %%% }
 %%% {
-%%%     const [id:4] : ty_id[3] := nat(2)
-%%%     var [id:5] : ty_prim[Boolean] := bool(true)
+%%%     const [id:4] := nat(2)
+%%%     var [id:5] := bool(true)
 %%% }
 %%% ]
 

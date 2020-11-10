@@ -13,11 +13,11 @@ var d : c .. e0.b := e0.c
 
 %%% expected stdout:
 %%% ast: [
-%%% type [id:0] : ty_id[4]
-%%% const [id:1] : ty_id[0] := nat(0)
-%%% var [id:2] : ty_id[6] := nat(2)
-%%% const [id:3] : ty_id[1] := nat(0)
-%%% var [id:4] : ty_id[7] := nat(2)
+%%% type [id:0] : { enum ( a, b, c, ) }
+%%% const [id:1] : { ref_expr ref(id:0) } := nat(0)
+%%% var [id:2] : { range nat(0) .. nat(1) } := nat(2)
+%%% const [id:3] := nat(0)
+%%% var [id:4] : { range nat(0) .. nat(1) } := nat(2)
 %%% ]
 
 %%% expected stderr:

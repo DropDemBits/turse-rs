@@ -1,17 +1,17 @@
 //! Parser fragment, parsing all type specifications
-use super::Parser;
+use super::{ParseResult, Parser};
 use crate::token::TokenType;
-use std::collections::HashMap;
-use toc_ast::ast::expr::{Expr, ExprKind};
-use toc_ast::types::{self, ParamDef, PrimitiveType, SequenceSize, Type, TypeRef};
+use toc_ast::ast::expr::{Expr, ExprKind, Literal};
+use toc_ast::ast::types::{SeqSize, Type, TypeKind};
+use toc_ast::types::{self, ParamInfo, PrimitiveType, TypeRef};
 
 impl<'s> Parser<'s> {
     // --- Type Parsing --- //
-    /// Tries to parse the given type, returning `TypeRef::TypeError` if the parsing couldn't be salvaged.
-    /// If a `TypeRef::TypeError` is produced, the token that caused the error is not consumed.
+    /// Tries to parse the given type, returning `Type` with a `TypeKind::Error` if the parsing couldn't be salvaged.
+    /// If an error type is produced, the token that caused the error is not consumed.
     ///
     /// `parse_context`     The token type describing where the type is being parsed
-    pub(super) fn parse_type(&mut self, parse_context: &TokenType) -> TypeRef {
+    pub(super) fn parse_type(&mut self, parse_context: &TokenType) -> ParseResult<Type> {
         // Update nesting depth
         self.type_nesting = self.type_nesting.saturating_add(1);
 
@@ -29,7 +29,14 @@ impl<'s> Parser<'s> {
 
             // Nom the token!
             self.next_token();
-            return TypeRef::TypeError;
+
+            let err_type = Type {
+                kind: TypeKind::Error,
+                type_ref: None,
+                span: self.previous().location,
+            };
+
+            return err_type;
         }
 
         let type_spec = match &self.current().token_type {
@@ -47,16 +54,8 @@ impl<'s> Parser<'s> {
             TokenType::Real => self.type_primitive(PrimitiveType::Real),
             TokenType::Real4 => self.type_primitive(PrimitiveType::Real4),
             TokenType::Real8 => self.type_primitive(PrimitiveType::Real8),
-            TokenType::Char => {
-                // Nom 'char'
-                self.next_token();
-                self.type_char_seq(true, parse_context)
-            }
-            TokenType::String_ => {
-                // Nom 'string'
-                self.next_token();
-                self.type_char_seq(false, parse_context)
-            }
+            TokenType::Char => self.type_char_seq(true, parse_context),
+            TokenType::String_ => self.type_char_seq(false, parse_context),
 
             // Compound primitives
             TokenType::Flexible if self.peek().token_type == TokenType::Array => {
@@ -99,7 +98,11 @@ impl<'s> Parser<'s> {
                 );
                 self.next_token();
 
-                TypeRef::TypeError
+                Type {
+                    kind: TypeKind::Error,
+                    type_ref: None,
+                    span: self.previous().location,
+                }
             }
             TokenType::Union => {
                 self.context.borrow_mut().reporter.report_error(
@@ -108,27 +111,28 @@ impl<'s> Parser<'s> {
                 );
                 self.next_token();
 
-                TypeRef::TypeError
+                Type {
+                    kind: TypeKind::Error,
+                    type_ref: None,
+                    span: self.previous().location,
+                }
             }
             _ => {
                 // Try to parse either a reference, or a range type
                 let ref_or_range = self.type_reference_or_range(parse_context);
 
-                if ref_or_range.is_err() {
-                    // No parsing has been done yet, so report at the current location
+                if let TypeKind::Error = &ref_or_range.kind {
+                    // Report the error
                     self.context.borrow_mut().reporter.report_error(
-                        &self.current().location,
+                        &ref_or_range.span,
                         format_args!(
                             "Unexpected '{}', expected a type specifier",
                             self.get_token_lexeme(self.current())
                         ),
                     );
-
-                    // Return a type error
-                    TypeRef::TypeError
-                } else {
-                    ref_or_range.ok().unwrap()
                 }
+
+                ref_or_range
             }
         };
 
@@ -148,21 +152,29 @@ impl<'s> Parser<'s> {
     /// expression.
     ///
     /// `parse_context`     The token type describing where the type is being parsed
-    pub(super) fn parse_primitive_type(&mut self, parse_context: &TokenType) -> TypeRef {
+    pub(super) fn parse_primitive_type(&mut self, parse_context: &TokenType) -> Type {
+        fn make_primitive(s: &Parser<'_>, primitive: PrimitiveType) -> Type {
+            Type {
+                kind: TypeKind::Primitive(primitive),
+                type_ref: None,
+                span: s.previous().location,
+            }
+        }
+
         match self.previous().token_type {
-            TokenType::Addressint => TypeRef::Primitive(PrimitiveType::AddressInt),
-            TokenType::Boolean => TypeRef::Primitive(PrimitiveType::Boolean),
-            TokenType::Int => TypeRef::Primitive(PrimitiveType::Int),
-            TokenType::Int1 => TypeRef::Primitive(PrimitiveType::Int1),
-            TokenType::Int2 => TypeRef::Primitive(PrimitiveType::Int2),
-            TokenType::Int4 => TypeRef::Primitive(PrimitiveType::Int4),
-            TokenType::Nat => TypeRef::Primitive(PrimitiveType::Nat),
-            TokenType::Nat1 => TypeRef::Primitive(PrimitiveType::Nat1),
-            TokenType::Nat2 => TypeRef::Primitive(PrimitiveType::Nat2),
-            TokenType::Nat4 => TypeRef::Primitive(PrimitiveType::Nat4),
-            TokenType::Real => TypeRef::Primitive(PrimitiveType::Real),
-            TokenType::Real4 => TypeRef::Primitive(PrimitiveType::Real4),
-            TokenType::Real8 => TypeRef::Primitive(PrimitiveType::Real8),
+            TokenType::Addressint => make_primitive(self, PrimitiveType::AddressInt),
+            TokenType::Boolean => make_primitive(self, PrimitiveType::Boolean),
+            TokenType::Int => make_primitive(self, PrimitiveType::Int),
+            TokenType::Int1 => make_primitive(self, PrimitiveType::Int1),
+            TokenType::Int2 => make_primitive(self, PrimitiveType::Int2),
+            TokenType::Int4 => make_primitive(self, PrimitiveType::Int4),
+            TokenType::Nat => make_primitive(self, PrimitiveType::Nat),
+            TokenType::Nat1 => make_primitive(self, PrimitiveType::Nat1),
+            TokenType::Nat2 => make_primitive(self, PrimitiveType::Nat2),
+            TokenType::Nat4 => make_primitive(self, PrimitiveType::Nat4),
+            TokenType::Real => make_primitive(self, PrimitiveType::Real),
+            TokenType::Real4 => make_primitive(self, PrimitiveType::Real4),
+            TokenType::Real8 => make_primitive(self, PrimitiveType::Real8),
             TokenType::Char => self.type_char_seq(true, parse_context),
             TokenType::String_ => self.type_char_seq(false, parse_context),
             _ => {
@@ -171,22 +183,30 @@ impl<'s> Parser<'s> {
                     format_args!("'{}' is not a primitive type", self.previous().token_type),
                 );
 
-                TypeRef::TypeError
+                Type {
+                    kind: TypeKind::Error,
+                    type_ref: None,
+                    span: self.previous().location,
+                }
             }
         }
     }
 
     /// Parse a basic primitive type
-    fn type_primitive(&mut self, primitive: PrimitiveType) -> TypeRef {
-        // Consume name
+    fn type_primitive(&mut self, primitive: PrimitiveType) -> Type {
+        // Consume type token
         self.next_token();
 
-        TypeRef::Primitive(primitive)
+        Type {
+            kind: TypeKind::Primitive(primitive),
+            type_ref: None,
+            span: self.previous().location,
+        }
     }
 
     /// Gets the size specifier for a char(n) or string(n)
-    fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<SequenceSize, ()> {
-        match self.current().token_type {
+    fn get_size_specifier(&mut self, parse_context: &TokenType) -> Result<SeqSize, ()> {
+        let maybe_seq_size = match self.current().token_type {
             TokenType::NatLiteral(size)
                 if matches!(self.peek().token_type, TokenType::RightParen) =>
             {
@@ -210,9 +230,19 @@ impl<'s> Parser<'s> {
                     );
                     Err(())
                 } else {
-                    // Consume parsed type
+                    // Make a literal expr
                     self.next_token();
-                    Ok(SequenceSize::Size(size as usize))
+
+                    let expr = Expr {
+                        kind: ExprKind::Literal {
+                            value: Literal::Nat(size),
+                        },
+                        eval_type: TypeRef::Primitive(PrimitiveType::Nat),
+                        is_compile_eval: true,
+                        span: self.previous().location,
+                    };
+
+                    Ok(SeqSize::Sized(Box::new(expr)))
                 }
             }
             TokenType::Star if matches!(self.peek().token_type, TokenType::RightParen) => {
@@ -221,7 +251,7 @@ impl<'s> Parser<'s> {
                 self.next_token();
 
                 if matches!(parse_context, TokenType::Function | TokenType::Procedure) {
-                    Ok(SequenceSize::Size(0 as usize))
+                    Ok(SeqSize::Any)
                 } else {
                     self.context.borrow_mut().reporter.report_error(
                         &self.previous().location,
@@ -238,13 +268,7 @@ impl<'s> Parser<'s> {
                 // Resolved at validator time
                 let size_expr = self.expr();
 
-                // Expect a right paren after the expression
-                if !matches!(self.current().token_type, TokenType::RightParen) {
-                    // Let the caller handle it
-                    return Err(());
-                }
-
-                // Put the parsed expression into a type table reference
+                // Put the parsed expression into a box
                 match size_expr.kind {
                     ExprKind::Error => {
                         self.context.borrow_mut().reporter.report_error(
@@ -253,59 +277,70 @@ impl<'s> Parser<'s> {
                         );
                         Err(())
                     }
-                    _ => Ok(SequenceSize::CompileExpr(
-                        types::get_type_id(&self.declare_type(Type::SizeExpr {
-                            expr: Box::new(size_expr),
-                        }))
-                        .unwrap(),
-                    )),
+                    _ => Ok(SeqSize::Sized(Box::new(size_expr))),
                 }
             }
-        }
+        };
+
+        // Expect a right paren after the length specifier
+        let _ = self.expects(
+            TokenType::RightParen,
+            format_args!("Expected ')' after length specifier"),
+        );
+
+        maybe_seq_size
     }
 
     /// Parse character sequence (string, char, char(n))
-    fn type_char_seq(&mut self, is_char_type: bool, parse_context: &TokenType) -> TypeRef {
-        // If left paren, construct sized type
-        if self.current().token_type == TokenType::LeftParen {
+    fn type_char_seq(&mut self, is_char_type: bool, parse_context: &TokenType) -> Type {
+        // Nom 'char' or 'string'
+        if matches!(
+            self.current().token_type,
+            TokenType::Char | TokenType::String_
+        ) {
+            // Optional nom because this may be a part of an indirection expression,
+            // where the leading token is already consumed
             self.next_token();
+        }
 
+        let span = self.previous().location;
+
+        // If left paren, construct sized type
+        let kind = if self.optional(&TokenType::LeftParen) {
             // Try to get the size
             let parsed_size = self.get_size_specifier(parse_context);
 
-            // Missing ) is recoverable
-            let _ = self.expects(
-                TokenType::RightParen,
-                format_args!("Expected ')' after length specifier"),
-            );
-
-            if is_char_type {
-                match parsed_size {
-                    Ok(size) => TypeRef::Primitive(PrimitiveType::CharN(size)),
-                    // Try to return as a single char, for preserving validator semantics and preserving compatibility with Turing proper
-                    Err(_) => TypeRef::Primitive(PrimitiveType::Char),
-                }
-            } else {
-                match parsed_size {
-                    Ok(size) => TypeRef::Primitive(PrimitiveType::StringN(size)),
-                    // Try to return as a normal string, for preserving validator semantics
-                    Err(_) => TypeRef::Primitive(PrimitiveType::String_),
-                }
+            match parsed_size {
+                Ok(size) if is_char_type => TypeKind::CharN { size },
+                Ok(size) => TypeKind::StringN { size },
+                // Try to return as the base type, for preserving validator semantics and preserving compatibility with Turing proper
+                Err(_) if is_char_type => TypeKind::Primitive(PrimitiveType::Char),
+                Err(_) => TypeKind::Primitive(PrimitiveType::String_),
             }
         } else {
-            // Produce bracketless versions
+            // Produce base versions
             if is_char_type {
                 // Make single char type
-                TypeRef::Primitive(PrimitiveType::Char)
+                TypeKind::Primitive(PrimitiveType::Char)
             } else {
                 // Make varsized type
-                TypeRef::Primitive(PrimitiveType::String_)
+                TypeKind::Primitive(PrimitiveType::String_)
             }
+        };
+
+        let span = span.span_to(&self.previous().location);
+
+        Type {
+            kind,
+            type_ref: None,
+            span,
         }
     }
 
     /// Parse pointer to another type
-    fn type_pointer(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_pointer(&mut self, parse_context: &TokenType) -> Type {
+        let span = self.current().location;
+
         // Consume optional 'unchecked' attribute
         let is_unchecked = self.optional(&TokenType::Unchecked);
 
@@ -317,22 +352,27 @@ impl<'s> Parser<'s> {
 
         // Get the pointer to type
         let pointer_to = self.parse_type(parse_context);
-        let typedef = Type::Pointer {
-            to: pointer_to,
+
+        let kind = TypeKind::Pointer {
+            to: Box::new(pointer_to),
             is_unchecked,
         };
 
-        self.declare_type(typedef)
+        let span = span.span_to(&self.previous().location);
+
+        Type {
+            kind,
+            type_ref: None,
+            span,
+        }
     }
 
     /// Parse procedure & function parameter specification & result type
-    fn type_function(&mut self, parse_context: &TokenType, has_result: bool) -> TypeRef {
-        let param_decl = if let TokenType::LeftParen = self.current().token_type {
+    fn type_function(&mut self, parse_context: &TokenType, has_result: bool) -> Type {
+        let span = self.current().location;
+
+        let params = if self.optional(&TokenType::LeftParen) {
             // Parameter Declaration
-
-            // Consume left paren
-            self.next_token();
-
             let mut params = vec![];
 
             if self.current().token_type != TokenType::RightParen {
@@ -404,26 +444,31 @@ impl<'s> Parser<'s> {
             None
         };
 
-        let result_type = if has_result {
+        let result = if has_result {
             let _ = self.expects(
                 TokenType::Colon,
                 format_args!("Expected ':' before the result type"),
             );
 
-            Some(self.parse_type(parse_context))
+            Some(Box::new(self.parse_type(parse_context)))
         } else {
             // No result type
             None
         };
 
-        self.declare_type(Type::Function {
-            params: param_decl,
-            result: result_type,
-        })
+        let kind = TypeKind::Function { params, result };
+
+        let span = span.span_to(&self.previous().location);
+
+        Type {
+            kind,
+            type_ref: None,
+            span,
+        }
     }
 
     /// Parses a sequence of function variable-type parameters, producing one or more parameter definitions
-    fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<ParamDef> {
+    fn type_var_param(&mut self, parse_context: &TokenType) -> Vec<(Box<Type>, ParamInfo)> {
         // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
 
         // Attributes apply to all idents
@@ -456,23 +501,26 @@ impl<'s> Parser<'s> {
         );
 
         let force_type = self.optional(&TokenType::Cheat);
-        let type_spec = self.parse_type(parse_context);
+        let type_spec = Box::new(self.parse_type(parse_context));
 
         // Unfold the ident list into the individual parameter types
         idents
             .into_iter()
-            .map(|name| ParamDef {
-                name,
-                type_spec,
-                pass_by_ref,
-                bind_to_register,
-                force_type,
+            .map(|name| {
+                let info = ParamInfo {
+                    name,
+                    pass_by_ref,
+                    bind_to_register,
+                    force_type,
+                };
+
+                (type_spec.clone(), info)
             })
             .collect()
     }
 
     /// Parses a single function subprogram-type parameter, producing one parameter definition
-    fn type_subprogram_param(&mut self, parse_context: &TokenType) -> ParamDef {
+    fn type_subprogram_param(&mut self, parse_context: &TokenType) -> (Box<Type>, ParamInfo) {
         // "function" | "procedure" identifier param_list
 
         // Consume "function" or "procedure"
@@ -488,33 +536,39 @@ impl<'s> Parser<'s> {
                 |tok| tok.location.get_lexeme(self.source).to_string(),
             );
 
-        let type_spec = self.type_function(parse_context, has_result);
+        let type_spec = Box::new(self.type_function(parse_context, has_result));
 
-        ParamDef {
+        let info = ParamInfo {
             name,
-            type_spec,
             pass_by_ref: false,
             bind_to_register: false,
             force_type: false,
-        }
+        };
+
+        (type_spec, info)
     }
 
     /// Try to parse either a reference, or a range.
-    /// Returns an `Ok(TypeRef)` with the parsed type, or an `Err(())`
-    /// if the reference expression is an `ExprKind::Error`
-    fn type_reference_or_range(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
+    /// Returns a `Type` with the parsed type.
+    /// If the reference expression is an `ExprKind::Error`, a `Type` with
+    /// `TypeKind::Error` is produced.
+    fn type_reference_or_range(&mut self, parse_context: &TokenType) -> Type {
         // Bail out on err (i.e. too deep in the expr nesting or not a
         // expression at all)
         let primary_expr = self.expr();
 
         if matches!(primary_expr.kind, ExprKind::Error) {
-            // Not a valid type reference
-            return Err(());
+            // Not a valid type reference, make an error type
+            return Type {
+                kind: TypeKind::Error,
+                type_ref: None,
+                span: *primary_expr.get_span(),
+            };
         }
 
         if self.current().token_type == TokenType::Range {
             // Pass off to the range parser
-            Ok(self.type_range_rest(primary_expr, parse_context))
+            self.type_range_rest(primary_expr, parse_context)
         } else {
             // Parse as a reference type (resolved at validator time)
             // Validate that the expression only contains dot expressions or a reference
@@ -539,21 +593,25 @@ impl<'s> Parser<'s> {
                 }
             }
 
-            Ok(self.declare_type(Type::Reference {
-                expr: Box::new(primary_expr),
-            }))
+            Type {
+                span: primary_expr.span,
+                type_ref: None,
+                kind: TypeKind::Reference {
+                    ref_expr: Box::new(primary_expr),
+                },
+            }
         }
     }
 
     // Parse the rest of a range type
     // Will always produce a range
-    fn type_range_rest(&mut self, start_range: Expr, parse_context: &TokenType) -> TypeRef {
+    fn type_range_rest(&mut self, start_range: Expr, parse_context: &TokenType) -> Type {
+        // Consume range dots
+        let range_tok = self.next_token();
+
         // A None for the range is only acceptable in array decls
         // Everywhere else is invalid
         let is_inferred_valid = *parse_context == TokenType::Array;
-
-        // Consume range dots
-        let range_tok = self.next_token();
 
         // Parse the end range
         let end_range = match self.current().token_type {
@@ -569,47 +627,54 @@ impl<'s> Parser<'s> {
                     );
                 }
 
-                None
+                SeqSize::Any
             }
             // Explicit range
-            _ => Some(self.expr()),
+            _ => SeqSize::Sized(Box::new(self.expr())),
         };
 
-        if matches!(
-            end_range.as_ref().map(|expr| &expr.kind),
-            Some(ExprKind::Error)
-        ) {
-            // End range is not a valid range
-            self.context.borrow_mut().reporter.report_error(
-                &range_tok.location,
-                if is_inferred_valid {
-                    format_args!("Expected expression or '*' after '..'")
-                } else {
-                    format_args!("Expected expression after '..'")
-                },
-            );
+        if let SeqSize::Sized(expr) = &end_range {
+            if let ExprKind::Error = expr.kind {
+                // End range is not a valid range
+                self.context.borrow_mut().reporter.report_error(
+                    &range_tok.location,
+                    if is_inferred_valid {
+                        format_args!("Expected expression or '*' after '..'")
+                    } else {
+                        format_args!("Expected expression after '..'")
+                    },
+                );
+            }
         }
 
-        self.declare_type(Type::Range {
+        let span = start_range.get_span().span_to(&self.previous().location);
+
+        let kind = TypeKind::Range {
             start: Box::new(start_range),
-            end: end_range.map(Box::new),
-            base_type: TypeRef::Unknown,
-            size: None,
-        })
+            end: end_range,
+        };
+
+        Type {
+            kind,
+            type_ref: None,
+            span,
+        }
     }
 
     /// Parse a single index specificier
-    fn type_index(&mut self, parse_context: &TokenType) -> Result<TypeRef, ()> {
+    fn type_index(&mut self, parse_context: &TokenType) -> Type {
         // "boolean" | "char" | type_ident (handles type_enum) | type_range
         match self.current().token_type {
-            TokenType::Boolean | TokenType::Char => Ok(self.parse_type(parse_context)),
-            _ => self.type_reference_or_range(parse_context).map_err(|_| ()),
+            TokenType::Boolean | TokenType::Char => self.parse_type(parse_context),
+            _ => self.type_reference_or_range(parse_context),
         }
     }
 
     /// Parse an array type
-    fn type_array(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_array(&mut self, parse_context: &TokenType) -> Type {
         // "flexible"? "array" range_spec (',' range_spec)* "of" type_spec
+
+        let span = self.current().location;
 
         let is_flexible = self.optional(&TokenType::Flexible);
         let flexible_tok = self.previous().clone();
@@ -625,7 +690,7 @@ impl<'s> Parser<'s> {
         loop {
             let range = self.type_index(&TokenType::Array);
 
-            if range.is_err() {
+            if matches!(range.kind, TypeKind::Error) {
                 self.context.borrow_mut().reporter.report_error(
                     &self.current().location,
                     format_args!("Expected a range specifier after ','"),
@@ -633,22 +698,21 @@ impl<'s> Parser<'s> {
                 break;
             }
 
-            let range = range.ok().unwrap();
-
             if ranges.is_empty() {
                 // Pushing the first range, check for implicit range
-                if let Some(Type::Range { ref end, .. }) = self.type_table.type_from_ref(&range) {
-                    if is_flexible && end.is_none() {
+                if let TypeKind::Range { end, .. } = &range.kind {
+                    // An array is init-sized if the first range is an implicit range
+                    is_init_sized = matches!(end, SeqSize::Any);
+
+                    if is_flexible && is_init_sized {
                         // Flexible array cannot have an implicit range specifier
                         self.context.borrow_mut().reporter.report_error(
                             &self.previous().location,
                             format_args!("Flexible array cannot have an implicit range specifier"),
                         );
                     }
-
-                    // An array is init-sized if the first range is an implicit range
-                    is_init_sized = end.is_none();
                 }
+
                 // Add the range
                 ranges.push(range);
             } else if is_init_sized {
@@ -659,9 +723,9 @@ impl<'s> Parser<'s> {
                 );
             } else {
                 // Pushing in an additional range, where an additional range is accepted
-                if let Some(Type::Range { ref end, .. }) = self.type_table.type_from_ref(&range) {
+                if let TypeKind::Range { end, .. } = &range.kind {
                     // Report if the range is an implicit range
-                    if end.is_none() {
+                    if matches!(end, SeqSize::Any) {
                         self.context.borrow_mut().reporter.report_error(
                             &self.previous().location,
                             format_args!("'*' is only valid for the first range specifier"),
@@ -689,7 +753,7 @@ impl<'s> Parser<'s> {
             format_args!("Expected 'of' after the last range specifier"),
         );
 
-        let element_type = self.parse_type(&TokenType::Array);
+        let element_type = Box::new(self.parse_type(&TokenType::Array));
 
         // Check if the current array is allowed in the current parsing context
         if matches!(
@@ -726,31 +790,38 @@ impl<'s> Parser<'s> {
         }
 
         // Build the type
-        self.declare_type(Type::Array {
-            ranges,
-            element_type,
-            is_flexible,
-            is_init_sized,
-        })
+        let span = span.span_to(&self.previous().location);
+
+        Type {
+            kind: TypeKind::Array {
+                ranges,
+                element_type,
+                is_flexible,
+                is_init_sized,
+            },
+            type_ref: None,
+            span,
+        }
     }
 
     /// Parse a set type
-    fn type_set(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_set(&mut self, parse_context: &TokenType) -> Type {
         // Parse the entire set declaration
         let set_tok = self.next_token();
+        let span = set_tok.location;
+
         // nab 'of'
         let _ = self.expects(TokenType::Of, format_args!("Expected 'of' after 'set'"));
 
         // Parse the index type!
-        let range = match self.type_index(&TokenType::Set) {
-            Err(_) => TypeRef::TypeError,
-            Ok(range) => range,
-        };
+        let range = Box::new(self.type_index(&TokenType::Set));
+
+        let span = span.span_to(&self.previous().location);
 
         if *parse_context != TokenType::Type {
             // Only allowed in "type" statements
             self.context.borrow_mut().reporter.report_error(
-                &set_tok.location,
+                &span,
                 format_args!("Set types can only be declared inside of 'type' statements"),
             );
 
@@ -768,13 +839,19 @@ impl<'s> Parser<'s> {
             // in a 'type' stmt context.
         }
 
-        self.declare_type(Type::Set { range })
+        Type {
+            kind: TypeKind::Set { range },
+            type_ref: None,
+            span,
+        }
     }
 
     // Parse an enumeration type
-    fn type_enum(&mut self, parse_context: &TokenType) -> TypeRef {
+    fn type_enum(&mut self, parse_context: &TokenType) -> Type {
         // Parse the entire enum declaration first
         let enum_tok = self.next_token();
+        let span = enum_tok.location;
+
         // nab '('
         let _ = self.expects(
             TokenType::LeftParen,
@@ -812,10 +889,12 @@ impl<'s> Parser<'s> {
             format_args!("Expected ')' after enumeration field declarations"),
         );
 
+        let span = span.span_to(&self.previous().location);
+
         if *parse_context != TokenType::Type {
             // Only allowed in "type" statements
             self.context.borrow_mut().reporter.report_error(
-                &enum_tok.location,
+                &span,
                 format_args!("Enumerated types can only be declared inside of 'type' statements"),
             );
 
@@ -829,30 +908,10 @@ impl<'s> Parser<'s> {
             // maintain consistent behaviour as with set types.
         }
 
-        // Build the type from the identifiers
-        // Create a dummy type
-        let enum_type = self.declare_type(Type::Alias {
-            to: TypeRef::Unknown,
-        });
-
-        // Create types for each of the fields and put them into a HashMap
-        let mut enum_fields = HashMap::new();
-        fields.into_iter().enumerate().for_each(|(ordinal, name)| {
-            if !name.is_empty() {
-                // Add all of the valid fields
-                let field = self.declare_type(Type::EnumField { enum_type, ordinal });
-                enum_fields.insert(name, field);
-            }
-        });
-
-        // Replace the enum type with the real type
-        self.replace_type(
-            &enum_type,
-            Type::Enum {
-                fields: enum_fields,
-            },
-        );
-
-        enum_type
+        Type {
+            kind: TypeKind::Enum { fields },
+            type_ref: None,
+            span,
+        }
     }
 }

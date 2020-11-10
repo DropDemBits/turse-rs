@@ -16,6 +16,7 @@ use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_core::Location;
 
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fmt::Arguments;
 use std::rc::Rc;
 
@@ -49,6 +50,9 @@ pub struct Parser<'s> {
     /// Type nesting depth
     type_nesting: usize,
 
+    /// All identifiers being used as forward references
+    forward_refs: HashSet<IdentId>,
+
     // Fragments of a code unit //
     /// If the parser is for the root unit
     is_main: bool,
@@ -78,10 +82,12 @@ impl<'s> Parser<'s> {
                 .next()
                 .unwrap_or_else(|| Token::new(TokenType::Eof, Location::new())),
             scanner,
-            // Clone a ref to the root block
+
             expr_nesting: 0,
             stmt_nesting: 0,
             type_nesting: 0,
+
+            forward_refs: HashSet::new(),
 
             is_main,
             unit_scope: scope::UnitScope::new(),
@@ -474,7 +480,7 @@ mod test {
     use crate::context::CompileContext;
     use crate::scanner::Scanner;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::ast::{expr::ExprKind, stmt::Stmt, stmt::StmtKind};
+    use toc_ast::ast::{expr::ExprKind, stmt::Stmt, stmt::StmtKind, types::TypeKind};
     use toc_ast::types::{self, *};
 
     fn make_test_parser(source: &str) -> Parser {
@@ -545,16 +551,43 @@ mod test {
         ",
         );
         assert!(parser.parse());
-        for name in ["x", "y", "z"].iter() {
-            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::Real));
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_var),
+            ..
+        } = &parser.stmts()[4].kind
+        {
+            assert!(matches!(
+                ty_var.kind,
+                TypeKind::Primitive(PrimitiveType::Real)
+            ));
+        } else {
+            unreachable!()
         }
 
-        for name in ["d", "e", "f"].iter() {
-            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::String_));
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_var),
+            ..
+        } = &parser.stmts()[3].kind
+        {
+            assert!(matches!(
+                ty_var.kind,
+                TypeKind::Primitive(PrimitiveType::String_)
+            ));
+        } else {
+            unreachable!()
         }
 
-        for name in ["i", "j", "k"].iter() {
-            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::Nat));
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_var),
+            ..
+        } = &parser.stmts()[7].kind
+        {
+            assert!(matches!(
+                ty_var.kind,
+                TypeKind::Primitive(PrimitiveType::Nat)
+            ));
+        } else {
+            unreachable!()
         }
 
         // Invalid forms - can't deduce type
@@ -566,8 +599,10 @@ mod test {
         var e, b, k",
         );
         assert!(!parser.parse());
-        for name in ["a", "c", "e", "b", "k"].iter() {
-            check_ident_expected_type(&parser, name, TypeRef::TypeError);
+        for stmt in parser.stmts().iter() {
+            assert!(matches!(stmt.kind, StmtKind::VarDecl {
+                type_spec: Some(_), ..
+            }));
         }
 
         // Invalid forms - comma after last item
@@ -594,8 +629,17 @@ mod test {
         const h : int = -10 + 3 * 2",
         );
         assert!(parser.parse());
-        for name in ["c", "d"].iter() {
-            check_ident_expected_type(&parser, name, TypeRef::Primitive(PrimitiveType::Int));
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_var),
+            ..
+        } = &parser.stmts()[2].kind
+        {
+            assert!(matches!(
+                ty_var.kind,
+                TypeKind::Primitive(PrimitiveType::Int)
+            ));
+        } else {
+            unreachable!()
         }
 
         // Invalid forms
@@ -606,8 +650,11 @@ mod test {
         const b",
         );
         assert!(!parser.parse());
-        check_ident_expected_type(&parser, "a", TypeRef::TypeError);
-        check_ident_expected_type(&parser, "b", TypeRef::TypeError);
+        for stmt in parser.stmts().iter() {
+            assert!(matches!(stmt.kind, StmtKind::VarDecl {
+                type_spec: Some(_), ..
+            }));
+        }
 
         let mut parser = make_test_parser(
             "
@@ -768,7 +815,7 @@ mod test {
         assert!(!parser.parse());
     }
 
-    #[test]
+    //#[test] // Disabled before migration to file-based testing
     fn test_primitive_type_parser() {
         let mut parser = make_test_parser(
             "
@@ -1130,36 +1177,51 @@ type enumeration : enum (a, b, c, d, e, f)
         // Implicit size array cannot have more than one range specifier
         let mut parser = make_test_parser("var inv : array 1 .. *, char of real");
         assert!(!parser.parse());
-        if let Some(Type::Array { ranges, .. }) = parser
-            .type_table
-            .type_from_ref(&get_ident_type(&parser, "inv"))
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_array),
+            ..
+        } = &parser.stmts()[0].kind
         {
-            assert_eq!(ranges.len(), 1);
+            if let TypeKind::Array { ranges, .. } = &ty_array.kind {
+                assert_eq!(ranges.len(), 1);
+            } else {
+                panic!("Not an array");
+            }
         } else {
-            panic!("Not an array");
+            unreachable!()
         }
 
         let mut parser = make_test_parser("var inv : array 1 .. *, 1 .. *, char of real");
         assert!(!parser.parse());
-        if let Some(Type::Array { ranges, .. }) = parser
-            .type_table
-            .type_from_ref(&get_ident_type(&parser, "inv"))
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_array),
+            ..
+        } = &parser.stmts()[0].kind
         {
-            assert_eq!(ranges.len(), 1);
+            if let TypeKind::Array { ranges, .. } = &ty_array.kind {
+                assert_eq!(ranges.len(), 1);
+            } else {
+                panic!("Not an array");
+            }
         } else {
-            panic!("Not an array");
+            unreachable!()
         }
 
         // Implicit size range is only allowed for the first range specifier
         let mut parser = make_test_parser("var inv : array 1 .. 2, 1 .. *, char of real");
         assert!(!parser.parse());
-        if let Some(Type::Array { ranges, .. }) = parser
-            .type_table
-            .type_from_ref(&get_ident_type(&parser, "inv"))
+        if let StmtKind::VarDecl {
+            type_spec: Some(ty_array),
+            ..
+        } = &parser.stmts()[0].kind
         {
-            assert_eq!(ranges.len(), 3);
+            if let TypeKind::Array { ranges, .. } = &ty_array.kind {
+                assert_eq!(ranges.len(), 3);
+            } else {
+                panic!("Not an array");
+            }
         } else {
-            panic!("Not an array");
+            unreachable!()
         }
     }
 
@@ -1188,28 +1250,19 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(!parser.parse());
         assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
         // Ensure this gets parsed
-        assert_eq!(
-            get_ident_type(&parser, "b"),
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        assert!(parser.stmts().get(1).is_some());
 
         let mut parser = make_test_parser("type a : enum )\nvar b : int");
         assert!(!parser.parse());
         assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
         // Ensure this gets parsed
-        assert_eq!(
-            get_ident_type(&parser, "b"),
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        assert!(parser.stmts().get(1).is_some());
 
         let mut parser = make_test_parser("type a : enum \nvar b : int");
         assert!(!parser.parse());
         assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
         // Ensure this gets parsed
-        assert_eq!(
-            get_ident_type(&parser, "b"),
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        assert!(parser.stmts().get(1).is_some());
 
         // Right paren is required, but should not create an error type
         let mut parser = make_test_parser("type a : enum (a");
@@ -1229,35 +1282,34 @@ type enumeration : enum (a, b, c, d, e, f)
         let mut parser = make_test_parser("type a : enum (a, to\nvar b : int");
         assert!(!parser.parse());
         assert_ne!(get_ident_type(&parser, "a"), TypeRef::TypeError);
-        assert_eq!(
-            get_ident_type(&parser, "b"),
-            TypeRef::Primitive(PrimitiveType::Int)
-        );
+        assert!(parser.stmts().get(1).is_some());
 
         // Enums not in top-level type contexts are rejected
         // (i.e. anonymous enums are not allowed), but still produce
         // an enum type
         let mut parser = make_test_parser("var a : enum (a, b, c)");
         assert!(!parser.parse());
-        let type_ref = get_ident_type(&parser, "a");
-        let type_of = parser.type_table.type_from_ref(&type_ref);
-        assert!(
-            matches!(type_of, Some(Type::Enum { .. })),
-            "Is of type {:?} from {:?}",
-            type_of,
-            type_ref
-        );
+        if let StmtKind::VarDecl {
+            type_spec: Some(type_spec),
+            ..
+        } = &parser.stmts()[0].kind
+        {
+            assert!(matches!(type_spec.kind, TypeKind::Enum { .. }))
+        } else {
+            unreachable!()
+        }
 
         let mut parser = make_test_parser("const a : enum (a, b, c) := 2");
         assert!(!parser.parse());
-        let type_ref = get_ident_type(&parser, "a");
-        let type_of = parser.type_table.type_from_ref(&type_ref);
-        assert!(
-            matches!(type_of, Some(Type::Enum { .. })),
-            "Is of type {:?} from {:?}",
-            type_of,
-            type_ref
-        );
+        if let StmtKind::VarDecl {
+            type_spec: Some(type_spec),
+            ..
+        } = &parser.stmts()[0].kind
+        {
+            assert!(matches!(type_spec.kind, TypeKind::Enum { .. }))
+        } else {
+            unreachable!()
+        }
 
         let mut parser = make_test_parser("type a : set of enum (a, b, c)");
         assert!(!parser.parse());
@@ -1301,28 +1353,33 @@ type enumeration : enum (a, b, c, d, e, f)
         begin
             var yay : int := 5
         end
+        yay
         ",
         );
         assert!(parser.parse()); // Checked at validator time
 
         // Validate the types
         if let StmtKind::Block { block, .. } = &parser.stmts()[1].kind {
-            // Inner scope is still int
+            // Inner scope is not outer one
             let id = block.block.get_ident_id("yay").expect("Ident not declared");
 
-            assert_eq!(
-                parser.unit_scope.get_ident_info(&id).type_spec,
-                TypeRef::Primitive(PrimitiveType::Int)
-            );
+            assert_ne!(id, IdentId(0));
         } else {
             unreachable!();
         }
 
-        // Outer scope is still string
-        assert_eq!(
-            get_ident(&parser, "yay").unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::String_)
-        );
+        if let Some(Stmt {
+            kind: StmtKind::Block { block, .. },
+            ..
+        }) = parser.root_stmt.as_ref().map(|a| &**a)
+        {
+            // Outer `yay` scope is still initial declaration
+            let id = block.block.get_ident_id("yay").expect("Ident not declared");
+
+            assert_eq!(id, IdentId(0));
+        } else {
+            unreachable!();
+        }
 
         // Redeclaration of declared - inner - inner
         let mut parser = make_test_parser(
@@ -1338,24 +1395,32 @@ type enumeration : enum (a, b, c, d, e, f)
         );
         assert!(parser.parse()); // Checked at validator time
 
-        // Validate the types
+        // Validate the ids
         if let StmtKind::Block { block, .. } = &parser.stmts()[0].kind {
-            // Innermost scope is still int
-            let id = block.block.get_ident_id("yay").expect("Ident not declared");
+            if let StmtKind::Block { block, .. } = &block.stmts[1].kind {
+                // Innermost scope is still a unique type
+                let id = block.block.get_ident_id("yay").expect("Ident not declared");
 
-            assert_eq!(
-                parser.unit_scope.get_ident_info(&id).type_spec,
-                TypeRef::Primitive(PrimitiveType::Int)
-            );
+                assert_ne!(id, IdentId(0));
+            } else {
+                unreachable!();
+            }
         } else {
             unreachable!();
         }
 
-        // Outermost scope is still string
-        assert_eq!(
-            get_ident(&parser, "yay").unwrap().type_spec,
-            TypeRef::Primitive(PrimitiveType::String_)
-        );
+        if let Some(Stmt {
+            kind: StmtKind::Block { block, .. },
+            ..
+        }) = parser.root_stmt.as_ref().map(|a| &**a)
+        {
+            // Outermost scope is a unique declaration
+            let id = block.block.get_ident_id("yay").expect("Ident not declared");
+
+            assert_eq!(id, IdentId(2));
+        } else {
+            unreachable!();
+        }
     }
 
     #[test]
@@ -1376,12 +1441,7 @@ type enumeration : enum (a, b, c, d, e, f)
         assert!(get_ident(&parser, "a").is_some());
         let type_ref = get_ident(&parser, "a").unwrap().type_spec;
         assert!(
-            matches!(
-                parser.type_table.type_from_ref(&type_ref),
-                Some(Type::Alias {
-                    to: TypeRef::TypeError,
-                })
-            ),
+            matches!(parser.type_table.type_from_ref(&type_ref), Some(_)),
             "From ref {:?} to {:?}",
             type_ref,
             parser.type_table.type_from_ref(&type_ref)
@@ -1398,9 +1458,7 @@ type enumeration : enum (a, b, c, d, e, f)
                 parser
                     .type_table
                     .type_from_ref(&get_ident(&parser, "a").unwrap().type_spec),
-                Some(Type::Alias {
-                    to: TypeRef::Primitive(PrimitiveType::Int),
-                })
+                Some(Type::Forward { .. }) // Not resolved until the validator stage
             )
         );
         assert_eq!(get_ident(&parser, "a").unwrap().ref_kind, RefKind::Type);
@@ -1434,15 +1492,7 @@ type enumeration : enum (a, b, c, d, e, f)
         // Forward refs after resolves create a new type
         let mut parser = make_test_parser("type a : forward\ntype a : int\ntype a : forward");
         assert!(parser.parse()); // Checked at validator time
-        assert_eq!(
-            true,
-            matches!(
-                parser
-                    .type_table
-                    .type_from_ref(&get_ident_instance(&parser, IdentId(1)).unwrap().type_spec),
-                Some(Type::Forward { is_resolved: false })
-            )
-        );
+        assert_eq!(true, get_ident_instance(&parser, IdentId(1)).is_some());
 
         // Duplicate forward refs should not affect resolved state (and should share IdentId)
         let mut parser = make_test_parser("type a : forward\ntype a : forward\ntype a : int");
@@ -1541,12 +1591,10 @@ type enumeration : enum (a, b, c, d, e, f)
         // Can't infer type from init
         let mut parser = make_test_parser("var a := init(1, 2, 3)");
         assert!(!parser.parse());
-        assert_eq!(TypeRef::TypeError, get_ident_type(&parser, "a"));
 
         // Can't infer type from init
         let mut parser = make_test_parser("const a := init(1, 2, 3)");
         assert!(!parser.parse());
-        assert_eq!(TypeRef::TypeError, get_ident_type(&parser, "a"));
     }
 
     #[test]
