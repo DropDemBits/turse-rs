@@ -149,22 +149,27 @@ impl<'s> Parser<'s> {
         // Check if the init expression was required to be present or absent
         // Required to be present when the type_spec is an array, and is init-sized
         // Required to be absent in the case of a missing type spec
-        if let Some(TypeKind::Array { is_init_sized, .. }) = type_spec.as_ref().map(|ty| &ty.kind) {
-            if *is_init_sized && !has_init_expr {
-                // Error: Requires to have init, but has no init
-                self.context.borrow_mut().reporter.report_error(
-                    &self.current().location,
-                    format_args!("Arrays with '*' as an end bound require an 'init' initializer"),
-                );
+        if let Some(ty) = &type_spec {
+            if let TypeKind::Array { is_init_sized, .. } = &ty.kind {
+                if *is_init_sized && !has_init_expr {
+                    // Error: Requires to have init, but has no init
+                    self.context.borrow_mut().reporter.report_error(
+                        &ty.span,
+                        format_args!(
+                            "Arrays with '*' as an end bound require an 'init' initializer"
+                        ),
+                    );
+                }
             }
         } else if type_spec.is_none() && has_init_expr {
             // Error: Requires to not have init, but 'init' present
-            // Force into a TypeError
+            // Safe to unwrap assign_expr, as 'has_init_expr' requires an ExprKind::Init to be present
             self.context.borrow_mut().reporter.report_error(
-                &self.current().location,
+                assign_expr.as_ref().expect("no init expr").get_span(),
                 format_args!("Cannot infer a type from an 'init' initializer"),
             );
 
+            // Force into a TypeError
             type_spec.replace(Box::new(Type {
                 kind: TypeKind::Error,
                 type_ref: None,
@@ -356,9 +361,9 @@ impl<'s> Parser<'s> {
 
     fn stmt(&mut self) -> ParseResult<Stmt> {
         match self.current().token_type {
-            TokenType::Identifier | TokenType::Caret => self.stmt_reference(),
-            // TODO: Looks dirty, please merge with above
-            TokenType::Addressint
+            TokenType::Identifier
+            | TokenType::Caret
+            | TokenType::Addressint
             | TokenType::Int
             | TokenType::Int1
             | TokenType::Int2
@@ -372,10 +377,9 @@ impl<'s> Parser<'s> {
             | TokenType::Real8
             | TokenType::Boolean
             | TokenType::Char
-            | TokenType::String_
-                if matches!(self.peek().token_type, TokenType::At) =>
-            {
-                // Part of an indirect reference
+            | TokenType::String_ => {
+                // Identifier & caret begin a regular reference
+                // Primitive types form part of an indirect reference
                 self.stmt_reference()
             }
             TokenType::Begin => self.stmt_block(),
@@ -673,12 +677,31 @@ impl<'s> Parser<'s> {
             // report warning!
             self.warn_found_as_something_else("endif", "end if", &self.previous().location);
         } else {
-            // Nom `end` `if`
-            let _ = self.expects(
+            // Nom `end`
+            let end_tok = self.expects(
                 TokenType::End,
                 format_args!("Expected 'end' at the end of the if statement"),
             );
-            let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
+
+            if let Ok(end_tok) = end_tok {
+                // Check for 'if' after end_tok
+
+                // `if` and `end` are likely on the same line, so don't nom the following `if` token
+                // as that wouldn't allow the next if statement to be parsed
+
+                if matches!(self.current().token_type, TokenType::If)
+                    && end_tok.location.line == self.current().location.line
+                {
+                    // Nom 'if' normally
+                    let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
+                } else {
+                    // Warn about missing `if`
+                    self.context.borrow_mut().reporter.report_error(
+                        &end_tok.location,
+                        format_args!("Missing 'if' after 'end' to finish statement"),
+                    );
+                }
+            }
         }
     }
 
