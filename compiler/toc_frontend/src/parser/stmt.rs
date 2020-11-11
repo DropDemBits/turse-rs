@@ -149,22 +149,27 @@ impl<'s> Parser<'s> {
         // Check if the init expression was required to be present or absent
         // Required to be present when the type_spec is an array, and is init-sized
         // Required to be absent in the case of a missing type spec
-        if let Some(TypeKind::Array { is_init_sized, .. }) = type_spec.as_ref().map(|ty| &ty.kind) {
-            if *is_init_sized && !has_init_expr {
-                // Error: Requires to have init, but has no init
-                self.context.borrow_mut().reporter.report_error(
-                    &self.current().location,
-                    format_args!("Arrays with '*' as an end bound require an 'init' initializer"),
-                );
+        if let Some(ty) = &type_spec {
+            if let TypeKind::Array { is_init_sized, .. } = &ty.kind {
+                if *is_init_sized && !has_init_expr {
+                    // Error: Requires to have init, but has no init
+                    self.context.borrow_mut().reporter.report_error(
+                        &ty.span,
+                        format_args!(
+                            "Arrays with '*' as an end bound require an 'init' initializer"
+                        ),
+                    );
+                }
             }
         } else if type_spec.is_none() && has_init_expr {
             // Error: Requires to not have init, but 'init' present
-            // Force into a TypeError
+            // Safe to unwrap assign_expr, as 'has_init_expr' requires an ExprKind::Init to be present
             self.context.borrow_mut().reporter.report_error(
-                &self.current().location,
+                assign_expr.as_ref().expect("no init expr").get_span(),
                 format_args!("Cannot infer a type from an 'init' initializer"),
             );
 
+            // Force into a TypeError
             type_spec.replace(Box::new(Type {
                 kind: TypeKind::Error,
                 type_ref: None,
