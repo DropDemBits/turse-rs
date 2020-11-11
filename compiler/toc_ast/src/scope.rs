@@ -5,11 +5,16 @@ use toc_core::Location;
 
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+// TODO(was_doing): import boundaries & pervasiveness
+
+/// All import boundary variants
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 #[allow(dead_code)] // No variants constructed right now, deal with it later
 enum ImportBoundary {
+    /// All identifiers are allowed to be imported from parent blocks
     None,
-    Implicit,
+    /// Only explicitly imported identifiers and pervasive identifiers
+    /// are allowed to be imported from parent blocks
     Hard,
 }
 
@@ -39,10 +44,23 @@ pub struct ScopeBlock {
 
 impl ScopeBlock {
     /// Creates a new scope block
+    ///
+    /// # Parameters
+    /// - `kind`: The kind of block to create. Determines the import boundary.
     pub fn new(kind: BlockKind) -> Self {
+        let import_boundary = match kind {
+            BlockKind::Unit
+            | BlockKind::Main
+            | BlockKind::Module
+            | BlockKind::Monitor
+            | BlockKind::MonitorClass
+            | BlockKind::Class => ImportBoundary::Hard,
+            _ => ImportBoundary::None,
+        };
+
         Self {
             kind,
-            import_boundary: ImportBoundary::None,
+            import_boundary,
             id_mappings: HashMap::new(),
             shadowed_by: vec![],
             undeclared_ids: HashSet::new(),
@@ -62,7 +80,7 @@ impl ScopeBlock {
         self.id_mappings.get(name).map(|(id, _)| *id)
     }
 
-    /// Gets if a given identifier is shadowed in this scope block.
+    /// Gets if a given identifier name is shadowed in this scope block.
     pub fn is_ident_shadowed(&self, name: &str) -> bool {
         self.id_mappings
             .get(name)
@@ -142,6 +160,9 @@ impl UnitScope {
     }
 
     /// Pushes an identifier scope block.
+    ///
+    /// # Parameters
+    /// - `block_kind`: The kind of scope block to push.
     pub fn push_block(&mut self, block_kind: BlockKind) {
         // Increase scope depth
         self.scope_depth = self
@@ -255,9 +276,24 @@ impl UnitScope {
     /// Returns `Some(IdentId)` if an identifier has been declared, or `None` otherwise.
     pub fn get_ident_id(&self, name: &str) -> Option<IdentId> {
         // Top-down search through all blocks for an id
+        let mut restrict_to_pervasive = false;
+
         for block in self.blocks.iter().rev() {
             if let Some(id) = block.id_mappings.get(name) {
-                return Some(id.0);
+                let id = &id.0;
+
+                // Only allow an identifier to be fetched if we haven't
+                // restricted our search to pervasive identifiers, or any
+                // pervasive identifiers
+                if !restrict_to_pervasive || self.get_ident_info(id).is_pervasive {
+                    return Some(*id);
+                }
+            }
+
+            if block.import_boundary > ImportBoundary::None {
+                // Crossing an import boundary
+                // Restrict search to pervasive identifiers after import boundaries
+                restrict_to_pervasive = true;
             }
         }
 
@@ -653,6 +689,68 @@ mod test {
     #[should_panic(expected = "No scopes to pop off")]
     fn test_pop_all() {
         let mut unit_scope = UnitScope::new();
+        unit_scope.pop_block();
+    }
+
+    #[test]
+    fn test_import_boundaries() {
+        let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
+
+        // Declare some external identifiers
+        let non_pervasive = unit_scope.declare_ident(
+            "non_pervasive".to_string(),
+            Default::default(),
+            TypeRef::Unknown,
+            RefKind::Const,
+            false,
+        );
+        let pervasive = unit_scope.declare_ident(
+            "pervasive".to_string(),
+            Default::default(),
+            TypeRef::Unknown,
+            RefKind::Const,
+            true,
+        );
+
+        // Make an inner block
+        {
+            unit_scope.push_block(BlockKind::InnerBlock);
+
+            // Should be able to access both identifiers
+            let inner_use_a = unit_scope.get_ident_id("non_pervasive");
+            let inner_use_b = unit_scope.get_ident_id("pervasive");
+            assert_eq!(inner_use_a, Some(non_pervasive));
+            assert_eq!(inner_use_b, Some(pervasive));
+
+            unit_scope.pop_block();
+        }
+
+        // Make a block with a hard import boundary
+        for block_kind in &[
+            BlockKind::Unit,
+            BlockKind::Main,
+            BlockKind::Module,
+            BlockKind::Class,
+            BlockKind::Monitor,
+            BlockKind::MonitorClass,
+        ] {
+            unit_scope.push_block(*block_kind);
+            // Can access even through an inner block
+            unit_scope.push_block(BlockKind::InnerBlock);
+
+            // Should only be able to access the pervasive identifiers
+            let undecl_use_a = unit_scope.get_ident_id("non_pervasive");
+            let imported_use_b = unit_scope.get_ident_id("pervasive");
+
+            assert_ne!(undecl_use_a, Some(non_pervasive));
+            assert_eq!(undecl_use_a, None);
+            assert_eq!(imported_use_b, Some(pervasive));
+
+            unit_scope.pop_block(); // inner block
+            unit_scope.pop_block();
+        }
+
         unit_scope.pop_block();
     }
 }
