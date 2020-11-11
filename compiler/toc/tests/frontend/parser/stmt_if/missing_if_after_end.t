@@ -19,4 +19,4 @@ begin end
 
 %%% expected stderr:
 %%% error line:2 column:15-18 Missing 'if' after 'end' to finish statement
-%%% error line:5 column:15-18 Missing 'if' after 'end' to finish statement
+%%% error line:6 column:15-18 Missing 'if' after 'end' to finish statement

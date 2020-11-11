@@ -19,5 +19,5 @@ if true then
 %%% expected stderr:
 %%% error line:2 column:14-17 Missing 'if' after 'end' to finish statement
 %%% error line:4 column:14-21 'endcase' does not begin a statement or declaration
-%%% error line:25 column:1-1 Expected 'end' at the end of the if statement
-%%% error line:25 column:1-1 Expected 'end' at the end of the if statement
+%%% error line:23 column:1-1 Expected 'end' at the end of the if statement
+%%% error line:23 column:1-1 Expected 'end' at the end of the if statement
