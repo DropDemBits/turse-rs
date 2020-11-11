@@ -90,13 +90,21 @@ impl Validator {
         }
     }
 
+    /// Reports redeclared identifiers in the given block
     fn report_redeclared_identifiers(&self, block: &ScopeBlock) {
-        for (_, new_id) in block.shadowed_idents() {
-            let info = self.unit_scope.get_ident_info(&new_id);
+        for (old_id, new_id) in block.shadowed_idents() {
+            let old_info = self.unit_scope.get_ident_info(&old_id);
+
+            // Don't report redeclarations over undeclared identifiers
+            if !old_info.is_declared {
+                continue;
+            }
+
+            let new_info = self.unit_scope.get_ident_info(&new_id);
 
             self.context.borrow_mut().reporter.report_error(
-                &info.location,
-                format_args!("'{}' has already been declared", &info.name),
+                &new_info.location,
+                format_args!("'{}' has already been declared", &new_info.name),
             );
         }
     }

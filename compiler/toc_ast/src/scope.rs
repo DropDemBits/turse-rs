@@ -117,8 +117,17 @@ impl ScopeBlock {
 
     /// Declares an identifier in the scope, indicating whether it shadows
     /// another identifier.
-    fn declare_ident(&mut self, name: String, new_id: IdentId, is_shadowing: bool) {
+    fn declare_ident(&mut self, name: String, old_id: Option<IdentId>, new_id: IdentId) {
+        // Check if an identifer is being shadowed by this declaration
+        let is_shadowing = old_id.is_some();
+
+        // Replace the old mapping
         self.id_mappings.insert(name, (new_id, is_shadowing));
+
+        if let Some(old_id) = old_id {
+            // Add shadowed entry
+            self.add_shadowed_ident(old_id, new_id);
+        }
     }
 
     /// Adds an identifier usage to this block.
@@ -217,7 +226,20 @@ impl UnitScope {
         ref_kind: RefKind,
         is_pervasive: bool,
     ) -> IdentId {
-        self._declare_ident(name, decl_location, type_spec, ref_kind, is_pervasive, true)
+        let new_id = self.make_ident(
+            name.clone(),
+            decl_location,
+            type_spec,
+            ref_kind,
+            is_pervasive,
+            true,
+        );
+
+        let old_id = self.get_ident_id(&name);
+        let block = self.current_block_mut();
+        block.declare_ident(name, old_id, new_id);
+
+        new_id
     }
 
     /// Uses an identifier.
@@ -237,17 +259,21 @@ impl UnitScope {
             // Declare a new undeclared identifier
             let name = name.to_string();
 
-            // ???: Which block should an unused identifier be located in?
-            // Should be at the frontier of the import scope, passing through soft boundaries
-            // and stopping at hard boundaries (even if pervasive)
-            self._declare_ident(
-                name,
+            let unused_id = self.make_ident(
+                name.clone(),
                 use_location,
                 TypeRef::TypeError,
                 RefKind::Var,
                 false,
                 false,
-            )
+            );
+
+            // Declare the unused identifier at the import boundary block
+            let old_id = self.get_ident_id(&name);
+            let boundary = self.import_boundary_mut();
+            boundary.declare_ident(name, old_id, unused_id);
+
+            unused_id
         });
 
         // Increment the usage count
@@ -296,8 +322,6 @@ impl UnitScope {
                 restrict_to_pervasive = true;
             }
         }
-
-        // TODO(resolver): Deal with pervasive import rules
 
         // No identifier found
         None
@@ -351,6 +375,18 @@ impl UnitScope {
         self.blocks.last_mut().expect("No blocks to fetch")
     }
 
+    /// Gets a mutable reference to the block that forms the closest import boundary.
+    /// Works under the assumption that the root block also forms an import boundary.
+    fn import_boundary_mut(&mut self) -> &mut ScopeBlock {
+        for block in self.blocks.iter_mut().rev() {
+            if block.import_boundary > ImportBoundary::None {
+                return block;
+            }
+        }
+
+        panic!("Root block does not form an import boundary");
+    }
+
     /// Makes a new identifier id
     fn make_ident_id(&mut self) -> IdentId {
         let new_id = self.next_ident_id;
@@ -365,8 +401,8 @@ impl UnitScope {
         IdentId(new_id)
     }
 
-    /// Same as `UnitScope::declare_ident`, but allows for declaring "undeclared" identifiers
-    fn _declare_ident(
+    /// Creates a new identifier with the given attributes, giving back the associated IdentId
+    fn make_ident(
         &mut self,
         name: String,
         decl_location: Location,
@@ -380,26 +416,11 @@ impl UnitScope {
         let info = Identifier::new(
             decl_location,
             type_spec,
-            name.clone(),
+            name,
             ref_kind,
             as_declared,
             is_pervasive,
         );
-
-        // TODO(resolver): Handle pervasive identifiers
-
-        // Check if an identifer is being shadowed by this declaration
-        let old_id = self.get_ident_id(&name);
-        let is_shadowing = old_id.is_some();
-
-        // Replace the old mapping
-        self.current_block_mut()
-            .declare_ident(name, new_id, is_shadowing);
-
-        if let Some(old_id) = old_id {
-            // Add shadowed entry
-            self.current_block_mut().add_shadowed_ident(old_id, new_id);
-        }
 
         assert!(self.ident_ids.insert(new_id, info).is_none()); // Must be a new entry
 
@@ -649,6 +670,43 @@ mod test {
         // Should be undeclared & TypeRef::TypeError
         assert_eq!(info.type_spec, TypeRef::TypeError);
         assert_eq!(info.is_declared, false);
+    }
+
+    #[test]
+    fn test_use_shared_undefined() {
+        // Undeclared identifiers should be hoisted to the top-most import boundary
+        let mut unit_scope = UnitScope::new();
+        unit_scope.push_block(BlockKind::Main);
+
+        // Don't contaminate root scope
+        {
+            unit_scope.push_block(BlockKind::Module);
+
+            let inner_id = {
+                unit_scope.push_block(BlockKind::InnerBlock);
+                unit_scope.push_block(BlockKind::Function);
+                unit_scope.push_block(BlockKind::Procedure);
+                // Hoist through nested inner blocks, functions, and procedures
+                let inner_id = unit_scope.use_ident("undef", Default::default());
+                unit_scope.pop_block();
+                unit_scope.pop_block();
+                unit_scope.pop_block();
+
+                inner_id
+            };
+
+            // Declaration should have been hoisted to module level
+            let top_level = unit_scope.use_ident("undef", Default::default());
+            assert_eq!(inner_id, top_level);
+
+            unit_scope.pop_block();
+        }
+
+        // Identifier should not be hoisted across the import boundary
+        let not_here = unit_scope.get_ident_id("undef");
+        assert!(not_here.is_none());
+
+        unit_scope.pop_block();
     }
 
     #[test]

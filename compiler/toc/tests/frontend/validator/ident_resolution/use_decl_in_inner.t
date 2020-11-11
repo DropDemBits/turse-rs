@@ -22,5 +22,4 @@ a += 1 % should reference id(0)
 
 %%% expected stderr:
 %%% error line:1 column:1-2 'a' has not been declared yet
-%%% error line:3 column:9-10 'a' has already been declared
 %%% error line:5 column:1-2 'a' has not been declared yet

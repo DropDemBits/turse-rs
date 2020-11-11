@@ -11,5 +11,4 @@ a := "ok" % final type
 %%% ]
 
 %%% expected stderr:
-%%% error line:1 column:5-6 'a' has already been declared
 %%% error line:1 column:19-20 'a' has not been declared yet
