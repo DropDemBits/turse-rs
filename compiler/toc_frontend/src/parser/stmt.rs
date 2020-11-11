@@ -3,9 +3,8 @@ use super::{ParseResult, Parser};
 use crate::token::TokenType;
 use toc_ast::ast::expr::{Expr, ExprKind};
 use toc_ast::ast::ident::{IdentRef, RefKind};
-use toc_ast::ast::stmt::{self, Stmt, StmtKind};
+use toc_ast::ast::stmt::{self, BlockKind, Stmt, StmtKind};
 use toc_ast::ast::types::{Type, TypeKind};
-use toc_ast::block::BlockKind;
 use toc_ast::types::{Type as TypeInfo, TypeRef};
 
 impl<'s> Parser<'s> {

@@ -3,29 +3,6 @@ use crate::ast::{Visitor, VisitorMut};
 use crate::scope::UnitScope;
 use crate::types::TypeTable;
 
-#[derive(Debug, Copy, Clone)]
-#[allow(unused_variables, dead_code)]
-pub enum BlockKind {
-    /// Main block, root for all blocks, can be an execution block
-    Main,
-    /// Unit block, cannot be an execution block
-    Unit,
-    /// Inner block (begin ... end) inside of another block, or general statement block
-    InnerBlock,
-    /// Function block
-    Function,
-    /// Procedure block
-    Procedure,
-    /// Module block
-    Module,
-    /// Class block
-    Class,
-    /// Monitor block
-    Monitor,
-    /// Monitor-Class block, allows both class & monitor statments
-    MonitorClass,
-}
-
 #[derive(Debug)]
 pub struct CodeUnit {
     /// Root stmt

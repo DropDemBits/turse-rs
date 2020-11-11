@@ -6,7 +6,7 @@ extern crate toc_ir;
 
 use std::fs;
 use std::{cell::RefCell, rc::Rc};
-use toc_ast::block::CodeUnit;
+use toc_ast::unit::CodeUnit;
 use toc_frontend::{
     context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
 };

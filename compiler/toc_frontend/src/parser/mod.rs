@@ -9,10 +9,10 @@ use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
 use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
 use toc_ast::ast::ident::{IdentId, Identifier, RefKind};
-use toc_ast::ast::stmt::{Block, Stmt, StmtKind};
-use toc_ast::block::{BlockKind, CodeUnit};
+use toc_ast::ast::stmt::{Block, BlockKind, Stmt, StmtKind};
 use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef, TypeTable};
+use toc_ast::unit::CodeUnit;
 use toc_core::Location;
 
 use std::cell::RefCell;

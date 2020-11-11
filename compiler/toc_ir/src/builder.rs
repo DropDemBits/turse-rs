@@ -1,10 +1,10 @@
 //! Builds an IR Control-Flow-Graph from a given `CodeUnit`
 use crate::graph::{BlockIndex, Instruction, InstructionOp, IrGraph, Reference};
 use crate::{AddressSpace, ReferenceNode};
-use toc_ast::ast::{self, expr, ident, stmt, types as ty_ast};
-use toc_ast::block::{BlockKind, CodeUnit};
+use toc_ast::ast::{self, expr, ident, stmt, stmt::BlockKind, types as ty_ast};
 use toc_ast::scope::UnitScope;
 use toc_ast::types;
+use toc_ast::unit::CodeUnit;
 use toc_ast::value;
 use toc_core::Location;
 

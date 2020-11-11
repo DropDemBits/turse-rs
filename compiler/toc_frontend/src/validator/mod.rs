@@ -558,7 +558,7 @@ mod test {
     use crate::scanner::Scanner;
     use rand::prelude::*;
     use std::{cell::RefCell, rc::Rc};
-    use toc_ast::block::CodeUnit;
+    use toc_ast::unit::CodeUnit;
 
     /// Makes and runs a validator
     /// Parsing & scanning must complete successfully

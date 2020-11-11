@@ -1,11 +1,9 @@
 use crate::ast::ident::{IdentId, Identifier, RefKind};
-use crate::block::BlockKind;
+use crate::ast::stmt::BlockKind;
 use crate::types::TypeRef;
 use toc_core::Location;
 
 use std::collections::{HashMap, HashSet};
-
-// TODO(was_doing): import boundaries & pervasiveness
 
 /// All import boundary variants
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
@@ -458,7 +456,7 @@ mod pretty_print {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::block::BlockKind;
+    use crate::ast::stmt::BlockKind;
     use crate::types::PrimitiveType;
     use toc_core::Location;
 

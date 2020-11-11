@@ -5,6 +5,29 @@ use crate::ast::types::Type;
 use crate::scope::ScopeBlock;
 use toc_core::Location;
 
+/// Kinds of blocks
+#[derive(Debug, Copy, Clone)]
+pub enum BlockKind {
+    /// Main block, root for all blocks, can be an execution block
+    Main,
+    /// Unit block, cannot be an execution block
+    Unit,
+    /// Inner block (begin ... end) inside of another block, or general statement block
+    InnerBlock,
+    /// Function block
+    Function,
+    /// Procedure block
+    Procedure,
+    /// Module block
+    Module,
+    /// Class block
+    Class,
+    /// Monitor block
+    Monitor,
+    /// Monitor-Class block, allows both class & monitor statments
+    MonitorClass,
+}
+
 /// A grouping of statements.
 /// Used in multiple statements.
 #[derive(Debug, Clone)]
