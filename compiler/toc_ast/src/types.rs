@@ -19,6 +19,10 @@ pub const DEFAULT_STRING_SIZE: usize = 256;
 /// Includes the null terminator
 pub const MAX_STRING_SIZE: usize = 65536;
 
+/// Id of a given type
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+pub struct TypeId(usize);
+
 /// Unique type reference for a type
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TypeRef {
@@ -29,7 +33,7 @@ pub enum TypeRef {
     /// Reference to a primitive type
     Primitive(PrimitiveType),
     /// Reference to a named type, with the unit type
-    Named(usize),
+    Named(TypeId),
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -253,19 +257,19 @@ impl TypeTable {
     }
 
     /// Declares a new type in the current unit, returning the type id
-    pub fn declare_type(&mut self, type_info: Type) -> usize {
+    pub fn declare_type(&mut self, type_info: Type) -> TypeId {
         let id = self.next_id;
         self.next_id = self
             .next_id
             .checked_add(1)
             .expect("Too many types defined in the unit");
         self.types.push(type_info);
-        id
+        TypeId(id)
     }
 
     /// Replaces an existing type in the unit with the given type info
-    pub fn replace_type(&mut self, replace_id: usize, type_info: Type) {
-        self.types[replace_id] = type_info;
+    pub fn replace_type(&mut self, replace_id: TypeId, type_info: Type) {
+        self.types[replace_id.0] = type_info;
     }
 
     /// Converts the `type_ref` into the corresponding type info
@@ -278,13 +282,13 @@ impl TypeTable {
     }
 
     /// Gets a reference to a defined type
-    pub fn get_type(&self, type_id: usize) -> &Type {
-        &self.types[type_id]
+    pub fn get_type(&self, type_id: TypeId) -> &Type {
+        &self.types[type_id.0]
     }
 
     /// Checks if the given type is an indirect alias for another type.
     /// This includes both Alias and Reference types.
-    pub fn is_indirect_alias(&self, type_id: usize) -> bool {
+    pub fn is_indirect_alias(&self, type_id: TypeId) -> bool {
         matches!(self.get_type(type_id), Type::Alias{ .. })
     }
 }
@@ -444,7 +448,7 @@ pub fn get_sized_len(type_ref: &TypeRef) -> Option<usize> {
 
 /// Gets a type id from a type reference
 /// Returns `None` if the type is not named
-pub fn get_type_id(type_ref: &TypeRef) -> Option<usize> {
+pub fn get_type_id(type_ref: &TypeRef) -> Option<TypeId> {
     if let TypeRef::Named(type_id) = type_ref {
         Some(*type_id)
     } else {
@@ -944,13 +948,13 @@ mod test {
             TypeRef::Primitive(PrimitiveType::LongInt),
             TypeRef::Primitive(PrimitiveType::LongInt)
         );
-        assert_eq!(TypeRef::Named(0), TypeRef::Named(0));
+        assert_eq!(TypeRef::Named(TypeId(0)), TypeRef::Named(TypeId(0)));
 
         assert_ne!(
             TypeRef::Primitive(PrimitiveType::LongInt),
             TypeRef::Primitive(PrimitiveType::String_)
         );
-        assert_ne!(TypeRef::Named(1), TypeRef::Named(5));
+        assert_ne!(TypeRef::Named(TypeId(1)), TypeRef::Named(TypeId(5)));
     }
 }
 
@@ -975,7 +979,7 @@ mod pretty_print {
                 TypeRef::Unknown => f.write_str("ty_unknown"),
                 TypeRef::TypeError => f.write_str("ty_error"),
                 TypeRef::Primitive(prim) => f.write_fmt(format_args!("ty_prim[{:?}]", prim)),
-                TypeRef::Named(id) => f.write_fmt(format_args!("ty_id[{}]", id)),
+                TypeRef::Named(id) => f.write_fmt(format_args!("ty_id[{}]", id.0)),
             }
         }
     }
@@ -1038,7 +1042,7 @@ mod pretty_print {
                     let mut fields: Vec<(&String, &TypeRef)> = fields.iter().collect();
                     fields.sort_by(|a, b| match a.1 {
                         TypeRef::Named(a) => match b.1 {
-                            TypeRef::Named(b) => a.cmp(b),
+                            TypeRef::Named(b) => a.0.cmp(&b.0),
                             _ => std::cmp::Ordering::Equal,
                         },
                         _ => std::cmp::Ordering::Equal,

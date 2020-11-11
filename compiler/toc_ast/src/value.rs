@@ -1,6 +1,6 @@
 //! Intermediate values for compile-time evaluation
 use crate::ast::expr::{BinaryOp, Expr, ExprKind, Literal, UnaryOp};
-use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
+use crate::types::{self, PrimitiveType, SequenceSize, Type, TypeId, TypeRef, TypeTable};
 use toc_core::Location;
 
 use std::cmp::Ordering;
@@ -56,10 +56,10 @@ pub enum Value {
     /// A boolean value
     BooleanValue(bool),
     /// An enum field value.
-    /// The first `usize` is a reference to the original enum field type id.
-    /// The second `usize` is a reference to the parent enum type id.
-    /// The third `usize` is the ordinal value of the field.
-    EnumValue(usize, usize, usize),
+    /// The first `TypeId` is a reference to the original enum field type id.
+    /// The second `TypeId` is a reference to the parent enum type id.
+    /// The `usize` is the ordinal value of the field.
+    EnumValue(TypeId, TypeId, usize),
 }
 
 impl Value {
