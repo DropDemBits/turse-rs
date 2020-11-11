@@ -11,13 +11,13 @@ begin end % synchronize point
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Boolean } := bool(true)
-%%% ref(id:0)()
-%%% {}
-%%% ref(id:0)()
-%%% {}
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Boolean } := bool(true)
+%%%     ref(id:0)()
+%%%     {}
+%%%     ref(id:0)()
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:4 column:3-5 '~=' does not begin a statement or declaration

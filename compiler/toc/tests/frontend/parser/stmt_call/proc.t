@@ -14,12 +14,12 @@ q(1)
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { procedure () }
-%%% ref(id:0)()
-%%% ref(id:0)()
-%%% var [id:1] : { procedure (a : { prim Int }) }
-%%% ref(id:1)(nat(1))
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { procedure () }
+%%%     ref(id:0)()
+%%%     ref(id:0)()
+%%%     var [id:1] : { procedure (a : { prim Int }) }
+%%%     ref(id:1)(nat(1))
+%%% }
 
 %%% expected stderr:

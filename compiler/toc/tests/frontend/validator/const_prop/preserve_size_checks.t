@@ -39,32 +39,32 @@ end
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% {
-%%%     const [id:0] := nat(0)
-%%%     const [id:1] : { char(ref(id:0) + nat(1) - nat(1)) } := "a"
-%%%     const [id:2] : { string(ref(id:0)) } := "aaa"
+%%% ast: {
+%%%     {
+%%%         const [id:0] := nat(0)
+%%%         const [id:1] : { char(ref(id:0) + nat(1) - nat(1)) } := "a"
+%%%         const [id:2] : { string(ref(id:0)) } := "aaa"
+%%%     }
+%%%     {
+%%%         const [id:3] := int(-2)
+%%%         const [id:4] : { char(nat(5) - nat(10)) } := "a"
+%%%         const [id:5] : { string(ref(id:3)) } := "aaa"
+%%%     }
+%%%     {
+%%%         const [id:6] := nat(65536)
+%%%         const [id:7] : { char(nat(65530) + nat(10)) } := "a"
+%%%         const [id:8] : { string(ref(id:6)) } := "aaa"
+%%%     }
+%%%     {
+%%%         const [id:9] : { char(nat(65530) + real(0)) } := "a"
+%%%         const [id:10] : { string('noop' + 'boop') } := "a"
+%%%     }
+%%%     {
+%%%         var [id:11] := nat(65530)
+%%%         const [id:12] : { char(ref(id:11)) } := "a"
+%%%         const [id:13] : { string(nat(1) + ref(id:11) + nat(1)) } := "a"
+%%%     }
 %%% }
-%%% {
-%%%     const [id:3] := int(-2)
-%%%     const [id:4] : { char(nat(5) - nat(10)) } := "a"
-%%%     const [id:5] : { string(ref(id:3)) } := "aaa"
-%%% }
-%%% {
-%%%     const [id:6] := nat(65536)
-%%%     const [id:7] : { char(nat(65530) + nat(10)) } := "a"
-%%%     const [id:8] : { string(ref(id:6)) } := "aaa"
-%%% }
-%%% {
-%%%     const [id:9] : { char(nat(65530) + real(0)) } := "a"
-%%%     const [id:10] : { string('noop' + 'boop') } := "a"
-%%% }
-%%% {
-%%%     var [id:11] := nat(65530)
-%%%     const [id:12] : { char(ref(id:11)) } := "a"
-%%%     const [id:13] : { string(nat(1) + ref(id:11) + nat(1)) } := "a"
-%%% }
-%%% ]
 %%% scope: [
 %%%        0 -> { sz ty: ty_prim[Int], used: 2, const decl comp_eval }
 %%%        1 -> { c ty: ty_prim[Char], used: 0, const decl comp_eval }

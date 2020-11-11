@@ -29,19 +29,19 @@ var c : to := 'hee'
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim String_ }
-%%% var [id:1] : { prim String_ }
-%%% var [id:2] : { prim Char }
-%%% var [id:3] : { prim String_ }
-%%% var [id:4] : { char(nat(0)) }
-%%% {}
-%%% var [id:5] : { prim String_ }
-%%% {}
-%%% var [id:6] : { prim String_ }
-%%% var [id:7] : { prim Char }
-%%% var [id:8] : { error }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim String_ }
+%%%     var [id:1] : { prim String_ }
+%%%     var [id:2] : { prim Char }
+%%%     var [id:3] : { prim String_ }
+%%%     var [id:4] : { char(nat(0)) }
+%%%     {}
+%%%     var [id:5] : { prim String_ }
+%%%     {}
+%%%     var [id:6] : { prim String_ }
+%%%     var [id:7] : { prim Char }
+%%%     var [id:8] : { error }
+%%% }
 
 %%% expected stderr:
 %%% error line:3 column:16-24 '65536' is larger than or equal to the maximum string length of '65536' (after including the end byte)

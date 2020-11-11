@@ -20,19 +20,19 @@ yay % Use above decl
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% {
-%%%     var [id:0] : { prim Int } := nat(5)
-%%%     ref(id:0)()
+%%% ast: {
 %%%     {
-%%%         var [id:1] : { prim Int } := nat(5)
-%%%         ref(id:1)()
+%%%         var [id:0] : { prim Int } := nat(5)
+%%%         ref(id:0)()
+%%%         {
+%%%             var [id:1] : { prim Int } := nat(5)
+%%%             ref(id:1)()
+%%%         }
+%%%         ref(id:0)()
 %%%     }
-%%%     ref(id:0)()
+%%%     ref(id:2)()
+%%%     var [id:3] : { prim String_ } := "hello!"
+%%%     ref(id:3)()
 %%% }
-%%% ref(id:2)()
-%%% var [id:3] : { prim String_ } := "hello!"
-%%% ref(id:3)()
-%%% ]
 
 %%% expected stderr:

@@ -12,18 +12,18 @@ var a : unchecked pointer       begin end
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { pointer to { prim Int } }
-%%% var [id:1] : { unchecked pointer to { prim Int } }
-%%% var [id:2] : { pointer to { error } }
-%%% {}
-%%% var [id:3] : { pointer to { error } }
-%%% {}
-%%% var [id:4] : { unchecked pointer to { error } }
-%%% {}
-%%% var [id:5] : { unchecked pointer to { error } }
-%%% {}
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { pointer to { prim Int } }
+%%%     var [id:1] : { unchecked pointer to { prim Int } }
+%%%     var [id:2] : { pointer to { error } }
+%%%     {}
+%%%     var [id:3] : { pointer to { error } }
+%%%     {}
+%%%     var [id:4] : { unchecked pointer to { error } }
+%%%     {}
+%%%     var [id:5] : { unchecked pointer to { error } }
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:17-20 Expected 'to' after 'pointer'

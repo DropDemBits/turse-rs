@@ -8,11 +8,11 @@ bambam @ (0) := 1
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% [{ prim Int }] @ (nat(0)) := nat(1)
-%%% [{ char(nat(1)) }] @ (nat(0)) := nat(1)
-%%% [{ string(nat(1)) }] @ (nat(0)) := nat(1)
-%%% [{ ref_expr ref(id:0) }] @ (nat(0)) := nat(1)
-%%% ]
+%%% ast: {
+%%%     [{ prim Int }] @ (nat(0)) := nat(1)
+%%%     [{ char(nat(1)) }] @ (nat(0)) := nat(1)
+%%%     [{ string(nat(1)) }] @ (nat(0)) := nat(1)
+%%%     [{ ref_expr ref(id:0) }] @ (nat(0)) := nat(1)
+%%% }
 
 %%% expected stderr:

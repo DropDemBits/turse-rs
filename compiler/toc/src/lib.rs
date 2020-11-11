@@ -13,19 +13,8 @@ use toc_frontend::{
 
 fn dump_info(unit: &CodeUnit, dump_out: &[String]) {
     if dump_out.iter().any(|elem| elem == "ast") {
-        // Temporary, text-based tests depend on format of ast
-        use toc_ast::ast::stmt::StmtKind;
-
         // Pretty-print AST
-        println!("ast: [");
-
-        if let StmtKind::Block { block } = &unit.root_stmt.kind {
-            for stmt in &block.stmts {
-                println!("{}", stmt);
-            }
-        }
-
-        println!("]");
+        println!("ast: {}", &unit.root_stmt);
     }
 
     if dump_out.iter().any(|elem| elem == "scope") {

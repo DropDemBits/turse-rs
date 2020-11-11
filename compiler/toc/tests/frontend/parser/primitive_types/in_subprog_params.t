@@ -6,9 +6,9 @@ var b : proc _ (b : char(*))
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { procedure (a : { string(*) }) }
-%%% var [id:1] : { procedure (b : { char(*) }) }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { procedure (a : { string(*) }) }
+%%%     var [id:1] : { procedure (b : { char(*) }) }
+%%% }
 
 %%% expected stderr:

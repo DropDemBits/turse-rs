@@ -7,10 +7,10 @@ type some_set_b : set of boolean
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { set of { range nat(1) .. nat(5) } }
-%%% type [id:1] : { set of { prim Char } }
-%%% type [id:2] : { set of { prim Boolean } }
-%%% ]
+%%% ast: {
+%%%     type [id:0] : { set of { range nat(1) .. nat(5) } }
+%%%     type [id:1] : { set of { prim Char } }
+%%%     type [id:2] : { set of { prim Boolean } }
+%%% }
 
 %%% expected stderr:

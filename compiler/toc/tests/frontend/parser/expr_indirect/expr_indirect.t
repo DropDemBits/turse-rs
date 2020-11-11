@@ -25,27 +25,27 @@ var a17 := tyref      @ (0)
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% const [id:0] := nat(1) + nat(2) - nat(3)
-%%% type [id:1] : { prim Int }
-%%% var [id:2] := [{ prim AddressInt }] @ (nat(0))
-%%% var [id:3] := [{ prim Char }] @ (nat(0))
-%%% var [id:4] := [{ char(ref(id:0)) }] @ (nat(0))
-%%% var [id:5] := [{ prim String_ }] @ (nat(0))
-%%% var [id:6] := [{ string(ref(id:0)) }] @ (nat(0))
-%%% var [id:7] := [{ prim Boolean }] @ (nat(0))
-%%% var [id:8] := [{ prim Int }] @ (nat(0))
-%%% var [id:9] := [{ prim Int1 }] @ (nat(0))
-%%% var [id:10] := [{ prim Int2 }] @ (nat(0))
-%%% var [id:11] := [{ prim Int4 }] @ (nat(0))
-%%% var [id:12] := [{ prim Nat }] @ (nat(0))
-%%% var [id:13] := [{ prim Nat1 }] @ (nat(0))
-%%% var [id:14] := [{ prim Nat2 }] @ (nat(0))
-%%% var [id:15] := [{ prim Nat4 }] @ (nat(0))
-%%% var [id:16] := [{ prim Real }] @ (nat(0))
-%%% var [id:17] := [{ prim Real4 }] @ (nat(0))
-%%% var [id:18] := [{ prim Real8 }] @ (nat(0))
-%%% var [id:19] := [{ ref_expr ref(id:1) }] @ (nat(0))
-%%% ]
+%%% ast: {
+%%%     const [id:0] := nat(1) + nat(2) - nat(3)
+%%%     type [id:1] : { prim Int }
+%%%     var [id:2] := [{ prim AddressInt }] @ (nat(0))
+%%%     var [id:3] := [{ prim Char }] @ (nat(0))
+%%%     var [id:4] := [{ char(ref(id:0)) }] @ (nat(0))
+%%%     var [id:5] := [{ prim String_ }] @ (nat(0))
+%%%     var [id:6] := [{ string(ref(id:0)) }] @ (nat(0))
+%%%     var [id:7] := [{ prim Boolean }] @ (nat(0))
+%%%     var [id:8] := [{ prim Int }] @ (nat(0))
+%%%     var [id:9] := [{ prim Int1 }] @ (nat(0))
+%%%     var [id:10] := [{ prim Int2 }] @ (nat(0))
+%%%     var [id:11] := [{ prim Int4 }] @ (nat(0))
+%%%     var [id:12] := [{ prim Nat }] @ (nat(0))
+%%%     var [id:13] := [{ prim Nat1 }] @ (nat(0))
+%%%     var [id:14] := [{ prim Nat2 }] @ (nat(0))
+%%%     var [id:15] := [{ prim Nat4 }] @ (nat(0))
+%%%     var [id:16] := [{ prim Real }] @ (nat(0))
+%%%     var [id:17] := [{ prim Real4 }] @ (nat(0))
+%%%     var [id:18] := [{ prim Real8 }] @ (nat(0))
+%%%     var [id:19] := [{ ref_expr ref(id:1) }] @ (nat(0))
+%%% }
 
 %%% expected stderr:

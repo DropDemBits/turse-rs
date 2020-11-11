@@ -18,15 +18,15 @@ begin end
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { function -> { prim Int } }
-%%% var [id:1] : { function -> { error } }
-%%% var [id:2] : { function -> { prim Int } }
-%%% var [id:3] : { procedure }
-%%% {}
-%%% var [id:4] : { function -> { prim Int } }
-%%% {}
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { function -> { prim Int } }
+%%%     var [id:1] : { function -> { error } }
+%%%     var [id:2] : { function -> { prim Int } }
+%%%     var [id:3] : { procedure }
+%%%     {}
+%%%     var [id:4] : { function -> { prim Int } }
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:20-23 Expected ':' before the result type

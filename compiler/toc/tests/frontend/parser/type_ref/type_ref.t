@@ -9,11 +9,11 @@ var implicit_external : array 1 .. some.thing.with.end_thing of int
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:1] : { ref_expr ref(id:0) }
-%%% var [id:3] : { ref_expr ref(id:2) . thing . with . these . given . fields } := nat(3)
-%%% var [id:4] : { range ref(id:2) . thing . with . start .. ref(id:2) . thing . with . end_thing } := nat(5)
-%%% var [id:5] : { array { range nat(1) .. ref(id:2) . thing . with . end_thing } of { prim Int } }
-%%% ]
+%%% ast: {
+%%%     var [id:1] : { ref_expr ref(id:0) }
+%%%     var [id:3] : { ref_expr ref(id:2) . thing . with . these . given . fields } := nat(3)
+%%%     var [id:4] : { range ref(id:2) . thing . with . start .. ref(id:2) . thing . with . end_thing } := nat(5)
+%%%     var [id:5] : { array { range nat(1) .. ref(id:2) . thing . with . end_thing } of { prim Int } }
+%%% }
 
 %%% expected stderr:

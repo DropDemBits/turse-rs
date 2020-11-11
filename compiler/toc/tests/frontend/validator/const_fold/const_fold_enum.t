@@ -22,19 +22,19 @@ end
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { enum ( a, b, c, ) }
-%%% {
-%%%     var [id:1] := bool(true)
+%%% ast: {
+%%%     type [id:0] : { enum ( a, b, c, ) }
+%%%     {
+%%%         var [id:1] := bool(true)
+%%%     }
+%%%     {
+%%%         const [id:2] : { ref_expr ref(id:0) } := nat(2)
+%%%         var [id:3] := bool(true)
+%%%     }
+%%%     {
+%%%         const [id:4] := nat(2)
+%%%         var [id:5] := bool(true)
+%%%     }
 %%% }
-%%% {
-%%%     const [id:2] : { ref_expr ref(id:0) } := nat(2)
-%%%     var [id:3] := bool(true)
-%%% }
-%%% {
-%%%     const [id:4] := nat(2)
-%%%     var [id:5] := bool(true)
-%%% }
-%%% ]
 
 %%% expected stderr:

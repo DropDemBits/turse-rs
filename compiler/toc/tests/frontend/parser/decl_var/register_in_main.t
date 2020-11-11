@@ -6,10 +6,10 @@ var pervasive register a := 1
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var register [id:0] := nat(1)
-%%% var register [id:1] := nat(1)
-%%% ]
+%%% ast: {
+%%%     var register [id:0] := nat(1)
+%%%     var register [id:1] := nat(1)
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:5-13 'var' register bindings are not allowed in the main, module, monitor, or class level

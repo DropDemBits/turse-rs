@@ -6,10 +6,10 @@ var b : ^ string
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { pointer to { prim Int } }
-%%% var [id:1] : { unchecked pointer to { prim Int } }
-%%% var [id:2] : { pointer to { prim String_ } }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { pointer to { prim Int } }
+%%%     var [id:1] : { unchecked pointer to { prim Int } }
+%%%     var [id:2] : { pointer to { prim String_ } }
+%%% }
 
 %%% expected stderr:

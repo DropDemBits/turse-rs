@@ -7,11 +7,11 @@ type resolved : int
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { forward }
-%%% type [id:1] : { forward }
-%%% type [id:1] : { prim Int }
-%%% ]
+%%% ast: {
+%%%     type [id:0] : { forward }
+%%%     type [id:1] : { forward }
+%%%     type [id:1] : { prim Int }
+%%% }
 %%% scope: [
 %%%        0 -> { unresolved ty: ty_id[0], used: 0, tydef decl }
 %%%        1 -> { resolved ty: ty_id[1], used: 0, tydef decl }

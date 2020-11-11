@@ -7,11 +7,11 @@ type a : forward
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { forward }
-%%% type [id:0] : { prim Int }
-%%% type [id:1] : { forward }
-%%% ]
+%%% ast: {
+%%%     type [id:0] : { forward }
+%%%     type [id:0] : { prim Int }
+%%%     type [id:1] : { forward }
+%%% }
 %%% scope: [
 %%%        0 -> { a ty: ty_id[0], used: 0, tydef decl }
 %%%        1 -> { a ty: ty_id[1], used: 0, tydef decl }

@@ -11,15 +11,15 @@ var g := --#-3
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Int } := nat(1) - nat(1) - "bad" - nat(1) - nat(1)
-%%% var [id:1] : { prim Int } := nat(1) - nat(1) ** (nat(0) - nat(1)) - nat(1) - nat(1)
-%%% var [id:2] : { prim Real } := real(10) ** (nat(300) + nat(7)) * nat(100)
-%%% var [id:3] : { prim Real } := real(10) ** (nat(300) + nat(10))
-%%% var [id:4] := bool(false) = nat(0) = -#-nat(3)
-%%% var [id:5] := -#-nat(3)
-%%% var [id:6] := --#-nat(3)
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Int } := nat(1) - nat(1) - "bad" - nat(1) - nat(1)
+%%%     var [id:1] : { prim Int } := nat(1) - nat(1) ** (nat(0) - nat(1)) - nat(1) - nat(1)
+%%%     var [id:2] : { prim Real } := real(10) ** (nat(300) + nat(7)) * nat(100)
+%%%     var [id:3] : { prim Real } := real(10) ** (nat(300) + nat(10))
+%%%     var [id:4] := bool(false) = nat(0) = -#-nat(3)
+%%%     var [id:5] := -#-nat(3)
+%%%     var [id:6] := --#-nat(3)
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:22-23 Operands of '-' must both be scalars (int, real, or nat), or compatible sets

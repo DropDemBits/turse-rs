@@ -8,13 +8,13 @@ end if
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% if (bool(true)) then {
-%%%     var [id:0] := nat(1)
+%%% ast: {
+%%%     if (bool(true)) then {
+%%%         var [id:0] := nat(1)
+%%%     }
+%%%     else if (bool(false)) then {
+%%%         var [id:1] := nat(2)
+%%%     }
 %%% }
-%%% else if (bool(false)) then {
-%%%     var [id:1] := nat(2)
-%%% }
-%%% ]
 
 %%% expected stderr:

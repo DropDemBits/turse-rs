@@ -21,24 +21,24 @@ var q : addressint
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Boolean }
-%%% var [id:1] : { prim Int }
-%%% var [id:2] : { prim Int1 }
-%%% var [id:3] : { prim Int2 }
-%%% var [id:4] : { prim Int4 }
-%%% var [id:5] : { prim Nat }
-%%% var [id:6] : { prim Nat1 }
-%%% var [id:7] : { prim Nat2 }
-%%% var [id:8] : { prim Nat4 }
-%%% var [id:9] : { prim Real }
-%%% var [id:10] : { prim Real4 }
-%%% var [id:11] : { prim Real8 }
-%%% var [id:12] : { prim String_ }
-%%% var [id:13] : { string(nat(300)) }
-%%% var [id:14] : { prim Char }
-%%% var [id:15] : { char(nat(768)) }
-%%% var [id:16] : { prim AddressInt }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Boolean }
+%%%     var [id:1] : { prim Int }
+%%%     var [id:2] : { prim Int1 }
+%%%     var [id:3] : { prim Int2 }
+%%%     var [id:4] : { prim Int4 }
+%%%     var [id:5] : { prim Nat }
+%%%     var [id:6] : { prim Nat1 }
+%%%     var [id:7] : { prim Nat2 }
+%%%     var [id:8] : { prim Nat4 }
+%%%     var [id:9] : { prim Real }
+%%%     var [id:10] : { prim Real4 }
+%%%     var [id:11] : { prim Real8 }
+%%%     var [id:12] : { prim String_ }
+%%%     var [id:13] : { string(nat(300)) }
+%%%     var [id:14] : { prim Char }
+%%%     var [id:15] : { char(nat(768)) }
+%%%     var [id:16] : { prim AddressInt }
+%%% }
 
 %%% expected stderr:

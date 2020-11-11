@@ -5,9 +5,9 @@ else end if
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% {}
-%%% ]
+%%% ast: {
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:1-5 'else' without matching 'if'

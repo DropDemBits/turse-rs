@@ -7,11 +7,11 @@ elseif true then end if
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% if (bool(true)) then {}
-%%% if (bool(true)) then {}
-%%% if (bool(true)) then {}
-%%% ]
+%%% ast: {
+%%%     if (bool(true)) then {}
+%%%     if (bool(true)) then {}
+%%%     if (bool(true)) then {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:1-6 'elsif' without matching 'if'

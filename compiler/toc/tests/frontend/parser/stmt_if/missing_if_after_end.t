@@ -10,12 +10,12 @@ begin end
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% if (bool(false)) then {}
-%%% if (bool(false)) then {}
-%%% if (bool(false)) then {}
-%%% {}
-%%% ]
+%%% ast: {
+%%%     if (bool(false)) then {}
+%%%     if (bool(false)) then {}
+%%%     if (bool(false)) then {}
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:15-18 Missing 'if' after 'end' to finish statement

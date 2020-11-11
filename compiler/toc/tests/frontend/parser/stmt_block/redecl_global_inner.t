@@ -12,12 +12,12 @@ yay
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim String_ } := "hello!"
-%%% {
-%%%     var [id:1] : { prim Int } := nat(5)
+%%% ast: {
+%%%     var [id:0] : { prim String_ } := "hello!"
+%%%     {
+%%%         var [id:1] : { prim Int } := nat(5)
+%%%     }
+%%%     ref(id:0)()
 %%% }
-%%% ref(id:0)()
-%%% ]
 
 %%% expected stderr:

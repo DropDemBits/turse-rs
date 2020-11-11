@@ -8,13 +8,13 @@ a += 1 % should reference id(0)
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% ref(id:0) += nat(1)
-%%% {
-%%%     var [id:1] : { prim Int } := nat(1)
+%%% ast: {
+%%%     ref(id:0) += nat(1)
+%%%     {
+%%%         var [id:1] : { prim Int } := nat(1)
+%%%     }
+%%%     ref(id:0) += nat(1)
 %%% }
-%%% ref(id:0) += nat(1)
-%%% ]
 %%% scope: [
 %%%        0 -> { a ty: ty_error, used: 2, var }
 %%%        1 -> { a ty: ty_prim[Int], used: 0, var decl }

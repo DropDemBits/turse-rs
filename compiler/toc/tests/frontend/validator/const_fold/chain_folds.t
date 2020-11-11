@@ -5,8 +5,8 @@ var a : int := 1 - 1 - 1 - 1 - 1
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Int } := int(-3)
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Int } := int(-3)
+%%% }
 
 %%% expected stderr:

@@ -13,15 +13,15 @@ type pervasive e : int
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { prim Int }
-%%% type [id:1] : { array { range nat(1) .. nat(2) } of { prim Int } }
-%%% type [id:2] : { forward }
-%%% type [id:2] : { prim Int }
-%%% type [id:3] : { prim Int }
-%%% type [id:4] : { forward }
-%%% type [id:4] : { prim Int }
-%%% ]
+%%% ast: {
+%%%     type [id:0] : { prim Int }
+%%%     type [id:1] : { array { range nat(1) .. nat(2) } of { prim Int } }
+%%%     type [id:2] : { forward }
+%%%     type [id:2] : { prim Int }
+%%%     type [id:3] : { prim Int }
+%%%     type [id:4] : { forward }
+%%%     type [id:4] : { prim Int }
+%%% }
 %%% scope: [
 %%%        0 -> { a ty: ty_id[0], used: 0, tydef decl }
 %%%        1 -> { b ty: ty_id[1], used: 0, tydef decl }

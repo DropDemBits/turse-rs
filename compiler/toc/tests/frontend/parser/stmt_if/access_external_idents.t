@@ -8,11 +8,11 @@ end if
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] := nat(2)
-%%% if (bool(true)) then {
-%%%     ref(id:0) := nat(3)
+%%% ast: {
+%%%     var [id:0] := nat(2)
+%%%     if (bool(true)) then {
+%%%         ref(id:0) := nat(3)
+%%%     }
 %%% }
-%%% ]
 
 %%% expected stderr:

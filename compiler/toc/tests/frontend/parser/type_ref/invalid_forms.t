@@ -10,12 +10,12 @@ begin end
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:1] : { ref_expr ref(id:0) . ident . list }
-%%% {}
-%%% var [id:2] : { ref_expr ref(id:0) . ident . list . containing(nat(1), nat(2), nat(3)) }
-%%% {}
-%%% ]
+%%% ast: {
+%%%     var [id:1] : { ref_expr ref(id:0) . ident . list }
+%%%     {}
+%%%     var [id:2] : { ref_expr ref(id:0) . ident . list . containing(nat(1), nat(2), nat(3)) }
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:3 column:1-6 Missing identifier after '.'

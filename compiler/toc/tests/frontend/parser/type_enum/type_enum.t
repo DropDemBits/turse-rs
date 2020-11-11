@@ -7,10 +7,10 @@ type a : enum (a, b, c)
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { enum ( a, b, c, d, e, f, ) }
-%%% type [id:1] : { enum ( a, ) }
-%%% type [id:2] : { enum ( a, b, c, ) }
-%%% ]
+%%% ast: {
+%%%     type [id:0] : { enum ( a, b, c, d, e, f, ) }
+%%%     type [id:1] : { enum ( a, ) }
+%%%     type [id:2] : { enum ( a, b, c, ) }
+%%% }
 
 %%% expected stderr:

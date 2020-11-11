@@ -21,20 +21,20 @@ const h : int = -10 + 3 * 2
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% const [id:0] : { prim Int } := nat(1)
-%%% const [id:1] := real(5)
-%%% const [id:2, id:3] : { prim Int } := nat(3)
-%%% const [id:4, id:5] := nat(3) + nat(6) ** nat(2)
-%%% const [id:6] : { prim Int } := nat(1)
-%%% const [id:7] : { prim Int } := nat(1)
-%%% {
-%%%     const register [id:8] := nat(1)
-%%%     const register [id:9] := nat(1)
+%%% ast: {
+%%%     const [id:0] : { prim Int } := nat(1)
+%%%     const [id:1] := real(5)
+%%%     const [id:2, id:3] : { prim Int } := nat(3)
+%%%     const [id:4, id:5] := nat(3) + nat(6) ** nat(2)
+%%%     const [id:6] : { prim Int } := nat(1)
+%%%     const [id:7] : { prim Int } := nat(1)
+%%%     {
+%%%         const register [id:8] := nat(1)
+%%%         const register [id:9] := nat(1)
+%%%     }
+%%%     const [id:10] : { prim Int } := -nat(5)
+%%%     const [id:11] : { prim Int } := -nat(10) + nat(3) * nat(2)
 %%% }
-%%% const [id:10] : { prim Int } := -nat(5)
-%%% const [id:11] : { prim Int } := -nat(10) + nat(3) * nat(2)
-%%% ]
 %%% scope: [
 %%%        0 -> { a ty: ty_unknown, used: 0, const decl }
 %%%        1 -> { b ty: ty_unknown, used: 0, const decl }

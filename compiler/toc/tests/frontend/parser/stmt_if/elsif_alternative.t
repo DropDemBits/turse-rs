@@ -8,11 +8,11 @@ end if
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% if (bool(true)) then {}
-%%% else if (bool(true)) then {}
-%%% else if (bool(true)) then {}
-%%% ]
+%%% ast: {
+%%%     if (bool(true)) then {}
+%%%     else if (bool(true)) then {}
+%%%     else if (bool(true)) then {}
+%%% }
 
 %%% expected stderr:
 %%% warn line:3 column:8-12 'elseif' found, assumed it to be 'elsif'

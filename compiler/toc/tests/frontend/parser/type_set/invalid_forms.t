@@ -14,14 +14,14 @@ begin end
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { set of { range nat(1) .. nat(3) } }
-%%% const [id:1] : { set of { range nat(1) .. nat(3) } } := nat(1)
-%%% type [id:2] : { set of { range nat(1) .. nat(3) } }
-%%% type [id:3] : { set of { error } }
-%%% type [id:4] : { set of { error } }
-%%% {}
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { set of { range nat(1) .. nat(3) } }
+%%%     const [id:1] : { set of { range nat(1) .. nat(3) } } := nat(1)
+%%%     type [id:2] : { set of { range nat(1) .. nat(3) } }
+%%%     type [id:3] : { set of { error } }
+%%%     type [id:4] : { set of { error } }
+%%%     {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:9-22 Set types can only be declared inside of 'type' statements

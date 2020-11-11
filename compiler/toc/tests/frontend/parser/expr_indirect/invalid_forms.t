@@ -19,17 +19,17 @@ var a := int @ (+)
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] := [{ prim Int }] @ (nat(0))
-%%% var [id:1] := [{ prim Int }] @ (nat(0))
-%%% {}
-%%% var [id:2] := [{ prim Int }] @ (nat(0))
-%%% {}
-%%% var [id:3] := [{ prim Int }] @ (<error>)
-%%% var [id:4] := [{ prim Int }] @ (<error>)
-%%% {}
-%%% var [id:5] := [{ prim Int }] @ (+<error>)
-%%% ]
+%%% ast: {
+%%%     var [id:0] := [{ prim Int }] @ (nat(0))
+%%%     var [id:1] := [{ prim Int }] @ (nat(0))
+%%%     {}
+%%%     var [id:2] := [{ prim Int }] @ (nat(0))
+%%%     {}
+%%%     var [id:3] := [{ prim Int }] @ (<error>)
+%%%     var [id:4] := [{ prim Int }] @ (<error>)
+%%%     {}
+%%%     var [id:5] := [{ prim Int }] @ (+<error>)
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:16-17 Expected '(' after '@'

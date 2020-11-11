@@ -7,13 +7,13 @@ if + then elsif - then endif
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% if (+<error>) then {}
-%%% if (+<error>) then {}
-%%% else {}
-%%% if (+<error>) then {}
-%%% else if (-<error>) then {}
-%%% ]
+%%% ast: {
+%%%     if (+<error>) then {}
+%%%     if (+<error>) then {}
+%%%     else {}
+%%%     if (+<error>) then {}
+%%%     else if (-<error>) then {}
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:6-10 Expected expression before 'then' 

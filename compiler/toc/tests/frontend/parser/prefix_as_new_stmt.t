@@ -9,13 +9,13 @@ const a := 1 ^ba
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% const [id:0] := nat(2)
-%%% const [id:1] := nat(1)
-%%% ref(id:0)()
-%%% const [id:2] := nat(2)
-%%% const [id:3] := nat(1)
-%%% ^ref(id:2)()
-%%% ]
+%%% ast: {
+%%%     const [id:0] := nat(2)
+%%%     const [id:1] := nat(1)
+%%%     ref(id:0)()
+%%%     const [id:2] := nat(2)
+%%%     const [id:3] := nat(1)
+%%%     ^ref(id:2)()
+%%% }
 
 %%% expected stderr:

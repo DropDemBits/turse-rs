@@ -5,8 +5,8 @@ var k : nat := #nil
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Nat } := #nil
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Nat } := #nil
+%%% }
 
 %%% expected stderr:

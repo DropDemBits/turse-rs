@@ -7,11 +7,11 @@ a =
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% ref(id:0) := <error>
-%%% {}
-%%% ref(id:0) := <error>
-%%% ]
+%%% ast: {
+%%%     ref(id:0) := <error>
+%%%     {}
+%%%     ref(id:0) := <error>
+%%% }
 
 %%% expected stderr:
 %%% error line:3 column:1-6 Expected expression before 'begin' 

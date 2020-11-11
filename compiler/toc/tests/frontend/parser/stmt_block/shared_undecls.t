@@ -17,18 +17,18 @@ a
 %%% expected exit code: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% {
+%%% ast: {
+%%%     {
+%%%         ref(id:0)()
+%%%     }
+%%%     {
+%%%         ref(id:0)()
+%%%     }
+%%%     if (bool(true)) then {
+%%%         ref(id:0)()
+%%%     }
 %%%     ref(id:0)()
 %%% }
-%%% {
-%%%     ref(id:0)()
-%%% }
-%%% if (bool(true)) then {
-%%%     ref(id:0)()
-%%% }
-%%% ref(id:0)()
-%%% ]
 %%% scope: [
 %%%        0 -> { a ty: ty_error, used: 4, var }
 %%% ]

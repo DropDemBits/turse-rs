@@ -7,9 +7,9 @@ var a : int := 1;
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Int } := nat(1)
-%%% var [id:1] : { prim Int } := nat(1)
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Int } := nat(1)
+%%%     var [id:1] : { prim Int } := nat(1)
+%%% }
 
 %%% expected stderr:

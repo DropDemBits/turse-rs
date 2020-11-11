@@ -17,19 +17,19 @@ end if
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% if (bool(true)) then {
-%%%     var [id:0] := nat(2)
-%%%     ref(id:0) := ref(id:0)
+%%% ast: {
+%%%     if (bool(true)) then {
+%%%         var [id:0] := nat(2)
+%%%         ref(id:0) := ref(id:0)
+%%%     }
+%%%     if (bool(false)) then {
+%%%         var [id:1] := nat(2)
+%%%         ref(id:1) := ref(id:1)
+%%%     }
+%%%     else if (bool(true)) then {
+%%%         var [id:2] := nat(3)
+%%%         ref(id:2) := ref(id:2)
+%%%     }
 %%% }
-%%% if (bool(false)) then {
-%%%     var [id:1] := nat(2)
-%%%     ref(id:1) := ref(id:1)
-%%% }
-%%% else if (bool(true)) then {
-%%%     var [id:2] := nat(3)
-%%%     ref(id:2) := ref(id:2)
-%%% }
-%%% ]
 
 %%% expected stderr:

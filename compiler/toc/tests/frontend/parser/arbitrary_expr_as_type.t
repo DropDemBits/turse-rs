@@ -8,12 +8,12 @@ var a : false
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { ref_expr nat(1) }
-%%% var [id:1] : { ref_expr nat(1) ** nat(2) }
-%%% var [id:2] : { ref_expr (nat(1) * nat(6) - nat(1) + nat(4) = nat(1)) }
-%%% var [id:3] : { ref_expr bool(false) }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { ref_expr nat(1) }
+%%%     var [id:1] : { ref_expr nat(1) ** nat(2) }
+%%%     var [id:2] : { ref_expr (nat(1) * nat(6) - nat(1) + nat(4) = nat(1)) }
+%%%     var [id:3] : { ref_expr bool(false) }
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:9-10 Expression is not a valid type reference

@@ -6,10 +6,10 @@ var a, : int := 5
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0, id:1, id:2] : { prim Int } := nat(5)
-%%% var [id:3] : { prim Int } := nat(5)
-%%% ]
+%%% ast: {
+%%%     var [id:0, id:1, id:2] : { prim Int } := nat(5)
+%%%     var [id:3] : { prim Int } := nat(5)
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:14-15 Expected an identifier after the comma

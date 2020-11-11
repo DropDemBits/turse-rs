@@ -5,8 +5,8 @@ var a : nat := (0 - 1)
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Nat } := int(-1)
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Nat } := int(-1)
+%%% }
 
 %%% expected stderr:

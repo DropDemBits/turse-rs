@@ -7,12 +7,12 @@ type a int
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim String_ }
-%%% type [id:1] : { error }
-%%% {}
-%%% type [id:2] : { prim Int }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim String_ }
+%%%     type [id:1] : { error }
+%%%     {}
+%%%     type [id:2] : { prim Int }
+%%% }
 %%% scope: [
 %%%        0 -> { a ty: ty_unknown, used: 0, var decl }
 %%%        1 -> { a ty: ty_id[0], used: 0, tydef decl }

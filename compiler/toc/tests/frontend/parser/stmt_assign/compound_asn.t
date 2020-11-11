@@ -31,27 +31,27 @@ b or= true
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { prim Int }
-%%% var [id:1] : { prim Real }
-%%% var [id:2] : { prim Boolean }
-%%% ref(id:0) := nat(3)
-%%% ref(id:0) += nat(5)
-%%% ref(id:0) -= nat(7)
-%%% ref(id:0) *= nat(9)
-%%% ref(id:0) div= nat(11)
-%%% ref(id:1) /= real(12)
-%%% ref(id:0) rem= nat(3)
-%%% ref(id:0) mod= nat(5)
-%%% ref(id:0) **= nat(2)
-%%% ref(id:0) and= nat(3)
-%%% ref(id:0) or= nat(5)
-%%% ref(id:0) xor= nat(6)
-%%% ref(id:0) shl= nat(9)
-%%% ref(id:0) shr= nat(12)
-%%% ref(id:2) =>= bool(true)
-%%% ref(id:2) and= bool(false)
-%%% ref(id:2) or= bool(true)
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { prim Int }
+%%%     var [id:1] : { prim Real }
+%%%     var [id:2] : { prim Boolean }
+%%%     ref(id:0) := nat(3)
+%%%     ref(id:0) += nat(5)
+%%%     ref(id:0) -= nat(7)
+%%%     ref(id:0) *= nat(9)
+%%%     ref(id:0) div= nat(11)
+%%%     ref(id:1) /= real(12)
+%%%     ref(id:0) rem= nat(3)
+%%%     ref(id:0) mod= nat(5)
+%%%     ref(id:0) **= nat(2)
+%%%     ref(id:0) and= nat(3)
+%%%     ref(id:0) or= nat(5)
+%%%     ref(id:0) xor= nat(6)
+%%%     ref(id:0) shl= nat(9)
+%%%     ref(id:0) shr= nat(12)
+%%%     ref(id:2) =>= bool(true)
+%%%     ref(id:2) and= bool(false)
+%%%     ref(id:2) or= bool(true)
+%%% }
 
 %%% expected stderr:

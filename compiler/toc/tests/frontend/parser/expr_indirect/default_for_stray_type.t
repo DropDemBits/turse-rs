@@ -21,25 +21,25 @@ var a16 := real8
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] := [{ prim AddressInt }] @ (<error>)
-%%% var [id:1] := [{ prim Char }] @ (<error>)
-%%% var [id:3] := [{ char(ref(id:2)) }] @ (<error>)
-%%% var [id:4] := [{ prim String_ }] @ (<error>)
-%%% var [id:5] := [{ string(ref(id:2)) }] @ (<error>)
-%%% var [id:6] := [{ prim Boolean }] @ (<error>)
-%%% var [id:7] := [{ prim Int }] @ (<error>)
-%%% var [id:8] := [{ prim Int1 }] @ (<error>)
-%%% var [id:9] := [{ prim Int2 }] @ (<error>)
-%%% var [id:10] := [{ prim Int4 }] @ (<error>)
-%%% var [id:11] := [{ prim Nat }] @ (<error>)
-%%% var [id:12] := [{ prim Nat1 }] @ (<error>)
-%%% var [id:13] := [{ prim Nat2 }] @ (<error>)
-%%% var [id:14] := [{ prim Nat4 }] @ (<error>)
-%%% var [id:15] := [{ prim Real }] @ (<error>)
-%%% var [id:16] := [{ prim Real4 }] @ (<error>)
-%%% var [id:17] := [{ prim Real8 }] @ (<error>)
-%%% ]
+%%% ast: {
+%%%     var [id:0] := [{ prim AddressInt }] @ (<error>)
+%%%     var [id:1] := [{ prim Char }] @ (<error>)
+%%%     var [id:3] := [{ char(ref(id:2)) }] @ (<error>)
+%%%     var [id:4] := [{ prim String_ }] @ (<error>)
+%%%     var [id:5] := [{ string(ref(id:2)) }] @ (<error>)
+%%%     var [id:6] := [{ prim Boolean }] @ (<error>)
+%%%     var [id:7] := [{ prim Int }] @ (<error>)
+%%%     var [id:8] := [{ prim Int1 }] @ (<error>)
+%%%     var [id:9] := [{ prim Int2 }] @ (<error>)
+%%%     var [id:10] := [{ prim Int4 }] @ (<error>)
+%%%     var [id:11] := [{ prim Nat }] @ (<error>)
+%%%     var [id:12] := [{ prim Nat1 }] @ (<error>)
+%%%     var [id:13] := [{ prim Nat2 }] @ (<error>)
+%%%     var [id:14] := [{ prim Nat4 }] @ (<error>)
+%%%     var [id:15] := [{ prim Real }] @ (<error>)
+%%%     var [id:16] := [{ prim Real4 }] @ (<error>)
+%%%     var [id:17] := [{ prim Real8 }] @ (<error>)
+%%% }
 
 %%% expected stderr:
 %%% error line:3 column:1-4 Expected '@' after primitive type (to form an indirection expression)

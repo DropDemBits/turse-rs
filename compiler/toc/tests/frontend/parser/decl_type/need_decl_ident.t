@@ -7,11 +7,11 @@ type : 1 .. a
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% type [] : { ref_expr ref(id:0) }
-%%% type [] : { prim Int }
-%%% type [] : { range nat(1) .. ref(id:0) }
-%%% ]
+%%% ast: {
+%%%     type [] : { ref_expr ref(id:0) }
+%%%     type [] : { prim Int }
+%%%     type [] : { range nat(1) .. ref(id:0) }
+%%% }
 %%% scope: [
 %%%        0 -> { a ty: ty_error, used: 2, var }
 %%% ]

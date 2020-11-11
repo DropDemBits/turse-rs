@@ -29,26 +29,26 @@ type a : set of enum (a, b, c)
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% type [id:0] : { enum ( , ) }
-%%% {}
-%%% type [id:1] : { enum ( , ) }
-%%% {}
-%%% type [id:2] : { enum ( , ) }
-%%% {}
-%%% type [id:3] : { enum ( a, ) }
-%%% {}
-%%% type [id:4] : { enum ( a, b, c, ) }
-%%% {}
-%%% type [id:5] : { enum ( a, b, ) }
-%%% ref(id:6) += nat(1)
-%%% {}
-%%% type [id:7] : { enum ( a, , ) }
-%%% {}
-%%% var [id:8] : { enum ( a, b, c, ) }
-%%% const [id:9] : { enum ( a, b, c, ) } := nat(2)
-%%% type [id:10] : { set of { error } }
-%%% ]
+%%% ast: {
+%%%     type [id:0] : { enum ( , ) }
+%%%     {}
+%%%     type [id:1] : { enum ( , ) }
+%%%     {}
+%%%     type [id:2] : { enum ( , ) }
+%%%     {}
+%%%     type [id:3] : { enum ( a, ) }
+%%%     {}
+%%%     type [id:4] : { enum ( a, b, c, ) }
+%%%     {}
+%%%     type [id:5] : { enum ( a, b, ) }
+%%%     ref(id:6) += nat(1)
+%%%     {}
+%%%     type [id:7] : { enum ( a, , ) }
+%%%     {}
+%%%     var [id:8] : { enum ( a, b, c, ) }
+%%%     const [id:9] : { enum ( a, b, c, ) } := nat(2)
+%%%     type [id:10] : { set of { error } }
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:16-17 Expected identifier after '(' (')' is not an identifier)

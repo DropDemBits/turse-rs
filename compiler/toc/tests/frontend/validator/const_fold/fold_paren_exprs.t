@@ -6,9 +6,9 @@ const d := (1 + 1)
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% const [id:0] := nat(0)
-%%% const [id:1] := nat(2)
-%%% ]
+%%% ast: {
+%%%     const [id:0] := nat(0)
+%%%     const [id:1] := nat(2)
+%%% }
 
 %%% expected stderr:

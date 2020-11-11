@@ -23,19 +23,19 @@ var inv : array 1 .. 2, 1 .. *, char of real
 %%% expected exit status: 255
 
 %%% expected stdout:
-%%% ast: [
-%%% var [id:0] : { flexible array { range nat(1) .. * } of { prim Real } }
-%%% var [id:1] : { flexible array { range nat(1) .. nat(2) } of { flexible array { range nat(1) .. nat(2) } of { prim Real } } }
-%%% var [id:2] : { array { range nat(1) .. nat(2) } of { flexible array { range nat(1) .. nat(2) } of { prim Real } } }
-%%% var [id:3] : { array { range nat(1) .. * } of { flexible array { range nat(1) .. nat(2) } of { prim Real } } }
-%%% var [id:4] : { flexible array { range nat(1) .. nat(2) } of { array  of { range nat(1) .. * } } }
-%%% var [id:5] : { flexible array { range nat(1) .. nat(2) } of { array { range nat(1) .. * } of { prim Real } } }
-%%% var [id:6] : { array { range nat(1) .. nat(2) } of { array { range nat(1) .. * } of { prim Real } } }
-%%% var [id:7] : { array { range nat(1) .. * } of { array { range nat(1) .. * } of { prim Real } } }
-%%% var [id:8] : { array { range nat(1) .. * } of { prim Real } }
-%%% var [id:9] : { array { range nat(1) .. * } of { prim Real } }
-%%% var [id:10] : { array { range nat(1) .. nat(2) }, { range nat(1) .. * }, { prim Char } of { prim Real } }
-%%% ]
+%%% ast: {
+%%%     var [id:0] : { flexible array { range nat(1) .. * } of { prim Real } }
+%%%     var [id:1] : { flexible array { range nat(1) .. nat(2) } of { flexible array { range nat(1) .. nat(2) } of { prim Real } } }
+%%%     var [id:2] : { array { range nat(1) .. nat(2) } of { flexible array { range nat(1) .. nat(2) } of { prim Real } } }
+%%%     var [id:3] : { array { range nat(1) .. * } of { flexible array { range nat(1) .. nat(2) } of { prim Real } } }
+%%%     var [id:4] : { flexible array { range nat(1) .. nat(2) } of { array  of { range nat(1) .. * } } }
+%%%     var [id:5] : { flexible array { range nat(1) .. nat(2) } of { array { range nat(1) .. * } of { prim Real } } }
+%%%     var [id:6] : { array { range nat(1) .. nat(2) } of { array { range nat(1) .. * } of { prim Real } } }
+%%%     var [id:7] : { array { range nat(1) .. * } of { array { range nat(1) .. * } of { prim Real } } }
+%%%     var [id:8] : { array { range nat(1) .. * } of { prim Real } }
+%%%     var [id:9] : { array { range nat(1) .. * } of { prim Real } }
+%%%     var [id:10] : { array { range nat(1) .. nat(2) }, { range nat(1) .. * }, { prim Char } of { prim Real } }
+%%% }
 
 %%% expected stderr:
 %%% error line:2 column:11-40 Arrays with '*' as an end bound require an 'init' initializer

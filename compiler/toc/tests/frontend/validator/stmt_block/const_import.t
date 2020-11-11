@@ -17,18 +17,18 @@ end
 %%% expected exit status: 0
 
 %%% expected stdout:
-%%% ast: [
-%%% const [id:0] : { prim Int } := nat(5)
-%%% {
-%%%     const [id:1] : { prim Int } := nat(262)
+%%% ast: {
+%%%     const [id:0] : { prim Int } := nat(5)
 %%%     {
-%%%         var [id:2] : { range nat(5) .. nat(267) }
-%%%     }
-%%%     {
-%%%         var [id:3] : { prim Int } := nat(267)
+%%%         const [id:1] : { prim Int } := nat(262)
+%%%         {
+%%%             var [id:2] : { range nat(5) .. nat(267) }
+%%%         }
+%%%         {
+%%%             var [id:3] : { prim Int } := nat(267)
+%%%         }
 %%%     }
 %%% }
-%%% ]
 %%% types: [
 %%%        0 -> { range 5 .. 267 (263) ty_prim[Int] }
 %%% ]
