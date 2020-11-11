@@ -371,6 +371,7 @@ impl VisitorMut<(), (), ()> for Validator {
                 type_spec,
                 value,
                 is_const,
+                ..
             } => self.resolve_decl_var(idents, type_spec, value, *is_const),
             StmtKind::TypeDecl {
                 ident,

@@ -50,6 +50,11 @@ impl ScopeBlock {
         }
     }
 
+    /// Gets the block kind of the current ScopeBlock
+    pub fn kind(&self) -> &BlockKind {
+        &self.kind
+    }
+
     /// Gets an identifier id for an identifier declared in this scope block.
     ///
     /// If `None`, then the identifier is either imported, or undeclared beforehand.

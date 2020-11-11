@@ -246,6 +246,39 @@ impl<'s> Parser<'s> {
         }
     }
 
+    /// Parse `var` attribute
+    ///
+    /// # Returns
+    /// Returns true if the `var` attribute was parsed
+    fn attrib_var(&mut self) -> bool {
+        self.optional(&TokenType::Var)
+    }
+
+    /// Parse `register` attribute
+    ///
+    /// # Returns
+    /// Returns true if the `register` attribute was parsed
+    fn attrib_register(&mut self) -> bool {
+        let has_attribute = self.optional(&TokenType::Register);
+
+        has_attribute
+    }
+
+    /// Parse 'pervasive' attribute
+    ///
+    /// # Returns
+    /// Returns true if the `pervasive` attribute (`pervasive` or `*`) was parsed
+    fn attrib_pervasive(&mut self) -> bool {
+        match self.current().token_type {
+            TokenType::Pervasive | TokenType::Star => {
+                // Nom token
+                self.next_token();
+                true
+            }
+            _ => false,
+        }
+    }
+
     fn warn_found_as_something_else(&self, found: &str, as_something: &str, at: &Location) {
         self.context.borrow_mut().reporter.report_warning(
             at,

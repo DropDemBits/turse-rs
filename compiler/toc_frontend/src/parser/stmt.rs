@@ -75,6 +75,23 @@ impl<'s> Parser<'s> {
         let decl_tok = self.next_token();
         let span = decl_tok.location;
 
+        // Parse attributes
+        let is_pervasive = self.attrib_pervasive();
+        let bind_to_register = self.attrib_register();
+
+        if bind_to_register
+            && !matches!(
+                self.unit_scope.current_block().kind(),
+                BlockKind::InnerBlock | BlockKind::Function | BlockKind::Procedure
+            )
+        {
+            // Register bindings not allowed in main, module, monitor, or class level
+            self.context.borrow_mut().reporter.report_error(
+                &self.previous().location,
+                format_args!("'{}' register bindings are not allowed in the main, module, monitor, or class level", decl_tok.token_type)
+            );
+        }
+
         // Grab identifier tokens
         let ident_tokens = {
             let mut idents = vec![];
@@ -220,7 +237,8 @@ impl<'s> Parser<'s> {
             toks.into_iter()
                 .map(|token| {
                     let location = token.location;
-                    let use_id = self.declare_ident(&token, TypeRef::Unknown, ref_kind, false);
+                    let use_id =
+                        self.declare_ident(&token, TypeRef::Unknown, ref_kind, is_pervasive);
 
                     IdentRef::new(use_id, location)
                 })
@@ -236,6 +254,7 @@ impl<'s> Parser<'s> {
                 type_spec,
                 value: assign_expr,
                 is_const,
+                bind_to_register,
             },
             span,
         }
@@ -245,6 +264,8 @@ impl<'s> Parser<'s> {
         // Nom "type"
         let type_tok = self.next_token();
         let span = type_tok.location;
+
+        let is_pervasive = self.attrib_pervasive();
 
         // Expect identifier (continue parsing after the identifier)
         let ident_tok = self
@@ -325,7 +346,7 @@ impl<'s> Parser<'s> {
             let id = if is_new_def {
                 // Make new forward placeholder type (can nab later)
                 let ty_forward = self.declare_type(TypeInfo::Forward { is_resolved });
-                let id = self.declare_ident(&ident_tok, ty_forward, RefKind::Type, false);
+                let id = self.declare_ident(&ident_tok, ty_forward, RefKind::Type, is_pervasive);
 
                 if is_new_forward_ref {
                     // Add to forwarded ids

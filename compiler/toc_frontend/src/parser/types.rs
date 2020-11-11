@@ -472,8 +472,8 @@ impl<'s> Parser<'s> {
         // "var"? "register"? identifier ( ',' identifier )* ':' "cheat"? type_spec
 
         // Attributes apply to all idents
-        let pass_by_ref = self.optional(&TokenType::Var);
-        let bind_to_register = self.optional(&TokenType::Register);
+        let pass_by_ref = self.attrib_var();
+        let bind_to_register = self.attrib_register();
         let mut idents = vec![];
 
         // Gather all identifiers

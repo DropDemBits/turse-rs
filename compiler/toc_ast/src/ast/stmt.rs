@@ -32,8 +32,10 @@ pub enum StmtKind {
         type_spec: Option<Box<Type>>,
         /// The (semi-optional) initialization value
         value: Option<Box<Expr>>,
-        /// If the declare is for a const declaration
+        /// If the declaration is for a const declaration
         is_const: bool,
+        /// If the declared identifier(s) should be bound to a register
+        bind_to_register: bool,
     },
     /// `type` statement declaration.
     /// The type_spec of `ident` is the declared type
@@ -94,20 +96,25 @@ mod pretty_print {
                 StmtKind::Nop => f.write_str("<nop>")?,
                 StmtKind::Error => f.write_str("<error>")?,
                 StmtKind::VarDecl {
+                    is_const,
+                    bind_to_register,
                     idents,
                     type_spec,
-                    is_const,
                     value,
                 } => {
-                    f.write_str(if *is_const { "const [" } else { "var [" })?;
+                    f.write_str(if *is_const { "const " } else { "var " })?;
+                    if *bind_to_register {
+                        f.write_str("register ")?;
+                    }
+
+                    f.write_char('[')?;
                     if let Some(idents) = idents {
                         pretty_print::print_list(f, idents.iter())?;
                     }
+                    f.write_char(']')?;
 
                     if let Some(type_spec) = type_spec {
-                        f.write_fmt(format_args!("] : {}", type_spec))?;
-                    } else {
-                        f.write_str("]")?;
+                        f.write_fmt(format_args!(" : {}", type_spec))?;
                     }
 
                     if let Some(value) = value {
