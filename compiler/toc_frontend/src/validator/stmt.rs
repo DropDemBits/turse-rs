@@ -10,7 +10,7 @@ use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::Value;
 
-impl Validator {
+impl Validator<'_> {
     // --- Decl Resolvers --- //
 
     pub(super) fn resolve_decl_var(

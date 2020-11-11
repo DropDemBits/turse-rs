@@ -30,22 +30,23 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
 
-/// Validator Instance
-pub struct Validator {
+/// Validator Instance.
+/// `'unit` is attatched to the lifetime of the visited code unit
+pub struct Validator<'unit> {
     /// Compile Context
     context: Rc<RefCell<CompileContext>>,
     /// Type table to use
-    type_table: TypeTable,
+    type_table: &'unit mut TypeTable,
     /// Unit scope to take identifiers from
-    unit_scope: UnitScope,
+    unit_scope: &'unit mut UnitScope,
     /// Mapping of all compile-time values
     compile_values: HashMap<IdentId, Value>,
 }
 
-impl Validator {
+impl<'unit> Validator<'unit> {
     pub fn new(
-        unit_scope: UnitScope,
-        type_table: TypeTable,
+        unit_scope: &'unit mut UnitScope,
+        type_table: &'unit mut TypeTable,
         context: Rc<RefCell<CompileContext>>,
     ) -> Self {
         Self {
@@ -54,13 +55,6 @@ impl Validator {
             unit_scope,
             compile_values: HashMap::new(),
         }
-    }
-
-    /// Takes the `type_table` and `unit_scope` from the validator
-    pub fn take_code_unit_parts(&mut self) -> (TypeTable, UnitScope) {
-        let type_table = std::mem::replace(&mut self.type_table, TypeTable::new());
-        let unit_scope = std::mem::replace(&mut self.unit_scope, UnitScope::new());
-        (type_table, unit_scope)
     }
 
     /// Reports unused identifiers in the given scope
@@ -370,7 +364,7 @@ impl Validator {
     }
 }
 
-impl VisitorMut<(), (), ()> for Validator {
+impl<'u> VisitorMut<(), (), ()> for Validator<'u> {
     fn visit_stmt(&mut self, visit_stmt: &mut Stmt) {
         match &mut visit_stmt.kind {
             StmtKind::Nop | StmtKind::Error => {}
@@ -575,17 +569,15 @@ mod test {
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
-        let type_table = code_unit.take_types();
-        let unit_scope = code_unit.take_unit_scope();
 
         // Validate AST
         let validator_context = Rc::new(RefCell::new(CompileContext::new()));
-        let mut validator = Validator::new(unit_scope, type_table, validator_context.clone());
-        code_unit.visit_ast_mut(&mut validator);
-
-        let (type_table, unit_scope) = validator.take_code_unit_parts();
-        code_unit.put_types(type_table);
-        code_unit.put_unit_scope(unit_scope);
+        let mut validator = Validator::new(
+            &mut code_unit.unit_scope,
+            &mut code_unit.type_table,
+            validator_context.clone(),
+        );
+        validator.visit_stmt(&mut code_unit.root_stmt);
 
         // Emit all pending erros & warnings
         validator_context

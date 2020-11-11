@@ -9,7 +9,7 @@ use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, ParamInfo, PrimitiveType, Type, TypeRef, TypeTable};
 use toc_core::Location;
 
-impl Validator {
+impl Validator<'_> {
     // --- Expr Resolvers --- //
 
     // Resolves a parentheses expression

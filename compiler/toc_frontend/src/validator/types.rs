@@ -8,7 +8,7 @@ use toc_ast::ast::VisitorMut;
 use toc_ast::types::{self, ParamInfo, PrimitiveType, SequenceSize, Type, TypeRef, TypeTable};
 use toc_ast::value;
 
-impl Validator {
+impl Validator<'_> {
     // --- Type Resolvers --- //
 
     pub(super) fn resolve_type_char_seq(

@@ -1,7 +1,7 @@
 //! Builds an IR Control-Flow-Graph from a given `CodeUnit`
 use crate::graph::{BlockIndex, Instruction, InstructionOp, IrGraph, Reference};
 use crate::{AddressSpace, ReferenceNode};
-use toc_ast::ast::{self, expr, ident, stmt, stmt::BlockKind, types as ty_ast};
+use toc_ast::ast::{self, expr, ident, stmt, stmt::BlockKind, types as ty_ast, Visitor};
 use toc_ast::scope::UnitScope;
 use toc_ast::types;
 use toc_ast::unit::CodeUnit;
@@ -23,7 +23,7 @@ impl IrBuilder {
     /// Generates IR for the given IR, returning the IR representation
     pub fn generate_ir(&self) -> Option<IrGraph> {
         let block_context = BlockKind::Main;
-        let unit_context = self.unit.unit_scope();
+        let unit_context = &self.unit.unit_scope;
         let mut visitor = IrVisitor::new(block_context, unit_context);
 
         // Prepare the visitor for building the IrGraph
@@ -37,7 +37,7 @@ impl IrBuilder {
         graph.create_function("<init>", None, None, root_block);
 
         // Build the graph
-        self.unit.visit_ast(&mut visitor);
+        visitor.visit_stmt(&self.unit.root_stmt);
         let graph = visitor.take_graph();
         Some(graph)
     }
@@ -344,6 +344,7 @@ mod test {
 
     use super::*;
     use std::{cell::RefCell, rc::Rc};
+    use toc_ast::ast::VisitorMut;
     use toc_frontend::{
         context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
     };
@@ -359,15 +360,14 @@ mod test {
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
-        let type_table = code_unit.take_types();
-        let unit_scope = code_unit.take_unit_scope();
 
         // Validate AST
-        let mut validator = Validator::new(unit_scope, type_table, context.clone());
-        code_unit.visit_ast_mut(&mut validator);
-        let (type_table, unit_scope) = validator.take_code_unit_parts();
-        code_unit.put_types(type_table);
-        code_unit.put_unit_scope(unit_scope);
+        let mut validator = Validator::new(
+            &mut code_unit.unit_scope,
+            &mut code_unit.type_table,
+            context.clone(),
+        );
+        validator.visit_stmt(&mut code_unit.root_stmt);
 
         assert!(
             !context.borrow().reporter.has_error(),

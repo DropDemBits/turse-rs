@@ -6,29 +6,36 @@ extern crate toc_ir;
 
 use std::fs;
 use std::{cell::RefCell, rc::Rc};
-use toc_ast::unit::CodeUnit;
+use toc_ast::{ast::VisitorMut, unit::CodeUnit};
 use toc_frontend::{
     context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
 };
 
 fn dump_info(unit: &CodeUnit, dump_out: &[String]) {
     if dump_out.iter().any(|elem| elem == "ast") {
+        // Temporary, text-based tests depend on format of ast
+        use toc_ast::ast::stmt::StmtKind;
+
         // Pretty-print AST
         println!("ast: [");
-        for stmt in unit.stmts() {
-            println!("{}", stmt);
+
+        if let StmtKind::Block { block } = &unit.root_stmt.kind {
+            for stmt in &block.stmts {
+                println!("{}", stmt);
+            }
         }
+
         println!("]");
     }
 
     if dump_out.iter().any(|elem| elem == "scope") {
         // Pretty-print unit scope
-        println!("scope: {}", unit.unit_scope());
+        println!("scope: {}", &unit.unit_scope);
     }
 
     if dump_out.iter().any(|elem| elem == "types") {
         // Pretty-print types
-        println!("types: {}", unit.types());
+        println!("types: {}", &unit.type_table);
     }
 }
 
@@ -91,19 +98,17 @@ pub fn resolve_unit(
     mut code_unit: CodeUnit,
     context: &Rc<RefCell<CompileContext>>,
 ) -> (CodeUnit, bool) {
-    let type_table = code_unit.take_types();
-    let unit_scope = code_unit.take_unit_scope();
-
     // TODO: Provide inter-unit type resolution stage
 
     // By this point, all decls local to the unit have been resolved, and can be made available to other units which need it
 
     // Validate AST
-    let mut validator = Validator::new(unit_scope, type_table, context.clone());
-    code_unit.visit_ast_mut(&mut validator);
-    let (type_table, unit_scope) = validator.take_code_unit_parts();
-    code_unit.put_types(type_table);
-    code_unit.put_unit_scope(unit_scope);
+    let mut validator = Validator::new(
+        &mut code_unit.unit_scope,
+        &mut code_unit.type_table,
+        context.clone(),
+    );
+    validator.visit_stmt(&mut code_unit.root_stmt);
 
     // Validator must run successfully
     if context.borrow().reporter.has_error() {
