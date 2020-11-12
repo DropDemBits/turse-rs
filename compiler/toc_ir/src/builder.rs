@@ -355,7 +355,7 @@ mod test {
         let context = Arc::new(Mutex::new(CompileContext::new()));
 
         let scanner = Scanner::scan_source(source, context.clone());
-        let mut parser = Parser::new(scanner, &source, true, context.clone());
+        let mut parser = Parser::new(scanner, true, context.clone());
         assert!(parser.parse(), "Parser failed to parse the source");
         context.lock().unwrap().aggregate_messages(&mut parser);
 

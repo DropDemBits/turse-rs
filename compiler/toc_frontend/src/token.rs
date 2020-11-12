@@ -3,22 +3,28 @@ use toc_core::Location;
 
 /// Parsed token
 #[derive(Debug, PartialEq, Clone)]
-pub struct Token<'a> {
+pub struct Token<'src> {
+    /// Source the token is a part of.
+    /// The token is only valid for the lifetime of the source.
+    source: &'src str,
     /// Type of the token
     pub token_type: TokenType,
     /// Location of the lexeme in the file/text stream
     pub location: Location,
-    /// The token is only valid for the lifetime of the source
-    _source: std::marker::PhantomData<&'a ()>,
 }
 
-impl Token<'_> {
-    pub fn new(token_type: TokenType, location: Location) -> Self {
+impl<'s> Token<'s> {
+    pub fn new(token_type: TokenType, location: Location, source: &'s str) -> Token<'s> {
         Self {
             token_type,
             location,
-            _source: std::marker::PhantomData,
+            source,
         }
+    }
+
+    /// Gets the lexeme of the token
+    pub fn get_lexeme(&self) -> &str {
+        self.location.get_lexeme(self.source)
     }
 }
 

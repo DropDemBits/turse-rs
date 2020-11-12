@@ -483,10 +483,7 @@ impl<'s> Parser<'s> {
                     TokenType::Identifier,
                     format_args!("Expected identifier for parameter name"),
                 )
-                .map_or_else(
-                    |_| String::new(),
-                    |tok| tok.location.get_lexeme(self.source).to_string(),
-                );
+                .map_or_else(|_| String::new(), |ident| ident.get_lexeme().to_string());
 
             idents.push(ident);
 
@@ -531,10 +528,7 @@ impl<'s> Parser<'s> {
                 TokenType::Identifier,
                 format_args!("Expected identifier for parameter name"),
             )
-            .map_or_else(
-                |_| String::new(),
-                |tok| tok.location.get_lexeme(self.source).to_string(),
-            );
+            .map_or_else(|_| String::new(), |ident| ident.get_lexeme().to_string());
 
         let type_spec = Box::new(self.type_function(parse_context, has_result));
 

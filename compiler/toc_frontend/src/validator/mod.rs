@@ -568,7 +568,7 @@ mod test {
 
         // Ignore the parser status, as the validator needs to handle
         // invalid parser ASTs
-        let mut parser = Parser::new(scanner, &source, true, context.clone());
+        let mut parser = Parser::new(scanner, true, context.clone());
         let successful_parse = parser.parse();
 
         // Take the unit back from the parser

@@ -198,7 +198,7 @@ impl<'s> Scanner<'s> {
     ///
     /// Only used to make the eof token at the correct location.
     pub fn make_eof_here(&self) -> Token<'s> {
-        Token::new(TokenType::Eof, self.cursor)
+        Token::new(TokenType::Eof, self.cursor, self.source)
     }
 
     // Checks if the end of the stream has been reached
@@ -331,7 +331,7 @@ impl<'s> Scanner<'s> {
     fn make_token(&mut self, token_type: TokenType, steps: usize) -> Token<'s> {
         self.cursor.columns(steps);
 
-        Token::new(token_type, self.cursor)
+        Token::new(token_type, self.cursor, self.source)
     }
 
     /// Makes a token and steps over the current character

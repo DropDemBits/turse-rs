@@ -76,7 +76,7 @@ pub fn compile_file_source(_path: &str, contents: &str) -> (CodeUnit, Arc<Mutex<
     let context = Arc::new(Mutex::new(CompileContext::new()));
 
     let scanner = Scanner::scan_source(contents, context.clone());
-    let mut parser = Parser::new(scanner, contents, true, context.clone());
+    let mut parser = Parser::new(scanner, true, context.clone());
 
     parser.parse();
     context.lock().unwrap().aggregate_messages(&mut parser);

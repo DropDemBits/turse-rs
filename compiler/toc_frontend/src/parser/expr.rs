@@ -418,7 +418,7 @@ impl<'s> Parser<'s> {
         // The actual identifier information will be resolved at validator time,
         // so we can just store the field name and location info
 
-        let name = ident.location.get_lexeme(&self.source).to_string();
+        let name = ident.get_lexeme().to_string();
         let span = var_ref.get_span().span_to(&self.previous().location);
         // Field info will be updated to the correct type at validator time
         let field_def = FieldDef {

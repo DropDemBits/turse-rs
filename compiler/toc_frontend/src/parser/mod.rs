@@ -33,8 +33,6 @@ pub struct Parser<'s> {
     context: Arc<Mutex<CompileContext>>,
     /// Local status reporter
     reporter: RefCell<StatusReporter>,
-    /// File source used for getting lexemes for reporting
-    source: &'s str,
     /// Scanner for scanning tokens
     scanner: Scanner<'s>,
 
@@ -69,15 +67,13 @@ pub struct Parser<'s> {
 impl<'s> Parser<'s> {
     pub fn new(
         mut scanner: Scanner<'s>,
-        source: &'s str,
         is_main: bool,
         context: Arc<Mutex<CompileContext>>,
     ) -> Self {
         Self {
             context,
             reporter: RefCell::new(StatusReporter::new()),
-            source,
-            previous: Token::new(TokenType::Error, Location::new()),
+            previous: Token::new(TokenType::Error, Location::new(), ""),
             current: scanner.next().unwrap_or_else(|| scanner.make_eof_here()),
             peek: scanner.next().unwrap_or_else(|| scanner.make_eof_here()),
             scanner,
@@ -186,8 +182,13 @@ impl<'s> Parser<'s> {
             stitch_from: &Token<'s>,
             stitch_to: &Token<'s>,
         ) -> Token<'s> {
-            let new_span = stitch_from.location.span_to(&stitch_to.location);
-            Token::new(token_type, new_span)
+            let location = stitch_from.location.span_to(&stitch_to.location);
+
+            // Create a copy based off of `stitch_to`
+            let mut tok = stitch_to.clone();
+            tok.location = location;
+            tok.token_type = token_type;
+            tok
         }
 
         std::mem::swap(&mut self.previous, &mut self.current);
@@ -291,8 +292,8 @@ impl<'s> Parser<'s> {
     /// Gets the corresponding lexeme for the given Token.
     ///
     /// If the given token is of `TokenType::Eof`, the given lexeme is `"<end of file>"`.
-    fn get_token_lexeme(&self, token: &Token) -> &str {
-        let token_content = token.location.get_lexeme(self.source);
+    fn get_token_lexeme(&self, token: &'s Token<'s>) -> &'s str {
+        let token_content = token.get_lexeme();
 
         if token_content.is_empty() {
             "<end of file>"
@@ -397,7 +398,7 @@ impl<'s> Parser<'s> {
         is_pervasive: bool,
     ) -> IdentId {
         let decl_location = ident.location;
-        let name = decl_location.get_lexeme(self.source).to_string();
+        let name = ident.get_lexeme().to_string();
 
         self.unit_scope
             .declare_ident(name, decl_location, type_spec, ref_kind, is_pervasive)
@@ -407,7 +408,7 @@ impl<'s> Parser<'s> {
     ///
     /// If an identifier is not declared, a new identifier is made.
     fn use_ident(&mut self, ident: &Token) -> IdentId {
-        let name = ident.location.get_lexeme(self.source);
+        let name = ident.get_lexeme();
         self.unit_scope.use_ident(name, ident.location)
     }
 
