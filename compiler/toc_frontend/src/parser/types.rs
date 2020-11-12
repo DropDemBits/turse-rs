@@ -17,7 +17,7 @@ impl<'s> Parser<'s> {
 
         if self.type_nesting > super::MAX_NESTING_DEPTH {
             // Over nesting limit
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &self.current().location,
                 format_args!("Implementation limit - Type specification is nested too deeply"),
             );
@@ -92,7 +92,7 @@ impl<'s> Parser<'s> {
             }
             TokenType::Enum => self.type_enum(parse_context),
             TokenType::Record => {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.current().location,
                     format_args!("Record types are not parsed yet"),
                 );
@@ -105,7 +105,7 @@ impl<'s> Parser<'s> {
                 }
             }
             TokenType::Union => {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.current().location,
                     format_args!("Union types are not parsed yet"),
                 );
@@ -123,7 +123,7 @@ impl<'s> Parser<'s> {
 
                 if let TypeKind::Error = &ref_or_range.kind {
                     // Report the error
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &ref_or_range.span,
                         format_args!(
                             "Unexpected '{}', expected a type specifier",
@@ -178,7 +178,7 @@ impl<'s> Parser<'s> {
             TokenType::Char => self.type_char_seq(true, parse_context),
             TokenType::String_ => self.type_char_seq(false, parse_context),
             _ => {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.previous().location,
                     format_args!("'{}' is not a primitive type", self.previous().token_type),
                 );
@@ -213,14 +213,14 @@ impl<'s> Parser<'s> {
                 // Is only a literal, and not part of an expression
                 if size == 0 {
                     // Empty length, never valid
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &self.current().location,
                         format_args!("Invalid maximum string length of '0'"),
                     );
                     Err(())
                 } else if size as usize >= types::MAX_STRING_SIZE {
                     // Greater than max length, never valid
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &self.current().location,
                         format_args!(
                             "'{}' is larger than or equal to the maximum string length of '{}' (after including the end byte)",
@@ -253,7 +253,7 @@ impl<'s> Parser<'s> {
                 if matches!(parse_context, TokenType::Function | TokenType::Procedure) {
                     Ok(SeqSize::Any)
                 } else {
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &self.previous().location,
                         format_args!(
                             "Length specifier of '*' is only valid in subprogram parameter types"
@@ -271,7 +271,7 @@ impl<'s> Parser<'s> {
                 // Put the parsed expression into a box
                 match size_expr.kind {
                     ExprKind::Error => {
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             &self.current().location,
                             format_args!("Length specifier is not a '*' or a non-zero compile time expression"),
                         );
@@ -417,7 +417,7 @@ impl<'s> Parser<'s> {
         {
             // In the context of a function type declaration, which requires the '()'
             if matches!(self.previous().token_type, TokenType::Identifier) {
-                self.context.borrow_mut().reporter.report_warning(
+                self.reporter.borrow_mut().report_warning(
                     &self.previous().location,
                     format_args!(
                         "Function type declarations must specifiy '()' after the identifier"
@@ -426,7 +426,7 @@ impl<'s> Parser<'s> {
             } else {
                 // Identifier is not really needed in these situations, though
                 // we still do so for compatibility
-                self.context.borrow_mut().reporter.report_warning(
+                self.reporter.borrow_mut().report_warning(
                     &self.previous().location,
                     format_args!(
                         "Function type declarations must specifiy '()' after '{}'",
@@ -580,7 +580,7 @@ impl<'s> Parser<'s> {
                     ExprKind::Reference { .. } | ExprKind::Error => break, // Reached the end of the dot expression (if it's an error, no need to report it)
                     _ => {
                         // Not completely a dot expression
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             &current_expr.get_span(),
                             format_args!("Expression is not a valid type reference"),
                         );
@@ -621,7 +621,7 @@ impl<'s> Parser<'s> {
 
                 if !is_inferred_valid {
                     // Report, but don't bail out
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &star_tok.location,
                         format_args!("'*' as a range end is only valid in an array range"),
                     );
@@ -636,7 +636,7 @@ impl<'s> Parser<'s> {
         if let SeqSize::Sized(expr) = &end_range {
             if let ExprKind::Error = expr.kind {
                 // End range is not a valid range
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &range_tok.location,
                     if is_inferred_valid {
                         format_args!("Expected expression or '*' after '..'")
@@ -691,7 +691,7 @@ impl<'s> Parser<'s> {
             let range = self.type_index(&TokenType::Array);
 
             if matches!(range.kind, TypeKind::Error) {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.current().location,
                     format_args!("Expected a range specifier after ','"),
                 );
@@ -706,7 +706,7 @@ impl<'s> Parser<'s> {
 
                     if is_flexible && is_init_sized {
                         // Flexible array cannot have an implicit range specifier
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             &self.previous().location,
                             format_args!("Flexible array cannot have an implicit range specifier"),
                         );
@@ -717,7 +717,7 @@ impl<'s> Parser<'s> {
                 ranges.push(range);
             } else if is_init_sized {
                 // Part of an init sized array, drop the extra ranges
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.previous().location,
                     format_args!("Extra range specifier found in implicit size array"),
                 );
@@ -726,7 +726,7 @@ impl<'s> Parser<'s> {
                 if let TypeKind::Range { end, .. } = &range.kind {
                     // Report if the range is an implicit range
                     if matches!(end, SeqSize::Any) {
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             &self.previous().location,
                             format_args!("'*' is only valid for the first range specifier"),
                         );
@@ -742,7 +742,7 @@ impl<'s> Parser<'s> {
         }
 
         if ranges.is_empty() {
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &self.current().location,
                 format_args!("Expected a range specifier after 'array'"),
             );
@@ -774,12 +774,12 @@ impl<'s> Parser<'s> {
             };
 
             if is_flexible {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &flexible_tok.location,
                     format_args!("Flexible arrays are not allowed inside of {}", context_name),
                 );
             } else if is_init_sized {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &array_tok.location,
                     format_args!(
                         "Implicit size arrays are not allowed inside of {}",
@@ -820,7 +820,7 @@ impl<'s> Parser<'s> {
 
         if *parse_context != TokenType::Type {
             // Only allowed in "type" statements
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &span,
                 format_args!("Set types can only be declared inside of 'type' statements"),
             );
@@ -893,7 +893,7 @@ impl<'s> Parser<'s> {
 
         if *parse_context != TokenType::Type {
             // Only allowed in "type" statements
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &span,
                 format_args!("Enumerated types can only be declared inside of 'type' statements"),
             );

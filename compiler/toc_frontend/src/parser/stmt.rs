@@ -19,7 +19,7 @@ impl<'s> Parser<'s> {
 
         if self.stmt_nesting > super::MAX_NESTING_DEPTH {
             // Over nesting depth
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &self.current().location,
                 format_args!("Implementation limit - Statement is nested too deeply"),
             );
@@ -85,7 +85,7 @@ impl<'s> Parser<'s> {
             )
         {
             // Register bindings not allowed in main, module, monitor, or class level
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &self.previous().location,
                 format_args!("'{}' register bindings are not allowed in the main, module, monitor, or class level", decl_tok.token_type)
             );
@@ -169,7 +169,7 @@ impl<'s> Parser<'s> {
             if let TypeKind::Array { is_init_sized, .. } = &ty.kind {
                 if *is_init_sized && !has_init_expr {
                     // Error: Requires to have init, but has no init
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &ty.span,
                         format_args!(
                             "Arrays with '*' as an end bound require an 'init' initializer"
@@ -180,7 +180,7 @@ impl<'s> Parser<'s> {
         } else if type_spec.is_none() && has_init_expr {
             // Error: Requires to not have init, but 'init' present
             // Safe to unwrap assign_expr, as 'has_init_expr' requires an ExprKind::Init to be present
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 assign_expr.as_ref().expect("no init expr").get_span(),
                 format_args!("Cannot infer a type from an 'init' initializer"),
             );
@@ -200,7 +200,7 @@ impl<'s> Parser<'s> {
 
             // Recoverable error
             // If the type is still unknown, just use TypeError as the type_spec
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &decl_tok.location,
                 format_args!("const declaration requires an initial value"),
             );
@@ -213,7 +213,7 @@ impl<'s> Parser<'s> {
         } else if type_spec.is_none() && assign_expr.is_none() {
             // No type inferrable
             // Recoverable error, just use TypeError as the type_spec
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &decl_tok.location,
                 format_args!("Cannot infer type for given {} declaration (no type specification or initial value given)", decl_tok.token_type)
             );
@@ -319,7 +319,7 @@ impl<'s> Parser<'s> {
                 if self.forward_refs.contains(&old_id) {
                     if is_new_forward_ref {
                         // Duplicate forward ref, report error
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             &ident_tok.location,
                             format_args!("Duplicate forward type declaration"),
                         );
@@ -420,7 +420,7 @@ impl<'s> Parser<'s> {
                 // Nom as token isn't consumed by anything else
                 self.next_token();
 
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.previous().location,
                     format_args!(
                         "'{}' does not begin a statement or declaration",
@@ -476,7 +476,7 @@ impl<'s> Parser<'s> {
             // known.
             let value = if matches!(self.current().token_type, TokenType::Init) {
                 // Init expressions invalid in normal assign contexts
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &self.current().location,
                     format_args!(
                         "'init' assignments are only valid in constant and variable declarations"
@@ -537,7 +537,7 @@ impl<'s> Parser<'s> {
             // If at the end of file, do nothing
             // All of the statements have been absolved into this block
 
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &begin_loc,
                 format_args!("'begin' block does not have a matching 'end'"),
             );
@@ -669,7 +669,7 @@ impl<'s> Parser<'s> {
 
     /// Error recovery for else on a top level block
     fn stmt_err_else(&mut self) -> ParseResult<Stmt> {
-        self.context.borrow_mut().reporter.report_error(
+        self.reporter.borrow_mut().report_error(
             &self.current().location,
             format_args!("'else' without matching 'if'"),
         );
@@ -681,7 +681,7 @@ impl<'s> Parser<'s> {
 
     // Error recovery for elseif on a top level block
     fn stmt_err_elseif(&mut self) -> ParseResult<Stmt> {
-        self.context.borrow_mut().reporter.report_error(
+        self.reporter.borrow_mut().report_error(
             &self.current().location,
             format_args!("'{}' without matching 'if'", &self.current().token_type),
         );
@@ -716,7 +716,7 @@ impl<'s> Parser<'s> {
                     let _ = self.expects(TokenType::If, format_args!("Expected 'if' after 'end'"));
                 } else {
                     // Warn about missing `if`
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &end_tok.location,
                         format_args!("Missing 'if' after 'end' to finish statement"),
                     );

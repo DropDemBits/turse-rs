@@ -159,7 +159,7 @@ impl<'s> Parser<'s> {
 
         if self.expr_nesting > super::MAX_NESTING_DEPTH {
             // Over the nesting limit
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &self.current().location,
                 format_args!("Implementation limit - Expression is nested too deeply"),
             );
@@ -198,7 +198,7 @@ impl<'s> Parser<'s> {
 
             // The token reference are relative to the next token, as the next
             // token is consumed unconditionally
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &self.current().location,
                 format_args!(
                     "Expected expression before '{}' {}",
@@ -254,7 +254,7 @@ impl<'s> Parser<'s> {
 
             if infix_rule.is_none() {
                 // Not a valid infix rule, return whatever expression was parsed
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &op.location,
                     format_args!("'{}' cannot be used as an infix operator", op.token_type),
                 );
@@ -528,7 +528,7 @@ impl<'s> Parser<'s> {
             }
             _ => {
                 // Unexpected token
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &token.location,
                     format_args!("Unexpected token '{}'", self.get_token_lexeme(&token)),
                 );

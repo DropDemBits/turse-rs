@@ -2,7 +2,6 @@
 //! Includes
 //! - Common location information
 //! - Common status reporting facility
-use std::cmp::Ordering;
 use std::fmt::{self, Arguments, Display, Formatter};
 
 /// Location of a token in a file/text stream
@@ -124,7 +123,7 @@ impl Display for ReportKind {
 }
 
 #[derive(Debug)]
-struct ReportMessage {
+pub struct ReportMessage {
     kind: ReportKind,
     at: Location,
     message: String,
@@ -147,9 +146,19 @@ impl StatusReporter {
         }
     }
 
-    /// Reports all stored messages
-    pub fn report_messages(&mut self, mute_warnings: bool) {
-        self.messages.sort_by(|a, b| {
+    /// Reports messages given by an iterator
+    ///
+    /// # Returns
+    /// Returns true if any errors were reported
+    pub fn report_messages<'m>(
+        messages: impl Iterator<Item = &'m ReportMessage>,
+        mute_warnings: bool,
+    ) -> bool {
+        use std::cmp::Ordering;
+
+        let mut messages: Vec<&ReportMessage> = messages.collect();
+
+        messages.sort_by(|a, b| {
             // All errors before warnings
             let ordering = a.kind.cmp(&b.kind);
 
@@ -160,10 +169,14 @@ impl StatusReporter {
             }
         });
 
-        for reporting in &self.messages {
+        let mut reported_errors = false;
+
+        for reporting in messages {
             if mute_warnings && reporting.kind == ReportKind::Warning {
                 continue;
             }
+
+            reported_errors |= reporting.kind == ReportKind::Error;
 
             let end_column = reporting.at.column + reporting.at.width;
 
@@ -176,6 +189,13 @@ impl StatusReporter {
                 reporting.message
             );
         }
+
+        reported_errors
+    }
+
+    /// Takes all stored messages
+    pub fn take_messages(&mut self) -> Vec<ReportMessage> {
+        std::mem::take(&mut self.messages)
     }
 
     fn report_at(&mut self, reporting: ReportMessage) {
@@ -209,4 +229,10 @@ impl Default for StatusReporter {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Anything which reports messages
+pub trait MessageSource {
+    /// Takes reported messages from an integrated reporter
+    fn take_reported_messages(&mut self) -> Vec<ReportMessage>;
 }

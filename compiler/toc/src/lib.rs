@@ -5,8 +5,9 @@ extern crate toc_frontend;
 extern crate toc_ir;
 
 use std::fs;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 use toc_ast::{ast::VisitorMut, unit::CodeUnit};
+use toc_core::StatusReporter;
 use toc_frontend::{
     context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
 };
@@ -51,41 +52,45 @@ pub fn compile_file(
 
     if only_parser {
         // Dump everything now
+        let context = context.lock().unwrap();
+        let has_errors = StatusReporter::report_messages(context.messages().iter(), mute_warnings);
+        drop(context);
+
         dump_info(&unit, &dump_out);
-        let success = !context.borrow().reporter.has_error();
-        context.borrow_mut().reporter.report_messages(mute_warnings);
 
         // Don't bother continuing
-        return success;
+        return !has_errors;
     }
 
-    let (unit, success) = resolve_unit(unit, &context);
+    let (unit, success) = resolve_unit(unit, &context, mute_warnings);
 
     // Dump all messages
     dump_info(&unit, &dump_out);
-    context.borrow_mut().reporter.report_messages(mute_warnings);
 
     success
 }
 
 /// Compiles a single file into a single code unit
-pub fn compile_file_source(_path: &str, contents: &str) -> (CodeUnit, Rc<RefCell<CompileContext>>) {
+pub fn compile_file_source(_path: &str, contents: &str) -> (CodeUnit, Arc<Mutex<CompileContext>>) {
     // Build the main unit
-    let context = Rc::new(RefCell::new(CompileContext::new()));
+    let context = Arc::new(Mutex::new(CompileContext::new()));
 
     let scanner = Scanner::scan_source(contents, context.clone());
     let mut parser = Parser::new(scanner, contents, true, context.clone());
 
     parser.parse();
+    context.lock().unwrap().aggregate_messages(&mut parser);
 
-    // Take the parsed unit from the parser
-    (parser.take_unit(), context)
+    // Take the parser's code unit
+    let unit = parser.take_unit();
+    (unit, context)
 }
 
 /// Resolves the unit into the corresponding IR graph
 pub fn resolve_unit(
     mut code_unit: CodeUnit,
-    context: &Rc<RefCell<CompileContext>>,
+    context: &Arc<Mutex<CompileContext>>,
+    mute_warnings: bool,
 ) -> (CodeUnit, bool) {
     // TODO: Provide inter-unit type resolution stage
 
@@ -98,9 +103,18 @@ pub fn resolve_unit(
         context.clone(),
     );
     validator.visit_stmt(&mut code_unit.root_stmt);
+    context.lock().unwrap().aggregate_messages(&mut validator);
 
-    // Validator must run successfully
-    if context.borrow().reporter.has_error() {
+    let has_errors = {
+        let context = context.lock().unwrap();
+        let has_errors = StatusReporter::report_messages(context.messages().iter(), mute_warnings);
+        drop(context);
+
+        has_errors
+    };
+
+    // All previous stages must run successfully
+    if has_errors {
         return (code_unit, false);
     }
 

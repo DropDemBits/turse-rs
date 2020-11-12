@@ -46,7 +46,7 @@ impl Validator<'_> {
             is_compile_eval = expr.is_compile_eval();
 
             if self.is_type_reference(expr) {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     expr.get_span(),
                     format_args!("A type reference cannot be used as an initializer value"),
                 );
@@ -84,7 +84,7 @@ impl Validator<'_> {
                     type_spec.type_ref = Some(TypeRef::TypeError);
                 } else if *size == Some(0) {
                     // Zero sized ranges aren't allowed in variable/constant range types
-                    self.context.borrow_mut().reporter.report_error(
+                    self.reporter.borrow_mut().report_error(
                         &type_spec.span,
                         format_args!("Range bounds creates a zero-sized range"),
                     );
@@ -123,7 +123,7 @@ impl Validator<'_> {
                         is_compile_eval = expr.is_compile_eval();
                     } else {
                         // Value to assign is the wrong type, just report the error
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             &expr.get_span(),
                             format_args!("Initialization value is the wrong type"),
                         );
@@ -209,7 +209,7 @@ impl Validator<'_> {
                             // No ranges on the array, error reported by the parser
                             None
                         } else if *is_flexible {
-                            self.context.borrow_mut().reporter.report_error(
+                            self.reporter.borrow_mut().report_error(
                                 init,
                                 format_args!(
                                     "'init' initializers are not allowed for flexible arrays"
@@ -218,7 +218,7 @@ impl Validator<'_> {
                             None
                         } else if elem_count == 0 && !is_init_sized {
                             // We know it to be dynamic, as one of the ranges isn't a compile-time expression and it isn't a flexible array
-                            self.context.borrow_mut().reporter.report_error(
+                            self.reporter.borrow_mut().report_error(
                                 init,
                                 format_args!(
                                     "'init' initializers are not allowed for dynamic arrays"
@@ -228,7 +228,7 @@ impl Validator<'_> {
                         } else if did_overflow {
                             // Array has more elements than can be handled
                             // Definitely an error (stop yourself, for your own sake)
-                            self.context.borrow_mut().reporter.report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
+                            self.reporter.borrow_mut().report_error(init, format_args!("'init' has more initializer values than can be represented by a machine-size integer"));
                             None
                         } else if *is_init_sized {
                             // Match type count with init size
@@ -270,7 +270,7 @@ impl Validator<'_> {
                     {
                         // Wrong types (skipping over error expressions as those are produced by the parser)
                         // ???: Report field name for records?
-                        self.context.borrow_mut().reporter.report_error(
+                        self.reporter.borrow_mut().report_error(
                             init_expr.get_span(),
                             format_args!("Initializer value evaluates to the wrong type"),
                         );
@@ -285,9 +285,8 @@ impl Validator<'_> {
                         // Too many init fields
                         let report_at = next_expr.get_span();
 
-                        self.context
+                        self.reporter
                             .borrow_mut()
-                            .reporter
                             .report_error(report_at, format_args!("Too many initializer values"));
                     }
                     None if has_fields_remaining => {
@@ -297,9 +296,8 @@ impl Validator<'_> {
 
                         // ???: Report field name for records?
                         // ???: Report missing count for arrays?
-                        self.context
+                        self.reporter
                             .borrow_mut()
-                            .reporter
                             .report_error(report_at, format_args!("Too few initializer values"));
                     }
                     _ => {}
@@ -343,7 +341,7 @@ impl Validator<'_> {
                 self.type_table.type_from_ref(&info.type_spec)
             {
                 // Not resolved in the current unit
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &ident.location,
                     format_args!("'{}' is not resolved in the current unit", info.name),
                 );
@@ -400,7 +398,7 @@ impl Validator<'_> {
         // Check the reference expression
         if !self.can_assign_to_ref_expr(&var_ref, &self.type_table) {
             // Not a var ref
-            self.context.borrow_mut().reporter.report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
+            self.reporter.borrow_mut().report_error(var_ref.get_span(), format_args!("Left side of assignment does not reference a variable and cannot be assigned to"));
             return;
         }
 
@@ -422,12 +420,12 @@ impl Validator<'_> {
         if !is_valid_assignment {
             // Value to assign is the wrong type
             if self.is_type_reference(value) {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &value.get_span(),
                     format_args!("Expression is a type reference, and cannot be used here"),
                 );
             } else {
-                self.context.borrow_mut().reporter.report_error(
+                self.reporter.borrow_mut().report_error(
                     &value.get_span(),
                     format_args!("Assignment value is the wrong type"),
                 );
@@ -470,7 +468,7 @@ impl Validator<'_> {
         // Typecheck the condition
         let dealias_eval = types::dealias_ref(&condition.get_eval_type(), &self.type_table);
         if !types::is_boolean(&dealias_eval) {
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &condition.get_span(),
                 format_args!("If condition expression is not the right type"),
             );

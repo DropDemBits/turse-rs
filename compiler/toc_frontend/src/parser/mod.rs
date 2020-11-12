@@ -13,12 +13,12 @@ use toc_ast::ast::stmt::{Block, BlockKind, Stmt, StmtKind};
 use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_ast::unit::CodeUnit;
-use toc_core::Location;
+use toc_core::{Location, StatusReporter};
 
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt::Arguments;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 /// Maximum nesting depth during parsing
 const MAX_NESTING_DEPTH: usize = 1024;
@@ -30,7 +30,9 @@ type ParseResult<T> = T;
 #[derive(Debug)]
 pub struct Parser<'s> {
     /// Compile Context
-    context: Rc<RefCell<CompileContext>>,
+    context: Arc<Mutex<CompileContext>>,
+    /// Local status reporter
+    reporter: RefCell<StatusReporter>,
     /// File source used for getting lexemes for reporting
     source: &'s str,
     /// Scanner for scanning tokens
@@ -69,10 +71,11 @@ impl<'s> Parser<'s> {
         mut scanner: Scanner<'s>,
         source: &'s str,
         is_main: bool,
-        context: Rc<RefCell<CompileContext>>,
+        context: Arc<Mutex<CompileContext>>,
     ) -> Self {
         Self {
             context,
+            reporter: RefCell::new(StatusReporter::new()),
             source,
             previous: Token::new(TokenType::Error, Location::new()),
             current: scanner.next().unwrap_or_else(|| scanner.make_eof_here()),
@@ -126,7 +129,7 @@ impl<'s> Parser<'s> {
 
         self.root_stmt = Some(Box::new(root_stmt));
 
-        !self.context.borrow().reporter.has_error()
+        !self.reporter.borrow().has_error()
     }
 
     /// Takes the unit from the parser
@@ -224,9 +227,8 @@ impl<'s> Parser<'s> {
         if self.current().token_type == expected_type {
             Ok(self.next_token())
         } else {
-            self.context
+            self.reporter
                 .borrow_mut()
-                .reporter
                 .report_error(&self.current().location, message);
 
             Err(())
@@ -280,7 +282,7 @@ impl<'s> Parser<'s> {
     }
 
     fn warn_found_as_something_else(&self, found: &str, as_something: &str, at: &Location) {
-        self.context.borrow_mut().reporter.report_warning(
+        self.reporter.borrow_mut().report_warning(
             at,
             format_args!("'{}' found, assumed it to be '{}'", found, as_something),
         );
@@ -447,6 +449,17 @@ impl<'s> Parser<'s> {
     fn pop_block(&mut self) -> scope::ScopeBlock {
         // Pop scope block
         self.unit_scope.pop_block()
+    }
+}
+
+impl toc_core::MessageSource for Parser<'_> {
+    fn take_reported_messages(&mut self) -> Vec<toc_core::ReportMessage> {
+        let mut scanner_messages = self.scanner.take_reported_messages();
+        let mut parser_messages = self.reporter.borrow_mut().take_messages();
+
+        parser_messages.append(&mut scanner_messages);
+
+        parser_messages
     }
 }
 

@@ -23,18 +23,20 @@ use toc_ast::scope::{ScopeBlock, UnitScope};
 use toc_ast::types as ty; // Validator submodule is named `types`, but not used here
 use toc_ast::types::{PrimitiveType, Type, TypeRef, TypeTable};
 use toc_ast::value::{self, Value, ValueApplyError};
-use toc_core::Location;
+use toc_core::{Location, StatusReporter};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 /// Validator Instance.
 /// `'unit` is attatched to the lifetime of the visited code unit
 pub struct Validator<'unit> {
     /// Compile Context
-    context: Rc<RefCell<CompileContext>>,
+    _context: Arc<Mutex<CompileContext>>,
+    /// Local status reporter
+    reporter: RefCell<StatusReporter>,
     /// Type table to use
     type_table: &'unit mut TypeTable,
     /// Unit scope to take identifiers from
@@ -47,10 +49,11 @@ impl<'unit> Validator<'unit> {
     pub fn new(
         unit_scope: &'unit mut UnitScope,
         type_table: &'unit mut TypeTable,
-        context: Rc<RefCell<CompileContext>>,
+        context: Arc<Mutex<CompileContext>>,
     ) -> Self {
         Self {
-            context,
+            _context: context,
+            reporter: RefCell::new(StatusReporter::new()),
             type_table,
             unit_scope,
             compile_values: HashMap::new(),
@@ -77,7 +80,7 @@ impl<'unit> Validator<'unit> {
         // Report all undeclared identifiers
         for id in unique_undeclared {
             let ident = self.unit_scope.get_ident_info(&id);
-            self.context.borrow_mut().reporter.report_warning(
+            self.reporter.borrow_mut().report_warning(
                 &ident.location,
                 format_args!("This declaration of '{}' is never used", ident.name),
             );
@@ -96,7 +99,7 @@ impl<'unit> Validator<'unit> {
 
             let new_info = self.unit_scope.get_ident_info(&new_id);
 
-            self.context.borrow_mut().reporter.report_error(
+            self.reporter.borrow_mut().report_error(
                 &new_info.location,
                 format_args!("'{}' has already been declared", &new_info.name),
             );
@@ -214,13 +217,11 @@ impl<'unit> Validator<'unit> {
 
                 if let Err(msg) = result {
                     // Report the error message!
-                    let mut context = self.context.borrow_mut();
-
                     match &msg {
                         ValueApplyError::InvalidOperand
                             if matches!(op, BinaryOp::Shl | BinaryOp::Shr) =>
                         {
-                            context.reporter.report_error(
+                            self.reporter.borrow_mut().report_error(
                                 right.get_span(),
                                 format_args!(
                                     "Negative shift amount in compile-time '{}' expression",
@@ -229,22 +230,22 @@ impl<'unit> Validator<'unit> {
                             );
                         }
                         ValueApplyError::InvalidOperand => {
-                            context.reporter.report_error(
+                            self.reporter.borrow_mut().report_error(
                                 right.get_span(),
                                 format_args!("Invalid operand in compile-time expression"),
                             );
                         }
                         ValueApplyError::DivisionByZero => {
                             // Recoverable
-                            context.reporter.report_warning(
+                            self.reporter.borrow_mut().report_warning(
                                 &location,
                                 format_args!("Compile-time '{}' by zero", op),
                             );
                         }
                         other => {
                             // Other, non specialized message
-                            context
-                                .reporter
+                            self.reporter
+                                .borrow_mut()
                                 .report_error(&location, format_args!("{}", other));
                         }
                     }
@@ -268,18 +269,16 @@ impl<'unit> Validator<'unit> {
                     value::apply_unary(*op, rvalue, value::EvalConstraints { as_64_bit: false });
 
                 if let Err(msg) = result {
-                    let mut context = self.context.borrow_mut();
-
                     match &msg {
                         ValueApplyError::Overflow => {
-                            context.reporter.report_error(
+                            self.reporter.borrow_mut().report_error(
                                 &right.get_span(),
                                 format_args!("Overflow in compile-time expression"),
                             );
                         }
                         other => {
-                            context
-                                .reporter
+                            self.reporter
+                                .borrow_mut()
                                 .report_error(&location, format_args!("{}", other));
                         }
                     }
@@ -530,6 +529,12 @@ impl<'u> VisitorMut<(), (), ()> for Validator<'u> {
     }
 }
 
+impl toc_core::MessageSource for Validator<'_> {
+    fn take_reported_messages(&mut self) -> Vec<toc_core::ReportMessage> {
+        self.reporter.borrow_mut().take_messages()
+    }
+}
+
 // --- Helpers --- //
 
 /// Replaces an expression with the folded version of the value
@@ -551,7 +556,6 @@ mod test {
     use crate::parser::Parser;
     use crate::scanner::Scanner;
     use rand::prelude::*;
-    use std::{cell::RefCell, rc::Rc};
     use toc_ast::unit::CodeUnit;
 
     /// Makes and runs a validator
@@ -559,37 +563,31 @@ mod test {
     /// Returns true if the AST is valid, and the validated code unit
     fn make_validator(source: &str) -> (bool, CodeUnit) {
         // Build the main unit
-        let context = Rc::new(RefCell::new(CompileContext::new()));
+        let context = Arc::new(Mutex::new(CompileContext::new()));
         let scanner = Scanner::scan_source(&source, context.clone());
 
         // Ignore the parser status, as the validator needs to handle
         // invalid parser ASTs
-        let mut parser = Parser::new(scanner, &source, true, context);
+        let mut parser = Parser::new(scanner, &source, true, context.clone());
         let successful_parse = parser.parse();
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
 
         // Validate AST
-        let validator_context = Rc::new(RefCell::new(CompileContext::new()));
         let mut validator = Validator::new(
             &mut code_unit.unit_scope,
             &mut code_unit.type_table,
-            validator_context.clone(),
+            context.clone(),
         );
         validator.visit_stmt(&mut code_unit.root_stmt);
+        context.lock().unwrap().aggregate_messages(&mut validator);
 
-        // Emit all pending erros & warnings
-        validator_context
-            .borrow_mut()
-            .reporter
-            .report_messages(false);
+        // Emit all pending validator errors & warnings
+        let has_errors =
+            StatusReporter::report_messages(context.lock().unwrap().messages().iter(), false);
 
-        // Ok for now until we start doing funky stuff with contexts
-        // TODO: Use a unified context when using file-based test harness
-        let successful_validate = !validator_context.borrow().reporter.has_error();
-
-        (successful_validate && successful_parse, code_unit)
+        (!has_errors && successful_parse, code_unit)
     }
 
     /// Runs the validator on the given source
