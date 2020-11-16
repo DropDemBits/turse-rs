@@ -6,7 +6,7 @@ mod types;
 
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
-use crate::token::{Token, TokenType};
+use toc_core::token::{Token, TokenType};
 use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
 use toc_ast::ast::ident::{IdentId, Identifier, RefKind};
 use toc_ast::ast::stmt::{Block, BlockKind, Stmt, StmtKind};
