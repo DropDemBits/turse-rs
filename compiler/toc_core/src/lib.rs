@@ -4,6 +4,8 @@
 //! - Common status reporting facility
 use std::fmt::{self, Arguments, Display, Formatter};
 
+pub mod token;
+
 /// Location of a token in a file/text stream
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Location {

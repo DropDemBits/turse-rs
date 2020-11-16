@@ -1,5 +1,5 @@
 //! Scanner for tokens
-use crate::token::{Token, TokenType};
+use toc_core::token::{Token, TokenType};
 use toc_core::{Location, StatusReporter};
 
 use std::cell::RefCell;

@@ -1,6 +1,6 @@
 //! Parser fragment, parsing all type specifications
 use super::{ParseResult, Parser};
-use crate::token::TokenType;
+use toc_core::token::TokenType;
 use toc_ast::ast::expr::{Expr, ExprKind, Literal};
 use toc_ast::ast::types::{SeqSize, Type, TypeKind};
 use toc_ast::types::{self, ParamInfo, PrimitiveType, TypeRef};

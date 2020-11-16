@@ -3,7 +3,6 @@
 pub mod context;
 pub mod parser;
 pub mod scanner;
-pub mod token;
 pub mod validator;
 
 extern crate toc_ast;
