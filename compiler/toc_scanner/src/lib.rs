@@ -285,6 +285,8 @@ pub enum TokenKind {
     Unchecked,
     #[token("union")]
     Union,
+    #[token("unit")]
+    Unit,
     #[token("unqualified")]
     Unqualified,
     #[token("var")]
@@ -797,6 +799,7 @@ mod test {
         expect("type", &TokenKind::Type);
         expect("unchecked", &TokenKind::Unchecked);
         expect("union", &TokenKind::Union);
+        expect("unit", &TokenKind::Unit);
         expect("unqualified", &TokenKind::Unqualified);
         expect("var", &TokenKind::Var);
         expect("wait", &TokenKind::Wait);
