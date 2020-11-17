@@ -10,6 +10,7 @@ license = "MIT"
 [dependencies]
 toc_ast = { path = "../toc_ast" }
 toc_core = { path = "../toc_core" }
+toc_scanner = { path = "../toc_scanner" }
 toc_frontend = { path = "../toc_frontend" }
 toc_ir = { path = "../toc_ir" }
 
@@ -17,3 +18,8 @@ getopts = "^0.2"
 
 [dev-dependencies]
 goldentests = "0.3"
+criterion = "^0.3"
+
+[[bench]]
+name = "scanner_compare"
+harness = false
