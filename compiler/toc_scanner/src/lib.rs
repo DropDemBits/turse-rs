@@ -2,114 +2,6 @@
 
 use logos::Logos;
 
-fn lex_real_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
-    if lex.slice().ends_with('.') {
-        // Bump the numbers
-        let count = lex
-            .remainder()
-            .chars()
-            .take_while(|c| matches!(c, '0'..='9'))
-            .count();
-        lex.bump(count);
-    }
-
-    if lex.remainder().starts_with(|c| matches!(c, 'e' | 'E')) {
-        // bump e & E
-        lex.bump(1);
-
-        if lex.remainder().starts_with(|c| matches!(c, '+' | '-')) {
-            lex.bump(1);
-        }
-
-        // Bump the rest of the exponent
-        let count = lex
-            .remainder()
-            .chars()
-            .take_while(|c| matches!(c, '0'..='9'))
-            .count();
-        lex.bump(count);
-
-        if count == 0 {
-            // Not a valid sequence
-            return None;
-        }
-    }
-
-    let text: &str = lex.slice();
-    strtod::strtod(text).map(|_| LiteralKind::Real)
-}
-
-fn lex_number_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
-    // A few possible tails:
-    // - `(\\.[0-9]+)?([eE][+-]?[0-9]+)`    as real literal
-    // - `#[0-9a-zA-Z]*`                    as based
-    // - .*`                                as int
-
-    // Can't quite parse the corresponding values as `rowan` doesn't carry
-    // that info over through SyntaxKinds
-
-    // peekahead
-    match lex.remainder().get(0..1) {
-        Some(".") if !lex.remainder().starts_with("..") => {
-            // Bump the dot
-            lex.bump(1);
-            lex_real_literal(lex)
-        }
-        Some("e") | Some("E") => lex_real_literal(lex),
-        Some("#") => {
-            // Bump the '#'
-            lex.bump(1);
-            // bump the rest
-            let count = lex
-                .remainder()
-                .chars()
-                .take_while(char::is_ascii_alphanumeric)
-                .count();
-            lex.bump(count);
-
-            // Always give back something
-            Some(LiteralKind::Based)
-        }
-        _ => {
-            // normal, give back regular
-            Some(LiteralKind::Int)
-        }
-    }
-}
-
-fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
-    // Continue to lex everything
-    let mut bump_len = 0_usize;
-    let mut comment_nesting = 1_usize;
-    let remainder: &str = lex.remainder();
-
-    // Track all the endings
-    let mut endings = remainder.split_terminator("*/");
-
-    while let Some(in_between) = endings.next() {
-        // Adjust nesting
-        comment_nesting = comment_nesting
-            .saturating_add(in_between.matches("/*").count())
-            .saturating_sub(1);
-        // Increase bump length
-        bump_len = bump_len.saturating_add(in_between.len() + 2);
-
-        if remainder.get(..bump_len).is_none() {
-            // Back off by 2 should there be no following '*/'
-            bump_len = bump_len.saturating_sub(2);
-        }
-
-        if comment_nesting == 0 {
-            // Outside of nesting depth, done
-            lex.bump(bump_len);
-            return;
-        }
-    }
-
-    // died
-    lex.bump(bump_len);
-}
-
 #[derive(Logos, Debug, PartialEq)]
 pub enum TokenKind {
     // Character Tokens
@@ -453,6 +345,109 @@ pub enum LiteralKind {
     Int,
     Based,
     Real,
+}
+
+fn lex_real_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
+    if lex.slice().ends_with('.') {
+        // Bump the numbers
+        let count = lex
+            .remainder()
+            .chars()
+            .take_while(|c| matches!(c, '0'..='9'))
+            .count();
+        lex.bump(count);
+    }
+
+    if lex.remainder().starts_with(|c| matches!(c, 'e' | 'E')) {
+        // bump e & E
+        lex.bump(1);
+
+        if lex.remainder().starts_with(|c| matches!(c, '+' | '-')) {
+            lex.bump(1);
+        }
+
+        // Bump the rest of the exponent
+        let count = lex
+            .remainder()
+            .chars()
+            .take_while(|c| matches!(c, '0'..='9'))
+            .count();
+        lex.bump(count);
+
+        if count == 0 {
+            // Not a valid sequence
+            return None;
+        }
+    }
+
+    let text: &str = lex.slice();
+    strtod::strtod(text).map(|_| LiteralKind::Real)
+}
+
+fn lex_number_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
+    // A few possible tails:
+    // - `(\\.[0-9]+)?([eE][+-]?[0-9]+)`    as real literal
+    // - `#[0-9a-zA-Z]*`                    as based
+    // - .*`                                as int
+
+    // Can't quite parse the corresponding values as `rowan` doesn't carry
+    // that info over through SyntaxKinds
+
+    // peekahead
+    match lex.remainder().get(0..1) {
+        Some(".") if !lex.remainder().starts_with("..") => {
+            // Bump the dot
+            lex.bump(1);
+            lex_real_literal(lex)
+        }
+        Some("e") | Some("E") => lex_real_literal(lex),
+        Some("#") => {
+            // Bump the '#'
+            lex.bump(1);
+            // bump the rest
+            let count = lex
+                .remainder()
+                .chars()
+                .take_while(char::is_ascii_alphanumeric)
+                .count();
+            lex.bump(count);
+
+            // Always give back something
+            Some(LiteralKind::Based)
+        }
+        _ => {
+            // normal, give back regular
+            Some(LiteralKind::Int)
+        }
+    }
+}
+
+fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
+    // Continue to lex everything
+    let mut bump_len = 0_usize;
+    let mut comment_nesting = 1_usize;
+    let remainder: &str = lex.remainder();
+
+    // Track all the endings
+    for in_between in remainder.split_terminator("*/") {
+        // Adjust nesting
+        comment_nesting = comment_nesting
+            .saturating_add(in_between.matches("/*").count())
+            .saturating_sub(1);
+        // Increase bump length (include `*/`)
+        bump_len = bump_len.saturating_add(in_between.len() + 2);
+
+        if comment_nesting == 0 {
+            // Outside of nesting depth, done
+            // Cap to maximum length of remainder to prevent
+            // an out of bounds bump
+            lex.bump(bump_len.min(remainder.len()));
+            return;
+        }
+    }
+
+    // died
+    lex.bump(bump_len);
 }
 
 /// Scanner for tokens
@@ -857,6 +852,9 @@ mod test {
                 (TokenKind::Identifier, "asd"),
             ],
         );
+
+        // Sibling nodes
+        expect("/* /* abcd */ /* ae */ */", &TokenKind::Comment);
 
         // Missing terminating */
         expect("/* /* abcd */", &TokenKind::Comment);
