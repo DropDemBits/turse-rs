@@ -4,7 +4,7 @@ use logos::Logos;
 
 /// All Tokens scanned by the Scanner
 #[derive(Logos, Debug, PartialEq)]
-pub enum TokenKind {
+pub enum ScannerToken {
     // Character Tokens
     #[token("@")]
     At,
@@ -344,7 +344,7 @@ pub enum LiteralKind {
     Real,
 }
 
-fn lex_real_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
+fn lex_real_literal(lex: &mut logos::Lexer<ScannerToken>) -> Option<LiteralKind> {
     if lex.slice().ends_with('.') {
         // Bump the numbers
         let count = lex
@@ -381,7 +381,7 @@ fn lex_real_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
     strtod::strtod(text).map(|_| LiteralKind::Real)
 }
 
-fn lex_number_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> {
+fn lex_number_literal(lex: &mut logos::Lexer<ScannerToken>) -> Option<LiteralKind> {
     // A few possible tails:
     // - `(\\.[0-9]+)?([eE][+-]?[0-9]+)`    as real literal
     // - `#[0-9a-zA-Z]*`                    as based
@@ -419,7 +419,7 @@ fn lex_number_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> 
     }
 }
 
-fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
+fn lex_block_comment(lex: &mut logos::Lexer<ScannerToken>) {
     // Continue to lex everything
     let mut bump_len = 0_usize;
     let mut comment_nesting = 1_usize;
@@ -449,19 +449,19 @@ fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
 
 /// Scanner for tokens
 pub struct Scanner<'s> {
-    inner: logos::Lexer<'s, TokenKind>,
+    inner: logos::Lexer<'s, ScannerToken>,
 }
 
 impl<'s> Scanner<'s> {
     pub fn new(source: &'s str) -> Self {
         Self {
-            inner: TokenKind::lexer(source),
+            inner: ScannerToken::lexer(source),
         }
     }
 }
 
 impl<'s> std::iter::Iterator for Scanner<'s> {
-    type Item = (TokenKind, &'s str);
+    type Item = (ScannerToken, &'s str);
 
     fn next(&mut self) -> Option<Self::Item> {
         let kind = self.inner.next()?;
@@ -469,9 +469,9 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
 
         // Transform the token kind
         let kind = match kind {
-            TokenKind::NumberLiteral(literal) => match literal {
-                LiteralKind::Real => TokenKind::RealLiteral,
-                LiteralKind::Int => TokenKind::IntLiteral,
+            ScannerToken::NumberLiteral(literal) => match literal {
+                LiteralKind::Real => ScannerToken::RealLiteral,
+                LiteralKind::Int => ScannerToken::IntLiteral,
             },
             other => other,
         };
@@ -487,7 +487,7 @@ mod test {
     /// Runs the lexer over the given text, and asserts if the expected token
     /// has been scanned
     #[track_caller] // Issue isn't here, but from caller
-    fn expect(source: &str, kind: &TokenKind) {
+    fn expect(source: &str, kind: &ScannerToken) {
         let mut scanner = Scanner::new(source);
 
         // Should be the expected token & the same source text
@@ -499,37 +499,37 @@ mod test {
     /// Runs the lexer over the given text, and asserts if the expected tokens
     /// have been scanned
     #[track_caller] // Issue isn't here, but from caller
-    fn expect_seq(source: &str, kinds: &[(TokenKind, &str)]) {
+    fn expect_seq(source: &str, kinds: &[(ScannerToken, &str)]) {
         let scanner = Scanner::new(source);
 
         // Should be the expected tokens & the same source texts
-        let toks: Vec<(TokenKind, &str)> = scanner.collect();
+        let toks: Vec<(ScannerToken, &str)> = scanner.collect();
         assert_eq!(toks.is_empty(), kinds.is_empty());
         assert_eq!(toks, kinds);
     }
 
     #[test]
     fn scan_whitespace() {
-        expect("     ", &TokenKind::Whitespace);
-        expect("     \t", &TokenKind::Whitespace);
-        expect("\n", &TokenKind::LineEnd);
-        expect("\r\n", &TokenKind::LineEnd);
+        expect("     ", &ScannerToken::Whitespace);
+        expect("     \t", &ScannerToken::Whitespace);
+        expect("\n", &ScannerToken::LineEnd);
+        expect("\r\n", &ScannerToken::LineEnd);
     }
 
     #[test]
     fn scan_invalid_chars() {
         // Lossless scanning
-        expect("[", &TokenKind::Error);
-        expect("]", &TokenKind::Error);
-        expect("{", &TokenKind::Error);
-        expect("}", &TokenKind::Error);
-        expect("!", &TokenKind::Error);
-        expect("$", &TokenKind::Error);
-        expect("?", &TokenKind::Error);
-        expect("`", &TokenKind::Error);
-        expect("\\", &TokenKind::Error);
+        expect("[", &ScannerToken::Error);
+        expect("]", &ScannerToken::Error);
+        expect("{", &ScannerToken::Error);
+        expect("}", &ScannerToken::Error);
+        expect("!", &ScannerToken::Error);
+        expect("$", &ScannerToken::Error);
+        expect("?", &ScannerToken::Error);
+        expect("`", &ScannerToken::Error);
+        expect("\\", &ScannerToken::Error);
         // Was originally `🧑‍🔬` but that gets split up into multiple tokens
-        expect("🧑", &TokenKind::Error);
+        expect("🧑", &ScannerToken::Error);
     }
 
     #[test]
@@ -537,32 +537,32 @@ mod test {
     fn text_normalization() {
         // Normalization issues: `â` and `â` are distinct
         // Text should be normalized, ie both should be characters
-        expect("â", &TokenKind::Error);
-        expect("â", &TokenKind::Error);
+        expect("â", &ScannerToken::Error);
+        expect("â", &ScannerToken::Error);
     }
 
     #[test]
     fn scan_real_literals() {
         // Allow for leading dot
-        expect(".12345", &TokenKind::RealLiteral);
+        expect(".12345", &ScannerToken::RealLiteral);
 
-        expect("1.", &TokenKind::RealLiteral);
-        expect("100.00", &TokenKind::RealLiteral);
-        expect("100.00e10", &TokenKind::RealLiteral);
-        expect("100.00e100", &TokenKind::RealLiteral);
+        expect("1.", &ScannerToken::RealLiteral);
+        expect("100.00", &ScannerToken::RealLiteral);
+        expect("100.00e10", &ScannerToken::RealLiteral);
+        expect("100.00e100", &ScannerToken::RealLiteral);
 
         // Negative and positive exponents are valid
-        expect("100.00e-100", &TokenKind::RealLiteral);
-        expect("100.00e+100", &TokenKind::RealLiteral);
-        expect("1e100", &TokenKind::RealLiteral);
+        expect("100.00e-100", &ScannerToken::RealLiteral);
+        expect("100.00e+100", &ScannerToken::RealLiteral);
+        expect("1e100", &ScannerToken::RealLiteral);
 
         // Invalid format
-        expect_seq("1e+", &[(TokenKind::Error, "1e+")]);
-        expect_seq("1e-", &[(TokenKind::Error, "1e-")]);
-        expect_seq("1e", &[(TokenKind::Error, "1e")]);
+        expect_seq("1e+", &[(ScannerToken::Error, "1e+")]);
+        expect_seq("1e-", &[(ScannerToken::Error, "1e-")]);
+        expect_seq("1e", &[(ScannerToken::Error, "1e")]);
 
         // Too big (not captured here?)
-        expect("1e600", &TokenKind::RealLiteral);
+        expect("1e600", &ScannerToken::RealLiteral);
 
         // Test conversions
         let conversion_tests = &[
@@ -586,49 +586,49 @@ mod test {
         ];
 
         for test in conversion_tests {
-            expect(test, &TokenKind::RealLiteral);
+            expect(test, &ScannerToken::RealLiteral);
         }
     }
 
     #[test]
     fn scan_radix_ints() {
-        expect("16#EABC", &TokenKind::IntLiteral);
+        expect("16#EABC", &ScannerToken::IntLiteral);
 
         // Overflow
-        expect("10#99999999999999999999", &TokenKind::IntLiteral);
+        expect("10#99999999999999999999", &ScannerToken::IntLiteral);
 
         // No digits
-        expect("30#", &TokenKind::IntLiteral);
+        expect("30#", &ScannerToken::IntLiteral);
 
         // Out of range (> 36)
-        expect("37#asda", &TokenKind::IntLiteral);
+        expect("37#asda", &ScannerToken::IntLiteral);
 
         // Out of range (= 0)
-        expect("0#0000", &TokenKind::IntLiteral);
+        expect("0#0000", &ScannerToken::IntLiteral);
 
         // Out of range (= 1)
-        expect("1#0000", &TokenKind::IntLiteral);
+        expect("1#0000", &ScannerToken::IntLiteral);
 
         // Out of range (= overflow)
-        expect("18446744073709551616#0000", &TokenKind::IntLiteral);
+        expect("18446744073709551616#0000", &ScannerToken::IntLiteral);
 
         // Invalid digit
-        expect("10#999a999", &TokenKind::IntLiteral);
+        expect("10#999a999", &ScannerToken::IntLiteral);
     }
 
     #[test]
     fn scan_basic_ints() {
-        expect("01234560", &TokenKind::IntLiteral);
+        expect("01234560", &ScannerToken::IntLiteral);
 
         // Overflow, not detected
-        expect("99999999999999999999", &TokenKind::IntLiteral);
+        expect("99999999999999999999", &ScannerToken::IntLiteral);
 
         // Digit cutoff
         expect_seq(
             "999a999",
             &[
-                (TokenKind::IntLiteral, "999"),
-                (TokenKind::Identifier, "a999"),
+                (ScannerToken::IntLiteral, "999"),
+                (ScannerToken::Identifier, "a999"),
             ],
         );
     }
@@ -637,189 +637,192 @@ mod test {
     fn scan_literal_and_range() {
         expect_seq(
             "..1",
-            &[(TokenKind::Range, ".."), (TokenKind::IntLiteral, "1")],
+            &[(ScannerToken::Range, ".."), (ScannerToken::IntLiteral, "1")],
         );
         expect_seq(
             "1..",
-            &[(TokenKind::IntLiteral, "1"), (TokenKind::Range, "..")],
+            &[(ScannerToken::IntLiteral, "1"), (ScannerToken::Range, "..")],
         );
         expect_seq(
             "1eggy",
-            &[(TokenKind::Error, "1e"), (TokenKind::Identifier, "ggy")],
+            &[
+                (ScannerToken::Error, "1e"),
+                (ScannerToken::Identifier, "ggy"),
+            ],
         );
     }
 
     #[test]
     fn scan_punct() {
-        expect("@", &TokenKind::At);
-        expect("->", &TokenKind::Arrow);
-        expect("^", &TokenKind::Caret);
-        expect(":", &TokenKind::Colon);
-        expect(":=", &TokenKind::Assign);
-        expect(",", &TokenKind::Comma);
-        expect(".", &TokenKind::Dot);
-        expect("..", &TokenKind::Range);
-        expect("=", &TokenKind::Equ);
-        expect(">=", &TokenKind::GreaterEqu);
-        expect(">", &TokenKind::Greater);
-        expect("#", &TokenKind::Pound);
-        expect("=>", &TokenKind::Imply);
-        expect("<=", &TokenKind::LessEqu);
-        expect("(", &TokenKind::LeftParen);
-        expect("<", &TokenKind::Less);
-        expect("-", &TokenKind::Minus);
-        expect("+", &TokenKind::Plus);
-        expect(")", &TokenKind::RightParen);
-        expect(";", &TokenKind::Semicolon);
-        expect("/", &TokenKind::Slash);
-        expect("*", &TokenKind::Star);
-        expect("**", &TokenKind::Exp);
-        expect("~", &TokenKind::Tilde);
+        expect("@", &ScannerToken::At);
+        expect("->", &ScannerToken::Arrow);
+        expect("^", &ScannerToken::Caret);
+        expect(":", &ScannerToken::Colon);
+        expect(":=", &ScannerToken::Assign);
+        expect(",", &ScannerToken::Comma);
+        expect(".", &ScannerToken::Dot);
+        expect("..", &ScannerToken::Range);
+        expect("=", &ScannerToken::Equ);
+        expect(">=", &ScannerToken::GreaterEqu);
+        expect(">", &ScannerToken::Greater);
+        expect("#", &ScannerToken::Pound);
+        expect("=>", &ScannerToken::Imply);
+        expect("<=", &ScannerToken::LessEqu);
+        expect("(", &ScannerToken::LeftParen);
+        expect("<", &ScannerToken::Less);
+        expect("-", &ScannerToken::Minus);
+        expect("+", &ScannerToken::Plus);
+        expect(")", &ScannerToken::RightParen);
+        expect(";", &ScannerToken::Semicolon);
+        expect("/", &ScannerToken::Slash);
+        expect("*", &ScannerToken::Star);
+        expect("**", &ScannerToken::Exp);
+        expect("~", &ScannerToken::Tilde);
     }
 
     #[test]
     fn scan_keywords() {
-        expect("addressint", &TokenKind::Addressint);
-        expect("all", &TokenKind::All);
-        expect("and", &TokenKind::And);
-        expect("array", &TokenKind::Array);
-        expect("asm", &TokenKind::Asm);
-        expect("assert", &TokenKind::Assert);
-        expect("begin", &TokenKind::Begin);
-        expect("bind", &TokenKind::Bind);
-        expect("bits", &TokenKind::Bits);
-        expect("body", &TokenKind::Body);
-        expect("boolean", &TokenKind::Boolean);
-        expect("break", &TokenKind::Break);
-        expect("by", &TokenKind::By);
-        expect("case", &TokenKind::Case);
-        expect("char", &TokenKind::Char);
-        expect("cheat", &TokenKind::Cheat);
-        expect("checked", &TokenKind::Checked);
-        expect("class", &TokenKind::Class);
-        expect("close", &TokenKind::Close);
-        expect("collection", &TokenKind::Collection);
-        expect("condition", &TokenKind::Condition);
-        expect("const", &TokenKind::Const);
-        expect("decreasing", &TokenKind::Decreasing);
-        expect("def", &TokenKind::Def);
-        expect("deferred", &TokenKind::Deferred);
-        expect("div", &TokenKind::Div);
-        expect("elif", &TokenKind::Elif);
-        expect("else", &TokenKind::Else);
-        expect("elseif", &TokenKind::Elseif);
-        expect("elsif", &TokenKind::Elsif);
-        expect("end", &TokenKind::End);
-        expect("endcase", &TokenKind::EndCase);
-        expect("endfor", &TokenKind::EndFor);
-        expect("endif", &TokenKind::EndIf);
-        expect("endloop", &TokenKind::EndLoop);
-        expect("enum", &TokenKind::Enum);
-        expect("exit", &TokenKind::Exit);
-        expect("export", &TokenKind::Export);
-        expect("external", &TokenKind::External);
-        expect("false", &TokenKind::False);
-        expect("flexible", &TokenKind::Flexible);
-        expect("for", &TokenKind::For);
-        expect("fork", &TokenKind::Fork);
-        expect("forward", &TokenKind::Forward);
-        expect("free", &TokenKind::Free);
-        expect("function", &TokenKind::Function);
-        expect("get", &TokenKind::Get);
-        expect("handler", &TokenKind::Handler);
-        expect("if", &TokenKind::If);
-        expect("implement", &TokenKind::Implement);
-        expect("import", &TokenKind::Import);
-        expect("in", &TokenKind::In);
-        expect("include", &TokenKind::Include);
-        expect("inherit", &TokenKind::Inherit);
-        expect("init", &TokenKind::Init);
-        expect("int", &TokenKind::Int);
-        expect("int1", &TokenKind::Int1);
-        expect("int2", &TokenKind::Int2);
-        expect("int4", &TokenKind::Int4);
-        expect("invariant", &TokenKind::Invariant);
-        expect("label", &TokenKind::Label);
-        expect("loop", &TokenKind::Loop);
-        expect("mod", &TokenKind::Mod);
-        expect("module", &TokenKind::Module);
-        expect("monitor", &TokenKind::Monitor);
-        expect("nat", &TokenKind::Nat);
-        expect("nat1", &TokenKind::Nat1);
-        expect("nat2", &TokenKind::Nat2);
-        expect("nat4", &TokenKind::Nat4);
-        expect("new", &TokenKind::New);
-        expect("nil", &TokenKind::Nil);
-        expect("not", &TokenKind::Not);
-        expect("objectclass", &TokenKind::ObjectClass);
-        expect("of", &TokenKind::Of);
-        expect("opaque", &TokenKind::Opaque);
-        expect("open", &TokenKind::Open);
-        expect("or", &TokenKind::Or);
-        expect("packed", &TokenKind::Packed);
-        expect("pause", &TokenKind::Pause);
-        expect("pervasive", &TokenKind::Pervasive);
-        expect("pointer", &TokenKind::Pointer);
-        expect("post", &TokenKind::Post);
-        expect("pre", &TokenKind::Pre);
-        expect("priority", &TokenKind::Priority);
-        expect("procedure", &TokenKind::Procedure);
-        expect("process", &TokenKind::Process);
-        expect("put", &TokenKind::Put);
-        expect("quit", &TokenKind::Quit);
-        expect("read", &TokenKind::Read);
-        expect("real", &TokenKind::Real);
-        expect("real4", &TokenKind::Real4);
-        expect("real8", &TokenKind::Real8);
-        expect("record", &TokenKind::Record);
-        expect("register", &TokenKind::Register);
-        expect("rem", &TokenKind::Rem);
-        expect("result", &TokenKind::Result_);
-        expect("return", &TokenKind::Return);
-        expect("seek", &TokenKind::Seek);
-        expect("self", &TokenKind::Self_);
-        expect("set", &TokenKind::Set);
-        expect("shl", &TokenKind::Shl);
-        expect("shr", &TokenKind::Shr);
-        expect("signal", &TokenKind::Signal);
-        expect("skip", &TokenKind::Skip);
-        expect("string", &TokenKind::String_);
-        expect("tag", &TokenKind::Tag);
-        expect("tell", &TokenKind::Tell);
-        expect("then", &TokenKind::Then);
-        expect("timeout", &TokenKind::Timeout);
-        expect("to", &TokenKind::To);
-        expect("true", &TokenKind::True);
-        expect("type", &TokenKind::Type);
-        expect("unchecked", &TokenKind::Unchecked);
-        expect("union", &TokenKind::Union);
-        expect("unit", &TokenKind::Unit);
-        expect("unqualified", &TokenKind::Unqualified);
-        expect("var", &TokenKind::Var);
-        expect("wait", &TokenKind::Wait);
-        expect("when", &TokenKind::When);
-        expect("write", &TokenKind::Write);
-        expect("xor", &TokenKind::Xor);
+        expect("addressint", &ScannerToken::Addressint);
+        expect("all", &ScannerToken::All);
+        expect("and", &ScannerToken::And);
+        expect("array", &ScannerToken::Array);
+        expect("asm", &ScannerToken::Asm);
+        expect("assert", &ScannerToken::Assert);
+        expect("begin", &ScannerToken::Begin);
+        expect("bind", &ScannerToken::Bind);
+        expect("bits", &ScannerToken::Bits);
+        expect("body", &ScannerToken::Body);
+        expect("boolean", &ScannerToken::Boolean);
+        expect("break", &ScannerToken::Break);
+        expect("by", &ScannerToken::By);
+        expect("case", &ScannerToken::Case);
+        expect("char", &ScannerToken::Char);
+        expect("cheat", &ScannerToken::Cheat);
+        expect("checked", &ScannerToken::Checked);
+        expect("class", &ScannerToken::Class);
+        expect("close", &ScannerToken::Close);
+        expect("collection", &ScannerToken::Collection);
+        expect("condition", &ScannerToken::Condition);
+        expect("const", &ScannerToken::Const);
+        expect("decreasing", &ScannerToken::Decreasing);
+        expect("def", &ScannerToken::Def);
+        expect("deferred", &ScannerToken::Deferred);
+        expect("div", &ScannerToken::Div);
+        expect("elif", &ScannerToken::Elif);
+        expect("else", &ScannerToken::Else);
+        expect("elseif", &ScannerToken::Elseif);
+        expect("elsif", &ScannerToken::Elsif);
+        expect("end", &ScannerToken::End);
+        expect("endcase", &ScannerToken::EndCase);
+        expect("endfor", &ScannerToken::EndFor);
+        expect("endif", &ScannerToken::EndIf);
+        expect("endloop", &ScannerToken::EndLoop);
+        expect("enum", &ScannerToken::Enum);
+        expect("exit", &ScannerToken::Exit);
+        expect("export", &ScannerToken::Export);
+        expect("external", &ScannerToken::External);
+        expect("false", &ScannerToken::False);
+        expect("flexible", &ScannerToken::Flexible);
+        expect("for", &ScannerToken::For);
+        expect("fork", &ScannerToken::Fork);
+        expect("forward", &ScannerToken::Forward);
+        expect("free", &ScannerToken::Free);
+        expect("function", &ScannerToken::Function);
+        expect("get", &ScannerToken::Get);
+        expect("handler", &ScannerToken::Handler);
+        expect("if", &ScannerToken::If);
+        expect("implement", &ScannerToken::Implement);
+        expect("import", &ScannerToken::Import);
+        expect("in", &ScannerToken::In);
+        expect("include", &ScannerToken::Include);
+        expect("inherit", &ScannerToken::Inherit);
+        expect("init", &ScannerToken::Init);
+        expect("int", &ScannerToken::Int);
+        expect("int1", &ScannerToken::Int1);
+        expect("int2", &ScannerToken::Int2);
+        expect("int4", &ScannerToken::Int4);
+        expect("invariant", &ScannerToken::Invariant);
+        expect("label", &ScannerToken::Label);
+        expect("loop", &ScannerToken::Loop);
+        expect("mod", &ScannerToken::Mod);
+        expect("module", &ScannerToken::Module);
+        expect("monitor", &ScannerToken::Monitor);
+        expect("nat", &ScannerToken::Nat);
+        expect("nat1", &ScannerToken::Nat1);
+        expect("nat2", &ScannerToken::Nat2);
+        expect("nat4", &ScannerToken::Nat4);
+        expect("new", &ScannerToken::New);
+        expect("nil", &ScannerToken::Nil);
+        expect("not", &ScannerToken::Not);
+        expect("objectclass", &ScannerToken::ObjectClass);
+        expect("of", &ScannerToken::Of);
+        expect("opaque", &ScannerToken::Opaque);
+        expect("open", &ScannerToken::Open);
+        expect("or", &ScannerToken::Or);
+        expect("packed", &ScannerToken::Packed);
+        expect("pause", &ScannerToken::Pause);
+        expect("pervasive", &ScannerToken::Pervasive);
+        expect("pointer", &ScannerToken::Pointer);
+        expect("post", &ScannerToken::Post);
+        expect("pre", &ScannerToken::Pre);
+        expect("priority", &ScannerToken::Priority);
+        expect("procedure", &ScannerToken::Procedure);
+        expect("process", &ScannerToken::Process);
+        expect("put", &ScannerToken::Put);
+        expect("quit", &ScannerToken::Quit);
+        expect("read", &ScannerToken::Read);
+        expect("real", &ScannerToken::Real);
+        expect("real4", &ScannerToken::Real4);
+        expect("real8", &ScannerToken::Real8);
+        expect("record", &ScannerToken::Record);
+        expect("register", &ScannerToken::Register);
+        expect("rem", &ScannerToken::Rem);
+        expect("result", &ScannerToken::Result_);
+        expect("return", &ScannerToken::Return);
+        expect("seek", &ScannerToken::Seek);
+        expect("self", &ScannerToken::Self_);
+        expect("set", &ScannerToken::Set);
+        expect("shl", &ScannerToken::Shl);
+        expect("shr", &ScannerToken::Shr);
+        expect("signal", &ScannerToken::Signal);
+        expect("skip", &ScannerToken::Skip);
+        expect("string", &ScannerToken::String_);
+        expect("tag", &ScannerToken::Tag);
+        expect("tell", &ScannerToken::Tell);
+        expect("then", &ScannerToken::Then);
+        expect("timeout", &ScannerToken::Timeout);
+        expect("to", &ScannerToken::To);
+        expect("true", &ScannerToken::True);
+        expect("type", &ScannerToken::Type);
+        expect("unchecked", &ScannerToken::Unchecked);
+        expect("union", &ScannerToken::Union);
+        expect("unit", &ScannerToken::Unit);
+        expect("unqualified", &ScannerToken::Unqualified);
+        expect("var", &ScannerToken::Var);
+        expect("wait", &ScannerToken::Wait);
+        expect("when", &ScannerToken::When);
+        expect("write", &ScannerToken::Write);
+        expect("xor", &ScannerToken::Xor);
     }
 
     #[test]
     fn scan_identifiers() {
-        expect("_source_text", &TokenKind::Identifier);
+        expect("_source_text", &ScannerToken::Identifier);
         // Skip over initial digits
         expect_seq(
             "0123_separate",
             &[
-                (TokenKind::IntLiteral, "0123"),
-                (TokenKind::Identifier, "_separate"),
+                (ScannerToken::IntLiteral, "0123"),
+                (ScannerToken::Identifier, "_separate"),
             ],
         );
         // Invalid character, but "ba" & "e" should still be parsed
         expect_seq(
             "ba$e",
             &[
-                (TokenKind::Identifier, "ba"),
-                (TokenKind::Error, "$"),
-                (TokenKind::Identifier, "e"),
+                (ScannerToken::Identifier, "ba"),
+                (ScannerToken::Error, "$"),
+                (ScannerToken::Identifier, "e"),
             ],
         );
     }
@@ -829,14 +832,14 @@ mod test {
         expect_seq(
             "% abcd asd\n asd",
             &[
-                (TokenKind::Comment, "% abcd asd"),
-                (TokenKind::LineEnd, "\n"),
-                (TokenKind::Whitespace, " "),
-                (TokenKind::Identifier, "asd"),
+                (ScannerToken::Comment, "% abcd asd"),
+                (ScannerToken::LineEnd, "\n"),
+                (ScannerToken::Whitespace, " "),
+                (ScannerToken::Identifier, "asd"),
             ],
         );
 
-        expect("% abcd asd", &TokenKind::Comment);
+        expect("% abcd asd", &ScannerToken::Comment);
     }
 
     #[test]
@@ -844,18 +847,18 @@ mod test {
         expect_seq(
             "/* /* abcd % * / \n\n\r\n */ */ asd",
             &[
-                (TokenKind::Comment, "/* /* abcd % * / \n\n\r\n */ */"),
-                (TokenKind::Whitespace, " "),
-                (TokenKind::Identifier, "asd"),
+                (ScannerToken::Comment, "/* /* abcd % * / \n\n\r\n */ */"),
+                (ScannerToken::Whitespace, " "),
+                (ScannerToken::Identifier, "asd"),
             ],
         );
 
         // Sibling nodes
-        expect("/* /* abcd */ /* ae */ */", &TokenKind::Comment);
+        expect("/* /* abcd */ /* ae */ */", &ScannerToken::Comment);
 
         // Missing terminating */
-        expect("/* /* abcd */", &TokenKind::Comment);
-        expect("/* /* abcd */ ", &TokenKind::Comment);
+        expect("/* /* abcd */", &ScannerToken::Comment);
+        expect("/* /* abcd */ ", &ScannerToken::Comment);
     }
 
     #[test]
@@ -864,8 +867,8 @@ mod test {
         expect_seq(
             r#""abcd💖"a"#,
             &[
-                (TokenKind::StringLiteral, r#""abcd💖""#),
-                (TokenKind::Identifier, r#"a"#),
+                (ScannerToken::StringLiteral, r#""abcd💖""#),
+                (ScannerToken::Identifier, r#"a"#),
             ],
         );
 
@@ -875,24 +878,24 @@ mod test {
         expect_seq(
             "\"abcd\n",
             &[
-                (TokenKind::StringLiteral, "\"abcd"),
-                (TokenKind::LineEnd, "\n"),
+                (ScannerToken::StringLiteral, "\"abcd"),
+                (ScannerToken::LineEnd, "\n"),
             ],
         );
 
         expect_seq(
             "\"abcd\r\n",
             &[
-                (TokenKind::StringLiteral, "\"abcd"),
-                (TokenKind::LineEnd, "\r\n"),
+                (ScannerToken::StringLiteral, "\"abcd"),
+                (ScannerToken::LineEnd, "\r\n"),
             ],
         );
 
         // Ends at the end of file
-        expect("\"abcd", &TokenKind::StringLiteral);
+        expect("\"abcd", &ScannerToken::StringLiteral);
 
         // Mismatched delimiter
-        expect("\"abcd'", &TokenKind::StringLiteral);
+        expect("\"abcd'", &ScannerToken::StringLiteral);
     }
 
     #[test]
@@ -901,8 +904,8 @@ mod test {
         expect_seq(
             "'abcd💖'a",
             &[
-                (TokenKind::CharLiteral, "'abcd💖'"),
-                (TokenKind::Identifier, "a"),
+                (ScannerToken::CharLiteral, "'abcd💖'"),
+                (ScannerToken::Identifier, "a"),
             ],
         );
 
@@ -912,30 +915,30 @@ mod test {
         expect_seq(
             "'abcd\n",
             &[
-                (TokenKind::CharLiteral, "'abcd"),
-                (TokenKind::LineEnd, "\n"),
+                (ScannerToken::CharLiteral, "'abcd"),
+                (ScannerToken::LineEnd, "\n"),
             ],
         );
 
         expect_seq(
             "'abcd\r\n",
             &[
-                (TokenKind::CharLiteral, "'abcd"),
-                (TokenKind::LineEnd, "\r\n"),
+                (ScannerToken::CharLiteral, "'abcd"),
+                (ScannerToken::LineEnd, "\r\n"),
             ],
         );
 
         // Ends at the end of file
-        expect("'abcd", &TokenKind::CharLiteral);
+        expect("'abcd", &ScannerToken::CharLiteral);
 
         // Mismatched delimiter
-        expect("'abcd\"", &TokenKind::CharLiteral);
+        expect("'abcd\"", &ScannerToken::CharLiteral);
     }
 
     #[test]
     fn token_aliases() {
         // Aliases
-        expect("fcn", &TokenKind::Function);
-        expect("proc", &TokenKind::Procedure);
+        expect("fcn", &ScannerToken::Function);
+        expect("proc", &ScannerToken::Procedure);
     }
 }
