@@ -302,11 +302,11 @@ pub enum TokenKind {
     Xor,
 
     // Literals
-    #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
+    #[regex("[[:alpha:]_][[:alpha:][:digit:]_]*")]
     Identifier,
-    #[regex("'[^\r\n]*('|[\r\n])")]
+    #[regex("'[^\r\n']*('?)")]
     CharLiteral,
-    #[regex("\"[^\r\n]*(\"|[\r\n])")]
+    #[regex("\"[^\r\n\"]*(\"?)")]
     StringLiteral,
     /// Normal integer literal
     IntLiteral,
@@ -333,8 +333,8 @@ pub enum TokenKind {
 
     // Entry point for other number literals
     #[doc(hidden)]
-    #[regex("[0-9]+", lex_number_literal)]
-    #[regex("\\.[0-9]+", lex_real_literal)]
+    #[regex("[[:digit:]]+", lex_number_literal)]
+    #[regex("\\.[[:digit:]]+", lex_real_literal)]
     NumberLiteral(LiteralKind),
 }
 
@@ -856,6 +856,80 @@ mod test {
         // Missing terminating */
         expect("/* /* abcd */", &TokenKind::Comment);
         expect("/* /* abcd */ ", &TokenKind::Comment);
+    }
+
+    #[test]
+    fn scan_string_literal() {
+        // String literal parsing
+        expect_seq(
+            r#""abcd💖"a"#,
+            &[
+                (TokenKind::StringLiteral, r#""abcd💖""#),
+                (TokenKind::Identifier, r#"a"#),
+            ],
+        );
+
+        // Invalid scanning should make a literal from the successfully parsed character
+
+        // Ends at the end of line
+        expect_seq(
+            "\"abcd\n",
+            &[
+                (TokenKind::StringLiteral, "\"abcd"),
+                (TokenKind::LineEnd, "\n"),
+            ],
+        );
+
+        expect_seq(
+            "\"abcd\r\n",
+            &[
+                (TokenKind::StringLiteral, "\"abcd"),
+                (TokenKind::LineEnd, "\r\n"),
+            ],
+        );
+
+        // Ends at the end of file
+        expect("\"abcd", &TokenKind::StringLiteral);
+
+        // Mismatched delimiter
+        expect("\"abcd'", &TokenKind::StringLiteral);
+    }
+
+    #[test]
+    fn scan_char_literal() {
+        // Char(n) literal parsing
+        expect_seq(
+            "'abcd💖'a",
+            &[
+                (TokenKind::CharLiteral, "'abcd💖'"),
+                (TokenKind::Identifier, "a"),
+            ],
+        );
+
+        // Invalid scanning should make a literal from the successfully parsed characters
+
+        // Ends at the end of line
+        expect_seq(
+            "'abcd\n",
+            &[
+                (TokenKind::CharLiteral, "'abcd"),
+                (TokenKind::LineEnd, "\n"),
+            ],
+        );
+
+        expect_seq(
+            "'abcd\r\n",
+            &[
+                (TokenKind::CharLiteral, "'abcd"),
+                (TokenKind::LineEnd, "\r\n"),
+            ],
+        );
+
+        // Ends at the end of file
+        expect("'abcd", &TokenKind::CharLiteral);
+
+        // Mismatched delimiter
+        expect("'abcd\"", &TokenKind::CharLiteral);
     }
 
     #[test]
