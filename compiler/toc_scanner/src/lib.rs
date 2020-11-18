@@ -2,6 +2,7 @@
 
 use logos::Logos;
 
+/// All Tokens scanned by the Scanner
 #[derive(Logos, Debug, PartialEq)]
 pub enum TokenKind {
     // Character Tokens
@@ -309,8 +310,6 @@ pub enum TokenKind {
     StringLiteral,
     /// Normal integer literal
     IntLiteral,
-    /// Explicit base integer (`16#abcdef`)
-    ExplicitIntLiteral,
     /// Real Literals
     RealLiteral,
 
@@ -330,9 +329,6 @@ pub enum TokenKind {
     #[error]
     Error,
 
-    // Composed tokens
-    Root,
-
     // All tokens below this point are never passed to the parser //
 
     // Entry point for other number literals
@@ -345,7 +341,6 @@ pub enum TokenKind {
 #[derive(Debug, PartialEq)]
 pub enum LiteralKind {
     Int,
-    Based,
     Real,
 }
 
@@ -415,7 +410,7 @@ fn lex_number_literal(lex: &mut logos::Lexer<TokenKind>) -> Option<LiteralKind> 
             lex.bump(count);
 
             // Always give back something
-            Some(LiteralKind::Based)
+            Some(LiteralKind::Int)
         }
         _ => {
             // normal, give back regular
@@ -475,7 +470,6 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
         // Transform the token kind
         let kind = match kind {
             TokenKind::NumberLiteral(literal) => match literal {
-                LiteralKind::Based => TokenKind::ExplicitIntLiteral,
                 LiteralKind::Real => TokenKind::RealLiteral,
                 LiteralKind::Int => TokenKind::IntLiteral,
             },
@@ -598,28 +592,28 @@ mod test {
 
     #[test]
     fn scan_radix_ints() {
-        expect("16#EABC", &TokenKind::ExplicitIntLiteral);
+        expect("16#EABC", &TokenKind::IntLiteral);
 
         // Overflow
-        expect("10#99999999999999999999", &TokenKind::ExplicitIntLiteral);
+        expect("10#99999999999999999999", &TokenKind::IntLiteral);
 
         // No digits
-        expect("30#", &TokenKind::ExplicitIntLiteral);
+        expect("30#", &TokenKind::IntLiteral);
 
         // Out of range (> 36)
-        expect("37#asda", &TokenKind::ExplicitIntLiteral);
+        expect("37#asda", &TokenKind::IntLiteral);
 
         // Out of range (= 0)
-        expect("0#0000", &TokenKind::ExplicitIntLiteral);
+        expect("0#0000", &TokenKind::IntLiteral);
 
         // Out of range (= 1)
-        expect("1#0000", &TokenKind::ExplicitIntLiteral);
+        expect("1#0000", &TokenKind::IntLiteral);
 
         // Out of range (= overflow)
-        expect("18446744073709551616#0000", &TokenKind::ExplicitIntLiteral);
+        expect("18446744073709551616#0000", &TokenKind::IntLiteral);
 
         // Invalid digit
-        expect("10#999a999", &TokenKind::ExplicitIntLiteral);
+        expect("10#999a999", &TokenKind::IntLiteral);
     }
 
     #[test]
