@@ -11,6 +11,7 @@ license = "MIT"
 toc_ast = { path = "../toc_ast" }
 toc_core = { path = "../toc_core" }
 toc_scanner = { path = "../toc_scanner" }
+toc_parser = { path = "../toc_parser" }
 toc_frontend = { path = "../toc_frontend" }
 toc_ir = { path = "../toc_ir" }
 
