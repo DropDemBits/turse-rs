@@ -28,13 +28,13 @@ use toc_core::{Location, StatusReporter};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// Validator Instance.
 /// `'unit` is attatched to the lifetime of the visited code unit
 pub struct Validator<'unit> {
     /// Compile Context
-    _context: Arc<Mutex<CompileContext>>,
+    _context: Arc<CompileContext>,
     /// Local status reporter
     reporter: RefCell<StatusReporter>,
     /// Type table to use
@@ -49,7 +49,7 @@ impl<'unit> Validator<'unit> {
     pub fn new(
         unit_scope: &'unit mut UnitScope,
         type_table: &'unit mut TypeTable,
-        context: Arc<Mutex<CompileContext>>,
+        context: Arc<CompileContext>,
     ) -> Self {
         Self {
             _context: context,
@@ -552,7 +552,7 @@ fn replace_with_folded(expr: &mut Expr, folded_expr: Option<Value>) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::context::CompileContext;
+    use crate::context::{CompileContext, SourceMap};
     use crate::parser::Parser;
     use crate::scanner::Scanner;
     use rand::prelude::*;
@@ -563,8 +563,8 @@ mod test {
     /// Returns true if the AST is valid, and the validated code unit
     fn make_validator(source: &str) -> (bool, CodeUnit) {
         // Build the main unit
-        let context = Arc::new(Mutex::new(CompileContext::new()));
-        let scanner = Scanner::scan_source(&source, context.clone());
+        let context = Arc::new(CompileContext::new(SourceMap::new()));
+        let scanner = Scanner::scan_source(&source);
 
         // Ignore the parser status, as the validator needs to handle
         // invalid parser ASTs
@@ -581,11 +581,10 @@ mod test {
             context.clone(),
         );
         validator.visit_stmt(&mut code_unit.root_stmt);
-        context.lock().unwrap().aggregate_messages(&mut validator);
+        context.aggregate_messages(&mut validator);
 
         // Emit all pending validator errors & warnings
-        let has_errors =
-            StatusReporter::report_messages(context.lock().unwrap().messages().iter(), false);
+        let has_errors = StatusReporter::report_messages(context.messages().iter(), false);
 
         (!has_errors && successful_parse, code_unit)
     }

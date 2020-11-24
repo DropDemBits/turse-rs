@@ -1,5 +1,4 @@
 //! Scanner for tokens
-use crate::context::CompileContext;
 use crate::token::{Token, TokenType};
 use toc_core::{Location, StatusReporter};
 
@@ -7,7 +6,6 @@ use std::cell::RefCell;
 use std::char;
 use std::collections::HashMap;
 use std::num::ParseIntError;
-use std::sync::{Arc, Mutex};
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -150,8 +148,6 @@ lazy_static! {
 pub struct Scanner<'a> {
     /// Scanning source
     source: &'a str,
-    /// Compile context of the scanner
-    context: Arc<Mutex<CompileContext>>,
     /// Local reporter
     reporter: RefCell<StatusReporter>,
     /// Vector of scanned tokens
@@ -171,7 +167,7 @@ pub struct Scanner<'a> {
 
 impl<'s> Scanner<'s> {
     /// Creates a scanner for the given source and `CompileContext`
-    pub fn scan_source(source: &'s str, context: Arc<Mutex<CompileContext>>) -> Self {
+    pub fn scan_source(source: &'s str) -> Self {
         let mut next_indicies = source.char_indices();
         let mut chars = source.chars();
 
@@ -184,7 +180,6 @@ impl<'s> Scanner<'s> {
         Self {
             source,
             reporter: RefCell::new(StatusReporter::new()),
-            context,
             tokens: vec![],
             next_indicies,
             chars,
@@ -1060,9 +1055,8 @@ fn try_parse_int(digits: &str, base: u32) -> Result<u64, IntErrKind> {
 mod test {
     use super::*;
 
-    fn make_scanner<'s>(source: &'s str) -> (Scanner<'s>, Arc<Mutex<CompileContext>>) {
-        let context = Arc::new(Mutex::new(CompileContext::new()));
-        (Scanner::scan_source(source, context.clone()), context)
+    fn make_scanner<'s>(source: &'s str) -> Scanner<'s> {
+        Scanner::scan_source(source)
     }
 
     #[test]
@@ -1075,7 +1069,7 @@ mod test {
             let mut s = c.to_string();
             s.push('a');
 
-            let (mut scanner, _) = make_scanner(&s);
+            let mut scanner = make_scanner(&s);
 
             assert_eq!(
                 scanner.next().unwrap().token_type,
@@ -1101,7 +1095,7 @@ mod test {
     fn test_identifier() {
         // Valid ident
         let source = "_source_text";
-        let (mut scanner, _) = make_scanner(source);
+        let mut scanner = make_scanner(source);
 
         let tok = scanner.next().unwrap();
         assert_eq!(tok.token_type, TokenType::Identifier);
@@ -1110,7 +1104,7 @@ mod test {
 
         // Skip over first digits
         let source = "0123_separate";
-        let (mut scanner, _) = make_scanner(source);
+        let mut scanner = make_scanner(source);
 
         let tok = scanner.next().unwrap();
         assert_ne!(tok.token_type, TokenType::Identifier);
@@ -1119,7 +1113,7 @@ mod test {
 
         // Invalid character, but "ba" should still be parsed
         let source = "ba$e";
-        let (mut scanner, _) = make_scanner(source);
+        let mut scanner = make_scanner(source);
 
         assert_eq!(scanner.next().unwrap().location.get_lexeme(source), "ba");
         assert_eq!(scanner.next().unwrap().location.get_lexeme(source), "$");
@@ -1133,7 +1127,7 @@ mod test {
     #[test]
     fn test_int_literal_basic() {
         // Basic integer literal
-        let (mut scanner, _) = make_scanner("01234560");
+        let mut scanner = make_scanner("01234560");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::NatLiteral(1234560)
@@ -1141,13 +1135,13 @@ mod test {
         assert!(!scanner.reporter.borrow().has_error());
 
         // Overflow
-        let (mut scanner, _) = make_scanner("99999999999999999999");
+        let mut scanner = make_scanner("99999999999999999999");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // Digit cutoff
-        let (mut scanner, _) = make_scanner("999a999");
+        let mut scanner = make_scanner("999a999");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::NatLiteral(999)
@@ -1158,7 +1152,7 @@ mod test {
     #[test]
     fn test_int_literal_radix() {
         // Integer literal with base
-        let (mut scanner, _) = make_scanner("16#EABC");
+        let mut scanner = make_scanner("16#EABC");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::NatLiteral(0xEABC)
@@ -1166,43 +1160,43 @@ mod test {
         assert!(!scanner.reporter.borrow().has_error());
 
         // Overflow
-        let (mut scanner, _) = make_scanner("10#99999999999999999999");
+        let mut scanner = make_scanner("10#99999999999999999999");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // No digits
-        let (mut scanner, _) = make_scanner("30#");
+        let mut scanner = make_scanner("30#");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // Out of range (> 36)
-        let (mut scanner, _) = make_scanner("37#asda");
+        let mut scanner = make_scanner("37#asda");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // Out of range (= 0)
-        let (mut scanner, _) = make_scanner("0#0000");
+        let mut scanner = make_scanner("0#0000");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // Out of range (= 1)
-        let (mut scanner, _) = make_scanner("1#0000");
+        let mut scanner = make_scanner("1#0000");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // Out of range (= overflow)
-        let (mut scanner, _) = make_scanner("18446744073709551616#0000");
+        let mut scanner = make_scanner("18446744073709551616#0000");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
 
         // Invalid digit
-        let (mut scanner, _) = make_scanner("10#999a999");
+        let mut scanner = make_scanner("10#999a999");
         // Should still produce a token
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(0));
         assert!(scanner.reporter.borrow().has_error());
@@ -1212,28 +1206,28 @@ mod test {
     fn test_real_literal() {
         // NOTE: May need to use Epsilon comparison if this test fails on other machines & operating systems
         // Real Literal
-        let (mut scanner, _) = make_scanner("1.");
+        let mut scanner = make_scanner("1.");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(1.0)
         );
         assert!(!scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("100.00");
+        let mut scanner = make_scanner("100.00");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00)
         );
         assert!(!scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("100.00e10");
+        let mut scanner = make_scanner("100.00e10");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e10)
         );
         assert!(!scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("100.00e100");
+        let mut scanner = make_scanner("100.00e100");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e100)
@@ -1241,21 +1235,21 @@ mod test {
         assert!(!scanner.reporter.borrow().has_error());
 
         // Negative and positive exponents are valid
-        let (mut scanner, _) = make_scanner("100.00e-100");
+        let mut scanner = make_scanner("100.00e-100");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e-100)
         );
         assert!(!scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("100.00e+100");
+        let mut scanner = make_scanner("100.00e+100");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(100.00e+100)
         );
         assert!(!scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("1e100");
+        let mut scanner = make_scanner("1e100");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(1e100)
@@ -1263,7 +1257,7 @@ mod test {
         assert!(!scanner.reporter.borrow().has_error());
 
         // Invalid format
-        let (mut scanner, _) = make_scanner("1e");
+        let mut scanner = make_scanner("1e");
         // Should still produce a value
         assert_eq!(
             scanner.next().unwrap().token_type,
@@ -1271,7 +1265,7 @@ mod test {
         );
         assert!(scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("1e-");
+        let mut scanner = make_scanner("1e-");
         // Should still produce a value
         assert_eq!(
             scanner.next().unwrap().token_type,
@@ -1279,7 +1273,7 @@ mod test {
         );
         assert!(scanner.reporter.borrow().has_error());
 
-        let (mut scanner, _) = make_scanner("1e--2");
+        let mut scanner = make_scanner("1e--2");
         // Should still produce a value
         assert_eq!(
             scanner.next().unwrap().token_type,
@@ -1288,7 +1282,7 @@ mod test {
         assert!(scanner.reporter.borrow().has_error());
 
         // Too big
-        let (mut scanner, _) = make_scanner("1e600");
+        let mut scanner = make_scanner("1e600");
         // Should still produce a value
         assert_eq!(
             scanner.next().unwrap().token_type,
@@ -1297,7 +1291,7 @@ mod test {
         assert!(scanner.reporter.borrow().has_error());
 
         // Allow for leading dot
-        let (mut scanner, _) = make_scanner(".12345");
+        let mut scanner = make_scanner(".12345");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(0.12345f64)
@@ -1331,7 +1325,7 @@ mod test {
         let mut passed_all = true;
 
         for (name, hex_value, text) in conversion_tests.iter() {
-            let (mut scanner, _) = make_scanner(text);
+            let mut scanner = make_scanner(text);
             let expected_value = f64::from_ne_bytes(hex_value.to_ne_bytes());
 
             if scanner.reporter.borrow().has_error() {
@@ -1369,7 +1363,7 @@ mod test {
     #[test]
     fn test_string_literal() {
         // String literal parsing
-        let (mut scanner, _) = make_scanner("\"abcd💖\"a");
+        let mut scanner = make_scanner("\"abcd💖\"a");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd💖".to_string())
@@ -1381,7 +1375,7 @@ mod test {
         // Invalid parsing should make a literal from the successfully parsed character
 
         // Ends at the end of line
-        let (mut scanner, _) = make_scanner("\"abcd\n");
+        let mut scanner = make_scanner("\"abcd\n");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd".to_string())
@@ -1389,7 +1383,7 @@ mod test {
         assert!(scanner.reporter.borrow().has_error());
 
         // Ends at the end of file
-        let (mut scanner, _) = make_scanner("\"abcd");
+        let mut scanner = make_scanner("\"abcd");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd".to_string())
@@ -1397,7 +1391,7 @@ mod test {
         assert!(scanner.reporter.borrow().has_error());
 
         // Mismatched delimiter
-        let (mut scanner, _) = make_scanner("\"abcd'");
+        let mut scanner = make_scanner("\"abcd'");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::StringLiteral("abcd\'".to_string())
@@ -1408,7 +1402,7 @@ mod test {
     #[test]
     fn test_char_literal() {
         // Char(n) literal parsing
-        let (mut scanner, _) = make_scanner("'abcd'");
+        let mut scanner = make_scanner("'abcd'");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd".to_string())
@@ -1418,7 +1412,7 @@ mod test {
         // Invalid parsing should make a literal from the successfully parsed characters
 
         // Ends at the end of line
-        let (mut scanner, _) = make_scanner("'abcd\n");
+        let mut scanner = make_scanner("'abcd\n");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd".to_string())
@@ -1426,7 +1420,7 @@ mod test {
         assert!(scanner.reporter.borrow().has_error());
 
         // Ends at the end of file
-        let (mut scanner, _) = make_scanner("'abcd");
+        let mut scanner = make_scanner("'abcd");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd".to_string())
@@ -1434,7 +1428,7 @@ mod test {
         assert!(scanner.reporter.borrow().has_error());
 
         // Mismatched delimiter
-        let (mut scanner, _) = make_scanner("'abcd\"");
+        let mut scanner = make_scanner("'abcd\"");
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::CharLiteral("abcd\"".to_string())
@@ -1497,7 +1491,7 @@ mod test {
         ];
 
         for (test_num, escape_test) in valid_escapes.iter().enumerate() {
-            let (mut scanner, _) = make_scanner(escape_test.0);
+            let mut scanner = make_scanner(escape_test.0);
             assert_eq!(
                 scanner.next().unwrap().token_type,
                 TokenType::CharLiteral(escape_test.1.to_string())
@@ -1517,7 +1511,7 @@ mod test {
         ];
 
         for escape_test in failed_escapes.iter() {
-            let (mut scanner, _) = make_scanner(escape_test);
+            let mut scanner = make_scanner(escape_test);
             assert_eq!(
                 scanner.next().unwrap().token_type,
                 TokenType::CharLiteral("".to_string())
@@ -1541,7 +1535,7 @@ mod test {
         ];
 
         for escape_test in failed_escapes.iter() {
-            let (mut scanner, _) = make_scanner(escape_test);
+            let mut scanner = make_scanner(escape_test);
             assert_eq!(
                 scanner.next().unwrap().token_type,
                 TokenType::CharLiteral(char::REPLACEMENT_CHARACTER.to_string())
@@ -1559,7 +1553,7 @@ mod test {
         ];
 
         for escape_test in incorrect_start.iter() {
-            let (mut scanner, _) = make_scanner(escape_test.0);
+            let mut scanner = make_scanner(escape_test.0);
             assert_eq!(
                 scanner.next().unwrap().token_type,
                 TokenType::CharLiteral(escape_test.1.to_string())
@@ -1571,13 +1565,13 @@ mod test {
     #[test]
     fn test_block_comment() {
         // Block comments
-        let (mut scanner, _) = make_scanner("/* /* abcd % * / \n\n\r\n */ */ asd");
+        let mut scanner = make_scanner("/* /* abcd % * / \n\n\r\n */ */ asd");
         assert!(!scanner.reporter.borrow().has_error());
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
         assert_eq!(scanner.next(), None);
 
         // End of file, mismatch
-        let (mut scanner, _) = make_scanner("/* /* abcd */ ");
+        let mut scanner = make_scanner("/* /* abcd */ ");
         let _ = scanner.next();
         assert!(scanner.reporter.borrow().has_error());
     }
@@ -1586,7 +1580,7 @@ mod test {
     fn test_line_comment() {
         // Line comment
         let source = "% abcd asd\n asd";
-        let (mut scanner, _) = make_scanner(source);
+        let mut scanner = make_scanner(source);
         let e = scanner.next().unwrap();
         assert_eq!(e.token_type, TokenType::Identifier);
 
@@ -1600,7 +1594,7 @@ mod test {
         assert!(!scanner.reporter.borrow().has_error());
 
         // End of file
-        let (mut scanner, _) = make_scanner("% abcd asd");
+        let mut scanner = make_scanner("% abcd asd");
         assert_eq!(scanner.next(), None);
         assert_eq!(scanner.next(), None);
         assert!(!scanner.reporter.borrow().has_error());
@@ -1609,12 +1603,12 @@ mod test {
     #[test]
     fn test_keyword() {
         // Keyword as the corresponding keyword
-        let (mut scanner, _) = make_scanner("and");
+        let mut scanner = make_scanner("and");
         assert_eq!(scanner.next().unwrap().token_type, TokenType::And);
         assert!(!scanner.reporter.borrow().has_error());
 
         // Multiple keywords in sequence
-        let (mut scanner, _) = make_scanner("var ident : int");
+        let mut scanner = make_scanner("var ident : int");
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Var);
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Colon);
@@ -1624,7 +1618,7 @@ mod test {
 
     #[test]
     fn test_aliases() {
-        let (mut scanner, _) = make_scanner("fcn proc");
+        let mut scanner = make_scanner("fcn proc");
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Function);
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Procedure);
         assert!(!scanner.reporter.borrow().has_error());
@@ -1636,14 +1630,14 @@ mod test {
     #[test]
     fn test_nat_literal_before_range() {
         // Dot should not form a RealLiteral
-        let (mut scanner, _) = make_scanner("1..");
+        let mut scanner = make_scanner("1..");
         assert_eq!(scanner.next().unwrap().token_type, TokenType::NatLiteral(1));
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Range);
         assert!(!scanner.reporter.borrow().has_error());
 
         // Should scan as `RealLiteral(0.0)` and `ggy`
         let source: &str = "1eggy";
-        let (mut scanner, _) = make_scanner(source);
+        let mut scanner = make_scanner(source);
         assert_eq!(
             scanner.next().unwrap().token_type,
             TokenType::RealLiteral(0.0)

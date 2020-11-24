@@ -343,21 +343,24 @@ mod test {
     extern crate toc_frontend;
 
     use super::*;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use toc_ast::ast::VisitorMut;
     use toc_frontend::{
-        context::CompileContext, parser::Parser, scanner::Scanner, validator::Validator,
+        context::{CompileContext, SourceMap},
+        parser::Parser,
+        scanner::Scanner,
+        validator::Validator,
     };
 
     /// Generates a graph from a string source
     fn generate_graph(source: &str) -> (bool, Option<IrGraph>) {
         // Build the main unit
-        let context = Arc::new(Mutex::new(CompileContext::new()));
+        let context = Arc::new(CompileContext::new(SourceMap::new()));
 
-        let scanner = Scanner::scan_source(source, context.clone());
+        let scanner = Scanner::scan_source(source);
         let mut parser = Parser::new(scanner, true, context.clone());
         assert!(parser.parse(), "Parser failed to parse the source");
-        context.lock().unwrap().aggregate_messages(&mut parser);
+        context.aggregate_messages(&mut parser);
 
         // Take the unit back from the parser
         let mut code_unit = parser.take_unit();
@@ -369,12 +372,10 @@ mod test {
             context.clone(),
         );
         validator.visit_stmt(&mut code_unit.root_stmt);
-        context.lock().unwrap().aggregate_messages(&mut validator);
+        context.aggregate_messages(&mut validator);
 
-        let has_errors = toc_core::StatusReporter::report_messages(
-            context.lock().unwrap().messages().iter(),
-            false,
-        );
+        let has_errors =
+            toc_core::StatusReporter::report_messages(context.messages().iter(), false);
 
         assert!(!has_errors, "Validator failed to validate the AST");
 

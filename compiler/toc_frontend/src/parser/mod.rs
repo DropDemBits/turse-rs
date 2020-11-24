@@ -18,7 +18,7 @@ use toc_core::{Location, StatusReporter};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt::Arguments;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// Maximum nesting depth during parsing
 const MAX_NESTING_DEPTH: usize = 1024;
@@ -30,7 +30,7 @@ type ParseResult<T> = T;
 #[derive(Debug)]
 pub struct Parser<'s> {
     /// Compile Context
-    context: Arc<Mutex<CompileContext>>,
+    context: Arc<CompileContext>,
     /// Local status reporter
     reporter: RefCell<StatusReporter>,
     /// Scanner for scanning tokens
@@ -65,11 +65,7 @@ pub struct Parser<'s> {
 }
 
 impl<'s> Parser<'s> {
-    pub fn new(
-        mut scanner: Scanner<'s>,
-        is_main: bool,
-        context: Arc<Mutex<CompileContext>>,
-    ) -> Self {
+    pub fn new(mut scanner: Scanner<'s>, is_main: bool, context: Arc<CompileContext>) -> Self {
         Self {
             context,
             reporter: RefCell::new(StatusReporter::new()),

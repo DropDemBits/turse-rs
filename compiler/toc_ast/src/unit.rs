@@ -2,6 +2,17 @@ use crate::ast::stmt::Stmt;
 use crate::scope::UnitScope;
 use crate::types::TypeTable;
 
+/// Unit id
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct UnitId(u32);
+
+// Only to be used in unit testing & unit creation
+impl From<u32> for UnitId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
+
 #[derive(Debug)]
 pub struct CodeUnit {
     /// Root stmt
