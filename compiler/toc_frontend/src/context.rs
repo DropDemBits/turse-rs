@@ -16,8 +16,8 @@ pub enum CompileStatus {
 
 #[derive(Debug)]
 pub struct UnitInfo {
-    path: String,
-    source: String,
+    pub path: String,
+    pub source: String,
 }
 
 #[derive(Debug)]
@@ -32,22 +32,9 @@ pub struct SourceMap {
 
 impl SourceMap {
     pub fn new() -> Self {
-        let mut path_to_units = HashMap::new();
-        let mut unit_infos = HashMap::new();
-
-        // Insert the no file unit
-        path_to_units.insert("<no file>".to_owned(), 0.into());
-        unit_infos.insert(
-            0.into(),
-            UnitInfo {
-                path: "<no file>".to_owned(),
-                source: "".to_owned(),
-            },
-        );
-
         Self {
-            path_to_units,
-            unit_infos,
+            path_to_units: HashMap::new(),
+            unit_infos: HashMap::new(),
             next_unit_id: 1,
         }
     }
@@ -60,18 +47,18 @@ impl SourceMap {
     ///
     /// # Returns
     /// Returns the new `UnitId`
-    fn add_unit(&mut self, path: &str, source: String) -> UnitId {
+    pub fn add_unit(&mut self, path: impl AsRef<str>, source: String) -> UnitId {
         // Make a new unit id
-        let unit_id: UnitId = self.next_unit_id.into();
+        let unit_id: UnitId = UnitId::new(self.next_unit_id);
         // Should not have more than 4 billion units
         self.next_unit_id = self.next_unit_id.checked_add(1).unwrap();
 
         // Add information
-        self.path_to_units.insert(path.to_owned(), unit_id);
+        self.path_to_units.insert(path.as_ref().to_owned(), unit_id);
         self.unit_infos.insert(
             unit_id,
             UnitInfo {
-                path: path.to_owned(),
+                path: path.as_ref().to_owned(),
                 source,
             },
         );
@@ -80,11 +67,8 @@ impl SourceMap {
     }
 
     /// Gets the unit info for the given unit id
-    pub fn get_unit_info(&self, id: UnitId) -> &UnitInfo {
-        self.unit_infos
-            .get(&id)
-            .or_else(|| self.unit_infos.get(&0.into()))
-            .expect("missing <no file> unit")
+    pub fn get_unit_info(&self, id: UnitId) -> Option<&UnitInfo> {
+        self.unit_infos.get(&id)
     }
 
     /// Tries to get the unit id from a given path
@@ -127,7 +111,7 @@ impl CompileSession {
         path: &str,
         only_parser: bool,
         mute_warnings: bool,
-    ) -> (UnitId, CompileStatus) {
+    ) -> (Option<UnitId>, CompileStatus) {
         use crate::{parser::Parser, scanner::Scanner, validator::Validator};
         use toc_ast::ast::VisitorMut;
         use toc_core::StatusReporter;
@@ -138,9 +122,10 @@ impl CompileSession {
         // Load up the main file, adding it to the source map
         let source = match self.load_source_file(path) {
             Ok(source) => source,
-            Err(_) => return (0.into(), CompileStatus::Error),
+            Err(_) => return (None, CompileStatus::Error),
         };
         let main_unit = sources.add_unit(path, source);
+        let pending_compiles = vec![main_unit];
 
         // Make a new ctx
         let ctx = CompileContext::new(sources);
@@ -149,13 +134,12 @@ impl CompileSession {
 
         // Spin up scanners & parsers to any pending paths
 
-        {
-            let unit_id = ctx
+        for unit_id in pending_compiles {
+            let source = &ctx
                 .source_map()
-                .unit_from_path(path)
-                .expect("passed through the path info");
-
-            let source = &ctx.source_map().get_unit_info(unit_id).source;
+                .get_unit_info(unit_id)
+                .expect("invalid unit id")
+                .source;
             let scanner = Scanner::scan_source(source);
             let mut parser: Parser = Parser::new(scanner, true, ctx.clone());
             parser.parse();
@@ -175,7 +159,7 @@ impl CompileSession {
                 false => CompileStatus::Error,
             };
 
-            return (main_unit, status);
+            return (Some(main_unit), status);
         }
 
         // TODO: Provide inter-unit type resolution stage
@@ -200,7 +184,7 @@ impl CompileSession {
             false => CompileStatus::Error,
         };
 
-        (main_unit, status)
+        (Some(main_unit), status)
     }
 
     /// Loads the file at the given path

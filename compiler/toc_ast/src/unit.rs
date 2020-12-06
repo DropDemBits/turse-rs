@@ -1,15 +1,17 @@
+use std::num::NonZeroU32;
+
 use crate::ast::stmt::Stmt;
 use crate::scope::UnitScope;
 use crate::types::TypeTable;
 
 /// Unit id
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct UnitId(u32);
+pub struct UnitId(NonZeroU32);
 
 // Only to be used in unit testing & unit creation
-impl From<u32> for UnitId {
-    fn from(id: u32) -> Self {
-        Self(id)
+impl UnitId {
+    pub fn new(id: u32) -> Self {
+        Self(NonZeroU32::new(id).expect("passing in id 0"))
     }
 }
 

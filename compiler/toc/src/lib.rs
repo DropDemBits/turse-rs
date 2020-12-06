@@ -38,8 +38,10 @@ pub fn compile_file(
     let (main_unit, status) = session.compile_source_file(path, only_parser, mute_warnings);
 
     // Dump info for the main unit (skip over empty file)
-    if let Some((_, unit)) = session.units().find(|(id, _)| **id == main_unit) {
-        dump_info(&unit, &dump_out);
+    if let Some(main_unit) = main_unit {
+        if let Some((_, unit)) = session.units().find(|(id, _)| **id == main_unit) {
+            dump_info(&unit, &dump_out);
+        }
     }
 
     status == CompileStatus::Success
