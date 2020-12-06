@@ -379,6 +379,7 @@ impl<'u> VisitorMut<(), (), ()> for Validator<'u> {
                 new_type,
                 is_new_def,
             } => self.resolve_decl_type(ident, new_type, *is_new_def),
+            StmtKind::Import { .. } => {} // never explored
             StmtKind::Assign { var_ref, op, value } => {
                 self.resolve_stmt_assign(var_ref, op.as_mut(), value)
             }

@@ -97,6 +97,11 @@ impl<'s> Parser<'s> {
         // Parse the statements
         let mut stmts = vec![];
 
+        if matches!(self.current().token_type, TokenType::Import) {
+            let import = self.decl_import(true);
+            stmts.push(import);
+        }
+
         while !self.is_at_end() {
             let stmt = self.decl();
 

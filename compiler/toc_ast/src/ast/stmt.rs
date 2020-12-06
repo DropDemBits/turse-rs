@@ -71,6 +71,8 @@ pub enum StmtKind {
         /// If the identifier actually declares a new identifier
         is_new_def: bool,
     },
+    /// Import statement
+    Import { entries: Vec<ImportEntry> },
     // Stmts
     /// Simple & Compound assignment expression
     Assign {
@@ -108,10 +110,51 @@ pub struct Stmt {
     pub span: Location,
 }
 
+#[derive(Debug, Clone)]
+pub enum ImportKind {
+    Var,
+    Const,
+    Forward,
+    Implicit,
+}
+
+/// Entry for an import statement
+#[derive(Debug, Clone)]
+pub struct ImportEntry {
+    /// Import kind
+    pub kind: ImportKind,
+    /// Ident of the unit to import
+    pub with_ident: Option<IdentRef>,
+    /// Optional path to the external unit, if it differs from the import name
+    pub in_path: Option<String>,
+}
+
 mod pretty_print {
-    use super::{Stmt, StmtKind};
+    use super::{ImportEntry, ImportKind, Stmt, StmtKind};
     use crate::pretty_print;
     use std::fmt::{self, Write};
+
+    impl fmt::Display for ImportEntry {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            // kind
+            match &self.kind {
+                ImportKind::Var => f.write_str("var ")?,
+                ImportKind::Const => f.write_str("const ")?,
+                ImportKind::Forward => f.write_str("forward ")?,
+                ImportKind::Implicit => {}
+            };
+
+            if let Some(id) = &self.with_ident {
+                f.write_fmt(format_args!("[{}] ", id))?;
+            }
+
+            if let Some(path) = &self.in_path {
+                f.write_fmt(format_args!("in \"{}\"", path))?
+            }
+
+            Ok(())
+        }
+    }
 
     impl fmt::Display for StmtKind {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -153,6 +196,11 @@ mod pretty_print {
                     }
                     f.write_str("] : ")?;
                     new_type.fmt(f)?;
+                }
+                StmtKind::Import { entries } => {
+                    f.write_str("import ( ")?;
+                    pretty_print::print_list(f, entries.iter())?;
+                    f.write_str(" )")?;
                 }
                 StmtKind::Assign { var_ref, op, value } => {
                     if let Some(op) = op {

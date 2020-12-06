@@ -57,6 +57,7 @@ impl<'s> Parser<'s> {
                 TokenType::Var => self_.decl_var(false),
                 TokenType::Const => self_.decl_var(true),
                 TokenType::Type => self_.decl_type(),
+                TokenType::Import => self_.decl_import(false),
                 _ => self_.stmt(),
             }
         });
@@ -375,6 +376,131 @@ impl<'s> Parser<'s> {
         };
 
         Stmt { kind, span }
+    }
+
+    /// Parses an import statement
+    pub(super) fn decl_import(&mut self, allowed_here: bool) -> ParseResult<Stmt> {
+        debug_assert_eq!(self.current().token_type, TokenType::Import);
+        // nom 'import'
+        self.next_token();
+
+        if matches!(
+            self.unit_scope.current_block().kind(),
+            stmt::BlockKind::InnerBlock
+        ) || !allowed_here
+        {
+            // Import blocks are restricted to subprograms, modules, monitors, classes, and the
+            // top-level main declarations
+            self.reporter.borrow_mut().report_error(
+                &self.previous().location,
+                format_args!("Import statements are not allowed here"),
+            );
+        }
+
+        let span = self.previous().location;
+        let expect_closing = self.optional(&TokenType::LeftParen);
+
+        let mut entries = vec![];
+
+        if !(expect_closing && matches!(self.current().token_type, TokenType::RightParen)) {
+            // Only allow no items if we're expecting a closing paren
+            loop {
+                if let Some(entry) = self.parse_import_entry() {
+                    entries.push(entry);
+                }
+
+                if !self.optional(&TokenType::Comma) {
+                    // end of list
+                    break;
+                }
+            }
+        }
+
+        if expect_closing {
+            let _ = self.expects(
+                TokenType::RightParen,
+                format_args!("Expected ')' after last import item"),
+            );
+        }
+
+        let span = span.span_to(&self.previous().location);
+
+        Stmt {
+            kind: StmtKind::Import { entries },
+            span,
+        }
+    }
+
+    /// Parses a single import entry
+    fn parse_import_entry(&mut self) -> Option<stmt::ImportEntry> {
+        // Get the import kind
+        let kind = match self.current().token_type {
+            TokenType::Var => stmt::ImportKind::Var,
+            TokenType::Const => stmt::ImportKind::Const,
+            TokenType::Forward => stmt::ImportKind::Forward,
+            _ => stmt::ImportKind::Implicit,
+        };
+
+        if !matches!(kind, stmt::ImportKind::Implicit) {
+            // nom `how import` token
+            self.next_token();
+        }
+
+        // 3 variants of an import item:
+        // - "string_literal" (no name, but path)
+        // - 'identifier' (name, but no path)
+        // - 'identifier' 'in' "string_literal" (both)
+
+        let (with_ident, in_path) = match &self.current().token_type {
+            TokenType::StringLiteral(path) => {
+                // only path, but no name
+                let path = path.clone();
+                self.next_token();
+                (None, Some(path))
+            }
+            TokenType::Identifier => {
+                // name, and with optional path
+
+                // This is technically a decl site, so decl an ident
+                let ident_tok = self.next_token();
+                let id = self.declare_ident(&ident_tok, TypeRef::Unknown, RefKind::Const, false);
+                let id_ref = IdentRef::new(id, ident_tok.location);
+
+                // Parse optional "in path" bit
+                let in_path = if self.optional(&TokenType::In) {
+                    if let TokenType::StringLiteral(path) = &self.current().token_type {
+                        let path = path.clone();
+                        self.next_token();
+                        Some(path)
+                    } else {
+                        self.reporter.borrow_mut().report_error(
+                            &self.current().location,
+                            format_args!("Expected string literal after 'in'"),
+                        );
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                (Some(id_ref), in_path)
+            }
+            _ => {
+                // bail out, invalid
+                self.reporter.borrow_mut().report_error(
+                    &self.current().location,
+                    format_args!("Expected an identifier or a string literal"),
+                );
+
+                return None;
+            }
+        };
+
+        Some(stmt::ImportEntry {
+            kind,
+            with_ident,
+            in_path,
+        })
     }
 
     // --- Stmt Parsing --- //
