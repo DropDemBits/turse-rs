@@ -760,9 +760,12 @@ mod test {
 
     #[test]
     fn scan_literal_and_range() {
-        expect_seq("..1", &[(Token::Range, ".."), (Token::IntLiteral, "1")]);
-        expect_seq("1..", &[(Token::IntLiteral, "1"), (Token::Range, "..")]);
-        expect_seq("1eggy", &[(Token::Error, "1e"), (Token::Identifier, "ggy")]);
+        expect_seq("..1", &[(Token::Range, ".."), (Token::BasicDigits, "1")]);
+        expect_seq("1..", &[(Token::BasicDigits, "1"), (Token::Range, "..")]);
+        expect_seq(
+            "1eggy",
+            &[(Token::BasicDigits, "1"), (Token::Identifier, "eggy")],
+        );
     }
 
     #[test]
@@ -925,7 +928,7 @@ mod test {
         expect_seq(
             "0123_separate",
             &[
-                (Token::IntLiteral, "0123"),
+                (Token::BasicDigits, "0123"),
                 (Token::Identifier, "_separate"),
             ],
         );

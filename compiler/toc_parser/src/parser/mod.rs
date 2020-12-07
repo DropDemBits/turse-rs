@@ -122,26 +122,54 @@ impl<'src> Parser<'src> {
         }
     }
 
-    /// Skips to the next non-whitespace token (excluding newlines)
-    fn skip_ws(&mut self) {
-        while let Some(Token::Whitespace) = self.next_token() {}
-    }
-
-    /// Skips to the next non-whitespace token (including newlines)
-    fn skip_ws_and_nl(&mut self) {
+    /// Skips to the next non-whitespace token (including comments but excluding newlines)
+    fn skip_ws_no_nl(&mut self) {
         while matches!(
             self.next_token(),
-            Some(Token::Whitespace) | Some(Token::LineEnd)
+            Some(Token::Whitespace) | Some(Token::Comment)
+        ) {}
+    }
+
+    /// Skips to the next non-whitespace token (including newlines and comments)
+    fn skip_ws(&mut self) {
+        while matches!(
+            self.next_token(),
+            Some(Token::Whitespace) | Some(Token::LineEnd) | Some(Token::Comment)
         ) {}
     }
 
     pub fn parse(mut self) -> ParseResult {
         self.builder.start_node(to_kind(Token::Root));
+        self.skip_ws(); // go over preliminary stuff
+
+        while let Some(token) = self.current() {
+            match token {
+                Token::Var | Token::Const => self.decl_var(),
+                _ => {
+                    // make error node
+                    self.builder.start_node(to_kind(Token::Error));
+                    while !matches!(self.next_token(), Some(Token::Var) | Some(Token::Const)) {}
+                    self.builder.finish_node();
+                }
+            }
+        }
 
         self.builder.finish_node();
         ParseResult {
             node: self.builder.finish(),
         }
+    }
+
+    fn decl_var(&mut self) {
+        assert!(matches!(
+            self.current(),
+            Some(Token::Var) | Some(Token::Const)
+        ));
+
+        self.builder.start_node(to_kind(Token::ConstVarDecl));
+        self.next_token(); // nom const or var
+
+        self.builder.finish_node();
     }
 }
 
