@@ -780,6 +780,8 @@ name = "toc_scanner"
 version = "0.1.0"
 dependencies = [
  "logos",
+ "num-derive",
+ "num-traits",
  "strtod",
 ]
 

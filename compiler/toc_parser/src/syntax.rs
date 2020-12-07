@@ -4,8 +4,9 @@ use rowan::Language;
 use toc_scanner::ScannerToken;
 
 /// Syntax tokens present
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, FromPrimitive, ToPrimitive)]
-#[repr(u16)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SyntaxKind(ScannerToken);
+/*
 pub enum SyntaxKind {
     At,
     Arrow,
@@ -339,10 +340,17 @@ impl From<ScannerToken> for SyntaxKind {
         }
     }
 }
+*/
+
+impl SyntaxKind {
+    pub fn from_token(token: ScannerToken) -> Self {
+        Self(token)
+    }
+}
 
 impl From<SyntaxKind> for rowan::SyntaxKind {
     fn from(kind: SyntaxKind) -> Self {
-        Self(kind.to_u16().unwrap())
+        Self(kind.0.to_u16().unwrap())
     }
 }
 
@@ -352,7 +360,7 @@ impl Language for Lang {
     type Kind = SyntaxKind;
 
     fn kind_from_raw(raw: rowan::SyntaxKind) -> Self::Kind {
-        SyntaxKind::from_u16(raw.0).unwrap()
+        SyntaxKind(ScannerToken::from_u16(raw.0).unwrap())
     }
 
     fn kind_to_raw(kind: Self::Kind) -> rowan::SyntaxKind {

@@ -1,9 +1,12 @@
 //! Scanner for lexing tokens
-
 use logos::Logos;
 
+#[macro_use]
+extern crate num_derive;
+
 /// All Tokens scanned by the Scanner
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, ToPrimitive)]
+#[repr(u16)]
 pub enum ScannerToken {
     // Character Tokens
     #[token("@")]
@@ -18,10 +21,10 @@ pub enum ScannerToken {
     Assign,
     #[token(",")]
     Comma,
-    #[token(".")]
-    Dot,
     #[token("..")]
     Range,
+    #[token(".")]
+    Dot,
     #[token("=")]
     Equ,
     #[token(">=")]
@@ -302,7 +305,7 @@ pub enum ScannerToken {
     Xor,
 
     // Literals
-    #[regex("[[:alpha:]_][[:alpha:][:digit:]_]*")]
+    #[regex("[[:alpha:]_][[:alnum:]_]*")]
     Identifier,
     #[regex("'[^\r\n']*('?)")]
     CharLiteral,
@@ -312,6 +315,15 @@ pub enum ScannerToken {
     IntLiteral,
     /// Real Literals
     RealLiteral,
+    // Tokens for composing the literals
+    #[regex("[[:digit:]]+#[[:alnum:]]*")]
+    RadixLiteral,
+    #[regex("[[:digit:]]+")]
+    BasicDigits,
+    #[regex("\\.[[:digit:]]+")]
+    DecimalDigits,
+    #[regex("[eE][+-]?[[:digit:]]+")]
+    ExponentDigits,
 
     /// All whitespace
     #[regex("[ \t]+")]
@@ -328,14 +340,6 @@ pub enum ScannerToken {
 
     #[error]
     Error,
-
-    // All tokens below this point are never passed to the parser //
-
-    // Entry point for other number literals
-    #[doc(hidden)]
-    #[regex("[[:digit:]]+", lex_number_literal)]
-    #[regex("\\.[[:digit:]]+", lex_real_literal)]
-    NumberLiteral(LiteralKind),
 }
 
 #[derive(Debug, PartialEq)]
@@ -344,6 +348,7 @@ pub enum LiteralKind {
     Real,
 }
 
+/*
 fn lex_real_literal(lex: &mut logos::Lexer<ScannerToken>) -> Option<LiteralKind> {
     if lex.slice().ends_with('.') {
         // Bump the numbers
@@ -385,7 +390,7 @@ fn lex_number_literal(lex: &mut logos::Lexer<ScannerToken>) -> Option<LiteralKin
     // A few possible tails:
     // - `(\\.[0-9]+)?([eE][+-]?[0-9]+)`    as real literal
     // - `#[0-9a-zA-Z]*`                    as based
-    // - .*`                                as int
+    // - `*`                                as int
 
     // Can't quite parse the corresponding values as `rowan` doesn't carry
     // that info over through SyntaxKinds
@@ -418,7 +423,7 @@ fn lex_number_literal(lex: &mut logos::Lexer<ScannerToken>) -> Option<LiteralKin
         }
     }
 }
-
+*/
 fn lex_block_comment(lex: &mut logos::Lexer<ScannerToken>) {
     // Continue to lex everything
     let mut bump_len = 0_usize;
@@ -466,15 +471,6 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
     fn next(&mut self) -> Option<Self::Item> {
         let kind = self.inner.next()?;
         let text = self.inner.slice();
-
-        // Transform the token kind
-        let kind = match kind {
-            ScannerToken::NumberLiteral(literal) => match literal {
-                LiteralKind::Real => ScannerToken::RealLiteral,
-                LiteralKind::Int => ScannerToken::IntLiteral,
-            },
-            other => other,
-        };
 
         Some((kind, text))
     }
@@ -544,27 +540,97 @@ mod test {
     #[test]
     fn scan_real_literals() {
         // Allow for leading dot
-        expect(".12345", &ScannerToken::RealLiteral);
+        expect(".12345", &ScannerToken::DecimalDigits);
 
-        expect("1.", &ScannerToken::RealLiteral);
-        expect("100.00", &ScannerToken::RealLiteral);
-        expect("100.00e10", &ScannerToken::RealLiteral);
-        expect("100.00e100", &ScannerToken::RealLiteral);
+        expect_seq(
+            "1.",
+            &[(ScannerToken::BasicDigits, "1"), (ScannerToken::Dot, ".")],
+        );
+        expect_seq(
+            "100.00",
+            &[
+                (ScannerToken::BasicDigits, "100"),
+                (ScannerToken::DecimalDigits, ".00"),
+            ],
+        );
+        expect_seq(
+            "100.00e10",
+            &[
+                (ScannerToken::BasicDigits, "100"),
+                (ScannerToken::DecimalDigits, ".00"),
+                (ScannerToken::ExponentDigits, "e10"),
+            ],
+        );
+        expect_seq(
+            "100.00e100",
+            &[
+                (ScannerToken::BasicDigits, "100"),
+                (ScannerToken::DecimalDigits, ".00"),
+                (ScannerToken::ExponentDigits, "e100"),
+            ],
+        );
 
         // Negative and positive exponents are valid
-        expect("100.00e-100", &ScannerToken::RealLiteral);
-        expect("100.00e+100", &ScannerToken::RealLiteral);
-        expect("1e100", &ScannerToken::RealLiteral);
+        expect_seq(
+            "100.00e-100",
+            &[
+                (ScannerToken::BasicDigits, "100"),
+                (ScannerToken::DecimalDigits, ".00"),
+                (ScannerToken::ExponentDigits, "e-100"),
+            ],
+        );
+        expect_seq(
+            "100.00e+100",
+            &[
+                (ScannerToken::BasicDigits, "100"),
+                (ScannerToken::DecimalDigits, ".00"),
+                (ScannerToken::ExponentDigits, "e+100"),
+            ],
+        );
+        expect_seq(
+            "1e100",
+            &[
+                (ScannerToken::BasicDigits, "1"),
+                (ScannerToken::ExponentDigits, "e100"),
+            ],
+        );
 
         // Invalid format
-        expect_seq("1e+", &[(ScannerToken::Error, "1e+")]);
-        expect_seq("1e-", &[(ScannerToken::Error, "1e-")]);
-        expect_seq("1e", &[(ScannerToken::Error, "1e")]);
+        expect_seq(
+            "1e+",
+            &[
+                (ScannerToken::BasicDigits, "1"),
+                (ScannerToken::Identifier, "e"),
+                (ScannerToken::Plus, "+"),
+            ],
+        );
+        expect_seq(
+            "1e-",
+            &[
+                (ScannerToken::BasicDigits, "1"),
+                (ScannerToken::Identifier, "e"),
+                (ScannerToken::Minus, "-"),
+            ],
+        );
+        expect_seq(
+            "1e",
+            &[
+                (ScannerToken::BasicDigits, "1"),
+                (ScannerToken::Identifier, "e"),
+            ],
+        );
 
-        // Too big (not captured here?)
-        expect("1e600", &ScannerToken::RealLiteral);
+        // Too big (not captured here)
+        expect_seq(
+            "1e600",
+            &[
+                (ScannerToken::BasicDigits, "1"),
+                (ScannerToken::ExponentDigits, "e600"),
+            ],
+        );
 
-        // Test conversions
+        // Test conversions (not used here, migrate to parser once we need literal values)
+        /*
         let conversion_tests = &[
             "2.225073858507201136057409796709131975934819546351645648023426109724822222021076945516529523908135087914149158913039621106870086438694594645527657207407820621743379988141063267329253552286881372149012981122451451889849057222307285255133155755015914397476397983411801999323962548289017107081850690630666655994938275772572015763062690663332647565300009245888316433037779791869612049497390377829704905051080609940730262937128958950003583799967207254304360284078895771796150945516748243471030702609144621572289880258182545180325707018860872113128079512233426288368622321503775666622503982534335974568884423900265498198385487948292206894721689831099698365846814022854243330660339850886445804001034933970427567186443383770486037861622771738545623065874679014086723327636718749999999999999999999999999999999999999e-308",
             "2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308",
@@ -588,46 +654,49 @@ mod test {
         for test in conversion_tests {
             expect(test, &ScannerToken::RealLiteral);
         }
+        */
     }
 
     #[test]
     fn scan_radix_ints() {
-        expect("16#EABC", &ScannerToken::IntLiteral);
+        expect("16#EABC", &ScannerToken::RadixLiteral);
 
         // Overflow
-        expect("10#99999999999999999999", &ScannerToken::IntLiteral);
+        expect("10#99999999999999999999", &ScannerToken::RadixLiteral);
+
+        // Everything below here is not captured in the scanner
 
         // No digits
-        expect("30#", &ScannerToken::IntLiteral);
+        expect("30#", &ScannerToken::RadixLiteral);
 
         // Out of range (> 36)
-        expect("37#asda", &ScannerToken::IntLiteral);
+        expect("37#asda", &ScannerToken::RadixLiteral);
 
         // Out of range (= 0)
-        expect("0#0000", &ScannerToken::IntLiteral);
+        expect("0#0000", &ScannerToken::RadixLiteral);
 
         // Out of range (= 1)
-        expect("1#0000", &ScannerToken::IntLiteral);
+        expect("1#0000", &ScannerToken::RadixLiteral);
 
         // Out of range (= overflow)
-        expect("18446744073709551616#0000", &ScannerToken::IntLiteral);
+        expect("18446744073709551616#0000", &ScannerToken::RadixLiteral);
 
         // Invalid digit
-        expect("10#999a999", &ScannerToken::IntLiteral);
+        expect("10#999a999", &ScannerToken::RadixLiteral);
     }
 
     #[test]
     fn scan_basic_ints() {
-        expect("01234560", &ScannerToken::IntLiteral);
+        expect("01234560", &ScannerToken::BasicDigits);
 
         // Overflow, not detected
-        expect("99999999999999999999", &ScannerToken::IntLiteral);
+        expect("99999999999999999999", &ScannerToken::BasicDigits);
 
         // Digit cutoff
         expect_seq(
             "999a999",
             &[
-                (ScannerToken::IntLiteral, "999"),
+                (ScannerToken::BasicDigits, "999"),
                 (ScannerToken::Identifier, "a999"),
             ],
         );
