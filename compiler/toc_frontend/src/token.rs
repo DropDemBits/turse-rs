@@ -210,6 +210,7 @@ pub enum TokenType {
     Type,
     Unchecked,
     Union,
+    Unit,
     Unqualified,
     Var,
     Wait,

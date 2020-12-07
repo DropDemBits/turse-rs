@@ -132,6 +132,7 @@ lazy_static! {
         map.insert("type", TokenType::Type);
         map.insert("unchecked", TokenType::Unchecked);
         map.insert("union", TokenType::Union);
+        map.insert("unit", TokenType::Unit);
         map.insert("unqualified", TokenType::Unqualified);
         map.insert("var", TokenType::Var);
         map.insert("wait", TokenType::Wait);
@@ -1607,12 +1608,22 @@ mod test {
         assert_eq!(scanner.next().unwrap().token_type, TokenType::And);
         assert!(!scanner.reporter.borrow().has_error());
 
+        // Case sensitive
+        let mut scanner = make_scanner("And");
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
+        assert!(!scanner.reporter.borrow().has_error());
+
         // Multiple keywords in sequence
         let mut scanner = make_scanner("var ident : int");
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Var);
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Identifier);
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Colon);
         assert_eq!(scanner.next().unwrap().token_type, TokenType::Int);
+        assert!(!scanner.reporter.borrow().has_error());
+
+        // Missing keywords
+        let mut scanner = make_scanner("unit");
+        assert_eq!(scanner.next().unwrap().token_type, TokenType::Unit);
         assert!(!scanner.reporter.borrow().has_error());
     }
 
