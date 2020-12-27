@@ -1,22 +1,14 @@
 //! Expression parsing
-use crate::parser::Parser;
-use crate::syntax::{BinaryOp, SyntaxKind};
+use super::*;
+use toc_syntax::{BinaryOp, SyntaxKind};
 
-use toc_scanner::TokenKind;
-
-use super::marker::CompletedMarker;
-
-pub(super) fn expr(parser: &mut Parser) {
-    expr_binding_power(parser, 0);
+pub(super) fn expr(parser: &mut Parser) -> Option<CompletedMarker> {
+    expr_binding_power(parser, 0)
 }
 
-pub(super) fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) {
-    let mut lhs = if let Some(lhs) = expr_prefix(parser) {
-        lhs
-    } else {
-        // TODO: Handle errors later
-        return;
-    };
+fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
+    // TODO: Handle errors later
+    let mut lhs = prefix(parser)?;
 
     loop {
         let op = match parser.peek() {
@@ -24,14 +16,14 @@ pub(super) fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) {
             Some(TokenKind::Minus) => BinaryOp::Sub,
             Some(TokenKind::Slash) => BinaryOp::RealDiv,
             Some(TokenKind::Star) => BinaryOp::Mul,
-            _ => return, // TODO: Handle errors later
+            _ => return None, // TODO: Handle errors later
         };
 
         let (left_bind_power, right_bind_power) = op.binding_power();
 
         if left_bind_power < min_binding_power {
             // stop
-            return;
+            break;
         }
 
         // nom on operator token
@@ -42,19 +34,21 @@ pub(super) fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) {
         expr_binding_power(parser, right_bind_power);
         lhs = m.complete(parser, SyntaxKind::BinaryExpr);
     }
+
+    Some(lhs)
 }
 
-fn expr_prefix(parser: &mut Parser) -> Option<CompletedMarker> {
+fn prefix(parser: &mut Parser) -> Option<CompletedMarker> {
     Some(match parser.peek() {
-        Some(TokenKind::Identifier) => expr_name_ref(parser),
+        Some(TokenKind::Identifier) => ref_expr(parser),
         Some(TokenKind::IntLiteral)
         | Some(TokenKind::RadixLiteral)
-        | Some(TokenKind::RealLiteral) => expr_num_literal(parser),
+        | Some(TokenKind::RealLiteral) => num_literal_expr(parser),
         _ => return None,
     })
 }
 
-fn expr_name_ref(parser: &mut Parser) -> CompletedMarker {
+fn ref_expr(parser: &mut Parser) -> CompletedMarker {
     debug_assert!(parser.at(TokenKind::Identifier));
 
     // nom ident
@@ -63,7 +57,7 @@ fn expr_name_ref(parser: &mut Parser) -> CompletedMarker {
     m.complete(parser, SyntaxKind::NameRef)
 }
 
-fn expr_num_literal(parser: &mut Parser) -> CompletedMarker {
+fn num_literal_expr(parser: &mut Parser) -> CompletedMarker {
     debug_assert!(
         parser.at(TokenKind::IntLiteral)
             || parser.at(TokenKind::RadixLiteral)
@@ -85,7 +79,7 @@ fn expr_num_literal(parser: &mut Parser) -> CompletedMarker {
 // Updating tests? Set `UPDATE_EXPECT=1` before running `cargo test`
 #[cfg(test)]
 mod test {
-    use super::super::check;
+    use crate::check;
     use expect_test::expect;
 
     #[test]

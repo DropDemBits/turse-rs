@@ -220,6 +220,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
 
 [[package]]
+name = "drop_bomb"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bda8e21c04aca2ae33ffc2fd8c23134f3cac46db123ba97bd9d3f3b8a4a85e1"
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -785,11 +791,13 @@ name = "toc_parser"
 version = "0.1.0"
 dependencies = [
  "codemap",
+ "drop_bomb",
  "expect-test",
  "num-derive",
  "num-traits",
  "rowan",
  "toc_scanner",
+ "toc_syntax",
 ]
 
 [[package]]
@@ -797,6 +805,16 @@ name = "toc_scanner"
 version = "0.1.0"
 dependencies = [
  "logos",
+]
+
+[[package]]
+name = "toc_syntax"
+version = "0.1.0"
+dependencies = [
+ "num-derive",
+ "num-traits",
+ "rowan",
+ "toc_scanner",
 ]
 
 [[package]]

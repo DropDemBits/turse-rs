@@ -1,5 +1,5 @@
 [package]
-name = "toc_parser"
+name = "toc_syntax"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2018"
@@ -8,13 +8,7 @@ edition = "2018"
 
 [dependencies]
 toc_scanner = { path = "../toc_scanner" }
-toc_syntax = { path = "../toc_syntax" }
 
 rowan = "^0.10"
-codemap = "^0.1"
 num-derive = "^0.3"
 num-traits = "0.2"
-drop_bomb = "0.1.5"
-
-[dev-dependencies]
-expect-test = "1.0.1"

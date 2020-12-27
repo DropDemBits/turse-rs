@@ -1,11 +1,10 @@
 //! Sink for events
-use std::mem;
-
-use crate::parser::event::Event;
-use crate::syntax::SyntaxKind;
+use crate::event::Event;
 
 use rowan::{GreenNode, GreenNodeBuilder};
-use toc_scanner::Token;
+use std::mem;
+use toc_scanner::token::Token;
+use toc_syntax::SyntaxKind;
 
 pub(super) struct Sink<'t, 'src> {
     builder: GreenNodeBuilder<'static>,
@@ -79,7 +78,7 @@ impl<'t, 'src> Sink<'t, 'src> {
     /// Skips all whitespace, including comments
     fn skip_trivia(&mut self) {
         while let Some(token) = self.tokens.get(self.cursor) {
-            if !token.kind.is_trivia() {
+            if !SyntaxKind::from(token.kind).is_trivia() {
                 break;
             }
 

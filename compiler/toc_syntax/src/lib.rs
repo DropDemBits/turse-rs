@@ -1,7 +1,10 @@
-//! Syntax constructs
+//! Concrete Syntax Tree for the Turing language
 use num_traits::{FromPrimitive, ToPrimitive};
 use rowan::Language;
-use toc_scanner::TokenKind;
+use toc_scanner::token::TokenKind;
+
+#[macro_use]
+extern crate num_derive;
 
 /// Syntax tokens present
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, FromPrimitive, ToPrimitive)]
@@ -321,6 +324,12 @@ pub enum SyntaxKind {
     ConditionKind,
 }
 
+impl SyntaxKind {
+    pub fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace | Self::Comment)
+    }
+}
+
 impl From<TokenKind> for SyntaxKind {
     fn from(token: TokenKind) -> Self {
         match token {
@@ -564,7 +573,7 @@ pub enum BinaryOp {
 }
 
 impl BinaryOp {
-    pub(crate) fn binding_power(&self) -> (u8, u8) {
+    pub fn binding_power(&self) -> (u8, u8) {
         match self {
             Self::Add | Self::Sub => (1, 2),
             Self::Mul | Self::RealDiv => (3, 4),

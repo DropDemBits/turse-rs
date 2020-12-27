@@ -1,6 +1,6 @@
 //! Token Source
-
-use toc_scanner::{Token, TokenKind};
+use toc_scanner::token::{Token, TokenKind};
+use toc_syntax::SyntaxKind;
 
 pub(super) struct Source<'t, 'src> {
     tokens: &'t [Token<'src>],
@@ -37,6 +37,7 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     fn at_trivia(&self) -> bool {
-        self.peek_kind_raw().map_or(false, TokenKind::is_trivia)
+        self.peek_kind_raw()
+            .map_or(false, |kind| SyntaxKind::from(kind).is_trivia())
     }
 }

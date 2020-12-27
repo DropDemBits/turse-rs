@@ -1,5 +1,5 @@
 //! Events produced during parsing
-use crate::syntax::SyntaxKind;
+use toc_syntax::SyntaxKind;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Event {
