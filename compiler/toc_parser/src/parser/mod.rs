@@ -2,19 +2,26 @@
 mod event;
 mod expr;
 mod sink;
-
-use std::iter::Peekable;
+mod source;
 
 use crate::parser::event::Event;
 use crate::parser::sink::Sink;
+use crate::parser::source::Source;
 use crate::syntax::{SyntaxKind, SyntaxNode};
-use toc_scanner::{Scanner, TokenKind};
+
+use toc_scanner::{Scanner, Token, TokenKind};
 
 use rowan::GreenNode;
 
 pub fn parse(source: &str) -> ParseResult {
-    let parser = Parser::new(source);
-    parser.parse()
+    let tokens: Vec<_> = Scanner::new(source).collect();
+    let parser = Parser::new(&tokens);
+    let events = parser.parse();
+    let sink = Sink::new(&tokens, events);
+
+    ParseResult {
+        node: sink.finish(),
+    }
 }
 
 pub struct ParseResult {
@@ -27,22 +34,20 @@ impl ParseResult {
     }
 }
 
-struct Parser<'s> {
-    scanner: Peekable<Scanner<'s>>,
+struct Parser<'t, 'src> {
+    source: Source<'t, 'src>,
     events: Vec<Event>,
 }
 
-impl<'src> Parser<'src> {
-    pub fn new(source: &'src str) -> Self {
-        let scanner = Scanner::new(source).peekable();
-
+impl<'t, 'src> Parser<'t, 'src> {
+    pub fn new(tokens: &'t [Token<'src>]) -> Self {
         Self {
-            scanner,
+            source: Source::new(tokens),
             events: vec![],
         }
     }
 
-    pub fn parse(mut self) -> ParseResult {
+    pub fn parse(mut self) -> Vec<Event> {
         self.start_node(SyntaxKind::Root);
 
         while self.peek().is_some() {
@@ -51,16 +56,11 @@ impl<'src> Parser<'src> {
 
         self.finish_node();
 
-        // Done with the events, build the actual tree
-        let event_sink = Sink::new(self.events);
-
-        ParseResult {
-            node: event_sink.finish(),
-        }
+        self.events
     }
 
     fn peek(&mut self) -> Option<TokenKind> {
-        self.scanner.peek().map(|tok| tok.kind)
+        self.source.peek_kind()
     }
 
     fn start_node(&mut self, kind: SyntaxKind) {
@@ -76,21 +76,18 @@ impl<'src> Parser<'src> {
     }
 
     fn bump(&mut self) {
-        let token = self.scanner.next().unwrap();
+        let token = self.source.next_token().unwrap();
+        let kind = token.kind.into();
+        let text = token.lexeme.into();
 
-        self.events.push(Event::AddToken {
-            kind: token.kind.into(),
-            text: token.lexeme.into(),
-        });
+        self.events.push(Event::AddToken { kind, text });
     }
 
     fn bump_as(&mut self, kind: SyntaxKind) {
-        let token = self.scanner.next().unwrap();
+        let token = self.source.next_token().unwrap();
+        let text = token.lexeme.into();
 
-        self.events.push(Event::AddToken {
-            kind,
-            text: token.lexeme.into(),
-        });
+        self.events.push(Event::AddToken { kind, text });
     }
 
     fn checkpoint(&self) -> usize {
@@ -118,5 +115,29 @@ mod test {
     #[test]
     fn parse_empty_file() {
         check("", expect![[r#"Root@0..0"#]])
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_whitespace() {
+        check("   \t\n   ", expect![[r#"
+            Root@0..8
+              Whitespace@0..8 "   \t\n   ""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_line_comment() {
+        check("% hello", expect![[r#"
+            Root@0..7
+              Comment@0..7 "% hello""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_block_comment() {
+        check("/* hello */", expect![[r#"
+            Root@0..11
+              Comment@0..11 "/* hello */""#]]);
     }
 }

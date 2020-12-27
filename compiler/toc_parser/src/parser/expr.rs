@@ -210,7 +210,7 @@ mod test {
     #[rustfmt::skip]
     fn parse_real_literal_complex_conversions() {
         // Test conversions (all should be valid)
-        
+
         check("2.225073858507201136057409796709131975934819546351645648023426109724822222021076945516529523908135087914149158913039621106870086438694594645527657207407820621743379988141063267329253552286881372149012981122451451889849057222307285255133155755015914397476397983411801999323962548289017107081850690630666655994938275772572015763062690663332647565300009245888316433037779791869612049497390377829704905051080609940730262937128958950003583799967207254304360284078895771796150945516748243471030702609144621572289880258182545180325707018860872113128079512233426288368622321503775666622503982534335974568884423900265498198385487948292206894721689831099698365846814022854243330660339850886445804001034933970427567186443383770486037861622771738545623065874679014086723327636718749999999999999999999999999999999999999e-308", expect![[r#"
             Root@0..811
               RealLiteral@0..811 "2.2250738585072011360 ...""#]]);
@@ -266,7 +266,7 @@ mod test {
 
     #[test]
     #[rustfmt::skip]
-    fn parser_bin_expr_simple() {
+    fn parse_bin_expr_simple() {
         check("1+2", expect![[r#"
             Root@0..3
               BinaryExpr@0..3
@@ -277,7 +277,7 @@ mod test {
 
     #[test]
     #[rustfmt::skip]
-    fn parser_bin_expr_with_left_assoc() {
+    fn parse_bin_expr_with_left_assoc() {
         check("1+2+3+4", expect![[r#"
             Root@0..7
               BinaryExpr@0..7
@@ -294,7 +294,7 @@ mod test {
 
     #[test]
     #[rustfmt::skip]
-    fn parser_bin_expr_with_mixed_binding_power() {
+    fn parse_bin_expr_with_mixed_binding_power() {
         check("1+2*3-4/5", expect![[r#"
             Root@0..9
               BinaryExpr@0..9
@@ -310,5 +310,104 @@ mod test {
                   IntLiteral@6..7 "4"
                   Slash@7..8 "/"
                   IntLiteral@8..9 "5""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_expr_with_leading_ws() {
+        check("     16#480", expect![[r##"
+            Root@0..11
+              Whitespace@0..5 "     "
+              RadixLiteral@5..11 "16#480""##]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_expr_with_trailing_ws() {
+        check("1.0e5    ", expect![[r#"
+            Root@0..9
+              RealLiteral@0..5 "1.0e5"
+              Whitespace@5..9 "    ""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_expr_with_surrounding_ws() {
+        check("  12345    ", expect![[r#"
+            Root@0..11
+              Whitespace@0..2 "  "
+              IntLiteral@2..7 "12345"
+              Whitespace@7..11 "    ""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_bin_expr_with_ws() {
+        check("  1 + 2 - 3* 4    ", expect![[r#"
+            Root@0..18
+              Whitespace@0..2 "  "
+              BinaryExpr@2..18
+                BinaryExpr@2..8
+                  IntLiteral@2..3 "1"
+                  Whitespace@3..4 " "
+                  Plus@4..5 "+"
+                  Whitespace@5..6 " "
+                  IntLiteral@6..7 "2"
+                  Whitespace@7..8 " "
+                Minus@8..9 "-"
+                Whitespace@9..10 " "
+                BinaryExpr@10..18
+                  IntLiteral@10..11 "3"
+                  Star@11..12 "*"
+                  Whitespace@12..13 " "
+                  IntLiteral@13..14 "4"
+                  Whitespace@14..18 "    ""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_exprs_with_comments() {
+        check(r#"
+        1
+        + 2 % interspersed line comment
+        + /* random interleaved comment */ 3
+
+        3 - 2 % step down two
+        + 1 % go back up 1"#,
+        expect![[r#"
+            Root@0..162
+              Whitespace@0..9 "\n        "
+              BinaryExpr@9..105
+                BinaryExpr@9..59
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..19 "\n        "
+                  Plus@19..20 "+"
+                  Whitespace@20..21 " "
+                  IntLiteral@21..22 "2"
+                  Whitespace@22..23 " "
+                  Comment@23..50 "% interspersed line c ..."
+                  Whitespace@50..59 "\n        "
+                Plus@59..60 "+"
+                Whitespace@60..61 " "
+                Comment@61..93 "/* random interleaved ..."
+                Whitespace@93..94 " "
+                IntLiteral@94..95 "3"
+                Whitespace@95..105 "\n\n        "
+              BinaryExpr@105..162
+                BinaryExpr@105..135
+                  IntLiteral@105..106 "3"
+                  Whitespace@106..107 " "
+                  Minus@107..108 "-"
+                  Whitespace@108..109 " "
+                  IntLiteral@109..110 "2"
+                  Whitespace@110..111 " "
+                  Comment@111..126 "% step down two"
+                  Whitespace@126..135 "\n        "
+                Plus@135..136 "+"
+                Whitespace@136..137 " "
+                IntLiteral@137..138 "1"
+                Whitespace@138..139 " "
+                Comment@139..153 "% go back up 1"
+                Whitespace@153..162 "\n        ""#]]);
     }
 }
