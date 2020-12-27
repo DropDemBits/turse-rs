@@ -323,8 +323,6 @@ pub enum SyntaxKind {
 
 impl From<TokenKind> for SyntaxKind {
     fn from(token: TokenKind) -> Self {
-        use toc_scanner::NumberKind;
-
         match token {
             TokenKind::At => SyntaxKind::At,
             TokenKind::Arrow => SyntaxKind::Arrow,
@@ -474,12 +472,13 @@ impl From<TokenKind> for SyntaxKind {
             TokenKind::Identifier => SyntaxKind::Identifier,
             TokenKind::CharLiteral => SyntaxKind::CharLiteral,
             TokenKind::StringLiteral => SyntaxKind::StringLiteral,
-            TokenKind::NumberLiteral(NumberKind::Int) => SyntaxKind::IntLiteral,
-            TokenKind::NumberLiteral(NumberKind::Real) => SyntaxKind::RealLiteral,
-            TokenKind::NumberLiteral(NumberKind::Radix) => SyntaxKind::RadixLiteral,
+            TokenKind::IntLiteral => SyntaxKind::IntLiteral,
+            TokenKind::RealLiteral => SyntaxKind::RealLiteral,
+            TokenKind::RadixLiteral => SyntaxKind::RadixLiteral,
             TokenKind::Whitespace => SyntaxKind::Whitespace,
             TokenKind::Comment => SyntaxKind::Comment,
             TokenKind::Error => SyntaxKind::Error,
+            TokenKind::NumberLiteral(_) => unreachable!(), // always converted out
         }
     }
 }
