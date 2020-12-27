@@ -1,9 +1,11 @@
 //! Sink for events
+use std::mem;
+
 use crate::parser::event::Event;
 use crate::syntax::SyntaxKind;
 
 use rowan::{GreenNode, GreenNodeBuilder, SmolStr};
-use toc_scanner::{Token, TokenKind};
+use toc_scanner::Token;
 
 pub(super) struct Sink<'t, 'src> {
     builder: GreenNodeBuilder<'static>,
@@ -23,22 +25,40 @@ impl<'t, 'src> Sink<'t, 'src> {
     }
 
     pub(super) fn finish(mut self) -> GreenNode {
-        // Rewrite event history to remove `StartNodeAt` by pulling back nodes
-        let mut reordered_events = self.events.clone();
+        for idx in 0..self.events.len() {
+            match mem::replace(&mut self.events[idx], Event::Placeholder) {
+                Event::StartNode {
+                    kind,
+                    forward_parent,
+                } => {
+                    let mut look_at = forward_parent.map(|off| idx + off);
+                    let mut parent_kinds = vec![kind];
 
-        for (idx, event) in self.events.iter().enumerate() {
-            if let Event::StartNodeAt { kind, checkpoint } = event {
-                reordered_events.remove(idx);
-                reordered_events.insert(*checkpoint, Event::StartNode { kind: *kind });
-            }
-        }
+                    while let Some(parent_at) = look_at {
+                        // Pull forward parent node
+                        let node = mem::replace(&mut self.events[parent_at], Event::Placeholder);
 
-        for event in reordered_events {
-            match event {
-                Event::StartNode { kind } => self.builder.start_node(kind.into()),
-                Event::StartNodeAt { .. } => unreachable!(),
+                        if let Event::StartNode {
+                            kind,
+                            forward_parent,
+                        } = node
+                        {
+                            // Jump to the next parent
+                            look_at = forward_parent.map(|off| parent_at + off);
+                            parent_kinds.push(kind.into());
+                        } else {
+                            unreachable!();
+                        }
+                    }
+
+                    // Push the nodes, from outermost (last) to innermost (first)
+                    parent_kinds.into_iter().rev().for_each(|kind| {
+                        self.builder.start_node(kind.into());
+                    });
+                }
                 Event::AddToken { kind, text } => self.token(kind, text),
                 Event::FinishNode => self.builder.finish_node(),
+                Event::Placeholder => {}
             }
 
             self.skip_trivia();
