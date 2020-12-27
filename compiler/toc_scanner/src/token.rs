@@ -2,17 +2,17 @@
 use logos::Logos;
 use std::fmt;
 use std::iter::Peekable;
-use std::ops::Range;
+pub use text_size::TextRange as TokenRange;
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'src> {
     pub kind: TokenKind,
     pub lexeme: &'src str,
-    pub range: Range<u32>,
+    pub range: TokenRange,
 }
 
 impl<'s> Token<'s> {
-    pub(crate) fn new(kind: TokenKind, lexeme: &'s str, range: Range<u32>) -> Self {
+    pub(crate) fn new(kind: TokenKind, lexeme: &'s str, range: TokenRange) -> Self {
         Self {
             kind,
             lexeme,

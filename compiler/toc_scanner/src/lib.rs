@@ -2,6 +2,8 @@
 pub mod token;
 
 use logos::Logos;
+use std::convert::TryFrom;
+use text_size::{TextRange, TextSize};
 use token::{NumberKind, Token, TokenKind};
 
 /// Scanner for tokens
@@ -29,9 +31,14 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
             },
             other => other,
         };
+
         let text = self.inner.slice();
         let range = self.inner.span();
-        let range = range.start as u32..range.end as u32;
+        let (start, end) = (
+            TextSize::try_from(range.start).unwrap(),
+            TextSize::try_from(range.end).unwrap(),
+        );
+        let range = TextRange::new(start, end);
 
         Some(Token::new(kind, text, range))
     }

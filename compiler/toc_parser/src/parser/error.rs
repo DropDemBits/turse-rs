@@ -1,15 +1,14 @@
 //! Parser Error Reports
 
 use std::fmt;
-use std::ops::Range;
 
-use toc_scanner::token::TokenKind;
+use toc_scanner::token::{TokenKind, TokenRange};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ParseError {
     pub(super) expected: Vec<TokenKind>,
     pub(super) found: Option<TokenKind>,
-    pub(super) range: Range<u32>,
+    pub(super) range: TokenRange,
 }
 
 impl fmt::Display for ParseError {
@@ -17,7 +16,8 @@ impl fmt::Display for ParseError {
         write!(
             f,
             "error at {}..{}: expected ",
-            self.range.start, self.range.end,
+            u32::from(self.range.start()),
+            u32::from(self.range.end()),
         )?;
 
         let expected_count = self.expected.len();
@@ -46,9 +46,12 @@ impl fmt::Display for ParseError {
 mod test {
     use super::*;
     use expect_test::{expect, Expect};
+    use std::ops::Range;
 
     #[track_caller]
     fn check(expected: Vec<TokenKind>, found: Option<TokenKind>, range: Range<u32>, out: Expect) {
+        let range = TokenRange::new(range.start.into(), range.end.into());
+
         let err = ParseError {
             expected,
             found,
