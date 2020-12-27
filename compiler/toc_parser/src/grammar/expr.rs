@@ -10,17 +10,14 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     let mut lhs = prefix(p)?;
 
     loop {
-        let op = if p.at(TokenKind::Plus) {
-            BinaryOp::Add
-        } else if p.at(TokenKind::Minus) {
-            BinaryOp::Sub
-        } else if p.at(TokenKind::Star) {
-            BinaryOp::Mul
-        } else if p.at(TokenKind::Slash) {
-            BinaryOp::RealDiv
-        } else {
-            // Not an infix operator, so let the caller decide the outcome
-            break;
+        let op = match_token! {
+            |p| match {
+                TokenKind::Plus => { BinaryOp::Add }
+                TokenKind::Minus => { BinaryOp::Sub }
+                TokenKind::Star => { BinaryOp::Mul }
+                TokenKind::Slash => { BinaryOp::RealDiv }
+                _ => break, // Not an infix operator, so let the caller decide the outcome
+            }
         };
 
         let (left_bind_power, right_bind_power) = op.binding_power();
@@ -43,18 +40,16 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
 }
 
 fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
-    Some({
-        if p.at(TokenKind::Identifier) {
-            ref_expr(p)
-        } else if p.at(TokenKind::IntLiteral) {
-            num_literal_expr(p)
-        } else if p.at(TokenKind::RadixLiteral) {
-            num_literal_expr(p)
-        } else if p.at(TokenKind::RealLiteral) {
-            num_literal_expr(p)
-        } else {
-            p.error();
-            return None;
+    Some(match_token! {
+        |p| match {
+            TokenKind::Identifier => { ref_expr(p) }
+            TokenKind::IntLiteral => { num_literal_expr(p) }
+            TokenKind::RadixLiteral => { num_literal_expr(p) }
+            TokenKind::RealLiteral => { num_literal_expr(p) }
+            _ => {
+                p.error();
+                return None;
+            }
         }
     })
 }
@@ -65,7 +60,7 @@ fn ref_expr(p: &mut Parser) -> CompletedMarker {
     // nom ident
     let m = p.start();
     p.bump();
-    m.complete(p, SyntaxKind::NameRef)
+    m.complete(p, SyntaxKind::RefExpr)
 }
 
 fn num_literal_expr(p: &mut Parser) -> CompletedMarker {
@@ -95,14 +90,24 @@ mod test {
 
     #[test]
     #[rustfmt::skip]
+    fn report_not_a_stmt() {
+        check("pervasive", expect![[r#"
+            Root@0..9
+              Error@0..9
+                KwPervasive@0..9 "pervasive"
+            error at 0..9: expected ’var’, ’const’, identifier, int literal, explicit int literal or real literal, but found ’pervasive’"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
     fn parse_ident_use() {
         check("a", expect![[r#"
             Root@0..1
-              NameRef@0..1
+              RefExpr@0..1
                 Identifier@0..1 "a""#]]);
         check("abcde0123", expect![[r#"
             Root@0..9
-              NameRef@0..9
+              RefExpr@0..9
                 Identifier@0..9 "abcde0123""#]]);
     }
 
@@ -127,7 +132,7 @@ mod test {
             Root@0..7
               LiteralExpr@0..3
                 IntLiteral@0..3 "999"
-              NameRef@3..7
+              RefExpr@3..7
                 Identifier@3..7 "a999""#]]);
     }
 
