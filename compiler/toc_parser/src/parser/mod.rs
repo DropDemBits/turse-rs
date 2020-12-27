@@ -65,6 +65,10 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.source.peek_kind()
     }
 
+    fn at(&mut self, kind: TokenKind) -> bool {
+        self.peek() == Some(kind)
+    }
+
     /// Creates a new `Marker` at the current position
     fn start(&mut self) -> Marker {
         let pos = self.events.len();
@@ -74,11 +78,8 @@ impl<'t, 'src> Parser<'t, 'src> {
     }
 
     fn bump(&mut self) {
-        let token = self.source.next_token().unwrap();
-        let kind = token.kind.into();
-        let text = token.lexeme.into();
-
-        self.events.push(Event::AddToken { kind, text });
+        self.source.next_token().expect("bump at the end of file");
+        self.events.push(Event::AddToken);
     }
 }
 

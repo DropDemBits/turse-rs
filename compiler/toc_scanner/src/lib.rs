@@ -313,6 +313,11 @@ pub enum TokenKind {
     #[regex("\\.?[[:digit:]]+", nom_number_literal)]
     NumberLiteral(NumberKind),
 
+    // Produced by `NumberLiteral`
+    IntLiteral,
+    RealLiteral,
+    RadixLiteral,
+
     /// All whitespace (including line delimiters)
     #[regex("[ \t\r\n]+")]
     Whitespace,
@@ -335,8 +340,8 @@ impl TokenKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumberKind {
     Int,
-    Real,
     Radix,
+    Real,
 }
 
 fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
@@ -403,7 +408,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
 
     // previous set of chars is a sequence of decimal digits, maybe prefixed
     // with a dot
-    let is_fractional_part = lexer.slice().starts_with(".");
+    let is_fractional_part = lexer.slice().starts_with('.');
 
     let remainder: &str = lexer.remainder();
     let mut remaining = remainder.chars().peekable();
@@ -479,7 +484,14 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
     type Item = Token<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let kind = self.inner.next()?;
+        let kind = match self.inner.next()? {
+            TokenKind::NumberLiteral(number_kind) => match number_kind {
+                NumberKind::Int => TokenKind::IntLiteral,
+                NumberKind::Radix => TokenKind::RadixLiteral,
+                NumberKind::Real => TokenKind::RealLiteral,
+            },
+            other => other,
+        };
         let text = self.inner.slice();
 
         Some(Token::new(kind, text))
@@ -549,107 +561,98 @@ mod test {
     #[test]
     fn scan_real_literals() {
         // Allow for leading dot
-        expect(".12345", &TokenKind::NumberLiteral(NumberKind::Real));
+        expect(".12345", &TokenKind::RealLiteral);
         expect_seq(
             ".12345.6789",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Real), ".12345"),
-                Token::new(TokenKind::NumberLiteral(NumberKind::Real), ".6789"),
+                Token::new(TokenKind::RealLiteral, ".12345"),
+                Token::new(TokenKind::RealLiteral, ".6789"),
             ],
         );
 
-        expect("1.", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("100.00", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("100.00e10", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("100.00e100", &TokenKind::NumberLiteral(NumberKind::Real));
+        expect("1.", &TokenKind::RealLiteral);
+        expect("100.00", &TokenKind::RealLiteral);
+        expect("100.00e10", &TokenKind::RealLiteral);
+        expect("100.00e100", &TokenKind::RealLiteral);
 
         // Negative and positive exponents are valid
-        expect("100.00e-100", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("100.00e+100", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("1e100", &TokenKind::NumberLiteral(NumberKind::Real));
+        expect("100.00e-100", &TokenKind::RealLiteral);
+        expect("100.00e+100", &TokenKind::RealLiteral);
+        expect("1e100", &TokenKind::RealLiteral);
 
         // Invalid format
-        expect("1e+", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("1e-", &TokenKind::NumberLiteral(NumberKind::Real));
-        expect("1e", &TokenKind::NumberLiteral(NumberKind::Real));
+        expect("1e+", &TokenKind::RealLiteral);
+        expect("1e-", &TokenKind::RealLiteral);
+        expect("1e", &TokenKind::RealLiteral);
 
         // Don't consume extra '+', '-' or decimal digits
         expect_seq(
             "1.0+",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Real), "1.0"),
+                Token::new(TokenKind::RealLiteral, "1.0"),
                 Token::new(TokenKind::Plus, "+"),
             ],
         );
         expect_seq(
             "1.0-",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Real), "1.0"),
+                Token::new(TokenKind::RealLiteral, "1.0"),
                 Token::new(TokenKind::Minus, "-"),
             ],
         );
         expect_seq(
             "1.0-1000",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Real), "1.0"),
+                Token::new(TokenKind::RealLiteral, "1.0"),
                 Token::new(TokenKind::Minus, "-"),
-                Token::new(TokenKind::NumberLiteral(NumberKind::Int), "1000"),
+                Token::new(TokenKind::IntLiteral, "1000"),
             ],
         );
 
         // Too big (not captured here)
-        expect("1e600", &TokenKind::NumberLiteral(NumberKind::Real));
+        expect("1e600", &TokenKind::RealLiteral);
     }
 
     #[test]
     fn scan_radix_ints() {
-        expect("16#EABC", &TokenKind::NumberLiteral(NumberKind::Radix));
+        expect("16#EABC", &TokenKind::RadixLiteral);
 
         // Overflow
-        expect(
-            "10#99999999999999999999",
-            &TokenKind::NumberLiteral(NumberKind::Radix),
-        );
+        expect("10#99999999999999999999", &TokenKind::RadixLiteral);
 
         // All errors below here are not captured in the scanner
 
         // No digits
-        expect("30#", &TokenKind::NumberLiteral(NumberKind::Radix));
+        expect("30#", &TokenKind::RadixLiteral);
 
         // Out of range (> 36)
-        expect("37#asda", &TokenKind::NumberLiteral(NumberKind::Radix));
+        expect("37#asda", &TokenKind::RadixLiteral);
 
         // Out of range (= 0)
-        expect("0#0000", &TokenKind::NumberLiteral(NumberKind::Radix));
+        expect("0#0000", &TokenKind::RadixLiteral);
 
         // Out of range (= 1)
-        expect("1#0000", &TokenKind::NumberLiteral(NumberKind::Radix));
+        expect("1#0000", &TokenKind::RadixLiteral);
 
         // Out of range (= overflow)
-        expect(
-            "18446744073709551616#0000",
-            &TokenKind::NumberLiteral(NumberKind::Radix),
-        );
+        expect("18446744073709551616#0000", &TokenKind::RadixLiteral);
 
         // Invalid digit
-        expect("10#999a999", &TokenKind::NumberLiteral(NumberKind::Radix));
+        expect("10#999a999", &TokenKind::RadixLiteral);
     }
 
     #[test]
     fn scan_basic_ints() {
-        expect("01234560", &TokenKind::NumberLiteral(NumberKind::Int));
+        expect("01234560", &TokenKind::IntLiteral);
 
         // Overflow, not detected
-        expect(
-            "99999999999999999999",
-            &TokenKind::NumberLiteral(NumberKind::Int),
-        );
+        expect("99999999999999999999", &TokenKind::IntLiteral);
 
         // Digit cutoff
         expect_seq(
             "999a999",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Int), "999"),
+                Token::new(TokenKind::IntLiteral, "999"),
                 Token::new(TokenKind::Identifier, "a999"),
             ],
         );
@@ -661,20 +664,20 @@ mod test {
             "..1",
             &[
                 Token::new(TokenKind::Range, ".."),
-                Token::new(TokenKind::NumberLiteral(NumberKind::Int), "1"),
+                Token::new(TokenKind::IntLiteral, "1"),
             ],
         );
         expect_seq(
             "1..",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Int), "1"),
+                Token::new(TokenKind::IntLiteral, "1"),
                 Token::new(TokenKind::Range, ".."),
             ],
         );
         expect_seq(
             "1eggy",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Real), "1e"),
+                Token::new(TokenKind::RealLiteral, "1e"),
                 Token::new(TokenKind::Identifier, "ggy"),
             ],
         );
@@ -840,7 +843,7 @@ mod test {
         expect_seq(
             "0123_separate",
             &[
-                Token::new(TokenKind::NumberLiteral(NumberKind::Int), "0123"),
+                Token::new(TokenKind::IntLiteral, "0123"),
                 Token::new(TokenKind::Identifier, "_separate"),
             ],
         );

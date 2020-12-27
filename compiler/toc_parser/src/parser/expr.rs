@@ -47,13 +47,15 @@ pub(super) fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) {
 fn expr_prefix(parser: &mut Parser) -> Option<CompletedMarker> {
     Some(match parser.peek() {
         Some(TokenKind::Identifier) => expr_name_ref(parser),
-        Some(TokenKind::NumberLiteral(..)) => expr_num_literal(parser),
+        Some(TokenKind::IntLiteral)
+        | Some(TokenKind::RadixLiteral)
+        | Some(TokenKind::RealLiteral) => expr_num_literal(parser),
         _ => return None,
     })
 }
 
 fn expr_name_ref(parser: &mut Parser) -> CompletedMarker {
-    debug_assert!(matches!(parser.peek(), Some(TokenKind::Identifier)));
+    debug_assert!(parser.at(TokenKind::Identifier));
 
     // nom ident
     let m = parser.start();
@@ -62,7 +64,11 @@ fn expr_name_ref(parser: &mut Parser) -> CompletedMarker {
 }
 
 fn expr_num_literal(parser: &mut Parser) -> CompletedMarker {
-    debug_assert!(matches!(parser.peek(), Some(TokenKind::NumberLiteral(..))));
+    debug_assert!(
+        parser.at(TokenKind::IntLiteral)
+            || parser.at(TokenKind::RadixLiteral)
+            || parser.at(TokenKind::RealLiteral)
+    );
 
     let m = parser.start();
 

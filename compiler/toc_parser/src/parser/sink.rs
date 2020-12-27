@@ -4,7 +4,7 @@ use std::mem;
 use crate::parser::event::Event;
 use crate::syntax::SyntaxKind;
 
-use rowan::{GreenNode, GreenNodeBuilder, SmolStr};
+use rowan::{GreenNode, GreenNodeBuilder};
 use toc_scanner::Token;
 
 pub(super) struct Sink<'t, 'src> {
@@ -45,7 +45,7 @@ impl<'t, 'src> Sink<'t, 'src> {
                         {
                             // Jump to the next parent
                             look_at = forward_parent.map(|off| parent_at + off);
-                            parent_kinds.push(kind.into());
+                            parent_kinds.push(kind);
                         } else {
                             unreachable!();
                         }
@@ -56,7 +56,7 @@ impl<'t, 'src> Sink<'t, 'src> {
                         self.builder.start_node(kind.into());
                     });
                 }
-                Event::AddToken { kind, text } => self.token(kind, text),
+                Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
                 Event::Placeholder => {}
             }
@@ -67,7 +67,11 @@ impl<'t, 'src> Sink<'t, 'src> {
         self.builder.finish()
     }
 
-    fn token(&mut self, kind: SyntaxKind, text: SmolStr) {
+    fn token(&mut self) {
+        let token = &self.tokens[self.cursor];
+        let kind: SyntaxKind = token.kind.into();
+        let text = token.lexeme.into();
+
         self.builder.token(kind.into(), text);
         self.cursor += 1;
     }
@@ -79,7 +83,7 @@ impl<'t, 'src> Sink<'t, 'src> {
                 break;
             }
 
-            self.token(token.kind.into(), token.lexeme.into())
+            self.token()
         }
     }
 }
