@@ -326,6 +326,12 @@ pub enum TokenKind {
     Error,
 }
 
+impl TokenKind {
+    pub fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace | Self::Comment)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumberKind {
     Int,
