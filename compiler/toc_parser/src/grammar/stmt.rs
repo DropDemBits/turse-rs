@@ -2,12 +2,12 @@
 use super::*;
 
 pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
-    if p.at(TokenKind::Var) {
-        const_var_decl(p)
-    } else if p.at(TokenKind::Const) {
-        const_var_decl(p)
-    } else {
-        expr::expr(p)
+    match_token! {
+        |p| match {
+            TokenKind::Var => { const_var_decl(p) }
+            TokenKind::Const => { const_var_decl(p) }
+            _ => expr::expr(p)
+        }
     }
 }
 
@@ -72,19 +72,19 @@ mod test {
         check(
             "const a := 1\na",
             expect![[r#"
-            Root@0..14
-              ConstVarDecl@0..13
-                KwConst@0..5 "const"
-                Whitespace@5..6 " "
-                Identifier@6..7 "a"
-                Whitespace@7..8 " "
-                Assign@8..10 ":="
-                Whitespace@10..11 " "
-                LiteralExpr@11..13
-                  IntLiteral@11..12 "1"
-                  Whitespace@12..13 "\n"
-              NameRef@13..14
-                Identifier@13..14 "a""#]],
+                Root@0..14
+                  ConstVarDecl@0..13
+                    KwConst@0..5 "const"
+                    Whitespace@5..6 " "
+                    Identifier@6..7 "a"
+                    Whitespace@7..8 " "
+                    Assign@8..10 ":="
+                    Whitespace@10..11 " "
+                    LiteralExpr@11..13
+                      IntLiteral@11..12 "1"
+                      Whitespace@12..13 "\n"
+                  RefExpr@13..14
+                    Identifier@13..14 "a""#]],
         );
     }
 
