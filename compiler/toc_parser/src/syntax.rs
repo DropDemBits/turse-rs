@@ -510,3 +510,65 @@ pub type SyntaxNode = rowan::SyntaxNode<Lang>;
 pub type SyntaxToken = rowan::SyntaxToken<Lang>;
 #[allow(unused)]
 pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum BinaryOp {
+    /// Addition / Set Union / String Concatenation (`+`)
+    Add,
+    /// Subtraction / Set Subtraction (`*`)
+    Sub,
+    /// Multiplication / Set Intersection (`*`)
+    Mul,
+    /// Integer Division (`div`)
+    Div,
+    /// Real Division (`/`)
+    RealDiv,
+    /// Modulo (`mod`)
+    Mod,
+    /// Remainder (`rem`)
+    Rem,
+    /// Exponentiation (`**`)
+    Exp,
+    /// Bitwise/boolean And (`and`)
+    And,
+    /// Bitwise/boolean Or (`or`)
+    Or,
+    /// Bitwise/boolean Exclusive-Or (`xor`)
+    Xor,
+    /// Logical Shift Left (`shl`)
+    Shl,
+    /// Logical Shift Right (`shr`)
+    Shr,
+    /// Less than (`<`)
+    Less,
+    /// Less than or Equal (`<=`)
+    LessEq,
+    /// Greater than (`>`)
+    Greater,
+    /// Greater than or Equal (`>=`)
+    GreaterEq,
+    /// Equality (`=` or `=`)
+    Equal,
+    /// Inequality (`not=` or `~=`)
+    NotEqual,
+    /// Set inclusion (`in`)
+    In,
+    /// Set exclusion (`not in`)
+    NotIn,
+    /// Material Implication (`=>`)
+    Imply,
+    /// Arrow (`->`)
+    Arrow,
+    /// Dot (`.`)
+    Dot,
+}
+
+impl BinaryOp {
+    pub(crate) fn binding_power(&self) -> (u8, u8) {
+        match self {
+            Self::Add | Self::Sub => (1, 2),
+            Self::Mul | Self::RealDiv => (3, 4),
+            _ => (0, 0),
+        }
+    }
+}
