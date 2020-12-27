@@ -10,14 +10,17 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     let mut lhs = prefix(p)?;
 
     loop {
-        let op = match p.peek() {
-            Some(TokenKind::Plus) => BinaryOp::Add,
-            Some(TokenKind::Minus) => BinaryOp::Sub,
-            Some(TokenKind::Star) => BinaryOp::Mul,
-            Some(TokenKind::Slash) => BinaryOp::RealDiv,
-
+        let op = if p.at(TokenKind::Plus) {
+            BinaryOp::Add
+        } else if p.at(TokenKind::Minus) {
+            BinaryOp::Sub
+        } else if p.at(TokenKind::Star) {
+            BinaryOp::Mul
+        } else if p.at(TokenKind::Slash) {
+            BinaryOp::RealDiv
+        } else {
             // Not an infix operator, so let the caller decide the outcome
-            _ => break,
+            break;
         };
 
         let (left_bind_power, right_bind_power) = op.binding_power();
@@ -40,12 +43,16 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
 }
 
 fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
-    Some(match p.peek() {
-        Some(TokenKind::Identifier) => ref_expr(p),
-        Some(TokenKind::IntLiteral)
-        | Some(TokenKind::RadixLiteral)
-        | Some(TokenKind::RealLiteral) => num_literal_expr(p),
-        _ => {
+    Some({
+        if p.at(TokenKind::Identifier) {
+            ref_expr(p)
+        } else if p.at(TokenKind::IntLiteral) {
+            num_literal_expr(p)
+        } else if p.at(TokenKind::RadixLiteral) {
+            num_literal_expr(p)
+        } else if p.at(TokenKind::RealLiteral) {
+            num_literal_expr(p)
+        } else {
             p.error();
             return None;
         }

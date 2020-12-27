@@ -30,8 +30,10 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
             other => other,
         };
         let text = self.inner.slice();
+        let range = self.inner.span();
+        let range = range.start as u32..range.end as u32;
 
-        Some(Token::new(kind, text))
+        Some(Token::new(kind, text, range))
     }
 }
 
@@ -46,18 +48,19 @@ mod test {
         let mut scanner = Scanner::new(source);
 
         // Should be the expected token & the same source text
-        let text = scanner.next();
-        assert_eq!(text, Some(Token::new(*kind, source)));
+        let token = scanner.next().unwrap();
+        assert_eq!(token.kind, *kind);
+        assert_eq!(token.lexeme, source);
     }
 
     /// Runs the lexer over the given text, and asserts if the expected tokens
     /// have been scanned
     #[track_caller] // Issue isn't here, but from caller
-    fn expect_seq(source: &str, kinds: &[Token]) {
+    fn expect_seq(source: &str, kinds: &[(TokenKind, &str)]) {
         let scanner = Scanner::new(source);
 
         // Should be the expected tokens & the same source texts
-        let toks: Vec<Token> = scanner.collect();
+        let toks: Vec<(TokenKind, &str)> = scanner.map(|tok| (tok.kind, tok.lexeme)).collect();
         assert_eq!(toks.is_empty(), kinds.is_empty());
         assert_eq!(toks, kinds);
     }
@@ -102,8 +105,8 @@ mod test {
         expect_seq(
             ".12345.6789",
             &[
-                Token::new(TokenKind::RealLiteral, ".12345"),
-                Token::new(TokenKind::RealLiteral, ".6789"),
+                (TokenKind::RealLiteral, ".12345"),
+                (TokenKind::RealLiteral, ".6789"),
             ],
         );
 
@@ -125,24 +128,18 @@ mod test {
         // Don't consume extra '+', '-' or decimal digits
         expect_seq(
             "1.0+",
-            &[
-                Token::new(TokenKind::RealLiteral, "1.0"),
-                Token::new(TokenKind::Plus, "+"),
-            ],
+            &[(TokenKind::RealLiteral, "1.0"), (TokenKind::Plus, "+")],
         );
         expect_seq(
             "1.0-",
-            &[
-                Token::new(TokenKind::RealLiteral, "1.0"),
-                Token::new(TokenKind::Minus, "-"),
-            ],
+            &[(TokenKind::RealLiteral, "1.0"), (TokenKind::Minus, "-")],
         );
         expect_seq(
             "1.0-1000",
             &[
-                Token::new(TokenKind::RealLiteral, "1.0"),
-                Token::new(TokenKind::Minus, "-"),
-                Token::new(TokenKind::IntLiteral, "1000"),
+                (TokenKind::RealLiteral, "1.0"),
+                (TokenKind::Minus, "-"),
+                (TokenKind::IntLiteral, "1000"),
             ],
         );
 
@@ -189,8 +186,8 @@ mod test {
         expect_seq(
             "999a999",
             &[
-                Token::new(TokenKind::IntLiteral, "999"),
-                Token::new(TokenKind::Identifier, "a999"),
+                (TokenKind::IntLiteral, "999"),
+                (TokenKind::Identifier, "a999"),
             ],
         );
     }
@@ -199,23 +196,17 @@ mod test {
     fn scan_literal_and_range() {
         expect_seq(
             "..1",
-            &[
-                Token::new(TokenKind::Range, ".."),
-                Token::new(TokenKind::IntLiteral, "1"),
-            ],
+            &[(TokenKind::Range, ".."), (TokenKind::IntLiteral, "1")],
         );
         expect_seq(
             "1..",
-            &[
-                Token::new(TokenKind::IntLiteral, "1"),
-                Token::new(TokenKind::Range, ".."),
-            ],
+            &[(TokenKind::IntLiteral, "1"), (TokenKind::Range, "..")],
         );
         expect_seq(
             "1eggy",
             &[
-                Token::new(TokenKind::RealLiteral, "1e"),
-                Token::new(TokenKind::Identifier, "ggy"),
+                (TokenKind::RealLiteral, "1e"),
+                (TokenKind::Identifier, "ggy"),
             ],
         );
     }
@@ -380,17 +371,17 @@ mod test {
         expect_seq(
             "0123_separate",
             &[
-                Token::new(TokenKind::IntLiteral, "0123"),
-                Token::new(TokenKind::Identifier, "_separate"),
+                (TokenKind::IntLiteral, "0123"),
+                (TokenKind::Identifier, "_separate"),
             ],
         );
         // Invalid character, but "ba" & "e" should still be parsed
         expect_seq(
             "ba$e",
             &[
-                Token::new(TokenKind::Identifier, "ba"),
-                Token::new(TokenKind::Error, "$"),
-                Token::new(TokenKind::Identifier, "e"),
+                (TokenKind::Identifier, "ba"),
+                (TokenKind::Error, "$"),
+                (TokenKind::Identifier, "e"),
             ],
         );
     }
@@ -400,9 +391,9 @@ mod test {
         expect_seq(
             "% abcd asd\n asd",
             &[
-                Token::new(TokenKind::Comment, "% abcd asd"),
-                Token::new(TokenKind::Whitespace, "\n "),
-                Token::new(TokenKind::Identifier, "asd"),
+                (TokenKind::Comment, "% abcd asd"),
+                (TokenKind::Whitespace, "\n "),
+                (TokenKind::Identifier, "asd"),
             ],
         );
 
@@ -414,9 +405,9 @@ mod test {
         expect_seq(
             "/* /* abcd % * / \n\n\r\n */ */ asd",
             &[
-                Token::new(TokenKind::Comment, "/* /* abcd % * / \n\n\r\n */ */"),
-                Token::new(TokenKind::Whitespace, " "),
-                Token::new(TokenKind::Identifier, "asd"),
+                (TokenKind::Comment, "/* /* abcd % * / \n\n\r\n */ */"),
+                (TokenKind::Whitespace, " "),
+                (TokenKind::Identifier, "asd"),
             ],
         );
 
@@ -434,8 +425,8 @@ mod test {
         expect_seq(
             r#""abcd💖"a"#,
             &[
-                Token::new(TokenKind::StringLiteral, r#""abcd💖""#),
-                Token::new(TokenKind::Identifier, r#"a"#),
+                (TokenKind::StringLiteral, r#""abcd💖""#),
+                (TokenKind::Identifier, r#"a"#),
             ],
         );
 
@@ -445,16 +436,16 @@ mod test {
         expect_seq(
             "\"abcd\n",
             &[
-                Token::new(TokenKind::StringLiteral, "\"abcd"),
-                Token::new(TokenKind::Whitespace, "\n"),
+                (TokenKind::StringLiteral, "\"abcd"),
+                (TokenKind::Whitespace, "\n"),
             ],
         );
 
         expect_seq(
             "\"abcd\r\n",
             &[
-                Token::new(TokenKind::StringLiteral, "\"abcd"),
-                Token::new(TokenKind::Whitespace, "\r\n"),
+                (TokenKind::StringLiteral, "\"abcd"),
+                (TokenKind::Whitespace, "\r\n"),
             ],
         );
 
@@ -471,8 +462,8 @@ mod test {
         expect_seq(
             "'abcd💖'a",
             &[
-                Token::new(TokenKind::CharLiteral, "'abcd💖'"),
-                Token::new(TokenKind::Identifier, "a"),
+                (TokenKind::CharLiteral, "'abcd💖'"),
+                (TokenKind::Identifier, "a"),
             ],
         );
 
@@ -482,16 +473,16 @@ mod test {
         expect_seq(
             "'abcd\n",
             &[
-                Token::new(TokenKind::CharLiteral, "'abcd"),
-                Token::new(TokenKind::Whitespace, "\n"),
+                (TokenKind::CharLiteral, "'abcd"),
+                (TokenKind::Whitespace, "\n"),
             ],
         );
 
         expect_seq(
             "'abcd\r\n",
             &[
-                Token::new(TokenKind::CharLiteral, "'abcd"),
-                Token::new(TokenKind::Whitespace, "\r\n"),
+                (TokenKind::CharLiteral, "'abcd"),
+                (TokenKind::Whitespace, "\r\n"),
             ],
         );
 

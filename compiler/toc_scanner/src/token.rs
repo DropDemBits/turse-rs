@@ -1,6 +1,25 @@
 //! Token related items
 use logos::Logos;
+use std::fmt;
 use std::iter::Peekable;
+use std::ops::Range;
+
+#[derive(Debug, PartialEq)]
+pub struct Token<'src> {
+    pub kind: TokenKind,
+    pub lexeme: &'src str,
+    pub range: Range<u32>,
+}
+
+impl<'s> Token<'s> {
+    pub(crate) fn new(kind: TokenKind, lexeme: &'s str, range: Range<u32>) -> Self {
+        Self {
+            kind,
+            lexeme,
+            range,
+        }
+    }
+}
 
 /// All Tokens scanned by the Scanner
 #[derive(Logos, Debug, Copy, Clone, PartialEq, Eq)]
@@ -448,14 +467,169 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Token<'src> {
-    pub kind: TokenKind,
-    pub lexeme: &'src str,
+impl TokenKind {
+    pub fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace | Self::Comment)
+    }
 }
 
-impl<'s> Token<'s> {
-    pub(crate) fn new(kind: TokenKind, lexeme: &'s str) -> Self {
-        Self { kind, lexeme }
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            TokenKind::At => "’@’",
+            TokenKind::Arrow => "’->’",
+            TokenKind::Caret => "’^’",
+            TokenKind::Colon => "’:’",
+            TokenKind::Assign => "’:=’",
+            TokenKind::Comma => "’,’",
+            TokenKind::Range => "’..’",
+            TokenKind::Dot => "’.’",
+            TokenKind::Equ => "’=’",
+            TokenKind::GreaterEqu => "’>=’",
+            TokenKind::Greater => "’>’",
+            TokenKind::Pound => "’#’",
+            TokenKind::Imply => "’=>’",
+            TokenKind::LessEqu => "’<=’",
+            TokenKind::LeftParen => "’(’",
+            TokenKind::Less => "’<’",
+            TokenKind::Minus => "’-’",
+            TokenKind::Plus => "’+’",
+            TokenKind::RightParen => "’)’",
+            TokenKind::Semicolon => "’;’",
+            TokenKind::Slash => "’/’",
+            TokenKind::Star => "’*’",
+            TokenKind::Exp => "’**’",
+            TokenKind::Tilde => "’~’",
+            TokenKind::Addressint => "’addressint’",
+            TokenKind::All => "’all’",
+            TokenKind::And => "’and’",
+            TokenKind::Array => "’array’",
+            TokenKind::Asm => "’asm’",
+            TokenKind::Assert => "’assert’",
+            TokenKind::Begin => "’begin’",
+            TokenKind::Bind => "’bind’",
+            TokenKind::Bits => "’bits’",
+            TokenKind::Body => "’body’",
+            TokenKind::Boolean => "’boolean’",
+            TokenKind::Break => "’break’",
+            TokenKind::By => "’by’",
+            TokenKind::Case => "’case’",
+            TokenKind::Char => "’char’",
+            TokenKind::Cheat => "’cheat’",
+            TokenKind::Checked => "’checked’",
+            TokenKind::Class => "’class’",
+            TokenKind::Close => "’close’",
+            TokenKind::Collection => "’collection’",
+            TokenKind::Condition => "’condition’",
+            TokenKind::Const => "’const’",
+            TokenKind::Decreasing => "’decreasing’",
+            TokenKind::Def => "’def’",
+            TokenKind::Deferred => "’deferred’",
+            TokenKind::Div => "’div’",
+            TokenKind::Elif => "’elif’",
+            TokenKind::Else => "’else’",
+            TokenKind::Elseif => "’elseif’",
+            TokenKind::Elsif => "’elsif’",
+            TokenKind::End => "’end’",
+            TokenKind::EndCase => "’endcase’",
+            TokenKind::EndFor => "’endfor’",
+            TokenKind::EndIf => "’endif’",
+            TokenKind::EndLoop => "’endloop’",
+            TokenKind::Enum => "’enum’",
+            TokenKind::Exit => "’exit’",
+            TokenKind::Export => "’export’",
+            TokenKind::External => "’external’",
+            TokenKind::False => "’false’",
+            TokenKind::Flexible => "’flexible’",
+            TokenKind::For => "’for’",
+            TokenKind::Fork => "’fork’",
+            TokenKind::Forward => "’forward’",
+            TokenKind::Free => "’free’",
+            TokenKind::Function => "’function’",
+            TokenKind::Get => "’get’",
+            TokenKind::Handler => "’handler’",
+            TokenKind::If => "’if’",
+            TokenKind::Implement => "’implement’",
+            TokenKind::Import => "’import’",
+            TokenKind::In => "’in’",
+            TokenKind::Include => "’include’",
+            TokenKind::Inherit => "’inherit’",
+            TokenKind::Init => "’init’",
+            TokenKind::Int => "’int’",
+            TokenKind::Int1 => "’int1’",
+            TokenKind::Int2 => "’int2’",
+            TokenKind::Int4 => "’int4’",
+            TokenKind::Invariant => "’invariant’",
+            TokenKind::Label => "’label’",
+            TokenKind::Loop => "’loop’",
+            TokenKind::Mod => "’mod’",
+            TokenKind::Module => "’module’",
+            TokenKind::Monitor => "’monitor’",
+            TokenKind::Nat => "’nat’",
+            TokenKind::Nat1 => "’nat1’",
+            TokenKind::Nat2 => "’nat2’",
+            TokenKind::Nat4 => "’nat4’",
+            TokenKind::New => "’new’",
+            TokenKind::Nil => "’nil’",
+            TokenKind::Not => "’not’",
+            TokenKind::ObjectClass => "’objectclass’",
+            TokenKind::Of => "’of’",
+            TokenKind::Opaque => "’opaque’",
+            TokenKind::Open => "’open’",
+            TokenKind::Or => "’or’",
+            TokenKind::Packed => "’packed’",
+            TokenKind::Pause => "’pause’",
+            TokenKind::Pervasive => "’pervasive’",
+            TokenKind::Pointer => "’pointer’",
+            TokenKind::Post => "’post’",
+            TokenKind::Pre => "’pre’",
+            TokenKind::Priority => "’priority’",
+            TokenKind::Procedure => "’procedure’",
+            TokenKind::Process => "’process’",
+            TokenKind::Put => "’put’",
+            TokenKind::Quit => "’quit’",
+            TokenKind::Read => "’read’",
+            TokenKind::Real => "’real’",
+            TokenKind::Real4 => "’real4’",
+            TokenKind::Real8 => "’real8’",
+            TokenKind::Record => "’record’",
+            TokenKind::Register => "’register’",
+            TokenKind::Rem => "’rem’",
+            TokenKind::Result_ => "’result’",
+            TokenKind::Return => "’return’",
+            TokenKind::Seek => "’seek’",
+            TokenKind::Self_ => "’self’",
+            TokenKind::Set => "’set’",
+            TokenKind::Shl => "’shl’",
+            TokenKind::Shr => "’shr’",
+            TokenKind::Signal => "’signal’",
+            TokenKind::Skip => "’skip’",
+            TokenKind::String_ => "’string’",
+            TokenKind::Tag => "’tag’",
+            TokenKind::Tell => "’tell’",
+            TokenKind::Then => "’then’",
+            TokenKind::Timeout => "’timeout’",
+            TokenKind::To => "’to’",
+            TokenKind::True => "’true’",
+            TokenKind::Type => "’type’",
+            TokenKind::Unchecked => "’unchecked’",
+            TokenKind::Union => "’union’",
+            TokenKind::Unit => "’unit’",
+            TokenKind::Unqualified => "’unqualified’",
+            TokenKind::Var => "’var’",
+            TokenKind::Wait => "’wait’",
+            TokenKind::When => "’when’",
+            TokenKind::Write => "’write’",
+            TokenKind::Xor => "’xor’",
+            TokenKind::Identifier => "identifier",
+            TokenKind::CharLiteral => "char literal",
+            TokenKind::StringLiteral => "string literal",
+            TokenKind::IntLiteral => "int literal",
+            TokenKind::RealLiteral => "real literal",
+            TokenKind::RadixLiteral => "explicit int literal",
+            TokenKind::Whitespace => "whitespace",
+            TokenKind::Comment => "comment",
+            _ => unreachable!(),
+        })
     }
 }

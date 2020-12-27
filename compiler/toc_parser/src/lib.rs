@@ -5,6 +5,7 @@ mod parser;
 mod sink;
 mod source;
 
+use parser::ParseError;
 use source::Source;
 use toc_scanner::Scanner;
 use toc_syntax::SyntaxNode;
@@ -20,13 +21,12 @@ pub fn parse(source: &str) -> ParseResult {
     let events = parser.parse();
     let sink = Sink::new(&tokens, events);
 
-    ParseResult {
-        node: sink.finish(),
-    }
+    sink.finish()
 }
 
 pub struct ParseResult {
     node: GreenNode,
+    errors: Vec<ParseError>,
 }
 
 impl ParseResult {
@@ -35,15 +35,29 @@ impl ParseResult {
     }
 }
 
+impl ParseResult {
+    pub fn debug_tree(&self) -> String {
+        let mut s = String::new();
+
+        let syntax_node = SyntaxNode::new_root(self.node.clone());
+        let tree = format!("{:#?}", syntax_node);
+
+        // trim trailing newline
+        s.push_str(&tree[0..tree.len() - 1]);
+
+        for err in &self.errors {
+            s.push_str(&format!("\n{}", err));
+        }
+
+        s
+    }
+}
+
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     let res = parse(source);
-    let syntax = res.syntax();
-    let parsed_tree = format!("{:#?}", syntax);
-
-    // chop off newline
-    expected.assert_eq(&parsed_tree[0..parsed_tree.len() - 1]);
+    expected.assert_eq(&res.debug_tree());
 }
 
 // Updating tests? Set `UPDATE_EXPECT=1` before running `cargo test`
