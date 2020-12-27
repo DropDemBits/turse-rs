@@ -3,10 +3,17 @@ use crate::syntax::SyntaxKind;
 
 use rowan::SmolStr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Event {
-    StartNode { kind: SyntaxKind },
-    StartNodeAt { kind: SyntaxKind, checkpoint: usize },
-    AddToken { kind: SyntaxKind, text: SmolStr },
+    StartNode {
+        kind: SyntaxKind,
+        /// Relative offset to the parent node event
+        forward_parent: Option<usize>,
+    },
+    AddToken {
+        kind: SyntaxKind,
+        text: SmolStr,
+    },
     FinishNode,
+    Placeholder,
 }

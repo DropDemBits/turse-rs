@@ -1,10 +1,12 @@
 //! Main parser
 mod event;
 mod expr;
+mod marker;
 mod sink;
 mod source;
 
 use crate::parser::event::Event;
+use crate::parser::marker::Marker;
 use crate::parser::sink::Sink;
 use crate::parser::source::Source;
 use crate::syntax::{SyntaxKind, SyntaxNode};
@@ -48,13 +50,13 @@ impl<'t, 'src> Parser<'t, 'src> {
     }
 
     pub fn parse(mut self) -> Vec<Event> {
-        self.start_node(SyntaxKind::Root);
+        let root = self.start();
 
         while self.peek().is_some() {
             expr::expr(&mut self);
         }
 
-        self.finish_node();
+        root.complete(&mut self, SyntaxKind::Root);
 
         self.events
     }
@@ -63,16 +65,12 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.source.peek_kind()
     }
 
-    fn start_node(&mut self, kind: SyntaxKind) {
-        self.events.push(Event::StartNode { kind });
-    }
+    /// Creates a new `Marker` at the current position
+    fn start(&mut self) -> Marker {
+        let pos = self.events.len();
+        self.events.push(Event::Placeholder); // Placeholder for future marker
 
-    fn start_node_at(&mut self, checkpoint: usize, kind: SyntaxKind) {
-        self.events.push(Event::StartNodeAt { kind, checkpoint })
-    }
-
-    fn finish_node(&mut self) {
-        self.events.push(Event::FinishNode);
+        Marker::new(pos)
     }
 
     fn bump(&mut self) {
@@ -81,17 +79,6 @@ impl<'t, 'src> Parser<'t, 'src> {
         let text = token.lexeme.into();
 
         self.events.push(Event::AddToken { kind, text });
-    }
-
-    fn bump_as(&mut self, kind: SyntaxKind) {
-        let token = self.source.next_token().unwrap();
-        let text = token.lexeme.into();
-
-        self.events.push(Event::AddToken { kind, text });
-    }
-
-    fn checkpoint(&self) -> usize {
-        self.events.len()
     }
 }
 

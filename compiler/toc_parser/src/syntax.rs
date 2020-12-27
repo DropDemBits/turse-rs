@@ -287,7 +287,7 @@ pub enum SyntaxKind {
     AtCaller,
     BubbleUp,
     Checkedness,
-    ExplicitConstant,
+    LiteralExpr,
     InitExpr,
     BinaryExpr,
     UnaryExpr,
@@ -512,6 +512,7 @@ pub type SyntaxToken = rowan::SyntaxToken<Lang>;
 pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[allow(unused)] // will be used in time
 pub enum BinaryOp {
     /// Addition / Set Union / String Concatenation (`+`)
     Add,
