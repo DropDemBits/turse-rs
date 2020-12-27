@@ -2,10 +2,12 @@
 use super::*;
 
 pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
-    match p.peek() {
-        Some(TokenKind::Var) => const_var_decl(p),
-        Some(TokenKind::Const) => const_var_decl(p),
-        _ => expr::expr(p),
+    if p.at(TokenKind::Var) {
+        const_var_decl(p)
+    } else if p.at(TokenKind::Const) {
+        const_var_decl(p)
+    } else {
+        expr::expr(p)
     }
 }
 
@@ -67,7 +69,9 @@ mod test {
 
     #[test]
     fn parse_several_stmts() {
-        check("const a := 1\na", expect![[r#"
+        check(
+            "const a := 1\na",
+            expect![[r#"
             Root@0..14
               ConstVarDecl@0..13
                 KwConst@0..5 "const"
@@ -80,7 +84,8 @@ mod test {
                   IntLiteral@11..12 "1"
                   Whitespace@12..13 "\n"
               NameRef@13..14
-                Identifier@13..14 "a""#]]);
+                Identifier@13..14 "a""#]],
+        );
     }
 
     #[test]
@@ -104,7 +109,8 @@ mod test {
                     Assign@18..20 ":="
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
-                      IntLiteral@21..22 "1""#]],
+                      IntLiteral@21..22 "1"
+                error at 12..15: expected identifier, int literal, explicit int literal or real literal, but found ’var’"#]],
         );
     }
 
@@ -129,7 +135,8 @@ mod test {
                     Assign@18..20 ":="
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
-                      IntLiteral@21..22 "1""#]],
+                      IntLiteral@21..22 "1"
+                error at 10..15: expected identifier, int literal, explicit int literal or real literal, but found ’const’"#]],
         );
     }
 }

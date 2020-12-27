@@ -1,7 +1,9 @@
 //! Sink for events
 use crate::event::Event;
+use crate::parser::ParseError;
+use crate::ParseResult;
 
-use rowan::{GreenNode, GreenNodeBuilder};
+use rowan::GreenNodeBuilder;
 use std::mem;
 use toc_scanner::token::Token;
 use toc_syntax::SyntaxKind;
@@ -11,6 +13,7 @@ pub(super) struct Sink<'t, 'src> {
     tokens: &'t [Token<'src>],
     cursor: usize,
     events: Vec<Event>,
+    errors: Vec<ParseError>,
 }
 
 impl<'t, 'src> Sink<'t, 'src> {
@@ -20,10 +23,11 @@ impl<'t, 'src> Sink<'t, 'src> {
             tokens,
             cursor: 0,
             events,
+            errors: vec![],
         }
     }
 
-    pub(super) fn finish(mut self) -> GreenNode {
+    pub(super) fn finish(mut self) -> ParseResult {
         for idx in 0..self.events.len() {
             match mem::replace(&mut self.events[idx], Event::Placeholder) {
                 Event::StartNode {
@@ -57,13 +61,17 @@ impl<'t, 'src> Sink<'t, 'src> {
                 }
                 Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
+                Event::Error(err) => self.errors.push(err),
                 Event::Placeholder => {}
             }
 
             self.skip_trivia();
         }
 
-        self.builder.finish()
+        ParseResult {
+            node: self.builder.finish(),
+            errors: self.errors,
+        }
     }
 
     fn token(&mut self) {
@@ -78,7 +86,7 @@ impl<'t, 'src> Sink<'t, 'src> {
     /// Skips all whitespace, including comments
     fn skip_trivia(&mut self) {
         while let Some(token) = self.tokens.get(self.cursor) {
-            if !SyntaxKind::from(token.kind).is_trivia() {
+            if !token.kind.is_trivia() {
                 break;
             }
 

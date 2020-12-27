@@ -1,7 +1,9 @@
 //! Events produced during parsing
+use crate::parser::ParseError;
+
 use toc_syntax::SyntaxKind;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum Event {
     StartNode {
         kind: SyntaxKind,
@@ -10,5 +12,6 @@ pub(crate) enum Event {
     },
     AddToken,
     FinishNode,
+    Error(ParseError),
     Placeholder,
 }

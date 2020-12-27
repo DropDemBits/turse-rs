@@ -1,6 +1,7 @@
 //! Token Source
+use std::ops::Range;
+
 use toc_scanner::token::{Token, TokenKind};
-use toc_syntax::SyntaxKind;
 
 pub(super) struct Source<'t, 'src> {
     tokens: &'t [Token<'src>],
@@ -8,11 +9,11 @@ pub(super) struct Source<'t, 'src> {
 }
 
 impl<'t, 'src> Source<'t, 'src> {
-    pub(super) fn new(tokens: &'t [Token<'src>]) -> Self {
+    pub(crate) fn new(tokens: &'t [Token<'src>]) -> Self {
         Self { tokens, cursor: 0 }
     }
 
-    pub(super) fn next_token(&mut self) -> Option<&Token> {
+    pub(crate) fn next_token(&mut self) -> Option<&Token> {
         self.skip_trivia();
         let token = self.tokens.get(self.cursor)?;
 
@@ -20,13 +21,26 @@ impl<'t, 'src> Source<'t, 'src> {
         Some(token)
     }
 
-    pub(super) fn peek_kind(&mut self) -> Option<TokenKind> {
+    pub(crate) fn peek_kind(&mut self) -> Option<TokenKind> {
         self.skip_trivia();
         self.peek_kind_raw()
     }
 
+    pub(crate) fn peek_token(&mut self) -> Option<&Token> {
+        self.skip_trivia();
+        self.peek_token_raw()
+    }
+
+    pub(crate) fn last_token_range(&self) -> Option<Range<u32>> {
+        self.tokens.last().map(|Token { range, .. }| range.clone())
+    }
+
     fn peek_kind_raw(&self) -> Option<TokenKind> {
-        self.tokens.get(self.cursor).map(|tok| tok.kind)
+        self.peek_token_raw().map(|tok| tok.kind)
+    }
+
+    fn peek_token_raw(&self) -> Option<&Token> {
+        self.tokens.get(self.cursor)
     }
 
     /// Skips over all triva tokens
@@ -37,7 +51,6 @@ impl<'t, 'src> Source<'t, 'src> {
     }
 
     fn at_trivia(&self) -> bool {
-        self.peek_kind_raw()
-            .map_or(false, |kind| SyntaxKind::from(kind).is_trivia())
+        self.peek_kind_raw().map_or(false, TokenKind::is_trivia)
     }
 }
