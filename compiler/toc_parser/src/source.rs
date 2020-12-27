@@ -1,7 +1,6 @@
 //! Token Source
-use std::ops::Range;
 
-use toc_scanner::token::{Token, TokenKind};
+use toc_scanner::token::{Token, TokenKind, TokenRange};
 
 pub(super) struct Source<'t, 'src> {
     tokens: &'t [Token<'src>],
@@ -31,8 +30,8 @@ impl<'t, 'src> Source<'t, 'src> {
         self.peek_token_raw()
     }
 
-    pub(crate) fn last_token_range(&self) -> Option<Range<u32>> {
-        self.tokens.last().map(|Token { range, .. }| range.clone())
+    pub(crate) fn last_token_range(&self) -> Option<TokenRange> {
+        self.tokens.last().map(|Token { range, .. }| *range)
     }
 
     fn peek_kind_raw(&self) -> Option<TokenKind> {

@@ -805,6 +805,7 @@ name = "toc_scanner"
 version = "0.1.0"
 dependencies = [
  "logos",
+ "text-size",
 ]
 
 [[package]]
