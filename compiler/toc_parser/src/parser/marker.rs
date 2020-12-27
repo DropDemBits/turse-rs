@@ -1,25 +1,26 @@
 //! Marker stuff
+use super::Parser;
+use crate::event::Event;
 
-use crate::parser::event::Event;
-use crate::parser::Parser;
-use crate::syntax::SyntaxKind;
+use drop_bomb::DropBomb;
+use toc_syntax::SyntaxKind;
 
-pub(super) struct Marker {
+pub(crate) struct Marker {
     pos: usize,
-    completed: bool, // could use `drop_bomb`, but we want to minimize deps for now
+    bomb: DropBomb,
 }
 
 impl Marker {
-    pub(super) fn new(pos: usize) -> Self {
+    pub(crate) fn new(pos: usize) -> Self {
         Marker {
             pos,
-            completed: false,
+            bomb: DropBomb::new("Incomplete marker, missing matching `complete` call"),
         }
     }
 
     /// Finishes a `Marker` for the given `kind`, converting it into a `CompletedMarker`
-    pub(super) fn complete(mut self, parser: &mut Parser, kind: SyntaxKind) -> CompletedMarker {
-        self.completed = true;
+    pub(crate) fn complete(mut self, parser: &mut Parser, kind: SyntaxKind) -> CompletedMarker {
+        self.bomb.defuse();
 
         // Replace placeholder with actual starting node
         let event_at_pos = &mut parser.events[self.pos];
@@ -36,22 +37,14 @@ impl Marker {
     }
 }
 
-impl Drop for Marker {
-    fn drop(&mut self) {
-        if !self.completed {
-            panic!("Incomplete marker, missing matching `complete` call");
-        }
-    }
-}
-
-pub(super) struct CompletedMarker {
+pub(crate) struct CompletedMarker {
     pos: usize,
 }
 
 impl CompletedMarker {
     /// Transforms a `CompletedMarker` back into a `Marker` for appending more tokens,
     /// or wrapping other syntax nodes
-    pub(super) fn precede(self, parser: &mut Parser) -> Marker {
+    pub(crate) fn precede(self, parser: &mut Parser) -> Marker {
         let new_marker = parser.start();
 
         // Modify original starting node

@@ -20,7 +20,7 @@ macro_rules! make_bench_over {
             group.bench_with_input("new scanner", source, |b, src| {
                 b.iter(|| {
                     let scanner = new_scanner::Scanner::new(black_box(src));
-                    let _e: Vec<toc_scanner::Token> = black_box(scanner.collect());
+                    let _e: Vec<_> = black_box(scanner.collect());
                 })
             });
 
