@@ -577,7 +577,7 @@ impl BinaryOp {
         match self {
             Self::Add | Self::Sub => (1, 2),
             Self::Mul | Self::RealDiv => (3, 4),
-            _ => (0, 0),
+            _ => (0, 1),
         }
     }
 }

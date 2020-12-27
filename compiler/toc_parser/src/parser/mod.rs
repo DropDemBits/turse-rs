@@ -7,6 +7,9 @@ use crate::parser::marker::Marker;
 use crate::source::Source;
 
 use toc_scanner::token::TokenKind;
+use toc_syntax::SyntaxKind;
+
+const RECOVERY_SET: &[TokenKind] = &[TokenKind::Var, TokenKind::Const];
 
 pub(crate) struct Parser<'t, 'src> {
     source: Source<'t, 'src>,
@@ -32,6 +35,34 @@ impl<'t, 'src> Parser<'t, 'src> {
 
     pub(crate) fn at(&mut self, kind: TokenKind) -> bool {
         self.peek() == Some(kind)
+    }
+
+    pub(crate) fn expect(&mut self, kind: TokenKind) {
+        if self.at(kind) {
+            // Nom on token, expected
+            self.bump()
+        } else {
+            self.error();
+        }
+    }
+
+    pub(crate) fn error(&mut self) {
+        if !self.at_set(&RECOVERY_SET) && !self.at_end() {
+            // not in the recovery set? consume it! (wrap in error node)
+            let err = self.start();
+            self.bump();
+            err.complete(self, SyntaxKind::Error);
+        }
+    }
+
+    /// Checks if the cursor is past the end
+    pub(crate) fn at_end(&mut self) -> bool {
+        self.peek().is_none()
+    }
+
+    /// Checks if the current token is in the given set
+    fn at_set(&mut self, set: &[TokenKind]) -> bool {
+        self.peek().map_or(false, |k| set.contains(&k))
     }
 
     /// Creates a new `Marker` at the current position

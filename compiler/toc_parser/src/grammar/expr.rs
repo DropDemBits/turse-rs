@@ -2,21 +2,22 @@
 use super::*;
 use toc_syntax::{BinaryOp, SyntaxKind};
 
-pub(super) fn expr(parser: &mut Parser) -> Option<CompletedMarker> {
-    expr_binding_power(parser, 0)
+pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
+    expr_binding_power(p, 0)
 }
 
-fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
-    // TODO: Handle errors later
-    let mut lhs = prefix(parser)?;
+fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
+    let mut lhs = prefix(p)?;
 
     loop {
-        let op = match parser.peek() {
+        let op = match p.peek() {
             Some(TokenKind::Plus) => BinaryOp::Add,
             Some(TokenKind::Minus) => BinaryOp::Sub,
-            Some(TokenKind::Slash) => BinaryOp::RealDiv,
             Some(TokenKind::Star) => BinaryOp::Mul,
-            _ => return None, // TODO: Handle errors later
+            Some(TokenKind::Slash) => BinaryOp::RealDiv,
+
+            // Not an infix operator, so let the caller decide the outcome
+            _ => break,
         };
 
         let (left_bind_power, right_bind_power) = op.binding_power();
@@ -27,53 +28,56 @@ fn expr_binding_power(parser: &mut Parser, min_binding_power: u8) -> Option<Comp
         }
 
         // nom on operator token
-        parser.bump();
+        p.bump();
 
         // wrap inside a binary expr
-        let m = lhs.precede(parser);
-        expr_binding_power(parser, right_bind_power);
-        lhs = m.complete(parser, SyntaxKind::BinaryExpr);
+        let m = lhs.precede(p);
+        expr_binding_power(p, right_bind_power);
+        lhs = m.complete(p, SyntaxKind::BinaryExpr);
     }
 
     Some(lhs)
 }
 
-fn prefix(parser: &mut Parser) -> Option<CompletedMarker> {
-    Some(match parser.peek() {
-        Some(TokenKind::Identifier) => ref_expr(parser),
+fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
+    Some(match p.peek() {
+        Some(TokenKind::Identifier) => ref_expr(p),
         Some(TokenKind::IntLiteral)
         | Some(TokenKind::RadixLiteral)
-        | Some(TokenKind::RealLiteral) => num_literal_expr(parser),
-        _ => return None,
+        | Some(TokenKind::RealLiteral) => num_literal_expr(p),
+        _ => {
+            p.error();
+            return None;
+        }
     })
 }
 
-fn ref_expr(parser: &mut Parser) -> CompletedMarker {
-    debug_assert!(parser.at(TokenKind::Identifier));
+fn ref_expr(p: &mut Parser) -> CompletedMarker {
+    debug_assert!(p.at(TokenKind::Identifier));
 
     // nom ident
-    let m = parser.start();
-    parser.bump();
-    m.complete(parser, SyntaxKind::NameRef)
+    let m = p.start();
+    p.bump();
+    m.complete(p, SyntaxKind::NameRef)
 }
 
-fn num_literal_expr(parser: &mut Parser) -> CompletedMarker {
+fn num_literal_expr(p: &mut Parser) -> CompletedMarker {
     debug_assert!(
-        parser.at(TokenKind::IntLiteral)
-            || parser.at(TokenKind::RadixLiteral)
-            || parser.at(TokenKind::RealLiteral)
+        p.at(TokenKind::IntLiteral)
+            || p.at(TokenKind::RadixLiteral)
+            || p.at(TokenKind::RealLiteral)
     );
 
-    let m = parser.start();
+    let m = p.start();
 
     // TODO: Validate literal is actually valid
     // TODO: Report invalid literals
 
     // bump number
     // Token gets automagically transformed into the correct type
-    parser.bump();
+    p.bump();
 
-    m.complete(parser, SyntaxKind::LiteralExpr)
+    m.complete(p, SyntaxKind::LiteralExpr)
 }
 
 // Updating tests? Set `UPDATE_EXPECT=1` before running `cargo test`
