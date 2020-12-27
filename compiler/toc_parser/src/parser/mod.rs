@@ -32,7 +32,7 @@ struct Parser<'src> {
 
 /// Converts a token into the corresponding rowan `SyntaxKind`
 fn to_kind(token: Token) -> rowan::SyntaxKind {
-    SyntaxKind::from_token(token).into()
+    SyntaxKind::from(token).into()
 }
 
 impl<'src> Parser<'src> {
@@ -81,7 +81,7 @@ impl<'src> Parser<'src> {
         // Bump into node
         if let Some((previous, text)) = self.previous.clone() {
             self.builder
-                .token(SyntaxKind::from_token(previous).into(), text.into());
+                .token(SyntaxKind::from(previous).into(), text.into());
             Some(previous)
         } else {
             None
@@ -122,8 +122,8 @@ impl<'src> Parser<'src> {
         }
     }
 
-    /// Skips to the next non-whitespace token (including comments but excluding newlines)
-    fn skip_ws_no_nl(&mut self) {
+    /// Skips to the next non-whitespace token (including newlines and comments)
+    fn skip_ws(&mut self) {
         while matches!(
             self.current(),
             Some(Token::Whitespace) | Some(Token::Comment)
@@ -132,18 +132,8 @@ impl<'src> Parser<'src> {
         }
     }
 
-    /// Skips to the next non-whitespace token (including newlines and comments)
-    fn skip_ws(&mut self) {
-        while matches!(
-            self.current(),
-            Some(Token::Whitespace) | Some(Token::LineEnd) | Some(Token::Comment)
-        ) {
-            self.next_token();
-        }
-    }
-
     pub fn parse(mut self) -> ParseResult {
-        self.builder.start_node(to_kind(Token::Root));
+        self.builder.start_node(SyntaxKind::Root.into());
         self.skip_ws(); // go over preliminary stuff
 
         while let Some(token) = self.current() {
@@ -165,9 +155,9 @@ impl<'src> Parser<'src> {
     }
 
     fn name_list(&mut self) {
-        self.builder.start_node(to_kind(Token::NameList));
+        self.builder.start_node(SyntaxKind::NameList.into());
 
-        self.builder.start_node(to_kind(Token::Name));
+        self.builder.start_node(SyntaxKind::Name.into());
         let _ = self.expects(
             Token::Identifier,
             format_args!("Expected name to start list of names"),
@@ -178,7 +168,7 @@ impl<'src> Parser<'src> {
 
         while self.optional(Token::Comma) {
             self.skip_ws();
-            self.builder.start_node(to_kind(Token::Name));
+            self.builder.start_node(SyntaxKind::Name.into());
             let _ = self.expects(Token::Identifier, format_args!("Expected name after ','"));
             self.builder.finish_node();
             self.skip_ws();
@@ -193,7 +183,7 @@ impl<'src> Parser<'src> {
             Some(Token::Var) | Some(Token::Const)
         ));
 
-        self.builder.start_node(to_kind(Token::ConstVarDecl));
+        self.builder.start_node(SyntaxKind::ConstVarDecl.into());
         self.next_token(); // nom const or var
         self.skip_ws();
 
