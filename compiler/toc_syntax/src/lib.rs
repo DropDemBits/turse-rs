@@ -606,3 +606,28 @@ impl BinaryOp {
         }
     }
 }
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum UnaryOp {
+    /// Binary/boolean negation operator (`not`)
+    Not,
+    /// Nat cheat (`#`)
+    NatCheat,
+    /// Integer identity (`+`)
+    Identity,
+    /// Integer negation (`-`)
+    Negate,
+    /// Pointer dereferencing operator (`^`)
+    Deref,
+}
+
+impl UnaryOp {
+    pub fn binding_power(&self) -> ((), u8) {
+        match self {
+            Self::Not => ((), 8),
+            Self::Identity | Self::Negate => ((), 16),
+            Self::NatCheat => ((), 20),
+            Self::Deref => ((), 28),
+        }
+    }
+}

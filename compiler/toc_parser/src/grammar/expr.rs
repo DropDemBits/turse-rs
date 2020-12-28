@@ -1,6 +1,6 @@
 //! Expression parsing
 use super::*;
-use toc_syntax::{BinaryOp, SyntaxKind};
+use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
 pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
     expr_binding_power(p, 0)
@@ -32,8 +32,13 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
 
         // wrap inside a binary expr
         let m = lhs.precede(p);
-        expr_binding_power(p, right_bind_power);
+        let found_rhs = expr_binding_power(p, right_bind_power).is_some();
         lhs = m.complete(p, SyntaxKind::BinaryExpr);
+
+        if !found_rhs {
+            // did not find an rhs for the operator, bail out
+            break;
+        }
     }
 
     Some(lhs)
@@ -104,31 +109,78 @@ fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
     }))
 }
 
+fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
+    Some(match_token!(|p| match {
+        TokenKind::Not => { UnaryOp::Not }
+        TokenKind::Plus => { UnaryOp::Identity }
+        TokenKind::Minus => { UnaryOp::Negate }
+        TokenKind::Caret => { UnaryOp::Deref }
+        TokenKind::Pound => { UnaryOp::NatCheat }
+        _ => return None,
+    }))
+}
+
 fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
-    Some(match_token! {
+    match_token! {
         |p| match {
             TokenKind::Identifier => { ref_expr(p) }
             TokenKind::IntLiteral => { num_literal_expr(p) }
             TokenKind::RadixLiteral => { num_literal_expr(p) }
             TokenKind::RealLiteral => { num_literal_expr(p) }
+            TokenKind::LeftParen => { paren_expr(p) }
             _ => {
-                p.error();
-                return None;
+                if let Some(op) = prefix_op(p) {
+                    // parse a prefix op
+                    let m = p.start();
+                    let ((), right_binding_power) = op.binding_power();
+
+                    // nom on operator token
+                    p.bump();
+
+                    expr_binding_power(p, right_binding_power);
+
+                    // Specialize based on the operator
+                    Some(m.complete(
+                        p,
+                        if op == UnaryOp::Deref {
+                            SyntaxKind::DerefExpr
+                        } else {
+                            SyntaxKind::UnaryExpr
+                        },
+                    ))
+                } else {
+                    p.error();
+                    None
+                }
             }
         }
-    })
+    }
 }
 
-fn ref_expr(p: &mut Parser) -> CompletedMarker {
+fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::LeftParen));
+
+    let m = p.start();
+
+    p.bump();
+    expr_binding_power(p, 0);
+    p.reset_expected_tokens();
+
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::ParenExpr))
+}
+
+fn ref_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Identifier));
 
     // nom ident
     let m = p.start();
     p.bump();
-    m.complete(p, SyntaxKind::RefExpr)
+    Some(m.complete(p, SyntaxKind::RefExpr))
 }
 
-fn num_literal_expr(p: &mut Parser) -> CompletedMarker {
+fn num_literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(
         p.at(TokenKind::IntLiteral)
             || p.at(TokenKind::RadixLiteral)
@@ -144,7 +196,7 @@ fn num_literal_expr(p: &mut Parser) -> CompletedMarker {
     // Token gets automagically transformed into the correct type
     p.bump();
 
-    m.complete(p, SyntaxKind::LiteralExpr)
+    Some(m.complete(p, SyntaxKind::LiteralExpr))
 }
 
 // Updating tests? Set `UPDATE_EXPECT=1` before running `cargo test`
@@ -156,11 +208,11 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn report_not_a_stmt() {
-        check("pervasive", expect![[r#"
+        check("pervasive", expect![[r##"
             Root@0..9
               Error@0..9
                 KwPervasive@0..9 "pervasive"
-            error at 0..9: expected ’var’, ’const’, identifier, int literal, explicit int literal or real literal, but found ’pervasive’"#]]);
+            error at 0..9: expected ’var’, ’const’, identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’, but found ’pervasive’"##]]);
     }
 
     #[test]
@@ -576,6 +628,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_simple_infix() {
         check("1 => 2", expect![[r#"
             Root@0..6
@@ -752,6 +805,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_ne_form1() {
         check("1 ~= 2", expect![[r#"
             Root@0..6
@@ -768,6 +822,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_ne_form2() {
         check("1 ~ = 2", expect![[r#"
             Root@0..7
@@ -785,6 +840,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_ne_form3() {
         check("1 not = 2", expect![[r#"
             Root@0..9
@@ -802,6 +858,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_ne_form4() {
         check("1 not= 2", expect![[r#"
             Root@0..8
@@ -818,6 +875,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_in() {
         check("1 in a", expect![[r#"
             Root@0..6
@@ -832,6 +890,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_not_in_form1() {
         check("1 not in a", expect![[r#"
             Root@0..10
@@ -849,6 +908,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_not_in_form2() {
         check("1 ~in a", expect![[r#"
             Root@0..7
@@ -865,6 +925,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn parse_not_in_form3() {
         check("1 ~ in a", expect![[r#"
             Root@0..8
@@ -882,6 +943,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn recover_tilde_as_infix() {
         check("1 ~ 2", expect![[r#"
             Root@0..5
@@ -896,6 +958,7 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
     fn recover_tilde_not_infix() {
         check("1 not 2", expect![[r#"
             Root@0..7
@@ -907,5 +970,108 @@ mod test {
                 Whitespace@5..6 " "
                 IntLiteral@6..7 "2"
             error at 6..7: expected ’in’ or ’=’, but found int literal"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_simple_prefix() {
+        check("-10", expect![[r#"
+            Root@0..3
+              UnaryExpr@0..3
+                Minus@0..1 "-"
+                LiteralExpr@1..3
+                  IntLiteral@1..3 "10""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn negation_over_arithmetic() {
+        check("-10+20", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                UnaryExpr@0..3
+                  Minus@0..1 "-"
+                  LiteralExpr@1..3
+                    IntLiteral@1..3 "10"
+                Plus@3..4 "+"
+                LiteralExpr@4..6
+                  IntLiteral@4..6 "20""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_nested_parens() {
+        check("(((20)))", expect![[r#"
+            Root@0..8
+              ParenExpr@0..8
+                LeftParen@0..1 "("
+                ParenExpr@1..7
+                  LeftParen@1..2 "("
+                  ParenExpr@2..6
+                    LeftParen@2..3 "("
+                    LiteralExpr@3..5
+                      IntLiteral@3..5 "20"
+                    RightParen@5..6 ")"
+                  RightParen@6..7 ")"
+                RightParen@7..8 ")""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parens_alter_precedence() {
+        check("1/(2+3)", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..1
+                  IntLiteral@0..1 "1"
+                Slash@1..2 "/"
+                ParenExpr@2..7
+                  LeftParen@2..3 "("
+                  BinaryExpr@3..6
+                    LiteralExpr@3..4
+                      IntLiteral@3..4 "2"
+                    Plus@4..5 "+"
+                    LiteralExpr@5..6
+                      IntLiteral@5..6 "3"
+                  RightParen@6..7 ")""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_missing_closing_paren() {
+        check("(1", expect![[r#"
+            Root@0..2
+              ParenExpr@0..2
+                LeftParen@0..1 "("
+                LiteralExpr@1..2
+                  IntLiteral@1..2 "1"
+            error at 1..2: expected ’)’"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_missing_closing_paren_and_rhs() {
+        check("(1+", expect![[r##"
+            Root@0..3
+              ParenExpr@0..3
+                LeftParen@0..1 "("
+                BinaryExpr@1..3
+                  LiteralExpr@1..2
+                    IntLiteral@1..2 "1"
+                  Plus@2..3 "+"
+            error at 2..3: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’
+            error at 2..3: expected ’)’"##]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_missing_rhs() {
+        check("1+", expect![[r##"
+            Root@0..2
+              BinaryExpr@0..2
+                LiteralExpr@0..1
+                  IntLiteral@0..1 "1"
+                Plus@1..2 "+"
+            error at 1..2: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’"##]]);
     }
 }
