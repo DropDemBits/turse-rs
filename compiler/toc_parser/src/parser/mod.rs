@@ -80,8 +80,8 @@ impl<'t, 'src> Parser<'t, 'src> {
             kind: ErrorKind::UnexpectedToken {
                 expected: mem::take(&mut self.expected_kinds),
                 found,
-                range,
             },
+            range,
         }));
 
         if !self.at_set(&RECOVERY_SET) && !self.at_end() {
