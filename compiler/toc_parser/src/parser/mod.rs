@@ -6,7 +6,8 @@ pub(crate) use error::ParseError;
 
 use crate::event::Event;
 use crate::grammar;
-use crate::parser::marker::Marker;
+use crate::parser::error::ErrorKind;
+use crate::parser::marker::{Marker, MaybeMarker};
 use crate::source::Source;
 
 use std::mem;
@@ -53,7 +54,17 @@ impl<'t, 'src> Parser<'t, 'src> {
         }
     }
 
+    /// Reports an unexpected token error at the current token
     pub(crate) fn error(&mut self) {
+        let err = self.start(); // start error node
+        self.error_unexpected_at(err);
+    }
+
+    /// Reports an unexpected token error at the given marker
+    pub(crate) fn error_unexpected_at<T>(&mut self, err_at: T)
+    where
+        T: Into<Marker>,
+    {
         let current = self.source.peek_token();
 
         let (found, range) = if let Some(Token { kind, range, .. }) = current {
@@ -65,16 +76,17 @@ impl<'t, 'src> Parser<'t, 'src> {
 
         // push error
         self.events.push(Event::Error(ParseError {
-            expected: mem::take(&mut self.expected_kinds),
-            found,
-            range,
+            kind: ErrorKind::UnexpectedToken {
+                expected: mem::take(&mut self.expected_kinds),
+                found,
+                range,
+            },
         }));
 
         if !self.at_set(&RECOVERY_SET) && !self.at_end() {
             // not in the recovery set? consume it! (wrap in error node)
-            let err = self.start();
             self.bump();
-            err.complete(self, SyntaxKind::Error);
+            err_at.into().complete(self, SyntaxKind::Error);
         }
     }
 
@@ -88,12 +100,12 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.peek().map_or(false, |k| set.contains(&k))
     }
 
-    /// Creates a new `Marker` at the current position
-    pub(crate) fn start(&mut self) -> Marker {
+    /// Creates a new `MaybeMarker` at the current position
+    pub(crate) fn start(&mut self) -> MaybeMarker {
         let pos = self.events.len();
         self.events.push(Event::Placeholder); // Placeholder for future marker
 
-        Marker::new(pos)
+        MaybeMarker::new(pos)
     }
 
     pub(crate) fn bump(&mut self) {

@@ -6,39 +6,60 @@ use toc_scanner::token::{TokenKind, TokenRange};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ParseError {
-    pub(super) expected: Vec<TokenKind>,
-    pub(super) found: Option<TokenKind>,
-    pub(super) range: TokenRange,
+    pub(super) kind: ErrorKind,
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "error at {}..{}: expected ",
-            u32::from(self.range.start()),
-            u32::from(self.range.end()),
-        )?;
+        self.kind.fmt(f)
+    }
+}
 
-        let expected_count = self.expected.len();
-        let is_first = |i| i == 0;
-        let is_last = |i| i == expected_count - 1;
+#[derive(Debug, PartialEq)]
+pub(crate) enum ErrorKind {
+    UnexpectedToken {
+        expected: Vec<TokenKind>,
+        found: Option<TokenKind>,
+        range: TokenRange,
+    },
+}
 
-        for (idx, expected_kind) in self.expected.iter().enumerate() {
-            if is_first(idx) {
-                write!(f, "{}", expected_kind)?;
-            } else if is_last(idx) {
-                write!(f, " or {}", expected_kind)?;
-            } else {
-                write!(f, ", {}", expected_kind)?;
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            ErrorKind::UnexpectedToken {
+                expected,
+                found,
+                range,
+            } => {
+                write!(
+                    f,
+                    "error at {}..{}: expected ",
+                    u32::from(range.start()),
+                    u32::from(range.end()),
+                )?;
+
+                let expected_count = expected.len();
+                let is_first = |i| i == 0;
+                let is_last = |i| i == expected_count - 1;
+
+                for (idx, expected_kind) in expected.iter().enumerate() {
+                    if is_first(idx) {
+                        write!(f, "{}", expected_kind)?;
+                    } else if is_last(idx) {
+                        write!(f, " or {}", expected_kind)?;
+                    } else {
+                        write!(f, ", {}", expected_kind)?;
+                    }
+                }
+
+                if let Some(found) = found {
+                    write!(f, ", but found {}", found)?;
+                }
+
+                Ok(())
             }
         }
-
-        if let Some(found) = self.found {
-            write!(f, ", but found {}", found)?;
-        }
-
-        Ok(())
     }
 }
 
@@ -53,9 +74,11 @@ mod test {
         let range = TokenRange::new(range.start.into(), range.end.into());
 
         let err = ParseError {
-            expected,
-            found,
-            range,
+            kind: ErrorKind::UnexpectedToken {
+                expected,
+                found,
+                range,
+            },
         };
 
         out.assert_eq(&format!("{}", err));
