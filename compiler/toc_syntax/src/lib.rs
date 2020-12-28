@@ -569,14 +569,40 @@ pub enum BinaryOp {
     Arrow,
     /// Dot (`.`)
     Dot,
+    /// Call (`(`)
+    Call,
 }
 
 impl BinaryOp {
     pub fn binding_power(&self) -> (u8, u8) {
         match self {
-            Self::Add | Self::Sub => (1, 2),
-            Self::Mul | Self::RealDiv => (3, 4),
-            _ => (0, 1),
+            Self::Imply => (1, 2),
+            Self::Or => (3, 4),
+            Self::And => (5, 6),
+            // ((), 8) is for the "not" operator
+            Self::Less
+            | Self::Greater
+            | Self::Equal
+            | Self::LessEq
+            | Self::GreaterEq
+            | Self::NotEqual
+            | Self::In
+            | Self::NotIn => (9, 10),
+            Self::Add | Self::Sub | Self::Xor => (11, 12),
+            Self::Mul
+            | Self::RealDiv
+            | Self::Div
+            | Self::Mod
+            | Self::Rem
+            | Self::Shl
+            | Self::Shr => (13, 14),
+            // ((), 16) is for prefix "+" and "-"
+            Self::Exp => (17, 17),
+            // ((), 20) is for "#"
+            Self::Call => (21, 22),
+            Self::Arrow => (23, 24),
+            Self::Dot => (25, 26),
+            // ((), 28) is for "^"
         }
     }
 }
