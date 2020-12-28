@@ -83,8 +83,9 @@ mod test {
                     LiteralExpr@11..13
                       IntLiteral@11..12 "1"
                       Whitespace@12..13 "\n"
-                  RefExpr@13..14
-                    Identifier@13..14 "a""#]],
+                  NameExpr@13..14
+                    Name@13..14
+                      Identifier@13..14 "a""#]],
         );
     }
 
@@ -110,7 +111,7 @@ mod test {
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
                       IntLiteral@21..22 "1"
-                error at 12..15: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’, but found ’var’"##]],
+                error at 12..15: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’var’"##]],
         );
     }
 
@@ -136,7 +137,7 @@ mod test {
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
                       IntLiteral@21..22 "1"
-                error at 10..15: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’, but found ’const’"##]],
+                error at 10..15: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’const’"##]],
         );
     }
 }
