@@ -7,7 +7,7 @@ pub(crate) use error::ParseError;
 use crate::event::Event;
 use crate::grammar;
 use crate::parser::error::ErrorKind;
-use crate::parser::marker::{Marker, MaybeMarker};
+use crate::parser::marker::MaybeMarker;
 use crate::source::Source;
 
 use std::mem;

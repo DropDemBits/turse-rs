@@ -597,12 +597,10 @@ impl BinaryOp {
             | Self::Shl
             | Self::Shr => (13, 14),
             // ((), 16) is for prefix "+" and "-"
-            Self::Exp => (17, 17),
+            Self::Exp => (18, 17),
             // ((), 20) is for "#"
-            Self::Call => (21, 22),
-            Self::Arrow => (23, 24),
-            Self::Dot => (25, 26),
-            // ((), 28) is for "^"
+            Self::Call | Self::Arrow | Self::Dot => (21, 22),
+            // ((), 24) is for "^"
         }
     }
 }
@@ -627,7 +625,7 @@ impl UnaryOp {
             Self::Not => ((), 8),
             Self::Identity | Self::Negate => ((), 16),
             Self::NatCheat => ((), 20),
-            Self::Deref => ((), 28),
+            Self::Deref => ((), 24),
         }
     }
 }
