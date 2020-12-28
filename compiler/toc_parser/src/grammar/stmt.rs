@@ -92,7 +92,7 @@ mod test {
     fn recover_on_var() {
         check(
             "const a := \nvar b := 1",
-            expect![[r#"
+            expect![[r##"
                 Root@0..22
                   ConstVarDecl@0..12
                     KwConst@0..5 "const"
@@ -110,7 +110,7 @@ mod test {
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
                       IntLiteral@21..22 "1"
-                error at 12..15: expected identifier, int literal, explicit int literal or real literal, but found ’var’"#]],
+                error at 12..15: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’, but found ’var’"##]],
         );
     }
 
@@ -118,7 +118,7 @@ mod test {
     fn recover_on_const() {
         check(
             "var a := \nconst b := 1",
-            expect![[r#"
+            expect![[r##"
                 Root@0..22
                   ConstVarDecl@0..10
                     KwVar@0..3 "var"
@@ -136,7 +136,7 @@ mod test {
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
                       IntLiteral@21..22 "1"
-                error at 10..15: expected identifier, int literal, explicit int literal or real literal, but found ’const’"#]],
+                error at 10..15: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’, but found ’const’"##]],
         );
     }
 }

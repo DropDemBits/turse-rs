@@ -61,10 +61,11 @@ impl<'t, 'src> Parser<'t, 'src> {
     }
 
     /// Reports an unexpected token error at the given marker
-    pub(crate) fn error_unexpected_at<T>(&mut self, err_at: T)
-    where
-        T: Into<Marker>,
-    {
+    ///
+    /// Note: `err_at` can't be a `Marker` as the passed-in marker must
+    /// be allowed to not be made so that a bump at the end of the file
+    /// is not made
+    pub(crate) fn error_unexpected_at(&mut self, err_at: MaybeMarker) {
         let current = self.source.peek_token();
 
         let (found, range) = if let Some(Token { kind, range, .. }) = current {
@@ -86,7 +87,11 @@ impl<'t, 'src> Parser<'t, 'src> {
         if !self.at_set(&RECOVERY_SET) && !self.at_end() {
             // not in the recovery set? consume it! (wrap in error node)
             self.bump();
-            err_at.into().complete(self, SyntaxKind::Error);
+            err_at.complete(self, SyntaxKind::Error);
+        } else {
+            // Cursor is at the end of file or is part of the recovery set
+            // Error node does not need to be built, so forget the marker
+            err_at.forget();
         }
     }
 
@@ -108,8 +113,17 @@ impl<'t, 'src> Parser<'t, 'src> {
         MaybeMarker::new(pos)
     }
 
-    pub(crate) fn bump(&mut self) {
+    /// Resets the expected token list
+    ///
+    /// Used when there are leftover tokens from previous calls to `at`,
+    /// but the tokens are not required
+    pub(crate) fn reset_expected_tokens(&mut self) {
         self.expected_kinds.clear();
+    }
+
+    /// Bumps a token onto the current syntax node
+    pub(crate) fn bump(&mut self) {
+        self.reset_expected_tokens();
         self.source.next_token().expect("bump at the end of file");
         self.events.push(Event::AddToken);
     }
