@@ -63,7 +63,13 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Reports an unexpected token error at the next token
     pub(crate) fn error(&mut self) {
         let err = self.start(); // start error node
-        self.error_unexpected_at(err);
+        self.error_unexpected_at(err, &[]);
+    }
+
+    /// Reports an unexpected token error at the next token, with an extra recovery set
+    pub(crate) fn error_with_extra_recovery(&mut self, extra: &[TokenKind]) {
+        let err = self.start(); // start error node
+        self.error_unexpected_at(err, extra);
     }
 
     /// Reports an unexpected token error at the given marker
@@ -71,7 +77,11 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Note: `err_at` can't be a `Marker` as the passed-in marker must
     /// be allowed to not be made so that a bump at the end of the file
     /// is not made
-    pub(crate) fn error_unexpected_at(&mut self, err_at: MaybeMarker) {
+    pub(crate) fn error_unexpected_at(
+        &mut self,
+        err_at: MaybeMarker,
+        extra_recovery: &[TokenKind],
+    ) {
         let current = self.source.peek_token();
 
         let (found, range) = if let Some(Token { kind, range, .. }) = current {
@@ -90,7 +100,7 @@ impl<'t, 'src> Parser<'t, 'src> {
             range,
         }));
 
-        if !self.at_set(&RECOVERY_SET) && !self.at_end() {
+        if !self.at_set(&RECOVERY_SET) && !self.at_set(&extra_recovery) && !self.at_end() {
             // not in the recovery set? consume it! (wrap in error node)
             self.bump();
             err_at.complete(self, SyntaxKind::Error);
