@@ -76,7 +76,7 @@ fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
             TokenKind::Tilde => {
                 maybe_composite_op(p)?
             }
-            _ => {
+            _ .=> {
                 // Not an infix operator
                 return None;
             }
@@ -101,7 +101,7 @@ fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
             m.complete(p, SyntaxKind::NotEq); // make NotEq node
             BinaryOp::NotEqual
         },
-        _ => {
+        _ .=> {
             // "not" / "~" is not allowed as an infix operator
             p.error_unexpected_at(m);
             return None;
@@ -116,7 +116,7 @@ fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
         TokenKind::Minus => { UnaryOp::Negate }
         TokenKind::Caret => { UnaryOp::Deref }
         TokenKind::Pound => { UnaryOp::NatCheat }
-        _ => return None,
+        _ .=> return None,
     }))
 }
 
@@ -128,7 +128,7 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::RadixLiteral => { num_literal_expr(p) }
             TokenKind::RealLiteral => { num_literal_expr(p) }
             TokenKind::LeftParen => { paren_expr(p) }
-            _ => {
+            _ .=> {
                 if let Some(op) = prefix_op(p) {
                     // parse a prefix op
                     let m = p.start();
