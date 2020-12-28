@@ -6,7 +6,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
         |p| match {
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
-            _ => expr::expr(p)
+            _ .=> expr::expr(p)
         }
     }
 }

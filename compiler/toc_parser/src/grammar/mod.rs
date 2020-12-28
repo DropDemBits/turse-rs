@@ -4,7 +4,7 @@
 macro_rules! match_token {
     (|$parser:ident| match {
         $($tok:expr => $action:block $(,)?)+
-        _ => $otherwise:expr $(,)?
+        _ .=> $otherwise:expr $(,)?
     }) => {
         match () {
             $( _ if $parser.at($tok) => $action )+
