@@ -28,17 +28,8 @@ impl MaybeMarker {
 
     /// Converts the `MaybeMarker` into a marker that must be used
     fn must_use(mut self) -> Marker {
-        // Make a dummy bomb, such that we can drop ourselves without panicking
-        let mut dummy = DropBomb::new("dummy");
-        dummy.defuse();
-
-        std::mem::replace(
-            &mut self.0,
-            Marker {
-                pos: 0,
-                bomb: dummy,
-            },
-        )
+        self.0.bomb.defuse();
+        Marker::new(self.0.pos)
     }
 }
 
