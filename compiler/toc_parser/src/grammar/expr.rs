@@ -280,7 +280,7 @@ fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
         },
         _ => {
             // "not" / "~" is not allowed as an infix operator
-            p.error_unexpected_at(m);
+            p.error_unexpected_at(m, &[]);
             return None;
         }
     }))

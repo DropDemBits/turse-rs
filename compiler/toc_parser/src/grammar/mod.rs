@@ -1,4 +1,6 @@
 //! Grammar parsing
+mod expr;
+mod stmt;
 
 /// Helper for matching tokens
 macro_rules! match_token {
@@ -12,9 +14,6 @@ macro_rules! match_token {
         }
     };
 }
-
-mod expr;
-mod stmt;
 
 pub(self) use match_token;
 
@@ -43,6 +42,7 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
     }
 }
 
+/// ParamList ( `'(' Param ( ',' Param )* ')'` )
 pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 

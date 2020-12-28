@@ -1041,6 +1041,15 @@ fn parens_alter_precedence() {
 }
 
 #[test]
+fn recover_just_right_paren() {
+    check(")", expect![[r##"
+        Root@0..1
+          Error@0..1
+            RightParen@0..1 ")"
+        error at 0..1: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]])
+}
+
+#[test]
 fn recover_missing_closing_paren() {
     check(
         "(1",
