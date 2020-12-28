@@ -806,6 +806,27 @@ mod test {
 
     #[test]
     #[rustfmt::skip]
+    fn exp_right_associativity() {
+        check("2 ** 3 ** 4", expect![[r#"
+            Root@0..11
+              BinaryExpr@0..11
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "2"
+                  Whitespace@1..2 " "
+                Exp@2..4 "**"
+                Whitespace@4..5 " "
+                BinaryExpr@5..11
+                  LiteralExpr@5..7
+                    IntLiteral@5..6 "3"
+                    Whitespace@6..7 " "
+                  Exp@7..9 "**"
+                  Whitespace@9..10 " "
+                  LiteralExpr@10..11
+                    IntLiteral@10..11 "4""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
     fn parse_ne_form1() {
         check("1 ~= 2", expect![[r#"
             Root@0..6
