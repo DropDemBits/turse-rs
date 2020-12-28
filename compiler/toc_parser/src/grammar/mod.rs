@@ -30,3 +30,49 @@ pub(crate) fn root(p: &mut Parser) -> CompletedMarker {
     }
     root.complete(p, SyntaxKind::Root)
 }
+
+pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    if p.expect(TokenKind::Identifier) {
+        Some(m.complete(p, SyntaxKind::Name))
+    } else {
+        // not found, drop marker
+        m.forget();
+        None
+    }
+}
+
+pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    if let Some((_, true)) = param(p) {
+        loop {
+            match param(p) {
+                Some((_, true)) => {}      // parsed param, expecting more
+                Some((_, false)) => break, // parsed param, end of list
+                None => {
+                    // missing next param
+                    p.error();
+                    break;
+                }
+            }
+        }
+    }
+
+    Some(m.complete(p, SyntaxKind::ParamList))
+}
+
+pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
+    let m = p.start();
+    expr::expr(p);
+
+    let found_comma = p.at(TokenKind::Comma);
+
+    if found_comma {
+        // bump ',' onto param
+        p.bump();
+    }
+
+    Some((m.complete(p, SyntaxKind::Param), found_comma))
+}

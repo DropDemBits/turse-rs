@@ -2,18 +2,40 @@
 use super::*;
 use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
+/// Parses an expression
 pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
     expr_binding_power(p, 0)
 }
 
+/// Parses a reference
+pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
+    // Exprs:
+
+    // starting:
+    // - name_expr
+    // - deref_expr
+    // x bits_expr
+
+    // continuations:
+    // x indirect_expr
+    // - field_expr
+    // - arrow_expr
+    // x call_expr
+    expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER)
+}
+
 fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
-    let mut lhs = prefix(p)?;
+    let only_reference = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
+    let mut lhs = lhs(p, only_reference)?;
 
     loop {
         let op = if let Some(op) = infix_op(p) {
             op
         } else {
             // Not an infix operator, so let the caller decide the outcome
+
+            // It's probably the end of an expression, so dropped the acquired expected tokens
+            p.reset_expected_tokens();
             break;
         };
 
@@ -30,10 +52,45 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             _ => p.bump(),
         }
 
-        // wrap inside a binary expr
-        let m = lhs.precede(p);
-        let found_rhs = expr_binding_power(p, right_bind_power).is_some();
-        lhs = m.complete(p, SyntaxKind::BinaryExpr);
+        let found_rhs = match op {
+            BinaryOp::Call => {
+                // call expr
+                let m = lhs.precede(p);
+
+                super::param_list(p);
+
+                p.expect(TokenKind::RightParen);
+                lhs = m.complete(p, SyntaxKind::CallExpr);
+
+                // no rhs to miss
+                true
+            }
+            BinaryOp::Arrow | BinaryOp::Dot => {
+                // field or arrow expr
+                let m = lhs.precede(p);
+
+                // expect name
+                let found_rhs = super::name(p).is_some();
+                lhs = m.complete(
+                    p,
+                    if op == BinaryOp::Dot {
+                        SyntaxKind::FieldExpr
+                    } else {
+                        SyntaxKind::ArrowExpr
+                    },
+                );
+
+                found_rhs
+            }
+            _ => {
+                // wrap inside a binary expr
+                let m = lhs.precede(p);
+                let found_rhs = expr_binding_power(p, right_bind_power).is_some();
+                lhs = m.complete(p, SyntaxKind::BinaryExpr);
+
+                found_rhs
+            }
+        };
 
         if !found_rhs {
             // did not find an rhs for the operator, bail out
@@ -42,6 +99,123 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     }
 
     Some(lhs)
+}
+
+fn lhs(p: &mut Parser, only_reference: bool) -> Option<CompletedMarker> {
+    match_token! {
+        |p| match {
+            TokenKind::Identifier => { name_expr(p) }
+            TokenKind::Caret => { deref_expr(p) }
+            TokenKind::Bits => { todo!() }
+            // indirection stuff
+            _ => {
+                if !only_reference {
+                    primary(p)
+                } else {
+                    // only accepting references
+                    p.error();
+                    None
+                }
+            }
+        }
+    }
+}
+
+fn primary(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        TokenKind::IntLiteral => { num_literal_expr(p) }
+        TokenKind::RadixLiteral => { num_literal_expr(p) }
+        TokenKind::RealLiteral => { num_literal_expr(p) }
+        // str literals and other stuff...
+        TokenKind::LeftParen => { paren_expr(p) }
+        _ => {
+            prefix(p).or_else(|| {
+                // not an appropriate primary expr
+                p.error();
+                None
+            })
+        }
+    })
+}
+
+fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
+    let op = prefix_op(p)?;
+
+    // parse a prefix op
+    let m = p.start();
+    let ((), right_binding_power) = op.binding_power();
+
+    // nom on operator token
+    p.bump();
+
+    expr_binding_power(p, right_binding_power);
+
+    Some(m.complete(p, SyntaxKind::UnaryExpr))
+}
+
+fn name_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Identifier));
+
+    // nom name
+    let m = p.start();
+    super::name(p);
+    Some(m.complete(p, SyntaxKind::NameExpr))
+}
+
+fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Caret));
+
+    // parse rhs with the correct binding power
+    let ((), right_binding_power) = UnaryOp::Deref.binding_power();
+
+    let m = p.start();
+
+    p.bump(); // nom caret
+    expr_binding_power(p, right_binding_power);
+
+    Some(m.complete(p, SyntaxKind::DerefExpr))
+}
+
+fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::LeftParen));
+
+    let m = p.start();
+
+    p.bump();
+    expr_binding_power(p, 0);
+
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::ParenExpr))
+}
+
+fn num_literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(
+        p.at(TokenKind::IntLiteral)
+            || p.at(TokenKind::RadixLiteral)
+            || p.at(TokenKind::RealLiteral)
+    );
+
+    let m = p.start();
+
+    // TODO: Validate literal is actually valid
+    // TODO: Report invalid literals
+
+    // bump number
+    // Token gets automagically transformed into the correct type
+    p.bump();
+
+    Some(m.complete(p, SyntaxKind::LiteralExpr))
+}
+
+fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
+    Some(match_token!(|p| match {
+        TokenKind::Not => { UnaryOp::Not }
+        TokenKind::Plus => { UnaryOp::Identity }
+        TokenKind::Minus => { UnaryOp::Negate }
+        TokenKind::Pound => { UnaryOp::NatCheat }
+        _ => return None,
+    }))
 }
 
 fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
@@ -56,6 +230,12 @@ fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
             TokenKind::LessEqu => { BinaryOp::LessEq }
             TokenKind::GreaterEqu => { BinaryOp::GreaterEq }
             TokenKind::In => { BinaryOp::In }
+            TokenKind::Not => {
+                maybe_composite_op(p)?
+            }
+            TokenKind::Tilde => {
+                maybe_composite_op(p)?
+            }
             TokenKind::Plus => { BinaryOp::Add }
             TokenKind::Minus => { BinaryOp::Sub }
             TokenKind::Xor => { BinaryOp::Xor }
@@ -67,15 +247,9 @@ fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
             TokenKind::Shl => { BinaryOp::Shl }
             TokenKind::Shr => { BinaryOp::Shr },
             TokenKind::Exp => { BinaryOp::Exp },
-            TokenKind::LeftParen => { BinaryOp::Call },
-            TokenKind::Arrow => { BinaryOp::Arrow },
             TokenKind::Dot => { BinaryOp::Dot },
-            TokenKind::Not => {
-                maybe_composite_op(p)?
-            }
-            TokenKind::Tilde => {
-                maybe_composite_op(p)?
-            }
+            TokenKind::Arrow => { BinaryOp::Arrow },
+            TokenKind::LeftParen => { BinaryOp::Call },
             _ => {
                 // Not an infix operator
                 return None;
@@ -109,96 +283,6 @@ fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
     }))
 }
 
-fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
-    Some(match_token!(|p| match {
-        TokenKind::Not => { UnaryOp::Not }
-        TokenKind::Plus => { UnaryOp::Identity }
-        TokenKind::Minus => { UnaryOp::Negate }
-        TokenKind::Caret => { UnaryOp::Deref }
-        TokenKind::Pound => { UnaryOp::NatCheat }
-        _ => return None,
-    }))
-}
-
-fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
-    match_token! {
-        |p| match {
-            TokenKind::Identifier => { ref_expr(p) }
-            TokenKind::IntLiteral => { num_literal_expr(p) }
-            TokenKind::RadixLiteral => { num_literal_expr(p) }
-            TokenKind::RealLiteral => { num_literal_expr(p) }
-            TokenKind::LeftParen => { paren_expr(p) }
-            _ => {
-                if let Some(op) = prefix_op(p) {
-                    // parse a prefix op
-                    let m = p.start();
-                    let ((), right_binding_power) = op.binding_power();
-
-                    // nom on operator token
-                    p.bump();
-
-                    expr_binding_power(p, right_binding_power);
-
-                    // Specialize based on the operator
-                    Some(m.complete(
-                        p,
-                        if op == UnaryOp::Deref {
-                            SyntaxKind::DerefExpr
-                        } else {
-                            SyntaxKind::UnaryExpr
-                        },
-                    ))
-                } else {
-                    p.error();
-                    None
-                }
-            }
-        }
-    }
-}
-
-fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::LeftParen));
-
-    let m = p.start();
-
-    p.bump();
-    expr_binding_power(p, 0);
-    p.reset_expected_tokens();
-
-    p.expect(TokenKind::RightParen);
-
-    Some(m.complete(p, SyntaxKind::ParenExpr))
-}
-
-fn ref_expr(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Identifier));
-
-    // nom ident
-    let m = p.start();
-    p.bump();
-    Some(m.complete(p, SyntaxKind::RefExpr))
-}
-
-fn num_literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(
-        p.at(TokenKind::IntLiteral)
-            || p.at(TokenKind::RadixLiteral)
-            || p.at(TokenKind::RealLiteral)
-    );
-
-    let m = p.start();
-
-    // TODO: Validate literal is actually valid
-    // TODO: Report invalid literals
-
-    // bump number
-    // Token gets automagically transformed into the correct type
-    p.bump();
-
-    Some(m.complete(p, SyntaxKind::LiteralExpr))
-}
-
 // Updating tests? Set `UPDATE_EXPECT=1` before running `cargo test`
 #[cfg(test)]
 mod test {
@@ -212,7 +296,7 @@ mod test {
             Root@0..9
               Error@0..9
                 KwPervasive@0..9 "pervasive"
-            error at 0..9: expected ’var’, ’const’, identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’, but found ’pervasive’"##]]);
+            error at 0..9: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’pervasive’"##]]);
     }
 
     #[test]
@@ -220,12 +304,14 @@ mod test {
     fn parse_ident_use() {
         check("a", expect![[r#"
             Root@0..1
-              RefExpr@0..1
-                Identifier@0..1 "a""#]]);
+              NameExpr@0..1
+                Name@0..1
+                  Identifier@0..1 "a""#]]);
         check("abcde0123", expect![[r#"
             Root@0..9
-              RefExpr@0..9
-                Identifier@0..9 "abcde0123""#]]);
+              NameExpr@0..9
+                Name@0..9
+                  Identifier@0..9 "abcde0123""#]]);
     }
 
     #[test]
@@ -249,8 +335,9 @@ mod test {
             Root@0..7
               LiteralExpr@0..3
                 IntLiteral@0..3 "999"
-              RefExpr@3..7
-                Identifier@3..7 "a999""#]]);
+              NameExpr@3..7
+                Name@3..7
+                  Identifier@3..7 "a999""#]]);
     }
 
     #[test]
@@ -906,8 +993,9 @@ mod test {
                   Whitespace@1..2 " "
                 KwIn@2..4 "in"
                 Whitespace@4..5 " "
-                RefExpr@5..6
-                  Identifier@5..6 "a""#]]);
+                NameExpr@5..6
+                  Name@5..6
+                    Identifier@5..6 "a""#]]);
     }
 
     #[test]
@@ -924,8 +1012,9 @@ mod test {
                   Whitespace@5..6 " "
                   KwIn@6..8 "in"
                   Whitespace@8..9 " "
-                RefExpr@9..10
-                  Identifier@9..10 "a""#]]);
+                NameExpr@9..10
+                  Name@9..10
+                    Identifier@9..10 "a""#]]);
     }
 
     #[test]
@@ -941,8 +1030,9 @@ mod test {
                   Tilde@2..3 "~"
                   KwIn@3..5 "in"
                   Whitespace@5..6 " "
-                RefExpr@6..7
-                  Identifier@6..7 "a""#]]);
+                NameExpr@6..7
+                  Name@6..7
+                    Identifier@6..7 "a""#]]);
     }
 
     #[test]
@@ -959,8 +1049,9 @@ mod test {
                   Whitespace@3..4 " "
                   KwIn@4..6 "in"
                   Whitespace@6..7 " "
-                RefExpr@7..8
-                  Identifier@7..8 "a""#]]);
+                NameExpr@7..8
+                  Name@7..8
+                    Identifier@7..8 "a""#]]);
     }
 
     #[test]
@@ -1080,7 +1171,7 @@ mod test {
                   LiteralExpr@1..2
                     IntLiteral@1..2 "1"
                   Plus@2..3 "+"
-            error at 2..3: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’
+            error at 2..3: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’
             error at 2..3: expected ’)’"##]]);
     }
 
@@ -1093,6 +1184,422 @@ mod test {
                 LiteralExpr@0..1
                   IntLiteral@0..1 "1"
                 Plus@1..2 "+"
-            error at 1..2: expected identifier, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’, ’^’ or ’#’"##]]);
+            error at 1..2: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’"##]]);
+    }
+
+    // Field exprs
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_field_expr() {
+        check("a.b", expect![[r#"
+            Root@0..3
+              FieldExpr@0..3
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                Dot@1..2 "."
+                Name@2..3
+                  Identifier@2..3 "b""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn chained_field_expr() {
+        check("a.b.c.d", expect![[r#"
+            Root@0..7
+              FieldExpr@0..7
+                FieldExpr@0..5
+                  FieldExpr@0..3
+                    NameExpr@0..1
+                      Name@0..1
+                        Identifier@0..1 "a"
+                    Dot@1..2 "."
+                    Name@2..3
+                      Identifier@2..3 "b"
+                  Dot@3..4 "."
+                  Name@4..5
+                    Identifier@4..5 "c"
+                Dot@5..6 "."
+                Name@6..7
+                  Identifier@6..7 "d""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_field_expr_missing_field() {
+        check("a.", expect![[r#"
+            Root@0..2
+              FieldExpr@0..2
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                Dot@1..2 "."
+            error at 1..2: expected identifier"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_field_missing_closing_paren_and_field() {
+        check("(a.", expect![[r#"
+            Root@0..3
+              ParenExpr@0..3
+                LeftParen@0..1 "("
+                FieldExpr@1..3
+                  NameExpr@1..2
+                    Name@1..2
+                      Identifier@1..2 "a"
+                  Dot@2..3 "."
+            error at 2..3: expected identifier
+            error at 2..3: expected ’)’"#]]);
+    }
+
+    // Arrow exprs
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_arrow_expr() {
+        check("a->b", expect![[r#"
+            Root@0..4
+              ArrowExpr@0..4
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                Arrow@1..3 "->"
+                Name@3..4
+                  Identifier@3..4 "b""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn chained_arrow_expr() {
+        check("a->b->c->d", expect![[r#"
+            Root@0..10
+              ArrowExpr@0..10
+                ArrowExpr@0..7
+                  ArrowExpr@0..4
+                    NameExpr@0..1
+                      Name@0..1
+                        Identifier@0..1 "a"
+                    Arrow@1..3 "->"
+                    Name@3..4
+                      Identifier@3..4 "b"
+                  Arrow@4..6 "->"
+                  Name@6..7
+                    Identifier@6..7 "c"
+                Arrow@7..9 "->"
+                Name@9..10
+                  Identifier@9..10 "d""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_arrow_expr_missing_field() {
+        check("a->", expect![[r#"
+            Root@0..3
+              ArrowExpr@0..3
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                Arrow@1..3 "->"
+            error at 1..3: expected identifier"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_arrow_missing_closing_paren_and_field() {
+        check("(a->", expect![[r#"
+            Root@0..4
+              ParenExpr@0..4
+                LeftParen@0..1 "("
+                ArrowExpr@1..4
+                  NameExpr@1..2
+                    Name@1..2
+                      Identifier@1..2 "a"
+                  Arrow@2..4 "->"
+            error at 2..4: expected identifier
+            error at 2..4: expected ’)’"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn chained_field_and_arrow_expr() {
+        check("a.b->c->d.e->f.g->h", expect![[r#"
+            Root@0..19
+              ArrowExpr@0..19
+                FieldExpr@0..16
+                  ArrowExpr@0..14
+                    FieldExpr@0..11
+                      ArrowExpr@0..9
+                        ArrowExpr@0..6
+                          FieldExpr@0..3
+                            NameExpr@0..1
+                              Name@0..1
+                                Identifier@0..1 "a"
+                            Dot@1..2 "."
+                            Name@2..3
+                              Identifier@2..3 "b"
+                          Arrow@3..5 "->"
+                          Name@5..6
+                            Identifier@5..6 "c"
+                        Arrow@6..8 "->"
+                        Name@8..9
+                          Identifier@8..9 "d"
+                      Dot@9..10 "."
+                      Name@10..11
+                        Identifier@10..11 "e"
+                    Arrow@11..13 "->"
+                    Name@13..14
+                      Identifier@13..14 "f"
+                  Dot@14..15 "."
+                  Name@15..16
+                    Identifier@15..16 "g"
+                Arrow@16..18 "->"
+                Name@18..19
+                  Identifier@18..19 "h""#]]);
+    }
+
+    // Call exprs
+    #[test]
+    #[rustfmt::skip]
+    fn parse_call_expr() {
+        check("a(b)", expect![[r#"
+            Root@0..4
+              CallExpr@0..4
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..3
+                  Param@2..3
+                    NameExpr@2..3
+                      Name@2..3
+                        Identifier@2..3 "b"
+                RightParen@3..4 ")""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_empty_call_expr() {
+        check("a()", expect![[r##"
+            Root@0..3
+              CallExpr@0..3
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..3
+                  Param@2..3
+                    Error@2..3
+                      RightParen@2..3 ")"
+            error at 2..3: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’
+            error at 2..3: expected ’,’ or ’)’"##]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_call_expr_with_many_args() {
+        check("a(1, 2 + 3, c)", expect![[r#"
+            Root@0..14
+              CallExpr@0..14
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..13
+                  Param@2..5
+                    LiteralExpr@2..3
+                      IntLiteral@2..3 "1"
+                    Comma@3..4 ","
+                    Whitespace@4..5 " "
+                  Param@5..12
+                    BinaryExpr@5..10
+                      LiteralExpr@5..7
+                        IntLiteral@5..6 "2"
+                        Whitespace@6..7 " "
+                      Plus@7..8 "+"
+                      Whitespace@8..9 " "
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "3"
+                    Comma@10..11 ","
+                    Whitespace@11..12 " "
+                  Param@12..13
+                    NameExpr@12..13
+                      Name@12..13
+                        Identifier@12..13 "c"
+                RightParen@13..14 ")""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_call_expr_missing_closing_paren() {
+        check("a(1", expect![[r#"
+            Root@0..3
+              CallExpr@0..3
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..3
+                  Param@2..3
+                    LiteralExpr@2..3
+                      IntLiteral@2..3 "1"
+            error at 2..3: expected ’,’ or ’)’"#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_call_expr_missing_last_arg() {
+        check("a(1,)", expect![[r##"
+            Root@0..5
+              CallExpr@0..5
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..5
+                  Param@2..4
+                    LiteralExpr@2..3
+                      IntLiteral@2..3 "1"
+                    Comma@3..4 ","
+                  Param@4..5
+                    Error@4..5
+                      RightParen@4..5 ")"
+            error at 4..5: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’
+            error at 4..5: expected ’,’ or ’)’"##]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_call_expr_missing_last_arg_and_closing_paren() {
+        check("a(1,", expect![[r##"
+            Root@0..4
+              CallExpr@0..4
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..4
+                  Param@2..4
+                    LiteralExpr@2..3
+                      IntLiteral@2..3 "1"
+                    Comma@3..4 ","
+                  Param@4..4
+            error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’
+            error at 3..4: expected ’,’ or ’)’"##]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn recover_call_expr_missing_delim() {
+        check("a(1 1)", expect![[r##"
+            Root@0..6
+              CallExpr@0..5
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "a"
+                LeftParen@1..2 "("
+                ParamList@2..4
+                  Param@2..4
+                    LiteralExpr@2..4
+                      IntLiteral@2..3 "1"
+                      Whitespace@3..4 " "
+                Error@4..5
+                  IntLiteral@4..5 "1"
+              Error@5..6
+                RightParen@5..6 ")"
+            error at 4..5: expected ’,’ or ’)’, but found int literal
+            error at 5..6: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]]);
+    }
+
+    // Deref exprs
+
+    #[test]
+    #[rustfmt::skip]
+    fn parse_deref_expr() {
+        check("^a", expect![[r#"
+            Root@0..2
+              DerefExpr@0..2
+                Caret@0..1 "^"
+                NameExpr@1..2
+                  Name@1..2
+                    Identifier@1..2 "a""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn nested_deref() {
+        check("^ ^ ^ ^ ^ a", expect![[r#"
+            Root@0..11
+              DerefExpr@0..11
+                Caret@0..1 "^"
+                Whitespace@1..2 " "
+                DerefExpr@2..11
+                  Caret@2..3 "^"
+                  Whitespace@3..4 " "
+                  DerefExpr@4..11
+                    Caret@4..5 "^"
+                    Whitespace@5..6 " "
+                    DerefExpr@6..11
+                      Caret@6..7 "^"
+                      Whitespace@7..8 " "
+                      DerefExpr@8..11
+                        Caret@8..9 "^"
+                        Whitespace@9..10 " "
+                        NameExpr@10..11
+                          Name@10..11
+                            Identifier@10..11 "a""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn deref_binds_higher_than_dot() {
+        check("^a.b", expect![[r#"
+            Root@0..4
+              FieldExpr@0..4
+                DerefExpr@0..2
+                  Caret@0..1 "^"
+                  NameExpr@1..2
+                    Name@1..2
+                      Identifier@1..2 "a"
+                Dot@2..3 "."
+                Name@3..4
+                  Identifier@3..4 "b""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn deref_binds_higher_than_arrow() {
+        check("^a.b", expect![[r#"
+            Root@0..4
+              FieldExpr@0..4
+                DerefExpr@0..2
+                  Caret@0..1 "^"
+                  NameExpr@1..2
+                    Name@1..2
+                      Identifier@1..2 "a"
+                Dot@2..3 "."
+                Name@3..4
+                  Identifier@3..4 "b""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn deref_binds_higher_than_call() {
+        check("^a()", expect![[r##"
+            Root@0..4
+              CallExpr@0..4
+                DerefExpr@0..2
+                  Caret@0..1 "^"
+                  NameExpr@1..2
+                    Name@1..2
+                      Identifier@1..2 "a"
+                LeftParen@2..3 "("
+                ParamList@3..4
+                  Param@3..4
+                    Error@3..4
+                      RightParen@3..4 ")"
+            error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’
+            error at 3..4: expected ’,’ or ’)’"##]]);
     }
 }

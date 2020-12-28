@@ -518,8 +518,11 @@ pub type SyntaxToken = rowan::SyntaxToken<Lang>;
 #[allow(unused)]
 pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 
+// Operators
+
+pub const MIN_REF_BINDING_POWER: u8 = 21;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[allow(unused)] // will be used in time
 pub enum BinaryOp {
     /// Addition / Set Union / String Concatenation (`+`)
     Add,
@@ -599,7 +602,7 @@ impl BinaryOp {
             // ((), 16) is for prefix "+" and "-"
             Self::Exp => (18, 17),
             // ((), 20) is for "#"
-            Self::Call | Self::Arrow | Self::Dot => (21, 22),
+            Self::Call | Self::Arrow | Self::Dot => (MIN_REF_BINDING_POWER, 22),
             // ((), 24) is for "^"
         }
     }
@@ -609,12 +612,12 @@ impl BinaryOp {
 pub enum UnaryOp {
     /// Binary/boolean negation operator (`not`)
     Not,
-    /// Nat cheat (`#`)
-    NatCheat,
     /// Integer identity (`+`)
     Identity,
     /// Integer negation (`-`)
     Negate,
+    /// Nat cheat (`#`)
+    NatCheat,
     /// Pointer dereferencing operator (`^`)
     Deref,
 }

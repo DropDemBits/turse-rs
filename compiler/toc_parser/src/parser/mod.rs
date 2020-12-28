@@ -45,16 +45,22 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.peek() == Some(kind)
     }
 
-    pub(crate) fn expect(&mut self, kind: TokenKind) {
+    /// Expects the next token to be of `kind`, otherwise reports an error
+    ///
+    /// # Returns
+    /// Returns `true` if the expected token was found
+    pub(crate) fn expect(&mut self, kind: TokenKind) -> bool {
         if self.at(kind) {
             // Nom on token, expected
-            self.bump()
+            self.bump();
+            true
         } else {
             self.error();
+            false
         }
     }
 
-    /// Reports an unexpected token error at the current token
+    /// Reports an unexpected token error at the next token
     pub(crate) fn error(&mut self) {
         let err = self.start(); // start error node
         self.error_unexpected_at(err);
