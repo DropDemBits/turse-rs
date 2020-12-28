@@ -10,14 +10,11 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     let mut lhs = prefix(p)?;
 
     loop {
-        let op = match_token! {
-            |p| match {
-                TokenKind::Plus => { BinaryOp::Add }
-                TokenKind::Minus => { BinaryOp::Sub }
-                TokenKind::Star => { BinaryOp::Mul }
-                TokenKind::Slash => { BinaryOp::RealDiv }
-                _ => break, // Not an infix operator, so let the caller decide the outcome
-            }
+        let op = if let Some(op) = infix_op(p) {
+            op
+        } else {
+            // Not an infix operator, so let the caller decide the outcome
+            break;
         };
 
         let (left_bind_power, right_bind_power) = op.binding_power();
@@ -28,7 +25,10 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
         }
 
         // nom on operator token
-        p.bump();
+        match op {
+            BinaryOp::NotIn | BinaryOp::NotEqual => {} // don't bump, node already constructed
+            _ => p.bump(),
+        }
 
         // wrap inside a binary expr
         let m = lhs.precede(p);
@@ -37,6 +37,71 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     }
 
     Some(lhs)
+}
+
+fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
+    Some(match_token! {
+        |p| match {
+            TokenKind::Imply => { BinaryOp::Imply },
+            TokenKind::Or => { BinaryOp::Or }
+            TokenKind::And => { BinaryOp::And }
+            TokenKind::Less => { BinaryOp::Less }
+            TokenKind::Greater => { BinaryOp::Greater }
+            TokenKind::Equ => { BinaryOp::Equal }
+            TokenKind::LessEqu => { BinaryOp::LessEq }
+            TokenKind::GreaterEqu => { BinaryOp::GreaterEq }
+            TokenKind::In => { BinaryOp::In }
+            TokenKind::Plus => { BinaryOp::Add }
+            TokenKind::Minus => { BinaryOp::Sub }
+            TokenKind::Xor => { BinaryOp::Xor }
+            TokenKind::Star => { BinaryOp::Mul }
+            TokenKind::Slash => { BinaryOp::RealDiv }
+            TokenKind::Div => { BinaryOp::Div }
+            TokenKind::Mod => { BinaryOp::Mod }
+            TokenKind::Rem => { BinaryOp::Rem }
+            TokenKind::Shl => { BinaryOp::Shl }
+            TokenKind::Shr => { BinaryOp::Shr },
+            TokenKind::Exp => { BinaryOp::Exp },
+            TokenKind::LeftParen => { BinaryOp::Call },
+            TokenKind::Arrow => { BinaryOp::Arrow },
+            TokenKind::Dot => { BinaryOp::Dot },
+            TokenKind::Not => {
+                maybe_composite_op(p)?
+            }
+            TokenKind::Tilde => {
+                maybe_composite_op(p)?
+            }
+            _ => {
+                // Not an infix operator
+                return None;
+            }
+        }
+    })
+}
+
+fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
+    debug_assert!(p.at(TokenKind::Not) || p.at(TokenKind::Tilde));
+
+    let m = p.start();
+    p.bump(); // bump "not" or "~"
+
+    Some(match_token!(|p| match {
+        TokenKind::In => {
+            p.bump(); // consume "in"
+            m.complete(p, SyntaxKind::NotIn); // make NotIn node
+            BinaryOp::NotIn
+        },
+        TokenKind::Equ => {
+            p.bump(); // consume "="
+            m.complete(p, SyntaxKind::NotEq); // make NotEq node
+            BinaryOp::NotEqual
+        },
+        _ => {
+            // "not" / "~" is not allowed as an infix operator
+            p.error_unexpected_at(m);
+            return None;
+        }
+    }))
 }
 
 fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
@@ -508,5 +573,339 @@ mod test {
                   IntLiteral@137..138 "1"
                   Whitespace@138..139 " "
                   Comment@139..153 "% go back up 1""#]]);
+    }
+
+    #[test]
+    fn parse_simple_infix() {
+        check("1 => 2", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Imply@2..4 "=>"
+                Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "2""#]]);
+        check("1 or 2", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwOr@2..4 "or"
+                Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "2""#]]);
+        check("1 and 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwAnd@2..5 "and"
+                Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+        check("1 < 2", expect![[r#"
+            Root@0..5
+              BinaryExpr@0..5
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Less@2..3 "<"
+                Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "2""#]]);
+        check("1 > 2", expect![[r#"
+            Root@0..5
+              BinaryExpr@0..5
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Greater@2..3 ">"
+                Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "2""#]]);
+        check("1 <= 2", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                LessEqu@2..4 "<="
+                Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "2""#]]);
+        check("1 >= 2", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                GreaterEqu@2..4 ">="
+                Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "2""#]]);
+        check("1 + 2", expect![[r#"
+            Root@0..5
+              BinaryExpr@0..5
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Plus@2..3 "+"
+                Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "2""#]]);
+        check("1 - 2", expect![[r#"
+            Root@0..5
+              BinaryExpr@0..5
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Minus@2..3 "-"
+                Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "2""#]]);
+        check("1 * 2", expect![[r#"
+            Root@0..5
+              BinaryExpr@0..5
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Star@2..3 "*"
+                Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "2""#]]);
+        check("1 / 2", expect![[r#"
+            Root@0..5
+              BinaryExpr@0..5
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Slash@2..3 "/"
+                Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "2""#]]);
+        check("1 div 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwDiv@2..5 "div"
+                Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+        check("1 rem 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwRem@2..5 "rem"
+                Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+        check("1 mod 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwMod@2..5 "mod"
+                Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+        check("1 shl 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwShl@2..5 "shl"
+                Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+        check("1 shr 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwShr@2..5 "shr"
+                Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+        check("1 ** 2", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                Exp@2..4 "**"
+                Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "2""#]]);
+        // call, dot, and arrow are complex operators
+        // not in and not eq are compound infix
+    }
+
+    #[test]
+    fn parse_ne_form1() {
+        check("1 ~= 2", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotEq@2..5
+                  Tilde@2..3 "~"
+                  Equ@3..4 "="
+                  Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "2""#]]);
+    }
+
+    #[test]
+    fn parse_ne_form2() {
+        check("1 ~ = 2", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotEq@2..6
+                  Tilde@2..3 "~"
+                  Whitespace@3..4 " "
+                  Equ@4..5 "="
+                  Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "2""#]]);
+    }
+
+    #[test]
+    fn parse_ne_form3() {
+        check("1 not = 2", expect![[r#"
+            Root@0..9
+              BinaryExpr@0..9
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotEq@2..8
+                  KwNot@2..5 "not"
+                  Whitespace@5..6 " "
+                  Equ@6..7 "="
+                  Whitespace@7..8 " "
+                LiteralExpr@8..9
+                  IntLiteral@8..9 "2""#]]);
+    }
+
+    #[test]
+    fn parse_ne_form4() {
+        check("1 not= 2", expect![[r#"
+            Root@0..8
+              BinaryExpr@0..8
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotEq@2..7
+                  KwNot@2..5 "not"
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "2""#]]);
+    }
+
+    #[test]
+    fn parse_in() {
+        check("1 in a", expect![[r#"
+            Root@0..6
+              BinaryExpr@0..6
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                KwIn@2..4 "in"
+                Whitespace@4..5 " "
+                RefExpr@5..6
+                  Identifier@5..6 "a""#]]);
+    }
+
+    #[test]
+    fn parse_not_in_form1() {
+        check("1 not in a", expect![[r#"
+            Root@0..10
+              BinaryExpr@0..10
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotIn@2..9
+                  KwNot@2..5 "not"
+                  Whitespace@5..6 " "
+                  KwIn@6..8 "in"
+                  Whitespace@8..9 " "
+                RefExpr@9..10
+                  Identifier@9..10 "a""#]]);
+    }
+
+    #[test]
+    fn parse_not_in_form2() {
+        check("1 ~in a", expect![[r#"
+            Root@0..7
+              BinaryExpr@0..7
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotIn@2..6
+                  Tilde@2..3 "~"
+                  KwIn@3..5 "in"
+                  Whitespace@5..6 " "
+                RefExpr@6..7
+                  Identifier@6..7 "a""#]]);
+    }
+
+    #[test]
+    fn parse_not_in_form3() {
+        check("1 ~ in a", expect![[r#"
+            Root@0..8
+              BinaryExpr@0..8
+                LiteralExpr@0..2
+                  IntLiteral@0..1 "1"
+                  Whitespace@1..2 " "
+                NotIn@2..7
+                  Tilde@2..3 "~"
+                  Whitespace@3..4 " "
+                  KwIn@4..6 "in"
+                  Whitespace@6..7 " "
+                RefExpr@7..8
+                  Identifier@7..8 "a""#]]);
+    }
+
+    #[test]
+    fn recover_tilde_as_infix() {
+        check("1 ~ 2", expect![[r#"
+            Root@0..5
+              LiteralExpr@0..2
+                IntLiteral@0..1 "1"
+                Whitespace@1..2 " "
+              Error@2..5
+                Tilde@2..3 "~"
+                Whitespace@3..4 " "
+                IntLiteral@4..5 "2"
+            error at 4..5: expected ’in’ or ’=’, but found int literal"#]]);
+    }
+
+    #[test]
+    fn recover_tilde_not_infix() {
+        check("1 not 2", expect![[r#"
+            Root@0..7
+              LiteralExpr@0..2
+                IntLiteral@0..1 "1"
+                Whitespace@1..2 " "
+              Error@2..7
+                KwNot@2..5 "not"
+                Whitespace@5..6 " "
+                IntLiteral@6..7 "2"
+            error at 6..7: expected ’in’ or ’=’, but found int literal"#]]);
     }
 }
