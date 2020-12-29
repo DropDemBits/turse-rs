@@ -28,11 +28,11 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
-    let only_reference = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
-    let mut lhs = lhs(p, only_reference)?;
+    let only_references = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
+    let mut lhs = lhs(p, only_references)?;
 
     loop {
-        let op = if let Some(op) = infix_op(p) {
+        let op = if let Some(op) = infix_op(p, only_references) {
             op
         } else {
             // Not an infix operator, so let the caller decide the outcome
@@ -221,45 +221,58 @@ fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
     }))
 }
 
-fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
-    Some(match_token! {
-        |p| match {
-            TokenKind::Imply => { BinaryOp::Imply },
-            TokenKind::Or => { BinaryOp::Or }
-            TokenKind::Pipe => { BinaryOp::Or }
-            TokenKind::And => { BinaryOp::And }
-            TokenKind::Ampersand => { BinaryOp::And }
-            TokenKind::Less => { BinaryOp::Less }
-            TokenKind::Greater => { BinaryOp::Greater }
-            TokenKind::Equ => { BinaryOp::Equal }
-            TokenKind::LessEqu => { BinaryOp::LessEq }
-            TokenKind::GreaterEqu => { BinaryOp::GreaterEq }
-            TokenKind::In => { BinaryOp::In }
-            TokenKind::Not => {
-                maybe_composite_op(p)?
+fn infix_op(p: &mut Parser, only_reference: bool) -> Option<BinaryOp> {
+    let ref_infix_ops = match_token!(|p| match {
+        TokenKind::Dot => { Some(BinaryOp::Dot) },
+        TokenKind::Arrow => { Some(BinaryOp::Arrow) },
+        TokenKind::LeftParen => { Some(BinaryOp::Call) },
+        _ => {
+            None
+        },
+    });
+
+    if only_reference {
+        // Stop at the reference infix ops
+        return ref_infix_ops;
+    }
+
+    ref_infix_ops.or_else(|| {
+        Some(match_token! {
+            |p| match {
+                TokenKind::Imply => { BinaryOp::Imply },
+                TokenKind::Or => { BinaryOp::Or }
+                TokenKind::Pipe => { BinaryOp::Or }
+                TokenKind::And => { BinaryOp::And }
+                TokenKind::Ampersand => { BinaryOp::And }
+                TokenKind::Less => { BinaryOp::Less }
+                TokenKind::Greater => { BinaryOp::Greater }
+                TokenKind::Equ => { BinaryOp::Equal }
+                TokenKind::LessEqu => { BinaryOp::LessEq }
+                TokenKind::GreaterEqu => { BinaryOp::GreaterEq }
+                TokenKind::In => { BinaryOp::In }
+                TokenKind::Not => {
+                    maybe_composite_op(p)?
+                }
+                TokenKind::Tilde => {
+                    maybe_composite_op(p)?
+                }
+                TokenKind::Plus => { BinaryOp::Add }
+                TokenKind::Minus => { BinaryOp::Sub }
+                TokenKind::Xor => { BinaryOp::Xor }
+                TokenKind::Star => { BinaryOp::Mul }
+                TokenKind::Slash => { BinaryOp::RealDiv }
+                TokenKind::Div => { BinaryOp::Div }
+                TokenKind::Mod => { BinaryOp::Mod }
+                TokenKind::Rem => { BinaryOp::Rem }
+                TokenKind::Shl => { BinaryOp::Shl }
+                TokenKind::Shr => { BinaryOp::Shr },
+                TokenKind::Exp => { BinaryOp::Exp },
+                _ => {
+                    // Not an infix operator
+                    return None;
+                }
             }
-            TokenKind::Tilde => {
-                maybe_composite_op(p)?
-            }
-            TokenKind::Plus => { BinaryOp::Add }
-            TokenKind::Minus => { BinaryOp::Sub }
-            TokenKind::Xor => { BinaryOp::Xor }
-            TokenKind::Star => { BinaryOp::Mul }
-            TokenKind::Slash => { BinaryOp::RealDiv }
-            TokenKind::Div => { BinaryOp::Div }
-            TokenKind::Mod => { BinaryOp::Mod }
-            TokenKind::Rem => { BinaryOp::Rem }
-            TokenKind::Shl => { BinaryOp::Shl }
-            TokenKind::Shr => { BinaryOp::Shr },
-            TokenKind::Exp => { BinaryOp::Exp },
-            TokenKind::Dot => { BinaryOp::Dot },
-            TokenKind::Arrow => { BinaryOp::Arrow },
-            TokenKind::LeftParen => { BinaryOp::Call },
-            _ => {
-                // Not an infix operator
-                return None;
-            }
-        }
+        })
     })
 }
 

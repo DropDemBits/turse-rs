@@ -60,15 +60,17 @@ pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
 pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
-    if let Some((_, true)) = param(p) {
-        loop {
-            match param(p) {
-                Some((_, true)) => {}      // parsed param, expecting more
-                Some((_, false)) => break, // parsed param, end of list
-                None => {
-                    // missing next param
-                    p.error();
-                    break;
+    if !p.at(TokenKind::RightParen) {
+        if let Some((_, true)) = param(p) {
+            loop {
+                match param(p) {
+                    Some((_, true)) => {}      // parsed param, expecting more
+                    Some((_, false)) => break, // parsed param, end of list
+                    None => {
+                        // missing next param
+                        p.error();
+                        break;
+                    }
                 }
             }
         }
