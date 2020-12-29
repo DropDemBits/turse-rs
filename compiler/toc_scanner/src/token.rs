@@ -28,6 +28,8 @@ pub enum TokenKind {
     // Character Tokens
     #[token("@")]
     At,
+    #[token("&")]
+    Ampersand,
     #[token("->")]
     Arrow,
     #[token("^")]
@@ -62,6 +64,8 @@ pub enum TokenKind {
     Minus,
     #[token("+")]
     Plus,
+    #[token("|")]
+    Pipe,
     #[token(")")]
     RightParen,
     #[token(";")]
@@ -477,6 +481,7 @@ impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             TokenKind::At => "’@’",
+            TokenKind::Ampersand => "’&’",
             TokenKind::Arrow => "’->’",
             TokenKind::Caret => "’^’",
             TokenKind::Colon => "’:’",
@@ -494,6 +499,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Less => "’<’",
             TokenKind::Minus => "’-’",
             TokenKind::Plus => "’+’",
+            TokenKind::Pipe => "’|’",
             TokenKind::RightParen => "’)’",
             TokenKind::Semicolon => "’;’",
             TokenKind::Slash => "’/’",

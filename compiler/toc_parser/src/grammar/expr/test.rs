@@ -543,6 +543,19 @@ fn parse_simple_infix() {
                   IntLiteral@5..6 "2""#]],
     );
     check(
+        "1 | 2",
+        expect![[r#"
+    Root@0..5
+      BinaryExpr@0..5
+        LiteralExpr@0..2
+          IntLiteral@0..1 "1"
+          Whitespace@1..2 " "
+        Pipe@2..3 "|"
+        Whitespace@3..4 " "
+        LiteralExpr@4..5
+          IntLiteral@4..5 "2""#]],
+    );
+    check(
         "1 and 2",
         expect![[r#"
             Root@0..7
@@ -554,6 +567,19 @@ fn parse_simple_infix() {
                 Whitespace@5..6 " "
                 LiteralExpr@6..7
                   IntLiteral@6..7 "2""#]],
+    );
+    check(
+        "1 & 2",
+        expect![[r#"
+    Root@0..5
+      BinaryExpr@0..5
+        LiteralExpr@0..2
+          IntLiteral@0..1 "1"
+          Whitespace@1..2 " "
+        Ampersand@2..3 "&"
+        Whitespace@3..4 " "
+        LiteralExpr@4..5
+          IntLiteral@4..5 "2""#]],
     );
     check(
         "1 < 2",
@@ -1042,7 +1068,9 @@ fn recover_just_right_paren() {
 
 #[test]
 fn recover_too_many_right_parens() {
-    check("(1))", expect![[r##"
+    check(
+        "(1))",
+        expect![[r##"
         Root@0..4
           ParenExpr@0..3
             LeftParen@0..1 "("
@@ -1051,7 +1079,8 @@ fn recover_too_many_right_parens() {
             RightParen@2..3 ")"
           Error@3..4
             RightParen@3..4 ")"
-        error at 3..4: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]])
+        error at 3..4: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+    )
 }
 
 #[test]
