@@ -14,4 +14,6 @@ pub(crate) enum Event {
     FinishNode,
     Error(ParseError),
     Placeholder,
+    /// Dropped start node
+    Tombstone,
 }

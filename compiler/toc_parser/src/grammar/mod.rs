@@ -37,7 +37,7 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
         Some(m.complete(p, SyntaxKind::Name))
     } else {
         // not found, drop marker
-        m.forget();
+        m.forget(p);
         None
     }
 }

@@ -107,7 +107,7 @@ impl<'t, 'src> Parser<'t, 'src> {
         } else {
             // Cursor is at the end of file or is part of the recovery set
             // Error node does not need to be built, so forget the marker
-            err_at.forget();
+            err_at.forget(self);
         }
     }
 
