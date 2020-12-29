@@ -45,9 +45,27 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.source.peek_kind()
     }
 
+    /// Checks if the next token is of `kind`
+    ///
+    /// # Returns
+    /// Returns `true` if the expected token is of `kind`
     pub(crate) fn at(&mut self, kind: TokenKind) -> bool {
         self.expected_kinds.push(kind);
         self.peek() == Some(kind)
+    }
+
+    /// Eats the next token if it is of `kind`, otherwise does nothing
+    ///
+    /// # Returns
+    /// Returns `true` if the expected token was eaten
+    pub(crate) fn eat(&mut self, kind: TokenKind) -> bool {
+        if self.at(kind) {
+            // nom, expected
+            self.bump();
+            true
+        } else {
+            false
+        }
     }
 
     /// Expects the next token to be of `kind`, otherwise reports an error
@@ -55,13 +73,11 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// # Returns
     /// Returns `true` if the expected token was found
     pub(crate) fn expect(&mut self, kind: TokenKind) -> bool {
-        if self.at(kind) {
-            // Nom on token, expected
-            self.bump();
-            true
-        } else {
+        if !self.eat(kind) {
             self.error();
             false
+        } else {
+            true
         }
     }
 
