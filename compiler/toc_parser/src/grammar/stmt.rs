@@ -16,16 +16,14 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
 fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     assert!(p.at(TokenKind::Var) || p.at(TokenKind::Const));
-    let _as_const = p.at(TokenKind::Const); // to check if initializer is required
+    let mut require_initializer = p.at(TokenKind::Const);
 
     let m = p.start();
     p.bump(); // `var` or `const`
 
-    p.expect(TokenKind::Identifier);
+    super::name_list(p);
 
-    if p.at(TokenKind::Colon) {
-        p.bump();
-
+    if p.eat(TokenKind::Colon) {
         // parse type
         p.with_extra_recovery(&[TokenKind::Assign], |p| {
             if ty::ty(p).is_none() {
@@ -33,11 +31,14 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
                 p.error();
             }
         });
+    } else {
+        // initializer is required if type is absent
+        require_initializer = true;
     }
 
-    p.expect(TokenKind::Assign);
-
-    expr::expr(p);
+    if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
+        expr::expr(p);
+    }
 
     Some(m.complete(p, SyntaxKind::ConstVarDecl))
 }
