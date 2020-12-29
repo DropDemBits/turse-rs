@@ -226,7 +226,9 @@ fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
         |p| match {
             TokenKind::Imply => { BinaryOp::Imply },
             TokenKind::Or => { BinaryOp::Or }
+            TokenKind::Pipe => { BinaryOp::Or }
             TokenKind::And => { BinaryOp::And }
+            TokenKind::Ampersand => { BinaryOp::And }
             TokenKind::Less => { BinaryOp::Less }
             TokenKind::Greater => { BinaryOp::Greater }
             TokenKind::Equ => { BinaryOp::Equal }

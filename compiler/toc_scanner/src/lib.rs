@@ -221,6 +221,7 @@ mod test {
     #[test]
     fn scan_punct() {
         expect("@", &TokenKind::At);
+        expect("&", &TokenKind::Ampersand);
         expect("->", &TokenKind::Arrow);
         expect("^", &TokenKind::Caret);
         expect(":", &TokenKind::Colon);
@@ -238,6 +239,7 @@ mod test {
         expect("<", &TokenKind::Less);
         expect("-", &TokenKind::Minus);
         expect("+", &TokenKind::Plus);
+        expect("|", &TokenKind::Pipe);
         expect(")", &TokenKind::RightParen);
         expect(";", &TokenKind::Semicolon);
         expect("/", &TokenKind::Slash);

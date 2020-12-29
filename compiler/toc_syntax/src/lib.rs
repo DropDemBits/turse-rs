@@ -11,6 +11,7 @@ extern crate num_derive;
 pub enum SyntaxKind {
     // Character Tokens
     At,
+    Ampersand,
     Arrow,
     Caret,
     Colon,
@@ -28,6 +29,7 @@ pub enum SyntaxKind {
     Less,
     Minus,
     Plus,
+    Pipe,
     RightParen,
     Semicolon,
     Slash,
@@ -205,7 +207,8 @@ pub enum SyntaxKind {
     ClassDecl,
     MonitorDecl,
     IncludeStmt,
-    AsnStmt,
+    AssignStmt,
+    AsnOp,
     OpenStmt,
     CloseStmt,
     PutStmt,
@@ -333,6 +336,7 @@ impl From<TokenKind> for SyntaxKind {
     fn from(token: TokenKind) -> Self {
         match token {
             TokenKind::At => SyntaxKind::At,
+            TokenKind::Ampersand => SyntaxKind::Ampersand,
             TokenKind::Arrow => SyntaxKind::Arrow,
             TokenKind::Caret => SyntaxKind::Caret,
             TokenKind::Colon => SyntaxKind::Colon,
@@ -350,6 +354,7 @@ impl From<TokenKind> for SyntaxKind {
             TokenKind::Less => SyntaxKind::Less,
             TokenKind::Minus => SyntaxKind::Minus,
             TokenKind::Plus => SyntaxKind::Plus,
+            TokenKind::Pipe => SyntaxKind::Pipe,
             TokenKind::RightParen => SyntaxKind::RightParen,
             TokenKind::Semicolon => SyntaxKind::Semicolon,
             TokenKind::Slash => SyntaxKind::Slash,
