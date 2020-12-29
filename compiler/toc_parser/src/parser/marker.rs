@@ -17,8 +17,13 @@ impl MaybeMarker {
     }
 
     /// Abandons the marker, disposing of the past node
-    pub(crate) fn forget(mut self) {
+    pub(crate) fn forget(mut self, parser: &mut Parser) {
         self.0.bomb.defuse();
+
+        // Replace placeholder with `Tombstone`
+        let event_at_pos = &mut parser.events[self.0.pos];
+        assert_eq!(*event_at_pos, Event::Placeholder);
+        *event_at_pos = Event::Tombstone;
     }
 
     /// Finishes a `Marker` for the given `kind`, converting it into a `CompletedMarker`

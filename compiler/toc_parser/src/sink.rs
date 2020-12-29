@@ -62,7 +62,7 @@ impl<'t, 'src> Sink<'t, 'src> {
                 Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
                 Event::Error(err) => self.errors.push(err),
-                Event::Placeholder => {}
+                Event::Tombstone | Event::Placeholder => {}
             }
 
             self.skip_trivia();
