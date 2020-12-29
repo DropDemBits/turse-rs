@@ -10,7 +10,9 @@ use crate::parser::error::ErrorKind;
 use crate::parser::marker::MaybeMarker;
 use crate::source::Source;
 
+use std::cell::RefCell;
 use std::mem;
+use std::rc::Rc;
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
@@ -20,6 +22,8 @@ pub(crate) struct Parser<'t, 'src> {
     source: Source<'t, 'src>,
     events: Vec<Event>,
     expected_kinds: Vec<TokenKind>,
+    // Invariant: can only be modified in `with_extra_recovery`
+    extra_recovery: Rc<RefCell<Vec<TokenKind>>>,
 }
 
 impl<'t, 'src> Parser<'t, 'src> {
@@ -28,6 +32,7 @@ impl<'t, 'src> Parser<'t, 'src> {
             source,
             events: vec![],
             expected_kinds: vec![],
+            extra_recovery: Rc::new(RefCell::new(vec![])),
         }
     }
 
@@ -63,13 +68,19 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Reports an unexpected token error at the next token
     pub(crate) fn error(&mut self) {
         let err = self.start(); // start error node
-        self.error_unexpected_at(err, &[]);
+        self.error_unexpected_at(err);
     }
 
-    /// Reports an unexpected token error at the next token, with an extra recovery set
-    pub(crate) fn error_with_extra_recovery(&mut self, extra: &[TokenKind]) {
-        let err = self.start(); // start error node
-        self.error_unexpected_at(err, extra);
+    /// Runs the parser with the extra recovery tokens
+    ///
+    /// Recovery tokens are accumulated in nested `with_extra_recovery` calls
+    pub(crate) fn with_extra_recovery(&mut self, extra: &[TokenKind], f: impl FnOnce(&mut Parser)) {
+        let previous_set = self.extra_recovery.borrow().len();
+        self.extra_recovery.borrow_mut().extend_from_slice(extra);
+
+        f(self);
+
+        self.extra_recovery.borrow_mut().truncate(previous_set);
     }
 
     /// Reports an unexpected token error at the given marker
@@ -77,11 +88,7 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Note: `err_at` can't be a `Marker` as the passed-in marker must
     /// be allowed to not be made so that a bump at the end of the file
     /// is not made
-    pub(crate) fn error_unexpected_at(
-        &mut self,
-        err_at: MaybeMarker,
-        extra_recovery: &[TokenKind],
-    ) {
+    pub(crate) fn error_unexpected_at(&mut self, err_at: MaybeMarker) {
         let current = self.source.peek_token();
 
         let (found, range) = if let Some(Token { kind, range, .. }) = current {
@@ -92,6 +99,11 @@ impl<'t, 'src> Parser<'t, 'src> {
         };
 
         // push error
+        debug_assert!(
+            !self.expected_kinds.is_empty(),
+            "Extra call to `error` or `error_unexpected_at`"
+        );
+
         self.events.push(Event::Error(ParseError {
             kind: ErrorKind::UnexpectedToken {
                 expected: mem::take(&mut self.expected_kinds),
@@ -100,7 +112,10 @@ impl<'t, 'src> Parser<'t, 'src> {
             range,
         }));
 
-        if !self.at_set(&RECOVERY_SET) && !self.at_set(&extra_recovery) && !self.at_end() {
+        if !self.at_set(&RECOVERY_SET)
+            && !self.at_set(&self.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
+            && !self.at_end()
+        {
             // not in the recovery set? consume it! (wrap in error node)
             self.bump();
             err_at.complete(self, SyntaxKind::Error);

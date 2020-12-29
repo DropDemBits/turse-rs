@@ -3,18 +3,6 @@ use crate::check;
 use expect_test::expect;
 
 #[test]
-fn report_not_a_stmt() {
-    check(
-        "pervasive",
-        expect![[r##"
-            Root@0..9
-              Error@0..9
-                KwPervasive@0..9 "pervasive"
-            error at 0..9: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’pervasive’"##]],
-    );
-}
-
-#[test]
 fn parse_ident_use() {
     check(
         "a",
@@ -1042,11 +1030,28 @@ fn parens_alter_precedence() {
 
 #[test]
 fn recover_just_right_paren() {
-    check(")", expect![[r##"
+    check(
+        ")",
+        expect![[r##"
         Root@0..1
           Error@0..1
             RightParen@0..1 ")"
-        error at 0..1: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]])
+        error at 0..1: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+    )
+}
+
+#[test]
+fn recover_too_many_right_parens() {
+    check("(1))", expect![[r##"
+        Root@0..4
+          ParenExpr@0..3
+            LeftParen@0..1 "("
+            LiteralExpr@1..2
+              IntLiteral@1..2 "1"
+            RightParen@2..3 ")"
+          Error@3..4
+            RightParen@3..4 ")"
+        error at 3..4: expected ’var’, ’const’, identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]])
 }
 
 #[test]
