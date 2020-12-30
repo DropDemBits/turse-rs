@@ -9,6 +9,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
         |p| match {
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
+            TokenKind::Type => { type_decl(p) }
             _ => expr::reference(p).and_then(|m| {
                 let m = m.precede(p);
                 // check if there's an asn nearby
@@ -112,4 +113,31 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::ConstVarDecl))
+}
+
+fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Type));
+
+    let m = p.start();
+    p.bump();
+
+    match_token!(|p| match {
+        TokenKind::Pervasive => { p.bump() }
+        TokenKind::Star => { p.bump() }
+        _ => {
+            // dont clog up the count with the attributes
+            p.reset_expected_tokens();
+        }
+    });
+
+    super::name(p);
+
+    p.expect(TokenKind::Colon);
+
+    if !p.eat(TokenKind::Forward) {
+        // parse a type (it's not a forward!)
+        ty::ty(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::TypeDecl))
 }

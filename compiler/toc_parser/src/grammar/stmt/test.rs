@@ -10,7 +10,7 @@ fn report_not_a_stmt() {
             Root@0..9
               Error@0..9
                 KwPervasive@0..9 "pervasive"
-            error at 0..9: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’pervasive’"#]],
+            error at 0..9: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’pervasive’"#]],
     );
 }
 
@@ -22,7 +22,7 @@ fn recover_just_assign() {
             Root@0..2
               Error@0..2
                 Assign@0..2 ":="
-            error at 0..2: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’:=’"#]],
+            error at 0..2: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’:=’"#]],
     )
 }
 
@@ -740,11 +740,11 @@ fn recover_not_weird_asn_op() {
                 Whitespace@10..11 " "
               Error@11..12
                 IntLiteral@11..12 "1"
-            error at 2..5: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’not’
-            error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 7..10: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’not’
-            error at 11..12: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..5: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’not’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 7..10: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’not’
+            error at 11..12: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a ~==~ 1",
@@ -766,11 +766,11 @@ fn recover_not_weird_asn_op() {
                 Whitespace@6..7 " "
               Error@7..8
                 IntLiteral@7..8 "1"
-            error at 2..3: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’~’
-            error at 3..4: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 4..5: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’~’
-            error at 7..8: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..3: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’~’
+            error at 3..4: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 4..5: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’~’
+            error at 7..8: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
 }
 
@@ -791,8 +791,8 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@4..5 " "
               Error@5..6
                 IntLiteral@5..6 "1"
-            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’<=’
-            error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’<=’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a <== 1",
@@ -810,9 +810,9 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@5..6 " "
               Error@6..7
                 IntLiteral@6..7 "1"
-            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’<=’
-            error at 4..5: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’<=’
+            error at 4..5: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a >= 1",
@@ -828,8 +828,8 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@4..5 " "
               Error@5..6
                 IntLiteral@5..6 "1"
-            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’>=’
-            error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’>=’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a >== 1",
@@ -847,9 +847,9 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@5..6 " "
               Error@6..7
                 IntLiteral@6..7 "1"
-            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’>=’
-            error at 4..5: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’>=’
+            error at 4..5: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
 
     // these are not compound ops in `toc`
@@ -871,10 +871,10 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@5..6 " "
               Error@6..7
                 IntLiteral@6..7 "1"
-            error at 2..3: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’~’
-            error at 3..4: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 4..5: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..3: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’~’
+            error at 3..4: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 4..5: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a not== 1",
@@ -894,10 +894,10 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@7..8 " "
               Error@8..9
                 IntLiteral@8..9 "1"
-            error at 2..5: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’not’
-            error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 8..9: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..5: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’not’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 8..9: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a not in= 1",
@@ -918,10 +918,10 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@9..10 " "
               Error@10..11
                 IntLiteral@10..11 "1"
-            error at 2..5: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’not’
-            error at 6..8: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’in’
-            error at 8..9: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 10..11: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..5: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’not’
+            error at 6..8: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’in’
+            error at 8..9: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 10..11: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a ~in= 1",
@@ -941,10 +941,10 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@6..7 " "
               Error@7..8
                 IntLiteral@7..8 "1"
-            error at 2..3: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’~’
-            error at 3..5: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’in’
-            error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 7..8: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..3: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’~’
+            error at 3..5: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’in’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 7..8: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a in= 1",
@@ -962,28 +962,28 @@ fn recover_not_a_compound_asn_op() {
                 Whitespace@5..6 " "
               Error@6..7
                 IntLiteral@6..7 "1"
-            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’in’
-            error at 4..5: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’=’
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 2..4: expected ’:=’, ’=>’, ’or’, ’|’, ’and’, ’&’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’, ’**’, ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’in’
+            error at 4..5: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’=’
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
     check(
         "a == 1",
         expect![[r##"
-        Root@0..6
-          AssignStmt@0..5
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..3
-              Equ@2..3 "="
-            Error@3..5
-              Equ@3..4 "="
-              Whitespace@4..5 " "
-          Error@5..6
-            IntLiteral@5..6 "1"
-        error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’=’
-        error at 5..6: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"##]],
+            Root@0..6
+              AssignStmt@0..5
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..3
+                  Equ@2..3 "="
+                Error@3..5
+                  Equ@3..4 "="
+                  Whitespace@4..5 " "
+              Error@5..6
+                IntLiteral@5..6 "1"
+            error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’=’
+            error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"##]],
     );
 }
 
@@ -1028,5 +1028,170 @@ fn recover_eq_instead_of_asn() {
               Whitespace@3..4 " "
             LiteralExpr@4..5
               IntLiteral@4..5 "1""#]],
+    );
+}
+
+#[test]
+fn parse_type_decl() {
+    check(
+        "type a : int",
+        expect![[r#"
+        Root@0..12
+          TypeDecl@0..12
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "a"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PrimType@9..12
+              KwInt@9..12 "int""#]],
+    );
+}
+
+#[test]
+fn parse_type_decl_with_forward() {
+    check(
+        "type a : forward",
+        expect![[r#"
+        Root@0..16
+          TypeDecl@0..16
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "a"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            KwForward@9..16 "forward""#]],
+    );
+}
+
+#[test]
+fn parse_type_decl_with_pervasive_attr() {
+    check("type pervasive a : int", expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            KwPervasive@5..14 "pervasive"
+            Whitespace@14..15 " "
+            Name@15..17
+              Identifier@15..16 "a"
+              Whitespace@16..17 " "
+            Colon@17..18 ":"
+            Whitespace@18..19 " "
+            PrimType@19..22
+              KwInt@19..22 "int""#]]);
+}
+
+#[test]
+fn parse_type_decl_with_star_attr() {
+    check("type * a : int", expect![[r#"
+        Root@0..14
+          TypeDecl@0..14
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Star@5..6 "*"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            Colon@9..10 ":"
+            Whitespace@10..11 " "
+            PrimType@11..14
+              KwInt@11..14 "int""#]]);
+}
+
+#[test]
+fn recover_type_decl_missing_type() {
+    check(
+        "type a : ",
+        expect![[r#"
+        Root@0..9
+          TypeDecl@0..9
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "a"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " ""#]],
+    );
+}
+
+#[test]
+fn recover_type_decl_missing_colon() {
+    check(
+        "type a forward",
+        expect![[r#"
+        Root@0..14
+          TypeDecl@0..14
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "a"
+              Whitespace@6..7 " "
+            Error@7..14
+              KwForward@7..14 "forward"
+        error at 7..14: expected ’:’, but found ’forward’"#]],
+    );
+}
+
+#[test]
+fn recover_type_decl_missing_colon_and_type() {
+    check(
+        "type a",
+        expect![[r#"
+        Root@0..6
+          TypeDecl@0..6
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..6
+              Identifier@5..6 "a"
+        error at 5..6: expected ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_just_type() {
+    check(
+        "type",
+        expect![[r#"
+        Root@0..4
+          TypeDecl@0..4
+            KwType@0..4 "type"
+        error at 0..4: expected identifier
+        error at 0..4: expected ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_on_type() {
+    check(
+        "var a := \ntype a : int",
+        expect![[r##"
+        Root@0..22
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          TypeDecl@10..22
+            KwType@10..14 "type"
+            Whitespace@14..15 " "
+            Name@15..17
+              Identifier@15..16 "a"
+              Whitespace@16..17 " "
+            Colon@17..18 ":"
+            Whitespace@18..19 " "
+            PrimType@19..22
+              KwInt@19..22 "int"
+        error at 10..14: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’type’"##]],
     );
 }

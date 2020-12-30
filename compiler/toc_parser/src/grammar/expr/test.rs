@@ -256,7 +256,7 @@ fn parse_real_literal() {
                   RealLiteral@3..9 ".12345"
               Error@9..14
                 RealLiteral@9..14 ".6789"
-            error at 9..14: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found real literal"#]],
+            error at 9..14: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found real literal"#]],
     );
 
     // Valid variations
@@ -819,16 +819,16 @@ fn parse_exprs_with_comments() {
                 IntLiteral@137..138 "1"
                 Whitespace@138..139 " "
                 Comment@139..153 "% go back up 1"
-            error at 9..10: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal
-            error at 19..20: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’+’
-            error at 21..22: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal
-            error at 59..60: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’+’
-            error at 94..95: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal
-            error at 105..106: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal
-            error at 107..108: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’-’
-            error at 109..110: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal
-            error at 135..136: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’+’
-            error at 137..138: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            error at 9..10: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
+            error at 19..20: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’+’
+            error at 21..22: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
+            error at 59..60: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’+’
+            error at 94..95: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
+            error at 105..106: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
+            error at 107..108: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’-’
+            error at 109..110: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
+            error at 135..136: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’+’
+            error at 137..138: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
     );
 }
 
@@ -1613,7 +1613,7 @@ fn recover_too_many_right_parens() {
                   RightParen@5..6 ")"
               Error@6..7
                 RightParen@6..7 ")"
-            error at 6..7: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’)’"#]],
+            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’)’"#]],
     )
 }
 
@@ -2125,7 +2125,7 @@ fn recover_call_expr_missing_delim() {
               Error@8..9
                 RightParen@8..9 ")"
             error at 7..8: expected ’,’ or ’)’, but found int literal
-            error at 8..9: expected ’var’, ’const’, identifier, ’^’ or ’bits’, but found ’)’"#]],
+            error at 8..9: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’)’"#]],
     );
 }
 
