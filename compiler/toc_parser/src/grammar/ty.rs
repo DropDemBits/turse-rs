@@ -5,7 +5,10 @@ mod test;
 use super::*;
 
 pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
-    ty_primitive(p)
+    ty_primitive(p).or_else(|| {
+        p.error(Expected::Type);
+        None
+    })
 }
 
 pub(super) fn ty_primitive(p: &mut Parser) -> Option<CompletedMarker> {

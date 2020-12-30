@@ -22,6 +22,10 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                     // plop as a call stmt
                     Some(m.complete(p,SyntaxKind::CallStmt))
                 }
+            }).or_else(|| {
+                // report as expecting a statement
+                p.error(Expected::Statement);
+                None
             }),
         }
     }
@@ -75,7 +79,7 @@ fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
         if !p.at(TokenKind::Equ) {
             // not a valid asn op, missing equ
             // wrap inside of an error node
-            p.error_unexpected_at(m);
+            p.error_unexpected_at(m, None);
             return None;
         }
 
@@ -102,10 +106,7 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     if p.eat(TokenKind::Colon) {
         // parse type
         p.with_extra_recovery(&[TokenKind::Assign], |p| {
-            if ty::ty(p).is_none() {
-                // not a type
-                p.error();
-            }
+            ty::ty(p);
         });
     } else {
         // initializer is required if type is absent
@@ -129,7 +130,9 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     super::name(p);
 
-    p.expect(TokenKind::Colon);
+    p.with_extra_recovery(&[TokenKind::Forward], |p| {
+        p.expect(TokenKind::Colon);
+    });
 
     if !p.eat(TokenKind::Forward) {
         // parse a type (it's not a forward!)

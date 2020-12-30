@@ -257,7 +257,7 @@ fn parse_sized_string_type() {
 fn recover_empty_sized_char_type() {
     check(
         "type sc : char()",
-        expect![[r##"
+        expect![[r#"
             Root@0..16
               TypeDecl@0..16
                 KwType@0..4 "type"
@@ -271,7 +271,7 @@ fn recover_empty_sized_char_type() {
                   KwChar@10..14 "char"
                   LeftParen@14..15 "("
                   RightParen@15..16 ")"
-            error at 15..16: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+            error at 15..16: expected expression, but found ’)’"#]],
     );
 }
 
@@ -279,7 +279,7 @@ fn recover_empty_sized_char_type() {
 fn recover_empty_sized_string_type() {
     check(
         "type sc : string()",
-        expect![[r##"
+        expect![[r#"
             Root@0..18
               TypeDecl@0..18
                 KwType@0..4 "type"
@@ -293,7 +293,7 @@ fn recover_empty_sized_string_type() {
                   KwString@10..16 "string"
                   LeftParen@16..17 "("
                   RightParen@17..18 ")"
-            error at 17..18: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+            error at 17..18: expected expression, but found ’)’"#]],
     );
 }
 
@@ -301,7 +301,7 @@ fn recover_empty_sized_string_type() {
 fn recover_not_expr_in_sized_char_type() {
     check(
         "type sc : char(to)",
-        expect![[r##"
+        expect![[r#"
             Root@0..18
               TypeDecl@0..18
                 KwType@0..4 "type"
@@ -317,7 +317,7 @@ fn recover_not_expr_in_sized_char_type() {
                   Error@15..17
                     KwTo@15..17 "to"
                   RightParen@17..18 ")"
-            error at 15..17: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’to’"##]],
+            error at 15..17: expected expression, but found ’to’"#]],
     );
 }
 
@@ -325,7 +325,7 @@ fn recover_not_expr_in_sized_char_type() {
 fn recover_not_expr_in_sized_string_type() {
     check(
         "type sc : string(to)",
-        expect![[r##"
+        expect![[r#"
             Root@0..20
               TypeDecl@0..20
                 KwType@0..4 "type"
@@ -341,7 +341,7 @@ fn recover_not_expr_in_sized_string_type() {
                   Error@17..19
                     KwTo@17..19 "to"
                   RightParen@19..20 ")"
-            error at 17..19: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’to’"##]],
+            error at 17..19: expected expression, but found ’to’"#]],
     );
 }
 

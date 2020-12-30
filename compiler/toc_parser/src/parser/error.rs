@@ -27,6 +27,7 @@ impl fmt::Display for ParseError {
 pub(crate) enum ErrorKind {
     UnexpectedToken {
         expected: Vec<TokenKind>,
+        expected_category: Option<Expected>,
         found: Option<TokenKind>,
     },
     #[allow(unused)]
@@ -36,20 +37,29 @@ pub(crate) enum ErrorKind {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
-            ErrorKind::UnexpectedToken { expected, found } => {
+            ErrorKind::UnexpectedToken {
+                expected,
+                expected_category,
+                found,
+            } => {
                 write!(f, "expected ")?;
 
-                let expected_count = expected.len();
-                let is_first = |i| i == 0;
-                let is_last = |i| i == expected_count - 1;
+                if let Some(category) = expected_category {
+                    write!(f, "{}", category)?;
+                } else {
+                    // Base it off of the expected tokens
+                    let expected_count = expected.len();
+                    let is_first = |i| i == 0;
+                    let is_last = |i| i == expected_count - 1;
 
-                for (idx, expected_kind) in expected.iter().enumerate() {
-                    if is_first(idx) {
-                        write!(f, "{}", expected_kind)?;
-                    } else if is_last(idx) {
-                        write!(f, " or {}", expected_kind)?;
-                    } else {
-                        write!(f, ", {}", expected_kind)?;
+                    for (idx, expected_kind) in expected.iter().enumerate() {
+                        if is_first(idx) {
+                            write!(f, "{}", expected_kind)?;
+                        } else if is_last(idx) {
+                            write!(f, " or {}", expected_kind)?;
+                        } else {
+                            write!(f, ", {}", expected_kind)?;
+                        }
                     }
                 }
 
@@ -63,6 +73,23 @@ impl fmt::Display for ErrorKind {
                 write!(f, "{}", kind)
             }
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub(crate) enum Expected {
+    Expression,
+    Statement,
+    Type,
+}
+
+impl fmt::Display for Expected {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Expression => "expression",
+            Self::Statement => "statement",
+            Self::Type => "type specifier",
+        })
     }
 }
 
@@ -151,6 +178,7 @@ mod test {
         check(
             ErrorKind::UnexpectedToken {
                 expected: vec![TokenKind::Assign],
+                expected_category: None,
                 found: Some(TokenKind::Equ),
             },
             11..12,
@@ -163,6 +191,7 @@ mod test {
         check(
             ErrorKind::UnexpectedToken {
                 expected: vec![TokenKind::Range],
+                expected_category: None,
                 found: None,
             },
             5..6,
@@ -180,6 +209,7 @@ mod test {
                     TokenKind::Cheat,
                     TokenKind::Caret,
                 ],
+                expected_category: None,
                 found: Some(TokenKind::IntLiteral),
             },
             5..8,
@@ -194,6 +224,7 @@ mod test {
         check(
             ErrorKind::UnexpectedToken {
                 expected: vec![TokenKind::Const, TokenKind::Var],
+                expected_category: None,
                 found: Some(TokenKind::Colon),
             },
             2..3,
@@ -211,10 +242,25 @@ mod test {
                     TokenKind::Not,
                     TokenKind::In,
                 ],
+                expected_category: None,
                 found: None,
             },
             5..8,
             expect![[r#"error at 5..8: expected ’+’, ’-’, ’not’ or ’in’"#]],
         );
+    }
+
+    #[test]
+    fn unexpected_category_over_list() {
+        // category has preference over token list
+        check(
+            ErrorKind::UnexpectedToken {
+                expected: vec![TokenKind::Pervasive],
+                expected_category: Some(Expected::Expression),
+                found: Some(TokenKind::Var),
+            },
+            3..6,
+            expect![[r#"error at 3..6: expected expression, but found ’var’"#]],
+        )
     }
 }
