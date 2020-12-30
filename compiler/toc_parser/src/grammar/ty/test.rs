@@ -210,15 +210,16 @@ fn parse_sized_char_type() {
                 SizedCharType@10..21
                   KwChar@10..14 "char"
                   LeftParen@14..15 "("
-                  BinaryExpr@15..20
-                    LiteralExpr@15..17
-                      IntLiteral@15..16 "1"
-                      Whitespace@16..17 " "
-                    Plus@17..18 "+"
-                    Whitespace@18..19 " "
-                    NameExpr@19..20
-                      Name@19..20
-                        Identifier@19..20 "k"
+                  SeqLength@15..20
+                    BinaryExpr@15..20
+                      LiteralExpr@15..17
+                        IntLiteral@15..16 "1"
+                        Whitespace@16..17 " "
+                      Plus@17..18 "+"
+                      Whitespace@18..19 " "
+                      NameExpr@19..20
+                        Name@19..20
+                          Identifier@19..20 "k"
                   RightParen@20..21 ")""#]],
     );
 }
@@ -240,17 +241,58 @@ fn parse_sized_string_type() {
                 SizedStringType@10..23
                   KwString@10..16 "string"
                   LeftParen@16..17 "("
-                  BinaryExpr@17..22
-                    LiteralExpr@17..19
-                      IntLiteral@17..18 "1"
-                      Whitespace@18..19 " "
-                    Plus@19..20 "+"
-                    Whitespace@20..21 " "
-                    NameExpr@21..22
-                      Name@21..22
-                        Identifier@21..22 "k"
+                  SeqLength@17..22
+                    BinaryExpr@17..22
+                      LiteralExpr@17..19
+                        IntLiteral@17..18 "1"
+                        Whitespace@18..19 " "
+                      Plus@19..20 "+"
+                      Whitespace@20..21 " "
+                      NameExpr@21..22
+                        Name@21..22
+                          Identifier@21..22 "k"
                   RightParen@22..23 ")""#]],
     );
+}
+
+#[test]
+fn parse_dyn_sized_char_type() {
+    check("type _ : char(*)", expect![[r#"
+        Root@0..16
+          TypeDecl@0..16
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SizedCharType@9..16
+              KwChar@9..13 "char"
+              LeftParen@13..14 "("
+              SeqLength@14..15
+                Star@14..15 "*"
+              RightParen@15..16 ")""#]]);
+}
+
+#[test]
+fn parse_dyn_sized_string_type() {
+    check("type _ : string(*)", expect![[r#"
+        Root@0..18
+          TypeDecl@0..18
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SizedStringType@9..18
+              KwString@9..15 "string"
+              LeftParen@15..16 "("
+              SeqLength@16..17
+                Star@16..17 "*"
+              RightParen@17..18 ")""#]]);
 }
 
 #[test]
@@ -270,6 +312,7 @@ fn recover_empty_sized_char_type() {
                 SizedCharType@10..16
                   KwChar@10..14 "char"
                   LeftParen@14..15 "("
+                  SeqLength@15..15
                   RightParen@15..16 ")"
             error at 15..16: expected expression, but found ’)’"#]],
     );
@@ -292,6 +335,7 @@ fn recover_empty_sized_string_type() {
                 SizedStringType@10..18
                   KwString@10..16 "string"
                   LeftParen@16..17 "("
+                  SeqLength@17..17
                   RightParen@17..18 ")"
             error at 17..18: expected expression, but found ’)’"#]],
     );
@@ -314,8 +358,9 @@ fn recover_not_expr_in_sized_char_type() {
                 SizedCharType@10..18
                   KwChar@10..14 "char"
                   LeftParen@14..15 "("
-                  Error@15..17
-                    KwTo@15..17 "to"
+                  SeqLength@15..17
+                    Error@15..17
+                      KwTo@15..17 "to"
                   RightParen@17..18 ")"
             error at 15..17: expected expression, but found ’to’"#]],
     );
@@ -338,8 +383,9 @@ fn recover_not_expr_in_sized_string_type() {
                 SizedStringType@10..20
                   KwString@10..16 "string"
                   LeftParen@16..17 "("
-                  Error@17..19
-                    KwTo@17..19 "to"
+                  SeqLength@17..19
+                    Error@17..19
+                      KwTo@17..19 "to"
                   RightParen@19..20 ")"
             error at 17..19: expected expression, but found ’to’"#]],
     );
@@ -362,8 +408,9 @@ fn recover_missing_right_paren_in_sized_char_type() {
                 SizedCharType@10..16
                   KwChar@10..14 "char"
                   LeftParen@14..15 "("
-                  LiteralExpr@15..16
-                    IntLiteral@15..16 "1"
+                  SeqLength@15..16
+                    LiteralExpr@15..16
+                      IntLiteral@15..16 "1"
             error at 15..16: expected ’)’"#]],
     );
 }
@@ -385,8 +432,9 @@ fn recover_missing_right_paren_in_sized_string_type() {
                 SizedStringType@10..18
                   KwString@10..16 "string"
                   LeftParen@16..17 "("
-                  LiteralExpr@17..18
-                    IntLiteral@17..18 "1"
+                  SeqLength@17..18
+                    LiteralExpr@17..18
+                      IntLiteral@17..18 "1"
             error at 17..18: expected ’)’"#]],
     );
 }
