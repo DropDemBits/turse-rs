@@ -91,6 +91,84 @@ fn parse_const_decl() {
 }
 
 #[test]
+fn parse_var_decl_with_pervasive_attr() {
+    check("var pervasive a : int", expect![[r#"
+        Root@0..21
+          ConstVarDecl@0..21
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            KwPervasive@4..13 "pervasive"
+            Whitespace@13..14 " "
+            NameList@14..16
+              Name@14..16
+                Identifier@14..15 "a"
+                Whitespace@15..16 " "
+            Colon@16..17 ":"
+            Whitespace@17..18 " "
+            PrimType@18..21
+              KwInt@18..21 "int""#]]);
+}
+
+#[test]
+fn parse_var_decl_with_alt_pervasive_attr() {
+    check("var * a : int", expect![[r#"
+        Root@0..13
+          ConstVarDecl@0..13
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            Star@4..5 "*"
+            Whitespace@5..6 " "
+            NameList@6..8
+              Name@6..8
+                Identifier@6..7 "a"
+                Whitespace@7..8 " "
+            Colon@8..9 ":"
+            Whitespace@9..10 " "
+            PrimType@10..13
+              KwInt@10..13 "int""#]]);
+}
+
+#[test]
+fn parse_var_decl_with_register_attr() {
+    check("var register a : int", expect![[r#"
+        Root@0..20
+          ConstVarDecl@0..20
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            KwRegister@4..12 "register"
+            Whitespace@12..13 " "
+            NameList@13..15
+              Name@13..15
+                Identifier@13..14 "a"
+                Whitespace@14..15 " "
+            Colon@15..16 ":"
+            Whitespace@16..17 " "
+            PrimType@17..20
+              KwInt@17..20 "int""#]]);
+}
+
+#[test]
+fn parse_var_decl_with_all_attrs() {
+    check("var pervasive register a : int", expect![[r#"
+        Root@0..30
+          ConstVarDecl@0..30
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            KwPervasive@4..13 "pervasive"
+            Whitespace@13..14 " "
+            KwRegister@14..22 "register"
+            Whitespace@22..23 " "
+            NameList@23..25
+              Name@23..25
+                Identifier@23..24 "a"
+                Whitespace@24..25 " "
+            Colon@25..26 ":"
+            Whitespace@26..27 " "
+            PrimType@27..30
+              KwInt@27..30 "int""#]]);
+}
+
+#[test]
 fn parse_var_decl_no_init() {
     check(
         "var a : int",
@@ -1070,7 +1148,9 @@ fn parse_type_decl_with_forward() {
 
 #[test]
 fn parse_type_decl_with_pervasive_attr() {
-    check("type pervasive a : int", expect![[r#"
+    check(
+        "type pervasive a : int",
+        expect![[r#"
         Root@0..22
           TypeDecl@0..22
             KwType@0..4 "type"
@@ -1083,12 +1163,15 @@ fn parse_type_decl_with_pervasive_attr() {
             Colon@17..18 ":"
             Whitespace@18..19 " "
             PrimType@19..22
-              KwInt@19..22 "int""#]]);
+              KwInt@19..22 "int""#]],
+    );
 }
 
 #[test]
 fn parse_type_decl_with_star_attr() {
-    check("type * a : int", expect![[r#"
+    check(
+        "type * a : int",
+        expect![[r#"
         Root@0..14
           TypeDecl@0..14
             KwType@0..4 "type"
@@ -1101,7 +1184,8 @@ fn parse_type_decl_with_star_attr() {
             Colon@9..10 ":"
             Whitespace@10..11 " "
             PrimType@11..14
-              KwInt@11..14 "int""#]]);
+              KwInt@11..14 "int""#]],
+    );
 }
 
 #[test]

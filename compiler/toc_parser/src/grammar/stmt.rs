@@ -93,6 +93,10 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump(); // `var` or `const`
 
+    // optional attributes
+    attr_pervasive(p);
+    attr_register(p);
+
     super::name_list(p);
 
     if p.eat(TokenKind::Colon) {
@@ -121,14 +125,7 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    match_token!(|p| match {
-        TokenKind::Pervasive => { p.bump() }
-        TokenKind::Star => { p.bump() }
-        _ => {
-            // dont clog up the count with the attributes
-            p.reset_expected_tokens();
-        }
-    });
+    attr_pervasive(p);
 
     super::name(p);
 
@@ -140,4 +137,22 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::TypeDecl))
+}
+
+fn attr_pervasive(p: &mut Parser) {
+    match_token!(|p| match {
+        TokenKind::Pervasive => { p.bump() }
+        TokenKind::Star => { p.bump() }
+        _ => {
+            // dont clog up the expected tokens with the attributes
+            p.reset_expected_tokens();
+        }
+    });
+}
+
+fn attr_register(p: &mut Parser) {
+    if !p.eat(TokenKind::Register) {
+        // dont clog up the expected tokens with the attributes
+        p.reset_expected_tokens();
+    }
 }
