@@ -816,13 +816,13 @@ fn recover_not_weird_asn_op() {
               Error@7..11
                 KwNot@7..10 "not"
                 Whitespace@10..11 " "
-              Error@11..12
-                IntLiteral@11..12 "1"
+              CallStmt@11..12
+                LiteralExpr@11..12
+                  IntLiteral@11..12 "1"
             error at 2..5: expected statement, but found ’not’
             error at 5..6: expected statement, but found ’=’
             error at 6..7: expected statement, but found ’=’
-            error at 7..10: expected statement, but found ’not’
-            error at 11..12: expected statement, but found int literal"#]],
+            error at 7..10: expected statement, but found ’not’"#]],
     );
     check(
         "a ~==~ 1",
@@ -842,13 +842,13 @@ fn recover_not_weird_asn_op() {
               Error@5..7
                 Tilde@5..6 "~"
                 Whitespace@6..7 " "
-              Error@7..8
-                IntLiteral@7..8 "1"
+              CallStmt@7..8
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1"
             error at 2..3: expected statement, but found ’~’
             error at 3..4: expected statement, but found ’=’
             error at 4..5: expected statement, but found ’=’
-            error at 5..6: expected statement, but found ’~’
-            error at 7..8: expected statement, but found int literal"#]],
+            error at 5..6: expected statement, but found ’~’"#]],
     );
 }
 
@@ -867,10 +867,10 @@ fn recover_not_a_compound_asn_op() {
               Error@2..5
                 LessEqu@2..4 "<="
                 Whitespace@4..5 " "
-              Error@5..6
-                IntLiteral@5..6 "1"
-            error at 2..4: expected statement, but found ’<=’
-            error at 5..6: expected statement, but found int literal"#]],
+              CallStmt@5..6
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "1"
+            error at 2..4: expected statement, but found ’<=’"#]],
     );
     check(
         "a <== 1",
@@ -886,11 +886,11 @@ fn recover_not_a_compound_asn_op() {
               Error@4..6
                 Equ@4..5 "="
                 Whitespace@5..6 " "
-              Error@6..7
-                IntLiteral@6..7 "1"
+              CallStmt@6..7
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1"
             error at 2..4: expected statement, but found ’<=’
-            error at 4..5: expected statement, but found ’=’
-            error at 6..7: expected statement, but found int literal"#]],
+            error at 4..5: expected statement, but found ’=’"#]],
     );
     check(
         "a >= 1",
@@ -904,10 +904,10 @@ fn recover_not_a_compound_asn_op() {
               Error@2..5
                 GreaterEqu@2..4 ">="
                 Whitespace@4..5 " "
-              Error@5..6
-                IntLiteral@5..6 "1"
-            error at 2..4: expected statement, but found ’>=’
-            error at 5..6: expected statement, but found int literal"#]],
+              CallStmt@5..6
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "1"
+            error at 2..4: expected statement, but found ’>=’"#]],
     );
     check(
         "a >== 1",
@@ -923,11 +923,11 @@ fn recover_not_a_compound_asn_op() {
               Error@4..6
                 Equ@4..5 "="
                 Whitespace@5..6 " "
-              Error@6..7
-                IntLiteral@6..7 "1"
+              CallStmt@6..7
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1"
             error at 2..4: expected statement, but found ’>=’
-            error at 4..5: expected statement, but found ’=’
-            error at 6..7: expected statement, but found int literal"#]],
+            error at 4..5: expected statement, but found ’=’"#]],
     );
 
     // these are not compound ops in `toc`
@@ -947,12 +947,12 @@ fn recover_not_a_compound_asn_op() {
               Error@4..6
                 Equ@4..5 "="
                 Whitespace@5..6 " "
-              Error@6..7
-                IntLiteral@6..7 "1"
+              CallStmt@6..7
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1"
             error at 2..3: expected statement, but found ’~’
             error at 3..4: expected statement, but found ’=’
-            error at 4..5: expected statement, but found ’=’
-            error at 6..7: expected statement, but found int literal"#]],
+            error at 4..5: expected statement, but found ’=’"#]],
     );
     check(
         "a not== 1",
@@ -970,12 +970,12 @@ fn recover_not_a_compound_asn_op() {
               Error@6..8
                 Equ@6..7 "="
                 Whitespace@7..8 " "
-              Error@8..9
-                IntLiteral@8..9 "1"
+              CallStmt@8..9
+                LiteralExpr@8..9
+                  IntLiteral@8..9 "1"
             error at 2..5: expected statement, but found ’not’
             error at 5..6: expected statement, but found ’=’
-            error at 6..7: expected statement, but found ’=’
-            error at 8..9: expected statement, but found int literal"#]],
+            error at 6..7: expected statement, but found ’=’"#]],
     );
     check(
         "a not in= 1",
@@ -994,12 +994,12 @@ fn recover_not_a_compound_asn_op() {
               Error@8..10
                 Equ@8..9 "="
                 Whitespace@9..10 " "
-              Error@10..11
-                IntLiteral@10..11 "1"
+              CallStmt@10..11
+                LiteralExpr@10..11
+                  IntLiteral@10..11 "1"
             error at 2..5: expected statement, but found ’not’
             error at 6..8: expected statement, but found ’in’
-            error at 8..9: expected statement, but found ’=’
-            error at 10..11: expected statement, but found int literal"#]],
+            error at 8..9: expected statement, but found ’=’"#]],
     );
     check(
         "a ~in= 1",
@@ -1017,12 +1017,12 @@ fn recover_not_a_compound_asn_op() {
               Error@5..7
                 Equ@5..6 "="
                 Whitespace@6..7 " "
-              Error@7..8
-                IntLiteral@7..8 "1"
+              CallStmt@7..8
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1"
             error at 2..3: expected statement, but found ’~’
             error at 3..5: expected statement, but found ’in’
-            error at 5..6: expected statement, but found ’=’
-            error at 7..8: expected statement, but found int literal"#]],
+            error at 5..6: expected statement, but found ’=’"#]],
     );
     check(
         "a in= 1",
@@ -1038,11 +1038,11 @@ fn recover_not_a_compound_asn_op() {
               Error@4..6
                 Equ@4..5 "="
                 Whitespace@5..6 " "
-              Error@6..7
-                IntLiteral@6..7 "1"
+              CallStmt@6..7
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1"
             error at 2..4: expected statement, but found ’in’
-            error at 4..5: expected statement, but found ’=’
-            error at 6..7: expected statement, but found int literal"#]],
+            error at 4..5: expected statement, but found ’=’"#]],
     );
     check(
         "a == 1",
@@ -1058,10 +1058,10 @@ fn recover_not_a_compound_asn_op() {
                 Error@3..5
                   Equ@3..4 "="
                   Whitespace@4..5 " "
-              Error@5..6
-                IntLiteral@5..6 "1"
-            error at 3..4: expected expression, but found ’=’
-            error at 5..6: expected statement, but found int literal"#]],
+              CallStmt@5..6
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "1"
+            error at 3..4: expected expression, but found ’=’"#]],
     );
 }
 

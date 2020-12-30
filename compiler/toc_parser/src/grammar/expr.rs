@@ -7,7 +7,7 @@ use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
 /// Parses an expression
 pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
-    expr_binding_power(p, 0, false)
+    expr_binding_power(p, 0)
 }
 
 /// Parses a reference
@@ -24,18 +24,26 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // - field_expr
     // - arrow_expr
     // x call_expr
-    expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER, true)
+    expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER)
 }
 
-fn expr_binding_power(
-    p: &mut Parser,
-    min_binding_power: u8,
-    only_references: bool,
-) -> Option<CompletedMarker> {
-    let mut lhs = lhs(p, only_references)?;
+fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
+    let only_primaries = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
+
+    let mut lhs = lhs(p).or_else(|| {
+        if !only_primaries {
+            prefix(p).or_else(|| {
+                // not an appropriate primary expr
+                p.error(Expected::Expression);
+                None
+            })
+        } else {
+            None
+        }
+    })?;
 
     loop {
-        let op = if let Some(op) = infix_op(p, only_references) {
+        let op = if let Some(op) = infix_op(p, only_primaries) {
             op
         } else {
             // Not an infix operator, so let the caller decide the outcome
@@ -91,7 +99,7 @@ fn expr_binding_power(
             _ => {
                 // wrap inside a binary expr
                 let m = lhs.precede(p);
-                let found_rhs = expr_binding_power(p, right_bind_power, only_references).is_some();
+                let found_rhs = expr_binding_power(p, right_bind_power).is_some();
                 lhs = m.complete(p, SyntaxKind::BinaryExpr);
 
                 found_rhs
@@ -107,7 +115,7 @@ fn expr_binding_power(
     Some(lhs)
 }
 
-fn lhs(p: &mut Parser, only_references: bool) -> Option<CompletedMarker> {
+fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     match_token! {
         |p| match {
             TokenKind::Identifier => { name_expr(p) }
@@ -115,12 +123,10 @@ fn lhs(p: &mut Parser, only_references: bool) -> Option<CompletedMarker> {
             TokenKind::Bits => { todo!() }
             // indirection stuff
             _ => {
-                if !only_references {
-                    primary(p)
-                } else {
-                    // only accepting references (safe to bail out)
-                    None
-                }
+                // Note: This does allow exprs like "1" to be "called",
+                // but those cases should be reported as errors when validating the AST
+                // TODO: Report non-callable expressions as errors
+                primary(p)
             }
         }
     }
@@ -137,13 +143,7 @@ fn primary(p: &mut Parser) -> Option<CompletedMarker> {
         TokenKind::False => { literal_expr(p) }
         TokenKind::LeftParen => { paren_expr(p) }
         TokenKind::Init => { init_expr(p) }
-        _ => {
-            prefix(p).or_else(|| {
-                // not an appropriate primary expr
-                p.error(Expected::Expression);
-                None
-            })
-        }
+        _ => None
     })
 }
 
@@ -157,7 +157,7 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
     // nom on operator token
     p.bump();
 
-    expr_binding_power(p, right_binding_power, false);
+    expr_binding_power(p, right_binding_power);
 
     Some(m.complete(p, SyntaxKind::UnaryExpr))
 }
@@ -180,7 +180,7 @@ fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.bump(); // nom caret
-    expr_binding_power(p, right_binding_power, false);
+    expr_binding_power(p, right_binding_power);
 
     Some(m.complete(p, SyntaxKind::DerefExpr))
 }
@@ -191,7 +191,7 @@ fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.bump();
-    expr_binding_power(p, 0, false);
+    expr_binding_power(p, 0);
 
     p.expect(TokenKind::RightParen);
 
@@ -252,7 +252,7 @@ fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
     }))
 }
 
-fn infix_op(p: &mut Parser, only_reference: bool) -> Option<BinaryOp> {
+fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
     let ref_infix_ops = match_token!(|p| match {
         TokenKind::Dot => { Some(BinaryOp::Dot) },
         TokenKind::Arrow => { Some(BinaryOp::Arrow) },
@@ -262,8 +262,9 @@ fn infix_op(p: &mut Parser, only_reference: bool) -> Option<BinaryOp> {
         },
     });
 
-    if only_reference {
-        // Stop at the reference infix ops
+    if only_primaries {
+        // Stop at the reference infix ops,
+        // since the others can't form reference expressions
         return ref_infix_ops;
     }
 
