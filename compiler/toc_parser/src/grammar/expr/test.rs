@@ -254,9 +254,9 @@ fn parse_real_literal() {
                   Assign@1..3 ":="
                 LiteralExpr@3..9
                   RealLiteral@3..9 ".12345"
-              Error@9..14
-                RealLiteral@9..14 ".6789"
-            error at 9..14: expected statement, but found real literal"#]],
+              CallStmt@9..14
+                LiteralExpr@9..14
+                  RealLiteral@9..14 ".6789""#]],
     );
 
     // Valid variations
@@ -1640,6 +1640,19 @@ fn parens_alter_precedence() {
                         IntLiteral@8..9 "3"
                     RightParen@9..10 ")""#]],
     );
+}
+
+#[test]
+fn just_parens() {
+    // Just parens are allowed in the CST, but will be rejected when lowering the AST
+    check("(1)", expect![[r#"
+        Root@0..3
+          CallStmt@0..3
+            ParenExpr@0..3
+              LeftParen@0..1 "("
+              LiteralExpr@1..2
+                IntLiteral@1..2 "1"
+              RightParen@2..3 ")""#]]);
 }
 
 #[test]
