@@ -23,7 +23,7 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // x indirect_expr
     // - field_expr
     // - arrow_expr
-    // x call_expr
+    // - call_expr
     expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER)
 }
 

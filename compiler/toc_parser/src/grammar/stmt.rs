@@ -99,6 +99,8 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     // optional attributes
     attr_pervasive(p);
+    // note when lowering: register attr not allowed in top-level blocks
+    // (i.e. main, module, class, monitor, monitor class)
     attr_register(p);
 
     super::name_list(p);
@@ -113,6 +115,9 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
         require_initializer = true;
     }
 
+    // note when validating: if array is init-sized, then it should require 'init'
+    // if type is implied, then init is not allowed
+    // refining error: for const, could say that initialzer is required
     if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
         expr::expr(p);
     }
