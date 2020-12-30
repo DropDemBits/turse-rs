@@ -81,7 +81,10 @@ pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
 
 pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
-    expr::expr(p);
+
+    p.with_extra_recovery(&[TokenKind::Comma, TokenKind::RightParen], |p| {
+        expr::expr(p);
+    });
 
     // bump ',' onto param
     let found_comma = p.eat(TokenKind::Comma);
