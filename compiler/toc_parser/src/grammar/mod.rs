@@ -1,4 +1,88 @@
 //! Grammar parsing
+
+// Todo list for parity with `toc_frontend/parser` (x) and completion (|)
+
+// stmts:
+// - const_decl
+// - var_decl
+// - type_decl
+// | bind_decl
+// | procedure_decl
+// | functionn_decl
+// | forward_decl
+// | deferred_decl
+// | module_decl
+// | class_decl
+// | monitor_decl
+
+// - assign_stmt
+// | include_stmt
+// | open_stmt
+// | close_stmt
+// | put_stmt
+// | get_stmt
+// | read_stmt
+// | write_stmt
+// | seek_stmt
+// | tell_stmt
+// | for_stmt
+// | loop_stmt
+// | exit_stmt
+// x if_stmt
+// | case_stmt
+// x block_stmt
+// | invariant_stmt
+// | assert_stmt
+// - call_stmt
+// | return_stmt
+// | result_stmt
+// | new_stmt
+// | free_stmt
+// | tag_stmt
+// | fork_stmt
+// | signal_stmt
+// | pause_stmt
+// | quit_stmt
+// | checkedness_stmt
+// | pre_stmt
+// | init_stmt
+// | post_stmt
+// | handler_stmt
+// | implement_stmt
+// | implement_by_stmt
+// x import_stmt
+// | export_stmt
+
+// exprs:
+// - init_expr
+// - literal_expr
+// - call_expr
+// - dot_expr
+// - name_expr
+// - deref_expr
+// - binary_expr
+// - unary_expr
+// - paren_expr
+// x indirect_expr
+// | bits_expr
+// | range_expr (used in string subscripting)
+// | cheat_expr
+// | objclass_expr
+
+// types
+// - primitive_type (including sized variants)
+// x name_type
+// x array_type
+// x enum_type
+// x function_type / subprog_type
+// x pointer_type
+// x range_type
+// x set_type
+// | record_type
+// | union_type
+// | collection_type
+// | condition_type
+
 mod expr;
 mod stmt;
 mod ty;
