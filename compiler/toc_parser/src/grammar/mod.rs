@@ -19,6 +19,7 @@ macro_rules! match_token {
 pub(self) use match_token;
 
 use crate::parser::marker::CompletedMarker;
+use crate::parser::Expected;
 use crate::parser::Parser;
 use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
@@ -68,7 +69,7 @@ pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
                     Some((_, false)) => break, // parsed param, end of list
                     None => {
                         // missing next param
-                        p.error();
+                        p.error(Expected::Expression);
                         break;
                     }
                 }

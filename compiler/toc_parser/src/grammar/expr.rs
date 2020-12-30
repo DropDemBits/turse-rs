@@ -7,7 +7,7 @@ use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
 /// Parses an expression
 pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
-    expr_binding_power(p, 0)
+    expr_binding_power(p, 0, false)
 }
 
 /// Parses a reference
@@ -24,11 +24,14 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // - field_expr
     // - arrow_expr
     // x call_expr
-    expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER)
+    expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER, true)
 }
 
-fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
-    let only_references = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
+fn expr_binding_power(
+    p: &mut Parser,
+    min_binding_power: u8,
+    only_references: bool,
+) -> Option<CompletedMarker> {
     let mut lhs = lhs(p, only_references)?;
 
     loop {
@@ -88,7 +91,7 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             _ => {
                 // wrap inside a binary expr
                 let m = lhs.precede(p);
-                let found_rhs = expr_binding_power(p, right_bind_power).is_some();
+                let found_rhs = expr_binding_power(p, right_bind_power, only_references).is_some();
                 lhs = m.complete(p, SyntaxKind::BinaryExpr);
 
                 found_rhs
@@ -104,7 +107,7 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     Some(lhs)
 }
 
-fn lhs(p: &mut Parser, only_reference: bool) -> Option<CompletedMarker> {
+fn lhs(p: &mut Parser, only_references: bool) -> Option<CompletedMarker> {
     match_token! {
         |p| match {
             TokenKind::Identifier => { name_expr(p) }
@@ -112,11 +115,10 @@ fn lhs(p: &mut Parser, only_reference: bool) -> Option<CompletedMarker> {
             TokenKind::Bits => { todo!() }
             // indirection stuff
             _ => {
-                if !only_reference {
+                if !only_references {
                     primary(p)
                 } else {
-                    // only accepting references
-                    p.error();
+                    // only accepting references (safe to bail out)
                     None
                 }
             }
@@ -138,7 +140,7 @@ fn primary(p: &mut Parser) -> Option<CompletedMarker> {
         _ => {
             prefix(p).or_else(|| {
                 // not an appropriate primary expr
-                p.error();
+                p.error(Expected::Expression);
                 None
             })
         }
@@ -155,7 +157,7 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
     // nom on operator token
     p.bump();
 
-    expr_binding_power(p, right_binding_power);
+    expr_binding_power(p, right_binding_power, false);
 
     Some(m.complete(p, SyntaxKind::UnaryExpr))
 }
@@ -178,7 +180,7 @@ fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.bump(); // nom caret
-    expr_binding_power(p, right_binding_power);
+    expr_binding_power(p, right_binding_power, false);
 
     Some(m.complete(p, SyntaxKind::DerefExpr))
 }
@@ -189,7 +191,7 @@ fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.bump();
-    expr_binding_power(p, 0);
+    expr_binding_power(p, 0, false);
 
     p.expect(TokenKind::RightParen);
 
@@ -280,10 +282,10 @@ fn infix_op(p: &mut Parser, only_reference: bool) -> Option<BinaryOp> {
                 TokenKind::GreaterEqu => { BinaryOp::GreaterEq }
                 TokenKind::In => { BinaryOp::In }
                 TokenKind::Not => {
-                    maybe_composite_op(p)?
+                    maybe_composite_not_op(p)?
                 }
                 TokenKind::Tilde => {
-                    maybe_composite_op(p)?
+                    maybe_composite_not_op(p)?
                 }
                 TokenKind::Plus => { BinaryOp::Add }
                 TokenKind::Minus => { BinaryOp::Sub }
@@ -305,7 +307,7 @@ fn infix_op(p: &mut Parser, only_reference: bool) -> Option<BinaryOp> {
     })
 }
 
-fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
+pub(super) fn maybe_composite_not_op(p: &mut Parser) -> Option<BinaryOp> {
     debug_assert!(p.at(TokenKind::Not) || p.at(TokenKind::Tilde));
 
     let m = p.start();
@@ -324,7 +326,7 @@ fn maybe_composite_op(p: &mut Parser) -> Option<BinaryOp> {
         },
         _ => {
             // "not" / "~" is not allowed as an infix operator
-            p.error_unexpected_at(m);
+            p.error_unexpected_at(m, None);
             return None;
         }
     }))

@@ -2,7 +2,7 @@
 mod error;
 pub(crate) mod marker;
 
-pub(crate) use error::ParseError;
+pub(crate) use error::{Expected, ParseError};
 
 use crate::event::Event;
 use crate::grammar;
@@ -74,7 +74,7 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Returns `true` if the expected token was found
     pub(crate) fn expect(&mut self, kind: TokenKind) -> bool {
         if !self.eat(kind) {
-            self.error();
+            self.error(None);
             false
         } else {
             true
@@ -82,9 +82,9 @@ impl<'t, 'src> Parser<'t, 'src> {
     }
 
     /// Reports an unexpected token error at the next token
-    pub(crate) fn error(&mut self) {
+    pub(crate) fn error(&mut self, category: impl Into<Option<Expected>>) {
         let err = self.start(); // start error node
-        self.error_unexpected_at(err);
+        self.error_unexpected_at(err, category);
     }
 
     /// Runs the parser with the extra recovery tokens
@@ -104,7 +104,11 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Note: `err_at` can't be a `Marker` as the passed-in marker must
     /// be allowed to not be made so that a bump at the end of the file
     /// is not made
-    pub(crate) fn error_unexpected_at(&mut self, err_at: MaybeMarker) {
+    pub(crate) fn error_unexpected_at(
+        &mut self,
+        err_at: MaybeMarker,
+        category: impl Into<Option<Expected>>,
+    ) {
         let current = self.source.peek_token();
 
         let (found, range) = if let Some(Token { kind, range, .. }) = current {
@@ -123,6 +127,7 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.events.push(Event::Error(ParseError {
             kind: ErrorKind::UnexpectedToken {
                 expected: mem::take(&mut self.expected_kinds),
+                expected_category: category.into(),
                 found,
             },
             range,

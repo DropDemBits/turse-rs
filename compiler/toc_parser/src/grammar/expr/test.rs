@@ -256,7 +256,7 @@ fn parse_real_literal() {
                   RealLiteral@3..9 ".12345"
               Error@9..14
                 RealLiteral@9..14 ".6789"
-            error at 9..14: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found real literal"#]],
+            error at 9..14: expected statement, but found real literal"#]],
     );
 
     // Valid variations
@@ -836,63 +836,65 @@ fn parse_bin_expr_with_ws() {
 #[test]
 fn parse_exprs_with_comments() {
     check(
-        r#"
+        r#"_:=
         1
         + 2 % interspersed line comment
         + /* random interleaved comment */ 3
 
-        3 - 2 % step down two
+        _:=3 - 2 % step down two
         + 1 % go back up 1"#,
         expect![[r#"
-            Root@0..153
-              Whitespace@0..9 "\n        "
-              Error@9..19
-                IntLiteral@9..10 "1"
-                Whitespace@10..19 "\n        "
-              Error@19..21
-                Plus@19..20 "+"
-                Whitespace@20..21 " "
-              Error@21..59
-                IntLiteral@21..22 "2"
-                Whitespace@22..23 " "
-                Comment@23..50 "% interspersed line c ..."
-                Whitespace@50..59 "\n        "
-              Error@59..94
-                Plus@59..60 "+"
-                Whitespace@60..61 " "
-                Comment@61..93 "/* random interleaved ..."
-                Whitespace@93..94 " "
-              Error@94..105
-                IntLiteral@94..95 "3"
-                Whitespace@95..105 "\n\n        "
-              Error@105..107
-                IntLiteral@105..106 "3"
-                Whitespace@106..107 " "
-              Error@107..109
-                Minus@107..108 "-"
-                Whitespace@108..109 " "
-              Error@109..135
-                IntLiteral@109..110 "2"
-                Whitespace@110..111 " "
-                Comment@111..126 "% step down two"
-                Whitespace@126..135 "\n        "
-              Error@135..137
-                Plus@135..136 "+"
-                Whitespace@136..137 " "
-              Error@137..153
-                IntLiteral@137..138 "1"
-                Whitespace@138..139 " "
-                Comment@139..153 "% go back up 1"
-            error at 9..10: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
-            error at 19..20: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’+’
-            error at 21..22: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
-            error at 59..60: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’+’
-            error at 94..95: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
-            error at 105..106: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
-            error at 107..108: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’-’
-            error at 109..110: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal
-            error at 135..136: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’+’
-            error at 137..138: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"#]],
+            Root@0..159
+              AssignStmt@0..108
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..12
+                  Assign@1..3 ":="
+                  Whitespace@3..12 "\n        "
+                BinaryExpr@12..108
+                  BinaryExpr@12..62
+                    LiteralExpr@12..22
+                      IntLiteral@12..13 "1"
+                      Whitespace@13..22 "\n        "
+                    Plus@22..23 "+"
+                    Whitespace@23..24 " "
+                    LiteralExpr@24..62
+                      IntLiteral@24..25 "2"
+                      Whitespace@25..26 " "
+                      Comment@26..53 "% interspersed line c ..."
+                      Whitespace@53..62 "\n        "
+                  Plus@62..63 "+"
+                  Whitespace@63..64 " "
+                  Comment@64..96 "/* random interleaved ..."
+                  Whitespace@96..97 " "
+                  LiteralExpr@97..108
+                    IntLiteral@97..98 "3"
+                    Whitespace@98..108 "\n\n        "
+              AssignStmt@108..159
+                NameExpr@108..109
+                  Name@108..109
+                    Identifier@108..109 "_"
+                AsnOp@109..111
+                  Assign@109..111 ":="
+                BinaryExpr@111..159
+                  BinaryExpr@111..141
+                    LiteralExpr@111..113
+                      IntLiteral@111..112 "3"
+                      Whitespace@112..113 " "
+                    Minus@113..114 "-"
+                    Whitespace@114..115 " "
+                    LiteralExpr@115..141
+                      IntLiteral@115..116 "2"
+                      Whitespace@116..117 " "
+                      Comment@117..132 "% step down two"
+                      Whitespace@132..141 "\n        "
+                  Plus@141..142 "+"
+                  Whitespace@142..143 " "
+                  LiteralExpr@143..159
+                    IntLiteral@143..144 "1"
+                    Whitespace@144..145 " "
+                    Comment@145..159 "% go back up 1""#]],
     );
 }
 
@@ -1644,7 +1646,7 @@ fn parens_alter_precedence() {
 fn recover_just_right_paren() {
     check(
         "_:=)",
-        expect![[r##"
+        expect![[r#"
             Root@0..4
               AssignStmt@0..4
                 NameExpr@0..1
@@ -1654,7 +1656,7 @@ fn recover_just_right_paren() {
                   Assign@1..3 ":="
                 Error@3..4
                   RightParen@3..4 ")"
-            error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+            error at 3..4: expected expression, but found ’)’"#]],
     )
 }
 
@@ -1677,7 +1679,7 @@ fn recover_too_many_right_parens() {
                   RightParen@5..6 ")"
               Error@6..7
                 RightParen@6..7 ")"
-            error at 6..7: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’)’"#]],
+            error at 6..7: expected statement, but found ’)’"#]],
     )
 }
 
@@ -1705,7 +1707,7 @@ fn recover_missing_closing_paren() {
 fn recover_missing_closing_paren_and_rhs() {
     check(
         "_:=(1+",
-        expect![[r##"
+        expect![[r#"
             Root@0..6
               AssignStmt@0..6
                 NameExpr@0..1
@@ -1719,8 +1721,8 @@ fn recover_missing_closing_paren_and_rhs() {
                     LiteralExpr@4..5
                       IntLiteral@4..5 "1"
                     Plus@5..6 "+"
-            error at 5..6: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’
-            error at 5..6: expected ’)’"##]],
+            error at 5..6: expected expression
+            error at 5..6: expected ’)’"#]],
     );
 }
 
@@ -1728,7 +1730,7 @@ fn recover_missing_closing_paren_and_rhs() {
 fn recover_missing_rhs() {
     check(
         "_:=1+",
-        expect![[r##"
+        expect![[r#"
             Root@0..5
               AssignStmt@0..5
                 NameExpr@0..1
@@ -1740,7 +1742,7 @@ fn recover_missing_rhs() {
                   LiteralExpr@3..4
                     IntLiteral@3..4 "1"
                   Plus@4..5 "+"
-            error at 4..5: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’"##]],
+            error at 4..5: expected expression"#]],
     );
 }
 
@@ -2017,7 +2019,9 @@ fn parse_call_expr() {
 
 #[test]
 fn parse_nested_call_expr() {
-    check("_:=a(b(c(), d, e), f, g)", expect![[r#"
+    check(
+        "_:=a(b(c(), d, e), f, g)",
+        expect![[r#"
         Root@0..24
           AssignStmt@0..24
             NameExpr@0..1
@@ -2071,7 +2075,8 @@ fn parse_nested_call_expr() {
                   NameExpr@22..23
                     Name@22..23
                       Identifier@22..23 "g"
-              RightParen@23..24 ")""#]]);
+              RightParen@23..24 ")""#]],
+    );
 }
 
 #[test]
@@ -2167,7 +2172,7 @@ fn recover_call_expr_missing_closing_paren() {
 fn recover_call_expr_missing_last_arg() {
     check(
         "_:=a(1,)",
-        expect![[r##"
+        expect![[r#"
             Root@0..8
               AssignStmt@0..8
                 NameExpr@0..1
@@ -2187,7 +2192,7 @@ fn recover_call_expr_missing_last_arg() {
                       Comma@6..7 ","
                     Param@7..7
                   RightParen@7..8 ")"
-            error at 7..8: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+            error at 7..8: expected expression, but found ’)’"#]],
     );
 }
 
@@ -2195,7 +2200,7 @@ fn recover_call_expr_missing_last_arg() {
 fn recover_call_expr_missing_last_arg_and_closing_paren() {
     check(
         "_:=a(1,",
-        expect![[r##"
+        expect![[r#"
             Root@0..7
               AssignStmt@0..7
                 NameExpr@0..1
@@ -2214,8 +2219,8 @@ fn recover_call_expr_missing_last_arg_and_closing_paren() {
                         IntLiteral@5..6 "1"
                       Comma@6..7 ","
                     Param@7..7
-            error at 6..7: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’
-            error at 6..7: expected ’,’ or ’)’"##]],
+            error at 6..7: expected expression
+            error at 6..7: expected ’,’ or ’)’"#]],
     );
 }
 
@@ -2246,69 +2251,75 @@ fn recover_call_expr_missing_delim() {
               Error@8..9
                 RightParen@8..9 ")"
             error at 7..8: expected ’,’ or ’)’, but found int literal
-            error at 8..9: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’)’"#]],
+            error at 8..9: expected statement, but found ’)’"#]],
     );
 }
 
 #[test]
 fn recover_call_expr_missing_param() {
-    check("_:=a(1,,1)", expect![[r##"
-        Root@0..10
-          AssignStmt@0..10
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            CallExpr@3..10
-              NameExpr@3..4
-                Name@3..4
-                  Identifier@3..4 "a"
-              LeftParen@4..5 "("
-              ParamList@5..9
-                Param@5..7
-                  LiteralExpr@5..6
-                    IntLiteral@5..6 "1"
-                  Comma@6..7 ","
-                Param@7..8
-                  Comma@7..8 ","
-                Param@8..9
-                  LiteralExpr@8..9
-                    IntLiteral@8..9 "1"
-              RightParen@9..10 ")"
-        error at 7..8: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’,’"##]]);
+    check(
+        "_:=a(1,,1)",
+        expect![[r#"
+            Root@0..10
+              AssignStmt@0..10
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                CallExpr@3..10
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  LeftParen@4..5 "("
+                  ParamList@5..9
+                    Param@5..7
+                      LiteralExpr@5..6
+                        IntLiteral@5..6 "1"
+                      Comma@6..7 ","
+                    Param@7..8
+                      Comma@7..8 ","
+                    Param@8..9
+                      LiteralExpr@8..9
+                        IntLiteral@8..9 "1"
+                  RightParen@9..10 ")"
+            error at 7..8: expected expression, but found ’,’"#]],
+    );
 }
 
 #[test]
 fn recover_call_expr_missing_params() {
-    check("_:=a(1,,,1)", expect![[r##"
-        Root@0..11
-          AssignStmt@0..11
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            CallExpr@3..11
-              NameExpr@3..4
-                Name@3..4
-                  Identifier@3..4 "a"
-              LeftParen@4..5 "("
-              ParamList@5..10
-                Param@5..7
-                  LiteralExpr@5..6
-                    IntLiteral@5..6 "1"
-                  Comma@6..7 ","
-                Param@7..8
-                  Comma@7..8 ","
-                Param@8..9
-                  Comma@8..9 ","
-                Param@9..10
-                  LiteralExpr@9..10
-                    IntLiteral@9..10 "1"
-              RightParen@10..11 ")"
-        error at 7..8: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’,’
-        error at 8..9: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’,’"##]]);
+    check(
+        "_:=a(1,,,1)",
+        expect![[r#"
+            Root@0..11
+              AssignStmt@0..11
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                CallExpr@3..11
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  LeftParen@4..5 "("
+                  ParamList@5..10
+                    Param@5..7
+                      LiteralExpr@5..6
+                        IntLiteral@5..6 "1"
+                      Comma@6..7 ","
+                    Param@7..8
+                      Comma@7..8 ","
+                    Param@8..9
+                      Comma@8..9 ","
+                    Param@9..10
+                      LiteralExpr@9..10
+                        IntLiteral@9..10 "1"
+                  RightParen@10..11 ")"
+            error at 7..8: expected expression, but found ’,’
+            error at 8..9: expected expression, but found ’,’"#]],
+    );
 }
 
 // Deref exprs
@@ -2439,6 +2450,45 @@ fn deref_binds_higher_than_call() {
 }
 
 #[test]
+fn parens_override_deref_binding() {
+    check(
+        "^(a.b)",
+        expect![[r#"
+            Root@0..6
+              CallStmt@0..6
+                DerefExpr@0..6
+                  Caret@0..1 "^"
+                  ParenExpr@1..6
+                    LeftParen@1..2 "("
+                    FieldExpr@2..5
+                      NameExpr@2..3
+                        Name@2..3
+                          Identifier@2..3 "a"
+                      Dot@3..4 "."
+                      Name@4..5
+                        Identifier@4..5 "b"
+                    RightParen@5..6 ")""#]],
+    );
+}
+
+#[test]
+fn recover_deref_not_reference() {
+    // here, this should be parsed as a valid expression, but checked to be an invalid one
+    check(
+        "^^1",
+        expect![[r#"
+        Root@0..3
+          CallStmt@0..3
+            DerefExpr@0..3
+              Caret@0..1 "^"
+              DerefExpr@1..3
+                Caret@1..2 "^"
+                LiteralExpr@2..3
+                  IntLiteral@2..3 "1""#]],
+    );
+}
+
+#[test]
 fn parse_init_expr() {
     check(
         "_:=init(1)",
@@ -2493,29 +2543,29 @@ fn recover_init_expr_missing_delimiter() {
     check(
         "_:=init(1, 2 3)",
         expect![[r#"
-        Root@0..15
-          AssignStmt@0..14
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            InitExpr@3..14
-              KwInit@3..7 "init"
-              LeftParen@7..8 "("
-              LiteralExpr@8..9
-                IntLiteral@8..9 "1"
-              Comma@9..10 ","
-              Whitespace@10..11 " "
-              LiteralExpr@11..13
-                IntLiteral@11..12 "2"
-                Whitespace@12..13 " "
-              Error@13..14
-                IntLiteral@13..14 "3"
-          Error@14..15
-            RightParen@14..15 ")"
-        error at 13..14: expected ’,’ or ’)’, but found int literal
-        error at 14..15: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found ’)’"#]],
+            Root@0..15
+              AssignStmt@0..14
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                InitExpr@3..14
+                  KwInit@3..7 "init"
+                  LeftParen@7..8 "("
+                  LiteralExpr@8..9
+                    IntLiteral@8..9 "1"
+                  Comma@9..10 ","
+                  Whitespace@10..11 " "
+                  LiteralExpr@11..13
+                    IntLiteral@11..12 "2"
+                    Whitespace@12..13 " "
+                  Error@13..14
+                    IntLiteral@13..14 "3"
+              Error@14..15
+                RightParen@14..15 ")"
+            error at 13..14: expected ’,’ or ’)’, but found int literal
+            error at 14..15: expected statement, but found ’)’"#]],
     );
 }
 
@@ -2548,27 +2598,27 @@ fn recover_init_expr_missing_right_paren() {
 fn recover_init_expr_missing_left_paren() {
     check(
         "_:=init 1, 2",
-        expect![[r##"
-        Root@0..12
-          AssignStmt@0..12
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            InitExpr@3..12
-              KwInit@3..7 "init"
-              Whitespace@7..8 " "
-              Error@8..9
-                IntLiteral@8..9 "1"
-              Error@9..11
-                Comma@9..10 ","
-                Whitespace@10..11 " "
-              Error@11..12
-                IntLiteral@11..12 "2"
-        error at 8..9: expected ’(’, but found int literal
-        error at 9..10: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’,’
-        error at 11..12: expected ’,’ or ’)’, but found int literal"##]],
+        expect![[r#"
+            Root@0..12
+              AssignStmt@0..12
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                InitExpr@3..12
+                  KwInit@3..7 "init"
+                  Whitespace@7..8 " "
+                  Error@8..9
+                    IntLiteral@8..9 "1"
+                  Error@9..11
+                    Comma@9..10 ","
+                    Whitespace@10..11 " "
+                  Error@11..12
+                    IntLiteral@11..12 "2"
+            error at 8..9: expected ’(’, but found int literal
+            error at 9..10: expected expression, but found ’,’
+            error at 11..12: expected ’,’ or ’)’, but found int literal"#]],
     );
 }
 
@@ -2576,18 +2626,18 @@ fn recover_init_expr_missing_left_paren() {
 fn recover_init_expr_empty() {
     check(
         "_:=init()",
-        expect![[r##"
-        Root@0..9
-          AssignStmt@0..9
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            InitExpr@3..9
-              KwInit@3..7 "init"
-              LeftParen@7..8 "("
-              RightParen@8..9 ")"
-        error at 8..9: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’)’"##]],
+        expect![[r#"
+            Root@0..9
+              AssignStmt@0..9
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                InitExpr@3..9
+                  KwInit@3..7 "init"
+                  LeftParen@7..8 "("
+                  RightParen@8..9 ")"
+            error at 8..9: expected expression, but found ’)’"#]],
     );
 }
