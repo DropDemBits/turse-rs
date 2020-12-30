@@ -16,7 +16,7 @@ use std::rc::Rc;
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
-const RECOVERY_SET: &[TokenKind] = &[TokenKind::Var, TokenKind::Const];
+const STMT_START_RECOVERY_SET: &[TokenKind] = &[TokenKind::Var, TokenKind::Const, TokenKind::Type];
 
 pub(crate) struct Parser<'t, 'src> {
     source: Source<'t, 'src>,
@@ -128,7 +128,7 @@ impl<'t, 'src> Parser<'t, 'src> {
             range,
         }));
 
-        if !self.at_set(&RECOVERY_SET)
+        if !self.at_set(&STMT_START_RECOVERY_SET)
             && !self.at_set(&self.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
             && !self.at_end()
         {
