@@ -126,11 +126,15 @@ fn lhs(p: &mut Parser, only_reference: bool) -> Option<CompletedMarker> {
 
 fn primary(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
-        TokenKind::IntLiteral => { num_literal_expr(p) }
-        TokenKind::RadixLiteral => { num_literal_expr(p) }
-        TokenKind::RealLiteral => { num_literal_expr(p) }
-        // str literals and other stuff...
+        TokenKind::IntLiteral => { literal_expr(p) }
+        TokenKind::RadixLiteral => { literal_expr(p) }
+        TokenKind::RealLiteral => { literal_expr(p) }
+        TokenKind::StringLiteral => { literal_expr(p) }
+        TokenKind::CharLiteral => { literal_expr(p) }
+        TokenKind::True => { literal_expr(p) }
+        TokenKind::False => { literal_expr(p) }
         TokenKind::LeftParen => { paren_expr(p) }
+        TokenKind::Init => { init_expr(p) }
         _ => {
             prefix(p).or_else(|| {
                 // not an appropriate primary expr
@@ -192,11 +196,15 @@ fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ParenExpr))
 }
 
-fn num_literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
+fn literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(
         p.at(TokenKind::IntLiteral)
             || p.at(TokenKind::RadixLiteral)
             || p.at(TokenKind::RealLiteral)
+            || p.at(TokenKind::StringLiteral)
+            || p.at(TokenKind::CharLiteral)
+            || p.at(TokenKind::True)
+            || p.at(TokenKind::False)
     );
 
     let m = p.start();
@@ -204,11 +212,32 @@ fn num_literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
     // TODO: Validate literal is actually valid
     // TODO: Report invalid literals
 
-    // bump number
+    // bump token
     // Token gets automagically transformed into the correct type
     p.bump();
 
     Some(m.complete(p, SyntaxKind::LiteralExpr))
+}
+
+fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Init));
+
+    let m = p.start();
+
+    p.bump();
+    p.expect(TokenKind::LeftParen);
+
+    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        expr(p);
+
+        while p.eat(TokenKind::Comma) {
+            expr(p);
+        }
+    });
+
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::InitExpr))
 }
 
 fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {

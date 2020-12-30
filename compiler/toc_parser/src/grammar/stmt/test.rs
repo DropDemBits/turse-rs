@@ -459,7 +459,7 @@ fn recover_on_var() {
                 Whitespace@20..21 " "
                 LiteralExpr@21..22
                   IntLiteral@21..22 "1"
-            error at 12..15: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’var’"##]],
+            error at 12..15: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’var’"##]],
     );
 }
 
@@ -489,7 +489,7 @@ fn recover_on_const() {
                 Whitespace@20..21 " "
                 LiteralExpr@21..22
                   IntLiteral@21..22 "1"
-            error at 10..15: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’const’"##]],
+            error at 10..15: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’const’"##]],
     );
 }
 
@@ -1060,7 +1060,7 @@ fn recover_not_a_compound_asn_op() {
                   Whitespace@4..5 " "
               Error@5..6
                 IntLiteral@5..6 "1"
-            error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’=’
+            error at 3..4: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’=’
             error at 5..6: expected ’var’, ’const’, ’type’, identifier, ’^’ or ’bits’, but found int literal"##]],
     );
 }
@@ -1256,26 +1256,26 @@ fn recover_on_type() {
     check(
         "var a := \ntype a : int",
         expect![[r##"
-        Root@0..22
-          ConstVarDecl@0..10
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..10 " \n"
-          TypeDecl@10..22
-            KwType@10..14 "type"
-            Whitespace@14..15 " "
-            Name@15..17
-              Identifier@15..16 "a"
-              Whitespace@16..17 " "
-            Colon@17..18 ":"
-            Whitespace@18..19 " "
-            PrimType@19..22
-              KwInt@19..22 "int"
-        error at 10..14: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, ’(’, ’not’, ’+’, ’-’ or ’#’, but found ’type’"##]],
+            Root@0..22
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              TypeDecl@10..22
+                KwType@10..14 "type"
+                Whitespace@14..15 " "
+                Name@15..17
+                  Identifier@15..16 "a"
+                  Whitespace@16..17 " "
+                Colon@17..18 ":"
+                Whitespace@18..19 " "
+                PrimType@19..22
+                  KwInt@19..22 "int"
+            error at 10..14: expected identifier, ’^’, ’bits’, int literal, explicit int literal, real literal, string literal, char literal, ’true’, ’false’, ’(’, ’init’, ’not’, ’+’, ’-’ or ’#’, but found ’type’"##]],
     );
 }

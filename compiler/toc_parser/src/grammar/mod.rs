@@ -83,12 +83,8 @@ pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
     expr::expr(p);
 
-    let found_comma = p.at(TokenKind::Comma);
-
-    if found_comma {
-        // bump ',' onto param
-        p.bump();
-    }
+    // bump ',' onto param
+    let found_comma = p.eat(TokenKind::Comma);
 
     Some((m.complete(p, SyntaxKind::Param), found_comma))
 }
