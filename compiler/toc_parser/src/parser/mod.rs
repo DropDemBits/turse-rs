@@ -7,7 +7,7 @@ pub(crate) use error::{Expected, ParseError};
 use crate::event::Event;
 use crate::grammar;
 use crate::parser::error::ErrorKind;
-use crate::parser::marker::MaybeMarker;
+use crate::parser::marker::Marker;
 use crate::source::Source;
 
 use std::cell::RefCell;
@@ -90,23 +90,25 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Runs the parser with the extra recovery tokens
     ///
     /// Recovery tokens are accumulated in nested `with_extra_recovery` calls
-    pub(crate) fn with_extra_recovery(&mut self, extra: &[TokenKind], f: impl FnOnce(&mut Parser)) {
+    pub(crate) fn with_extra_recovery<T>(
+        &mut self,
+        extra: &[TokenKind],
+        f: impl FnOnce(&mut Parser) -> T,
+    ) -> T {
         let previous_set = self.extra_recovery.borrow().len();
         self.extra_recovery.borrow_mut().extend_from_slice(extra);
 
-        f(self);
+        let t = f(self);
 
         self.extra_recovery.borrow_mut().truncate(previous_set);
+
+        t
     }
 
     /// Reports an unexpected token error at the given marker
-    ///
-    /// Note: `err_at` can't be a `Marker` as the passed-in marker must
-    /// be allowed to not be made so that a bump at the end of the file
-    /// is not made
     pub(crate) fn error_unexpected_at(
         &mut self,
-        err_at: MaybeMarker,
+        err_at: Marker,
         category: impl Into<Option<Expected>>,
     ) {
         let current = self.source.peek_token();
@@ -157,12 +159,12 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.peek().map_or(false, |k| set.contains(&k))
     }
 
-    /// Creates a new `MaybeMarker` at the current position
-    pub(crate) fn start(&mut self) -> MaybeMarker {
+    /// Creates a new `Marker` at the current position
+    pub(crate) fn start(&mut self) -> Marker {
         let pos = self.events.len();
         self.events.push(Event::Placeholder); // Placeholder for future marker
 
-        MaybeMarker::new(pos)
+        Marker::new(pos)
     }
 
     /// Resets the expected token list

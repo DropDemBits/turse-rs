@@ -63,7 +63,7 @@
 // - binary_expr
 // - unary_expr
 // - paren_expr
-// x indirect_expr
+// - indirect_expr
 // | bits_expr
 // | range_expr (used in string subscripting)
 // | cheat_expr
@@ -90,11 +90,11 @@ mod ty;
 /// Helper for matching tokens
 macro_rules! match_token {
     (|$parser:ident| match {
-        $($tok:expr => $action:block $(,)?)+
+        $($($tok:expr),+ => $action:block $(,)?)+
         _ => $otherwise:expr $(,)?
     }) => {
         match () {
-            $( _ if $parser.at($tok) => $action )+
+            $( _ if $($parser.at($tok) || )+ false => $action )+
             _ => $otherwise
         }
     };

@@ -14,27 +14,33 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
 pub(super) fn ty_primitive(p: &mut Parser) -> Option<CompletedMarker> {
     // TODO: Add 64 bit types (int8, nat8, long int, long nat)
     match_token!(|p| match {
-        TokenKind::Addressint => { prim_type(p, TokenKind::Addressint) }
-        TokenKind::Boolean => { prim_type(p, TokenKind::Boolean) }
-        TokenKind::Int => { prim_type(p, TokenKind::Int) }
-        TokenKind::Int1 => { prim_type(p, TokenKind::Int1) }
-        TokenKind::Int2 => { prim_type(p, TokenKind::Int2) }
-        TokenKind::Int4 => { prim_type(p, TokenKind::Int4) }
-        TokenKind::Nat => { prim_type(p, TokenKind::Nat) }
-        TokenKind::Nat1 => { prim_type(p, TokenKind::Nat1) }
-        TokenKind::Nat2 => { prim_type(p, TokenKind::Nat2) }
-        TokenKind::Nat4 => { prim_type(p, TokenKind::Nat4) }
-        TokenKind::Real => { prim_type(p, TokenKind::Real) }
-        TokenKind::Real4 => { prim_type(p, TokenKind::Real4) }
-        TokenKind::Real8 => { prim_type(p, TokenKind::Real8) }
+        TokenKind::Addressint,
+        TokenKind::Boolean,
+        TokenKind::Int, TokenKind::Int1, TokenKind::Int2, TokenKind::Int4,
+        TokenKind::Nat, TokenKind::Nat1, TokenKind::Nat2, TokenKind::Nat4,
+        TokenKind::Real, TokenKind::Real4, TokenKind::Real8 => { prim_type(p) }
         TokenKind::Char => { prim_charseq_type(p, TokenKind::Char) }
         TokenKind::String_ => { prim_charseq_type(p, TokenKind::String_) }
         _ => None // Not a primitive type
     })
 }
 
-fn prim_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMarker> {
-    debug_assert!(p.at(prim_kind));
+fn prim_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(
+        p.at(TokenKind::Addressint)
+            || p.at(TokenKind::Boolean)
+            || p.at(TokenKind::Int)
+            || p.at(TokenKind::Int1)
+            || p.at(TokenKind::Int2)
+            || p.at(TokenKind::Int4)
+            || p.at(TokenKind::Nat)
+            || p.at(TokenKind::Nat1)
+            || p.at(TokenKind::Nat2)
+            || p.at(TokenKind::Nat4)
+            || p.at(TokenKind::Real)
+            || p.at(TokenKind::Real4)
+            || p.at(TokenKind::Real8)
+    );
 
     let m = p.start();
     p.bump();

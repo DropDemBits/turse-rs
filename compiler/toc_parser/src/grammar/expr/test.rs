@@ -1645,14 +1645,17 @@ fn parens_alter_precedence() {
 #[test]
 fn just_parens() {
     // Just parens are allowed in the CST, but will be rejected when lowering the AST
-    check("(1)", expect![[r#"
+    check(
+        "(1)",
+        expect![[r#"
         Root@0..3
           CallStmt@0..3
             ParenExpr@0..3
               LeftParen@0..1 "("
               LiteralExpr@1..2
                 IntLiteral@1..2 "1"
-              RightParen@2..3 ")""#]]);
+              RightParen@2..3 ")""#]],
+    );
 }
 
 #[test]
@@ -2653,4 +2656,648 @@ fn recover_init_expr_empty() {
                   RightParen@8..9 ")"
             error at 8..9: expected expression, but found ’)’"#]],
     );
+}
+
+#[test]
+fn parse_indirect_expr_ty() {
+    check(
+        "_:=boolean @ (1)",
+        expect![[r#"
+        Root@0..16
+          AssignStmt@0..16
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..16
+              PrimType@3..11
+                KwBoolean@3..10 "boolean"
+                Whitespace@10..11 " "
+              At@11..12 "@"
+              Whitespace@12..13 " "
+              LeftParen@13..14 "("
+              LiteralExpr@14..15
+                IntLiteral@14..15 "1"
+              RightParen@15..16 ")""#]],
+    );
+    check(
+        "_:=addressint @ (1)",
+        expect![[r#"
+        Root@0..19
+          AssignStmt@0..19
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..19
+              PrimType@3..14
+                KwAddressint@3..13 "addressint"
+                Whitespace@13..14 " "
+              At@14..15 "@"
+              Whitespace@15..16 " "
+              LeftParen@16..17 "("
+              LiteralExpr@17..18
+                IntLiteral@17..18 "1"
+              RightParen@18..19 ")""#]],
+    );
+    check(
+        "_:=int @ (1)",
+        expect![[r#"
+        Root@0..12
+          AssignStmt@0..12
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..12
+              PrimType@3..7
+                KwInt@3..6 "int"
+                Whitespace@6..7 " "
+              At@7..8 "@"
+              Whitespace@8..9 " "
+              LeftParen@9..10 "("
+              LiteralExpr@10..11
+                IntLiteral@10..11 "1"
+              RightParen@11..12 ")""#]],
+    );
+    check(
+        "_:=int1 @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwInt1@3..7 "int1"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=int2 @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwInt2@3..7 "int2"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=int4 @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwInt4@3..7 "int4"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=nat @ (1)",
+        expect![[r#"
+        Root@0..12
+          AssignStmt@0..12
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..12
+              PrimType@3..7
+                KwNat@3..6 "nat"
+                Whitespace@6..7 " "
+              At@7..8 "@"
+              Whitespace@8..9 " "
+              LeftParen@9..10 "("
+              LiteralExpr@10..11
+                IntLiteral@10..11 "1"
+              RightParen@11..12 ")""#]],
+    );
+    check(
+        "_:=nat1 @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwNat1@3..7 "nat1"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=nat2 @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwNat2@3..7 "nat2"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=nat4 @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwNat4@3..7 "nat4"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=real @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              PrimType@3..8
+                KwReal@3..7 "real"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=real4 @ (1)",
+        expect![[r#"
+        Root@0..14
+          AssignStmt@0..14
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..14
+              PrimType@3..9
+                KwReal4@3..8 "real4"
+                Whitespace@8..9 " "
+              At@9..10 "@"
+              Whitespace@10..11 " "
+              LeftParen@11..12 "("
+              LiteralExpr@12..13
+                IntLiteral@12..13 "1"
+              RightParen@13..14 ")""#]],
+    );
+    check(
+        "_:=real8 @ (1)",
+        expect![[r#"
+        Root@0..14
+          AssignStmt@0..14
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..14
+              PrimType@3..9
+                KwReal8@3..8 "real8"
+                Whitespace@8..9 " "
+              At@9..10 "@"
+              Whitespace@10..11 " "
+              LeftParen@11..12 "("
+              LiteralExpr@12..13
+                IntLiteral@12..13 "1"
+              RightParen@13..14 ")""#]],
+    );
+    check(
+        "_:=string @ (1)",
+        expect![[r#"
+        Root@0..15
+          AssignStmt@0..15
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..15
+              KwString@3..10
+                KwString@3..9 "string"
+                Whitespace@9..10 " "
+              At@10..11 "@"
+              Whitespace@11..12 " "
+              LeftParen@12..13 "("
+              LiteralExpr@13..14
+                IntLiteral@13..14 "1"
+              RightParen@14..15 ")""#]],
+    );
+    check(
+        "_:=char @ (1)",
+        expect![[r#"
+        Root@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..13
+              KwChar@3..8
+                KwChar@3..7 "char"
+                Whitespace@7..8 " "
+              At@8..9 "@"
+              Whitespace@9..10 " "
+              LeftParen@10..11 "("
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1"
+              RightParen@12..13 ")""#]],
+    );
+    check(
+        "_:=string(1+2+3) @ (1)",
+        expect![[r#"
+        Root@0..22
+          AssignStmt@0..22
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..22
+              SizedStringType@3..17
+                KwString@3..9 "string"
+                LeftParen@9..10 "("
+                SeqLength@10..15
+                  BinaryExpr@10..15
+                    BinaryExpr@10..13
+                      LiteralExpr@10..11
+                        IntLiteral@10..11 "1"
+                      Plus@11..12 "+"
+                      LiteralExpr@12..13
+                        IntLiteral@12..13 "2"
+                    Plus@13..14 "+"
+                    LiteralExpr@14..15
+                      IntLiteral@14..15 "3"
+                RightParen@15..16 ")"
+                Whitespace@16..17 " "
+              At@17..18 "@"
+              Whitespace@18..19 " "
+              LeftParen@19..20 "("
+              LiteralExpr@20..21
+                IntLiteral@20..21 "1"
+              RightParen@21..22 ")""#]],
+    );
+    check(
+        "_:=char(3+4+5) @ (1)",
+        expect![[r#"
+        Root@0..20
+          AssignStmt@0..20
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..20
+              SizedCharType@3..15
+                KwChar@3..7 "char"
+                LeftParen@7..8 "("
+                SeqLength@8..13
+                  BinaryExpr@8..13
+                    BinaryExpr@8..11
+                      LiteralExpr@8..9
+                        IntLiteral@8..9 "3"
+                      Plus@9..10 "+"
+                      LiteralExpr@10..11
+                        IntLiteral@10..11 "4"
+                    Plus@11..12 "+"
+                    LiteralExpr@12..13
+                      IntLiteral@12..13 "5"
+                RightParen@13..14 ")"
+                Whitespace@14..15 " "
+              At@15..16 "@"
+              Whitespace@16..17 " "
+              LeftParen@17..18 "("
+              LiteralExpr@18..19
+                IntLiteral@18..19 "1"
+              RightParen@19..20 ")""#]],
+    );
+    check(
+        "_:=string(*) @ (1)",
+        expect![[r#"
+        Root@0..18
+          AssignStmt@0..18
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..18
+              SizedStringType@3..13
+                KwString@3..9 "string"
+                LeftParen@9..10 "("
+                SeqLength@10..11
+                  Star@10..11 "*"
+                RightParen@11..12 ")"
+                Whitespace@12..13 " "
+              At@13..14 "@"
+              Whitespace@14..15 " "
+              LeftParen@15..16 "("
+              LiteralExpr@16..17
+                IntLiteral@16..17 "1"
+              RightParen@17..18 ")""#]],
+    );
+    check(
+        "_:=char(*) @ (1)",
+        expect![[r#"
+        Root@0..16
+          AssignStmt@0..16
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..16
+              SizedCharType@3..11
+                KwChar@3..7 "char"
+                LeftParen@7..8 "("
+                SeqLength@8..9
+                  Star@8..9 "*"
+                RightParen@9..10 ")"
+                Whitespace@10..11 " "
+              At@11..12 "@"
+              Whitespace@12..13 " "
+              LeftParen@13..14 "("
+              LiteralExpr@14..15
+                IntLiteral@14..15 "1"
+              RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_indirect_expr_ty_ref() {
+    check(
+        "_:=a @ (1)",
+        expect![[r#"
+        Root@0..10
+          AssignStmt@0..10
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..10
+              NameExpr@3..5
+                Name@3..5
+                  Identifier@3..4 "a"
+                  Whitespace@4..5 " "
+              At@5..6 "@"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              LiteralExpr@8..9
+                IntLiteral@8..9 "1"
+              RightParen@9..10 ")""#]],
+    );
+    check(
+        "_:=a.b.c @ (1)",
+        expect![[r#"
+        Root@0..14
+          AssignStmt@0..14
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..14
+              FieldExpr@3..9
+                FieldExpr@3..6
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  Dot@4..5 "."
+                  Name@5..6
+                    Identifier@5..6 "b"
+                Dot@6..7 "."
+                Name@7..9
+                  Identifier@7..8 "c"
+                  Whitespace@8..9 " "
+              At@9..10 "@"
+              Whitespace@10..11 " "
+              LeftParen@11..12 "("
+              LiteralExpr@12..13
+                IntLiteral@12..13 "1"
+              RightParen@13..14 ")""#]],
+    );
+}
+
+#[test]
+fn parse_indirect_expr_not_ty_ref_deref() {
+    check(
+        "_:=^a @ (1)",
+        expect![[r#"
+        Root@0..11
+          AssignStmt@0..11
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            DerefExpr@3..11
+              Caret@3..4 "^"
+              IndirectExpr@4..11
+                NameExpr@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                At@6..7 "@"
+                Whitespace@7..8 " "
+                LeftParen@8..9 "("
+                LiteralExpr@9..10
+                  IntLiteral@9..10 "1"
+                RightParen@10..11 ")""#]],
+    );
+}
+
+#[test]
+fn parse_indirect_expr_not_ty_ref_literal() {
+    check(
+        "_:=1 @ (1)",
+        expect![[r#"
+        Root@0..10
+          AssignStmt@0..10
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..10
+              LiteralExpr@3..5
+                IntLiteral@3..4 "1"
+                Whitespace@4..5 " "
+              At@5..6 "@"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              LiteralExpr@8..9
+                IntLiteral@8..9 "1"
+              RightParen@9..10 ")""#]],
+    );
+}
+
+#[test]
+fn parse_indirect_expr_not_ty_ref_parens() {
+    check(
+        "_:=(a.b.c) @ (1)",
+        expect![[r#"
+        Root@0..16
+          AssignStmt@0..16
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..16
+              ParenExpr@3..11
+                LeftParen@3..4 "("
+                FieldExpr@4..9
+                  FieldExpr@4..7
+                    NameExpr@4..5
+                      Name@4..5
+                        Identifier@4..5 "a"
+                    Dot@5..6 "."
+                    Name@6..7
+                      Identifier@6..7 "b"
+                  Dot@7..8 "."
+                  Name@8..9
+                    Identifier@8..9 "c"
+                RightParen@9..10 ")"
+                Whitespace@10..11 " "
+              At@11..12 "@"
+              Whitespace@12..13 " "
+              LeftParen@13..14 "("
+              LiteralExpr@14..15
+                IntLiteral@14..15 "1"
+              RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn recover_chained_indirect_tails() {
+    // can't chain indirect expr tails
+    check(
+        "_:=a @ (1) @ (2)",
+        expect![[r#"
+        Root@0..16
+          AssignStmt@0..11
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            IndirectExpr@3..11
+              NameExpr@3..5
+                Name@3..5
+                  Identifier@3..4 "a"
+                  Whitespace@4..5 " "
+              At@5..6 "@"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              LiteralExpr@8..9
+                IntLiteral@8..9 "1"
+              RightParen@9..10 ")"
+              Whitespace@10..11 " "
+          Error@11..13
+            At@11..12 "@"
+            Whitespace@12..13 " "
+          CallStmt@13..16
+            ParenExpr@13..16
+              LeftParen@13..14 "("
+              LiteralExpr@14..15
+                IntLiteral@14..15 "2"
+              RightParen@15..16 ")"
+        error at 11..12: expected statement, but found ’@’"#]],
+    );
+}
+
+#[test]
+fn parse_indirect_expr_in_ref_pos() {
+    check("char @ (1) := 1", expect![[r#"
+        Root@0..15
+          AssignStmt@0..15
+            IndirectExpr@0..11
+              KwChar@0..5
+                KwChar@0..4 "char"
+                Whitespace@4..5 " "
+              At@5..6 "@"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              LiteralExpr@8..9
+                IntLiteral@8..9 "1"
+              RightParen@9..10 ")"
+              Whitespace@10..11 " "
+            AsnOp@11..14
+              Assign@11..13 ":="
+              Whitespace@13..14 " "
+            LiteralExpr@14..15
+              IntLiteral@14..15 "1""#]]);
 }
