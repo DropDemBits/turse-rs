@@ -20,10 +20,12 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // x bits_expr
 
     // continuations:
-    // x indirect_expr
     // - field_expr
     // - arrow_expr
     // - call_expr
+
+    // terminators:
+    // - indirect_expr
     expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER)
 }
 
@@ -43,6 +45,12 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     })?;
 
     loop {
+        if p.at(TokenKind::At) {
+            lhs = indirect_expr_tail(p, lhs);
+            // can't chain indirect expr tails, so stop
+            break;
+        }
+
         let op = if let Some(op) = infix_op(p, only_primaries) {
             op
         } else {
@@ -121,12 +129,30 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Identifier => { name_expr(p) }
             TokenKind::Caret => { deref_expr(p) }
             TokenKind::Bits => { todo!() }
-            // indirection stuff
             _ => {
-                // Note: This does allow exprs like "1" to be "called",
-                // but those cases should be reported as errors when validating the AST
-                // TODO: Report non-callable expressions as errors
-                primary(p)
+                p.with_extra_recovery(&[TokenKind::At], |p| {
+                    ty::ty_primitive(p)
+                }).and_then(|cm| {
+                    if p.at(TokenKind::At) {
+                        // Remove '@' from expected list
+                        p.reset_expected_tokens();
+
+                        // Give the original ty node
+                        Some(cm)
+                    } else {
+                        // '@' needed to form an indirection expr
+                        let m = cm.precede(p);
+                        p.error_unexpected_at(m, None);
+                        None
+                    }
+                }).or_else(|| {
+                    // Parse a primary expr
+
+                    // Note: This does allow exprs like "1" to be "called",
+                    // but those cases should be reported as errors when validating the AST
+                    // TODO: Report non-callable expressions as errors
+                    primary(p)
+                })
             }
         }
     }
@@ -134,12 +160,12 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
 
 fn primary(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
-        TokenKind::IntLiteral => { literal_expr(p) }
-        TokenKind::RadixLiteral => { literal_expr(p) }
-        TokenKind::RealLiteral => { literal_expr(p) }
-        TokenKind::StringLiteral => { literal_expr(p) }
-        TokenKind::CharLiteral => { literal_expr(p) }
-        TokenKind::True => { literal_expr(p) }
+        TokenKind::IntLiteral,
+        TokenKind::RadixLiteral,
+        TokenKind::RealLiteral,
+        TokenKind::StringLiteral,
+        TokenKind::CharLiteral,
+        TokenKind::True,
         TokenKind::False => { literal_expr(p) }
         TokenKind::LeftParen => { paren_expr(p) }
         TokenKind::Init => { init_expr(p) }
@@ -230,16 +256,33 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.expect(TokenKind::LeftParen);
 
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        expr(p);
+        self::expr(p);
 
         while p.eat(TokenKind::Comma) {
-            expr(p);
+            self::expr(p);
         }
     });
 
     p.expect(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::InitExpr))
+}
+
+fn indirect_expr_tail(p: &mut Parser, lhs: CompletedMarker) -> CompletedMarker {
+    debug_assert!(p.at(TokenKind::At));
+
+    // Postfix indirection tail
+    // Only allowed for primary exprs
+    let m = lhs.precede(p);
+    p.bump();
+
+    p.expect(TokenKind::LeftParen);
+    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        self::expr(p);
+    });
+    p.expect(TokenKind::RightParen);
+
+    m.complete(p, SyntaxKind::IndirectExpr)
 }
 
 fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
@@ -272,10 +315,10 @@ fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
         Some(match_token! {
             |p| match {
                 TokenKind::Imply => { BinaryOp::Imply },
+                TokenKind::Pipe,
                 TokenKind::Or => { BinaryOp::Or }
-                TokenKind::Pipe => { BinaryOp::Or }
+                TokenKind::Ampersand,
                 TokenKind::And => { BinaryOp::And }
-                TokenKind::Ampersand => { BinaryOp::And }
                 TokenKind::Less => { BinaryOp::Less }
                 TokenKind::Greater => { BinaryOp::Greater }
                 TokenKind::Equ => { BinaryOp::Equal }
@@ -312,6 +355,8 @@ pub(super) fn maybe_composite_not_op(p: &mut Parser) -> Option<BinaryOp> {
     debug_assert!(p.at(TokenKind::Not) || p.at(TokenKind::Tilde));
 
     let m = p.start();
+
+    // bump to only leave "in" and "=" in expected token set
     p.bump(); // bump "not" or "~"
 
     Some(match_token!(|p| match {

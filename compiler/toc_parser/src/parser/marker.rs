@@ -5,42 +5,10 @@ use crate::event::Event;
 use drop_bomb::DropBomb;
 use toc_syntax::SyntaxKind;
 
-pub(crate) struct MaybeMarker(Marker);
-
-impl MaybeMarker {
-    pub(crate) fn new(pos: usize) -> Self {
-        // use a custom message
-        Self(Marker {
-            pos,
-            bomb: DropBomb::new("Incomplete marker, missing matching `complete` or `forget` call"),
-        })
-    }
-
-    /// Abandons the marker, disposing of the past node
-    pub(crate) fn forget(mut self, parser: &mut Parser) {
-        self.0.bomb.defuse();
-
-        // Replace placeholder with `Tombstone`
-        let event_at_pos = &mut parser.events[self.0.pos];
-        assert_eq!(*event_at_pos, Event::Placeholder);
-        *event_at_pos = Event::Tombstone;
-    }
-
-    /// Finishes a `Marker` for the given `kind`, converting it into a `CompletedMarker`
-    pub(crate) fn complete(self, parser: &mut Parser, kind: SyntaxKind) -> CompletedMarker {
-        self.0.complete(parser, kind)
-    }
-
-    /// Converts the `MaybeMarker` into a marker that must be used
-    fn must_use(mut self) -> Marker {
-        self.0.bomb.defuse();
-        Marker::new(self.0.pos)
-    }
-}
-
 /// A marker for starting a new node
 pub(crate) struct Marker {
     pos: usize,
+    child_pos: Option<usize>,
     bomb: DropBomb,
 }
 
@@ -48,13 +16,24 @@ impl Marker {
     pub(crate) fn new(pos: usize) -> Self {
         Marker {
             pos,
-            bomb: DropBomb::new("Incomplete marker, missing matching `complete` call"),
+            child_pos: None,
+            bomb: DropBomb::new("Incomplete marker, missing matching `complete` or `forget` call"),
         }
     }
 
     /// Finishes a `Marker` for the given `kind`, converting it into a `CompletedMarker`
     pub(crate) fn complete(mut self, parser: &mut Parser, kind: SyntaxKind) -> CompletedMarker {
         self.bomb.defuse();
+
+        if let Some(child_pos) = self.child_pos {
+            // If there's a child node, modify the original starting node
+            if let Event::StartNode { forward_parent, .. } = &mut parser.events[child_pos] {
+                // forward_parent is an offset to this node
+                *forward_parent = Some(self.pos - child_pos);
+            } else {
+                unreachable!()
+            }
+        }
 
         // Replace placeholder with actual starting node
         let event_at_pos = &mut parser.events[self.pos];
@@ -69,11 +48,20 @@ impl Marker {
 
         CompletedMarker { pos: self.pos }
     }
-}
 
-impl From<MaybeMarker> for Marker {
-    fn from(maybe: MaybeMarker) -> Self {
-        maybe.must_use()
+    /// Abandons the marker, disposing of the past node
+    pub(crate) fn forget(mut self, parser: &mut Parser) {
+        self.bomb.defuse();
+
+        // Replace placeholder with `Tombstone`
+        let event_at_pos = &mut parser.events[self.pos];
+        assert_eq!(*event_at_pos, Event::Placeholder);
+        *event_at_pos = Event::Tombstone;
+    }
+
+    fn with_child(mut self, child_at: usize) -> Self {
+        self.child_pos = Some(child_at);
+        self
     }
 }
 
@@ -88,15 +76,10 @@ impl CompletedMarker {
     /// Transforms a `CompletedMarker` back into a `Marker` for appending more tokens,
     /// or wrapping other syntax nodes
     pub(crate) fn precede(self, parser: &mut Parser) -> Marker {
-        let new_marker = parser.start().must_use();
+        let new_marker = parser.start().with_child(self.pos);
 
-        // Modify original starting node
-        if let Event::StartNode { forward_parent, .. } = &mut parser.events[self.pos] {
-            // forward_parent is an offset to the new_marker node
-            *forward_parent = Some(new_marker.pos - self.pos);
-        } else {
-            unreachable!()
-        }
+        // Modifying the child node is deferred to `complete`, allowing
+        // a `precede` to be forgotten
 
         new_marker
     }
