@@ -1426,3 +1426,204 @@ fn recover_just_collection() {
         error at 9..19: expected type specifier"#]],
     )
 }
+
+#[test]
+fn parse_array_type() {
+    check(
+        "type _ : array 1 .. 3 of int",
+        expect![[r#"
+        Root@0..28
+          TypeDecl@0..28
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ArrayType@9..28
+              KwArray@9..14 "array"
+              Whitespace@14..15 " "
+              RangeList@15..22
+                RangeType@15..22
+                  LiteralExpr@15..17
+                    IntLiteral@15..16 "1"
+                    Whitespace@16..17 " "
+                  Range@17..19 ".."
+                  Whitespace@19..20 " "
+                  LiteralExpr@20..22
+                    IntLiteral@20..21 "3"
+                    Whitespace@21..22 " "
+              KwOf@22..24 "of"
+              Whitespace@24..25 " "
+              PrimType@25..28
+                KwInt@25..28 "int""#]],
+    );
+}
+
+#[test]
+fn parse_array_type_with_many_ranges() {
+    check(
+        "type _ : array 1 .. 3, boolean, char of string",
+        expect![[r#"
+            Root@0..46
+              TypeDecl@0..46
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ArrayType@9..46
+                  KwArray@9..14 "array"
+                  Whitespace@14..15 " "
+                  RangeList@15..37
+                    RangeType@15..21
+                      LiteralExpr@15..17
+                        IntLiteral@15..16 "1"
+                        Whitespace@16..17 " "
+                      Range@17..19 ".."
+                      Whitespace@19..20 " "
+                      LiteralExpr@20..21
+                        IntLiteral@20..21 "3"
+                    Comma@21..22 ","
+                    Whitespace@22..23 " "
+                    PrimType@23..30
+                      KwBoolean@23..30 "boolean"
+                    Comma@30..31 ","
+                    Whitespace@31..32 " "
+                    KwChar@32..37
+                      KwChar@32..36 "char"
+                      Whitespace@36..37 " "
+                  KwOf@37..39 "of"
+                  Whitespace@39..40 " "
+                  KwString@40..46
+                    KwString@40..46 "string""#]],
+    );
+}
+
+#[test]
+fn parse_flexible_array_type() {
+    check(
+        "type _ : flexible array 1 .. 3 of char(*)",
+        expect![[r#"
+        Root@0..41
+          TypeDecl@0..41
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ArrayType@9..41
+              KwFlexible@9..17 "flexible"
+              Whitespace@17..18 " "
+              KwArray@18..23 "array"
+              Whitespace@23..24 " "
+              RangeList@24..31
+                RangeType@24..31
+                  LiteralExpr@24..26
+                    IntLiteral@24..25 "1"
+                    Whitespace@25..26 " "
+                  Range@26..28 ".."
+                  Whitespace@28..29 " "
+                  LiteralExpr@29..31
+                    IntLiteral@29..30 "3"
+                    Whitespace@30..31 " "
+              KwOf@31..33 "of"
+              Whitespace@33..34 " "
+              SizedCharType@34..41
+                KwChar@34..38 "char"
+                LeftParen@38..39 "("
+                SeqLength@39..40
+                  Star@39..40 "*"
+                RightParen@40..41 ")""#]],
+    );
+}
+
+#[test]
+fn recover_flexible_not_array() {
+    check(
+        "type _ : flexible not_array im_stmt",
+        expect![[r#"
+        Root@0..35
+          TypeDecl@0..28
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            Error@9..28
+              KwFlexible@9..17 "flexible"
+              Whitespace@17..18 " "
+              Identifier@18..27 "not_array"
+              Whitespace@27..28 " "
+          CallStmt@28..35
+            NameExpr@28..35
+              Name@28..35
+                Identifier@28..35 "im_stmt"
+        error at 18..27: expected ’array’, but found identifier"#]],
+    );
+}
+
+#[test]
+fn recover_array_empty_range_list() {
+    check(
+        "type _ : array of int",
+        expect![[r#"
+        Root@0..21
+          TypeDecl@0..21
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ArrayType@9..21
+              KwArray@9..14 "array"
+              Whitespace@14..15 " "
+              RangeList@15..15
+              KwOf@15..17 "of"
+              Whitespace@17..18 " "
+              PrimType@18..21
+                KwInt@18..21 "int"
+        error at 15..17: expected type specifier, but found ’of’"#]],
+    );
+}
+
+#[test]
+fn recover_array_no_elem_ty() {
+    check(
+        "type _ : array 1 .. 3 of",
+        expect![[r#"
+        Root@0..24
+          TypeDecl@0..24
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ArrayType@9..24
+              KwArray@9..14 "array"
+              Whitespace@14..15 " "
+              RangeList@15..22
+                RangeType@15..22
+                  LiteralExpr@15..17
+                    IntLiteral@15..16 "1"
+                    Whitespace@16..17 " "
+                  Range@17..19 ".."
+                  Whitespace@19..20 " "
+                  LiteralExpr@20..22
+                    IntLiteral@20..21 "3"
+                    Whitespace@21..22 " "
+              KwOf@22..24 "of"
+        error at 22..24: expected type specifier"#]],
+    );
+}
