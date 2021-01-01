@@ -5,6 +5,14 @@ mod test;
 use super::*;
 use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
+pub(super) fn expect_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    self::expr(p).or_else(|| {
+        // not an appropriate primary expr
+        p.error(Expected::Expression);
+        None
+    })
+}
+
 /// Parses an expression
 pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
     expr_binding_power(p, 0)
@@ -32,17 +40,7 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
 fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
     let only_primaries = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
 
-    let mut lhs = lhs(p).or_else(|| {
-        if !only_primaries {
-            prefix(p).or_else(|| {
-                // not an appropriate primary expr
-                p.error(Expected::Expression);
-                None
-            })
-        } else {
-            None
-        }
-    })?;
+    let mut lhs = lhs(p).or_else(|| if !only_primaries { prefix(p) } else { None })?;
 
     loop {
         if p.at(TokenKind::At) {
@@ -107,7 +105,13 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             _ => {
                 // wrap inside a binary expr
                 let m = lhs.precede(p);
-                let found_rhs = expr_binding_power(p, right_bind_power).is_some();
+                let found_rhs = expr_binding_power(p, right_bind_power)
+                    .or_else(|| {
+                        // report missing expr
+                        p.error(Expected::Expression);
+                        None
+                    })
+                    .is_some();
                 lhs = m.complete(p, SyntaxKind::BinaryExpr);
 
                 found_rhs
@@ -215,9 +219,9 @@ fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::LeftParen));
 
     let m = p.start();
-
     p.bump();
-    expr_binding_power(p, 0);
+
+    self::expect_expr(p);
 
     p.expect(TokenKind::RightParen);
 
@@ -256,10 +260,10 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.expect(TokenKind::LeftParen);
 
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        self::expr(p);
+        self::expect_expr(p);
 
         while p.eat(TokenKind::Comma) {
-            self::expr(p);
+            self::expect_expr(p);
         }
     });
 

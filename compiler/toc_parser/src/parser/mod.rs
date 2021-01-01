@@ -83,8 +83,7 @@ impl<'t, 'src> Parser<'t, 'src> {
 
     /// Reports an unexpected token error at the next token
     pub(crate) fn error(&mut self, category: impl Into<Option<Expected>>) {
-        let err = self.start(); // start error node
-        self.error_unexpected_at(err, category);
+        self.error_unexpected_at(None, category);
     }
 
     /// Runs the parser with the extra recovery tokens
@@ -108,7 +107,7 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Reports an unexpected token error at the given marker
     pub(crate) fn error_unexpected_at(
         &mut self,
-        err_at: Marker,
+        err_at: impl Into<Option<Marker>>,
         category: impl Into<Option<Expected>>,
     ) {
         let current = self.source.peek_token();
@@ -135,17 +134,20 @@ impl<'t, 'src> Parser<'t, 'src> {
             range,
         }));
 
+        // If the cursor is at the end of file or is part of the recovery set,
+        // error node does not need to be built
         if !self.at_set(&STMT_START_RECOVERY_SET)
-            && !self.at_set(&self.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
-            && !self.at_end()
+        && !self.at_set(&self.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
+        && !self.at_end()
         {
             // not in the recovery set? consume it! (wrap in error node)
+            let m = err_at.into().unwrap_or_else(|| self.start());
             self.bump();
+            m.complete(self, SyntaxKind::Error);
+        } else if let Some(err_at) = err_at.into() {
+            // Always complete the provided marker,
+            // since there's most likely some tokens already
             err_at.complete(self, SyntaxKind::Error);
-        } else {
-            // Cursor is at the end of file or is part of the recovery set
-            // Error node does not need to be built, so forget the marker
-            err_at.forget(self);
         }
     }
 

@@ -68,7 +68,7 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
 
             if !p.eat(TokenKind::Star) {
                 // if not dyn sized, parse an expr
-                expr::expr(p);
+                expr::expect_expr(p);
             }
 
             m.complete(p, SyntaxKind::SeqLength);

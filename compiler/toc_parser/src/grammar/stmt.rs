@@ -15,7 +15,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                 // check if there's an asn nearby
                 if parse_asn_op(p).is_some() {
                     // parse an assign stmt
-                    expr::expr(p);
+                    expr::expect_expr(p);
 
                     Some(m.complete(p,SyntaxKind::AssignStmt))
                 } else {
@@ -119,7 +119,7 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     // if type is implied, then init is not allowed
     // refining error: for const, could say that initialzer is required
     if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
-        expr::expr(p);
+        expr::expect_expr(p);
     }
 
     Some(m.complete(p, SyntaxKind::ConstVarDecl))

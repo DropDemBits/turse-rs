@@ -3281,7 +3281,9 @@ fn recover_chained_indirect_tails() {
 
 #[test]
 fn parse_indirect_expr_in_ref_pos() {
-    check("char @ (1) := 1", expect![[r#"
+    check(
+        "char @ (1) := 1",
+        expect![[r#"
         Root@0..15
           AssignStmt@0..15
             IndirectExpr@0..11
@@ -3299,5 +3301,17 @@ fn parse_indirect_expr_in_ref_pos() {
               Assign@11..13 ":="
               Whitespace@13..14 " "
             LiteralExpr@14..15
-              IntLiteral@14..15 "1""#]]);
+              IntLiteral@14..15 "1""#]],
+    );
+}
+
+#[test]
+fn recover_just_indirect_ty() {
+    check("char", expect![[r#"
+        Root@0..4
+          Error@0..4
+            KwChar@0..4
+              KwChar@0..4 "char"
+        error at 0..4: expected ’(’ or ’@’
+        error at 0..4: expected statement"#]]);
 }
