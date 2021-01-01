@@ -153,7 +153,6 @@ pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
                     Some((_, false)) => break, // parsed param, end of list
                     None => {
                         // missing next param
-                        p.error(Expected::Expression);
                         break;
                     }
                 }
@@ -168,7 +167,7 @@ pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma, TokenKind::RightParen], |p| {
-        expr::expr(p);
+        expr::expect_expr(p);
     });
 
     // bump ',' onto param
