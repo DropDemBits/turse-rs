@@ -6,8 +6,38 @@ use super::*;
 
 pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
     ty_primitive(p).or_else(|| {
-        p.error(Expected::Type);
-        None
+        match_token!(|p| match {
+            TokenKind::Flexible,
+            TokenKind::Array => { todo!() } // array_type
+            TokenKind::Enum => { todo!() } // enum_type
+            TokenKind::Procedure,
+            TokenKind::Function => { todo!() } // subprog_type
+            TokenKind::Pointer => { todo!() } // pointer_type
+            TokenKind::Caret => { todo!() } // pointer_type (shorthand)
+            TokenKind::Set => { todo!() } // set_type
+            TokenKind::Record => { todo!() } // record_type
+            TokenKind::Union => { todo!() } // union_type
+            TokenKind::Collection => { todo!() } // collection_type
+            TokenKind::Condition => { todo!() } // condition_type
+            _ => {
+                expr::expr(p).and_then(|cm| {
+                    // either name type or range type
+                    // further checks are pushed down to AST validation
+                    // so e.g. int literals are allowed in type position
+                    if p.at(TokenKind::Range) {
+                        // range tail
+                        range_type_tail(p, cm)
+                    } else {
+                        // Enclose expr (potential name ref) inside NameType
+                        Some(cm.precede(p).complete(p, SyntaxKind::NameType))
+                    }
+                }).or_else(|| {
+                    // not a ty
+                    p.error(Expected::Type);
+                    None
+                })
+            }
+        })
     })
 }
 
@@ -81,4 +111,18 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
         // basic unsized type
         Some(m.complete(p, prim_kind.into()))
     }
+}
+
+fn range_type_tail(p: &mut Parser, lhs: CompletedMarker) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Range));
+
+    let m = lhs.precede(p);
+    p.bump();
+
+    if !p.eat(TokenKind::Star) {
+        // Just a regular range bound
+        expr::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::RangeType))
 }
