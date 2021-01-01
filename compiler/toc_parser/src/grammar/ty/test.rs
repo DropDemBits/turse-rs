@@ -1627,3 +1627,499 @@ fn recover_array_no_elem_ty() {
         error at 22..24: expected type specifier"#]],
     );
 }
+
+#[test]
+fn parse_fcn_type() {
+    check(
+        "type _ : function _a (a, b : int) : int",
+        expect![[r#"
+        Root@0..39
+          TypeDecl@0..39
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            FcnType@9..39
+              KwFunction@9..17 "function"
+              Whitespace@17..18 " "
+              Name@18..21
+                Identifier@18..20 "_a"
+                Whitespace@20..21 " "
+              ParamSpec@21..34
+                LeftParen@21..22 "("
+                ParamDecl@22..32
+                  NameList@22..27
+                    Name@22..23
+                      Identifier@22..23 "a"
+                    Comma@23..24 ","
+                    Whitespace@24..25 " "
+                    Name@25..27
+                      Identifier@25..26 "b"
+                      Whitespace@26..27 " "
+                  Colon@27..28 ":"
+                  Whitespace@28..29 " "
+                  PrimType@29..32
+                    KwInt@29..32 "int"
+                RightParen@32..33 ")"
+                Whitespace@33..34 " "
+              Colon@34..35 ":"
+              Whitespace@35..36 " "
+              PrimType@36..39
+                KwInt@36..39 "int""#]],
+    );
+}
+
+#[test]
+fn parse_proc_type() {
+    check(
+        "type _ : procedure _a (a, b : int)",
+        expect![[r#"
+        Root@0..34
+          TypeDecl@0..34
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ProcType@9..34
+              KwProcedure@9..18 "procedure"
+              Whitespace@18..19 " "
+              Name@19..22
+                Identifier@19..21 "_a"
+                Whitespace@21..22 " "
+              ParamSpec@22..34
+                LeftParen@22..23 "("
+                ParamDecl@23..33
+                  NameList@23..28
+                    Name@23..24
+                      Identifier@23..24 "a"
+                    Comma@24..25 ","
+                    Whitespace@25..26 " "
+                    Name@26..28
+                      Identifier@26..27 "b"
+                      Whitespace@27..28 " "
+                  Colon@28..29 ":"
+                  Whitespace@29..30 " "
+                  PrimType@30..33
+                    KwInt@30..33 "int"
+                RightParen@33..34 ")""#]],
+    );
+}
+
+#[test]
+fn recover_proc_type_with_result_ty() {
+    check(
+        "type _ : procedure _a (a, b : int) : int",
+        expect![[r#"
+        Root@0..40
+          TypeDecl@0..35
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ProcType@9..35
+              KwProcedure@9..18 "procedure"
+              Whitespace@18..19 " "
+              Name@19..22
+                Identifier@19..21 "_a"
+                Whitespace@21..22 " "
+              ParamSpec@22..35
+                LeftParen@22..23 "("
+                ParamDecl@23..33
+                  NameList@23..28
+                    Name@23..24
+                      Identifier@23..24 "a"
+                    Comma@24..25 ","
+                    Whitespace@25..26 " "
+                    Name@26..28
+                      Identifier@26..27 "b"
+                      Whitespace@27..28 " "
+                  Colon@28..29 ":"
+                  Whitespace@29..30 " "
+                  PrimType@30..33
+                    KwInt@30..33 "int"
+                RightParen@33..34 ")"
+                Whitespace@34..35 " "
+          Error@35..37
+            Colon@35..36 ":"
+            Whitespace@36..37 " "
+          Error@37..40
+            PrimType@37..40
+              KwInt@37..40 "int"
+        error at 35..36: expected statement, but found ’:’
+        error at 37..40: expected ’@’
+        error at 37..40: expected statement"#]],
+    );
+}
+
+#[test]
+fn recover_fcn_type_without_result_ty() {
+    check(
+        "type _ : function _a (a, b : int)",
+        expect![[r#"
+        Root@0..33
+          TypeDecl@0..33
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            FcnType@9..33
+              KwFunction@9..17 "function"
+              Whitespace@17..18 " "
+              Name@18..21
+                Identifier@18..20 "_a"
+                Whitespace@20..21 " "
+              ParamSpec@21..33
+                LeftParen@21..22 "("
+                ParamDecl@22..32
+                  NameList@22..27
+                    Name@22..23
+                      Identifier@22..23 "a"
+                    Comma@23..24 ","
+                    Whitespace@24..25 " "
+                    Name@25..27
+                      Identifier@25..26 "b"
+                      Whitespace@26..27 " "
+                  Colon@27..28 ":"
+                  Whitespace@28..29 " "
+                  PrimType@29..32
+                    KwInt@29..32 "int"
+                RightParen@32..33 ")"
+        error at 32..33: expected ’:’
+        error at 32..33: expected type specifier"#]],
+    );
+}
+
+#[test]
+fn parse_fcn_type_opt_name() {
+    check(
+        "type _ : function (a, b : int) : int",
+        expect![[r#"
+        Root@0..36
+          TypeDecl@0..36
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            FcnType@9..36
+              KwFunction@9..17 "function"
+              Whitespace@17..18 " "
+              ParamSpec@18..31
+                LeftParen@18..19 "("
+                ParamDecl@19..29
+                  NameList@19..24
+                    Name@19..20
+                      Identifier@19..20 "a"
+                    Comma@20..21 ","
+                    Whitespace@21..22 " "
+                    Name@22..24
+                      Identifier@22..23 "b"
+                      Whitespace@23..24 " "
+                  Colon@24..25 ":"
+                  Whitespace@25..26 " "
+                  PrimType@26..29
+                    KwInt@26..29 "int"
+                RightParen@29..30 ")"
+                Whitespace@30..31 " "
+              Colon@31..32 ":"
+              Whitespace@32..33 " "
+              PrimType@33..36
+                KwInt@33..36 "int""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_type_no_params() {
+    check(
+        "type _ : function _a () : int",
+        expect![[r#"
+        Root@0..29
+          TypeDecl@0..29
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            FcnType@9..29
+              KwFunction@9..17 "function"
+              Whitespace@17..18 " "
+              Name@18..21
+                Identifier@18..20 "_a"
+                Whitespace@20..21 " "
+              ParamSpec@21..24
+                LeftParen@21..22 "("
+                RightParen@22..23 ")"
+                Whitespace@23..24 " "
+              Colon@24..25 ":"
+              Whitespace@25..26 " "
+              PrimType@26..29
+                KwInt@26..29 "int""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_type_opt_parens() {
+    check(
+        "type _ : function _a : int",
+        expect![[r#"
+        Root@0..26
+          TypeDecl@0..26
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            FcnType@9..26
+              KwFunction@9..17 "function"
+              Whitespace@17..18 " "
+              Name@18..21
+                Identifier@18..20 "_a"
+                Whitespace@20..21 " "
+              Colon@21..22 ":"
+              Whitespace@22..23 " "
+              PrimType@23..26
+                KwInt@23..26 "int""#]],
+    );
+}
+
+#[test]
+fn parse_proc_type_fcn_param() {
+    check(
+        "type _ : procedure _a (function embed (a : char) : int)",
+        expect![[r#"
+            Root@0..55
+              TypeDecl@0..55
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..55
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..55
+                    LeftParen@22..23 "("
+                    ParamDecl@23..54
+                      FcnType@23..54
+                        KwFunction@23..31 "function"
+                        Whitespace@31..32 " "
+                        Name@32..38
+                          Identifier@32..37 "embed"
+                          Whitespace@37..38 " "
+                        ParamSpec@38..49
+                          LeftParen@38..39 "("
+                          ParamDecl@39..47
+                            NameList@39..41
+                              Name@39..41
+                                Identifier@39..40 "a"
+                                Whitespace@40..41 " "
+                            Colon@41..42 ":"
+                            Whitespace@42..43 " "
+                            KwChar@43..47
+                              KwChar@43..47 "char"
+                          RightParen@47..48 ")"
+                          Whitespace@48..49 " "
+                        Colon@49..50 ":"
+                        Whitespace@50..51 " "
+                        PrimType@51..54
+                          KwInt@51..54 "int"
+                    RightParen@54..55 ")""#]],
+    );
+}
+
+#[test]
+fn parse_proc_type_all_constvar_attrs() {
+    check(
+        "type _ : procedure _a (var register a : cheat int)",
+        expect![[r#"
+            Root@0..50
+              TypeDecl@0..50
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..50
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..50
+                    LeftParen@22..23 "("
+                    ParamDecl@23..49
+                      KwVar@23..26 "var"
+                      Whitespace@26..27 " "
+                      KwRegister@27..35 "register"
+                      Whitespace@35..36 " "
+                      NameList@36..38
+                        Name@36..38
+                          Identifier@36..37 "a"
+                          Whitespace@37..38 " "
+                      Colon@38..39 ":"
+                      Whitespace@39..40 " "
+                      KwCheat@40..45 "cheat"
+                      Whitespace@45..46 " "
+                      PrimType@46..49
+                        KwInt@46..49 "int"
+                    RightParen@49..50 ")""#]],
+    );
+}
+
+#[test]
+fn recover_proc_type_constvar_attrs_missing_name() {
+    check(
+        "type _ : procedure _a (var register : int)",
+        expect![[r#"
+        Root@0..42
+          TypeDecl@0..42
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ProcType@9..42
+              KwProcedure@9..18 "procedure"
+              Whitespace@18..19 " "
+              Name@19..22
+                Identifier@19..21 "_a"
+                Whitespace@21..22 " "
+              ParamSpec@22..42
+                LeftParen@22..23 "("
+                ParamDecl@23..41
+                  KwVar@23..26 "var"
+                  Whitespace@26..27 " "
+                  KwRegister@27..35 "register"
+                  Whitespace@35..36 " "
+                  NameList@36..36
+                  Colon@36..37 ":"
+                  Whitespace@37..38 " "
+                  PrimType@38..41
+                    KwInt@38..41 "int"
+                RightParen@41..42 ")"
+        error at 36..37: expected identifier, but found ’:’"#]],
+    );
+    check(
+        "type _ : procedure _a (var : int)",
+        expect![[r#"
+        Root@0..33
+          TypeDecl@0..33
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ProcType@9..33
+              KwProcedure@9..18 "procedure"
+              Whitespace@18..19 " "
+              Name@19..22
+                Identifier@19..21 "_a"
+                Whitespace@21..22 " "
+              ParamSpec@22..33
+                LeftParen@22..23 "("
+                ParamDecl@23..32
+                  KwVar@23..26 "var"
+                  Whitespace@26..27 " "
+                  NameList@27..27
+                  Colon@27..28 ":"
+                  Whitespace@28..29 " "
+                  PrimType@29..32
+                    KwInt@29..32 "int"
+                RightParen@32..33 ")"
+        error at 27..28: expected ’register’ or identifier, but found ’:’"#]],
+    );
+    check(
+        "type _ : procedure _a (register : int)",
+        expect![[r#"
+        Root@0..38
+          TypeDecl@0..38
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ProcType@9..38
+              KwProcedure@9..18 "procedure"
+              Whitespace@18..19 " "
+              Name@19..22
+                Identifier@19..21 "_a"
+                Whitespace@21..22 " "
+              ParamSpec@22..38
+                LeftParen@22..23 "("
+                ParamDecl@23..37
+                  KwRegister@23..31 "register"
+                  Whitespace@31..32 " "
+                  NameList@32..32
+                  Colon@32..33 ":"
+                  Whitespace@33..34 " "
+                  PrimType@34..37
+                    KwInt@34..37 "int"
+                RightParen@37..38 ")"
+        error at 32..33: expected identifier, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_proc_type_constvar_missing_ty() {
+    check(
+        "type _ : procedure _a (a : )",
+        expect![[r#"
+        Root@0..28
+          TypeDecl@0..28
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ProcType@9..28
+              KwProcedure@9..18 "procedure"
+              Whitespace@18..19 " "
+              Name@19..22
+                Identifier@19..21 "_a"
+                Whitespace@21..22 " "
+              ParamSpec@22..28
+                LeftParen@22..23 "("
+                ParamDecl@23..27
+                  NameList@23..25
+                    Name@23..25
+                      Identifier@23..24 "a"
+                      Whitespace@24..25 " "
+                  Colon@25..26 ":"
+                  Whitespace@26..27 " "
+                RightParen@27..28 ")"
+        error at 27..28: expected type specifier, but found ’)’"#]],
+    );
+}
