@@ -9,17 +9,20 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
         match_token!(|p| match {
             TokenKind::Flexible,
             TokenKind::Array => { todo!() } // array_type
-            TokenKind::Enum => { todo!() } // enum_type
+            TokenKind::Enum => { enum_type(p) } // enum_type
             TokenKind::Procedure,
             TokenKind::Function => { todo!() } // subprog_type
             TokenKind::Unchecked,
             TokenKind::Pointer => { pointer_type(p) } // pointer_type
             TokenKind::Caret => { short_pointer_type(p) } // pointer_type (short form)
-            TokenKind::Set => { todo!() } // set_type
+            TokenKind::Set => { set_type(p) } // set_type
             TokenKind::Record => { todo!() } // record_type
             TokenKind::Union => { todo!() } // union_type
-            TokenKind::Collection => { todo!() } // collection_type
-            TokenKind::Condition => { todo!() } // condition_type
+            TokenKind::Collection => { collection_type(p) } // collection_type
+            TokenKind::Priority,
+            TokenKind::Deferred,
+            TokenKind::Timeout,
+            TokenKind::Condition => { condition_type(p) } // condition_type
             _ => {
                 expr::expr(p).and_then(|cm| {
                     // either name type or range type
@@ -114,6 +117,35 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
     }
 }
 
+fn enum_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Enum));
+
+    let m = p.start();
+    p.bump();
+
+    p.expect(TokenKind::LeftParen);
+    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        super::name_list(p);
+    });
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::EnumType))
+}
+
+fn set_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Set));
+
+    let m = p.start();
+    p.bump();
+
+    p.expect(TokenKind::Of);
+
+    // parse index type
+    self::ty(p);
+
+    Some(m.complete(p, SyntaxKind::SetType))
+}
+
 fn pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Unchecked) || p.at(TokenKind::Pointer));
 
@@ -138,6 +170,44 @@ fn short_pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
     self::ty(p);
 
     Some(m.complete(p, SyntaxKind::PointerType))
+}
+
+fn collection_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Collection));
+
+    let m = p.start();
+    p.bump();
+    p.expect(TokenKind::Of);
+
+    if !p.eat(TokenKind::Forward) {
+        self::ty(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::CollectionType))
+}
+
+fn condition_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(
+        p.at(TokenKind::Priority)
+            || p.at(TokenKind::Deferred)
+            || p.at(TokenKind::Timeout)
+            || p.at(TokenKind::Condition)
+    );
+
+    let mut m = p.start();
+
+    if p.eat(TokenKind::Priority) || p.eat(TokenKind::Deferred) || p.eat(TokenKind::Timeout) {
+        // wrap the kind in a wrapper node
+        m = m.complete(p, SyntaxKind::ConditionKind).precede(p);
+
+        // expect condition after attribute
+        p.expect(TokenKind::Condition);
+    } else {
+        // nom on 'condition'
+        p.bump();
+    }
+
+    Some(m.complete(p, SyntaxKind::ConditionType))
 }
 
 fn range_type_tail(p: &mut Parser, lhs: CompletedMarker) -> Option<CompletedMarker> {

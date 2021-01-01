@@ -794,3 +794,606 @@ fn recover_pointer_type_missing_to() {
         error at 17..27: expected type specifier"#]],
     );
 }
+
+#[test]
+fn parse_enum_type() {
+    check(
+        "type _ : enum (a)",
+        expect![[r#"
+        Root@0..17
+          TypeDecl@0..17
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..17
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..16
+                Name@15..16
+                  Identifier@15..16 "a"
+              RightParen@16..17 ")""#]],
+    )
+}
+
+#[test]
+fn parse_enum_type_multiple_names() {
+    check(
+        "type _ : enum (a, b, c)",
+        expect![[r#"
+        Root@0..23
+          TypeDecl@0..23
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..23
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..22
+                Name@15..16
+                  Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                Name@18..19
+                  Identifier@18..19 "b"
+                Comma@19..20 ","
+                Whitespace@20..21 " "
+                Name@21..22
+                  Identifier@21..22 "c"
+              RightParen@22..23 ")""#]],
+    )
+}
+
+#[test]
+fn recover_enum_type_missing_delimiter() {
+    check(
+        "type _ : enum (a, b c)",
+        expect![[r#"
+        Root@0..22
+          TypeDecl@0..21
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..21
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..20
+                Name@15..16
+                  Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                Name@18..20
+                  Identifier@18..19 "b"
+                  Whitespace@19..20 " "
+              Error@20..21
+                Identifier@20..21 "c"
+          Error@21..22
+            RightParen@21..22 ")"
+        error at 20..21: expected ’,’ or ’)’, but found identifier
+        error at 21..22: expected statement, but found ’)’"#]],
+    )
+}
+
+#[test]
+fn recover_enum_type_missing_name() {
+    check(
+        "type _ : enum (a, b, )",
+        expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..22
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..21
+                Name@15..16
+                  Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                Name@18..19
+                  Identifier@18..19 "b"
+                Comma@19..20 ","
+                Whitespace@20..21 " "
+              RightParen@21..22 ")"
+        error at 21..22: expected identifier, but found ’)’"#]],
+    )
+}
+
+#[test]
+fn recover_enum_type_missing_name_and_right_paren() {
+    check(
+        "type _ : enum (a, b,",
+        expect![[r#"
+        Root@0..20
+          TypeDecl@0..20
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..20
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..20
+                Name@15..16
+                  Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                Name@18..19
+                  Identifier@18..19 "b"
+                Comma@19..20 ","
+        error at 19..20: expected identifier
+        error at 19..20: expected ’,’ or ’)’"#]],
+    )
+}
+
+#[test]
+fn recover_enum_type_missing_right_paren() {
+    check(
+        "type _ : enum (a, b",
+        expect![[r#"
+        Root@0..19
+          TypeDecl@0..19
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..19
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..19
+                Name@15..16
+                  Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                Name@18..19
+                  Identifier@18..19 "b"
+        error at 18..19: expected ’,’ or ’)’"#]],
+    )
+}
+
+#[test]
+fn recover_enum_type_missing_names() {
+    check(
+        "type _ : enum ()",
+        expect![[r#"
+        Root@0..16
+          TypeDecl@0..16
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..16
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..15
+              RightParen@15..16 ")"
+        error at 15..16: expected identifier, but found ’)’"#]],
+    )
+}
+
+#[test]
+fn parse_set_type() {
+    check(
+        "type _ : set of boolean",
+        expect![[r#"
+        Root@0..23
+          TypeDecl@0..23
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..23
+              KwSet@9..12 "set"
+              Whitespace@12..13 " "
+              KwOf@13..15 "of"
+              Whitespace@15..16 " "
+              PrimType@16..23
+                KwBoolean@16..23 "boolean""#]],
+    );
+}
+
+#[test]
+fn parse_set_type_not_index_type() {
+    // is still valid, checked in AST validation
+    check(
+        "type _ : set of int",
+        expect![[r#"
+        Root@0..19
+          TypeDecl@0..19
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..19
+              KwSet@9..12 "set"
+              Whitespace@12..13 " "
+              KwOf@13..15 "of"
+              Whitespace@15..16 " "
+              PrimType@16..19
+                KwInt@16..19 "int""#]],
+    );
+}
+
+#[test]
+fn parse_set_type_of_range() {
+    check(
+        "type _ : set of 1 .. 3",
+        expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..22
+              KwSet@9..12 "set"
+              Whitespace@12..13 " "
+              KwOf@13..15 "of"
+              Whitespace@15..16 " "
+              RangeType@16..22
+                LiteralExpr@16..18
+                  IntLiteral@16..17 "1"
+                  Whitespace@17..18 " "
+                Range@18..20 ".."
+                Whitespace@20..21 " "
+                LiteralExpr@21..22
+                  IntLiteral@21..22 "3""#]],
+    );
+}
+
+#[test]
+fn parse_set_type_of_unbounded_range() {
+    // is still valid, checked in AST validation
+    check(
+        "type _ : set of 1 .. *",
+        expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..22
+              KwSet@9..12 "set"
+              Whitespace@12..13 " "
+              KwOf@13..15 "of"
+              Whitespace@15..16 " "
+              RangeType@16..22
+                LiteralExpr@16..18
+                  IntLiteral@16..17 "1"
+                  Whitespace@17..18 " "
+                Range@18..20 ".."
+                Whitespace@20..21 " "
+                Star@21..22 "*""#]],
+    );
+}
+
+#[test]
+fn recover_set_type_missing_of() {
+    // is still valid, checked in AST validation
+    check(
+        "type _ : set char",
+        expect![[r#"
+        Root@0..17
+          TypeDecl@0..17
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..17
+              KwSet@9..12 "set"
+              Whitespace@12..13 " "
+              Error@13..17
+                KwChar@13..17 "char"
+        error at 13..17: expected ’of’, but found ’char’
+        error at 13..17: expected type specifier"#]],
+    );
+}
+
+#[test]
+fn recover_set_type_missing_ty() {
+    // is still valid, checked in AST validation
+    check(
+        "type _ : set of",
+        expect![[r#"
+        Root@0..15
+          TypeDecl@0..15
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..15
+              KwSet@9..12 "set"
+              Whitespace@12..13 " "
+              KwOf@13..15 "of"
+        error at 13..15: expected type specifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_set() {
+    // is still valid, checked in AST validation
+    check(
+        "type _ : set",
+        expect![[r#"
+        Root@0..12
+          TypeDecl@0..12
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            SetType@9..12
+              KwSet@9..12 "set"
+        error at 9..12: expected ’of’
+        error at 9..12: expected type specifier"#]],
+    );
+}
+
+#[test]
+fn parse_condition_type() {
+    check(
+        "type _ : condition",
+        expect![[r#"
+        Root@0..18
+          TypeDecl@0..18
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ConditionType@9..18
+              KwCondition@9..18 "condition""#]],
+    );
+}
+
+#[test]
+fn parse_condition_type_attrs() {
+    check(
+        "type _ : priority condition",
+        expect![[r#"
+        Root@0..27
+          TypeDecl@0..27
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ConditionType@9..27
+              ConditionKind@9..18
+                KwPriority@9..17 "priority"
+                Whitespace@17..18 " "
+              KwCondition@18..27 "condition""#]],
+    );
+    check(
+        "type _ : deferred condition",
+        expect![[r#"
+        Root@0..27
+          TypeDecl@0..27
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ConditionType@9..27
+              ConditionKind@9..18
+                KwDeferred@9..17 "deferred"
+                Whitespace@17..18 " "
+              KwCondition@18..27 "condition""#]],
+    );
+    check(
+        "type _ : timeout condition",
+        expect![[r#"
+        Root@0..26
+          TypeDecl@0..26
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ConditionType@9..26
+              ConditionKind@9..17
+                KwTimeout@9..16 "timeout"
+                Whitespace@16..17 " "
+              KwCondition@17..26 "condition""#]],
+    );
+}
+
+#[test]
+fn recover_condition_type_attrs_without_condition() {
+    check(
+        "type _ : priority not_condition",
+        expect![[r#"
+        Root@0..31
+          TypeDecl@0..31
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ConditionType@9..31
+              ConditionKind@9..18
+                KwPriority@9..17 "priority"
+                Whitespace@17..18 " "
+              Error@18..31
+                Identifier@18..31 "not_condition"
+        error at 18..31: expected ’condition’, but found identifier"#]],
+    );
+}
+
+#[test]
+fn parse_collection_type() {
+    check(
+        "type _ : collection of int",
+        expect![[r#"
+        Root@0..26
+          TypeDecl@0..26
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..26
+              KwCollection@9..19 "collection"
+              Whitespace@19..20 " "
+              KwOf@20..22 "of"
+              Whitespace@22..23 " "
+              PrimType@23..26
+                KwInt@23..26 "int""#]],
+    )
+}
+
+#[test]
+fn parse_collection_type_forward() {
+    check(
+        "type _ : collection of forward",
+        expect![[r#"
+        Root@0..30
+          TypeDecl@0..30
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..30
+              KwCollection@9..19 "collection"
+              Whitespace@19..20 " "
+              KwOf@20..22 "of"
+              Whitespace@22..23 " "
+              KwForward@23..30 "forward""#]],
+    )
+}
+
+#[test]
+fn recover_collection_type_no_ty() {
+    check(
+        "type _ : collection of",
+        expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..22
+              KwCollection@9..19 "collection"
+              Whitespace@19..20 " "
+              KwOf@20..22 "of"
+        error at 20..22: expected type specifier"#]],
+    )
+}
+
+#[test]
+fn recover_collection_type_no_of() {
+    check(
+        "type _ : collection int",
+        expect![[r#"
+        Root@0..23
+          TypeDecl@0..23
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..23
+              KwCollection@9..19 "collection"
+              Whitespace@19..20 " "
+              Error@20..23
+                KwInt@20..23 "int"
+        error at 20..23: expected ’of’, but found ’int’
+        error at 20..23: expected type specifier"#]],
+    )
+}
+
+#[test]
+fn recover_just_collection() {
+    check(
+        "type _ : collection",
+        expect![[r#"
+        Root@0..19
+          TypeDecl@0..19
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..19
+              KwCollection@9..19 "collection"
+        error at 9..19: expected ’of’
+        error at 9..19: expected type specifier"#]],
+    )
+}
