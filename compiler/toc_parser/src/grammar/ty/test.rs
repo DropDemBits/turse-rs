@@ -257,7 +257,9 @@ fn parse_sized_string_type() {
 
 #[test]
 fn parse_dyn_sized_char_type() {
-    check("type _ : char(*)", expect![[r#"
+    check(
+        "type _ : char(*)",
+        expect![[r#"
         Root@0..16
           TypeDecl@0..16
             KwType@0..4 "type"
@@ -272,12 +274,15 @@ fn parse_dyn_sized_char_type() {
               LeftParen@13..14 "("
               SeqLength@14..15
                 Star@14..15 "*"
-              RightParen@15..16 ")""#]]);
+              RightParen@15..16 ")""#]],
+    );
 }
 
 #[test]
 fn parse_dyn_sized_string_type() {
-    check("type _ : string(*)", expect![[r#"
+    check(
+        "type _ : string(*)",
+        expect![[r#"
         Root@0..18
           TypeDecl@0..18
             KwType@0..4 "type"
@@ -292,7 +297,8 @@ fn parse_dyn_sized_string_type() {
               LeftParen@15..16 "("
               SeqLength@16..17
                 Star@16..17 "*"
-              RightParen@17..18 ")""#]]);
+              RightParen@17..18 ")""#]],
+    );
 }
 
 #[test]
@@ -437,4 +443,198 @@ fn recover_missing_right_paren_in_sized_string_type() {
                       IntLiteral@17..18 "1"
             error at 17..18: expected ’)’"#]],
     );
+}
+
+#[test]
+fn parse_name_type() {
+    check("type _ : a", expect![[r#"
+        Root@0..10
+          TypeDecl@0..10
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            NameType@9..10
+              NameExpr@9..10
+                Name@9..10
+                  Identifier@9..10 "a""#]]);
+    check("type _ : a.b.c", expect![[r#"
+        Root@0..14
+          TypeDecl@0..14
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            NameType@9..14
+              FieldExpr@9..14
+                FieldExpr@9..12
+                  NameExpr@9..10
+                    Name@9..10
+                      Identifier@9..10 "a"
+                  Dot@10..11 "."
+                  Name@11..12
+                    Identifier@11..12 "b"
+                Dot@12..13 "."
+                Name@13..14
+                  Identifier@13..14 "c""#]]);
+}
+
+#[test]
+fn parse_name_type_not_a_ref() {
+    // primaries still included because of range expr expecting a general expr
+    check("type _ : 1", expect![[r#"
+        Root@0..10
+          TypeDecl@0..10
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            NameType@9..10
+              LiteralExpr@9..10
+                IntLiteral@9..10 "1""#]]);
+    check(r#"type _ : "hello world""#, expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            NameType@9..22
+              LiteralExpr@9..22
+                StringLiteral@9..22 "\"hello world\"""#]]);
+}
+
+#[test]
+fn parse_expr_as_name_type() {
+    check("type _ : 1 + 2 + 3 - 4", expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            NameType@9..22
+              BinaryExpr@9..22
+                BinaryExpr@9..19
+                  BinaryExpr@9..15
+                    LiteralExpr@9..11
+                      IntLiteral@9..10 "1"
+                      Whitespace@10..11 " "
+                    Plus@11..12 "+"
+                    Whitespace@12..13 " "
+                    LiteralExpr@13..15
+                      IntLiteral@13..14 "2"
+                      Whitespace@14..15 " "
+                  Plus@15..16 "+"
+                  Whitespace@16..17 " "
+                  LiteralExpr@17..19
+                    IntLiteral@17..18 "3"
+                    Whitespace@18..19 " "
+                Minus@19..20 "-"
+                Whitespace@20..21 " "
+                LiteralExpr@21..22
+                  IntLiteral@21..22 "4""#]]);
+}
+
+#[test]
+fn parse_range_type() {
+    check("type _ : 1 .. 2", expect![[r#"
+        Root@0..15
+          TypeDecl@0..15
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RangeType@9..15
+              LiteralExpr@9..11
+                IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+              Range@11..13 ".."
+              Whitespace@13..14 " "
+              LiteralExpr@14..15
+                IntLiteral@14..15 "2""#]]);
+}
+
+#[test]
+fn parse_unbounded_range_type() {
+    check("type _ : 1 .. *", expect![[r#"
+        Root@0..15
+          TypeDecl@0..15
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RangeType@9..15
+              LiteralExpr@9..11
+                IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+              Range@11..13 ".."
+              Whitespace@13..14 " "
+              Star@14..15 "*""#]]);
+}
+
+#[test]
+fn recover_range_type_missing_tail() {
+    check("type _ : 1 ..", expect![[r#"
+        Root@0..13
+          TypeDecl@0..13
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RangeType@9..13
+              LiteralExpr@9..11
+                IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+              Range@11..13 ".."
+        error at 11..13: expected expression"#]]);
+}
+
+#[test]
+fn recover_range_type_not_an_expr() {
+    check("type _ : 1 .. boolean", expect![[r#"
+        Root@0..21
+          TypeDecl@0..21
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RangeType@9..21
+              LiteralExpr@9..11
+                IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+              Range@11..13 ".."
+              Whitespace@13..14 " "
+              Error@14..21
+                PrimType@14..21
+                  KwBoolean@14..21 "boolean"
+        error at 14..21: expected ’@’
+        error at 14..21: expected expression"#]]);
 }
