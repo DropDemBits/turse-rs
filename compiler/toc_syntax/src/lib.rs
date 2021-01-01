@@ -330,6 +330,7 @@ pub enum SyntaxKind {
     ConstVarParam,
     SubprogParam,
     ConditionKind,
+    RangeList,
 }
 
 impl From<TokenKind> for SyntaxKind {

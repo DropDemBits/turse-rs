@@ -8,7 +8,7 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
     ty_primitive(p).or_else(|| {
         match_token!(|p| match {
             TokenKind::Flexible,
-            TokenKind::Array => { todo!() } // array_type
+            TokenKind::Array => { array_type(p) } // array_type
             TokenKind::Enum => { enum_type(p) } // enum_type
             TokenKind::Procedure,
             TokenKind::Function => { todo!() } // subprog_type
@@ -115,6 +115,50 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
         // basic unsized type
         Some(m.complete(p, prim_kind.into()))
     }
+}
+
+fn array_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Flexible) || p.at(TokenKind::Array));
+
+    let m = p.start();
+
+    if p.eat(TokenKind::Flexible) {
+        if !p.at(TokenKind::Array) {
+            // stop, not an array type
+            p.error_unexpected_at(m, None);
+            return None;
+        }
+    }
+
+    // on 'array'
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Of], |p| {
+        self::range_list(p);
+    });
+
+    p.expect(TokenKind::Of);
+
+    // on index type
+    self::ty(p);
+
+    Some(m.complete(p, SyntaxKind::ArrayType))
+}
+
+fn range_list(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        self::ty(p);
+
+        while p.at(TokenKind::Comma) {
+            p.bump();
+
+            self::ty(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::RangeList))
 }
 
 fn enum_type(p: &mut Parser) -> Option<CompletedMarker> {

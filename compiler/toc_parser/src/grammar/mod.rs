@@ -72,7 +72,7 @@
 // types
 // - primitive_type (including sized variants)
 // - name_type
-// x array_type
+// - array_type
 // - enum_type
 // x function_type / subprog_type
 // - pointer_type
