@@ -447,7 +447,9 @@ fn recover_missing_right_paren_in_sized_string_type() {
 
 #[test]
 fn parse_name_type() {
-    check("type _ : a", expect![[r#"
+    check(
+        "type _ : a",
+        expect![[r#"
         Root@0..10
           TypeDecl@0..10
             KwType@0..4 "type"
@@ -460,8 +462,11 @@ fn parse_name_type() {
             NameType@9..10
               NameExpr@9..10
                 Name@9..10
-                  Identifier@9..10 "a""#]]);
-    check("type _ : a.b.c", expect![[r#"
+                  Identifier@9..10 "a""#]],
+    );
+    check(
+        "type _ : a.b.c",
+        expect![[r#"
         Root@0..14
           TypeDecl@0..14
             KwType@0..4 "type"
@@ -482,13 +487,16 @@ fn parse_name_type() {
                     Identifier@11..12 "b"
                 Dot@12..13 "."
                 Name@13..14
-                  Identifier@13..14 "c""#]]);
+                  Identifier@13..14 "c""#]],
+    );
 }
 
 #[test]
 fn parse_name_type_not_a_ref() {
     // primaries still included because of range expr expecting a general expr
-    check("type _ : 1", expect![[r#"
+    check(
+        "type _ : 1",
+        expect![[r#"
         Root@0..10
           TypeDecl@0..10
             KwType@0..4 "type"
@@ -500,8 +508,11 @@ fn parse_name_type_not_a_ref() {
             Whitespace@8..9 " "
             NameType@9..10
               LiteralExpr@9..10
-                IntLiteral@9..10 "1""#]]);
-    check(r#"type _ : "hello world""#, expect![[r#"
+                IntLiteral@9..10 "1""#]],
+    );
+    check(
+        r#"type _ : "hello world""#,
+        expect![[r#"
         Root@0..22
           TypeDecl@0..22
             KwType@0..4 "type"
@@ -513,12 +524,15 @@ fn parse_name_type_not_a_ref() {
             Whitespace@8..9 " "
             NameType@9..22
               LiteralExpr@9..22
-                StringLiteral@9..22 "\"hello world\"""#]]);
+                StringLiteral@9..22 "\"hello world\"""#]],
+    );
 }
 
 #[test]
 fn parse_expr_as_name_type() {
-    check("type _ : 1 + 2 + 3 - 4", expect![[r#"
+    check(
+        "type _ : 1 + 2 + 3 - 4",
+        expect![[r#"
         Root@0..22
           TypeDecl@0..22
             KwType@0..4 "type"
@@ -548,12 +562,15 @@ fn parse_expr_as_name_type() {
                 Minus@19..20 "-"
                 Whitespace@20..21 " "
                 LiteralExpr@21..22
-                  IntLiteral@21..22 "4""#]]);
+                  IntLiteral@21..22 "4""#]],
+    );
 }
 
 #[test]
 fn parse_range_type() {
-    check("type _ : 1 .. 2", expect![[r#"
+    check(
+        "type _ : 1 .. 2",
+        expect![[r#"
         Root@0..15
           TypeDecl@0..15
             KwType@0..4 "type"
@@ -570,12 +587,15 @@ fn parse_range_type() {
               Range@11..13 ".."
               Whitespace@13..14 " "
               LiteralExpr@14..15
-                IntLiteral@14..15 "2""#]]);
+                IntLiteral@14..15 "2""#]],
+    );
 }
 
 #[test]
 fn parse_unbounded_range_type() {
-    check("type _ : 1 .. *", expect![[r#"
+    check(
+        "type _ : 1 .. *",
+        expect![[r#"
         Root@0..15
           TypeDecl@0..15
             KwType@0..4 "type"
@@ -591,12 +611,15 @@ fn parse_unbounded_range_type() {
                 Whitespace@10..11 " "
               Range@11..13 ".."
               Whitespace@13..14 " "
-              Star@14..15 "*""#]]);
+              Star@14..15 "*""#]],
+    );
 }
 
 #[test]
 fn recover_range_type_missing_tail() {
-    check("type _ : 1 ..", expect![[r#"
+    check(
+        "type _ : 1 ..",
+        expect![[r#"
         Root@0..13
           TypeDecl@0..13
             KwType@0..4 "type"
@@ -611,12 +634,15 @@ fn recover_range_type_missing_tail() {
                 IntLiteral@9..10 "1"
                 Whitespace@10..11 " "
               Range@11..13 ".."
-        error at 11..13: expected expression"#]]);
+        error at 11..13: expected expression"#]],
+    );
 }
 
 #[test]
 fn recover_range_type_not_an_expr() {
-    check("type _ : 1 .. boolean", expect![[r#"
+    check(
+        "type _ : 1 .. boolean",
+        expect![[r#"
         Root@0..21
           TypeDecl@0..21
             KwType@0..4 "type"
@@ -636,5 +662,135 @@ fn recover_range_type_not_an_expr() {
                 PrimType@14..21
                   KwBoolean@14..21 "boolean"
         error at 14..21: expected ’@’
-        error at 14..21: expected expression"#]]);
+        error at 14..21: expected expression"#]],
+    );
+}
+
+#[test]
+fn parse_pointer_type() {
+    check(
+        "type _ : pointer to int",
+        expect![[r#"
+        Root@0..23
+          TypeDecl@0..23
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..23
+              KwPointer@9..16 "pointer"
+              Whitespace@16..17 " "
+              KwTo@17..19 "to"
+              Whitespace@19..20 " "
+              PrimType@20..23
+                KwInt@20..23 "int""#]],
+    );
+}
+
+#[test]
+fn parse_pointer_type_to_named() {
+    check(
+        "type _ : pointer to some.named.ty",
+        expect![[r#"
+        Root@0..33
+          TypeDecl@0..33
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..33
+              KwPointer@9..16 "pointer"
+              Whitespace@16..17 " "
+              KwTo@17..19 "to"
+              Whitespace@19..20 " "
+              NameType@20..33
+                FieldExpr@20..33
+                  FieldExpr@20..30
+                    NameExpr@20..24
+                      Name@20..24
+                        Identifier@20..24 "some"
+                    Dot@24..25 "."
+                    Name@25..30
+                      Identifier@25..30 "named"
+                  Dot@30..31 "."
+                  Name@31..33
+                    Identifier@31..33 "ty""#]],
+    );
+}
+
+#[test]
+fn parse_unchecked_pointer_type() {
+    check(
+        "type _ : unchecked pointer to addressint",
+        expect![[r#"
+        Root@0..40
+          TypeDecl@0..40
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..40
+              KwUnchecked@9..18 "unchecked"
+              Whitespace@18..19 " "
+              KwPointer@19..26 "pointer"
+              Whitespace@26..27 " "
+              KwTo@27..29 "to"
+              Whitespace@29..30 " "
+              PrimType@30..40
+                KwAddressint@30..40 "addressint""#]],
+    );
+}
+
+#[test]
+fn parse_short_pointer_type() {
+    check(
+        "type _ : ^int",
+        expect![[r#"
+        Root@0..13
+          TypeDecl@0..13
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..13
+              Caret@9..10 "^"
+              PrimType@10..13
+                KwInt@10..13 "int""#]],
+    );
+}
+
+#[test]
+fn recover_pointer_type_missing_to() {
+    check(
+        "type _ : pointer addressint",
+        expect![[r#"
+        Root@0..27
+          TypeDecl@0..27
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..27
+              KwPointer@9..16 "pointer"
+              Whitespace@16..17 " "
+              Error@17..27
+                KwAddressint@17..27 "addressint"
+        error at 17..27: expected ’to’, but found ’addressint’
+        error at 17..27: expected type specifier"#]],
+    );
 }
