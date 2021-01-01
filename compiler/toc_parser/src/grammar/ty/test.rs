@@ -917,7 +917,36 @@ fn recover_enum_type_missing_name() {
                 Whitespace@20..21 " "
               RightParen@21..22 ")"
         error at 21..22: expected identifier, but found ’)’"#]],
-    )
+    );
+
+    check(
+        "type _ : enum (a, , c)",
+        expect![[r#"
+        Root@0..22
+          TypeDecl@0..22
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            EnumType@9..22
+              KwEnum@9..13 "enum"
+              Whitespace@13..14 " "
+              LeftParen@14..15 "("
+              NameList@15..21
+                Name@15..16
+                  Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                Comma@18..19 ","
+                Whitespace@19..20 " "
+                Name@20..21
+                  Identifier@20..21 "c"
+              RightParen@21..22 ")"
+        error at 18..19: expected identifier, but found ’,’"#]],
+    );
 }
 
 #[test]
