@@ -10,12 +10,12 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Flexible,
             TokenKind::Array => { array_type(p) } // array_type
             TokenKind::Enum => { enum_type(p) } // enum_type
-            TokenKind::Procedure,
-            TokenKind::Function => { todo!() } // subprog_type
             TokenKind::Unchecked,
             TokenKind::Pointer => { pointer_type(p) } // pointer_type
             TokenKind::Caret => { short_pointer_type(p) } // pointer_type (short form)
             TokenKind::Set => { set_type(p) } // set_type
+            TokenKind::Procedure,
+            TokenKind::Function => { subprog_type(p) } // subprog_type
             TokenKind::Record => { todo!() } // record_type
             TokenKind::Union => { todo!() } // union_type
             TokenKind::Collection => { collection_type(p) } // collection_type
@@ -214,6 +214,100 @@ fn short_pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
     self::ty(p);
 
     Some(m.complete(p, SyntaxKind::PointerType))
+}
+
+fn subprog_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Procedure) || p.at(TokenKind::Function));
+
+    let is_fcn_ty = p.at(TokenKind::Function);
+
+    let m = p.start();
+    p.bump();
+
+    if p.at(TokenKind::Identifier) {
+        // Nom (option name)
+        super::name(p);
+    }
+
+    if p.at(TokenKind::LeftParen) {
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            self::param_spec(p);
+        });
+    }
+
+    if is_fcn_ty {
+        // result type
+        p.expect(TokenKind::Colon);
+
+        self::ty(p);
+    }
+
+    Some(m.complete(
+        p,
+        if is_fcn_ty {
+            SyntaxKind::FcnType
+        } else {
+            SyntaxKind::ProcType
+        },
+    ))
+}
+
+fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
+    // ParamSpec: '(' ParamDecl ( ',' ParamDecl )* ')'
+    let m = p.start();
+
+    p.expect(TokenKind::LeftParen);
+    p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
+        if !p.at(TokenKind::RightParen) {
+            if let Some(..) = self::param_decl(p) {
+                while p.eat(TokenKind::Comma) {
+                    self::param_decl(p);
+                }
+            }
+        }
+    });
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::ParamSpec))
+}
+
+fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        TokenKind::Function,
+        TokenKind::Procedure => {
+            let m = p.start();
+            ty::subprog_type(p);
+            Some(m.complete(p,SyntaxKind::ParamDecl))
+        }
+        TokenKind::Var,
+        TokenKind::Register,
+        TokenKind::Identifier => { constvar_param(p) }
+        _ => {
+            // not a thing
+            None
+        }
+    })
+}
+
+fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Var) || p.at(TokenKind::Register) || p.at(TokenKind::Identifier));
+
+    let m = p.start();
+    p.eat(TokenKind::Var);
+    p.eat(TokenKind::Register);
+
+    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+        super::name_list(p);
+    });
+
+    p.expect(TokenKind::Colon);
+
+    // optional: `cheat`
+    p.eat(TokenKind::Cheat);
+
+    ty::ty(p);
+
+    Some(m.complete(p, SyntaxKind::ParamDecl))
 }
 
 fn collection_type(p: &mut Parser) -> Option<CompletedMarker> {

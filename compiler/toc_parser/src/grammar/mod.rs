@@ -74,10 +74,10 @@
 // - name_type
 // - array_type
 // - enum_type
-// x function_type / subprog_type
 // - pointer_type
 // - range_type
 // - set_type
+// - function_type / subprog_type
 // | record_type
 // | union_type
 // - collection_type
