@@ -130,13 +130,16 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
 
 pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
-    self::name(p);
 
-    while p.at(TokenKind::Comma) {
-        p.bump();
-
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
         self::name(p);
-    }
+
+        while p.at(TokenKind::Comma) {
+            p.bump();
+
+            self::name(p);
+        }
+    });
 
     Some(m.complete(p, SyntaxKind::NameList))
 }
