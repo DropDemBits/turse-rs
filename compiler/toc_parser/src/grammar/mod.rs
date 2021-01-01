@@ -71,17 +71,17 @@
 
 // types
 // - primitive_type (including sized variants)
-// x name_type
+// - name_type
 // x array_type
-// x enum_type
+// - enum_type
 // x function_type / subprog_type
-// x pointer_type
-// x range_type
-// x set_type
+// - pointer_type
+// - range_type
+// - set_type
 // | record_type
 // | union_type
-// | collection_type
-// | condition_type
+// - collection_type
+// - condition_type
 
 mod expr;
 mod stmt;
