@@ -12,8 +12,9 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Enum => { todo!() } // enum_type
             TokenKind::Procedure,
             TokenKind::Function => { todo!() } // subprog_type
-            TokenKind::Pointer => { todo!() } // pointer_type
-            TokenKind::Caret => { todo!() } // pointer_type (shorthand)
+            TokenKind::Unchecked,
+            TokenKind::Pointer => { pointer_type(p) } // pointer_type
+            TokenKind::Caret => { short_pointer_type(p) } // pointer_type (short form)
             TokenKind::Set => { todo!() } // set_type
             TokenKind::Record => { todo!() } // record_type
             TokenKind::Union => { todo!() } // union_type
@@ -111,6 +112,32 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
         // basic unsized type
         Some(m.complete(p, prim_kind.into()))
     }
+}
+
+fn pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Unchecked) || p.at(TokenKind::Pointer));
+
+    let m = p.start();
+    p.eat(TokenKind::Unchecked);
+    p.eat(TokenKind::Pointer);
+    p.expect(TokenKind::To);
+
+    // parse pointed to type
+    self::ty(p);
+
+    Some(m.complete(p, SyntaxKind::PointerType))
+}
+
+fn short_pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Caret));
+
+    let m = p.start();
+    p.bump(); // nom on ^
+
+    // parse pointed to type
+    self::ty(p);
+
+    Some(m.complete(p, SyntaxKind::PointerType))
 }
 
 fn range_type_tail(p: &mut Parser, lhs: CompletedMarker) -> Option<CompletedMarker> {
