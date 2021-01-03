@@ -182,8 +182,6 @@ pub enum SyntaxKind {
     // Composite & Misc Syntax Tokens //
     /// Error tokens produced by the scanner
     Error,
-    /// Root node
-    Root,
     /// "not in" composite token (`"not" "whitespace" "in"`)
     NotIn,
     /// "not=" composite token (`"not" "whitespace" "eq"`)
@@ -289,6 +287,8 @@ pub enum SyntaxKind {
     QuitCause,
     Checkedness,
     LiteralExpr,
+    CheatExpr,
+    ObjClassExpr,
     InitExpr,
     BinaryExpr,
     UnaryExpr,
