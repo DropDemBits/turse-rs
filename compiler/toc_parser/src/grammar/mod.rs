@@ -108,12 +108,12 @@ use crate::parser::Parser;
 use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 
-pub(crate) fn root(p: &mut Parser) -> CompletedMarker {
-    let root = p.start();
+pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
+    let source = p.start();
     while !p.at_end() {
         stmt::stmt(p);
     }
-    root.complete(p, SyntaxKind::Root)
+    source.complete(p, SyntaxKind::Source)
 }
 
 pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {

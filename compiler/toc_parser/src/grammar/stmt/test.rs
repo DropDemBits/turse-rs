@@ -14,31 +14,31 @@ fn parse_opt_semicolon() {
     check(
         "var i : int; type j : boolean;",
         expect![[r#"
-        Root@0..30
-          ConstVarDecl@0..11
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "i"
-                Whitespace@5..6 " "
-            Colon@6..7 ":"
-            Whitespace@7..8 " "
-            PrimType@8..11
-              KwInt@8..11 "int"
-          Semicolon@11..12 ";"
-          Whitespace@12..13 " "
-          TypeDecl@13..29
-            KwType@13..17 "type"
-            Whitespace@17..18 " "
-            Name@18..20
-              Identifier@18..19 "j"
-              Whitespace@19..20 " "
-            Colon@20..21 ":"
-            Whitespace@21..22 " "
-            PrimType@22..29
-              KwBoolean@22..29 "boolean"
-          Semicolon@29..30 ";""#]],
+            Source@0..30
+              ConstVarDecl@0..11
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "i"
+                    Whitespace@5..6 " "
+                Colon@6..7 ":"
+                Whitespace@7..8 " "
+                PrimType@8..11
+                  KwInt@8..11 "int"
+              Semicolon@11..12 ";"
+              Whitespace@12..13 " "
+              TypeDecl@13..29
+                KwType@13..17 "type"
+                Whitespace@17..18 " "
+                Name@18..20
+                  Identifier@18..19 "j"
+                  Whitespace@19..20 " "
+                Colon@20..21 ":"
+                Whitespace@21..22 " "
+                PrimType@22..29
+                  KwBoolean@22..29 "boolean"
+              Semicolon@29..30 ";""#]],
     );
 }
 
@@ -47,7 +47,7 @@ fn report_not_a_stmt() {
     check(
         "pervasive",
         expect![[r#"
-            Root@0..9
+            Source@0..9
               Error@0..9
                 KwPervasive@0..9 "pervasive"
             error at 0..9: expected statement, but found ’pervasive’"#]],
@@ -59,7 +59,7 @@ fn recover_just_assign() {
     check(
         ":=",
         expect![[r#"
-            Root@0..2
+            Source@0..2
               Error@0..2
                 Assign@0..2 ":="
             error at 0..2: expected statement, but found ’:=’"#]],
@@ -71,7 +71,7 @@ fn recover_just_var() {
     check(
         "var",
         expect![[r#"
-            Root@0..3
+            Source@0..3
               ConstVarDecl@0..3
                 KwVar@0..3 "var"
                 NameList@3..3
@@ -85,7 +85,7 @@ fn parse_var_decl() {
     check(
         "var a : int := 1",
         expect![[r#"
-            Root@0..16
+            Source@0..16
               ConstVarDecl@0..16
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
@@ -110,7 +110,7 @@ fn parse_const_decl() {
     check(
         "const a : int := 1",
         expect![[r#"
-            Root@0..18
+            Source@0..18
               ConstVarDecl@0..18
                 KwConst@0..5 "const"
                 Whitespace@5..6 " "
@@ -135,20 +135,20 @@ fn parse_var_decl_with_pervasive_attr() {
     check(
         "var pervasive a : int",
         expect![[r#"
-        Root@0..21
-          ConstVarDecl@0..21
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            KwPervasive@4..13 "pervasive"
-            Whitespace@13..14 " "
-            NameList@14..16
-              Name@14..16
-                Identifier@14..15 "a"
-                Whitespace@15..16 " "
-            Colon@16..17 ":"
-            Whitespace@17..18 " "
-            PrimType@18..21
-              KwInt@18..21 "int""#]],
+            Source@0..21
+              ConstVarDecl@0..21
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                KwPervasive@4..13 "pervasive"
+                Whitespace@13..14 " "
+                NameList@14..16
+                  Name@14..16
+                    Identifier@14..15 "a"
+                    Whitespace@15..16 " "
+                Colon@16..17 ":"
+                Whitespace@17..18 " "
+                PrimType@18..21
+                  KwInt@18..21 "int""#]],
     );
 }
 
@@ -157,20 +157,20 @@ fn parse_var_decl_with_alt_pervasive_attr() {
     check(
         "var * a : int",
         expect![[r#"
-        Root@0..13
-          ConstVarDecl@0..13
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            Star@4..5 "*"
-            Whitespace@5..6 " "
-            NameList@6..8
-              Name@6..8
-                Identifier@6..7 "a"
-                Whitespace@7..8 " "
-            Colon@8..9 ":"
-            Whitespace@9..10 " "
-            PrimType@10..13
-              KwInt@10..13 "int""#]],
+            Source@0..13
+              ConstVarDecl@0..13
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                Star@4..5 "*"
+                Whitespace@5..6 " "
+                NameList@6..8
+                  Name@6..8
+                    Identifier@6..7 "a"
+                    Whitespace@7..8 " "
+                Colon@8..9 ":"
+                Whitespace@9..10 " "
+                PrimType@10..13
+                  KwInt@10..13 "int""#]],
     );
 }
 
@@ -179,20 +179,20 @@ fn parse_var_decl_with_register_attr() {
     check(
         "var register a : int",
         expect![[r#"
-        Root@0..20
-          ConstVarDecl@0..20
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            KwRegister@4..12 "register"
-            Whitespace@12..13 " "
-            NameList@13..15
-              Name@13..15
-                Identifier@13..14 "a"
-                Whitespace@14..15 " "
-            Colon@15..16 ":"
-            Whitespace@16..17 " "
-            PrimType@17..20
-              KwInt@17..20 "int""#]],
+            Source@0..20
+              ConstVarDecl@0..20
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                KwRegister@4..12 "register"
+                Whitespace@12..13 " "
+                NameList@13..15
+                  Name@13..15
+                    Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                Colon@15..16 ":"
+                Whitespace@16..17 " "
+                PrimType@17..20
+                  KwInt@17..20 "int""#]],
     );
 }
 
@@ -201,22 +201,22 @@ fn parse_var_decl_with_all_attrs() {
     check(
         "var pervasive register a : int",
         expect![[r#"
-        Root@0..30
-          ConstVarDecl@0..30
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            KwPervasive@4..13 "pervasive"
-            Whitespace@13..14 " "
-            KwRegister@14..22 "register"
-            Whitespace@22..23 " "
-            NameList@23..25
-              Name@23..25
-                Identifier@23..24 "a"
-                Whitespace@24..25 " "
-            Colon@25..26 ":"
-            Whitespace@26..27 " "
-            PrimType@27..30
-              KwInt@27..30 "int""#]],
+            Source@0..30
+              ConstVarDecl@0..30
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                KwPervasive@4..13 "pervasive"
+                Whitespace@13..14 " "
+                KwRegister@14..22 "register"
+                Whitespace@22..23 " "
+                NameList@23..25
+                  Name@23..25
+                    Identifier@23..24 "a"
+                    Whitespace@24..25 " "
+                Colon@25..26 ":"
+                Whitespace@26..27 " "
+                PrimType@27..30
+                  KwInt@27..30 "int""#]],
     );
 }
 
@@ -225,18 +225,18 @@ fn parse_var_decl_no_init() {
     check(
         "var a : int",
         expect![[r#"
-        Root@0..11
-          ConstVarDecl@0..11
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Colon@6..7 ":"
-            Whitespace@7..8 " "
-            PrimType@8..11
-              KwInt@8..11 "int""#]],
+            Source@0..11
+              ConstVarDecl@0..11
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Colon@6..7 ":"
+                Whitespace@7..8 " "
+                PrimType@8..11
+                  KwInt@8..11 "int""#]],
     )
 }
 
@@ -245,19 +245,19 @@ fn recover_const_decl_no_init() {
     check(
         "const a : int",
         expect![[r#"
-        Root@0..13
-          ConstVarDecl@0..13
-            KwConst@0..5 "const"
-            Whitespace@5..6 " "
-            NameList@6..8
-              Name@6..8
-                Identifier@6..7 "a"
-                Whitespace@7..8 " "
-            Colon@8..9 ":"
-            Whitespace@9..10 " "
-            PrimType@10..13
-              KwInt@10..13 "int"
-        error at 10..13: expected ’:=’"#]],
+            Source@0..13
+              ConstVarDecl@0..13
+                KwConst@0..5 "const"
+                Whitespace@5..6 " "
+                NameList@6..8
+                  Name@6..8
+                    Identifier@6..7 "a"
+                    Whitespace@7..8 " "
+                Colon@8..9 ":"
+                Whitespace@9..10 " "
+                PrimType@10..13
+                  KwInt@10..13 "int"
+            error at 10..13: expected ’:=’"#]],
     )
 }
 
@@ -266,26 +266,26 @@ fn parse_var_decl_multiple_names() {
     check(
         "var a, b, c := 1",
         expect![[r#"
-        Root@0..16
-          ConstVarDecl@0..16
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..12
-              Name@4..5
-                Identifier@4..5 "a"
-              Comma@5..6 ","
-              Whitespace@6..7 " "
-              Name@7..8
-                Identifier@7..8 "b"
-              Comma@8..9 ","
-              Whitespace@9..10 " "
-              Name@10..12
-                Identifier@10..11 "c"
-                Whitespace@11..12 " "
-            Assign@12..14 ":="
-            Whitespace@14..15 " "
-            LiteralExpr@15..16
-              IntLiteral@15..16 "1""#]],
+            Source@0..16
+              ConstVarDecl@0..16
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..12
+                  Name@4..5
+                    Identifier@4..5 "a"
+                  Comma@5..6 ","
+                  Whitespace@6..7 " "
+                  Name@7..8
+                    Identifier@7..8 "b"
+                  Comma@8..9 ","
+                  Whitespace@9..10 " "
+                  Name@10..12
+                    Identifier@10..11 "c"
+                    Whitespace@11..12 " "
+                Assign@12..14 ":="
+                Whitespace@14..15 " "
+                LiteralExpr@15..16
+                  IntLiteral@15..16 "1""#]],
     );
 }
 
@@ -294,27 +294,27 @@ fn recover_not_name_in_var_decl_multiple_names() {
     check(
         "var a, to, c := 1",
         expect![[r#"
-        Root@0..17
-          ConstVarDecl@0..17
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..13
-              Name@4..5
-                Identifier@4..5 "a"
-              Comma@5..6 ","
-              Whitespace@6..7 " "
-              Error@7..9
-                KwTo@7..9 "to"
-              Comma@9..10 ","
-              Whitespace@10..11 " "
-              Name@11..13
-                Identifier@11..12 "c"
-                Whitespace@12..13 " "
-            Assign@13..15 ":="
-            Whitespace@15..16 " "
-            LiteralExpr@16..17
-              IntLiteral@16..17 "1"
-        error at 7..9: expected identifier, but found ’to’"#]],
+            Source@0..17
+              ConstVarDecl@0..17
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..13
+                  Name@4..5
+                    Identifier@4..5 "a"
+                  Comma@5..6 ","
+                  Whitespace@6..7 " "
+                  Error@7..9
+                    KwTo@7..9 "to"
+                  Comma@9..10 ","
+                  Whitespace@10..11 " "
+                  Name@11..13
+                    Identifier@11..12 "c"
+                    Whitespace@12..13 " "
+                Assign@13..15 ":="
+                Whitespace@15..16 " "
+                LiteralExpr@16..17
+                  IntLiteral@16..17 "1"
+            error at 7..9: expected identifier, but found ’to’"#]],
     );
 }
 
@@ -323,19 +323,19 @@ fn recover_not_name_in_var_decl() {
     check(
         "var to := 1",
         expect![[r#"
-        Root@0..11
-          ConstVarDecl@0..11
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..7
-              Error@4..7
-                KwTo@4..6 "to"
-                Whitespace@6..7 " "
-            Assign@7..9 ":="
-            Whitespace@9..10 " "
-            LiteralExpr@10..11
-              IntLiteral@10..11 "1"
-        error at 4..6: expected identifier, but found ’to’"#]],
+            Source@0..11
+              ConstVarDecl@0..11
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..7
+                  Error@4..7
+                    KwTo@4..6 "to"
+                    Whitespace@6..7 " "
+                Assign@7..9 ":="
+                Whitespace@9..10 " "
+                LiteralExpr@10..11
+                  IntLiteral@10..11 "1"
+            error at 4..6: expected identifier, but found ’to’"#]],
     );
 }
 
@@ -344,14 +344,14 @@ fn recover_bare_var_decl() {
     check(
         "var a",
         expect![[r#"
-        Root@0..5
-          ConstVarDecl@0..5
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..5
-              Name@4..5
-                Identifier@4..5 "a"
-        error at 4..5: expected ’,’, ’:’ or ’:=’"#]],
+            Source@0..5
+              ConstVarDecl@0..5
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..5
+                  Name@4..5
+                    Identifier@4..5 "a"
+            error at 4..5: expected ’,’, ’:’ or ’:=’"#]],
     )
 }
 
@@ -360,14 +360,14 @@ fn recover_bare_const_decl() {
     check(
         "const a",
         expect![[r#"
-        Root@0..7
-          ConstVarDecl@0..7
-            KwConst@0..5 "const"
-            Whitespace@5..6 " "
-            NameList@6..7
-              Name@6..7
-                Identifier@6..7 "a"
-        error at 6..7: expected ’,’, ’:’ or ’:=’"#]],
+            Source@0..7
+              ConstVarDecl@0..7
+                KwConst@0..5 "const"
+                Whitespace@5..6 " "
+                NameList@6..7
+                  Name@6..7
+                    Identifier@6..7 "a"
+            error at 6..7: expected ’,’, ’:’ or ’:=’"#]],
     )
 }
 
@@ -376,7 +376,7 @@ fn recover_var_decl_missing_ty() {
     check(
         "var a : := 1",
         expect![[r#"
-            Root@0..12
+            Source@0..12
               ConstVarDecl@0..12
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
@@ -399,7 +399,7 @@ fn recover_var_decl_not_a_ty() {
     check(
         "var a : to := 1",
         expect![[r#"
-            Root@0..15
+            Source@0..15
               ConstVarDecl@0..15
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
@@ -425,7 +425,7 @@ fn parse_var_decl_inferred_ty() {
     check(
         "var a := 1",
         expect![[r#"
-            Root@0..10
+            Source@0..10
               ConstVarDecl@0..10
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
@@ -445,7 +445,7 @@ fn parse_const_decl_inferred_ty() {
     check(
         "const a := 1",
         expect![[r#"
-            Root@0..12
+            Source@0..12
               ConstVarDecl@0..12
                 KwConst@0..5 "const"
                 Whitespace@5..6 " "
@@ -465,7 +465,7 @@ fn parse_several_stmts() {
     check(
         "const a := 1\na",
         expect![[r#"
-            Root@0..14
+            Source@0..14
               ConstVarDecl@0..13
                 KwConst@0..5 "const"
                 Whitespace@5..6 " "
@@ -490,7 +490,7 @@ fn recover_on_var() {
     check(
         "const a := \nvar b := 1",
         expect![[r#"
-            Root@0..22
+            Source@0..22
               ConstVarDecl@0..12
                 KwConst@0..5 "const"
                 Whitespace@5..6 " "
@@ -520,7 +520,7 @@ fn recover_on_const() {
     check(
         "var a := \nconst b := 1",
         expect![[r#"
-            Root@0..22
+            Source@0..22
               ConstVarDecl@0..10
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
@@ -550,31 +550,31 @@ fn parse_assign_stmt() {
     check(
         "a := b + 2 + c",
         expect![[r#"
-        Root@0..14
-          AssignStmt@0..14
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..5
-              Assign@2..4 ":="
-              Whitespace@4..5 " "
-            BinaryExpr@5..14
-              BinaryExpr@5..11
-                NameExpr@5..7
-                  Name@5..7
-                    Identifier@5..6 "b"
-                    Whitespace@6..7 " "
-                Plus@7..8 "+"
-                Whitespace@8..9 " "
-                LiteralExpr@9..11
-                  IntLiteral@9..10 "2"
-                  Whitespace@10..11 " "
-              Plus@11..12 "+"
-              Whitespace@12..13 " "
-              NameExpr@13..14
-                Name@13..14
-                  Identifier@13..14 "c""#]],
+            Source@0..14
+              AssignStmt@0..14
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..5
+                  Assign@2..4 ":="
+                  Whitespace@4..5 " "
+                BinaryExpr@5..14
+                  BinaryExpr@5..11
+                    NameExpr@5..7
+                      Name@5..7
+                        Identifier@5..6 "b"
+                        Whitespace@6..7 " "
+                    Plus@7..8 "+"
+                    Whitespace@8..9 " "
+                    LiteralExpr@9..11
+                      IntLiteral@9..10 "2"
+                      Whitespace@10..11 " "
+                  Plus@11..12 "+"
+                  Whitespace@12..13 " "
+                  NameExpr@13..14
+                    Name@13..14
+                      Identifier@13..14 "c""#]],
     );
 }
 
@@ -583,267 +583,267 @@ fn parse_compound_assign_stmt() {
     check(
         "a => = 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              Imply@2..4 "=>"
-              Whitespace@4..5 " "
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  Imply@2..4 "=>"
+                  Whitespace@4..5 " "
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
     check(
         "a |= 1",
         expect![[r#"
-        Root@0..6
-          AssignStmt@0..6
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..5
-              Pipe@2..3 "|"
-              Equ@3..4 "="
-              Whitespace@4..5 " "
-            LiteralExpr@5..6
-              IntLiteral@5..6 "1""#]],
+            Source@0..6
+              AssignStmt@0..6
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..5
+                  Pipe@2..3 "|"
+                  Equ@3..4 "="
+                  Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "1""#]],
     );
     check(
         "a or = 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              KwOr@2..4 "or"
-              Whitespace@4..5 " "
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  KwOr@2..4 "or"
+                  Whitespace@4..5 " "
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
     check(
         "a & = 1",
         expect![[r#"
-        Root@0..7
-          AssignStmt@0..7
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..6
-              Ampersand@2..3 "&"
-              Whitespace@3..4 " "
-              Equ@4..5 "="
-              Whitespace@5..6 " "
-            LiteralExpr@6..7
-              IntLiteral@6..7 "1""#]],
+            Source@0..7
+              AssignStmt@0..7
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..6
+                  Ampersand@2..3 "&"
+                  Whitespace@3..4 " "
+                  Equ@4..5 "="
+                  Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1""#]],
     );
     check(
         "a and= 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              KwAnd@2..5 "and"
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  KwAnd@2..5 "and"
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
     check(
         "a + = 1",
         expect![[r#"
-        Root@0..7
-          AssignStmt@0..7
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..6
-              Plus@2..3 "+"
-              Whitespace@3..4 " "
-              Equ@4..5 "="
-              Whitespace@5..6 " "
-            LiteralExpr@6..7
-              IntLiteral@6..7 "1""#]],
+            Source@0..7
+              AssignStmt@0..7
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..6
+                  Plus@2..3 "+"
+                  Whitespace@3..4 " "
+                  Equ@4..5 "="
+                  Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1""#]],
     );
     check(
         "a -= 1",
         expect![[r#"
-        Root@0..6
-          AssignStmt@0..6
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..5
-              Minus@2..3 "-"
-              Equ@3..4 "="
-              Whitespace@4..5 " "
-            LiteralExpr@5..6
-              IntLiteral@5..6 "1""#]],
+            Source@0..6
+              AssignStmt@0..6
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..5
+                  Minus@2..3 "-"
+                  Equ@3..4 "="
+                  Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "1""#]],
     );
     check(
         "a xor = 1",
         expect![[r#"
-        Root@0..9
-          AssignStmt@0..9
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..8
-              KwXor@2..5 "xor"
-              Whitespace@5..6 " "
-              Equ@6..7 "="
-              Whitespace@7..8 " "
-            LiteralExpr@8..9
-              IntLiteral@8..9 "1""#]],
+            Source@0..9
+              AssignStmt@0..9
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..8
+                  KwXor@2..5 "xor"
+                  Whitespace@5..6 " "
+                  Equ@6..7 "="
+                  Whitespace@7..8 " "
+                LiteralExpr@8..9
+                  IntLiteral@8..9 "1""#]],
     );
     check(
         "a *= 1",
         expect![[r#"
-        Root@0..6
-          AssignStmt@0..6
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..5
-              Star@2..3 "*"
-              Equ@3..4 "="
-              Whitespace@4..5 " "
-            LiteralExpr@5..6
-              IntLiteral@5..6 "1""#]],
+            Source@0..6
+              AssignStmt@0..6
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..5
+                  Star@2..3 "*"
+                  Equ@3..4 "="
+                  Whitespace@4..5 " "
+                LiteralExpr@5..6
+                  IntLiteral@5..6 "1""#]],
     );
     check(
         "a / = 1",
         expect![[r#"
-        Root@0..7
-          AssignStmt@0..7
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..6
-              Slash@2..3 "/"
-              Whitespace@3..4 " "
-              Equ@4..5 "="
-              Whitespace@5..6 " "
-            LiteralExpr@6..7
-              IntLiteral@6..7 "1""#]],
+            Source@0..7
+              AssignStmt@0..7
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..6
+                  Slash@2..3 "/"
+                  Whitespace@3..4 " "
+                  Equ@4..5 "="
+                  Whitespace@5..6 " "
+                LiteralExpr@6..7
+                  IntLiteral@6..7 "1""#]],
     );
     check(
         "a div= 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              KwDiv@2..5 "div"
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  KwDiv@2..5 "div"
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
     check(
         "a mod = 1",
         expect![[r#"
-        Root@0..9
-          AssignStmt@0..9
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..8
-              KwMod@2..5 "mod"
-              Whitespace@5..6 " "
-              Equ@6..7 "="
-              Whitespace@7..8 " "
-            LiteralExpr@8..9
-              IntLiteral@8..9 "1""#]],
+            Source@0..9
+              AssignStmt@0..9
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..8
+                  KwMod@2..5 "mod"
+                  Whitespace@5..6 " "
+                  Equ@6..7 "="
+                  Whitespace@7..8 " "
+                LiteralExpr@8..9
+                  IntLiteral@8..9 "1""#]],
     );
     check(
         "a rem= 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              KwRem@2..5 "rem"
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  KwRem@2..5 "rem"
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
     check(
         "a shl = 1",
         expect![[r#"
-        Root@0..9
-          AssignStmt@0..9
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..8
-              KwShl@2..5 "shl"
-              Whitespace@5..6 " "
-              Equ@6..7 "="
-              Whitespace@7..8 " "
-            LiteralExpr@8..9
-              IntLiteral@8..9 "1""#]],
+            Source@0..9
+              AssignStmt@0..9
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..8
+                  KwShl@2..5 "shl"
+                  Whitespace@5..6 " "
+                  Equ@6..7 "="
+                  Whitespace@7..8 " "
+                LiteralExpr@8..9
+                  IntLiteral@8..9 "1""#]],
     );
     check(
         "a shr= 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              KwShr@2..5 "shr"
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  KwShr@2..5 "shr"
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
     check(
         "a ** = 1",
         expect![[r#"
-        Root@0..8
-          AssignStmt@0..8
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..7
-              Exp@2..4 "**"
-              Whitespace@4..5 " "
-              Equ@5..6 "="
-              Whitespace@6..7 " "
-            LiteralExpr@7..8
-              IntLiteral@7..8 "1""#]],
+            Source@0..8
+              AssignStmt@0..8
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..7
+                  Exp@2..4 "**"
+                  Whitespace@4..5 " "
+                  Equ@5..6 "="
+                  Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1""#]],
     );
 }
 
@@ -853,7 +853,7 @@ fn recover_not_weird_asn_op() {
     check(
         "a not==not 1",
         expect![[r#"
-            Root@0..12
+            Source@0..12
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -879,7 +879,7 @@ fn recover_not_weird_asn_op() {
     check(
         "a ~==~ 1",
         expect![[r#"
-            Root@0..8
+            Source@0..8
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -910,7 +910,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a <= 1",
         expect![[r#"
-            Root@0..6
+            Source@0..6
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -927,7 +927,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a <== 1",
         expect![[r#"
-            Root@0..7
+            Source@0..7
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -947,7 +947,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a >= 1",
         expect![[r#"
-            Root@0..6
+            Source@0..6
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -964,7 +964,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a >== 1",
         expect![[r#"
-            Root@0..7
+            Source@0..7
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -986,7 +986,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a ~== 1",
         expect![[r#"
-            Root@0..7
+            Source@0..7
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -1009,7 +1009,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a not== 1",
         expect![[r#"
-            Root@0..9
+            Source@0..9
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -1032,7 +1032,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a not in= 1",
         expect![[r#"
-            Root@0..11
+            Source@0..11
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -1056,7 +1056,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a ~in= 1",
         expect![[r#"
-            Root@0..8
+            Source@0..8
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -1079,7 +1079,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a in= 1",
         expect![[r#"
-            Root@0..7
+            Source@0..7
               CallStmt@0..2
                 NameExpr@0..2
                   Name@0..2
@@ -1099,7 +1099,7 @@ fn recover_not_a_compound_asn_op() {
     check(
         "a == 1",
         expect![[r#"
-            Root@0..6
+            Source@0..6
               AssignStmt@0..5
                 NameExpr@0..2
                   Name@0..2
@@ -1123,7 +1123,7 @@ fn recover_missing_eq_in_asn_op() {
     check(
         "a + 1\na",
         expect![[r#"
-            Root@0..7
+            Source@0..7
               CallStmt@0..6
                 NameExpr@0..2
                   Name@0..2
@@ -1147,17 +1147,17 @@ fn recover_eq_instead_of_asn() {
     check(
         "a = 1",
         expect![[r#"
-        Root@0..5
-          AssignStmt@0..5
-            NameExpr@0..2
-              Name@0..2
-                Identifier@0..1 "a"
-                Whitespace@1..2 " "
-            AsnOp@2..4
-              Equ@2..3 "="
-              Whitespace@3..4 " "
-            LiteralExpr@4..5
-              IntLiteral@4..5 "1""#]],
+            Source@0..5
+              AssignStmt@0..5
+                NameExpr@0..2
+                  Name@0..2
+                    Identifier@0..1 "a"
+                    Whitespace@1..2 " "
+                AsnOp@2..4
+                  Equ@2..3 "="
+                  Whitespace@3..4 " "
+                LiteralExpr@4..5
+                  IntLiteral@4..5 "1""#]],
     );
 }
 
@@ -1166,17 +1166,17 @@ fn parse_type_decl() {
     check(
         "type a : int",
         expect![[r#"
-        Root@0..12
-          TypeDecl@0..12
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "a"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            PrimType@9..12
-              KwInt@9..12 "int""#]],
+            Source@0..12
+              TypeDecl@0..12
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                PrimType@9..12
+                  KwInt@9..12 "int""#]],
     );
 }
 
@@ -1185,16 +1185,16 @@ fn parse_type_decl_with_forward() {
     check(
         "type a : forward",
         expect![[r#"
-        Root@0..16
-          TypeDecl@0..16
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "a"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            KwForward@9..16 "forward""#]],
+            Source@0..16
+              TypeDecl@0..16
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                KwForward@9..16 "forward""#]],
     );
 }
 
@@ -1203,19 +1203,19 @@ fn parse_type_decl_with_pervasive_attr() {
     check(
         "type pervasive a : int",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            KwPervasive@5..14 "pervasive"
-            Whitespace@14..15 " "
-            Name@15..17
-              Identifier@15..16 "a"
-              Whitespace@16..17 " "
-            Colon@17..18 ":"
-            Whitespace@18..19 " "
-            PrimType@19..22
-              KwInt@19..22 "int""#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                KwPervasive@5..14 "pervasive"
+                Whitespace@14..15 " "
+                Name@15..17
+                  Identifier@15..16 "a"
+                  Whitespace@16..17 " "
+                Colon@17..18 ":"
+                Whitespace@18..19 " "
+                PrimType@19..22
+                  KwInt@19..22 "int""#]],
     );
 }
 
@@ -1224,19 +1224,19 @@ fn parse_type_decl_with_star_attr() {
     check(
         "type * a : int",
         expect![[r#"
-        Root@0..14
-          TypeDecl@0..14
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Star@5..6 "*"
-            Whitespace@6..7 " "
-            Name@7..9
-              Identifier@7..8 "a"
-              Whitespace@8..9 " "
-            Colon@9..10 ":"
-            Whitespace@10..11 " "
-            PrimType@11..14
-              KwInt@11..14 "int""#]],
+            Source@0..14
+              TypeDecl@0..14
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Star@5..6 "*"
+                Whitespace@6..7 " "
+                Name@7..9
+                  Identifier@7..8 "a"
+                  Whitespace@8..9 " "
+                Colon@9..10 ":"
+                Whitespace@10..11 " "
+                PrimType@11..14
+                  KwInt@11..14 "int""#]],
     );
 }
 
@@ -1245,7 +1245,7 @@ fn recover_type_decl_missing_type() {
     check(
         "type a : ",
         expect![[r#"
-            Root@0..9
+            Source@0..9
               TypeDecl@0..9
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -1263,7 +1263,7 @@ fn recover_type_decl_missing_colon() {
     check(
         "type a forward",
         expect![[r#"
-            Root@0..14
+            Source@0..14
               TypeDecl@0..14
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -1280,7 +1280,7 @@ fn recover_type_decl_missing_colon_and_type() {
     check(
         "type a",
         expect![[r#"
-            Root@0..6
+            Source@0..6
               TypeDecl@0..6
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -1296,7 +1296,7 @@ fn recover_just_type() {
     check(
         "type",
         expect![[r#"
-            Root@0..4
+            Source@0..4
               TypeDecl@0..4
                 KwType@0..4 "type"
             error at 0..4: expected identifier
@@ -1310,7 +1310,7 @@ fn recover_on_type() {
     check(
         "var a := \ntype a : int",
         expect![[r#"
-            Root@0..22
+            Source@0..22
               ConstVarDecl@0..10
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
@@ -1339,25 +1339,25 @@ fn parse_block_stmt() {
     check(
         "begin var a := 1 end",
         expect![[r#"
-        Root@0..20
-          BlockStmt@0..20
-            KwBegin@0..5 "begin"
-            Whitespace@5..6 " "
-            StmtList@6..17
-              ConstVarDecl@6..17
-                KwVar@6..9 "var"
-                Whitespace@9..10 " "
-                NameList@10..12
-                  Name@10..12
-                    Identifier@10..11 "a"
-                    Whitespace@11..12 " "
-                Assign@12..14 ":="
-                Whitespace@14..15 " "
-                LiteralExpr@15..17
-                  IntLiteral@15..16 "1"
-                  Whitespace@16..17 " "
-            EndGroup@17..20
-              KwEnd@17..20 "end""#]],
+            Source@0..20
+              BlockStmt@0..20
+                KwBegin@0..5 "begin"
+                Whitespace@5..6 " "
+                StmtList@6..17
+                  ConstVarDecl@6..17
+                    KwVar@6..9 "var"
+                    Whitespace@9..10 " "
+                    NameList@10..12
+                      Name@10..12
+                        Identifier@10..11 "a"
+                        Whitespace@11..12 " "
+                    Assign@12..14 ":="
+                    Whitespace@14..15 " "
+                    LiteralExpr@15..17
+                      IntLiteral@15..16 "1"
+                      Whitespace@16..17 " "
+                EndGroup@17..20
+                  KwEnd@17..20 "end""#]],
     );
 }
 
@@ -1366,13 +1366,13 @@ fn parse_empty_block_stmt() {
     check(
         "begin end",
         expect![[r#"
-        Root@0..9
-          BlockStmt@0..9
-            KwBegin@0..5 "begin"
-            Whitespace@5..6 " "
-            StmtList@6..6
-            EndGroup@6..9
-              KwEnd@6..9 "end""#]],
+            Source@0..9
+              BlockStmt@0..9
+                KwBegin@0..5 "begin"
+                Whitespace@5..6 " "
+                StmtList@6..6
+                EndGroup@6..9
+                  KwEnd@6..9 "end""#]],
     );
 }
 
@@ -1381,23 +1381,23 @@ fn recover_on_block_stmt() {
     check(
         "var a := begin end",
         expect![[r#"
-        Root@0..18
-          ConstVarDecl@0..9
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..9 " "
-          BlockStmt@9..18
-            KwBegin@9..14 "begin"
-            Whitespace@14..15 " "
-            StmtList@15..15
-            EndGroup@15..18
-              KwEnd@15..18 "end"
-        error at 9..14: expected expression, but found ’begin’"#]],
+            Source@0..18
+              ConstVarDecl@0..9
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..9 " "
+              BlockStmt@9..18
+                KwBegin@9..14 "begin"
+                Whitespace@14..15 " "
+                StmtList@15..15
+                EndGroup@15..18
+                  KwEnd@15..18 "end"
+            error at 9..14: expected expression, but found ’begin’"#]],
     );
 }
 
@@ -1406,33 +1406,33 @@ fn parse_if_stmt() {
     check(
         "if true then var key : int end if",
         expect![[r#"
-        Root@0..33
-          IfStmt@0..33
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..27
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              KwThen@8..12 "then"
-              Whitespace@12..13 " "
-              StmtList@13..27
-                ConstVarDecl@13..27
-                  KwVar@13..16 "var"
-                  Whitespace@16..17 " "
-                  NameList@17..21
-                    Name@17..21
-                      Identifier@17..20 "key"
-                      Whitespace@20..21 " "
-                  Colon@21..22 ":"
-                  Whitespace@22..23 " "
-                  PrimType@23..27
-                    KwInt@23..26 "int"
-                    Whitespace@26..27 " "
-            EndGroup@27..33
-              KwEnd@27..30 "end"
-              Whitespace@30..31 " "
-              KwIf@31..33 "if""#]],
+            Source@0..33
+              IfStmt@0..33
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..27
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  Whitespace@12..13 " "
+                  StmtList@13..27
+                    ConstVarDecl@13..27
+                      KwVar@13..16 "var"
+                      Whitespace@16..17 " "
+                      NameList@17..21
+                        Name@17..21
+                          Identifier@17..20 "key"
+                          Whitespace@20..21 " "
+                      Colon@21..22 ":"
+                      Whitespace@22..23 " "
+                      PrimType@23..27
+                        KwInt@23..26 "int"
+                        Whitespace@26..27 " "
+                EndGroup@27..33
+                  KwEnd@27..30 "end"
+                  Whitespace@30..31 " "
+                  KwIf@31..33 "if""#]],
     );
 }
 
@@ -1441,25 +1441,25 @@ fn parse_if_else() {
     check(
         "if true then else end if",
         expect![[r#"
-        Root@0..24
-          IfStmt@0..24
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..18
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              KwThen@8..12 "then"
-              Whitespace@12..13 " "
-              StmtList@13..13
-              ElseStmt@13..18
-                KwElse@13..17 "else"
-                Whitespace@17..18 " "
-                StmtList@18..18
-            EndGroup@18..24
-              KwEnd@18..21 "end"
-              Whitespace@21..22 " "
-              KwIf@22..24 "if""#]],
+            Source@0..24
+              IfStmt@0..24
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..18
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  Whitespace@12..13 " "
+                  StmtList@13..13
+                  ElseStmt@13..18
+                    KwElse@13..17 "else"
+                    Whitespace@17..18 " "
+                    StmtList@18..18
+                EndGroup@18..24
+                  KwEnd@18..21 "end"
+                  Whitespace@21..22 " "
+                  KwIf@22..24 "if""#]],
     );
 }
 
@@ -1468,35 +1468,35 @@ fn parse_if_elseif_else() {
     check(
         "if true then elsif true then else end if",
         expect![[r#"
-        Root@0..40
-          IfStmt@0..40
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..34
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              KwThen@8..12 "then"
-              Whitespace@12..13 " "
-              StmtList@13..13
-              ElseifStmt@13..34
-                KwElsif@13..18 "elsif"
-                Whitespace@18..19 " "
-                IfBody@19..34
-                  LiteralExpr@19..24
-                    KwTrue@19..23 "true"
-                    Whitespace@23..24 " "
-                  KwThen@24..28 "then"
-                  Whitespace@28..29 " "
-                  StmtList@29..29
-                  ElseStmt@29..34
-                    KwElse@29..33 "else"
-                    Whitespace@33..34 " "
-                    StmtList@34..34
-            EndGroup@34..40
-              KwEnd@34..37 "end"
-              Whitespace@37..38 " "
-              KwIf@38..40 "if""#]],
+            Source@0..40
+              IfStmt@0..40
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..34
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  Whitespace@12..13 " "
+                  StmtList@13..13
+                  ElseifStmt@13..34
+                    KwElsif@13..18 "elsif"
+                    Whitespace@18..19 " "
+                    IfBody@19..34
+                      LiteralExpr@19..24
+                        KwTrue@19..23 "true"
+                        Whitespace@23..24 " "
+                      KwThen@24..28 "then"
+                      Whitespace@28..29 " "
+                      StmtList@29..29
+                      ElseStmt@29..34
+                        KwElse@29..33 "else"
+                        Whitespace@33..34 " "
+                        StmtList@34..34
+                EndGroup@34..40
+                  KwEnd@34..37 "end"
+                  Whitespace@37..38 " "
+                  KwIf@38..40 "if""#]],
     );
 }
 
@@ -1505,7 +1505,7 @@ fn parse_if_chained_alternates() {
     check(
         "if true then elseif true then elif true then end if",
         expect![[r#"
-            Root@0..51
+            Source@0..51
               IfStmt@0..51
                 KwIf@0..2 "if"
                 Whitespace@2..3 " "
@@ -1548,19 +1548,19 @@ fn recover_if_stmt_missing_condition() {
     check(
         "if then end if",
         expect![[r#"
-        Root@0..14
-          IfStmt@0..14
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..8
-              KwThen@3..7 "then"
-              Whitespace@7..8 " "
-              StmtList@8..8
-            EndGroup@8..14
-              KwEnd@8..11 "end"
-              Whitespace@11..12 " "
-              KwIf@12..14 "if"
-        error at 3..7: expected expression, but found ’then’"#]],
+            Source@0..14
+              IfStmt@0..14
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..8
+                  KwThen@3..7 "then"
+                  Whitespace@7..8 " "
+                  StmtList@8..8
+                EndGroup@8..14
+                  KwEnd@8..11 "end"
+                  Whitespace@11..12 " "
+                  KwIf@12..14 "if"
+            error at 3..7: expected expression, but found ’then’"#]],
     );
 }
 
@@ -1569,20 +1569,20 @@ fn recover_if_stmt_missing_then() {
     check(
         "if true end if",
         expect![[r#"
-        Root@0..14
-          IfStmt@0..14
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..8
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              StmtList@8..8
-            EndGroup@8..14
-              KwEnd@8..11 "end"
-              Whitespace@11..12 " "
-              KwIf@12..14 "if"
-        error at 8..11: expected ’then’, but found ’end’"#]],
+            Source@0..14
+              IfStmt@0..14
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..8
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  StmtList@8..8
+                EndGroup@8..14
+                  KwEnd@8..11 "end"
+                  Whitespace@11..12 " "
+                  KwIf@12..14 "if"
+            error at 8..11: expected ’then’, but found ’end’"#]],
     );
 }
 
@@ -1591,19 +1591,19 @@ fn recover_if_stmt_missing_end() {
     check(
         "if true then",
         expect![[r#"
-        Root@0..12
-          IfStmt@0..12
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..12
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              KwThen@8..12 "then"
-              StmtList@12..12
-            EndGroup@12..12
-        error at 8..12: expected ’else’, ’elseif’, ’elsif’, ’elif’, ’endif’ or ’end’
-        error at 8..12: expected ’if’"#]],
+            Source@0..12
+              IfStmt@0..12
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..12
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  StmtList@12..12
+                EndGroup@12..12
+            error at 8..12: expected ’else’, ’elseif’, ’elsif’, ’elif’, ’endif’ or ’end’
+            error at 8..12: expected ’if’"#]],
     );
 }
 
@@ -1612,19 +1612,19 @@ fn parse_if_alternate_end() {
     check(
         "if true then endif",
         expect![[r#"
-        Root@0..18
-          IfStmt@0..18
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..13
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              KwThen@8..12 "then"
-              Whitespace@12..13 " "
-              StmtList@13..13
-            EndGroup@13..18
-              KwEndIf@13..18 "endif""#]],
+            Source@0..18
+              IfStmt@0..18
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..13
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  Whitespace@12..13 " "
+                  StmtList@13..13
+                EndGroup@13..18
+                  KwEndIf@13..18 "endif""#]],
     );
 }
 
@@ -1633,21 +1633,21 @@ fn parse_elseif_stmt() {
     check(
         "elsif true then end if",
         expect![[r#"
-        Root@0..22
-          ElseifStmt@0..22
-            KwElsif@0..5 "elsif"
-            Whitespace@5..6 " "
-            IfBody@6..16
-              LiteralExpr@6..11
-                KwTrue@6..10 "true"
-                Whitespace@10..11 " "
-              KwThen@11..15 "then"
-              Whitespace@15..16 " "
-              StmtList@16..16
-            EndGroup@16..22
-              KwEnd@16..19 "end"
-              Whitespace@19..20 " "
-              KwIf@20..22 "if""#]],
+            Source@0..22
+              ElseifStmt@0..22
+                KwElsif@0..5 "elsif"
+                Whitespace@5..6 " "
+                IfBody@6..16
+                  LiteralExpr@6..11
+                    KwTrue@6..10 "true"
+                    Whitespace@10..11 " "
+                  KwThen@11..15 "then"
+                  Whitespace@15..16 " "
+                  StmtList@16..16
+                EndGroup@16..22
+                  KwEnd@16..19 "end"
+                  Whitespace@19..20 " "
+                  KwIf@20..22 "if""#]],
     );
 }
 
@@ -1656,40 +1656,40 @@ fn parse_elseif_alternates_stmt() {
     check(
         "elseif true then end if",
         expect![[r#"
-        Root@0..23
-          ElseifStmt@0..23
-            KwElseif@0..6 "elseif"
-            Whitespace@6..7 " "
-            IfBody@7..17
-              LiteralExpr@7..12
-                KwTrue@7..11 "true"
-                Whitespace@11..12 " "
-              KwThen@12..16 "then"
-              Whitespace@16..17 " "
-              StmtList@17..17
-            EndGroup@17..23
-              KwEnd@17..20 "end"
-              Whitespace@20..21 " "
-              KwIf@21..23 "if""#]],
+            Source@0..23
+              ElseifStmt@0..23
+                KwElseif@0..6 "elseif"
+                Whitespace@6..7 " "
+                IfBody@7..17
+                  LiteralExpr@7..12
+                    KwTrue@7..11 "true"
+                    Whitespace@11..12 " "
+                  KwThen@12..16 "then"
+                  Whitespace@16..17 " "
+                  StmtList@17..17
+                EndGroup@17..23
+                  KwEnd@17..20 "end"
+                  Whitespace@20..21 " "
+                  KwIf@21..23 "if""#]],
     );
     check(
         "elif true then end if",
         expect![[r#"
-        Root@0..21
-          ElseifStmt@0..21
-            KwElif@0..4 "elif"
-            Whitespace@4..5 " "
-            IfBody@5..15
-              LiteralExpr@5..10
-                KwTrue@5..9 "true"
-                Whitespace@9..10 " "
-              KwThen@10..14 "then"
-              Whitespace@14..15 " "
-              StmtList@15..15
-            EndGroup@15..21
-              KwEnd@15..18 "end"
-              Whitespace@18..19 " "
-              KwIf@19..21 "if""#]],
+            Source@0..21
+              ElseifStmt@0..21
+                KwElif@0..4 "elif"
+                Whitespace@4..5 " "
+                IfBody@5..15
+                  LiteralExpr@5..10
+                    KwTrue@5..9 "true"
+                    Whitespace@9..10 " "
+                  KwThen@10..14 "then"
+                  Whitespace@14..15 " "
+                  StmtList@15..15
+                EndGroup@15..21
+                  KwEnd@15..18 "end"
+                  Whitespace@18..19 " "
+                  KwIf@19..21 "if""#]],
     );
 }
 
@@ -1698,19 +1698,19 @@ fn parse_elseif_alternate_end() {
     check(
         "elsif true then endif",
         expect![[r#"
-        Root@0..21
-          ElseifStmt@0..21
-            KwElsif@0..5 "elsif"
-            Whitespace@5..6 " "
-            IfBody@6..16
-              LiteralExpr@6..11
-                KwTrue@6..10 "true"
-                Whitespace@10..11 " "
-              KwThen@11..15 "then"
-              Whitespace@15..16 " "
-              StmtList@16..16
-            EndGroup@16..21
-              KwEndIf@16..21 "endif""#]],
+            Source@0..21
+              ElseifStmt@0..21
+                KwElsif@0..5 "elsif"
+                Whitespace@5..6 " "
+                IfBody@6..16
+                  LiteralExpr@6..11
+                    KwTrue@6..10 "true"
+                    Whitespace@10..11 " "
+                  KwThen@11..15 "then"
+                  Whitespace@15..16 " "
+                  StmtList@16..16
+                EndGroup@16..21
+                  KwEndIf@16..21 "endif""#]],
     );
 }
 
@@ -1723,7 +1723,7 @@ fn parse_chained_elseif_stmt() {
     else
     end if"#,
         expect![[r#"
-            Root@0..60
+            Source@0..60
               Whitespace@0..5 "\n    "
               ElseifStmt@5..60
                 KwElsif@5..10 "elsif"
@@ -1761,15 +1761,15 @@ fn parse_else_stmt() {
     check(
         "else end if",
         expect![[r#"
-        Root@0..11
-          ElseStmt@0..11
-            KwElse@0..4 "else"
-            Whitespace@4..5 " "
-            StmtList@5..5
-            EndGroup@5..11
-              KwEnd@5..8 "end"
-              Whitespace@8..9 " "
-              KwIf@9..11 "if""#]],
+            Source@0..11
+              ElseStmt@0..11
+                KwElse@0..4 "else"
+                Whitespace@4..5 " "
+                StmtList@5..5
+                EndGroup@5..11
+                  KwEnd@5..8 "end"
+                  Whitespace@8..9 " "
+                  KwIf@9..11 "if""#]],
     )
 }
 
@@ -1778,32 +1778,32 @@ fn recover_if_stmt_multiple_elses() {
     check(
         "if true then else else end if",
         expect![[r#"
-        Root@0..29
-          IfStmt@0..29
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..29
-              LiteralExpr@3..8
-                KwTrue@3..7 "true"
-                Whitespace@7..8 " "
-              KwThen@8..12 "then"
-              Whitespace@12..13 " "
-              StmtList@13..13
-              ElseStmt@13..29
-                KwElse@13..17 "else"
-                Whitespace@17..18 " "
-                StmtList@18..29
-                  ElseStmt@18..29
-                    KwElse@18..22 "else"
-                    Whitespace@22..23 " "
-                    StmtList@23..23
-                    EndGroup@23..29
-                      KwEnd@23..26 "end"
-                      Whitespace@26..27 " "
-                      KwIf@27..29 "if"
-            EndGroup@29..29
-        error at 27..29: expected ’endif’ or ’end’
-        error at 27..29: expected ’if’"#]],
+            Source@0..29
+              IfStmt@0..29
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..29
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  Whitespace@12..13 " "
+                  StmtList@13..13
+                  ElseStmt@13..29
+                    KwElse@13..17 "else"
+                    Whitespace@17..18 " "
+                    StmtList@18..29
+                      ElseStmt@18..29
+                        KwElse@18..22 "else"
+                        Whitespace@22..23 " "
+                        StmtList@23..23
+                        EndGroup@23..29
+                          KwEnd@23..26 "end"
+                          Whitespace@26..27 " "
+                          KwIf@27..29 "if"
+                EndGroup@29..29
+            error at 27..29: expected ’endif’ or ’end’
+            error at 27..29: expected ’if’"#]],
     );
 }
 
@@ -1812,31 +1812,31 @@ fn recover_on_if() {
     check(
         "var a := \nif true then end if",
         expect![[r#"
-        Root@0..29
-          ConstVarDecl@0..10
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..10 " \n"
-          IfStmt@10..29
-            KwIf@10..12 "if"
-            Whitespace@12..13 " "
-            IfBody@13..23
-              LiteralExpr@13..18
-                KwTrue@13..17 "true"
-                Whitespace@17..18 " "
-              KwThen@18..22 "then"
-              Whitespace@22..23 " "
-              StmtList@23..23
-            EndGroup@23..29
-              KwEnd@23..26 "end"
-              Whitespace@26..27 " "
-              KwIf@27..29 "if"
-        error at 10..12: expected expression, but found ’if’"#]],
+            Source@0..29
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              IfStmt@10..29
+                KwIf@10..12 "if"
+                Whitespace@12..13 " "
+                IfBody@13..23
+                  LiteralExpr@13..18
+                    KwTrue@13..17 "true"
+                    Whitespace@17..18 " "
+                  KwThen@18..22 "then"
+                  Whitespace@22..23 " "
+                  StmtList@23..23
+                EndGroup@23..29
+                  KwEnd@23..26 "end"
+                  Whitespace@26..27 " "
+                  KwIf@27..29 "if"
+            error at 10..12: expected expression, but found ’if’"#]],
     );
 }
 
@@ -1845,25 +1845,25 @@ fn recover_on_else() {
     check(
         "var a := \nelse end if",
         expect![[r#"
-        Root@0..21
-          ConstVarDecl@0..10
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..10 " \n"
-          ElseStmt@10..21
-            KwElse@10..14 "else"
-            Whitespace@14..15 " "
-            StmtList@15..15
-            EndGroup@15..21
-              KwEnd@15..18 "end"
-              Whitespace@18..19 " "
-              KwIf@19..21 "if"
-        error at 10..14: expected expression, but found ’else’"#]],
+            Source@0..21
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              ElseStmt@10..21
+                KwElse@10..14 "else"
+                Whitespace@14..15 " "
+                StmtList@15..15
+                EndGroup@15..21
+                  KwEnd@15..18 "end"
+                  Whitespace@18..19 " "
+                  KwIf@19..21 "if"
+            error at 10..14: expected expression, but found ’else’"#]],
     );
 }
 
@@ -1872,31 +1872,31 @@ fn recover_on_elseif() {
     check(
         "var a := \nelseif true then end if",
         expect![[r#"
-        Root@0..33
-          ConstVarDecl@0..10
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..10 " \n"
-          ElseifStmt@10..33
-            KwElseif@10..16 "elseif"
-            Whitespace@16..17 " "
-            IfBody@17..27
-              LiteralExpr@17..22
-                KwTrue@17..21 "true"
-                Whitespace@21..22 " "
-              KwThen@22..26 "then"
-              Whitespace@26..27 " "
-              StmtList@27..27
-            EndGroup@27..33
-              KwEnd@27..30 "end"
-              Whitespace@30..31 " "
-              KwIf@31..33 "if"
-        error at 10..16: expected expression, but found ’elseif’"#]],
+            Source@0..33
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              ElseifStmt@10..33
+                KwElseif@10..16 "elseif"
+                Whitespace@16..17 " "
+                IfBody@17..27
+                  LiteralExpr@17..22
+                    KwTrue@17..21 "true"
+                    Whitespace@21..22 " "
+                  KwThen@22..26 "then"
+                  Whitespace@26..27 " "
+                  StmtList@27..27
+                EndGroup@27..33
+                  KwEnd@27..30 "end"
+                  Whitespace@30..31 " "
+                  KwIf@31..33 "if"
+            error at 10..16: expected expression, but found ’elseif’"#]],
     );
 }
 
@@ -1905,31 +1905,31 @@ fn recover_on_elsif() {
     check(
         "var a := \nelsif true then end if",
         expect![[r#"
-        Root@0..32
-          ConstVarDecl@0..10
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..10 " \n"
-          ElseifStmt@10..32
-            KwElsif@10..15 "elsif"
-            Whitespace@15..16 " "
-            IfBody@16..26
-              LiteralExpr@16..21
-                KwTrue@16..20 "true"
-                Whitespace@20..21 " "
-              KwThen@21..25 "then"
-              Whitespace@25..26 " "
-              StmtList@26..26
-            EndGroup@26..32
-              KwEnd@26..29 "end"
-              Whitespace@29..30 " "
-              KwIf@30..32 "if"
-        error at 10..15: expected expression, but found ’elsif’"#]],
+            Source@0..32
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              ElseifStmt@10..32
+                KwElsif@10..15 "elsif"
+                Whitespace@15..16 " "
+                IfBody@16..26
+                  LiteralExpr@16..21
+                    KwTrue@16..20 "true"
+                    Whitespace@20..21 " "
+                  KwThen@21..25 "then"
+                  Whitespace@25..26 " "
+                  StmtList@26..26
+                EndGroup@26..32
+                  KwEnd@26..29 "end"
+                  Whitespace@29..30 " "
+                  KwIf@30..32 "if"
+            error at 10..15: expected expression, but found ’elsif’"#]],
     );
 }
 
@@ -1938,30 +1938,30 @@ fn recover_on_elif() {
     check(
         "var a := \nelif true then end if",
         expect![[r#"
-        Root@0..31
-          ConstVarDecl@0..10
-            KwVar@0..3 "var"
-            Whitespace@3..4 " "
-            NameList@4..6
-              Name@4..6
-                Identifier@4..5 "a"
-                Whitespace@5..6 " "
-            Assign@6..8 ":="
-            Whitespace@8..10 " \n"
-          ElseifStmt@10..31
-            KwElif@10..14 "elif"
-            Whitespace@14..15 " "
-            IfBody@15..25
-              LiteralExpr@15..20
-                KwTrue@15..19 "true"
-                Whitespace@19..20 " "
-              KwThen@20..24 "then"
-              Whitespace@24..25 " "
-              StmtList@25..25
-            EndGroup@25..31
-              KwEnd@25..28 "end"
-              Whitespace@28..29 " "
-              KwIf@29..31 "if"
-        error at 10..14: expected expression, but found ’elif’"#]],
+            Source@0..31
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              ElseifStmt@10..31
+                KwElif@10..14 "elif"
+                Whitespace@14..15 " "
+                IfBody@15..25
+                  LiteralExpr@15..20
+                    KwTrue@15..19 "true"
+                    Whitespace@19..20 " "
+                  KwThen@20..24 "then"
+                  Whitespace@24..25 " "
+                  StmtList@25..25
+                EndGroup@25..31
+                  KwEnd@25..28 "end"
+                  Whitespace@28..29 " "
+                  KwIf@29..31 "if"
+            error at 10..14: expected expression, but found ’elif’"#]],
     );
 }

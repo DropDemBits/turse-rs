@@ -23,7 +23,7 @@ type _ : char
 type _ : string
     "#,
         expect![[r#"
-            Root@0..226
+            Source@0..226
               Whitespace@0..1 "\n"
               TypeDecl@1..21
                 KwType@1..5 "type"
@@ -198,7 +198,7 @@ fn parse_sized_char_type() {
     check(
         "type sc : char(1 + k)",
         expect![[r#"
-            Root@0..21
+            Source@0..21
               TypeDecl@0..21
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -229,7 +229,7 @@ fn parse_sized_string_type() {
     check(
         "type sc : string(1 + k)",
         expect![[r#"
-            Root@0..23
+            Source@0..23
               TypeDecl@0..23
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -260,21 +260,21 @@ fn parse_dyn_sized_char_type() {
     check(
         "type _ : char(*)",
         expect![[r#"
-        Root@0..16
-          TypeDecl@0..16
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SizedCharType@9..16
-              KwChar@9..13 "char"
-              LeftParen@13..14 "("
-              SeqLength@14..15
-                Star@14..15 "*"
-              RightParen@15..16 ")""#]],
+            Source@0..16
+              TypeDecl@0..16
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SizedCharType@9..16
+                  KwChar@9..13 "char"
+                  LeftParen@13..14 "("
+                  SeqLength@14..15
+                    Star@14..15 "*"
+                  RightParen@15..16 ")""#]],
     );
 }
 
@@ -283,21 +283,21 @@ fn parse_dyn_sized_string_type() {
     check(
         "type _ : string(*)",
         expect![[r#"
-        Root@0..18
-          TypeDecl@0..18
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SizedStringType@9..18
-              KwString@9..15 "string"
-              LeftParen@15..16 "("
-              SeqLength@16..17
-                Star@16..17 "*"
-              RightParen@17..18 ")""#]],
+            Source@0..18
+              TypeDecl@0..18
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SizedStringType@9..18
+                  KwString@9..15 "string"
+                  LeftParen@15..16 "("
+                  SeqLength@16..17
+                    Star@16..17 "*"
+                  RightParen@17..18 ")""#]],
     );
 }
 
@@ -306,7 +306,7 @@ fn recover_empty_sized_char_type() {
     check(
         "type sc : char()",
         expect![[r#"
-            Root@0..16
+            Source@0..16
               TypeDecl@0..16
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -329,7 +329,7 @@ fn recover_empty_sized_string_type() {
     check(
         "type sc : string()",
         expect![[r#"
-            Root@0..18
+            Source@0..18
               TypeDecl@0..18
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -352,7 +352,7 @@ fn recover_not_expr_in_sized_char_type() {
     check(
         "type sc : char(to)",
         expect![[r#"
-            Root@0..18
+            Source@0..18
               TypeDecl@0..18
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -377,7 +377,7 @@ fn recover_not_expr_in_sized_string_type() {
     check(
         "type sc : string(to)",
         expect![[r#"
-            Root@0..20
+            Source@0..20
               TypeDecl@0..20
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -402,7 +402,7 @@ fn recover_missing_right_paren_in_sized_char_type() {
     check(
         "type sc : char(1",
         expect![[r#"
-            Root@0..16
+            Source@0..16
               TypeDecl@0..16
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -426,7 +426,7 @@ fn recover_missing_right_paren_in_sized_string_type() {
     check(
         "type sc : string(1",
         expect![[r#"
-            Root@0..18
+            Source@0..18
               TypeDecl@0..18
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -450,44 +450,44 @@ fn parse_name_type() {
     check(
         "type _ : a",
         expect![[r#"
-        Root@0..10
-          TypeDecl@0..10
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            NameType@9..10
-              NameExpr@9..10
-                Name@9..10
-                  Identifier@9..10 "a""#]],
+            Source@0..10
+              TypeDecl@0..10
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                NameType@9..10
+                  NameExpr@9..10
+                    Name@9..10
+                      Identifier@9..10 "a""#]],
     );
     check(
         "type _ : a.b.c",
         expect![[r#"
-        Root@0..14
-          TypeDecl@0..14
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            NameType@9..14
-              FieldExpr@9..14
-                FieldExpr@9..12
-                  NameExpr@9..10
-                    Name@9..10
-                      Identifier@9..10 "a"
-                  Dot@10..11 "."
-                  Name@11..12
-                    Identifier@11..12 "b"
-                Dot@12..13 "."
-                Name@13..14
-                  Identifier@13..14 "c""#]],
+            Source@0..14
+              TypeDecl@0..14
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                NameType@9..14
+                  FieldExpr@9..14
+                    FieldExpr@9..12
+                      NameExpr@9..10
+                        Name@9..10
+                          Identifier@9..10 "a"
+                      Dot@10..11 "."
+                      Name@11..12
+                        Identifier@11..12 "b"
+                    Dot@12..13 "."
+                    Name@13..14
+                      Identifier@13..14 "c""#]],
     );
 }
 
@@ -497,34 +497,34 @@ fn parse_name_type_not_a_ref() {
     check(
         "type _ : 1",
         expect![[r#"
-        Root@0..10
-          TypeDecl@0..10
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            NameType@9..10
-              LiteralExpr@9..10
-                IntLiteral@9..10 "1""#]],
+            Source@0..10
+              TypeDecl@0..10
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                NameType@9..10
+                  LiteralExpr@9..10
+                    IntLiteral@9..10 "1""#]],
     );
     check(
         r#"type _ : "hello world""#,
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            NameType@9..22
-              LiteralExpr@9..22
-                StringLiteral@9..22 "\"hello world\"""#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                NameType@9..22
+                  LiteralExpr@9..22
+                    StringLiteral@9..22 "\"hello world\"""#]],
     );
 }
 
@@ -533,36 +533,36 @@ fn parse_expr_as_name_type() {
     check(
         "type _ : 1 + 2 + 3 - 4",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            NameType@9..22
-              BinaryExpr@9..22
-                BinaryExpr@9..19
-                  BinaryExpr@9..15
-                    LiteralExpr@9..11
-                      IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
-                    Plus@11..12 "+"
-                    Whitespace@12..13 " "
-                    LiteralExpr@13..15
-                      IntLiteral@13..14 "2"
-                      Whitespace@14..15 " "
-                  Plus@15..16 "+"
-                  Whitespace@16..17 " "
-                  LiteralExpr@17..19
-                    IntLiteral@17..18 "3"
-                    Whitespace@18..19 " "
-                Minus@19..20 "-"
-                Whitespace@20..21 " "
-                LiteralExpr@21..22
-                  IntLiteral@21..22 "4""#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                NameType@9..22
+                  BinaryExpr@9..22
+                    BinaryExpr@9..19
+                      BinaryExpr@9..15
+                        LiteralExpr@9..11
+                          IntLiteral@9..10 "1"
+                          Whitespace@10..11 " "
+                        Plus@11..12 "+"
+                        Whitespace@12..13 " "
+                        LiteralExpr@13..15
+                          IntLiteral@13..14 "2"
+                          Whitespace@14..15 " "
+                      Plus@15..16 "+"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..19
+                        IntLiteral@17..18 "3"
+                        Whitespace@18..19 " "
+                    Minus@19..20 "-"
+                    Whitespace@20..21 " "
+                    LiteralExpr@21..22
+                      IntLiteral@21..22 "4""#]],
     );
 }
 
@@ -571,23 +571,23 @@ fn parse_range_type() {
     check(
         "type _ : 1 .. 2",
         expect![[r#"
-        Root@0..15
-          TypeDecl@0..15
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RangeType@9..15
-              LiteralExpr@9..11
-                IntLiteral@9..10 "1"
-                Whitespace@10..11 " "
-              Range@11..13 ".."
-              Whitespace@13..14 " "
-              LiteralExpr@14..15
-                IntLiteral@14..15 "2""#]],
+            Source@0..15
+              TypeDecl@0..15
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RangeType@9..15
+                  LiteralExpr@9..11
+                    IntLiteral@9..10 "1"
+                    Whitespace@10..11 " "
+                  Range@11..13 ".."
+                  Whitespace@13..14 " "
+                  LiteralExpr@14..15
+                    IntLiteral@14..15 "2""#]],
     );
 }
 
@@ -596,22 +596,22 @@ fn parse_unbounded_range_type() {
     check(
         "type _ : 1 .. *",
         expect![[r#"
-        Root@0..15
-          TypeDecl@0..15
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RangeType@9..15
-              LiteralExpr@9..11
-                IntLiteral@9..10 "1"
-                Whitespace@10..11 " "
-              Range@11..13 ".."
-              Whitespace@13..14 " "
-              Star@14..15 "*""#]],
+            Source@0..15
+              TypeDecl@0..15
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RangeType@9..15
+                  LiteralExpr@9..11
+                    IntLiteral@9..10 "1"
+                    Whitespace@10..11 " "
+                  Range@11..13 ".."
+                  Whitespace@13..14 " "
+                  Star@14..15 "*""#]],
     );
 }
 
@@ -620,21 +620,21 @@ fn recover_range_type_missing_tail() {
     check(
         "type _ : 1 ..",
         expect![[r#"
-        Root@0..13
-          TypeDecl@0..13
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RangeType@9..13
-              LiteralExpr@9..11
-                IntLiteral@9..10 "1"
-                Whitespace@10..11 " "
-              Range@11..13 ".."
-        error at 11..13: expected expression"#]],
+            Source@0..13
+              TypeDecl@0..13
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RangeType@9..13
+                  LiteralExpr@9..11
+                    IntLiteral@9..10 "1"
+                    Whitespace@10..11 " "
+                  Range@11..13 ".."
+            error at 11..13: expected expression"#]],
     );
 }
 
@@ -643,26 +643,26 @@ fn recover_range_type_not_an_expr() {
     check(
         "type _ : 1 .. boolean",
         expect![[r#"
-        Root@0..21
-          TypeDecl@0..21
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RangeType@9..21
-              LiteralExpr@9..11
-                IntLiteral@9..10 "1"
-                Whitespace@10..11 " "
-              Range@11..13 ".."
-              Whitespace@13..14 " "
-              Error@14..21
-                PrimType@14..21
-                  KwBoolean@14..21 "boolean"
-        error at 14..21: expected ’@’
-        error at 14..21: expected expression"#]],
+            Source@0..21
+              TypeDecl@0..21
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RangeType@9..21
+                  LiteralExpr@9..11
+                    IntLiteral@9..10 "1"
+                    Whitespace@10..11 " "
+                  Range@11..13 ".."
+                  Whitespace@13..14 " "
+                  Error@14..21
+                    PrimType@14..21
+                      KwBoolean@14..21 "boolean"
+            error at 14..21: expected ’@’
+            error at 14..21: expected expression"#]],
     );
 }
 
@@ -671,22 +671,22 @@ fn parse_pointer_type() {
     check(
         "type _ : pointer to int",
         expect![[r#"
-        Root@0..23
-          TypeDecl@0..23
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            PointerType@9..23
-              KwPointer@9..16 "pointer"
-              Whitespace@16..17 " "
-              KwTo@17..19 "to"
-              Whitespace@19..20 " "
-              PrimType@20..23
-                KwInt@20..23 "int""#]],
+            Source@0..23
+              TypeDecl@0..23
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                PointerType@9..23
+                  KwPointer@9..16 "pointer"
+                  Whitespace@16..17 " "
+                  KwTo@17..19 "to"
+                  Whitespace@19..20 " "
+                  PrimType@20..23
+                    KwInt@20..23 "int""#]],
     );
 }
 
@@ -695,32 +695,32 @@ fn parse_pointer_type_to_named() {
     check(
         "type _ : pointer to some.named.ty",
         expect![[r#"
-        Root@0..33
-          TypeDecl@0..33
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            PointerType@9..33
-              KwPointer@9..16 "pointer"
-              Whitespace@16..17 " "
-              KwTo@17..19 "to"
-              Whitespace@19..20 " "
-              NameType@20..33
-                FieldExpr@20..33
-                  FieldExpr@20..30
-                    NameExpr@20..24
-                      Name@20..24
-                        Identifier@20..24 "some"
-                    Dot@24..25 "."
-                    Name@25..30
-                      Identifier@25..30 "named"
-                  Dot@30..31 "."
-                  Name@31..33
-                    Identifier@31..33 "ty""#]],
+            Source@0..33
+              TypeDecl@0..33
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                PointerType@9..33
+                  KwPointer@9..16 "pointer"
+                  Whitespace@16..17 " "
+                  KwTo@17..19 "to"
+                  Whitespace@19..20 " "
+                  NameType@20..33
+                    FieldExpr@20..33
+                      FieldExpr@20..30
+                        NameExpr@20..24
+                          Name@20..24
+                            Identifier@20..24 "some"
+                        Dot@24..25 "."
+                        Name@25..30
+                          Identifier@25..30 "named"
+                      Dot@30..31 "."
+                      Name@31..33
+                        Identifier@31..33 "ty""#]],
     );
 }
 
@@ -729,24 +729,24 @@ fn parse_unchecked_pointer_type() {
     check(
         "type _ : unchecked pointer to addressint",
         expect![[r#"
-        Root@0..40
-          TypeDecl@0..40
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            PointerType@9..40
-              KwUnchecked@9..18 "unchecked"
-              Whitespace@18..19 " "
-              KwPointer@19..26 "pointer"
-              Whitespace@26..27 " "
-              KwTo@27..29 "to"
-              Whitespace@29..30 " "
-              PrimType@30..40
-                KwAddressint@30..40 "addressint""#]],
+            Source@0..40
+              TypeDecl@0..40
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                PointerType@9..40
+                  KwUnchecked@9..18 "unchecked"
+                  Whitespace@18..19 " "
+                  KwPointer@19..26 "pointer"
+                  Whitespace@26..27 " "
+                  KwTo@27..29 "to"
+                  Whitespace@29..30 " "
+                  PrimType@30..40
+                    KwAddressint@30..40 "addressint""#]],
     );
 }
 
@@ -755,19 +755,19 @@ fn parse_short_pointer_type() {
     check(
         "type _ : ^int",
         expect![[r#"
-        Root@0..13
-          TypeDecl@0..13
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            PointerType@9..13
-              Caret@9..10 "^"
-              PrimType@10..13
-                KwInt@10..13 "int""#]],
+            Source@0..13
+              TypeDecl@0..13
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                PointerType@9..13
+                  Caret@9..10 "^"
+                  PrimType@10..13
+                    KwInt@10..13 "int""#]],
     );
 }
 
@@ -776,22 +776,22 @@ fn recover_pointer_type_missing_to() {
     check(
         "type _ : pointer addressint",
         expect![[r#"
-        Root@0..27
-          TypeDecl@0..27
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            PointerType@9..27
-              KwPointer@9..16 "pointer"
-              Whitespace@16..17 " "
-              Error@17..27
-                KwAddressint@17..27 "addressint"
-        error at 17..27: expected ’to’, but found ’addressint’
-        error at 17..27: expected type specifier"#]],
+            Source@0..27
+              TypeDecl@0..27
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                PointerType@9..27
+                  KwPointer@9..16 "pointer"
+                  Whitespace@16..17 " "
+                  Error@17..27
+                    KwAddressint@17..27 "addressint"
+            error at 17..27: expected ’to’, but found ’addressint’
+            error at 17..27: expected type specifier"#]],
     );
 }
 
@@ -800,23 +800,23 @@ fn parse_enum_type() {
     check(
         "type _ : enum (a)",
         expect![[r#"
-        Root@0..17
-          TypeDecl@0..17
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..17
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..16
-                Name@15..16
-                  Identifier@15..16 "a"
-              RightParen@16..17 ")""#]],
+            Source@0..17
+              TypeDecl@0..17
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..17
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..16
+                    Name@15..16
+                      Identifier@15..16 "a"
+                  RightParen@16..17 ")""#]],
     )
 }
 
@@ -825,31 +825,31 @@ fn parse_enum_type_multiple_names() {
     check(
         "type _ : enum (a, b, c)",
         expect![[r#"
-        Root@0..23
-          TypeDecl@0..23
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..23
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..22
-                Name@15..16
-                  Identifier@15..16 "a"
-                Comma@16..17 ","
-                Whitespace@17..18 " "
-                Name@18..19
-                  Identifier@18..19 "b"
-                Comma@19..20 ","
-                Whitespace@20..21 " "
-                Name@21..22
-                  Identifier@21..22 "c"
-              RightParen@22..23 ")""#]],
+            Source@0..23
+              TypeDecl@0..23
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..23
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..22
+                    Name@15..16
+                      Identifier@15..16 "a"
+                    Comma@16..17 ","
+                    Whitespace@17..18 " "
+                    Name@18..19
+                      Identifier@18..19 "b"
+                    Comma@19..20 ","
+                    Whitespace@20..21 " "
+                    Name@21..22
+                      Identifier@21..22 "c"
+                  RightParen@22..23 ")""#]],
     )
 }
 
@@ -858,33 +858,33 @@ fn recover_enum_type_missing_delimiter() {
     check(
         "type _ : enum (a, b c)",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..21
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..21
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..20
-                Name@15..16
-                  Identifier@15..16 "a"
-                Comma@16..17 ","
-                Whitespace@17..18 " "
-                Name@18..20
-                  Identifier@18..19 "b"
-                  Whitespace@19..20 " "
-              Error@20..21
-                Identifier@20..21 "c"
-          Error@21..22
-            RightParen@21..22 ")"
-        error at 20..21: expected ’,’ or ’)’, but found identifier
-        error at 21..22: expected statement, but found ’)’"#]],
+            Source@0..22
+              TypeDecl@0..21
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..21
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..20
+                    Name@15..16
+                      Identifier@15..16 "a"
+                    Comma@16..17 ","
+                    Whitespace@17..18 " "
+                    Name@18..20
+                      Identifier@18..19 "b"
+                      Whitespace@19..20 " "
+                  Error@20..21
+                    Identifier@20..21 "c"
+              Error@21..22
+                RightParen@21..22 ")"
+            error at 20..21: expected ’,’ or ’)’, but found identifier
+            error at 21..22: expected statement, but found ’)’"#]],
     )
 }
 
@@ -893,59 +893,59 @@ fn recover_enum_type_missing_name() {
     check(
         "type _ : enum (a, b, )",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..22
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..21
-                Name@15..16
-                  Identifier@15..16 "a"
-                Comma@16..17 ","
-                Whitespace@17..18 " "
-                Name@18..19
-                  Identifier@18..19 "b"
-                Comma@19..20 ","
-                Whitespace@20..21 " "
-              RightParen@21..22 ")"
-        error at 21..22: expected identifier, but found ’)’"#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..22
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..21
+                    Name@15..16
+                      Identifier@15..16 "a"
+                    Comma@16..17 ","
+                    Whitespace@17..18 " "
+                    Name@18..19
+                      Identifier@18..19 "b"
+                    Comma@19..20 ","
+                    Whitespace@20..21 " "
+                  RightParen@21..22 ")"
+            error at 21..22: expected identifier, but found ’)’"#]],
     );
 
     check(
         "type _ : enum (a, , c)",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..22
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..21
-                Name@15..16
-                  Identifier@15..16 "a"
-                Comma@16..17 ","
-                Whitespace@17..18 " "
-                Comma@18..19 ","
-                Whitespace@19..20 " "
-                Name@20..21
-                  Identifier@20..21 "c"
-              RightParen@21..22 ")"
-        error at 18..19: expected identifier, but found ’,’"#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..22
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..21
+                    Name@15..16
+                      Identifier@15..16 "a"
+                    Comma@16..17 ","
+                    Whitespace@17..18 " "
+                    Comma@18..19 ","
+                    Whitespace@19..20 " "
+                    Name@20..21
+                      Identifier@20..21 "c"
+                  RightParen@21..22 ")"
+            error at 18..19: expected identifier, but found ’,’"#]],
     );
 }
 
@@ -954,29 +954,29 @@ fn recover_enum_type_missing_name_and_right_paren() {
     check(
         "type _ : enum (a, b,",
         expect![[r#"
-        Root@0..20
-          TypeDecl@0..20
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..20
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..20
-                Name@15..16
-                  Identifier@15..16 "a"
-                Comma@16..17 ","
-                Whitespace@17..18 " "
-                Name@18..19
-                  Identifier@18..19 "b"
-                Comma@19..20 ","
-        error at 19..20: expected identifier
-        error at 19..20: expected ’,’ or ’)’"#]],
+            Source@0..20
+              TypeDecl@0..20
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..20
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..20
+                    Name@15..16
+                      Identifier@15..16 "a"
+                    Comma@16..17 ","
+                    Whitespace@17..18 " "
+                    Name@18..19
+                      Identifier@18..19 "b"
+                    Comma@19..20 ","
+            error at 19..20: expected identifier
+            error at 19..20: expected ’,’ or ’)’"#]],
     )
 }
 
@@ -985,27 +985,27 @@ fn recover_enum_type_missing_right_paren() {
     check(
         "type _ : enum (a, b",
         expect![[r#"
-        Root@0..19
-          TypeDecl@0..19
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..19
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..19
-                Name@15..16
-                  Identifier@15..16 "a"
-                Comma@16..17 ","
-                Whitespace@17..18 " "
-                Name@18..19
-                  Identifier@18..19 "b"
-        error at 18..19: expected ’,’ or ’)’"#]],
+            Source@0..19
+              TypeDecl@0..19
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..19
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..19
+                    Name@15..16
+                      Identifier@15..16 "a"
+                    Comma@16..17 ","
+                    Whitespace@17..18 " "
+                    Name@18..19
+                      Identifier@18..19 "b"
+            error at 18..19: expected ’,’ or ’)’"#]],
     )
 }
 
@@ -1014,22 +1014,22 @@ fn recover_enum_type_missing_names() {
     check(
         "type _ : enum ()",
         expect![[r#"
-        Root@0..16
-          TypeDecl@0..16
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            EnumType@9..16
-              KwEnum@9..13 "enum"
-              Whitespace@13..14 " "
-              LeftParen@14..15 "("
-              NameList@15..15
-              RightParen@15..16 ")"
-        error at 15..16: expected identifier, but found ’)’"#]],
+            Source@0..16
+              TypeDecl@0..16
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                EnumType@9..16
+                  KwEnum@9..13 "enum"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  NameList@15..15
+                  RightParen@15..16 ")"
+            error at 15..16: expected identifier, but found ’)’"#]],
     )
 }
 
@@ -1038,22 +1038,22 @@ fn parse_set_type() {
     check(
         "type _ : set of boolean",
         expect![[r#"
-        Root@0..23
-          TypeDecl@0..23
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..23
-              KwSet@9..12 "set"
-              Whitespace@12..13 " "
-              KwOf@13..15 "of"
-              Whitespace@15..16 " "
-              PrimType@16..23
-                KwBoolean@16..23 "boolean""#]],
+            Source@0..23
+              TypeDecl@0..23
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..23
+                  KwSet@9..12 "set"
+                  Whitespace@12..13 " "
+                  KwOf@13..15 "of"
+                  Whitespace@15..16 " "
+                  PrimType@16..23
+                    KwBoolean@16..23 "boolean""#]],
     );
 }
 
@@ -1063,22 +1063,22 @@ fn parse_set_type_not_index_type() {
     check(
         "type _ : set of int",
         expect![[r#"
-        Root@0..19
-          TypeDecl@0..19
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..19
-              KwSet@9..12 "set"
-              Whitespace@12..13 " "
-              KwOf@13..15 "of"
-              Whitespace@15..16 " "
-              PrimType@16..19
-                KwInt@16..19 "int""#]],
+            Source@0..19
+              TypeDecl@0..19
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..19
+                  KwSet@9..12 "set"
+                  Whitespace@12..13 " "
+                  KwOf@13..15 "of"
+                  Whitespace@15..16 " "
+                  PrimType@16..19
+                    KwInt@16..19 "int""#]],
     );
 }
 
@@ -1087,28 +1087,28 @@ fn parse_set_type_of_range() {
     check(
         "type _ : set of 1 .. 3",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..22
-              KwSet@9..12 "set"
-              Whitespace@12..13 " "
-              KwOf@13..15 "of"
-              Whitespace@15..16 " "
-              RangeType@16..22
-                LiteralExpr@16..18
-                  IntLiteral@16..17 "1"
-                  Whitespace@17..18 " "
-                Range@18..20 ".."
-                Whitespace@20..21 " "
-                LiteralExpr@21..22
-                  IntLiteral@21..22 "3""#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..22
+                  KwSet@9..12 "set"
+                  Whitespace@12..13 " "
+                  KwOf@13..15 "of"
+                  Whitespace@15..16 " "
+                  RangeType@16..22
+                    LiteralExpr@16..18
+                      IntLiteral@16..17 "1"
+                      Whitespace@17..18 " "
+                    Range@18..20 ".."
+                    Whitespace@20..21 " "
+                    LiteralExpr@21..22
+                      IntLiteral@21..22 "3""#]],
     );
 }
 
@@ -1118,27 +1118,27 @@ fn parse_set_type_of_unbounded_range() {
     check(
         "type _ : set of 1 .. *",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..22
-              KwSet@9..12 "set"
-              Whitespace@12..13 " "
-              KwOf@13..15 "of"
-              Whitespace@15..16 " "
-              RangeType@16..22
-                LiteralExpr@16..18
-                  IntLiteral@16..17 "1"
-                  Whitespace@17..18 " "
-                Range@18..20 ".."
-                Whitespace@20..21 " "
-                Star@21..22 "*""#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..22
+                  KwSet@9..12 "set"
+                  Whitespace@12..13 " "
+                  KwOf@13..15 "of"
+                  Whitespace@15..16 " "
+                  RangeType@16..22
+                    LiteralExpr@16..18
+                      IntLiteral@16..17 "1"
+                      Whitespace@17..18 " "
+                    Range@18..20 ".."
+                    Whitespace@20..21 " "
+                    Star@21..22 "*""#]],
     );
 }
 
@@ -1148,22 +1148,22 @@ fn recover_set_type_missing_of() {
     check(
         "type _ : set char",
         expect![[r#"
-        Root@0..17
-          TypeDecl@0..17
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..17
-              KwSet@9..12 "set"
-              Whitespace@12..13 " "
-              Error@13..17
-                KwChar@13..17 "char"
-        error at 13..17: expected ’of’, but found ’char’
-        error at 13..17: expected type specifier"#]],
+            Source@0..17
+              TypeDecl@0..17
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..17
+                  KwSet@9..12 "set"
+                  Whitespace@12..13 " "
+                  Error@13..17
+                    KwChar@13..17 "char"
+            error at 13..17: expected ’of’, but found ’char’
+            error at 13..17: expected type specifier"#]],
     );
 }
 
@@ -1173,20 +1173,20 @@ fn recover_set_type_missing_ty() {
     check(
         "type _ : set of",
         expect![[r#"
-        Root@0..15
-          TypeDecl@0..15
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..15
-              KwSet@9..12 "set"
-              Whitespace@12..13 " "
-              KwOf@13..15 "of"
-        error at 13..15: expected type specifier"#]],
+            Source@0..15
+              TypeDecl@0..15
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..15
+                  KwSet@9..12 "set"
+                  Whitespace@12..13 " "
+                  KwOf@13..15 "of"
+            error at 13..15: expected type specifier"#]],
     );
 }
 
@@ -1196,19 +1196,19 @@ fn recover_just_set() {
     check(
         "type _ : set",
         expect![[r#"
-        Root@0..12
-          TypeDecl@0..12
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            SetType@9..12
-              KwSet@9..12 "set"
-        error at 9..12: expected ’of’
-        error at 9..12: expected type specifier"#]],
+            Source@0..12
+              TypeDecl@0..12
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                SetType@9..12
+                  KwSet@9..12 "set"
+            error at 9..12: expected ’of’
+            error at 9..12: expected type specifier"#]],
     );
 }
 
@@ -1217,17 +1217,17 @@ fn parse_condition_type() {
     check(
         "type _ : condition",
         expect![[r#"
-        Root@0..18
-          TypeDecl@0..18
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ConditionType@9..18
-              KwCondition@9..18 "condition""#]],
+            Source@0..18
+              TypeDecl@0..18
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ConditionType@9..18
+                  KwCondition@9..18 "condition""#]],
     );
 }
 
@@ -1236,56 +1236,56 @@ fn parse_condition_type_attrs() {
     check(
         "type _ : priority condition",
         expect![[r#"
-        Root@0..27
-          TypeDecl@0..27
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ConditionType@9..27
-              ConditionKind@9..18
-                KwPriority@9..17 "priority"
-                Whitespace@17..18 " "
-              KwCondition@18..27 "condition""#]],
+            Source@0..27
+              TypeDecl@0..27
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ConditionType@9..27
+                  ConditionKind@9..18
+                    KwPriority@9..17 "priority"
+                    Whitespace@17..18 " "
+                  KwCondition@18..27 "condition""#]],
     );
     check(
         "type _ : deferred condition",
         expect![[r#"
-        Root@0..27
-          TypeDecl@0..27
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ConditionType@9..27
-              ConditionKind@9..18
-                KwDeferred@9..17 "deferred"
-                Whitespace@17..18 " "
-              KwCondition@18..27 "condition""#]],
+            Source@0..27
+              TypeDecl@0..27
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ConditionType@9..27
+                  ConditionKind@9..18
+                    KwDeferred@9..17 "deferred"
+                    Whitespace@17..18 " "
+                  KwCondition@18..27 "condition""#]],
     );
     check(
         "type _ : timeout condition",
         expect![[r#"
-        Root@0..26
-          TypeDecl@0..26
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ConditionType@9..26
-              ConditionKind@9..17
-                KwTimeout@9..16 "timeout"
-                Whitespace@16..17 " "
-              KwCondition@17..26 "condition""#]],
+            Source@0..26
+              TypeDecl@0..26
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ConditionType@9..26
+                  ConditionKind@9..17
+                    KwTimeout@9..16 "timeout"
+                    Whitespace@16..17 " "
+                  KwCondition@17..26 "condition""#]],
     );
 }
 
@@ -1294,22 +1294,22 @@ fn recover_condition_type_attrs_without_condition() {
     check(
         "type _ : priority not_condition",
         expect![[r#"
-        Root@0..31
-          TypeDecl@0..31
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ConditionType@9..31
-              ConditionKind@9..18
-                KwPriority@9..17 "priority"
-                Whitespace@17..18 " "
-              Error@18..31
-                Identifier@18..31 "not_condition"
-        error at 18..31: expected ’condition’, but found identifier"#]],
+            Source@0..31
+              TypeDecl@0..31
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ConditionType@9..31
+                  ConditionKind@9..18
+                    KwPriority@9..17 "priority"
+                    Whitespace@17..18 " "
+                  Error@18..31
+                    Identifier@18..31 "not_condition"
+            error at 18..31: expected ’condition’, but found identifier"#]],
     );
 }
 
@@ -1318,22 +1318,22 @@ fn parse_collection_type() {
     check(
         "type _ : collection of int",
         expect![[r#"
-        Root@0..26
-          TypeDecl@0..26
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            CollectionType@9..26
-              KwCollection@9..19 "collection"
-              Whitespace@19..20 " "
-              KwOf@20..22 "of"
-              Whitespace@22..23 " "
-              PrimType@23..26
-                KwInt@23..26 "int""#]],
+            Source@0..26
+              TypeDecl@0..26
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                CollectionType@9..26
+                  KwCollection@9..19 "collection"
+                  Whitespace@19..20 " "
+                  KwOf@20..22 "of"
+                  Whitespace@22..23 " "
+                  PrimType@23..26
+                    KwInt@23..26 "int""#]],
     )
 }
 
@@ -1342,21 +1342,21 @@ fn parse_collection_type_forward() {
     check(
         "type _ : collection of forward",
         expect![[r#"
-        Root@0..30
-          TypeDecl@0..30
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            CollectionType@9..30
-              KwCollection@9..19 "collection"
-              Whitespace@19..20 " "
-              KwOf@20..22 "of"
-              Whitespace@22..23 " "
-              KwForward@23..30 "forward""#]],
+            Source@0..30
+              TypeDecl@0..30
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                CollectionType@9..30
+                  KwCollection@9..19 "collection"
+                  Whitespace@19..20 " "
+                  KwOf@20..22 "of"
+                  Whitespace@22..23 " "
+                  KwForward@23..30 "forward""#]],
     )
 }
 
@@ -1365,20 +1365,20 @@ fn recover_collection_type_no_ty() {
     check(
         "type _ : collection of",
         expect![[r#"
-        Root@0..22
-          TypeDecl@0..22
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            CollectionType@9..22
-              KwCollection@9..19 "collection"
-              Whitespace@19..20 " "
-              KwOf@20..22 "of"
-        error at 20..22: expected type specifier"#]],
+            Source@0..22
+              TypeDecl@0..22
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                CollectionType@9..22
+                  KwCollection@9..19 "collection"
+                  Whitespace@19..20 " "
+                  KwOf@20..22 "of"
+            error at 20..22: expected type specifier"#]],
     )
 }
 
@@ -1387,22 +1387,22 @@ fn recover_collection_type_no_of() {
     check(
         "type _ : collection int",
         expect![[r#"
-        Root@0..23
-          TypeDecl@0..23
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            CollectionType@9..23
-              KwCollection@9..19 "collection"
-              Whitespace@19..20 " "
-              Error@20..23
-                KwInt@20..23 "int"
-        error at 20..23: expected ’of’, but found ’int’
-        error at 20..23: expected type specifier"#]],
+            Source@0..23
+              TypeDecl@0..23
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                CollectionType@9..23
+                  KwCollection@9..19 "collection"
+                  Whitespace@19..20 " "
+                  Error@20..23
+                    KwInt@20..23 "int"
+            error at 20..23: expected ’of’, but found ’int’
+            error at 20..23: expected type specifier"#]],
     )
 }
 
@@ -1411,19 +1411,19 @@ fn recover_just_collection() {
     check(
         "type _ : collection",
         expect![[r#"
-        Root@0..19
-          TypeDecl@0..19
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            CollectionType@9..19
-              KwCollection@9..19 "collection"
-        error at 9..19: expected ’of’
-        error at 9..19: expected type specifier"#]],
+            Source@0..19
+              TypeDecl@0..19
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                CollectionType@9..19
+                  KwCollection@9..19 "collection"
+            error at 9..19: expected ’of’
+            error at 9..19: expected type specifier"#]],
     )
 }
 
@@ -1432,32 +1432,32 @@ fn parse_array_type() {
     check(
         "type _ : array 1 .. 3 of int",
         expect![[r#"
-        Root@0..28
-          TypeDecl@0..28
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ArrayType@9..28
-              KwArray@9..14 "array"
-              Whitespace@14..15 " "
-              RangeList@15..22
-                RangeType@15..22
-                  LiteralExpr@15..17
-                    IntLiteral@15..16 "1"
-                    Whitespace@16..17 " "
-                  Range@17..19 ".."
-                  Whitespace@19..20 " "
-                  LiteralExpr@20..22
-                    IntLiteral@20..21 "3"
-                    Whitespace@21..22 " "
-              KwOf@22..24 "of"
-              Whitespace@24..25 " "
-              PrimType@25..28
-                KwInt@25..28 "int""#]],
+            Source@0..28
+              TypeDecl@0..28
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ArrayType@9..28
+                  KwArray@9..14 "array"
+                  Whitespace@14..15 " "
+                  RangeList@15..22
+                    RangeType@15..22
+                      LiteralExpr@15..17
+                        IntLiteral@15..16 "1"
+                        Whitespace@16..17 " "
+                      Range@17..19 ".."
+                      Whitespace@19..20 " "
+                      LiteralExpr@20..22
+                        IntLiteral@20..21 "3"
+                        Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+                  Whitespace@24..25 " "
+                  PrimType@25..28
+                    KwInt@25..28 "int""#]],
     );
 }
 
@@ -1466,7 +1466,7 @@ fn parse_array_type_with_many_ranges() {
     check(
         "type _ : array 1 .. 3, boolean, char of string",
         expect![[r#"
-            Root@0..46
+            Source@0..46
               TypeDecl@0..46
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -1508,38 +1508,38 @@ fn parse_flexible_array_type() {
     check(
         "type _ : flexible array 1 .. 3 of char(*)",
         expect![[r#"
-        Root@0..41
-          TypeDecl@0..41
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ArrayType@9..41
-              KwFlexible@9..17 "flexible"
-              Whitespace@17..18 " "
-              KwArray@18..23 "array"
-              Whitespace@23..24 " "
-              RangeList@24..31
-                RangeType@24..31
-                  LiteralExpr@24..26
-                    IntLiteral@24..25 "1"
-                    Whitespace@25..26 " "
-                  Range@26..28 ".."
-                  Whitespace@28..29 " "
-                  LiteralExpr@29..31
-                    IntLiteral@29..30 "3"
-                    Whitespace@30..31 " "
-              KwOf@31..33 "of"
-              Whitespace@33..34 " "
-              SizedCharType@34..41
-                KwChar@34..38 "char"
-                LeftParen@38..39 "("
-                SeqLength@39..40
-                  Star@39..40 "*"
-                RightParen@40..41 ")""#]],
+            Source@0..41
+              TypeDecl@0..41
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ArrayType@9..41
+                  KwFlexible@9..17 "flexible"
+                  Whitespace@17..18 " "
+                  KwArray@18..23 "array"
+                  Whitespace@23..24 " "
+                  RangeList@24..31
+                    RangeType@24..31
+                      LiteralExpr@24..26
+                        IntLiteral@24..25 "1"
+                        Whitespace@25..26 " "
+                      Range@26..28 ".."
+                      Whitespace@28..29 " "
+                      LiteralExpr@29..31
+                        IntLiteral@29..30 "3"
+                        Whitespace@30..31 " "
+                  KwOf@31..33 "of"
+                  Whitespace@33..34 " "
+                  SizedCharType@34..41
+                    KwChar@34..38 "char"
+                    LeftParen@38..39 "("
+                    SeqLength@39..40
+                      Star@39..40 "*"
+                    RightParen@40..41 ")""#]],
     );
 }
 
@@ -1548,25 +1548,25 @@ fn recover_flexible_not_array() {
     check(
         "type _ : flexible not_array im_stmt",
         expect![[r#"
-        Root@0..35
-          TypeDecl@0..28
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            Error@9..28
-              KwFlexible@9..17 "flexible"
-              Whitespace@17..18 " "
-              Identifier@18..27 "not_array"
-              Whitespace@27..28 " "
-          CallStmt@28..35
-            NameExpr@28..35
-              Name@28..35
-                Identifier@28..35 "im_stmt"
-        error at 18..27: expected ’array’, but found identifier"#]],
+            Source@0..35
+              TypeDecl@0..28
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                Error@9..28
+                  KwFlexible@9..17 "flexible"
+                  Whitespace@17..18 " "
+                  Identifier@18..27 "not_array"
+                  Whitespace@27..28 " "
+              CallStmt@28..35
+                NameExpr@28..35
+                  Name@28..35
+                    Identifier@28..35 "im_stmt"
+            error at 18..27: expected ’array’, but found identifier"#]],
     );
 }
 
@@ -1575,24 +1575,24 @@ fn recover_array_empty_range_list() {
     check(
         "type _ : array of int",
         expect![[r#"
-        Root@0..21
-          TypeDecl@0..21
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ArrayType@9..21
-              KwArray@9..14 "array"
-              Whitespace@14..15 " "
-              RangeList@15..15
-              KwOf@15..17 "of"
-              Whitespace@17..18 " "
-              PrimType@18..21
-                KwInt@18..21 "int"
-        error at 15..17: expected type specifier, but found ’of’"#]],
+            Source@0..21
+              TypeDecl@0..21
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ArrayType@9..21
+                  KwArray@9..14 "array"
+                  Whitespace@14..15 " "
+                  RangeList@15..15
+                  KwOf@15..17 "of"
+                  Whitespace@17..18 " "
+                  PrimType@18..21
+                    KwInt@18..21 "int"
+            error at 15..17: expected type specifier, but found ’of’"#]],
     );
 }
 
@@ -1601,30 +1601,30 @@ fn recover_array_no_elem_ty() {
     check(
         "type _ : array 1 .. 3 of",
         expect![[r#"
-        Root@0..24
-          TypeDecl@0..24
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ArrayType@9..24
-              KwArray@9..14 "array"
-              Whitespace@14..15 " "
-              RangeList@15..22
-                RangeType@15..22
-                  LiteralExpr@15..17
-                    IntLiteral@15..16 "1"
-                    Whitespace@16..17 " "
-                  Range@17..19 ".."
-                  Whitespace@19..20 " "
-                  LiteralExpr@20..22
-                    IntLiteral@20..21 "3"
-                    Whitespace@21..22 " "
-              KwOf@22..24 "of"
-        error at 22..24: expected type specifier"#]],
+            Source@0..24
+              TypeDecl@0..24
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ArrayType@9..24
+                  KwArray@9..14 "array"
+                  Whitespace@14..15 " "
+                  RangeList@15..22
+                    RangeType@15..22
+                      LiteralExpr@15..17
+                        IntLiteral@15..16 "1"
+                        Whitespace@16..17 " "
+                      Range@17..19 ".."
+                      Whitespace@19..20 " "
+                      LiteralExpr@20..22
+                        IntLiteral@20..21 "3"
+                        Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+            error at 22..24: expected type specifier"#]],
     );
 }
 
@@ -1633,42 +1633,42 @@ fn parse_fcn_type() {
     check(
         "type _ : function _a (a, b : int) : int",
         expect![[r#"
-        Root@0..39
-          TypeDecl@0..39
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            FcnType@9..39
-              KwFunction@9..17 "function"
-              Whitespace@17..18 " "
-              Name@18..21
-                Identifier@18..20 "_a"
-                Whitespace@20..21 " "
-              ParamSpec@21..34
-                LeftParen@21..22 "("
-                ParamDecl@22..32
-                  NameList@22..27
-                    Name@22..23
-                      Identifier@22..23 "a"
-                    Comma@23..24 ","
-                    Whitespace@24..25 " "
-                    Name@25..27
-                      Identifier@25..26 "b"
-                      Whitespace@26..27 " "
-                  Colon@27..28 ":"
-                  Whitespace@28..29 " "
-                  PrimType@29..32
-                    KwInt@29..32 "int"
-                RightParen@32..33 ")"
-                Whitespace@33..34 " "
-              Colon@34..35 ":"
-              Whitespace@35..36 " "
-              PrimType@36..39
-                KwInt@36..39 "int""#]],
+            Source@0..39
+              TypeDecl@0..39
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                FcnType@9..39
+                  KwFunction@9..17 "function"
+                  Whitespace@17..18 " "
+                  Name@18..21
+                    Identifier@18..20 "_a"
+                    Whitespace@20..21 " "
+                  ParamSpec@21..34
+                    LeftParen@21..22 "("
+                    ParamDecl@22..32
+                      NameList@22..27
+                        Name@22..23
+                          Identifier@22..23 "a"
+                        Comma@23..24 ","
+                        Whitespace@24..25 " "
+                        Name@25..27
+                          Identifier@25..26 "b"
+                          Whitespace@26..27 " "
+                      Colon@27..28 ":"
+                      Whitespace@28..29 " "
+                      PrimType@29..32
+                        KwInt@29..32 "int"
+                    RightParen@32..33 ")"
+                    Whitespace@33..34 " "
+                  Colon@34..35 ":"
+                  Whitespace@35..36 " "
+                  PrimType@36..39
+                    KwInt@36..39 "int""#]],
     );
 }
 
@@ -1677,37 +1677,37 @@ fn parse_proc_type() {
     check(
         "type _ : procedure _a (a, b : int)",
         expect![[r#"
-        Root@0..34
-          TypeDecl@0..34
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ProcType@9..34
-              KwProcedure@9..18 "procedure"
-              Whitespace@18..19 " "
-              Name@19..22
-                Identifier@19..21 "_a"
-                Whitespace@21..22 " "
-              ParamSpec@22..34
-                LeftParen@22..23 "("
-                ParamDecl@23..33
-                  NameList@23..28
-                    Name@23..24
-                      Identifier@23..24 "a"
-                    Comma@24..25 ","
-                    Whitespace@25..26 " "
-                    Name@26..28
-                      Identifier@26..27 "b"
-                      Whitespace@27..28 " "
-                  Colon@28..29 ":"
-                  Whitespace@29..30 " "
-                  PrimType@30..33
-                    KwInt@30..33 "int"
-                RightParen@33..34 ")""#]],
+            Source@0..34
+              TypeDecl@0..34
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..34
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..34
+                    LeftParen@22..23 "("
+                    ParamDecl@23..33
+                      NameList@23..28
+                        Name@23..24
+                          Identifier@23..24 "a"
+                        Comma@24..25 ","
+                        Whitespace@25..26 " "
+                        Name@26..28
+                          Identifier@26..27 "b"
+                          Whitespace@27..28 " "
+                      Colon@28..29 ":"
+                      Whitespace@29..30 " "
+                      PrimType@30..33
+                        KwInt@30..33 "int"
+                    RightParen@33..34 ")""#]],
     );
 }
 
@@ -1716,47 +1716,47 @@ fn recover_proc_type_with_result_ty() {
     check(
         "type _ : procedure _a (a, b : int) : int",
         expect![[r#"
-        Root@0..40
-          TypeDecl@0..35
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ProcType@9..35
-              KwProcedure@9..18 "procedure"
-              Whitespace@18..19 " "
-              Name@19..22
-                Identifier@19..21 "_a"
-                Whitespace@21..22 " "
-              ParamSpec@22..35
-                LeftParen@22..23 "("
-                ParamDecl@23..33
-                  NameList@23..28
-                    Name@23..24
-                      Identifier@23..24 "a"
-                    Comma@24..25 ","
-                    Whitespace@25..26 " "
-                    Name@26..28
-                      Identifier@26..27 "b"
-                      Whitespace@27..28 " "
-                  Colon@28..29 ":"
-                  Whitespace@29..30 " "
-                  PrimType@30..33
-                    KwInt@30..33 "int"
-                RightParen@33..34 ")"
-                Whitespace@34..35 " "
-          Error@35..37
-            Colon@35..36 ":"
-            Whitespace@36..37 " "
-          Error@37..40
-            PrimType@37..40
-              KwInt@37..40 "int"
-        error at 35..36: expected statement, but found ’:’
-        error at 37..40: expected ’@’
-        error at 37..40: expected statement"#]],
+            Source@0..40
+              TypeDecl@0..35
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..35
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..35
+                    LeftParen@22..23 "("
+                    ParamDecl@23..33
+                      NameList@23..28
+                        Name@23..24
+                          Identifier@23..24 "a"
+                        Comma@24..25 ","
+                        Whitespace@25..26 " "
+                        Name@26..28
+                          Identifier@26..27 "b"
+                          Whitespace@27..28 " "
+                      Colon@28..29 ":"
+                      Whitespace@29..30 " "
+                      PrimType@30..33
+                        KwInt@30..33 "int"
+                    RightParen@33..34 ")"
+                    Whitespace@34..35 " "
+              Error@35..37
+                Colon@35..36 ":"
+                Whitespace@36..37 " "
+              Error@37..40
+                PrimType@37..40
+                  KwInt@37..40 "int"
+            error at 35..36: expected statement, but found ’:’
+            error at 37..40: expected ’@’
+            error at 37..40: expected statement"#]],
     );
 }
 
@@ -1765,39 +1765,39 @@ fn recover_fcn_type_without_result_ty() {
     check(
         "type _ : function _a (a, b : int)",
         expect![[r#"
-        Root@0..33
-          TypeDecl@0..33
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            FcnType@9..33
-              KwFunction@9..17 "function"
-              Whitespace@17..18 " "
-              Name@18..21
-                Identifier@18..20 "_a"
-                Whitespace@20..21 " "
-              ParamSpec@21..33
-                LeftParen@21..22 "("
-                ParamDecl@22..32
-                  NameList@22..27
-                    Name@22..23
-                      Identifier@22..23 "a"
-                    Comma@23..24 ","
-                    Whitespace@24..25 " "
-                    Name@25..27
-                      Identifier@25..26 "b"
-                      Whitespace@26..27 " "
-                  Colon@27..28 ":"
-                  Whitespace@28..29 " "
-                  PrimType@29..32
-                    KwInt@29..32 "int"
-                RightParen@32..33 ")"
-        error at 32..33: expected ’:’
-        error at 32..33: expected type specifier"#]],
+            Source@0..33
+              TypeDecl@0..33
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                FcnType@9..33
+                  KwFunction@9..17 "function"
+                  Whitespace@17..18 " "
+                  Name@18..21
+                    Identifier@18..20 "_a"
+                    Whitespace@20..21 " "
+                  ParamSpec@21..33
+                    LeftParen@21..22 "("
+                    ParamDecl@22..32
+                      NameList@22..27
+                        Name@22..23
+                          Identifier@22..23 "a"
+                        Comma@23..24 ","
+                        Whitespace@24..25 " "
+                        Name@25..27
+                          Identifier@25..26 "b"
+                          Whitespace@26..27 " "
+                      Colon@27..28 ":"
+                      Whitespace@28..29 " "
+                      PrimType@29..32
+                        KwInt@29..32 "int"
+                    RightParen@32..33 ")"
+            error at 32..33: expected ’:’
+            error at 32..33: expected type specifier"#]],
     );
 }
 
@@ -1806,39 +1806,39 @@ fn parse_fcn_type_opt_name() {
     check(
         "type _ : function (a, b : int) : int",
         expect![[r#"
-        Root@0..36
-          TypeDecl@0..36
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            FcnType@9..36
-              KwFunction@9..17 "function"
-              Whitespace@17..18 " "
-              ParamSpec@18..31
-                LeftParen@18..19 "("
-                ParamDecl@19..29
-                  NameList@19..24
-                    Name@19..20
-                      Identifier@19..20 "a"
-                    Comma@20..21 ","
-                    Whitespace@21..22 " "
-                    Name@22..24
-                      Identifier@22..23 "b"
-                      Whitespace@23..24 " "
-                  Colon@24..25 ":"
-                  Whitespace@25..26 " "
-                  PrimType@26..29
-                    KwInt@26..29 "int"
-                RightParen@29..30 ")"
-                Whitespace@30..31 " "
-              Colon@31..32 ":"
-              Whitespace@32..33 " "
-              PrimType@33..36
-                KwInt@33..36 "int""#]],
+            Source@0..36
+              TypeDecl@0..36
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                FcnType@9..36
+                  KwFunction@9..17 "function"
+                  Whitespace@17..18 " "
+                  ParamSpec@18..31
+                    LeftParen@18..19 "("
+                    ParamDecl@19..29
+                      NameList@19..24
+                        Name@19..20
+                          Identifier@19..20 "a"
+                        Comma@20..21 ","
+                        Whitespace@21..22 " "
+                        Name@22..24
+                          Identifier@22..23 "b"
+                          Whitespace@23..24 " "
+                      Colon@24..25 ":"
+                      Whitespace@25..26 " "
+                      PrimType@26..29
+                        KwInt@26..29 "int"
+                    RightParen@29..30 ")"
+                    Whitespace@30..31 " "
+                  Colon@31..32 ":"
+                  Whitespace@32..33 " "
+                  PrimType@33..36
+                    KwInt@33..36 "int""#]],
     );
 }
 
@@ -1847,29 +1847,29 @@ fn parse_fcn_type_no_params() {
     check(
         "type _ : function _a () : int",
         expect![[r#"
-        Root@0..29
-          TypeDecl@0..29
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            FcnType@9..29
-              KwFunction@9..17 "function"
-              Whitespace@17..18 " "
-              Name@18..21
-                Identifier@18..20 "_a"
-                Whitespace@20..21 " "
-              ParamSpec@21..24
-                LeftParen@21..22 "("
-                RightParen@22..23 ")"
-                Whitespace@23..24 " "
-              Colon@24..25 ":"
-              Whitespace@25..26 " "
-              PrimType@26..29
-                KwInt@26..29 "int""#]],
+            Source@0..29
+              TypeDecl@0..29
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                FcnType@9..29
+                  KwFunction@9..17 "function"
+                  Whitespace@17..18 " "
+                  Name@18..21
+                    Identifier@18..20 "_a"
+                    Whitespace@20..21 " "
+                  ParamSpec@21..24
+                    LeftParen@21..22 "("
+                    RightParen@22..23 ")"
+                    Whitespace@23..24 " "
+                  Colon@24..25 ":"
+                  Whitespace@25..26 " "
+                  PrimType@26..29
+                    KwInt@26..29 "int""#]],
     );
 }
 
@@ -1878,25 +1878,25 @@ fn parse_fcn_type_opt_parens() {
     check(
         "type _ : function _a : int",
         expect![[r#"
-        Root@0..26
-          TypeDecl@0..26
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            FcnType@9..26
-              KwFunction@9..17 "function"
-              Whitespace@17..18 " "
-              Name@18..21
-                Identifier@18..20 "_a"
-                Whitespace@20..21 " "
-              Colon@21..22 ":"
-              Whitespace@22..23 " "
-              PrimType@23..26
-                KwInt@23..26 "int""#]],
+            Source@0..26
+              TypeDecl@0..26
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                FcnType@9..26
+                  KwFunction@9..17 "function"
+                  Whitespace@17..18 " "
+                  Name@18..21
+                    Identifier@18..20 "_a"
+                    Whitespace@20..21 " "
+                  Colon@21..22 ":"
+                  Whitespace@22..23 " "
+                  PrimType@23..26
+                    KwInt@23..26 "int""#]],
     );
 }
 
@@ -1905,7 +1905,7 @@ fn parse_proc_type_fcn_param() {
     check(
         "type _ : procedure _a (function embed (a : char) : int)",
         expect![[r#"
-            Root@0..55
+            Source@0..55
               TypeDecl@0..55
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -1955,7 +1955,7 @@ fn parse_proc_type_all_constvar_attrs() {
     check(
         "type _ : procedure _a (var register a : cheat int)",
         expect![[r#"
-            Root@0..50
+            Source@0..50
               TypeDecl@0..50
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -1996,97 +1996,97 @@ fn recover_proc_type_constvar_attrs_missing_name() {
     check(
         "type _ : procedure _a (var register : int)",
         expect![[r#"
-        Root@0..42
-          TypeDecl@0..42
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ProcType@9..42
-              KwProcedure@9..18 "procedure"
-              Whitespace@18..19 " "
-              Name@19..22
-                Identifier@19..21 "_a"
-                Whitespace@21..22 " "
-              ParamSpec@22..42
-                LeftParen@22..23 "("
-                ParamDecl@23..41
-                  KwVar@23..26 "var"
-                  Whitespace@26..27 " "
-                  KwRegister@27..35 "register"
-                  Whitespace@35..36 " "
-                  NameList@36..36
-                  Colon@36..37 ":"
-                  Whitespace@37..38 " "
-                  PrimType@38..41
-                    KwInt@38..41 "int"
-                RightParen@41..42 ")"
-        error at 36..37: expected identifier, but found ’:’"#]],
+            Source@0..42
+              TypeDecl@0..42
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..42
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..42
+                    LeftParen@22..23 "("
+                    ParamDecl@23..41
+                      KwVar@23..26 "var"
+                      Whitespace@26..27 " "
+                      KwRegister@27..35 "register"
+                      Whitespace@35..36 " "
+                      NameList@36..36
+                      Colon@36..37 ":"
+                      Whitespace@37..38 " "
+                      PrimType@38..41
+                        KwInt@38..41 "int"
+                    RightParen@41..42 ")"
+            error at 36..37: expected identifier, but found ’:’"#]],
     );
     check(
         "type _ : procedure _a (var : int)",
         expect![[r#"
-        Root@0..33
-          TypeDecl@0..33
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ProcType@9..33
-              KwProcedure@9..18 "procedure"
-              Whitespace@18..19 " "
-              Name@19..22
-                Identifier@19..21 "_a"
-                Whitespace@21..22 " "
-              ParamSpec@22..33
-                LeftParen@22..23 "("
-                ParamDecl@23..32
-                  KwVar@23..26 "var"
-                  Whitespace@26..27 " "
-                  NameList@27..27
-                  Colon@27..28 ":"
-                  Whitespace@28..29 " "
-                  PrimType@29..32
-                    KwInt@29..32 "int"
-                RightParen@32..33 ")"
-        error at 27..28: expected ’register’ or identifier, but found ’:’"#]],
+            Source@0..33
+              TypeDecl@0..33
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..33
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..33
+                    LeftParen@22..23 "("
+                    ParamDecl@23..32
+                      KwVar@23..26 "var"
+                      Whitespace@26..27 " "
+                      NameList@27..27
+                      Colon@27..28 ":"
+                      Whitespace@28..29 " "
+                      PrimType@29..32
+                        KwInt@29..32 "int"
+                    RightParen@32..33 ")"
+            error at 27..28: expected ’register’ or identifier, but found ’:’"#]],
     );
     check(
         "type _ : procedure _a (register : int)",
         expect![[r#"
-        Root@0..38
-          TypeDecl@0..38
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ProcType@9..38
-              KwProcedure@9..18 "procedure"
-              Whitespace@18..19 " "
-              Name@19..22
-                Identifier@19..21 "_a"
-                Whitespace@21..22 " "
-              ParamSpec@22..38
-                LeftParen@22..23 "("
-                ParamDecl@23..37
-                  KwRegister@23..31 "register"
-                  Whitespace@31..32 " "
-                  NameList@32..32
-                  Colon@32..33 ":"
-                  Whitespace@33..34 " "
-                  PrimType@34..37
-                    KwInt@34..37 "int"
-                RightParen@37..38 ")"
-        error at 32..33: expected identifier, but found ’:’"#]],
+            Source@0..38
+              TypeDecl@0..38
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..38
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..38
+                    LeftParen@22..23 "("
+                    ParamDecl@23..37
+                      KwRegister@23..31 "register"
+                      Whitespace@31..32 " "
+                      NameList@32..32
+                      Colon@32..33 ":"
+                      Whitespace@33..34 " "
+                      PrimType@34..37
+                        KwInt@34..37 "int"
+                    RightParen@37..38 ")"
+            error at 32..33: expected identifier, but found ’:’"#]],
     );
 }
 
@@ -2095,32 +2095,32 @@ fn recover_proc_type_constvar_missing_ty() {
     check(
         "type _ : procedure _a (a : )",
         expect![[r#"
-        Root@0..28
-          TypeDecl@0..28
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            ProcType@9..28
-              KwProcedure@9..18 "procedure"
-              Whitespace@18..19 " "
-              Name@19..22
-                Identifier@19..21 "_a"
-                Whitespace@21..22 " "
-              ParamSpec@22..28
-                LeftParen@22..23 "("
-                ParamDecl@23..27
-                  NameList@23..25
-                    Name@23..25
-                      Identifier@23..24 "a"
-                      Whitespace@24..25 " "
-                  Colon@25..26 ":"
-                  Whitespace@26..27 " "
-                RightParen@27..28 ")"
-        error at 27..28: expected type specifier, but found ’)’"#]],
+            Source@0..28
+              TypeDecl@0..28
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                ProcType@9..28
+                  KwProcedure@9..18 "procedure"
+                  Whitespace@18..19 " "
+                  Name@19..22
+                    Identifier@19..21 "_a"
+                    Whitespace@21..22 " "
+                  ParamSpec@22..28
+                    LeftParen@22..23 "("
+                    ParamDecl@23..27
+                      NameList@23..25
+                        Name@23..25
+                          Identifier@23..24 "a"
+                          Whitespace@24..25 " "
+                      Colon@25..26 ":"
+                      Whitespace@26..27 " "
+                    RightParen@27..28 ")"
+            error at 27..28: expected type specifier, but found ’)’"#]],
     );
 }
 
@@ -2129,7 +2129,7 @@ fn parse_record_type() {
     check(
         "type _ : record a : int end record",
         expect![[r#"
-            Root@0..34
+            Source@0..34
               TypeDecl@0..34
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2168,7 +2168,7 @@ fn parse_record_type_many_fields() {
         e : int
     end record"#,
         expect![[r#"
-            Root@0..89
+            Source@0..89
               Whitespace@0..5 "\n    "
               TypeDecl@5..89
                 KwType@5..9 "type"
@@ -2236,7 +2236,7 @@ fn parse_record_type_opt_semicolon() {
         e : int;
     end record"#,
         expect![[r#"
-            Root@0..92
+            Source@0..92
               Whitespace@0..5 "\n    "
               TypeDecl@5..92
                 KwType@5..9 "type"
@@ -2303,7 +2303,7 @@ fn parse_record_type_empty() {
     check(
         "type _ : record end record",
         expect![[r#"
-            Root@0..26
+            Source@0..26
               TypeDecl@0..26
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2327,7 +2327,7 @@ fn recover_record_type_missing_last_name() {
     check(
         "type _ : record a, : int end record",
         expect![[r#"
-            Root@0..35
+            Source@0..35
               TypeDecl@0..35
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2363,20 +2363,20 @@ fn recover_just_record() {
     check(
         "type _ : record",
         expect![[r#"
-        Root@0..15
-          TypeDecl@0..15
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RecordType@9..15
-              KwRecord@9..15 "record"
-              EndGroup@15..15
-        error at 9..15: expected ’end’
-        error at 9..15: expected ’record’"#]],
+            Source@0..15
+              TypeDecl@0..15
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RecordType@9..15
+                  KwRecord@9..15 "record"
+                  EndGroup@15..15
+            error at 9..15: expected ’end’
+            error at 9..15: expected ’record’"#]],
     );
 }
 
@@ -2385,7 +2385,7 @@ fn parse_union_type() {
     check(
         "type _ : union : char of label 1: a : int end union",
         expect![[r#"
-            Root@0..51
+            Source@0..51
               TypeDecl@0..51
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2433,23 +2433,23 @@ fn recover_just_union() {
     check(
         "type _ : union",
         expect![[r#"
-        Root@0..14
-          TypeDecl@0..14
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..14
-              KwUnion@9..14 "union"
-              EndGroup@14..14
-        error at 9..14: expected identifier or ’:’
-        error at 9..14: expected type specifier
-        error at 9..14: expected ’of’
-        error at 9..14: expected ’label’ or ’end’
-        error at 9..14: expected ’union’"#]],
+            Source@0..14
+              TypeDecl@0..14
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..14
+                  KwUnion@9..14 "union"
+                  EndGroup@14..14
+            error at 9..14: expected identifier or ’:’
+            error at 9..14: expected type specifier
+            error at 9..14: expected ’of’
+            error at 9..14: expected ’label’ or ’end’
+            error at 9..14: expected ’union’"#]],
     );
 }
 
@@ -2458,27 +2458,27 @@ fn recover_just_union_head() {
     check(
         "type _ : union : boolean of",
         expect![[r#"
-        Root@0..27
-          TypeDecl@0..27
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..27
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              Colon@15..16 ":"
-              Whitespace@16..17 " "
-              PrimType@17..25
-                KwBoolean@17..24 "boolean"
-                Whitespace@24..25 " "
-              KwOf@25..27 "of"
-              EndGroup@27..27
-        error at 25..27: expected ’label’ or ’end’
-        error at 25..27: expected ’union’"#]],
+            Source@0..27
+              TypeDecl@0..27
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..27
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  PrimType@17..25
+                    KwBoolean@17..24 "boolean"
+                    Whitespace@24..25 " "
+                  KwOf@25..27 "of"
+                  EndGroup@27..27
+            error at 25..27: expected ’label’ or ’end’
+            error at 25..27: expected ’union’"#]],
     );
 }
 
@@ -2487,7 +2487,7 @@ fn parse_empty_union() {
     check(
         "type _ : union : char of end union",
         expect![[r#"
-            Root@0..34
+            Source@0..34
               TypeDecl@0..34
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2518,7 +2518,7 @@ fn union_type_many_variants() {
     check(
         "type _ : union : boolean of label 1, 2: a : int b : int label : end union",
         expect![[r#"
-            Root@0..73
+            Source@0..73
               TypeDecl@0..73
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2585,7 +2585,7 @@ fn union_type_default_variant() {
     check(
         "type _ : union : 1..2 of label : end union",
         expect![[r#"
-            Root@0..42
+            Source@0..42
               TypeDecl@0..42
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2625,7 +2625,7 @@ fn recover_union_type_missing_label_colon() {
     check(
         "type _ : union : 1..2 of label end union",
         expect![[r#"
-            Root@0..40
+            Source@0..40
               TypeDecl@0..40
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2665,7 +2665,7 @@ fn recover_union_type_not_label() {
     check(
         "type _ : union : 1..2 of nope end union",
         expect![[r#"
-            Root@0..39
+            Source@0..39
               TypeDecl@0..34
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2708,7 +2708,7 @@ fn union_type_parse_tag_name() {
     check(
         "type _ : union taggged : boolean of end union",
         expect![[r#"
-            Root@0..45
+            Source@0..45
               TypeDecl@0..45
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
@@ -2742,7 +2742,7 @@ fn recover_bare_union_type() {
     check(
         "type _ : union end union",
         expect![[r#"
-            Root@0..24
+            Source@0..24
               TypeDecl@0..24
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
