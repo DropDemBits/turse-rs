@@ -133,7 +133,12 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     // note when validating: if array is init-sized, then it should require 'init'
     // if type is implied, then init is not allowed
     // refining error: for const, could say that initialzer is required
-    if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
+    if p.at(TokenKind::Equ) {
+        p.bump(); // bump `=`
+
+        // TODO: Warn about mistake token
+        expr::expect_expr(p);
+    } else if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
         expr::expect_expr(p);
     }
 

@@ -76,7 +76,7 @@ fn recover_just_var() {
                 KwVar@0..3 "var"
                 NameList@3..3
             error at 0..3: expected identifier
-            error at 0..3: expected ’,’, ’:’ or ’:=’"#]],
+            error at 0..3: expected ’,’, ’:’, ’=’ or ’:=’"#]],
     )
 }
 
@@ -127,6 +127,56 @@ fn parse_const_decl() {
                 Whitespace@16..17 " "
                 LiteralExpr@17..18
                   IntLiteral@17..18 "1""#]],
+    )
+}
+
+#[test]
+fn parse_var_decl_with_alt_eq() {
+    check(
+        "var a : int = 1",
+        expect![[r#"
+            Source@0..15
+              ConstVarDecl@0..15
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                Colon@6..7 ":"
+                Whitespace@7..8 " "
+                PrimType@8..12
+                  KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                Equ@12..13 "="
+                Whitespace@13..14 " "
+                LiteralExpr@14..15
+                  IntLiteral@14..15 "1""#]],
+    )
+}
+
+#[test]
+fn parse_const_decl_with_alt_eq() {
+    check(
+        "const a : int = 1",
+        expect![[r#"
+            Source@0..17
+              ConstVarDecl@0..17
+                KwConst@0..5 "const"
+                Whitespace@5..6 " "
+                NameList@6..8
+                  Name@6..8
+                    Identifier@6..7 "a"
+                    Whitespace@7..8 " "
+                Colon@8..9 ":"
+                Whitespace@9..10 " "
+                PrimType@10..14
+                  KwInt@10..13 "int"
+                  Whitespace@13..14 " "
+                Equ@14..15 "="
+                Whitespace@15..16 " "
+                LiteralExpr@16..17
+                  IntLiteral@16..17 "1""#]],
     )
 }
 
@@ -257,7 +307,7 @@ fn recover_const_decl_no_init() {
                 Whitespace@9..10 " "
                 PrimType@10..13
                   KwInt@10..13 "int"
-            error at 10..13: expected ’:=’"#]],
+            error at 10..13: expected ’=’ or ’:=’"#]],
     )
 }
 
@@ -351,7 +401,7 @@ fn recover_bare_var_decl() {
                 NameList@4..5
                   Name@4..5
                     Identifier@4..5 "a"
-            error at 4..5: expected ’,’, ’:’ or ’:=’"#]],
+            error at 4..5: expected ’,’, ’:’, ’=’ or ’:=’"#]],
     )
 }
 
@@ -367,7 +417,7 @@ fn recover_bare_const_decl() {
                 NameList@6..7
                   Name@6..7
                     Identifier@6..7 "a"
-            error at 6..7: expected ’,’, ’:’ or ’:=’"#]],
+            error at 6..7: expected ’,’, ’:’, ’=’ or ’:=’"#]],
     )
 }
 
