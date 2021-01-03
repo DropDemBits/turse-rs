@@ -509,8 +509,18 @@ mod test {
         expect("proc", &TokenKind::Procedure);
     }
 
+    // Picked up by the scanner
+
     #[test]
     fn block_comment_missing_endings() {
         expect("/*/*", &TokenKind::Comment);
+    }
+
+    #[test]
+    fn radix_literal_dont_parse_non_ascii_chars() {
+        expect_seq(
+            "2#پ",
+            &[(TokenKind::RadixLiteral, "2#"), (TokenKind::Error, "پ")],
+        );
     }
 }

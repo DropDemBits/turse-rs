@@ -471,7 +471,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
             lexer.bump(1);
 
             // Bump all the radix bits
-            lexer.bump(remaining.take_while(|c| c.is_alphanumeric()).count());
+            lexer.bump(remaining.take_while(|c| c.is_ascii_alphanumeric()).count());
 
             NumberKind::Radix
         }
