@@ -62,7 +62,7 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Eats the next token if it is of `kind`, otherwise does nothing
     ///
     /// # Returns
-    /// Returns `true` if the expected token was eaten
+    /// Returns `true` if the token was eaten
     pub(crate) fn eat(&mut self, kind: TokenKind) -> bool {
         if self.at(kind) {
             // nom, expected
@@ -70,6 +70,22 @@ impl<'t, 'src> Parser<'t, 'src> {
             true
         } else {
             false
+        }
+    }
+
+    /// Eats the next token if it is of `kind`, otherwise does nothing
+    ///
+    /// Does not add the token to the expected_kinds list
+    ///
+    /// # Returns
+    /// Returns `true` if the token was eaten
+    pub(crate) fn hidden_eat(&mut self, kind: TokenKind) -> bool {
+        if !self.eat(kind) {
+            // pop last added item
+            self.expected_kinds.pop();
+            false
+        } else {
+            true
         }
     }
 

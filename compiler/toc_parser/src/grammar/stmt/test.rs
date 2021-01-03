@@ -10,6 +10,39 @@ use crate::check;
 use expect_test::expect;
 
 #[test]
+fn parse_opt_semicolon() {
+    check(
+        "var i : int; type j : boolean;",
+        expect![[r#"
+        Root@0..30
+          ConstVarDecl@0..11
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Colon@6..7 ":"
+            Whitespace@7..8 " "
+            PrimType@8..11
+              KwInt@8..11 "int"
+          Semicolon@11..12 ";"
+          Whitespace@12..13 " "
+          TypeDecl@13..29
+            KwType@13..17 "type"
+            Whitespace@17..18 " "
+            Name@18..20
+              Identifier@18..19 "j"
+              Whitespace@19..20 " "
+            Colon@20..21 ":"
+            Whitespace@21..22 " "
+            PrimType@22..29
+              KwBoolean@22..29 "boolean"
+          Semicolon@29..30 ";""#]],
+    );
+}
+
+#[test]
 fn report_not_a_stmt() {
     check(
         "pervasive",
