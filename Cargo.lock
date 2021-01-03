@@ -765,6 +765,14 @@ name = "toc_core"
 version = "0.1.0"
 
 [[package]]
+name = "toc_dummy"
+version = "0.1.0"
+dependencies = [
+ "toc_parser",
+ "toc_syntax",
+]
+
+[[package]]
 name = "toc_frontend"
 version = "0.1.0"
 dependencies = [

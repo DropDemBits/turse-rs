@@ -24,3 +24,7 @@ criterion = "^0.3"
 [[bench]]
 name = "scanner_compare"
 harness = false
+
+[[bench]]
+name = "parser_compare"
+harness = false
