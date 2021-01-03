@@ -30,7 +30,7 @@
 // | exit_stmt
 // x if_stmt
 // | case_stmt
-// x block_stmt
+// - block_stmt
 // | invariant_stmt
 // | assert_stmt
 // - call_stmt

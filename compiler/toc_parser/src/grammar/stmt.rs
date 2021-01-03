@@ -5,11 +5,12 @@ mod test;
 use super::*;
 
 pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
-    match_token! {
+    let m = match_token! {
         |p| match {
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
             TokenKind::Type => { type_decl(p) }
+            TokenKind::Begin => { block_stmt(p) }
             _ => expr::reference(p).and_then(|m| {
                 let m = m.precede(p);
                 // check if there's an asn nearby
@@ -28,7 +29,12 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                 None
             }),
         }
-    }
+    };
+
+    // Eat optional semicolon
+    p.eat(TokenKind::Semicolon);
+
+    m
 }
 
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
@@ -149,6 +155,35 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::TypeDecl))
+}
+
+fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Begin));
+
+    let m = p.start(); // BlockStmt
+    p.bump();
+
+    self::stmt_list(p);
+
+    // end group
+    let m_end = p.start();
+    p.expect(TokenKind::End);
+    m_end.complete(p, SyntaxKind::EndGroup);
+
+    Some(m.complete(p, SyntaxKind::BlockStmt))
+}
+
+/// Parses stmts until the first `end` is reached
+fn stmt_list(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        while !p.at(TokenKind::End) {
+            stmt::stmt(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::StmtList))
 }
 
 fn attr_pervasive(p: &mut Parser) {

@@ -1,4 +1,11 @@
 //! Tests for statements
+
+// Required test for each statement:
+// - Bare minimum example
+// - Any optional part (1 test per optional part)
+// - Empty variant
+// - Recovery on starting token
+
 use crate::check;
 use expect_test::expect;
 
@@ -92,7 +99,9 @@ fn parse_const_decl() {
 
 #[test]
 fn parse_var_decl_with_pervasive_attr() {
-    check("var pervasive a : int", expect![[r#"
+    check(
+        "var pervasive a : int",
+        expect![[r#"
         Root@0..21
           ConstVarDecl@0..21
             KwVar@0..3 "var"
@@ -106,12 +115,15 @@ fn parse_var_decl_with_pervasive_attr() {
             Colon@16..17 ":"
             Whitespace@17..18 " "
             PrimType@18..21
-              KwInt@18..21 "int""#]]);
+              KwInt@18..21 "int""#]],
+    );
 }
 
 #[test]
 fn parse_var_decl_with_alt_pervasive_attr() {
-    check("var * a : int", expect![[r#"
+    check(
+        "var * a : int",
+        expect![[r#"
         Root@0..13
           ConstVarDecl@0..13
             KwVar@0..3 "var"
@@ -125,12 +137,15 @@ fn parse_var_decl_with_alt_pervasive_attr() {
             Colon@8..9 ":"
             Whitespace@9..10 " "
             PrimType@10..13
-              KwInt@10..13 "int""#]]);
+              KwInt@10..13 "int""#]],
+    );
 }
 
 #[test]
 fn parse_var_decl_with_register_attr() {
-    check("var register a : int", expect![[r#"
+    check(
+        "var register a : int",
+        expect![[r#"
         Root@0..20
           ConstVarDecl@0..20
             KwVar@0..3 "var"
@@ -144,12 +159,15 @@ fn parse_var_decl_with_register_attr() {
             Colon@15..16 ":"
             Whitespace@16..17 " "
             PrimType@17..20
-              KwInt@17..20 "int""#]]);
+              KwInt@17..20 "int""#]],
+    );
 }
 
 #[test]
 fn parse_var_decl_with_all_attrs() {
-    check("var pervasive register a : int", expect![[r#"
+    check(
+        "var pervasive register a : int",
+        expect![[r#"
         Root@0..30
           ConstVarDecl@0..30
             KwVar@0..3 "var"
@@ -165,7 +183,8 @@ fn parse_var_decl_with_all_attrs() {
             Colon@25..26 ":"
             Whitespace@26..27 " "
             PrimType@27..30
-              KwInt@27..30 "int""#]]);
+              KwInt@27..30 "int""#]],
+    );
 }
 
 #[test]
@@ -1279,5 +1298,72 @@ fn recover_on_type() {
                 PrimType@19..22
                   KwInt@19..22 "int"
             error at 10..14: expected expression, but found ’type’"#]],
+    );
+}
+
+#[test]
+fn parse_block_stmt() {
+    check(
+        "begin var a := 1 end",
+        expect![[r#"
+        Root@0..20
+          BlockStmt@0..20
+            KwBegin@0..5 "begin"
+            Whitespace@5..6 " "
+            StmtList@6..17
+              ConstVarDecl@6..17
+                KwVar@6..9 "var"
+                Whitespace@9..10 " "
+                NameList@10..12
+                  Name@10..12
+                    Identifier@10..11 "a"
+                    Whitespace@11..12 " "
+                Assign@12..14 ":="
+                Whitespace@14..15 " "
+                LiteralExpr@15..17
+                  IntLiteral@15..16 "1"
+                  Whitespace@16..17 " "
+            EndGroup@17..20
+              KwEnd@17..20 "end""#]],
+    );
+}
+
+#[test]
+fn parse_empty_block_stmt() {
+    check(
+        "begin end",
+        expect![[r#"
+        Root@0..9
+          BlockStmt@0..9
+            KwBegin@0..5 "begin"
+            Whitespace@5..6 " "
+            StmtList@6..6
+            EndGroup@6..9
+              KwEnd@6..9 "end""#]],
+    );
+}
+
+#[test]
+fn recover_on_block_stmt() {
+    check(
+        "var a := begin end",
+        expect![[r#"
+        Root@0..18
+          ConstVarDecl@0..9
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..9 " "
+          BlockStmt@9..18
+            KwBegin@9..14 "begin"
+            Whitespace@14..15 " "
+            StmtList@15..15
+            EndGroup@15..18
+              KwEnd@15..18 "end"
+        error at 9..14: expected expression, but found ’begin’"#]],
     );
 }
