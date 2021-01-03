@@ -2763,3 +2763,90 @@ fn recover_bare_union_type() {
             error at 15..18: expected ’of’, but found ’end’"#]],
     );
 }
+
+#[test]
+fn recover_record_type_on_var() {
+    check("type _ : record\nvar a : int", expect![[r#"
+        Source@0..27
+          TypeDecl@0..16
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RecordType@9..16
+              KwRecord@9..15 "record"
+              Whitespace@15..16 "\n"
+              RecordField@16..16
+                NameList@16..16
+              EndGroup@16..16
+          ConstVarDecl@16..27
+            KwVar@16..19 "var"
+            Whitespace@19..20 " "
+            NameList@20..22
+              Name@20..22
+                Identifier@20..21 "a"
+                Whitespace@21..22 " "
+            Colon@22..23 ":"
+            Whitespace@23..24 " "
+            PrimType@24..27
+              KwInt@24..27 "int"
+        error at 16..19: expected ’end’ or identifier, but found ’var’
+        error at 16..19: expected ’,’ or ’:’, but found ’var’
+        error at 16..19: expected type specifier, but found ’var’
+        error at 16..19: expected ’;’ or ’end’, but found ’var’
+        error at 16..19: expected ’record’, but found ’var’"#]]);
+}
+
+#[test]
+fn recover_union_variant_type_on_var() {
+    check(
+        "type _ : union : boolean of\nlabel :\nvar a : int",
+        expect![[r#"
+            Source@0..47
+              TypeDecl@0..36
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..36
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  PrimType@17..25
+                    KwBoolean@17..24 "boolean"
+                    Whitespace@24..25 " "
+                  KwOf@25..27 "of"
+                  Whitespace@27..28 "\n"
+                  UnionVariant@28..36
+                    KwLabel@28..33 "label"
+                    Whitespace@33..34 " "
+                    Colon@34..35 ":"
+                    Whitespace@35..36 "\n"
+                    RecordField@36..36
+                      NameList@36..36
+                  EndGroup@36..36
+              ConstVarDecl@36..47
+                KwVar@36..39 "var"
+                Whitespace@39..40 " "
+                NameList@40..42
+                  Name@40..42
+                    Identifier@40..41 "a"
+                    Whitespace@41..42 " "
+                Colon@42..43 ":"
+                Whitespace@43..44 " "
+                PrimType@44..47
+                  KwInt@44..47 "int"
+            error at 36..39: expected ’end’, ’label’ or identifier, but found ’var’
+            error at 36..39: expected ’,’ or ’:’, but found ’var’
+            error at 36..39: expected type specifier, but found ’var’
+            error at 36..39: expected ’;’, ’label’ or ’end’, but found ’var’
+            error at 36..39: expected ’union’, but found ’var’"#]],
+    );
+}

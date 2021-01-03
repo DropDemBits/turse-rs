@@ -129,19 +129,23 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
+    let mut parsed_any = false;
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        self::name(p);
+        parsed_any |= self::name(p).is_some();
 
         while p.at(TokenKind::Comma) {
+            // did parse something
+            parsed_any = true;
+
             p.bump();
 
             self::name(p);
         }
     });
 
-    Some(m.complete(p, SyntaxKind::NameList))
+    Some(m.complete(p, SyntaxKind::NameList)).filter(|_| parsed_any)
 }
 
 /// ParamList ( `'(' Param ( ',' Param )* ')'` )

@@ -318,7 +318,10 @@ fn record_type(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::End], |p| {
         while !p.at_end() && !p.at(TokenKind::End) {
-            record_field(p);
+            if record_field(p).is_none() {
+                // Didn't parse anything
+                break;
+            }
         }
     });
 
@@ -331,22 +334,24 @@ fn record_type(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn record_field(p: &mut Parser) -> Option<CompletedMarker> {
+    let mut parsed_any = false;
+
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Semicolon], |p| {
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
-            super::name_list(p);
+            parsed_any |= super::name_list(p).is_some();
         });
 
         p.expect(TokenKind::Colon);
 
-        ty::ty(p);
+        parsed_any |= ty::ty(p).is_some();
     });
 
     // Optional semicolon
-    p.eat(TokenKind::Semicolon);
+    parsed_any |= p.eat(TokenKind::Semicolon);
 
-    Some(m.complete(p, SyntaxKind::RecordField))
+    Some(m.complete(p, SyntaxKind::RecordField)).filter(|_| parsed_any)
 }
 
 fn union_type(p: &mut Parser) -> Option<CompletedMarker> {
@@ -406,7 +411,9 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
     // Union fields
     p.with_extra_recovery(&[TokenKind::End, TokenKind::Label], |p| {
         while !(p.at(TokenKind::End) || p.at(TokenKind::Label)) {
-            record_field(p);
+            if record_field(p).is_none() {
+                break;
+            }
         }
     });
 
