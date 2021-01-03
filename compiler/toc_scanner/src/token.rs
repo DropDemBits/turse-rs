@@ -364,27 +364,36 @@ fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
     // Continue to lex everything
     let mut bump_len = 0_usize;
     let mut comment_nesting = 1_usize;
-    let remainder: &str = lex.remainder();
+    let mut remainder: &str = lex.remainder();
 
     // Track all the endings
-    for in_between in remainder.split_terminator("*/") {
+    // TODO: replace with `split_inclusive` once it gets stablilized
+    while !remainder.is_empty() {
+        let at = remainder
+            .find("*/")
+            .map_or_else(|| remainder.len(), |at| at.saturating_add(2));
+        let (in_between, new_remainder) = remainder.split_at(at);
+        remainder = new_remainder;
+
         // Adjust nesting
         comment_nesting = comment_nesting
             .saturating_add(in_between.matches("/*").count())
             .saturating_sub(1);
-        // Increase bump length (include `*/`)
-        bump_len = bump_len.saturating_add(in_between.len() + 2);
+        // Increase bump length (`*/` is included)
+        bump_len = bump_len.saturating_add(in_between.len());
 
         if comment_nesting == 0 {
             // Outside of nesting depth, done
             // Cap to maximum length of remainder to prevent
             // an out of bounds bump
-            lex.bump(bump_len.min(remainder.len()));
+            lex.bump(bump_len.min(lex.remainder().len()));
             return;
         }
     }
 
     // died
+    // TODO: report error that comment ends at the end of the file
+
     lex.bump(bump_len);
 }
 

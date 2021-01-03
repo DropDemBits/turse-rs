@@ -508,4 +508,9 @@ mod test {
         expect("fcn", &TokenKind::Function);
         expect("proc", &TokenKind::Procedure);
     }
+
+    #[test]
+    fn block_comment_missing_endings() {
+        expect("/*/*", &TokenKind::Comment);
+    }
 }
