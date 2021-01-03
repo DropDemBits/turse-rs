@@ -317,7 +317,7 @@ fn record_type(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     p.with_extra_recovery(&[TokenKind::End], |p| {
-        while !p.at(TokenKind::End) {
+        while !p.at_end() && !p.at(TokenKind::End) {
             record_field(p);
         }
     });

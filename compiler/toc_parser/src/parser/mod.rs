@@ -177,7 +177,7 @@ impl<'t, 'src> Parser<'t, 'src> {
         }
     }
 
-    /// Checks if the cursor is past the end
+    /// Checks if the cursor is past the end of the file
     pub(crate) fn at_end(&mut self) -> bool {
         self.peek().is_none()
     }
