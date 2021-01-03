@@ -1,4 +1,6 @@
 //! Concrete Syntax Tree for the Turing language
+pub mod ast;
+
 use num_traits::{FromPrimitive, ToPrimitive};
 use rowan::Language;
 use toc_scanner::token::TokenKind;
