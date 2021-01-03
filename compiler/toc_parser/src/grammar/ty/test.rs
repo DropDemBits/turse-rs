@@ -2129,32 +2129,32 @@ fn parse_record_type() {
     check(
         "type _ : record a : int end record",
         expect![[r#"
-        Root@0..34
-          TypeDecl@0..34
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RecordType@9..34
-              KwRecord@9..15 "record"
-              Whitespace@15..16 " "
-              RecordField@16..24
-                NameList@16..18
-                  Name@16..18
-                    Identifier@16..17 "a"
-                    Whitespace@17..18 " "
-                Colon@18..19 ":"
-                Whitespace@19..20 " "
-                PrimType@20..24
-                  KwInt@20..23 "int"
-                  Whitespace@23..24 " "
-              StmtEnd@24..34
-                KwEnd@24..27 "end"
-                Whitespace@27..28 " "
-                KwRecord@28..34 "record""#]],
+            Root@0..34
+              TypeDecl@0..34
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RecordType@9..34
+                  KwRecord@9..15 "record"
+                  Whitespace@15..16 " "
+                  RecordField@16..24
+                    NameList@16..18
+                      Name@16..18
+                        Identifier@16..17 "a"
+                        Whitespace@17..18 " "
+                    Colon@18..19 ":"
+                    Whitespace@19..20 " "
+                    PrimType@20..24
+                      KwInt@20..23 "int"
+                      Whitespace@23..24 " "
+                  EndGroup@24..34
+                    KwEnd@24..27 "end"
+                    Whitespace@27..28 " "
+                    KwRecord@28..34 "record""#]],
     );
 }
 
@@ -2219,7 +2219,7 @@ fn parse_record_type_many_fields() {
                     PrimType@71..79
                       KwInt@71..74 "int"
                       Whitespace@74..79 "\n    "
-                  StmtEnd@79..89
+                  EndGroup@79..89
                     KwEnd@79..82 "end"
                     Whitespace@82..83 " "
                     KwRecord@83..89 "record""#]],
@@ -2290,7 +2290,7 @@ fn parse_record_type_opt_semicolon() {
                       KwInt@73..76 "int"
                     Semicolon@76..77 ";"
                     Whitespace@77..82 "\n    "
-                  StmtEnd@82..92
+                  EndGroup@82..92
                     KwEnd@82..85 "end"
                     Whitespace@85..86 " "
                     KwRecord@86..92 "record""#]],
@@ -2303,22 +2303,22 @@ fn parse_record_type_empty() {
     check(
         "type _ : record end record",
         expect![[r#"
-        Root@0..26
-          TypeDecl@0..26
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RecordType@9..26
-              KwRecord@9..15 "record"
-              Whitespace@15..16 " "
-              StmtEnd@16..26
-                KwEnd@16..19 "end"
-                Whitespace@19..20 " "
-                KwRecord@20..26 "record""#]],
+            Root@0..26
+              TypeDecl@0..26
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RecordType@9..26
+                  KwRecord@9..15 "record"
+                  Whitespace@15..16 " "
+                  EndGroup@16..26
+                    KwEnd@16..19 "end"
+                    Whitespace@19..20 " "
+                    KwRecord@20..26 "record""#]],
     );
 }
 
@@ -2327,34 +2327,34 @@ fn recover_record_type_missing_last_name() {
     check(
         "type _ : record a, : int end record",
         expect![[r#"
-        Root@0..35
-          TypeDecl@0..35
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            RecordType@9..35
-              KwRecord@9..15 "record"
-              Whitespace@15..16 " "
-              RecordField@16..25
-                NameList@16..19
-                  Name@16..17
-                    Identifier@16..17 "a"
-                  Comma@17..18 ","
-                  Whitespace@18..19 " "
-                Colon@19..20 ":"
-                Whitespace@20..21 " "
-                PrimType@21..25
-                  KwInt@21..24 "int"
-                  Whitespace@24..25 " "
-              StmtEnd@25..35
-                KwEnd@25..28 "end"
-                Whitespace@28..29 " "
-                KwRecord@29..35 "record"
-        error at 19..20: expected identifier, but found ’:’"#]],
+            Root@0..35
+              TypeDecl@0..35
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                RecordType@9..35
+                  KwRecord@9..15 "record"
+                  Whitespace@15..16 " "
+                  RecordField@16..25
+                    NameList@16..19
+                      Name@16..17
+                        Identifier@16..17 "a"
+                      Comma@17..18 ","
+                      Whitespace@18..19 " "
+                    Colon@19..20 ":"
+                    Whitespace@20..21 " "
+                    PrimType@21..25
+                      KwInt@21..24 "int"
+                      Whitespace@24..25 " "
+                  EndGroup@25..35
+                    KwEnd@25..28 "end"
+                    Whitespace@28..29 " "
+                    KwRecord@29..35 "record"
+            error at 19..20: expected identifier, but found ’:’"#]],
     );
 }
 
@@ -2399,7 +2399,7 @@ fn parse_union_type() {
                       PrimType@38..42
                         KwInt@38..41 "int"
                         Whitespace@41..42 " "
-                  StmtEnd@42..51
+                  EndGroup@42..51
                     KwEnd@42..45 "end"
                     Whitespace@45..46 " "
                     KwUnion@46..51 "union""#]],
@@ -2411,29 +2411,29 @@ fn parse_empty_union() {
     check(
         "type _ : union : char of end union",
         expect![[r#"
-        Root@0..34
-          TypeDecl@0..34
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..34
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              Colon@15..16 ":"
-              Whitespace@16..17 " "
-              KwChar@17..22
-                KwChar@17..21 "char"
-                Whitespace@21..22 " "
-              KwOf@22..24 "of"
-              Whitespace@24..25 " "
-              StmtEnd@25..34
-                KwEnd@25..28 "end"
-                Whitespace@28..29 " "
-                KwUnion@29..34 "union""#]],
+            Root@0..34
+              TypeDecl@0..34
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..34
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  KwChar@17..22
+                    KwChar@17..21 "char"
+                    Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+                  Whitespace@24..25 " "
+                  EndGroup@25..34
+                    KwEnd@25..28 "end"
+                    Whitespace@28..29 " "
+                    KwUnion@29..34 "union""#]],
     );
 }
 
@@ -2497,7 +2497,7 @@ fn union_type_many_variants() {
                     Whitespace@61..62 " "
                     Colon@62..63 ":"
                     Whitespace@63..64 " "
-                  StmtEnd@64..73
+                  EndGroup@64..73
                     KwEnd@64..67 "end"
                     Whitespace@67..68 " "
                     KwUnion@68..73 "union""#]],
@@ -2509,38 +2509,38 @@ fn union_type_default_variant() {
     check(
         "type _ : union : 1..2 of label : end union",
         expect![[r#"
-        Root@0..42
-          TypeDecl@0..42
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..42
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              Colon@15..16 ":"
-              Whitespace@16..17 " "
-              RangeType@17..22
-                LiteralExpr@17..18
-                  IntLiteral@17..18 "1"
-                Range@18..20 ".."
-                LiteralExpr@20..22
-                  IntLiteral@20..21 "2"
-                  Whitespace@21..22 " "
-              KwOf@22..24 "of"
-              Whitespace@24..25 " "
-              UnionVariant@25..33
-                KwLabel@25..30 "label"
-                Whitespace@30..31 " "
-                Colon@31..32 ":"
-                Whitespace@32..33 " "
-              StmtEnd@33..42
-                KwEnd@33..36 "end"
-                Whitespace@36..37 " "
-                KwUnion@37..42 "union""#]],
+            Root@0..42
+              TypeDecl@0..42
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..42
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  RangeType@17..22
+                    LiteralExpr@17..18
+                      IntLiteral@17..18 "1"
+                    Range@18..20 ".."
+                    LiteralExpr@20..22
+                      IntLiteral@20..21 "2"
+                      Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+                  Whitespace@24..25 " "
+                  UnionVariant@25..33
+                    KwLabel@25..30 "label"
+                    Whitespace@30..31 " "
+                    Colon@31..32 ":"
+                    Whitespace@32..33 " "
+                  EndGroup@33..42
+                    KwEnd@33..36 "end"
+                    Whitespace@36..37 " "
+                    KwUnion@37..42 "union""#]],
     );
 }
 
@@ -2549,38 +2549,38 @@ fn recover_union_type_missing_label_colon() {
     check(
         "type _ : union : 1..2 of label end union",
         expect![[r#"
-        Root@0..40
-          TypeDecl@0..40
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..40
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              Colon@15..16 ":"
-              Whitespace@16..17 " "
-              RangeType@17..22
-                LiteralExpr@17..18
-                  IntLiteral@17..18 "1"
-                Range@18..20 ".."
-                LiteralExpr@20..22
-                  IntLiteral@20..21 "2"
-                  Whitespace@21..22 " "
-              KwOf@22..24 "of"
-              Whitespace@24..25 " "
-              UnionVariant@25..31
-                KwLabel@25..30 "label"
-                Whitespace@30..31 " "
-              StmtEnd@31..40
-                KwEnd@31..34 "end"
-                Whitespace@34..35 " "
-                KwUnion@35..40 "union"
-        error at 31..34: expected expression, but found ’end’
-        error at 31..34: expected ’:’, but found ’end’"#]],
+            Root@0..40
+              TypeDecl@0..40
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..40
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  RangeType@17..22
+                    LiteralExpr@17..18
+                      IntLiteral@17..18 "1"
+                    Range@18..20 ".."
+                    LiteralExpr@20..22
+                      IntLiteral@20..21 "2"
+                      Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+                  Whitespace@24..25 " "
+                  UnionVariant@25..31
+                    KwLabel@25..30 "label"
+                    Whitespace@30..31 " "
+                  EndGroup@31..40
+                    KwEnd@31..34 "end"
+                    Whitespace@34..35 " "
+                    KwUnion@35..40 "union"
+            error at 31..34: expected expression, but found ’end’
+            error at 31..34: expected ’:’, but found ’end’"#]],
     );
 }
 
@@ -2589,41 +2589,41 @@ fn recover_union_type_not_label() {
     check(
         "type _ : union : 1..2 of nope end union",
         expect![[r#"
-        Root@0..39
-          TypeDecl@0..34
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..34
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              Colon@15..16 ":"
-              Whitespace@16..17 " "
-              RangeType@17..22
-                LiteralExpr@17..18
-                  IntLiteral@17..18 "1"
-                Range@18..20 ".."
-                LiteralExpr@20..22
-                  IntLiteral@20..21 "2"
-                  Whitespace@21..22 " "
-              KwOf@22..24 "of"
-              Whitespace@24..25 " "
-              StmtEnd@25..34
-                Error@25..30
-                  Identifier@25..29 "nope"
-                  Whitespace@29..30 " "
-                Error@30..34
-                  KwEnd@30..33 "end"
-                  Whitespace@33..34 " "
-          Error@34..39
-            KwUnion@34..39 "union"
-        error at 25..29: expected ’label’ or ’end’, but found identifier
-        error at 30..33: expected ’union’, but found ’end’
-        error at 34..39: expected statement, but found ’union’"#]],
+            Root@0..39
+              TypeDecl@0..34
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..34
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  RangeType@17..22
+                    LiteralExpr@17..18
+                      IntLiteral@17..18 "1"
+                    Range@18..20 ".."
+                    LiteralExpr@20..22
+                      IntLiteral@20..21 "2"
+                      Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+                  Whitespace@24..25 " "
+                  EndGroup@25..34
+                    Error@25..30
+                      Identifier@25..29 "nope"
+                      Whitespace@29..30 " "
+                    Error@30..34
+                      KwEnd@30..33 "end"
+                      Whitespace@33..34 " "
+              Error@34..39
+                KwUnion@34..39 "union"
+            error at 25..29: expected ’label’ or ’end’, but found identifier
+            error at 30..33: expected ’union’, but found ’end’
+            error at 34..39: expected statement, but found ’union’"#]],
     );
 }
 
@@ -2632,32 +2632,32 @@ fn union_type_parse_tag_name() {
     check(
         "type _ : union taggged : boolean of end union",
         expect![[r#"
-        Root@0..45
-          TypeDecl@0..45
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..45
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              Name@15..23
-                Identifier@15..22 "taggged"
-                Whitespace@22..23 " "
-              Colon@23..24 ":"
-              Whitespace@24..25 " "
-              PrimType@25..33
-                KwBoolean@25..32 "boolean"
-                Whitespace@32..33 " "
-              KwOf@33..35 "of"
-              Whitespace@35..36 " "
-              StmtEnd@36..45
-                KwEnd@36..39 "end"
-                Whitespace@39..40 " "
-                KwUnion@40..45 "union""#]],
+            Root@0..45
+              TypeDecl@0..45
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..45
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Name@15..23
+                    Identifier@15..22 "taggged"
+                    Whitespace@22..23 " "
+                  Colon@23..24 ":"
+                  Whitespace@24..25 " "
+                  PrimType@25..33
+                    KwBoolean@25..32 "boolean"
+                    Whitespace@32..33 " "
+                  KwOf@33..35 "of"
+                  Whitespace@35..36 " "
+                  EndGroup@36..45
+                    KwEnd@36..39 "end"
+                    Whitespace@39..40 " "
+                    KwUnion@40..45 "union""#]],
     );
 }
 
@@ -2666,24 +2666,24 @@ fn recover_bare_union_type() {
     check(
         "type _ : union end union",
         expect![[r#"
-        Root@0..24
-          TypeDecl@0..24
-            KwType@0..4 "type"
-            Whitespace@4..5 " "
-            Name@5..7
-              Identifier@5..6 "_"
-              Whitespace@6..7 " "
-            Colon@7..8 ":"
-            Whitespace@8..9 " "
-            UnionType@9..24
-              KwUnion@9..14 "union"
-              Whitespace@14..15 " "
-              StmtEnd@15..24
-                KwEnd@15..18 "end"
-                Whitespace@18..19 " "
-                KwUnion@19..24 "union"
-        error at 15..18: expected identifier or ’:’, but found ’end’
-        error at 15..18: expected type specifier, but found ’end’
-        error at 15..18: expected ’of’, but found ’end’"#]],
+            Root@0..24
+              TypeDecl@0..24
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..24
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  EndGroup@15..24
+                    KwEnd@15..18 "end"
+                    Whitespace@18..19 " "
+                    KwUnion@19..24 "union"
+            error at 15..18: expected identifier or ’:’, but found ’end’
+            error at 15..18: expected type specifier, but found ’end’
+            error at 15..18: expected ’of’, but found ’end’"#]],
     );
 }

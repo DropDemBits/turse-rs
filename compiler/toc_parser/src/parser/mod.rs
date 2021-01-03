@@ -16,7 +16,12 @@ use std::rc::Rc;
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
-const STMT_START_RECOVERY_SET: &[TokenKind] = &[TokenKind::Var, TokenKind::Const, TokenKind::Type];
+const STMT_START_RECOVERY_SET: &[TokenKind] = &[
+    TokenKind::Var,
+    TokenKind::Const,
+    TokenKind::Type,
+    TokenKind::Begin,
+];
 
 pub(crate) struct Parser<'t, 'src> {
     source: Source<'t, 'src>,
