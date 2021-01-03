@@ -2,4 +2,8 @@
 
 members = [
     "compiler/toc",
+    "compiler/toc_dummy",
 ]
+
+[profile.release]
+debug = true
