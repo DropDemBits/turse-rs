@@ -31,8 +31,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
         }
     };
 
-    // Eat optional semicolon
-    p.eat(TokenKind::Semicolon);
+    // Eat optional semicolon (don't let it show up in the expected kinds)
+    p.hidden_eat(TokenKind::Semicolon);
 
     m
 }
