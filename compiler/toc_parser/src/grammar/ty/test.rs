@@ -2359,6 +2359,28 @@ fn recover_record_type_missing_last_name() {
 }
 
 #[test]
+fn recover_just_record() {
+    check(
+        "type _ : record",
+        expect![[r#"
+        Root@0..15
+          TypeDecl@0..15
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RecordType@9..15
+              KwRecord@9..15 "record"
+              EndGroup@15..15
+        error at 9..15: expected ’end’
+        error at 9..15: expected ’record’"#]],
+    );
+}
+
+#[test]
 fn parse_union_type() {
     check(
         "type _ : union : char of label 1: a : int end union",
@@ -2403,6 +2425,60 @@ fn parse_union_type() {
                     KwEnd@42..45 "end"
                     Whitespace@45..46 " "
                     KwUnion@46..51 "union""#]],
+    );
+}
+
+#[test]
+fn recover_just_union() {
+    check(
+        "type _ : union",
+        expect![[r#"
+        Root@0..14
+          TypeDecl@0..14
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..14
+              KwUnion@9..14 "union"
+              EndGroup@14..14
+        error at 9..14: expected identifier or ’:’
+        error at 9..14: expected type specifier
+        error at 9..14: expected ’of’
+        error at 9..14: expected ’label’ or ’end’
+        error at 9..14: expected ’union’"#]],
+    );
+}
+
+#[test]
+fn recover_just_union_head() {
+    check(
+        "type _ : union : boolean of",
+        expect![[r#"
+        Root@0..27
+          TypeDecl@0..27
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..27
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              Colon@15..16 ":"
+              Whitespace@16..17 " "
+              PrimType@17..25
+                KwBoolean@17..24 "boolean"
+                Whitespace@24..25 " "
+              KwOf@25..27 "of"
+              EndGroup@27..27
+        error at 25..27: expected ’label’ or ’end’
+        error at 25..27: expected ’union’"#]],
     );
 }
 
