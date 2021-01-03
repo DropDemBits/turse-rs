@@ -1400,3 +1400,568 @@ fn recover_on_block_stmt() {
         error at 9..14: expected expression, but found ’begin’"#]],
     );
 }
+
+#[test]
+fn parse_if_stmt() {
+    check(
+        "if true then var key : int end if",
+        expect![[r#"
+        Root@0..33
+          IfStmt@0..33
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..27
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              KwThen@8..12 "then"
+              Whitespace@12..13 " "
+              StmtList@13..27
+                ConstVarDecl@13..27
+                  KwVar@13..16 "var"
+                  Whitespace@16..17 " "
+                  NameList@17..21
+                    Name@17..21
+                      Identifier@17..20 "key"
+                      Whitespace@20..21 " "
+                  Colon@21..22 ":"
+                  Whitespace@22..23 " "
+                  PrimType@23..27
+                    KwInt@23..26 "int"
+                    Whitespace@26..27 " "
+            EndGroup@27..33
+              KwEnd@27..30 "end"
+              Whitespace@30..31 " "
+              KwIf@31..33 "if""#]],
+    );
+}
+
+#[test]
+fn parse_if_else() {
+    check(
+        "if true then else end if",
+        expect![[r#"
+        Root@0..24
+          IfStmt@0..24
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..18
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              KwThen@8..12 "then"
+              Whitespace@12..13 " "
+              StmtList@13..13
+              ElseStmt@13..18
+                KwElse@13..17 "else"
+                Whitespace@17..18 " "
+                StmtList@18..18
+            EndGroup@18..24
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              KwIf@22..24 "if""#]],
+    );
+}
+
+#[test]
+fn parse_if_elseif_else() {
+    check(
+        "if true then elsif true then else end if",
+        expect![[r#"
+        Root@0..40
+          IfStmt@0..40
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..34
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              KwThen@8..12 "then"
+              Whitespace@12..13 " "
+              StmtList@13..13
+              ElseifStmt@13..34
+                KwElsif@13..18 "elsif"
+                Whitespace@18..19 " "
+                IfBody@19..34
+                  LiteralExpr@19..24
+                    KwTrue@19..23 "true"
+                    Whitespace@23..24 " "
+                  KwThen@24..28 "then"
+                  Whitespace@28..29 " "
+                  StmtList@29..29
+                  ElseStmt@29..34
+                    KwElse@29..33 "else"
+                    Whitespace@33..34 " "
+                    StmtList@34..34
+            EndGroup@34..40
+              KwEnd@34..37 "end"
+              Whitespace@37..38 " "
+              KwIf@38..40 "if""#]],
+    );
+}
+
+#[test]
+fn parse_if_chained_alternates() {
+    check(
+        "if true then elseif true then elif true then end if",
+        expect![[r#"
+            Root@0..51
+              IfStmt@0..51
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..45
+                  LiteralExpr@3..8
+                    KwTrue@3..7 "true"
+                    Whitespace@7..8 " "
+                  KwThen@8..12 "then"
+                  Whitespace@12..13 " "
+                  StmtList@13..13
+                  ElseifStmt@13..45
+                    KwElseif@13..19 "elseif"
+                    Whitespace@19..20 " "
+                    IfBody@20..45
+                      LiteralExpr@20..25
+                        KwTrue@20..24 "true"
+                        Whitespace@24..25 " "
+                      KwThen@25..29 "then"
+                      Whitespace@29..30 " "
+                      StmtList@30..30
+                      ElseifStmt@30..45
+                        KwElif@30..34 "elif"
+                        Whitespace@34..35 " "
+                        IfBody@35..45
+                          LiteralExpr@35..40
+                            KwTrue@35..39 "true"
+                            Whitespace@39..40 " "
+                          KwThen@40..44 "then"
+                          Whitespace@44..45 " "
+                          StmtList@45..45
+                EndGroup@45..51
+                  KwEnd@45..48 "end"
+                  Whitespace@48..49 " "
+                  KwIf@49..51 "if""#]],
+    );
+}
+
+#[test]
+fn recover_if_stmt_missing_condition() {
+    check(
+        "if then end if",
+        expect![[r#"
+        Root@0..14
+          IfStmt@0..14
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..8
+              KwThen@3..7 "then"
+              Whitespace@7..8 " "
+              StmtList@8..8
+            EndGroup@8..14
+              KwEnd@8..11 "end"
+              Whitespace@11..12 " "
+              KwIf@12..14 "if"
+        error at 3..7: expected expression, but found ’then’"#]],
+    );
+}
+
+#[test]
+fn recover_if_stmt_missing_then() {
+    check(
+        "if true end if",
+        expect![[r#"
+        Root@0..14
+          IfStmt@0..14
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..8
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              StmtList@8..8
+            EndGroup@8..14
+              KwEnd@8..11 "end"
+              Whitespace@11..12 " "
+              KwIf@12..14 "if"
+        error at 8..11: expected ’then’, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_if_stmt_missing_end() {
+    check(
+        "if true then",
+        expect![[r#"
+        Root@0..12
+          IfStmt@0..12
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..12
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              KwThen@8..12 "then"
+              StmtList@12..12
+            EndGroup@12..12
+        error at 8..12: expected ’else’, ’elseif’, ’elsif’, ’elif’, ’endif’ or ’end’
+        error at 8..12: expected ’if’"#]],
+    );
+}
+
+#[test]
+fn parse_if_alternate_end() {
+    check(
+        "if true then endif",
+        expect![[r#"
+        Root@0..18
+          IfStmt@0..18
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..13
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              KwThen@8..12 "then"
+              Whitespace@12..13 " "
+              StmtList@13..13
+            EndGroup@13..18
+              KwEndIf@13..18 "endif""#]],
+    );
+}
+
+#[test]
+fn parse_elseif_stmt() {
+    check(
+        "elsif true then end if",
+        expect![[r#"
+        Root@0..22
+          ElseifStmt@0..22
+            KwElsif@0..5 "elsif"
+            Whitespace@5..6 " "
+            IfBody@6..16
+              LiteralExpr@6..11
+                KwTrue@6..10 "true"
+                Whitespace@10..11 " "
+              KwThen@11..15 "then"
+              Whitespace@15..16 " "
+              StmtList@16..16
+            EndGroup@16..22
+              KwEnd@16..19 "end"
+              Whitespace@19..20 " "
+              KwIf@20..22 "if""#]],
+    );
+}
+
+#[test]
+fn parse_elseif_alternates_stmt() {
+    check(
+        "elseif true then end if",
+        expect![[r#"
+        Root@0..23
+          ElseifStmt@0..23
+            KwElseif@0..6 "elseif"
+            Whitespace@6..7 " "
+            IfBody@7..17
+              LiteralExpr@7..12
+                KwTrue@7..11 "true"
+                Whitespace@11..12 " "
+              KwThen@12..16 "then"
+              Whitespace@16..17 " "
+              StmtList@17..17
+            EndGroup@17..23
+              KwEnd@17..20 "end"
+              Whitespace@20..21 " "
+              KwIf@21..23 "if""#]],
+    );
+    check(
+        "elif true then end if",
+        expect![[r#"
+        Root@0..21
+          ElseifStmt@0..21
+            KwElif@0..4 "elif"
+            Whitespace@4..5 " "
+            IfBody@5..15
+              LiteralExpr@5..10
+                KwTrue@5..9 "true"
+                Whitespace@9..10 " "
+              KwThen@10..14 "then"
+              Whitespace@14..15 " "
+              StmtList@15..15
+            EndGroup@15..21
+              KwEnd@15..18 "end"
+              Whitespace@18..19 " "
+              KwIf@19..21 "if""#]],
+    );
+}
+
+#[test]
+fn parse_elseif_alternate_end() {
+    check(
+        "elsif true then endif",
+        expect![[r#"
+        Root@0..21
+          ElseifStmt@0..21
+            KwElsif@0..5 "elsif"
+            Whitespace@5..6 " "
+            IfBody@6..16
+              LiteralExpr@6..11
+                KwTrue@6..10 "true"
+                Whitespace@10..11 " "
+              KwThen@11..15 "then"
+              Whitespace@15..16 " "
+              StmtList@16..16
+            EndGroup@16..21
+              KwEndIf@16..21 "endif""#]],
+    );
+}
+
+#[test]
+fn parse_chained_elseif_stmt() {
+    check(
+        r#"
+    elsif true then
+    elsif true then
+    else
+    end if"#,
+        expect![[r#"
+            Root@0..60
+              Whitespace@0..5 "\n    "
+              ElseifStmt@5..60
+                KwElsif@5..10 "elsif"
+                Whitespace@10..11 " "
+                IfBody@11..54
+                  LiteralExpr@11..16
+                    KwTrue@11..15 "true"
+                    Whitespace@15..16 " "
+                  KwThen@16..20 "then"
+                  Whitespace@20..25 "\n    "
+                  StmtList@25..25
+                  ElseifStmt@25..54
+                    KwElsif@25..30 "elsif"
+                    Whitespace@30..31 " "
+                    IfBody@31..54
+                      LiteralExpr@31..36
+                        KwTrue@31..35 "true"
+                        Whitespace@35..36 " "
+                      KwThen@36..40 "then"
+                      Whitespace@40..45 "\n    "
+                      StmtList@45..45
+                      ElseStmt@45..54
+                        KwElse@45..49 "else"
+                        Whitespace@49..54 "\n    "
+                        StmtList@54..54
+                EndGroup@54..60
+                  KwEnd@54..57 "end"
+                  Whitespace@57..58 " "
+                  KwIf@58..60 "if""#]],
+    );
+}
+
+#[test]
+fn parse_else_stmt() {
+    check(
+        "else end if",
+        expect![[r#"
+        Root@0..11
+          ElseStmt@0..11
+            KwElse@0..4 "else"
+            Whitespace@4..5 " "
+            StmtList@5..5
+            EndGroup@5..11
+              KwEnd@5..8 "end"
+              Whitespace@8..9 " "
+              KwIf@9..11 "if""#]],
+    )
+}
+
+#[test]
+fn recover_if_stmt_multiple_elses() {
+    check(
+        "if true then else else end if",
+        expect![[r#"
+        Root@0..29
+          IfStmt@0..29
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..29
+              LiteralExpr@3..8
+                KwTrue@3..7 "true"
+                Whitespace@7..8 " "
+              KwThen@8..12 "then"
+              Whitespace@12..13 " "
+              StmtList@13..13
+              ElseStmt@13..29
+                KwElse@13..17 "else"
+                Whitespace@17..18 " "
+                StmtList@18..29
+                  ElseStmt@18..29
+                    KwElse@18..22 "else"
+                    Whitespace@22..23 " "
+                    StmtList@23..23
+                    EndGroup@23..29
+                      KwEnd@23..26 "end"
+                      Whitespace@26..27 " "
+                      KwIf@27..29 "if"
+            EndGroup@29..29
+        error at 27..29: expected ’endif’ or ’end’
+        error at 27..29: expected ’if’"#]],
+    );
+}
+
+#[test]
+fn recover_on_if() {
+    check(
+        "var a := \nif true then end if",
+        expect![[r#"
+        Root@0..29
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          IfStmt@10..29
+            KwIf@10..12 "if"
+            Whitespace@12..13 " "
+            IfBody@13..23
+              LiteralExpr@13..18
+                KwTrue@13..17 "true"
+                Whitespace@17..18 " "
+              KwThen@18..22 "then"
+              Whitespace@22..23 " "
+              StmtList@23..23
+            EndGroup@23..29
+              KwEnd@23..26 "end"
+              Whitespace@26..27 " "
+              KwIf@27..29 "if"
+        error at 10..12: expected expression, but found ’if’"#]],
+    );
+}
+
+#[test]
+fn recover_on_else() {
+    check(
+        "var a := \nelse end if",
+        expect![[r#"
+        Root@0..21
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ElseStmt@10..21
+            KwElse@10..14 "else"
+            Whitespace@14..15 " "
+            StmtList@15..15
+            EndGroup@15..21
+              KwEnd@15..18 "end"
+              Whitespace@18..19 " "
+              KwIf@19..21 "if"
+        error at 10..14: expected expression, but found ’else’"#]],
+    );
+}
+
+#[test]
+fn recover_on_elseif() {
+    check(
+        "var a := \nelseif true then end if",
+        expect![[r#"
+        Root@0..33
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ElseifStmt@10..33
+            KwElseif@10..16 "elseif"
+            Whitespace@16..17 " "
+            IfBody@17..27
+              LiteralExpr@17..22
+                KwTrue@17..21 "true"
+                Whitespace@21..22 " "
+              KwThen@22..26 "then"
+              Whitespace@26..27 " "
+              StmtList@27..27
+            EndGroup@27..33
+              KwEnd@27..30 "end"
+              Whitespace@30..31 " "
+              KwIf@31..33 "if"
+        error at 10..16: expected expression, but found ’elseif’"#]],
+    );
+}
+
+#[test]
+fn recover_on_elsif() {
+    check(
+        "var a := \nelsif true then end if",
+        expect![[r#"
+        Root@0..32
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ElseifStmt@10..32
+            KwElsif@10..15 "elsif"
+            Whitespace@15..16 " "
+            IfBody@16..26
+              LiteralExpr@16..21
+                KwTrue@16..20 "true"
+                Whitespace@20..21 " "
+              KwThen@21..25 "then"
+              Whitespace@25..26 " "
+              StmtList@26..26
+            EndGroup@26..32
+              KwEnd@26..29 "end"
+              Whitespace@29..30 " "
+              KwIf@30..32 "if"
+        error at 10..15: expected expression, but found ’elsif’"#]],
+    );
+}
+
+#[test]
+fn recover_on_elif() {
+    check(
+        "var a := \nelif true then end if",
+        expect![[r#"
+        Root@0..31
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ElseifStmt@10..31
+            KwElif@10..14 "elif"
+            Whitespace@14..15 " "
+            IfBody@15..25
+              LiteralExpr@15..20
+                KwTrue@15..19 "true"
+                Whitespace@19..20 " "
+              KwThen@20..24 "then"
+              Whitespace@24..25 " "
+              StmtList@25..25
+            EndGroup@25..31
+              KwEnd@25..28 "end"
+              Whitespace@28..29 " "
+              KwIf@29..31 "if"
+        error at 10..14: expected expression, but found ’elif’"#]],
+    );
+}

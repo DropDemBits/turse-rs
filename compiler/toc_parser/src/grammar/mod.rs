@@ -28,7 +28,7 @@
 // | for_stmt
 // | loop_stmt
 // | exit_stmt
-// x if_stmt
+// - if_stmt
 // | case_stmt
 // - block_stmt
 // | invariant_stmt

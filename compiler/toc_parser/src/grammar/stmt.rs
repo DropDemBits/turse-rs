@@ -10,6 +10,11 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
             TokenKind::Type => { type_decl(p) }
+            TokenKind::If => { if_stmt(p) }
+            TokenKind::Elif,
+            TokenKind::Elsif,
+            TokenKind::Elseif => { elseif_stmt(p, true) } // recovery parse
+            TokenKind::Else => { else_stmt(p, true) } // recovery parse
             TokenKind::Begin => { block_stmt(p) }
             _ => expr::reference(p).and_then(|m| {
                 let m = m.precede(p);
@@ -157,13 +162,103 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::TypeDecl))
 }
 
+fn if_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::If));
+
+    let m = p.start();
+    p.bump(); // bump `if`
+
+    if_body(p);
+
+    // Eat `end if` or `endif`
+    eat_end_group(p, TokenKind::If, Some(TokenKind::EndIf));
+
+    Some(m.complete(p, SyntaxKind::IfStmt))
+}
+
+fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::EndIf, TokenKind::End, TokenKind::If], |p| {
+        // condition
+        p.with_extra_recovery(&[TokenKind::Then], |p| {
+            expr::expect_expr(p);
+            p.expect(TokenKind::Then);
+        });
+
+        // true_branch
+        stmt_list(
+            p,
+            Some(&[
+                TokenKind::Else,
+                TokenKind::Elseif,
+                TokenKind::Elsif,
+                TokenKind::Elif,
+                TokenKind::EndIf, // alternate ending
+            ]),
+        );
+
+        // false_branch
+        match_token!(|p| match {
+            TokenKind::Else => { else_stmt(p, false); }
+            TokenKind::Elseif, TokenKind::Elsif, TokenKind::Elif => { elseif_stmt(p, false); }
+            _ => { /* no false branch */ }
+        });
+    });
+
+    Some(m.complete(p, SyntaxKind::IfBody))
+}
+
+fn elseif_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Elseif) || p.at(TokenKind::Elsif) || p.at(TokenKind::Elif));
+
+    let m = p.start();
+
+    if p.eat(TokenKind::Elseif) || p.eat(TokenKind::Elif) {
+        // `elsif` is blessed version
+        // TODO: Warn of mistake token
+    } else {
+        // nom `elsif`
+        p.bump();
+    }
+
+    if_body(p);
+
+    if eat_tail {
+        // Eat `end if` or `endif`
+        eat_end_group(p, TokenKind::If, Some(TokenKind::EndIf));
+    }
+
+    Some(m.complete(p, SyntaxKind::ElseifStmt))
+}
+
+fn else_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Else));
+
+    let m = p.start();
+    p.bump();
+
+    let stop_on_kind = &[TokenKind::EndIf, TokenKind::End, TokenKind::If];
+
+    p.with_extra_recovery(stop_on_kind, |p| {
+        self::stmt_list(p, Some(&[TokenKind::EndIf, TokenKind::End, TokenKind::If]))
+    });
+
+    if eat_tail {
+        // Eat `end if` or `endif`
+        eat_end_group(p, TokenKind::If, Some(TokenKind::EndIf));
+    }
+
+    Some(m.complete(p, SyntaxKind::ElseStmt))
+}
+
 fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Begin));
 
     let m = p.start(); // BlockStmt
     p.bump();
 
-    self::stmt_list(p);
+    self::stmt_list(p, None);
 
     // end group
     let m_end = p.start();
@@ -173,17 +268,40 @@ fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::BlockStmt))
 }
 
-/// Parses stmts until the first `end` is reached
-fn stmt_list(p: &mut Parser) -> Option<CompletedMarker> {
+/// Parses stmts until the first `end` is reached, or until any `TokenKind` in
+/// `excluding` is reached
+fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<CompletedMarker> {
     let m = p.start();
 
+    let at_excluded_set = |p: &mut Parser| {
+        if let Some(excluded) = excluding {
+            excluded.iter().any(|kind| p.at(*kind))
+        } else {
+            false
+        }
+    };
+
     p.with_extra_recovery(&[TokenKind::End], |p| {
-        while !p.at(TokenKind::End) {
+        while !p.at_end() && !p.at(TokenKind::End) && !at_excluded_set(p) {
             stmt::stmt(p);
         }
     });
 
     Some(m.complete(p, SyntaxKind::StmtList))
+}
+
+/// Eats the end group with corresponding `tail` token, or eats the combined variant
+fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
+    let m = p.start();
+
+    if combined.map(|kind| p.eat(kind)).unwrap_or(false) {
+        // TODO: Warn of mistake token
+    } else {
+        p.expect(TokenKind::End);
+        p.expect(tail);
+    }
+
+    m.complete(p, SyntaxKind::EndGroup);
 }
 
 fn attr_pervasive(p: &mut Parser) {

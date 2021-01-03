@@ -20,6 +20,11 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Var,
     TokenKind::Const,
     TokenKind::Type,
+    TokenKind::If,
+    TokenKind::Elif,
+    TokenKind::Elsif,
+    TokenKind::Elseif,
+    TokenKind::Else,
     TokenKind::Begin,
 ];
 
