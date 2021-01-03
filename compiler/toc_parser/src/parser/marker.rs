@@ -50,6 +50,12 @@ impl Marker {
     }
 
     /// Abandons the marker, disposing of the past node
+    ///
+    /// # Deprecated
+    /// The Parser API is being simplified, but is currently in flux.
+    /// Once all nodes are parsed, all deprecated items will be removed
+    #[deprecated = "should try to migrate the marker start instead"]
+    #[allow(unused)]
     pub(crate) fn forget(mut self, parser: &mut Parser) {
         self.bomb.defuse();
 

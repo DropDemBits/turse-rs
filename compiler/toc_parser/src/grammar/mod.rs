@@ -117,13 +117,13 @@ pub(crate) fn root(p: &mut Parser) -> CompletedMarker {
 }
 
 pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
-    let m = p.start();
-
-    if p.expect(TokenKind::Identifier) {
+    if p.at(TokenKind::Identifier) {
+        let m = p.start();
+        p.bump();
         Some(m.complete(p, SyntaxKind::Name))
     } else {
-        // not found, drop marker
-        m.forget(p);
+        // not found
+        p.error(None);
         None
     }
 }
