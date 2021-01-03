@@ -2123,3 +2123,567 @@ fn recover_proc_type_constvar_missing_ty() {
         error at 27..28: expected type specifier, but found ’)’"#]],
     );
 }
+
+#[test]
+fn parse_record_type() {
+    check(
+        "type _ : record a : int end record",
+        expect![[r#"
+        Root@0..34
+          TypeDecl@0..34
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RecordType@9..34
+              KwRecord@9..15 "record"
+              Whitespace@15..16 " "
+              RecordField@16..24
+                NameList@16..18
+                  Name@16..18
+                    Identifier@16..17 "a"
+                    Whitespace@17..18 " "
+                Colon@18..19 ":"
+                Whitespace@19..20 " "
+                PrimType@20..24
+                  KwInt@20..23 "int"
+                  Whitespace@23..24 " "
+              StmtEnd@24..34
+                KwEnd@24..27 "end"
+                Whitespace@27..28 " "
+                KwRecord@28..34 "record""#]],
+    );
+}
+
+#[test]
+fn parse_record_type_many_fields() {
+    check(
+        r#"
+    type _ : record
+        a : int
+        b, c, d : int
+        e : int
+    end record"#,
+        expect![[r#"
+            Root@0..89
+              Whitespace@0..5 "\n    "
+              TypeDecl@5..89
+                KwType@5..9 "type"
+                Whitespace@9..10 " "
+                Name@10..12
+                  Identifier@10..11 "_"
+                  Whitespace@11..12 " "
+                Colon@12..13 ":"
+                Whitespace@13..14 " "
+                RecordType@14..89
+                  KwRecord@14..20 "record"
+                  Whitespace@20..29 "\n        "
+                  RecordField@29..45
+                    NameList@29..31
+                      Name@29..31
+                        Identifier@29..30 "a"
+                        Whitespace@30..31 " "
+                    Colon@31..32 ":"
+                    Whitespace@32..33 " "
+                    PrimType@33..45
+                      KwInt@33..36 "int"
+                      Whitespace@36..45 "\n        "
+                  RecordField@45..67
+                    NameList@45..53
+                      Name@45..46
+                        Identifier@45..46 "b"
+                      Comma@46..47 ","
+                      Whitespace@47..48 " "
+                      Name@48..49
+                        Identifier@48..49 "c"
+                      Comma@49..50 ","
+                      Whitespace@50..51 " "
+                      Name@51..53
+                        Identifier@51..52 "d"
+                        Whitespace@52..53 " "
+                    Colon@53..54 ":"
+                    Whitespace@54..55 " "
+                    PrimType@55..67
+                      KwInt@55..58 "int"
+                      Whitespace@58..67 "\n        "
+                  RecordField@67..79
+                    NameList@67..69
+                      Name@67..69
+                        Identifier@67..68 "e"
+                        Whitespace@68..69 " "
+                    Colon@69..70 ":"
+                    Whitespace@70..71 " "
+                    PrimType@71..79
+                      KwInt@71..74 "int"
+                      Whitespace@74..79 "\n    "
+                  StmtEnd@79..89
+                    KwEnd@79..82 "end"
+                    Whitespace@82..83 " "
+                    KwRecord@83..89 "record""#]],
+    );
+}
+
+#[test]
+fn parse_record_type_opt_semicolon() {
+    check(
+        r#"
+    type _ : record
+        a : int;
+        b, c, d : int;
+        e : int;
+    end record"#,
+        expect![[r#"
+            Root@0..92
+              Whitespace@0..5 "\n    "
+              TypeDecl@5..92
+                KwType@5..9 "type"
+                Whitespace@9..10 " "
+                Name@10..12
+                  Identifier@10..11 "_"
+                  Whitespace@11..12 " "
+                Colon@12..13 ":"
+                Whitespace@13..14 " "
+                RecordType@14..92
+                  KwRecord@14..20 "record"
+                  Whitespace@20..29 "\n        "
+                  RecordField@29..46
+                    NameList@29..31
+                      Name@29..31
+                        Identifier@29..30 "a"
+                        Whitespace@30..31 " "
+                    Colon@31..32 ":"
+                    Whitespace@32..33 " "
+                    PrimType@33..36
+                      KwInt@33..36 "int"
+                    Semicolon@36..37 ";"
+                    Whitespace@37..46 "\n        "
+                  RecordField@46..69
+                    NameList@46..54
+                      Name@46..47
+                        Identifier@46..47 "b"
+                      Comma@47..48 ","
+                      Whitespace@48..49 " "
+                      Name@49..50
+                        Identifier@49..50 "c"
+                      Comma@50..51 ","
+                      Whitespace@51..52 " "
+                      Name@52..54
+                        Identifier@52..53 "d"
+                        Whitespace@53..54 " "
+                    Colon@54..55 ":"
+                    Whitespace@55..56 " "
+                    PrimType@56..59
+                      KwInt@56..59 "int"
+                    Semicolon@59..60 ";"
+                    Whitespace@60..69 "\n        "
+                  RecordField@69..82
+                    NameList@69..71
+                      Name@69..71
+                        Identifier@69..70 "e"
+                        Whitespace@70..71 " "
+                    Colon@71..72 ":"
+                    Whitespace@72..73 " "
+                    PrimType@73..76
+                      KwInt@73..76 "int"
+                    Semicolon@76..77 ";"
+                    Whitespace@77..82 "\n    "
+                  StmtEnd@82..92
+                    KwEnd@82..85 "end"
+                    Whitespace@85..86 " "
+                    KwRecord@86..92 "record""#]],
+    );
+}
+
+#[test]
+fn parse_record_type_empty() {
+    // Accepted, but semantically invalid
+    check(
+        "type _ : record end record",
+        expect![[r#"
+        Root@0..26
+          TypeDecl@0..26
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RecordType@9..26
+              KwRecord@9..15 "record"
+              Whitespace@15..16 " "
+              StmtEnd@16..26
+                KwEnd@16..19 "end"
+                Whitespace@19..20 " "
+                KwRecord@20..26 "record""#]],
+    );
+}
+
+#[test]
+fn recover_record_type_missing_last_name() {
+    check(
+        "type _ : record a, : int end record",
+        expect![[r#"
+        Root@0..35
+          TypeDecl@0..35
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            RecordType@9..35
+              KwRecord@9..15 "record"
+              Whitespace@15..16 " "
+              RecordField@16..25
+                NameList@16..19
+                  Name@16..17
+                    Identifier@16..17 "a"
+                  Comma@17..18 ","
+                  Whitespace@18..19 " "
+                Colon@19..20 ":"
+                Whitespace@20..21 " "
+                PrimType@21..25
+                  KwInt@21..24 "int"
+                  Whitespace@24..25 " "
+              StmtEnd@25..35
+                KwEnd@25..28 "end"
+                Whitespace@28..29 " "
+                KwRecord@29..35 "record"
+        error at 19..20: expected identifier, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn parse_union_type() {
+    check(
+        "type _ : union : char of label 1: a : int end union",
+        expect![[r#"
+            Root@0..51
+              TypeDecl@0..51
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..51
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  KwChar@17..22
+                    KwChar@17..21 "char"
+                    Whitespace@21..22 " "
+                  KwOf@22..24 "of"
+                  Whitespace@24..25 " "
+                  UnionVariant@25..42
+                    KwLabel@25..30 "label"
+                    Whitespace@30..31 " "
+                    LiteralExpr@31..32
+                      IntLiteral@31..32 "1"
+                    Colon@32..33 ":"
+                    Whitespace@33..34 " "
+                    RecordField@34..42
+                      NameList@34..36
+                        Name@34..36
+                          Identifier@34..35 "a"
+                          Whitespace@35..36 " "
+                      Colon@36..37 ":"
+                      Whitespace@37..38 " "
+                      PrimType@38..42
+                        KwInt@38..41 "int"
+                        Whitespace@41..42 " "
+                  StmtEnd@42..51
+                    KwEnd@42..45 "end"
+                    Whitespace@45..46 " "
+                    KwUnion@46..51 "union""#]],
+    );
+}
+
+#[test]
+fn parse_empty_union() {
+    check(
+        "type _ : union : char of end union",
+        expect![[r#"
+        Root@0..34
+          TypeDecl@0..34
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..34
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              Colon@15..16 ":"
+              Whitespace@16..17 " "
+              KwChar@17..22
+                KwChar@17..21 "char"
+                Whitespace@21..22 " "
+              KwOf@22..24 "of"
+              Whitespace@24..25 " "
+              StmtEnd@25..34
+                KwEnd@25..28 "end"
+                Whitespace@28..29 " "
+                KwUnion@29..34 "union""#]],
+    );
+}
+
+#[test]
+fn union_type_many_variants() {
+    check(
+        "type _ : union : boolean of label 1, 2: a : int b : int label : end union",
+        expect![[r#"
+            Root@0..73
+              TypeDecl@0..73
+                KwType@0..4 "type"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                Colon@7..8 ":"
+                Whitespace@8..9 " "
+                UnionType@9..73
+                  KwUnion@9..14 "union"
+                  Whitespace@14..15 " "
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  PrimType@17..25
+                    KwBoolean@17..24 "boolean"
+                    Whitespace@24..25 " "
+                  KwOf@25..27 "of"
+                  Whitespace@27..28 " "
+                  UnionVariant@28..56
+                    KwLabel@28..33 "label"
+                    Whitespace@33..34 " "
+                    LiteralExpr@34..35
+                      IntLiteral@34..35 "1"
+                    Comma@35..36 ","
+                    Whitespace@36..37 " "
+                    LiteralExpr@37..38
+                      IntLiteral@37..38 "2"
+                    Colon@38..39 ":"
+                    Whitespace@39..40 " "
+                    RecordField@40..48
+                      NameList@40..42
+                        Name@40..42
+                          Identifier@40..41 "a"
+                          Whitespace@41..42 " "
+                      Colon@42..43 ":"
+                      Whitespace@43..44 " "
+                      PrimType@44..48
+                        KwInt@44..47 "int"
+                        Whitespace@47..48 " "
+                    RecordField@48..56
+                      NameList@48..50
+                        Name@48..50
+                          Identifier@48..49 "b"
+                          Whitespace@49..50 " "
+                      Colon@50..51 ":"
+                      Whitespace@51..52 " "
+                      PrimType@52..56
+                        KwInt@52..55 "int"
+                        Whitespace@55..56 " "
+                  UnionVariant@56..64
+                    KwLabel@56..61 "label"
+                    Whitespace@61..62 " "
+                    Colon@62..63 ":"
+                    Whitespace@63..64 " "
+                  StmtEnd@64..73
+                    KwEnd@64..67 "end"
+                    Whitespace@67..68 " "
+                    KwUnion@68..73 "union""#]],
+    );
+}
+
+#[test]
+fn union_type_default_variant() {
+    check(
+        "type _ : union : 1..2 of label : end union",
+        expect![[r#"
+        Root@0..42
+          TypeDecl@0..42
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..42
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              Colon@15..16 ":"
+              Whitespace@16..17 " "
+              RangeType@17..22
+                LiteralExpr@17..18
+                  IntLiteral@17..18 "1"
+                Range@18..20 ".."
+                LiteralExpr@20..22
+                  IntLiteral@20..21 "2"
+                  Whitespace@21..22 " "
+              KwOf@22..24 "of"
+              Whitespace@24..25 " "
+              UnionVariant@25..33
+                KwLabel@25..30 "label"
+                Whitespace@30..31 " "
+                Colon@31..32 ":"
+                Whitespace@32..33 " "
+              StmtEnd@33..42
+                KwEnd@33..36 "end"
+                Whitespace@36..37 " "
+                KwUnion@37..42 "union""#]],
+    );
+}
+
+#[test]
+fn recover_union_type_missing_label_colon() {
+    check(
+        "type _ : union : 1..2 of label end union",
+        expect![[r#"
+        Root@0..40
+          TypeDecl@0..40
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..40
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              Colon@15..16 ":"
+              Whitespace@16..17 " "
+              RangeType@17..22
+                LiteralExpr@17..18
+                  IntLiteral@17..18 "1"
+                Range@18..20 ".."
+                LiteralExpr@20..22
+                  IntLiteral@20..21 "2"
+                  Whitespace@21..22 " "
+              KwOf@22..24 "of"
+              Whitespace@24..25 " "
+              UnionVariant@25..31
+                KwLabel@25..30 "label"
+                Whitespace@30..31 " "
+              StmtEnd@31..40
+                KwEnd@31..34 "end"
+                Whitespace@34..35 " "
+                KwUnion@35..40 "union"
+        error at 31..34: expected expression, but found ’end’
+        error at 31..34: expected ’:’, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_union_type_not_label() {
+    check(
+        "type _ : union : 1..2 of nope end union",
+        expect![[r#"
+        Root@0..39
+          TypeDecl@0..34
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..34
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              Colon@15..16 ":"
+              Whitespace@16..17 " "
+              RangeType@17..22
+                LiteralExpr@17..18
+                  IntLiteral@17..18 "1"
+                Range@18..20 ".."
+                LiteralExpr@20..22
+                  IntLiteral@20..21 "2"
+                  Whitespace@21..22 " "
+              KwOf@22..24 "of"
+              Whitespace@24..25 " "
+              StmtEnd@25..34
+                Error@25..30
+                  Identifier@25..29 "nope"
+                  Whitespace@29..30 " "
+                Error@30..34
+                  KwEnd@30..33 "end"
+                  Whitespace@33..34 " "
+          Error@34..39
+            KwUnion@34..39 "union"
+        error at 25..29: expected ’label’ or ’end’, but found identifier
+        error at 30..33: expected ’union’, but found ’end’
+        error at 34..39: expected statement, but found ’union’"#]],
+    );
+}
+
+#[test]
+fn union_type_parse_tag_name() {
+    check(
+        "type _ : union taggged : boolean of end union",
+        expect![[r#"
+        Root@0..45
+          TypeDecl@0..45
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..45
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              Name@15..23
+                Identifier@15..22 "taggged"
+                Whitespace@22..23 " "
+              Colon@23..24 ":"
+              Whitespace@24..25 " "
+              PrimType@25..33
+                KwBoolean@25..32 "boolean"
+                Whitespace@32..33 " "
+              KwOf@33..35 "of"
+              Whitespace@35..36 " "
+              StmtEnd@36..45
+                KwEnd@36..39 "end"
+                Whitespace@39..40 " "
+                KwUnion@40..45 "union""#]],
+    );
+}
+
+#[test]
+fn recover_bare_union_type() {
+    check(
+        "type _ : union end union",
+        expect![[r#"
+        Root@0..24
+          TypeDecl@0..24
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            UnionType@9..24
+              KwUnion@9..14 "union"
+              Whitespace@14..15 " "
+              StmtEnd@15..24
+                KwEnd@15..18 "end"
+                Whitespace@18..19 " "
+                KwUnion@19..24 "union"
+        error at 15..18: expected identifier or ’:’, but found ’end’
+        error at 15..18: expected type specifier, but found ’end’
+        error at 15..18: expected ’of’, but found ’end’"#]],
+    );
+}

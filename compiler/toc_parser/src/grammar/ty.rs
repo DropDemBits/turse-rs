@@ -16,8 +16,8 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Set => { set_type(p) } // set_type
             TokenKind::Procedure,
             TokenKind::Function => { subprog_type(p) } // subprog_type
-            TokenKind::Record => { todo!() } // record_type
-            TokenKind::Union => { todo!() } // union_type
+            TokenKind::Record => { record_type(p) } // record_type
+            TokenKind::Union => { union_type(p) } // union_type
             TokenKind::Collection => { collection_type(p) } // collection_type
             TokenKind::Priority,
             TokenKind::Deferred,
@@ -308,6 +308,109 @@ fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
     ty::ty(p);
 
     Some(m.complete(p, SyntaxKind::ParamDecl))
+}
+
+fn record_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Record));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        while !p.at(TokenKind::End) {
+            record_field(p);
+        }
+    });
+
+    let m_end = p.start();
+    p.expect(TokenKind::End);
+    p.expect(TokenKind::Record);
+    m_end.complete(p, SyntaxKind::EndGroup);
+
+    Some(m.complete(p, SyntaxKind::RecordType))
+}
+
+fn record_field(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Semicolon], |p| {
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            super::name_list(p);
+        });
+
+        p.expect(TokenKind::Colon);
+
+        ty::ty(p);
+    });
+
+    // Optional semicolon
+    p.eat(TokenKind::Semicolon);
+
+    Some(m.complete(p, SyntaxKind::RecordField))
+}
+
+fn union_type(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Union));
+
+    let m = p.start();
+    p.bump();
+
+    // optional: tag name
+    if p.at(TokenKind::Identifier) {
+        super::name(p);
+    }
+
+    p.with_extra_recovery(&[TokenKind::End, TokenKind::Label], |p| {
+        // range_ty
+        p.with_extra_recovery(&[TokenKind::Of], |p| {
+            p.expect(TokenKind::Colon);
+            ty::ty(p);
+        });
+
+        p.expect(TokenKind::Of);
+
+        // variants
+        while p.at(TokenKind::Label) {
+            union_variant(p);
+        }
+    });
+
+    let m_end = p.start();
+    p.expect(TokenKind::End);
+    p.expect(TokenKind::Union);
+    m_end.complete(p, SyntaxKind::EndGroup);
+
+    Some(m.complete(p, SyntaxKind::UnionType))
+}
+
+fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Label));
+
+    let m = p.start();
+    p.bump(); // bump `label`
+
+    if !p.at(TokenKind::Colon) {
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            // Expr list (optional)
+            if let Some(..) = expr::expect_expr(p) {
+                while p.eat(TokenKind::Comma) {
+                    expr::expect_expr(p);
+                }
+            }
+        });
+    }
+
+    p.expect(TokenKind::Colon);
+    // end of label portion
+
+    // Union fields
+    p.with_extra_recovery(&[TokenKind::End, TokenKind::Label], |p| {
+        while !(p.at(TokenKind::End) || p.at(TokenKind::Label)) {
+            record_field(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::UnionVariant))
 }
 
 fn collection_type(p: &mut Parser) -> Option<CompletedMarker> {

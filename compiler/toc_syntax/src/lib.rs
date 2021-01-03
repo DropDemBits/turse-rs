@@ -323,7 +323,7 @@ pub enum SyntaxKind {
     SizedStringType,
     SeqLength,
     RecordField,
-    UnionVariants,
+    UnionVariant,
     FcnType,
     ProcType,
     ParamDecl,
@@ -331,6 +331,7 @@ pub enum SyntaxKind {
     SubprogParam,
     ConditionKind,
     RangeList,
+    EndGroup,
 }
 
 impl From<TokenKind> for SyntaxKind {

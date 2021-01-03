@@ -78,8 +78,8 @@
 // - range_type
 // - set_type
 // - function_type / subprog_type
-// | record_type
-// | union_type
+// - record_type
+// - union_type
 // - collection_type
 // - condition_type
 
