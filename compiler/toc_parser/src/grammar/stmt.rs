@@ -32,19 +32,23 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
-    let m = p.start();
-
-    if p.eat(TokenKind::Equ) {
+    if p.at(TokenKind::Equ) {
         // Simple assignment, but mistyped `=` instead of `:=`
         // TODO: Warn about mistakes like this
+
+        let m = p.start();
+        p.bump(); // bump `=`
         return Some(m.complete(p, SyntaxKind::AsnOp));
     }
 
     // Reset expected tokens to drop `=`
     p.reset_expected_tokens();
 
-    if p.eat(TokenKind::Assign) {
+    if p.at(TokenKind::Assign) {
         // Simple assignment
+        let m = p.start();
+        p.bump(); // bump `:=`
+        Some(m.complete(p, SyntaxKind::AsnOp))
     } else {
         // Compound assignment
         let valid_asn_op = match_token!(|p| match {
@@ -69,9 +73,10 @@ fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
 
         if !valid_asn_op {
             // abandon parsing as compound op
-            m.forget(p);
             return None;
         }
+
+        let m = p.start();
 
         // bump operator
         p.bump();
@@ -85,9 +90,8 @@ fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
 
         // bump equ
         p.bump();
+        Some(m.complete(p, SyntaxKind::AsnOp))
     }
-
-    Some(m.complete(p, SyntaxKind::AsnOp))
 }
 
 fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
