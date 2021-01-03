@@ -1,8 +1,10 @@
-#![no_main]
-use libfuzzer_sys::fuzz_target;
+#[macro_use]
+extern crate afl;
 
-fuzz_target!(|data: &[u8]| {
-    if let Ok(s) = std::str::from_utf8(data) {
-        let _ = toc_parser::parse(s);
-    }
-});
+fn main() {
+    fuzz!(|data: &[u8]| {
+        if let Ok(s) = std::str::from_utf8(data) {
+            let _ = toc_parser::parse(s);
+        }
+    });
+}
