@@ -2015,3 +2015,81 @@ fn recover_on_elif() {
             error at 10..14: expected expression, but found ’elif’"#]],
     );
 }
+
+#[test]
+fn recover_begin_missing_end_in_if() {
+    check(
+        "if 0 then begin endif",
+        expect![[r#"
+        Source@0..21
+          IfStmt@0..21
+            KwIf@0..2 "if"
+            Whitespace@2..3 " "
+            IfBody@3..16
+              LiteralExpr@3..5
+                IntLiteral@3..4 "0"
+                Whitespace@4..5 " "
+              KwThen@5..9 "then"
+              Whitespace@9..10 " "
+              StmtList@10..16
+                BlockStmt@10..16
+                  KwBegin@10..15 "begin"
+                  Whitespace@15..16 " "
+                  StmtList@16..16
+                  EndGroup@16..16
+            EndGroup@16..21
+              KwEndIf@16..21 "endif"
+        error at 16..21: expected ’end’, but found ’endif’"#]],
+    );
+}
+
+#[test]
+fn recover_begin_with_endloop() {
+    check(
+        "begin endloop",
+        expect![[r#"
+        Source@0..13
+          BlockStmt@0..13
+            KwBegin@0..5 "begin"
+            Whitespace@5..6 " "
+            StmtList@6..6
+            EndGroup@6..13
+              Error@6..13
+                KwEndLoop@6..13 "endloop"
+        error at 6..13: expected ’end’, but found ’endloop’"#]],
+    );
+}
+
+#[test]
+fn recover_begin_with_endfor() {
+    check(
+        "begin endfor",
+        expect![[r#"
+        Source@0..12
+          BlockStmt@0..12
+            KwBegin@0..5 "begin"
+            Whitespace@5..6 " "
+            StmtList@6..6
+            EndGroup@6..12
+              Error@6..12
+                KwEndFor@6..12 "endfor"
+        error at 6..12: expected ’end’, but found ’endfor’"#]],
+    );
+}
+
+#[test]
+fn recover_begin_with_endcase() {
+    check(
+        "begin endcase",
+        expect![[r#"
+        Source@0..13
+          BlockStmt@0..13
+            KwBegin@0..5 "begin"
+            Whitespace@5..6 " "
+            StmtList@6..6
+            EndGroup@6..13
+              Error@6..13
+                KwEndCase@6..13 "endcase"
+        error at 6..13: expected ’end’, but found ’endcase’"#]],
+    );
+}
