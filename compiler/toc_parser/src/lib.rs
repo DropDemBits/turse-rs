@@ -68,14 +68,14 @@ mod test {
 
     #[test]
     fn parse_empty_file() {
-        check("", expect![[r#"Root@0..0"#]])
+        check("", expect![[r#"Source@0..0"#]])
     }
 
     #[test]
     #[rustfmt::skip]
     fn parse_whitespace() {
         check("   \t\n   ", expect![[r#"
-            Root@0..8
+            Source@0..8
               Whitespace@0..8 "   \t\n   ""#]]);
     }
 
@@ -83,7 +83,7 @@ mod test {
     #[rustfmt::skip]
     fn parse_line_comment() {
         check("% hello", expect![[r#"
-            Root@0..7
+            Source@0..7
               Comment@0..7 "% hello""#]]);
     }
 
@@ -91,7 +91,7 @@ mod test {
     #[rustfmt::skip]
     fn parse_block_comment() {
         check("/* hello */", expect![[r#"
-            Root@0..11
+            Source@0..11
               Comment@0..11 "/* hello */""#]]);
     }
 }
