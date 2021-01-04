@@ -199,7 +199,6 @@ fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
                 TokenKind::Elseif,
                 TokenKind::Elsif,
                 TokenKind::Elif,
-                TokenKind::EndIf, // alternate ending
             ]),
         );
 
@@ -245,9 +244,7 @@ fn else_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
 
     let stop_on_kind = &[TokenKind::EndIf, TokenKind::End, TokenKind::If];
 
-    p.with_extra_recovery(stop_on_kind, |p| {
-        self::stmt_list(p, Some(&[TokenKind::EndIf, TokenKind::End, TokenKind::If]))
-    });
+    p.with_extra_recovery(stop_on_kind, |p| self::stmt_list(p, Some(&[TokenKind::If])));
 
     if eat_tail {
         // Eat `end if` or `endif`
@@ -287,7 +284,7 @@ fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<Complete
     };
 
     p.with_extra_recovery(&[TokenKind::End], |p| {
-        while !p.at_end() && !p.at(TokenKind::End) && !at_excluded_set(p) {
+        while !p.at_end() && !at_stmt_block_end(p) && !at_excluded_set(p) {
             stmt::stmt(p);
         }
     });
@@ -325,4 +322,19 @@ fn attr_register(p: &mut Parser) {
         // dont clog up the expected tokens with the attributes
         p.reset_expected_tokens();
     }
+}
+
+fn at_stmt_block_end(p: &mut Parser) -> bool {
+    match_token!(|p| match {
+        TokenKind::End,
+        TokenKind::EndIf,
+        TokenKind::EndCase,
+        TokenKind::EndFor,
+        TokenKind::EndLoop => {
+            // hide the checks
+            p.reset_expected_tokens();
+            true
+        }
+        _ => { false }
+    })
 }
