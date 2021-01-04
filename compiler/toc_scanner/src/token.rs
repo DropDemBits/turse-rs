@@ -1,8 +1,13 @@
 //! Token related items
+use super::ErrorFerry;
+pub use text_size::TextRange as TokenRange;
+
 use logos::Logos;
+use std::convert::TryFrom;
 use std::fmt;
 use std::iter::Peekable;
-pub use text_size::TextRange as TokenRange;
+use std::ops::Range;
+use text_size::TextSize;
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'src> {
@@ -23,6 +28,7 @@ impl<'s> Token<'s> {
 
 /// All Tokens scanned by the Scanner
 #[derive(Logos, Debug, Copy, Clone, PartialEq, Eq)]
+#[logos(extras = ErrorFerry)]
 #[repr(u16)]
 pub enum TokenKind {
     // Character Tokens
@@ -328,9 +334,9 @@ pub enum TokenKind {
     // Literals
     #[regex("[[:alpha:]_][[:alnum:]_]*")]
     Identifier,
-    #[regex("'[^\r\n']*('?)")]
+    #[regex("'[^\r\n']*('?)", check_char_literal)]
     CharLiteral,
-    #[regex("\"[^\r\n\"]*(\"?)")]
+    #[regex("\"[^\r\n\"]*(\"?)", check_string_literal)]
     StringLiteral,
     #[regex("\\.?[[:digit:]]+", nom_number_literal)]
     NumberLiteral(NumberKind),
@@ -397,6 +403,30 @@ fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
     lex.bump(bump_len);
 }
 
+fn check_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
+    let slice: &str = lexer.slice();
+    let range = lexer.span();
+
+    if !slice.ends_with('\'') {
+        // report error!
+        lexer
+            .extras
+            .push_error("char literal ends at the end of the line", range);
+    }
+}
+
+fn check_string_literal(lexer: &mut logos::Lexer<TokenKind>) {
+    let slice: &str = lexer.slice();
+    let range = lexer.span();
+
+    if !slice.ends_with('"') {
+        // report error!
+        lexer
+            .extras
+            .push_error("string literal ends at the end of the line", range);
+    }
+}
+
 fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
     /// Maybe noms on a character
     fn maybe_nom(
@@ -416,7 +446,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
     fn maybe_nom_decimals(
         chars: &mut Peekable<impl Iterator<Item = char>>,
         lexer: &mut logos::Lexer<TokenKind>,
-    ) {
+    ) -> bool {
         let mut bump_count = 0;
 
         while chars
@@ -429,6 +459,8 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
         }
 
         lexer.bump(bump_count);
+
+        bump_count > 0
     }
 
     // previous set of chars is a sequence of decimal digits, maybe prefixed
@@ -438,7 +470,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
     let remainder: &str = lexer.remainder();
     let mut remaining = remainder.chars().peekable();
 
-    match remaining.next() {
+    let kind = match remaining.next() {
         Some('.') if !is_fractional_part && !matches!(remaining.peek(), Some('.')) => {
             // Don't consume if we're already the fractional part, or the dot is part of a '..'
 
@@ -477,7 +509,103 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
         }
         _ if is_fractional_part => NumberKind::Real,
         _ => NumberKind::Int,
+    };
+
+    // Validate literal
+    match kind {
+        NumberKind::Real => {
+            // Check that the real literal is valid
+            let value = lexical::parse_lossy::<f64, _>(&lexer.slice());
+            match value {
+                Ok(num) if num.is_infinite() => lexer
+                    .extras
+                    .push_error("real literal is too large", lexer.span()),
+                Ok(num) if num.is_nan() => lexer
+                    .extras
+                    .push_error("invalid real literal", lexer.span()),
+                Err(err) => match err.code {
+                    lexical::ErrorCode::Overflow => lexer
+                        .extras
+                        .push_error("real literal is too large", lexer.span()),
+                    lexical::ErrorCode::Underflow => lexer
+                        .extras
+                        .push_error("real literal is too small", lexer.span()),
+                    lexical::ErrorCode::EmptyExponent => lexer
+                        .extras
+                        .push_error("real literal is missing exponent digits", lexer.span()),
+                    _ => lexer
+                        .extras
+                        .push_error("invalid real literal", lexer.span()),
+                    // all other cases are protected by what is parsed, but still push out an error
+                },
+                Ok(_) => {}
+            }
+        }
+        NumberKind::Int => {
+            // Check that the int literal is valid
+            let value = lexical::parse::<u64, _>(&lexer.slice());
+            if let Err(err) = value {
+                match err.code {
+                    lexical::ErrorCode::Overflow => lexer
+                        .extras
+                        .push_error("int literal is too large", lexer.span()),
+                    _ => lexer.extras.push_error("invalid int literal", lexer.span()),
+                }
+            }
+        }
+        NumberKind::Radix => {
+            let slice: &str = lexer.slice();
+            let (radix_slice, digits_slice) = slice.split_at(slice.find('#').unwrap());
+            let digits_slice = &digits_slice[1..]; // skip over #
+
+            let radix = lexical::parse::<u8, _>(radix_slice);
+            match radix {
+                Ok(radix) if (2..=36).contains(&radix) => {
+                    // valid radix
+                    let value = lexical::parse_radix::<u64, _>(&digits_slice, radix);
+                    match value {
+                        Err(err) => match err.code {
+                            lexical::ErrorCode::Overflow => lexer
+                                .extras
+                                .push_error("explicit int literal is too large", lexer.span()),
+                            lexical::ErrorCode::InvalidDigit => {
+                                // Get the exact span of the invalid digit
+                                // account for width of the radix & '#'
+                                let start_slice = radix_slice.len() + 1 + err.index;
+                                let end_slice = start_slice + 1;
+
+                                // Chars are guarranteed to be in the ascii range
+                                assert!(lexer.slice().get(start_slice..end_slice).is_some());
+
+                                // Adjust based off of the offset of the span
+                                let start_slice = start_slice.saturating_add(lexer.span().start);
+                                let end_slice = end_slice.saturating_add(lexer.span().start);
+
+                                lexer.extras.push_error(
+                                    "invalid digit for the specified base",
+                                    start_slice..end_slice,
+                                )
+                            }
+                            lexical::ErrorCode::Empty => lexer.extras.push_error(
+                                "explicit int literal is missing radix digits",
+                                lexer.span(),
+                            ),
+                            _ => lexer.extras.push_error("invalid int literal", lexer.span()),
+                        },
+                        Ok(_) => { /* valid literal, don't do anything */ }
+                    }
+                }
+                _ => {
+                    // invalid radix value
+                    lexer
+                        .extras
+                        .push_error("base for int literal is not between 2 - 36", lexer.span())
+                }
+            }
+        }
     }
+
+    kind
 }
 
 impl TokenKind {
@@ -647,4 +775,12 @@ impl fmt::Display for TokenKind {
             _ => unreachable!(),
         })
     }
+}
+
+pub(super) fn span_to_text_range(span: Range<usize>) -> TokenRange {
+    let (start, end) = (
+        TextSize::try_from(span.start).unwrap(),
+        TextSize::try_from(span.end).unwrap(),
+    );
+    TokenRange::new(start, end)
 }
