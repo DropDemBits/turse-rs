@@ -64,10 +64,10 @@
 // - unary_expr
 // - paren_expr
 // - indirect_expr
-// | bits_expr
+// - bits_expr
 // | range_expr (used in string subscripting)
 // | cheat_expr
-// | objclass_expr
+// - objclass_expr
 
 // types
 // - primitive_type (including sized variants)
