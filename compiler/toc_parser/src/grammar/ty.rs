@@ -37,7 +37,9 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
                     }
                 }).or_else(|| {
                     // not a ty
-                    p.error(Expected::Type);
+                    p.error_unexpected()
+                        .with_category(Expected::Type)
+                        .report();
                     None
                 })
             }
@@ -125,7 +127,7 @@ fn array_type(p: &mut Parser) -> Option<CompletedMarker> {
     if p.eat(TokenKind::Flexible) {
         if !p.at(TokenKind::Array) {
             // stop, not an array type
-            p.error_unexpected_at(m, None);
+            p.error_unexpected().with_marker(m).report();
             return None;
         }
     }

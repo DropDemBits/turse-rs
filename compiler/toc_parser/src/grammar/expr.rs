@@ -23,7 +23,9 @@ pub(super) fn expect_expr_or_range_item(p: &mut Parser) -> Option<CompletedMarke
 fn expect_range_bound(p: &mut Parser) -> Option<CompletedMarker> {
     self::range_bound(p).or_else(|| self::expr(p)).or_else(|| {
         // not an appropriate primary expr or range bound
-        p.error(Expected::Expression);
+        p.error_unexpected()
+            .with_category(Expected::Expression)
+            .report();
         None
     })
 }
@@ -48,7 +50,9 @@ fn range_bound(p: &mut Parser) -> Option<CompletedMarker> {
 pub(super) fn expect_expr(p: &mut Parser) -> Option<CompletedMarker> {
     self::expr(p).or_else(|| {
         // not an appropriate primary expr
-        p.error(Expected::Expression);
+        p.error_unexpected()
+            .with_category(Expected::Expression)
+            .report();
         None
     })
 }
@@ -163,7 +167,9 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
                 let found_rhs = expr_binding_power(p, right_bind_power)
                     .or_else(|| {
                         // report missing expr
-                        p.error(Expected::Expression);
+                        p.error_unexpected()
+                            .with_category(Expected::Expression)
+                            .report();
                         None
                     })
                     .is_some();
@@ -203,7 +209,9 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
                     } else {
                         // '@' needed to form an indirection expr
                         let m = cm.precede(p);
-                        p.error_unexpected_at(m, None);
+                        p.error_unexpected()
+                            .with_marker(m)
+                            .report();
                         None
                     }
                 }).or_else(|| {
@@ -282,7 +290,7 @@ fn bits_expr(p: &mut Parser) -> Option<CompletedMarker> {
         // Eat a parameter list
         super::param_list(p);
     } else {
-        p.error(None);
+        p.error_unexpected().report();
     }
 
     Some(m.complete(p, SyntaxKind::BitsExpr))
@@ -298,7 +306,7 @@ fn objclass_expr(p: &mut Parser) -> Option<CompletedMarker> {
         // Eat a parameter list
         super::param_list(p);
     } else {
-        p.error(None);
+        p.error_unexpected().report();
     }
 
     Some(m.complete(p, SyntaxKind::ObjClassExpr))
@@ -492,7 +500,9 @@ pub(super) fn maybe_composite_not_op(p: &mut Parser) -> Option<BinaryOp> {
         },
         _ => {
             // "not" / "~" is not allowed as an infix operator
-            p.error_unexpected_at(m, None);
+            p.error_unexpected()
+                .with_marker(m)
+                .report();
             return None;
         }
     }))

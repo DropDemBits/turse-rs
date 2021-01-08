@@ -73,7 +73,9 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                 }
             }).or_else(|| {
                 // report as expecting a statement
-                p.error(Expected::Statement);
+                p.error_unexpected()
+                    .with_category(Expected::Statement)
+                    .report();
                 None
             }),
         }
@@ -166,7 +168,7 @@ fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
         if !p.at(TokenKind::Equ) {
             // not a valid asn op, missing equ
             // wrap inside of an error node
-            p.error_unexpected_at(m, None);
+            p.error_unexpected().with_marker(m).report();
             return None;
         }
 

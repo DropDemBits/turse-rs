@@ -2,6 +2,7 @@
 mod error;
 pub(crate) mod marker;
 
+use drop_bomb::DropBomb;
 pub(crate) use error::{Expected, ParseError};
 
 use crate::event::Event;
@@ -13,7 +14,7 @@ use crate::source::Source;
 use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
-use toc_scanner::token::{Token, TokenKind};
+use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 
 const STMT_START_RECOVERY_SET: &[TokenKind] = &[
@@ -114,16 +115,11 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Returns `true` if the expected token was found
     pub(crate) fn expect(&mut self, kind: TokenKind) -> bool {
         if !self.eat(kind) {
-            self.error(None);
+            self.error_unexpected().report();
             false
         } else {
             true
         }
-    }
-
-    /// Reports an unexpected token error at the next token
-    pub(crate) fn error(&mut self, category: impl Into<Option<Expected>>) {
-        self.error_unexpected_at(None, category);
     }
 
     /// Runs the parser with the extra recovery tokens
@@ -144,51 +140,9 @@ impl<'t, 'src> Parser<'t, 'src> {
         t
     }
 
-    /// Reports an unexpected token error at the given marker
-    pub(crate) fn error_unexpected_at(
-        &mut self,
-        err_at: impl Into<Option<Marker>>,
-        category: impl Into<Option<Expected>>,
-    ) {
-        let current = self.source.peek_token();
-
-        let (found, range) = if let Some(Token { kind, range, .. }) = current {
-            (Some(*kind), range.clone())
-        } else {
-            // Last token always exists in a non-empty file
-            (None, self.source.last_token_range().unwrap())
-        };
-
-        // push error
-        debug_assert!(
-            !self.expected_kinds.is_empty(),
-            "Extra call to `error` or `error_unexpected_at`"
-        );
-
-        self.events.push(Event::Error(ParseError {
-            kind: ErrorKind::UnexpectedToken {
-                expected: mem::take(&mut self.expected_kinds),
-                expected_category: category.into(),
-                found,
-            },
-            range,
-        }));
-
-        // If the cursor is at the end of file or is part of the recovery set,
-        // error node does not need to be built
-        if !self.at_set(&STMT_START_RECOVERY_SET)
-        && !self.at_set(&self.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
-        && !self.at_end()
-        {
-            // not in the recovery set? consume it! (wrap in error node)
-            let m = err_at.into().unwrap_or_else(|| self.start());
-            self.bump();
-            m.complete(self, SyntaxKind::Error);
-        } else if let Some(err_at) = err_at.into() {
-            // Always complete the provided marker,
-            // since there's most likely some tokens already
-            err_at.complete(self, SyntaxKind::Error);
-        }
+    /// Provides a builder to report the unexpected token message
+    pub(crate) fn error_unexpected<'p>(&'p mut self) -> UnexpectedBuilder<'p, 't, 'src> {
+        UnexpectedBuilder::new(self)
     }
 
     /// Checks if the cursor is past the end of the file
@@ -222,5 +176,83 @@ impl<'t, 'src> Parser<'t, 'src> {
         self.reset_expected_tokens();
         self.source.next_token().expect("bump at the end of file");
         self.events.push(Event::AddToken);
+    }
+}
+
+pub(crate) struct UnexpectedBuilder<'p, 't, 's> {
+    p: &'p mut Parser<'t, 's>,
+    category: Option<Expected>,
+    marker: Option<Marker>,
+    bomb: DropBomb,
+}
+
+impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
+    fn new(p: &'p mut Parser<'t, 's>) -> Self {
+        Self {
+            p,
+            category: None,
+            marker: None,
+            bomb: DropBomb::new("missing call to `report`"),
+        }
+    }
+
+    /// Reports the unexpected token using the given category
+    pub(crate) fn with_category(mut self, expected: Expected) -> Self {
+        self.category = Some(expected);
+        self
+    }
+
+    /// Reports the unexpected error with the specified marker
+    pub(crate) fn with_marker(mut self, marker: Marker) -> Self {
+        self.marker = Some(marker);
+        self
+    }
+
+    /// Reports the error
+    pub(crate) fn report(mut self) {
+        self.bomb.defuse();
+
+        let current = self.p.source.peek_token();
+
+        let (found, range) = match current {
+            Some(token) => (Some(token.kind), token.range.clone()),
+            None => (None, self.p.source.last_token_range().unwrap()), // Last token always exists in a non-empty file
+        };
+
+        // push error
+        debug_assert!(
+            !self.p.expected_kinds.is_empty(),
+            "Extra call to `error_unexpected`"
+        );
+
+        self.p.events.push(Event::Error(ParseError {
+            kind: ErrorKind::UnexpectedToken {
+                expected: mem::take(&mut self.p.expected_kinds),
+                expected_category: self.category,
+                found,
+            },
+            range,
+        }));
+
+        // If the cursor is at the end of file or is part of the recovery set,
+        // error node does not need to be built
+        if !self.p.at_set(&STMT_START_RECOVERY_SET)
+        && !self.p.at_set(&self.p.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
+        && !self.p.at_end()
+        {
+            // not in the recovery set? consume it! (wrap in error node)
+            let m = match self.marker {
+                Some(marker) => marker,
+                None => self.p.start(),
+            };
+
+            self.p.bump();
+
+            m.complete(self.p, SyntaxKind::Error);
+        } else if let Some(marker) = self.marker {
+            // Always complete the provided marker, since there's
+            // most likely some tokens already
+            marker.complete(self.p, SyntaxKind::Error);
+        }
     }
 }

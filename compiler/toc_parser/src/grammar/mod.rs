@@ -123,7 +123,7 @@ pub(self) fn name(p: &mut Parser) -> Option<CompletedMarker> {
         Some(m.complete(p, SyntaxKind::Name))
     } else {
         // not found
-        p.error(None);
+        p.error_unexpected().report();
         None
     }
 }
