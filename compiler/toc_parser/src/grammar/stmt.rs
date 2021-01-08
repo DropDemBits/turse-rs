@@ -36,7 +36,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Elsif,
             TokenKind::Elseif => { elseif_stmt(p, true) } // recovery parse
             TokenKind::Else => { else_stmt(p, true) } // recovery parse
-            // case_stmt
+            TokenKind::Case =>{ case_stmt(p) }
             TokenKind::Begin => { block_stmt(p) }
             TokenKind::Invariant => { stmt_with_expr(p, TokenKind::Invariant, SyntaxKind::InvariantStmt) }
             TokenKind::Assert => { stmt_with_expr(p, TokenKind::Assert, SyntaxKind::AssertStmt) }
@@ -384,6 +384,52 @@ fn else_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::ElseStmt))
+}
+
+fn case_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Case));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Label], |p| {
+        p.with_extra_recovery(&[TokenKind::Of], |p| {
+            expr::expect_expr(p);
+        });
+        p.expect(TokenKind::Of);
+    });
+
+    // Parse case arms
+    loop {
+        if case_arm(p).is_none() {
+            break;
+        }
+    }
+
+    eat_end_group(p, TokenKind::Case, Some(TokenKind::EndCase));
+    Some(m.complete(p, SyntaxKind::CaseStmt))
+}
+
+fn case_arm(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Label) {
+        return None;
+    }
+
+    let m = p.start();
+    p.bump(); // nom `label`
+
+    if !p.at(TokenKind::Colon) {
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            expr::expr_list(p);
+        })
+    }
+
+    p.expect(TokenKind::Colon);
+
+    // Nom on stmts
+    self::stmt_list(p, Some(&[TokenKind::Label]));
+
+    Some(m.complete(p, SyntaxKind::CaseArm))
 }
 
 fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {

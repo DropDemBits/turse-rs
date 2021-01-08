@@ -30,6 +30,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Elsif,
     TokenKind::Elseif,
     TokenKind::Else,
+    TokenKind::Case,
     TokenKind::Begin,
     TokenKind::Invariant,
     TokenKind::Assert,

@@ -3096,3 +3096,229 @@ fn recover_on_for_loop() {
             error at 18..21: expected expression, but found ’for’"#]],
     );
 }
+
+#[test]
+fn parse_case_stmt() {
+    check(
+        r#"
+    case 1 of
+        label 1, 2:
+            assert false
+        label 3:
+        label :
+            begin end % no fallthrough
+    end case"#,
+        expect![[r#"
+            Source@0..144
+              Whitespace@0..5 "\n    "
+              CaseStmt@5..144
+                KwCase@5..9 "case"
+                Whitespace@9..10 " "
+                LiteralExpr@10..12
+                  IntLiteral@10..11 "1"
+                  Whitespace@11..12 " "
+                KwOf@12..14 "of"
+                Whitespace@14..23 "\n        "
+                CaseArm@23..68
+                  KwLabel@23..28 "label"
+                  Whitespace@28..29 " "
+                  ExprList@29..33
+                    LiteralExpr@29..30
+                      IntLiteral@29..30 "1"
+                    Comma@30..31 ","
+                    Whitespace@31..32 " "
+                    LiteralExpr@32..33
+                      IntLiteral@32..33 "2"
+                  Colon@33..34 ":"
+                  Whitespace@34..47 "\n            "
+                  StmtList@47..68
+                    AssertStmt@47..68
+                      KwAssert@47..53 "assert"
+                      Whitespace@53..54 " "
+                      LiteralExpr@54..68
+                        KwFalse@54..59 "false"
+                        Whitespace@59..68 "\n        "
+                CaseArm@68..85
+                  KwLabel@68..73 "label"
+                  Whitespace@73..74 " "
+                  ExprList@74..75
+                    LiteralExpr@74..75
+                      IntLiteral@74..75 "3"
+                  Colon@75..76 ":"
+                  Whitespace@76..85 "\n        "
+                  StmtList@85..85
+                CaseArm@85..136
+                  KwLabel@85..90 "label"
+                  Whitespace@90..91 " "
+                  Colon@91..92 ":"
+                  Whitespace@92..105 "\n            "
+                  StmtList@105..136
+                    BlockStmt@105..136
+                      KwBegin@105..110 "begin"
+                      Whitespace@110..111 " "
+                      StmtList@111..111
+                      EndGroup@111..136
+                        KwEnd@111..114 "end"
+                        Whitespace@114..115 " "
+                        Comment@115..131 "% no fallthrough"
+                        Whitespace@131..136 "\n    "
+                EndGroup@136..144
+                  KwEnd@136..139 "end"
+                  Whitespace@139..140 " "
+                  KwCase@140..144 "case""#]],
+    );
+}
+
+#[test]
+fn parse_case_stmt_alt_end() {
+    check(
+        r#"
+    case 1 of
+        label :
+    endcase"#,
+        expect![[r#"
+            Source@0..42
+              Whitespace@0..5 "\n    "
+              CaseStmt@5..42
+                KwCase@5..9 "case"
+                Whitespace@9..10 " "
+                LiteralExpr@10..12
+                  IntLiteral@10..11 "1"
+                  Whitespace@11..12 " "
+                KwOf@12..14 "of"
+                Whitespace@14..23 "\n        "
+                CaseArm@23..35
+                  KwLabel@23..28 "label"
+                  Whitespace@28..29 " "
+                  Colon@29..30 ":"
+                  Whitespace@30..35 "\n    "
+                  StmtList@35..35
+                EndGroup@35..42
+                  KwEndCase@35..42 "endcase""#]],
+    );
+}
+
+#[test]
+fn parse_empty_case_stmt() {
+    check(
+        r#"
+    case 1 of
+    end case"#,
+        expect![[r#"
+            Source@0..27
+              Whitespace@0..5 "\n    "
+              CaseStmt@5..27
+                KwCase@5..9 "case"
+                Whitespace@9..10 " "
+                LiteralExpr@10..12
+                  IntLiteral@10..11 "1"
+                  Whitespace@11..12 " "
+                KwOf@12..14 "of"
+                Whitespace@14..19 "\n    "
+                EndGroup@19..27
+                  KwEnd@19..22 "end"
+                  Whitespace@22..23 " "
+                  KwCase@23..27 "case""#]],
+    );
+}
+
+#[test]
+fn recover_case_stmt_missing_of() {
+    check(
+        r#"
+    case 1
+        label :
+    end case"#,
+        expect![[r#"
+            Source@0..40
+              Whitespace@0..5 "\n    "
+              CaseStmt@5..40
+                KwCase@5..9 "case"
+                Whitespace@9..10 " "
+                LiteralExpr@10..20
+                  IntLiteral@10..11 "1"
+                  Whitespace@11..20 "\n        "
+                CaseArm@20..32
+                  KwLabel@20..25 "label"
+                  Whitespace@25..26 " "
+                  Colon@26..27 ":"
+                  Whitespace@27..32 "\n    "
+                  StmtList@32..32
+                EndGroup@32..40
+                  KwEnd@32..35 "end"
+                  Whitespace@35..36 " "
+                  KwCase@36..40 "case"
+            error at 20..25: expected ’of’, but found ’label’"#]],
+    );
+}
+
+#[test]
+fn recover_case_stmt_missing_expr() {
+    check(
+        r#"
+    case of
+        label :
+    end case"#,
+        expect![[r#"
+            Source@0..41
+              Whitespace@0..5 "\n    "
+              CaseStmt@5..41
+                KwCase@5..9 "case"
+                Whitespace@9..10 " "
+                KwOf@10..12 "of"
+                Whitespace@12..21 "\n        "
+                CaseArm@21..33
+                  KwLabel@21..26 "label"
+                  Whitespace@26..27 " "
+                  Colon@27..28 ":"
+                  Whitespace@28..33 "\n    "
+                  StmtList@33..33
+                EndGroup@33..41
+                  KwEnd@33..36 "end"
+                  Whitespace@36..37 " "
+                  KwCase@37..41 "case"
+            error at 10..12: expected expression, but found ’of’"#]],
+    );
+}
+
+#[test]
+fn recover_on_case_stmt() {
+    check(
+        r#"
+    var i :=
+    case 1 of
+        label :
+    end case"#,
+        expect![[r#"
+            Source@0..56
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              CaseStmt@18..56
+                KwCase@18..22 "case"
+                Whitespace@22..23 " "
+                LiteralExpr@23..25
+                  IntLiteral@23..24 "1"
+                  Whitespace@24..25 " "
+                KwOf@25..27 "of"
+                Whitespace@27..36 "\n        "
+                CaseArm@36..48
+                  KwLabel@36..41 "label"
+                  Whitespace@41..42 " "
+                  Colon@42..43 ":"
+                  Whitespace@43..48 "\n    "
+                  StmtList@48..48
+                EndGroup@48..56
+                  KwEnd@48..51 "end"
+                  Whitespace@51..52 " "
+                  KwCase@52..56 "case"
+            error at 18..22: expected expression, but found ’case’"#]],
+    );
+}

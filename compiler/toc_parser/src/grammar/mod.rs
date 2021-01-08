@@ -8,7 +8,7 @@
 // - type_decl
 // | bind_decl
 // | procedure_decl
-// | functionn_decl
+// | functions_decl
 // | forward_decl
 // | deferred_decl
 // | module_decl
@@ -25,11 +25,11 @@
 // | write_stmt
 // | seek_stmt
 // | tell_stmt
-// | for_stmt
-// | loop_stmt
-// | exit_stmt
+// - for_stmt
+// - loop_stmt
+// - exit_stmt
 // - if_stmt
-// | case_stmt
+// - case_stmt
 // - block_stmt
 // - invariant_stmt
 // - assert_stmt
