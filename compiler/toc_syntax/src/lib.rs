@@ -285,6 +285,7 @@ pub enum SyntaxKind {
     ElseStmt,
     ElseifStmt,
     CaseArm,
+    ExprList,
     ParamList,
     WaitStmt,
     QuitCause,
