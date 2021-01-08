@@ -65,8 +65,8 @@
 // - paren_expr
 // - indirect_expr
 // - bits_expr
-// | range_expr (used in string subscripting)
-// | cheat_expr
+// - range_expr (used in string subscripting)
+// - cheat_expr
 // - objclass_expr
 
 // types
@@ -179,7 +179,7 @@ pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma, TokenKind::RightParen], |p| {
-        expr::expect_expr(p);
+        expr::expect_expr_or_range_item(p);
     });
 
     // bump ',' onto param
