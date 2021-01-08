@@ -5,6 +5,46 @@ mod test;
 use super::*;
 use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
+pub(super) fn expect_expr_or_range_item(p: &mut Parser) -> Option<CompletedMarker> {
+    let mut lhs = expect_range_bound(p)?;
+
+    if p.at(TokenKind::Range) {
+        let m = lhs.precede(p);
+        p.bump();
+
+        expect_range_bound(p);
+
+        lhs = m.complete(p, SyntaxKind::RangeItem);
+    }
+
+    Some(lhs)
+}
+
+fn expect_range_bound(p: &mut Parser) -> Option<CompletedMarker> {
+    self::range_bound(p).or_else(|| self::expr(p)).or_else(|| {
+        // not an appropriate primary expr or range bound
+        p.error(Expected::Expression);
+        None
+    })
+}
+
+fn range_bound(p: &mut Parser) -> Option<CompletedMarker> {
+    // '*' ( '-' Expr)?
+    if !p.at(TokenKind::Star) {
+        return None;
+    }
+
+    let m = p.start();
+    p.bump();
+
+    if p.eat(TokenKind::Minus) {
+        // Expect expr after
+        self::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::RelativeBound))
+}
+
 pub(super) fn expect_expr(p: &mut Parser) -> Option<CompletedMarker> {
     self::expr(p).or_else(|| {
         // not an appropriate primary expr
@@ -27,7 +67,7 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // - deref_expr
     // - bits_expr
     // - objclass_expr
-    // x cheat_expr
+    // - cheat_expr
 
     // continuations:
     // - field_expr

@@ -2010,7 +2010,7 @@ fn recover_call_expr_missing_closing_paren() {
                     Param@5..6
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
-            error at 5..6: expected ’,’ or ’)’"#]],
+            error at 5..6: expected ’..’, ’,’ or ’)’"#]],
     );
 }
 
@@ -2096,7 +2096,7 @@ fn recover_call_expr_missing_delim() {
                       IntLiteral@7..8 "1"
               Error@8..9
                 RightParen@8..9 ")"
-            error at 7..8: expected ’,’ or ’)’, but found int literal
+            error at 7..8: expected ’..’, ’,’ or ’)’, but found int literal
             error at 8..9: expected statement, but found ’)’"#]],
     );
 }
@@ -3204,6 +3204,70 @@ fn parse_bits_ref() {
 }
 
 #[test]
+fn parse_bits_ref_range() {
+    check(
+        "bits(a, 1 .. 2 - 3)",
+        expect![[r#"
+        Source@0..19
+          CallStmt@0..19
+            BitsExpr@0..19
+              KwBits@0..4 "bits"
+              ParamList@4..19
+                LeftParen@4..5 "("
+                Param@5..8
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
+                  Comma@6..7 ","
+                  Whitespace@7..8 " "
+                Param@8..18
+                  RangeItem@8..18
+                    LiteralExpr@8..10
+                      IntLiteral@8..9 "1"
+                      Whitespace@9..10 " "
+                    Range@10..12 ".."
+                    Whitespace@12..13 " "
+                    BinaryExpr@13..18
+                      LiteralExpr@13..15
+                        IntLiteral@13..14 "2"
+                        Whitespace@14..15 " "
+                      Minus@15..16 "-"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..18
+                        IntLiteral@17..18 "3"
+                RightParen@18..19 ")""#]],
+    );
+}
+
+#[test]
+fn parse_bits_ref_relative_range() {
+    // Reject during lowering
+    check("bits(a, 1 .. *)", expect![[r#"
+        Source@0..15
+          CallStmt@0..15
+            BitsExpr@0..15
+              KwBits@0..4 "bits"
+              ParamList@4..15
+                LeftParen@4..5 "("
+                Param@5..8
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
+                  Comma@6..7 ","
+                  Whitespace@7..8 " "
+                Param@8..14
+                  RangeItem@8..14
+                    LiteralExpr@8..10
+                      IntLiteral@8..9 "1"
+                      Whitespace@9..10 " "
+                    Range@10..12 ".."
+                    Whitespace@12..13 " "
+                    RelativeBound@13..14
+                      Star@13..14 "*"
+                RightParen@14..15 ")""#]]);
+}
+
+#[test]
 fn parse_bits_single_arg() {
     // Rejected during lowering
     check(
@@ -3557,5 +3621,297 @@ fn recover_just_cheat() {
         error at 3..8: expected ’,’
         error at 3..8: expected expression
         error at 3..8: expected ’:’ or ’)’"#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_end_bound() {
+    check(
+        "_:=a(*)",
+        expect![[r#"
+        Source@0..7
+          AssignStmt@0..7
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..7
+              NameExpr@3..4
+                Name@3..4
+                  Identifier@3..4 "a"
+              ParamList@4..7
+                LeftParen@4..5 "("
+                Param@5..6
+                  RelativeBound@5..6
+                    Star@5..6 "*"
+                RightParen@6..7 ")""#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_relative_bound() {
+    check(
+        "_:=a(* - 1)",
+        expect![[r#"
+            Source@0..11
+              AssignStmt@0..11
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                CallExpr@3..11
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  ParamList@4..11
+                    LeftParen@4..5 "("
+                    Param@5..10
+                      RelativeBound@5..10
+                        Star@5..6 "*"
+                        Whitespace@6..7 " "
+                        Minus@7..8 "-"
+                        Whitespace@8..9 " "
+                        LiteralExpr@9..10
+                          IntLiteral@9..10 "1"
+                    RightParen@10..11 ")""#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_range_item_left_bounded() {
+    check(
+        "_:=a(* - 1 .. a)",
+        expect![[r#"
+            Source@0..16
+              AssignStmt@0..16
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                CallExpr@3..16
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  ParamList@4..16
+                    LeftParen@4..5 "("
+                    Param@5..15
+                      RangeItem@5..15
+                        RelativeBound@5..11
+                          Star@5..6 "*"
+                          Whitespace@6..7 " "
+                          Minus@7..8 "-"
+                          Whitespace@8..9 " "
+                          LiteralExpr@9..11
+                            IntLiteral@9..10 "1"
+                            Whitespace@10..11 " "
+                        Range@11..13 ".."
+                        Whitespace@13..14 " "
+                        NameExpr@14..15
+                          Name@14..15
+                            Identifier@14..15 "a"
+                    RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_range_item_right_bounded() {
+    check(
+        "_:=a(a .. * - 1)",
+        expect![[r#"
+            Source@0..16
+              AssignStmt@0..16
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                CallExpr@3..16
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  ParamList@4..16
+                    LeftParen@4..5 "("
+                    Param@5..15
+                      RangeItem@5..15
+                        NameExpr@5..7
+                          Name@5..7
+                            Identifier@5..6 "a"
+                            Whitespace@6..7 " "
+                        Range@7..9 ".."
+                        Whitespace@9..10 " "
+                        RelativeBound@10..15
+                          Star@10..11 "*"
+                          Whitespace@11..12 " "
+                          Minus@12..13 "-"
+                          Whitespace@13..14 " "
+                          LiteralExpr@14..15
+                            IntLiteral@14..15 "1"
+                    RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_range_item_both_relatively_bounded() {
+    check(
+        "_:=a(* - 1 .. * - 1)",
+        expect![[r#"
+            Source@0..20
+              AssignStmt@0..20
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                CallExpr@3..20
+                  NameExpr@3..4
+                    Name@3..4
+                      Identifier@3..4 "a"
+                  ParamList@4..20
+                    LeftParen@4..5 "("
+                    Param@5..19
+                      RangeItem@5..19
+                        RelativeBound@5..11
+                          Star@5..6 "*"
+                          Whitespace@6..7 " "
+                          Minus@7..8 "-"
+                          Whitespace@8..9 " "
+                          LiteralExpr@9..11
+                            IntLiteral@9..10 "1"
+                            Whitespace@10..11 " "
+                        Range@11..13 ".."
+                        Whitespace@13..14 " "
+                        RelativeBound@14..19
+                          Star@14..15 "*"
+                          Whitespace@15..16 " "
+                          Minus@16..17 "-"
+                          Whitespace@17..18 " "
+                          LiteralExpr@18..19
+                            IntLiteral@18..19 "1"
+                    RightParen@19..20 ")""#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_range_item_both_end_bounded() {
+    check(
+        "_:=a(* .. *)",
+        expect![[r#"
+        Source@0..12
+          AssignStmt@0..12
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..12
+              NameExpr@3..4
+                Name@3..4
+                  Identifier@3..4 "a"
+              ParamList@4..12
+                LeftParen@4..5 "("
+                Param@5..11
+                  RangeItem@5..11
+                    RelativeBound@5..7
+                      Star@5..6 "*"
+                      Whitespace@6..7 " "
+                    Range@7..9 ".."
+                    Whitespace@9..10 " "
+                    RelativeBound@10..11
+                      Star@10..11 "*"
+                RightParen@11..12 ")""#]],
+    );
+}
+
+#[test]
+fn recover_call_expr_range_item_missing_expr() {
+    check(
+        "_:=a(a .. )",
+        expect![[r#"
+        Source@0..11
+          AssignStmt@0..11
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..11
+              NameExpr@3..4
+                Name@3..4
+                  Identifier@3..4 "a"
+              ParamList@4..11
+                LeftParen@4..5 "("
+                Param@5..10
+                  RangeItem@5..10
+                    NameExpr@5..7
+                      Name@5..7
+                        Identifier@5..6 "a"
+                        Whitespace@6..7 " "
+                    Range@7..9 ".."
+                    Whitespace@9..10 " "
+                RightParen@10..11 ")"
+        error at 10..11: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_call_expr_relative_bound_missing_expr() {
+    check(
+        "_:=a(* - )",
+        expect![[r#"
+        Source@0..10
+          AssignStmt@0..10
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..10
+              NameExpr@3..4
+                Name@3..4
+                  Identifier@3..4 "a"
+              ParamList@4..10
+                LeftParen@4..5 "("
+                Param@5..9
+                  RelativeBound@5..9
+                    Star@5..6 "*"
+                    Whitespace@6..7 " "
+                    Minus@7..8 "-"
+                    Whitespace@8..9 " "
+                RightParen@9..10 ")"
+        error at 9..10: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_call_expr_relative_bound_missing_minus() {
+    check(
+        "_:=a(* 1)",
+        expect![[r#"
+        Source@0..9
+          AssignStmt@0..8
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..8
+              NameExpr@3..4
+                Name@3..4
+                  Identifier@3..4 "a"
+              ParamList@4..8
+                LeftParen@4..5 "("
+                Param@5..7
+                  RelativeBound@5..7
+                    Star@5..6 "*"
+                    Whitespace@6..7 " "
+                Error@7..8
+                  IntLiteral@7..8 "1"
+          Error@8..9
+            RightParen@8..9 ")"
+        error at 7..8: expected ’-’, ’..’, ’,’ or ’)’, but found int literal
+        error at 8..9: expected statement, but found ’)’"#]],
     );
 }

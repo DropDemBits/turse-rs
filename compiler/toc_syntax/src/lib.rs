@@ -312,6 +312,7 @@ pub enum SyntaxKind {
     Param,
     RangeItem,
     RangeBound,
+    RelativeBound,
     RangeType,
     EnumType,
     ArrayType,
