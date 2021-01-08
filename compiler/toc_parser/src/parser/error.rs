@@ -3,6 +3,7 @@
 use std::fmt;
 
 use toc_scanner::token::{TokenKind, TokenRange};
+use toc_scanner::ScannerError;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ParseError {
@@ -23,6 +24,15 @@ impl fmt::Display for ParseError {
     }
 }
 
+impl From<ScannerError> for ParseError {
+    fn from(ScannerError(msg, at): ScannerError) -> Self {
+        Self {
+            kind: ErrorKind::OtherError(msg),
+            range: at,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub(crate) enum ErrorKind {
     UnexpectedToken {
@@ -31,7 +41,10 @@ pub(crate) enum ErrorKind {
         found: Option<TokenKind>,
     },
     #[allow(unused)]
-    InvalidLiteral { kind: InvalidLiteral },
+    InvalidLiteral {
+        kind: InvalidLiteral,
+    },
+    OtherError(String),
 }
 
 impl fmt::Display for ErrorKind {
@@ -71,6 +84,9 @@ impl fmt::Display for ErrorKind {
             }
             ErrorKind::InvalidLiteral { kind } => {
                 write!(f, "{}", kind)
+            }
+            ErrorKind::OtherError(msg) => {
+                write!(f, "{}", msg)
             }
         }
     }

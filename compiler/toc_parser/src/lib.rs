@@ -15,11 +15,12 @@ use rowan::GreenNode;
 use crate::sink::Sink;
 
 pub fn parse(source: &str) -> ParseResult {
-    let tokens: Vec<_> = Scanner::new(source).collect();
+    let (tokens, scanner_errors) = Scanner::new(source).collect_all();
+
     let source = Source::new(&tokens);
     let parser = parser::Parser::new(source);
     let events = parser.parse();
-    let sink = Sink::new(&tokens, events);
+    let sink = Sink::new(&tokens, events, scanner_errors);
 
     sink.finish()
 }
@@ -93,5 +94,24 @@ mod test {
         check("/* hello */", expect![[r#"
             Source@0..11
               Comment@0..11 "/* hello */""#]]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn scanner_errors_into_parser_errors() {
+        check("var e := 1e", expect![[r#"
+            Source@0..11
+              ConstVarDecl@0..11
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "e"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..9 " "
+                LiteralExpr@9..11
+                  RealLiteral@9..11 "1e"
+            error at 9..11: real literal is missing exponent digits"#]]);
     }
 }

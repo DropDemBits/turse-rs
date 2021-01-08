@@ -1,6 +1,5 @@
 //! Scanner for lexing tokens
 // TODO: Report errors for invalid escape characters when lowering (reduces code duplication)
-// TODO: Merger scanner errors into sink's error place
 pub mod token;
 
 use logos::Logos;
@@ -8,7 +7,8 @@ use std::ops::Range;
 use text_size::TextRange;
 use token::{NumberKind, Token, TokenKind};
 
-type ScannerError = (String, TextRange);
+#[derive(Debug)]
+pub struct ScannerError(pub String, pub TextRange);
 
 #[derive(Debug)]
 pub struct ErrorFerry {
@@ -18,8 +18,10 @@ pub struct ErrorFerry {
 
 impl ErrorFerry {
     pub(crate) fn push_error(&mut self, message: &str, span: Range<usize>) {
-        self.pending_errors
-            .push((message.to_string(), token::span_to_text_range(span)));
+        self.pending_errors.push(ScannerError(
+            message.to_string(),
+            token::span_to_text_range(span),
+        ));
     }
 }
 
@@ -105,7 +107,7 @@ mod test {
 
     fn build_error_list(errors: &[ScannerError]) -> String {
         let mut buf = String::new();
-        for (msg, at) in errors {
+        for ScannerError(msg, at) in errors {
             let (start, end): (usize, usize) = (at.start().into(), at.end().into());
             buf.push_str(&format!("error at {}..{}: {}\n", start, end, msg));
         }
