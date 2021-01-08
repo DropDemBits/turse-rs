@@ -69,6 +69,7 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
         // nom on operator token
         match op {
             BinaryOp::NotIn | BinaryOp::NotEqual => {} // don't bump, node already constructed
+            BinaryOp::Call => {}                       // Will be consumed
             _ => p.bump(),
         }
 
@@ -79,7 +80,6 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
 
                 super::param_list(p);
 
-                p.expect(TokenKind::RightParen);
                 lhs = m.complete(p, SyntaxKind::CallExpr);
 
                 // no rhs to miss

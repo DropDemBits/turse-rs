@@ -1853,13 +1853,13 @@ fn parse_call_expr() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..6
+                  ParamList@4..7
+                    LeftParen@4..5 "("
                     Param@5..6
                       NameExpr@5..6
                         Name@5..6
                           Identifier@5..6 "b"
-                  RightParen@6..7 ")""#]],
+                    RightParen@6..7 ")""#]],
     );
 }
 
@@ -1879,23 +1879,23 @@ fn parse_nested_call_expr() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..23
+                  ParamList@4..24
+                    LeftParen@4..5 "("
                     Param@5..19
                       CallExpr@5..17
                         NameExpr@5..6
                           Name@5..6
                             Identifier@5..6 "b"
-                        LeftParen@6..7 "("
-                        ParamList@7..16
+                        ParamList@6..17
+                          LeftParen@6..7 "("
                           Param@7..12
                             CallExpr@7..10
                               NameExpr@7..8
                                 Name@7..8
                                   Identifier@7..8 "c"
-                              LeftParen@8..9 "("
-                              ParamList@9..9
-                              RightParen@9..10 ")"
+                              ParamList@8..10
+                                LeftParen@8..9 "("
+                                RightParen@9..10 ")"
                             Comma@10..11 ","
                             Whitespace@11..12 " "
                           Param@12..15
@@ -1908,7 +1908,7 @@ fn parse_nested_call_expr() {
                             NameExpr@15..16
                               Name@15..16
                                 Identifier@15..16 "e"
-                        RightParen@16..17 ")"
+                          RightParen@16..17 ")"
                       Comma@17..18 ","
                       Whitespace@18..19 " "
                     Param@19..22
@@ -1921,7 +1921,7 @@ fn parse_nested_call_expr() {
                       NameExpr@22..23
                         Name@22..23
                           Identifier@22..23 "g"
-                  RightParen@23..24 ")""#]],
+                    RightParen@23..24 ")""#]],
     );
 }
 
@@ -1941,9 +1941,9 @@ fn parse_empty_call_expr() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..5
-                  RightParen@5..6 ")""#]],
+                  ParamList@4..6
+                    LeftParen@4..5 "("
+                    RightParen@5..6 ")""#]],
     );
 }
 
@@ -1963,8 +1963,8 @@ fn parse_call_expr_with_many_args() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..16
+                  ParamList@4..17
+                    LeftParen@4..5 "("
                     Param@5..8
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
@@ -1985,7 +1985,7 @@ fn parse_call_expr_with_many_args() {
                       NameExpr@15..16
                         Name@15..16
                           Identifier@15..16 "c"
-                  RightParen@16..17 ")""#]],
+                    RightParen@16..17 ")""#]],
     );
 }
 
@@ -2005,8 +2005,8 @@ fn recover_call_expr_missing_closing_paren() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..6
+                  ParamList@4..6
+                    LeftParen@4..5 "("
                     Param@5..6
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
@@ -2030,14 +2030,14 @@ fn recover_call_expr_missing_last_arg() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..7
+                  ParamList@4..8
+                    LeftParen@4..5 "("
                     Param@5..7
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
                       Comma@6..7 ","
                     Param@7..7
-                  RightParen@7..8 ")"
+                    RightParen@7..8 ")"
             error at 7..8: expected expression, but found ’)’"#]],
     );
 }
@@ -2058,8 +2058,8 @@ fn recover_call_expr_missing_last_arg_and_closing_paren() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..7
+                  ParamList@4..7
+                    LeftParen@4..5 "("
                     Param@5..7
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
@@ -2086,14 +2086,14 @@ fn recover_call_expr_missing_delim() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..7
+                  ParamList@4..8
+                    LeftParen@4..5 "("
                     Param@5..7
                       LiteralExpr@5..7
                         IntLiteral@5..6 "1"
                         Whitespace@6..7 " "
-                  Error@7..8
-                    IntLiteral@7..8 "1"
+                    Error@7..8
+                      IntLiteral@7..8 "1"
               Error@8..9
                 RightParen@8..9 ")"
             error at 7..8: expected ’,’ or ’)’, but found int literal
@@ -2117,8 +2117,8 @@ fn recover_call_expr_missing_param() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..9
+                  ParamList@4..10
+                    LeftParen@4..5 "("
                     Param@5..7
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
@@ -2128,7 +2128,7 @@ fn recover_call_expr_missing_param() {
                     Param@8..9
                       LiteralExpr@8..9
                         IntLiteral@8..9 "1"
-                  RightParen@9..10 ")"
+                    RightParen@9..10 ")"
             error at 7..8: expected expression, but found ’,’"#]],
     );
 }
@@ -2149,8 +2149,8 @@ fn recover_call_expr_missing_params() {
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  LeftParen@4..5 "("
-                  ParamList@5..10
+                  ParamList@4..11
+                    LeftParen@4..5 "("
                     Param@5..7
                       LiteralExpr@5..6
                         IntLiteral@5..6 "1"
@@ -2162,7 +2162,7 @@ fn recover_call_expr_missing_params() {
                     Param@9..10
                       LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                  RightParen@10..11 ")"
+                    RightParen@10..11 ")"
             error at 7..8: expected expression, but found ’,’
             error at 8..9: expected expression, but found ’,’"#]],
     );
@@ -2289,9 +2289,9 @@ fn deref_binds_higher_than_call() {
                     NameExpr@4..5
                       Name@4..5
                         Identifier@4..5 "a"
-                  LeftParen@5..6 "("
-                  ParamList@6..6
-                  RightParen@6..7 ")""#]],
+                  ParamList@5..7
+                    LeftParen@5..6 "("
+                    RightParen@6..7 ")""#]],
     );
 }
 
