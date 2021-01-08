@@ -6,6 +6,7 @@ use crate::ParseResult;
 use rowan::GreenNodeBuilder;
 use std::mem;
 use toc_scanner::token::Token;
+use toc_scanner::ScannerError;
 use toc_syntax::SyntaxKind;
 
 pub(super) struct Sink<'t, 'src> {
@@ -17,13 +18,17 @@ pub(super) struct Sink<'t, 'src> {
 }
 
 impl<'t, 'src> Sink<'t, 'src> {
-    pub(super) fn new(tokens: &'t [Token<'src>], events: Vec<Event>) -> Self {
+    pub(super) fn new(
+        tokens: &'t [Token<'src>],
+        events: Vec<Event>,
+        scanner_errors: Vec<ScannerError>,
+    ) -> Self {
         Self {
             builder: GreenNodeBuilder::new(),
             tokens,
             cursor: 0,
             events,
-            errors: vec![],
+            errors: scanner_errors.into_iter().map(|err| err.into()).collect(),
         }
     }
 
