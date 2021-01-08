@@ -2490,3 +2490,218 @@ fn recover_on_unchecked() {
         error at 10..19: expected expression, but found ’unchecked’"#]],
     );
 }
+
+#[test]
+fn parse_loop_stmt() {
+    check(
+        "loop begin loop end loop end end loop",
+        expect![[r#"
+        Source@0..37
+          LoopStmt@0..37
+            KwLoop@0..4 "loop"
+            Whitespace@4..5 " "
+            StmtList@5..29
+              BlockStmt@5..29
+                KwBegin@5..10 "begin"
+                Whitespace@10..11 " "
+                StmtList@11..25
+                  LoopStmt@11..25
+                    KwLoop@11..15 "loop"
+                    Whitespace@15..16 " "
+                    StmtList@16..16
+                    EndGroup@16..25
+                      KwEnd@16..19 "end"
+                      Whitespace@19..20 " "
+                      KwLoop@20..24 "loop"
+                      Whitespace@24..25 " "
+                EndGroup@25..29
+                  KwEnd@25..28 "end"
+                  Whitespace@28..29 " "
+            EndGroup@29..37
+              KwEnd@29..32 "end"
+              Whitespace@32..33 " "
+              KwLoop@33..37 "loop""#]],
+    );
+}
+
+#[test]
+fn parse_nested_loop_stmt() {
+    check(
+        "loop begin loop end loop end end loop",
+        expect![[r#"
+        Source@0..37
+          LoopStmt@0..37
+            KwLoop@0..4 "loop"
+            Whitespace@4..5 " "
+            StmtList@5..29
+              BlockStmt@5..29
+                KwBegin@5..10 "begin"
+                Whitespace@10..11 " "
+                StmtList@11..25
+                  LoopStmt@11..25
+                    KwLoop@11..15 "loop"
+                    Whitespace@15..16 " "
+                    StmtList@16..16
+                    EndGroup@16..25
+                      KwEnd@16..19 "end"
+                      Whitespace@19..20 " "
+                      KwLoop@20..24 "loop"
+                      Whitespace@24..25 " "
+                EndGroup@25..29
+                  KwEnd@25..28 "end"
+                  Whitespace@28..29 " "
+            EndGroup@29..37
+              KwEnd@29..32 "end"
+              Whitespace@32..33 " "
+              KwLoop@33..37 "loop""#]],
+    );
+}
+
+#[test]
+fn parse_loop_stmt_alt_end() {
+    check(
+        "loop endloop",
+        expect![[r#"
+        Source@0..12
+          LoopStmt@0..12
+            KwLoop@0..4 "loop"
+            Whitespace@4..5 " "
+            StmtList@5..5
+            EndGroup@5..12
+              KwEndLoop@5..12 "endloop""#]],
+    );
+}
+
+#[test]
+fn recover_loop_stmt_missing_tail_loop() {
+    check(
+        "loop end begin end",
+        expect![[r#"
+        Source@0..18
+          LoopStmt@0..9
+            KwLoop@0..4 "loop"
+            Whitespace@4..5 " "
+            StmtList@5..5
+            EndGroup@5..9
+              KwEnd@5..8 "end"
+              Whitespace@8..9 " "
+          BlockStmt@9..18
+            KwBegin@9..14 "begin"
+            Whitespace@14..15 " "
+            StmtList@15..15
+            EndGroup@15..18
+              KwEnd@15..18 "end"
+        error at 9..14: expected ’loop’, but found ’begin’"#]],
+    );
+}
+
+#[test]
+fn recover_just_loop() {
+    check(
+        "loop begin end",
+        expect![[r#"
+        Source@0..14
+          LoopStmt@0..14
+            KwLoop@0..4 "loop"
+            Whitespace@4..5 " "
+            StmtList@5..14
+              BlockStmt@5..14
+                KwBegin@5..10 "begin"
+                Whitespace@10..11 " "
+                StmtList@11..11
+                EndGroup@11..14
+                  KwEnd@11..14 "end"
+            EndGroup@14..14
+        error at 11..14: expected ’endloop’ or ’end’
+        error at 11..14: expected ’loop’"#]],
+    );
+}
+
+#[test]
+fn recover_on_loop() {
+    check(
+        "var i := \nloop end loop",
+        expect![[r#"
+        Source@0..23
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          LoopStmt@10..23
+            KwLoop@10..14 "loop"
+            Whitespace@14..15 " "
+            StmtList@15..15
+            EndGroup@15..23
+              KwEnd@15..18 "end"
+              Whitespace@18..19 " "
+              KwLoop@19..23 "loop"
+        error at 10..14: expected expression, but found ’loop’"#]],
+    );
+}
+
+#[test]
+fn parse_exit_stmt() {
+    check(
+        "exit",
+        expect![[r#"
+        Source@0..4
+          ExitStmt@0..4
+            KwExit@0..4 "exit""#]],
+    );
+}
+
+#[test]
+fn parse_exit_stmt_with_when() {
+    check(
+        "exit when false",
+        expect![[r#"
+        Source@0..15
+          ExitStmt@0..15
+            KwExit@0..4 "exit"
+            Whitespace@4..5 " "
+            KwWhen@5..9 "when"
+            Whitespace@9..10 " "
+            LiteralExpr@10..15
+              KwFalse@10..15 "false""#]],
+    );
+}
+
+#[test]
+fn recover_exit_stmt_with_when_missing_expr() {
+    check(
+        "exit when",
+        expect![[r#"
+        Source@0..9
+          ExitStmt@0..9
+            KwExit@0..4 "exit"
+            Whitespace@4..5 " "
+            KwWhen@5..9 "when"
+        error at 5..9: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_exit() {
+    check(
+        "var i := \nexit",
+        expect![[r#"
+        Source@0..14
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ExitStmt@10..14
+            KwExit@10..14 "exit"
+        error at 10..14: expected expression, but found ’exit’"#]],
+    );
+}
