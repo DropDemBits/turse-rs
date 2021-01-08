@@ -366,11 +366,11 @@ pub enum NumberKind {
     Real,
 }
 
-fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
+fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
     // Continue to lex everything
     let mut bump_len = 0_usize;
     let mut comment_nesting = 1_usize;
-    let mut remainder: &str = lex.remainder();
+    let mut remainder: &str = lexer.remainder();
 
     // Track all the endings
     // TODO: replace with `split_inclusive` once it gets stablilized
@@ -392,26 +392,34 @@ fn lex_block_comment(lex: &mut logos::Lexer<TokenKind>) {
             // Outside of nesting depth, done
             // Cap to maximum length of remainder to prevent
             // an out of bounds bump
-            lex.bump(bump_len.min(lex.remainder().len()));
+            lexer.bump(bump_len.min(lexer.remainder().len()));
             return;
         }
     }
 
-    // died
-    // TODO: report error that comment ends at the end of the file
+    // missing terminator
+    lexer.bump(bump_len);
 
-    lex.bump(bump_len);
+    lexer
+        .extras
+        .push_error("block comment is missing terminating ’*/’", lexer.span());
 }
 
 fn check_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
     let slice: &str = lexer.slice();
     let range = lexer.span();
 
-    if !slice.ends_with('\'') || slice.ends_with("\\'") {
+    if slice.ends_with("\\'") {
+        // report error!
+        lexer.extras.push_error(
+            "char literal is missing terminator (terminator is escaped)",
+            range,
+        );
+    } else if !slice.ends_with('\'') {
         // report error!
         lexer
             .extras
-            .push_error("char literal ends at the end of the line", range);
+            .push_error("char literal is missing terminator", range);
     }
 }
 
@@ -419,11 +427,17 @@ fn check_string_literal(lexer: &mut logos::Lexer<TokenKind>) {
     let slice: &str = lexer.slice();
     let range = lexer.span();
 
-    if !slice.ends_with('"') || slice.ends_with("\\\"") {
+    if slice.ends_with("\\\"") {
+        // report error!
+        lexer.extras.push_error(
+            "string literal is missing terminator (terminator is escaped)",
+            range,
+        );
+    } else if !slice.ends_with('"') {
         // report error!
         lexer
             .extras
-            .push_error("string literal ends at the end of the line", range);
+            .push_error("string literal is missing terminator", range);
     }
 }
 

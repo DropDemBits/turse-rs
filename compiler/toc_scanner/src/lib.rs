@@ -661,8 +661,12 @@ mod test {
         expect("/* /* abcd */ /* ae */ */", &TokenKind::Comment);
 
         // Missing terminating */
-        expect("/* /* abcd */", &TokenKind::Comment);
-        expect("/* /* abcd */ ", &TokenKind::Comment);
+        expect_with_error(
+            "/* /* abcd */",
+            &TokenKind::Comment,
+            expect![[r#"error at 0..13: block comment is missing terminating ’*/’"#]],
+        );
+        expect_with_error("/* /* abcd */ ", &TokenKind::Comment, expect![[]]);
     }
 
     #[test]
@@ -685,7 +689,7 @@ mod test {
                 (TokenKind::StringLiteral, "\"abcd"),
                 (TokenKind::Whitespace, "\n"),
             ],
-            expect![[r#"error at 0..5: string literal ends at the end of the line"#]],
+            expect![[r#"error at 0..5: string literal is missing terminator"#]],
         );
 
         expect_seq_with_errors(
@@ -694,28 +698,30 @@ mod test {
                 (TokenKind::StringLiteral, "\"abcd"),
                 (TokenKind::Whitespace, "\r\n"),
             ],
-            expect![[r#"error at 0..5: string literal ends at the end of the line"#]],
+            expect![[r#"error at 0..5: string literal is missing terminator"#]],
         );
 
         // Ends at the end of file
         expect_with_error(
             "\"abcd",
             &TokenKind::StringLiteral,
-            expect![[r#"error at 0..5: string literal ends at the end of the line"#]],
+            expect![[r#"error at 0..5: string literal is missing terminator"#]],
         );
 
         // Escaped terminator
         expect_with_error(
             r#""abcd\""#,
             &TokenKind::StringLiteral,
-            expect![[r#"error at 0..7: string literal ends at the end of the line"#]],
+            expect![[
+                r#"error at 0..7: string literal is missing terminator (terminator is escaped)"#
+            ]],
         );
 
         // Mismatched delimiter
         expect_with_error(
             "\"abcd'",
             &TokenKind::StringLiteral,
-            expect![[r#"error at 0..6: string literal ends at the end of the line"#]],
+            expect![[r#"error at 0..6: string literal is missing terminator"#]],
         );
     }
 
@@ -739,7 +745,7 @@ mod test {
                 (TokenKind::CharLiteral, "'abcd"),
                 (TokenKind::Whitespace, "\n"),
             ],
-            expect![[r#"error at 0..5: char literal ends at the end of the line"#]],
+            expect![[r#"error at 0..5: char literal is missing terminator"#]],
         );
 
         expect_seq_with_errors(
@@ -748,28 +754,30 @@ mod test {
                 (TokenKind::CharLiteral, "'abcd"),
                 (TokenKind::Whitespace, "\r\n"),
             ],
-            expect![[r#"error at 0..5: char literal ends at the end of the line"#]],
+            expect![[r#"error at 0..5: char literal is missing terminator"#]],
         );
 
         // Ends at the end of file
         expect_with_error(
             "'abcd",
             &TokenKind::CharLiteral,
-            expect![[r#"error at 0..5: char literal ends at the end of the line"#]],
+            expect![[r#"error at 0..5: char literal is missing terminator"#]],
         );
 
         // Escaped terminator
         expect_with_error(
             r#"'abcd\'"#,
             &TokenKind::CharLiteral,
-            expect![[r#"error at 0..7: char literal ends at the end of the line"#]],
+            expect![[
+                r#"error at 0..7: char literal is missing terminator (terminator is escaped)"#
+            ]],
         );
 
         // Mismatched delimiter
         expect_with_error(
             "'abcd\"",
             &TokenKind::CharLiteral,
-            expect![[r#"error at 0..6: char literal ends at the end of the line"#]],
+            expect![[r#"error at 0..6: char literal is missing terminator"#]],
         );
     }
 
@@ -784,7 +792,11 @@ mod test {
 
     #[test]
     fn block_comment_missing_endings() {
-        expect("/*/*", &TokenKind::Comment);
+        expect_with_error(
+            "/*/*",
+            &TokenKind::Comment,
+            expect![[r#"error at 0..4: block comment is missing terminating ’*/’"#]],
+        );
     }
 
     #[test]
