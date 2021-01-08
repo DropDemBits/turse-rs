@@ -10,12 +10,55 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
             TokenKind::Type => { type_decl(p) }
+            // bind_decl
+            // procedure_decl
+            // functionn_decl
+            // forward_decl
+            // deferred_decl
+            // module_decl
+            // class_decl
+            // monitor_decl
+
+            // include_stmt
+            // open_stmt
+            // close_stmt
+            // put_stmt
+            // get_stmt
+            // read_stmt
+            // write_stmt
+            // seek_stmt
+            // tell_stmt
+            // for_stmt
+            // loop_stmt
+            // exit_stmt
             TokenKind::If => { if_stmt(p) }
             TokenKind::Elif,
             TokenKind::Elsif,
             TokenKind::Elseif => { elseif_stmt(p, true) } // recovery parse
             TokenKind::Else => { else_stmt(p, true) } // recovery parse
+            // case_stmt
             TokenKind::Begin => { block_stmt(p) }
+            TokenKind::Invariant => { stmt_with_expr(p, TokenKind::Invariant, SyntaxKind::InvariantStmt) }
+            TokenKind::Assert => { stmt_with_expr(p, TokenKind::Assert, SyntaxKind::AssertStmt) }
+            TokenKind::Return => { stmt_only_kw(p, TokenKind::Return, SyntaxKind::ReturnStmt) }
+            TokenKind::Result_ => { stmt_with_expr(p, TokenKind::Result_, SyntaxKind::ResultStmt) }
+            // new_stmt
+            // free_stmt
+            // tag_stmt
+            // fork_stmt
+            TokenKind::Signal => { stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt) }
+            TokenKind::Pause => { stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt) }
+            // quit_stmt
+            TokenKind::Checked => { stmt_only_kw(p, TokenKind::Checked, SyntaxKind::CheckednessStmt) }
+            TokenKind::Unchecked => { stmt_only_kw(p, TokenKind::Unchecked, SyntaxKind::CheckednessStmt) }
+            // pre_stmt
+            // init_stmt
+            // post_stmt
+            // handler_stmt
+            // implement_stmt
+            // implement_by_stmt
+            // import_stmt
+            // export_stmt
             _ => expr::reference(p).and_then(|m| {
                 let m = m.precede(p);
                 // check if there's an asn nearby
@@ -40,6 +83,34 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
     p.hidden_eat(TokenKind::Semicolon);
 
     m
+}
+
+fn stmt_with_expr(
+    p: &mut Parser,
+    expect_at: TokenKind,
+    make_kind: SyntaxKind,
+) -> Option<CompletedMarker> {
+    debug_assert!(p.at(expect_at));
+
+    let m = p.start();
+    p.bump();
+
+    expr::expect_expr(p);
+
+    Some(m.complete(p, make_kind))
+}
+
+fn stmt_only_kw(
+    p: &mut Parser,
+    expect_at: TokenKind,
+    make_kind: SyntaxKind,
+) -> Option<CompletedMarker> {
+    debug_assert!(p.at(expect_at));
+
+    let m = p.start();
+    p.bump();
+
+    Some(m.complete(p, make_kind))
 }
 
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {

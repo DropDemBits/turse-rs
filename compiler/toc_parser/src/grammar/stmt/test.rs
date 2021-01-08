@@ -2093,3 +2093,400 @@ fn recover_begin_with_endcase() {
         error at 6..13: expected ’end’, but found ’endcase’"#]],
     );
 }
+
+#[test]
+fn parse_invariant_stmt() {
+    check(
+        "invariant 1 + 1 = 2",
+        expect![[r#"
+        Source@0..19
+          InvariantStmt@0..19
+            KwInvariant@0..9 "invariant"
+            Whitespace@9..10 " "
+            BinaryExpr@10..19
+              BinaryExpr@10..16
+                LiteralExpr@10..12
+                  IntLiteral@10..11 "1"
+                  Whitespace@11..12 " "
+                Plus@12..13 "+"
+                Whitespace@13..14 " "
+                LiteralExpr@14..16
+                  IntLiteral@14..15 "1"
+                  Whitespace@15..16 " "
+              Equ@16..17 "="
+              Whitespace@17..18 " "
+              LiteralExpr@18..19
+                IntLiteral@18..19 "2""#]],
+    );
+}
+
+#[test]
+fn recover_just_invariant() {
+    check(
+        "invariant",
+        expect![[r#"
+        Source@0..9
+          InvariantStmt@0..9
+            KwInvariant@0..9 "invariant"
+        error at 0..9: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_invariant() {
+    check(
+        "var i := \ninvariant",
+        expect![[r#"
+        Source@0..19
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          InvariantStmt@10..19
+            KwInvariant@10..19 "invariant"
+        error at 10..19: expected expression, but found ’invariant’
+        error at 10..19: expected expression"#]],
+    );
+}
+
+#[test]
+fn parse_assert_stmt() {
+    check(
+        "assert 1 + 1 = 2",
+        expect![[r#"
+        Source@0..16
+          AssertStmt@0..16
+            KwAssert@0..6 "assert"
+            Whitespace@6..7 " "
+            BinaryExpr@7..16
+              BinaryExpr@7..13
+                LiteralExpr@7..9
+                  IntLiteral@7..8 "1"
+                  Whitespace@8..9 " "
+                Plus@9..10 "+"
+                Whitespace@10..11 " "
+                LiteralExpr@11..13
+                  IntLiteral@11..12 "1"
+                  Whitespace@12..13 " "
+              Equ@13..14 "="
+              Whitespace@14..15 " "
+              LiteralExpr@15..16
+                IntLiteral@15..16 "2""#]],
+    );
+}
+
+#[test]
+fn recover_just_assert() {
+    check(
+        "assert",
+        expect![[r#"
+        Source@0..6
+          AssertStmt@0..6
+            KwAssert@0..6 "assert"
+        error at 0..6: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_assert() {
+    check(
+        "var i := \nassert true",
+        expect![[r#"
+        Source@0..21
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          AssertStmt@10..21
+            KwAssert@10..16 "assert"
+            Whitespace@16..17 " "
+            LiteralExpr@17..21
+              KwTrue@17..21 "true"
+        error at 10..16: expected expression, but found ’assert’"#]],
+    );
+}
+
+#[test]
+fn parse_signal_stmt() {
+    check(
+        "signal a_sig",
+        expect![[r#"
+        Source@0..12
+          SignalStmt@0..12
+            KwSignal@0..6 "signal"
+            Whitespace@6..7 " "
+            NameExpr@7..12
+              Name@7..12
+                Identifier@7..12 "a_sig""#]],
+    );
+}
+
+#[test]
+fn parse_signal_stmt_not_ref() {
+    // rejected during lowering
+    check(
+        "signal 1",
+        expect![[r#"
+        Source@0..8
+          SignalStmt@0..8
+            KwSignal@0..6 "signal"
+            Whitespace@6..7 " "
+            LiteralExpr@7..8
+              IntLiteral@7..8 "1""#]],
+    );
+}
+
+#[test]
+fn recover_just_signal() {
+    check(
+        "signal",
+        expect![[r#"
+        Source@0..6
+          SignalStmt@0..6
+            KwSignal@0..6 "signal"
+        error at 0..6: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_signal() {
+    check(
+        "var i := \nsignal a",
+        expect![[r#"
+        Source@0..18
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          SignalStmt@10..18
+            KwSignal@10..16 "signal"
+            Whitespace@16..17 " "
+            NameExpr@17..18
+              Name@17..18
+                Identifier@17..18 "a"
+        error at 10..16: expected expression, but found ’signal’"#]],
+    );
+}
+
+#[test]
+fn parse_pause_stmt() {
+    check(
+        "pause 1 + 1 = 2",
+        expect![[r#"
+        Source@0..15
+          PauseStmt@0..15
+            KwPause@0..5 "pause"
+            Whitespace@5..6 " "
+            BinaryExpr@6..15
+              BinaryExpr@6..12
+                LiteralExpr@6..8
+                  IntLiteral@6..7 "1"
+                  Whitespace@7..8 " "
+                Plus@8..9 "+"
+                Whitespace@9..10 " "
+                LiteralExpr@10..12
+                  IntLiteral@10..11 "1"
+                  Whitespace@11..12 " "
+              Equ@12..13 "="
+              Whitespace@13..14 " "
+              LiteralExpr@14..15
+                IntLiteral@14..15 "2""#]],
+    );
+}
+
+#[test]
+fn recover_just_pause() {
+    check(
+        "pause",
+        expect![[r#"
+        Source@0..5
+          PauseStmt@0..5
+            KwPause@0..5 "pause"
+        error at 0..5: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_pause() {
+    check(
+        "var i := \npause 3",
+        expect![[r#"
+            Source@0..17
+              ConstVarDecl@0..10
+                KwVar@0..3 "var"
+                Whitespace@3..4 " "
+                NameList@4..6
+                  Name@4..6
+                    Identifier@4..5 "i"
+                    Whitespace@5..6 " "
+                Assign@6..8 ":="
+                Whitespace@8..10 " \n"
+              PauseStmt@10..17
+                KwPause@10..15 "pause"
+                Whitespace@15..16 " "
+                LiteralExpr@16..17
+                  IntLiteral@16..17 "3"
+            error at 10..15: expected expression, but found ’pause’"#]],
+    );
+}
+
+#[test]
+fn parse_result_stmt() {
+    check(
+        "result 2",
+        expect![[r#"
+            Source@0..8
+              ResultStmt@0..8
+                KwResult@0..6 "result"
+                Whitespace@6..7 " "
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "2""#]],
+    );
+}
+
+#[test]
+fn recover_just_result() {
+    check(
+        "result",
+        expect![[r#"
+        Source@0..6
+          ResultStmt@0..6
+            KwResult@0..6 "result"
+        error at 0..6: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_result() {
+    check(
+        "var i := \nresult 2",
+        expect![[r#"
+        Source@0..18
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ResultStmt@10..18
+            KwResult@10..16 "result"
+            Whitespace@16..17 " "
+            LiteralExpr@17..18
+              IntLiteral@17..18 "2"
+        error at 10..16: expected expression, but found ’result’"#]],
+    );
+}
+
+#[test]
+fn parse_return() {
+    check(
+        "return",
+        expect![[r#"
+        Source@0..6
+          ReturnStmt@0..6
+            KwReturn@0..6 "return""#]],
+    );
+}
+
+#[test]
+fn recover_on_return() {
+    check(
+        "var i := \nreturn",
+        expect![[r#"
+        Source@0..16
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ReturnStmt@10..16
+            KwReturn@10..16 "return"
+        error at 10..16: expected expression, but found ’return’"#]],
+    );
+}
+
+#[test]
+fn parse_checked() {
+    check(
+        "checked",
+        expect![[r#"
+        Source@0..7
+          CheckednessStmt@0..7
+            KwChecked@0..7 "checked""#]],
+    );
+}
+
+#[test]
+fn recover_on_checked() {
+    check(
+        "var i := \nchecked",
+        expect![[r#"
+        Source@0..17
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          CheckednessStmt@10..17
+            KwChecked@10..17 "checked"
+        error at 10..17: expected expression, but found ’checked’"#]],
+    );
+}
+
+#[test]
+fn parse_unchecked() {
+    check(
+        "unchecked",
+        expect![[r#"
+        Source@0..9
+          CheckednessStmt@0..9
+            KwUnchecked@0..9 "unchecked""#]],
+    );
+}
+
+#[test]
+fn recover_on_unchecked() {
+    check(
+        "var i := \nunchecked",
+        expect![[r#"
+        Source@0..19
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          CheckednessStmt@10..19
+            KwUnchecked@10..19 "unchecked"
+        error at 10..19: expected expression, but found ’unchecked’"#]],
+    );
+}

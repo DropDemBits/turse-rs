@@ -26,6 +26,14 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Elseif,
     TokenKind::Else,
     TokenKind::Begin,
+    TokenKind::Invariant,
+    TokenKind::Assert,
+    TokenKind::Return,
+    TokenKind::Result_,
+    TokenKind::Signal,
+    TokenKind::Pause,
+    TokenKind::Checked,
+    TokenKind::Unchecked,
 ];
 
 pub(crate) struct Parser<'t, 'src> {
