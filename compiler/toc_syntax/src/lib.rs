@@ -280,6 +280,7 @@ pub enum SyntaxKind {
     BinaryItem,
     RequestSize,
     ActualSize,
+    StepBy,
     IfBody,
     ElseStmt,
     ElseifStmt,

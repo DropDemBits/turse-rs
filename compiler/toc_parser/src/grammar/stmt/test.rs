@@ -2705,3 +2705,394 @@ fn recover_on_exit() {
         error at 10..14: expected expression, but found ’exit’"#]],
     );
 }
+
+#[test]
+fn parse_for_loop() {
+    check(
+        r#"
+    for i : 1 .. 3
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..59
+              Whitespace@0..5 "\n    "
+              ForStmt@5..59
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Name@9..11
+                  Identifier@9..10 "i"
+                  Whitespace@10..11 " "
+                Colon@11..12 ":"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+                Range@15..17 ".."
+                Whitespace@17..18 " "
+                LiteralExpr@18..28
+                  IntLiteral@18..19 "3"
+                  Whitespace@19..28 "\n        "
+                StmtList@28..47
+                  InvariantStmt@28..47
+                    KwInvariant@28..37 "invariant"
+                    Whitespace@37..38 " "
+                    LiteralExpr@38..47
+                      KwTrue@38..42 "true"
+                      Whitespace@42..47 "\n    "
+                EndGroup@47..59
+                  KwEnd@47..50 "end"
+                  Whitespace@50..51 " "
+                  KwFor@51..54 "for"
+                  Whitespace@54..59 "\n    ""#]],
+    );
+}
+
+#[test]
+fn parse_for_loop_alt_end() {
+    check(
+        r#"
+    for i : 1 .. 3
+        invariant true
+    endfor
+    "#,
+        expect![[r#"
+            Source@0..58
+              Whitespace@0..5 "\n    "
+              ForStmt@5..58
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Name@9..11
+                  Identifier@9..10 "i"
+                  Whitespace@10..11 " "
+                Colon@11..12 ":"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+                Range@15..17 ".."
+                Whitespace@17..18 " "
+                LiteralExpr@18..28
+                  IntLiteral@18..19 "3"
+                  Whitespace@19..28 "\n        "
+                StmtList@28..47
+                  InvariantStmt@28..47
+                    KwInvariant@28..37 "invariant"
+                    Whitespace@37..38 " "
+                    LiteralExpr@38..47
+                      KwTrue@38..42 "true"
+                      Whitespace@42..47 "\n    "
+                EndGroup@47..58
+                  KwEndFor@47..53 "endfor"
+                  Whitespace@53..58 "\n    ""#]],
+    );
+}
+
+#[test]
+fn parse_decreasing_for_loop() {
+    check(
+        r#"
+    for decreasing i : 1 .. 3
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..70
+              Whitespace@0..5 "\n    "
+              ForStmt@5..70
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                KwDecreasing@9..19 "decreasing"
+                Whitespace@19..20 " "
+                Name@20..22
+                  Identifier@20..21 "i"
+                  Whitespace@21..22 " "
+                Colon@22..23 ":"
+                Whitespace@23..24 " "
+                LiteralExpr@24..26
+                  IntLiteral@24..25 "1"
+                  Whitespace@25..26 " "
+                Range@26..28 ".."
+                Whitespace@28..29 " "
+                LiteralExpr@29..39
+                  IntLiteral@29..30 "3"
+                  Whitespace@30..39 "\n        "
+                StmtList@39..58
+                  InvariantStmt@39..58
+                    KwInvariant@39..48 "invariant"
+                    Whitespace@48..49 " "
+                    LiteralExpr@49..58
+                      KwTrue@49..53 "true"
+                      Whitespace@53..58 "\n    "
+                EndGroup@58..70
+                  KwEnd@58..61 "end"
+                  Whitespace@61..62 " "
+                  KwFor@62..65 "for"
+                  Whitespace@65..70 "\n    ""#]],
+    );
+}
+
+#[test]
+fn parse_for_loop_opt_step_by() {
+    check(
+        r#"
+    for decreasing i : 1 .. 8 by 3
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..75
+              Whitespace@0..5 "\n    "
+              ForStmt@5..75
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                KwDecreasing@9..19 "decreasing"
+                Whitespace@19..20 " "
+                Name@20..22
+                  Identifier@20..21 "i"
+                  Whitespace@21..22 " "
+                Colon@22..23 ":"
+                Whitespace@23..24 " "
+                LiteralExpr@24..26
+                  IntLiteral@24..25 "1"
+                  Whitespace@25..26 " "
+                Range@26..28 ".."
+                Whitespace@28..29 " "
+                LiteralExpr@29..31
+                  IntLiteral@29..30 "8"
+                  Whitespace@30..31 " "
+                StepBy@31..44
+                  KwBy@31..33 "by"
+                  Whitespace@33..34 " "
+                  LiteralExpr@34..44
+                    IntLiteral@34..35 "3"
+                    Whitespace@35..44 "\n        "
+                StmtList@44..63
+                  InvariantStmt@44..63
+                    KwInvariant@44..53 "invariant"
+                    Whitespace@53..54 " "
+                    LiteralExpr@54..63
+                      KwTrue@54..58 "true"
+                      Whitespace@58..63 "\n    "
+                EndGroup@63..75
+                  KwEnd@63..66 "end"
+                  Whitespace@66..67 " "
+                  KwFor@67..70 "for"
+                  Whitespace@70..75 "\n    ""#]],
+    );
+}
+
+#[test]
+fn recover_for_loop_missing_name() {
+    check(
+        r#"
+    for : 1 .. 8
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..57
+              Whitespace@0..5 "\n    "
+              ForStmt@5..57
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Colon@9..10 ":"
+                Whitespace@10..11 " "
+                LiteralExpr@11..13
+                  IntLiteral@11..12 "1"
+                  Whitespace@12..13 " "
+                Range@13..15 ".."
+                Whitespace@15..16 " "
+                LiteralExpr@16..26
+                  IntLiteral@16..17 "8"
+                  Whitespace@17..26 "\n        "
+                StmtList@26..45
+                  InvariantStmt@26..45
+                    KwInvariant@26..35 "invariant"
+                    Whitespace@35..36 " "
+                    LiteralExpr@36..45
+                      KwTrue@36..40 "true"
+                      Whitespace@40..45 "\n    "
+                EndGroup@45..57
+                  KwEnd@45..48 "end"
+                  Whitespace@48..49 " "
+                  KwFor@49..52 "for"
+                  Whitespace@52..57 "\n    "
+            error at 9..10: expected identifier, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_for_loop_missing_left_bound() {
+    check(
+        r#"
+    for i : .. 8
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..57
+              Whitespace@0..5 "\n    "
+              ForStmt@5..57
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Name@9..11
+                  Identifier@9..10 "i"
+                  Whitespace@10..11 " "
+                Colon@11..12 ":"
+                Whitespace@12..13 " "
+                Range@13..15 ".."
+                Whitespace@15..16 " "
+                LiteralExpr@16..26
+                  IntLiteral@16..17 "8"
+                  Whitespace@17..26 "\n        "
+                StmtList@26..45
+                  InvariantStmt@26..45
+                    KwInvariant@26..35 "invariant"
+                    Whitespace@35..36 " "
+                    LiteralExpr@36..45
+                      KwTrue@36..40 "true"
+                      Whitespace@40..45 "\n    "
+                EndGroup@45..57
+                  KwEnd@45..48 "end"
+                  Whitespace@48..49 " "
+                  KwFor@49..52 "for"
+                  Whitespace@52..57 "\n    "
+            error at 13..15: expected expression, but found ’..’"#]],
+    );
+}
+
+#[test]
+fn recover_for_loop_missing_range() {
+    check(
+        r#"
+    for i : 1 8
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..56
+              Whitespace@0..5 "\n    "
+              ForStmt@5..56
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Name@9..11
+                  Identifier@9..10 "i"
+                  Whitespace@10..11 " "
+                Colon@11..12 ":"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+                Error@15..25
+                  IntLiteral@15..16 "8"
+                  Whitespace@16..25 "\n        "
+                StmtList@25..44
+                  InvariantStmt@25..44
+                    KwInvariant@25..34 "invariant"
+                    Whitespace@34..35 " "
+                    LiteralExpr@35..44
+                      KwTrue@35..39 "true"
+                      Whitespace@39..44 "\n    "
+                EndGroup@44..56
+                  KwEnd@44..47 "end"
+                  Whitespace@47..48 " "
+                  KwFor@48..51 "for"
+                  Whitespace@51..56 "\n    "
+            error at 15..16: expected ’..’, but found int literal
+            error at 25..34: expected expression, but found ’invariant’"#]],
+    );
+}
+
+#[test]
+fn recover_for_loop_missing_right_bound() {
+    check(
+        r#"
+    for i : 1 ..
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..57
+              Whitespace@0..5 "\n    "
+              ForStmt@5..57
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Name@9..11
+                  Identifier@9..10 "i"
+                  Whitespace@10..11 " "
+                Colon@11..12 ":"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+                Range@15..17 ".."
+                Whitespace@17..26 "\n        "
+                StmtList@26..45
+                  InvariantStmt@26..45
+                    KwInvariant@26..35 "invariant"
+                    Whitespace@35..36 " "
+                    LiteralExpr@36..45
+                      KwTrue@36..40 "true"
+                      Whitespace@40..45 "\n    "
+                EndGroup@45..57
+                  KwEnd@45..48 "end"
+                  Whitespace@48..49 " "
+                  KwFor@49..52 "for"
+                  Whitespace@52..57 "\n    "
+            error at 26..35: expected expression, but found ’invariant’"#]],
+    );
+}
+
+#[test]
+fn recover_on_for_loop() {
+    check(
+        r#"
+    var i :=
+    for i : 1 .. 8
+        invariant true
+    end for
+    "#,
+        expect![[r#"
+            Source@0..72
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              ForStmt@18..72
+                KwFor@18..21 "for"
+                Whitespace@21..22 " "
+                Name@22..24
+                  Identifier@22..23 "i"
+                  Whitespace@23..24 " "
+                Colon@24..25 ":"
+                Whitespace@25..26 " "
+                LiteralExpr@26..28
+                  IntLiteral@26..27 "1"
+                  Whitespace@27..28 " "
+                Range@28..30 ".."
+                Whitespace@30..31 " "
+                LiteralExpr@31..41
+                  IntLiteral@31..32 "8"
+                  Whitespace@32..41 "\n        "
+                StmtList@41..60
+                  InvariantStmt@41..60
+                    KwInvariant@41..50 "invariant"
+                    Whitespace@50..51 " "
+                    LiteralExpr@51..60
+                      KwTrue@51..55 "true"
+                      Whitespace@55..60 "\n    "
+                EndGroup@60..72
+                  KwEnd@60..63 "end"
+                  Whitespace@63..64 " "
+                  KwFor@64..67 "for"
+                  Whitespace@67..72 "\n    "
+            error at 18..21: expected expression, but found ’for’"#]],
+    );
+}

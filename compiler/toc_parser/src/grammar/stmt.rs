@@ -28,7 +28,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             // write_stmt
             // seek_stmt
             // tell_stmt
-            // for_stmt
+            TokenKind::For =>{ for_stmt(p) }
             TokenKind::Loop =>{ loop_stmt(p) }
             TokenKind::Exit =>{ exit_stmt(p) }
             TokenKind::If => { if_stmt(p) }
@@ -236,6 +236,42 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::TypeDecl))
+}
+
+fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::For));
+
+    let m = p.start();
+    p.bump();
+
+    p.hidden_eat(TokenKind::Decreasing);
+
+    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+        super::name(p);
+    });
+
+    // For-range
+    // left bound
+    p.with_extra_recovery(&[TokenKind::Range], |p| {
+        p.expect(TokenKind::Colon);
+        expr::expect_expr(p);
+    });
+    // right bound
+    p.expect(TokenKind::Range);
+    expr::expect_expr(p);
+
+    // optional step by expr
+    if p.at(TokenKind::By) {
+        let m = p.start();
+        p.bump();
+        expr::expect_expr(p);
+        m.complete(p, SyntaxKind::StepBy);
+    }
+
+    self::stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::For, Some(TokenKind::EndFor));
+    Some(m.complete(p, SyntaxKind::ForStmt))
 }
 
 fn loop_stmt(p: &mut Parser) -> Option<CompletedMarker> {
