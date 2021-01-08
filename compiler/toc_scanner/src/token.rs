@@ -407,7 +407,7 @@ fn check_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
     let slice: &str = lexer.slice();
     let range = lexer.span();
 
-    if !slice.ends_with('\'') {
+    if !slice.ends_with('\'') || slice.ends_with("\\'") {
         // report error!
         lexer
             .extras
@@ -419,7 +419,7 @@ fn check_string_literal(lexer: &mut logos::Lexer<TokenKind>) {
     let slice: &str = lexer.slice();
     let range = lexer.span();
 
-    if !slice.ends_with('"') {
+    if !slice.ends_with('"') || slice.ends_with("\\\"") {
         // report error!
         lexer
             .extras
