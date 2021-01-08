@@ -150,7 +150,10 @@ pub(self) fn name_list(p: &mut Parser) -> Option<CompletedMarker> {
 
 /// ParamList ( `'(' Param ( ',' Param )* ')'` )
 pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::LeftParen));
+
     let m = p.start();
+    p.bump();
 
     if !p.at(TokenKind::RightParen) {
         if let Some((_, true)) = param(p) {
@@ -166,6 +169,8 @@ pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
             }
         }
     }
+
+    p.expect(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::ParamList))
 }
