@@ -151,7 +151,8 @@ fn parse_var_decl_with_alt_eq() {
                 Equ@12..13 "="
                 Whitespace@13..14 " "
                 LiteralExpr@14..15
-                  IntLiteral@14..15 "1""#]],
+                  IntLiteral@14..15 "1"
+            warn at 12..13: ’=’ found, assuming it to be ’:=’"#]],
     )
 }
 
@@ -176,7 +177,8 @@ fn parse_const_decl_with_alt_eq() {
                 Equ@14..15 "="
                 Whitespace@15..16 " "
                 LiteralExpr@16..17
-                  IntLiteral@16..17 "1""#]],
+                  IntLiteral@16..17 "1"
+            warn at 14..15: ’=’ found, assuming it to be ’:=’"#]],
     )
 }
 
@@ -1163,6 +1165,7 @@ fn recover_not_a_compound_asn_op() {
               CallStmt@5..6
                 LiteralExpr@5..6
                   IntLiteral@5..6 "1"
+            warn at 2..3: ’=’ found, assuming it to be ’:=’
             error at 3..4: expected expression, but found ’=’"#]],
     );
 }
@@ -1207,7 +1210,8 @@ fn recover_eq_instead_of_asn() {
                   Equ@2..3 "="
                   Whitespace@3..4 " "
                 LiteralExpr@4..5
-                  IntLiteral@4..5 "1""#]],
+                  IntLiteral@4..5 "1"
+            warn at 2..3: ’=’ found, assuming it to be ’:=’"#]],
     );
 }
 
@@ -1589,7 +1593,9 @@ fn parse_if_chained_alternates() {
                 EndGroup@45..51
                   KwEnd@45..48 "end"
                   Whitespace@48..49 " "
-                  KwIf@49..51 "if""#]],
+                  KwIf@49..51 "if"
+            warn at 13..19: ’elseif’ found, assuming it to be ’elsif’
+            warn at 30..34: ’elif’ found, assuming it to be ’elsif’"#]],
     );
 }
 
@@ -1674,7 +1680,8 @@ fn parse_if_alternate_end() {
                   Whitespace@12..13 " "
                   StmtList@13..13
                 EndGroup@13..18
-                  KwEndIf@13..18 "endif""#]],
+                  KwEndIf@13..18 "endif"
+            warn at 13..18: ’endif’ found, assuming it to be ’end if’"#]],
     );
 }
 
@@ -1720,7 +1727,8 @@ fn parse_elseif_alternates_stmt() {
                 EndGroup@17..23
                   KwEnd@17..20 "end"
                   Whitespace@20..21 " "
-                  KwIf@21..23 "if""#]],
+                  KwIf@21..23 "if"
+            warn at 0..6: ’elseif’ found, assuming it to be ’elsif’"#]],
     );
     check(
         "elif true then end if",
@@ -1739,7 +1747,8 @@ fn parse_elseif_alternates_stmt() {
                 EndGroup@15..21
                   KwEnd@15..18 "end"
                   Whitespace@18..19 " "
-                  KwIf@19..21 "if""#]],
+                  KwIf@19..21 "if"
+            warn at 0..4: ’elif’ found, assuming it to be ’elsif’"#]],
     );
 }
 
@@ -1760,7 +1769,8 @@ fn parse_elseif_alternate_end() {
                   Whitespace@15..16 " "
                   StmtList@16..16
                 EndGroup@16..21
-                  KwEndIf@16..21 "endif""#]],
+                  KwEndIf@16..21 "endif"
+            warn at 16..21: ’endif’ found, assuming it to be ’end if’"#]],
     );
 }
 
@@ -1946,7 +1956,8 @@ fn recover_on_elseif() {
                   KwEnd@27..30 "end"
                   Whitespace@30..31 " "
                   KwIf@31..33 "if"
-            error at 10..16: expected expression, but found ’elseif’"#]],
+            error at 10..16: expected expression, but found ’elseif’
+            warn at 10..16: ’elseif’ found, assuming it to be ’elsif’"#]],
     );
 }
 
@@ -2012,7 +2023,8 @@ fn recover_on_elif() {
                   KwEnd@25..28 "end"
                   Whitespace@28..29 " "
                   KwIf@29..31 "if"
-            error at 10..14: expected expression, but found ’elif’"#]],
+            error at 10..14: expected expression, but found ’elif’
+            warn at 10..14: ’elif’ found, assuming it to be ’elsif’"#]],
     );
 }
 
@@ -2021,25 +2033,26 @@ fn recover_begin_missing_end_in_if() {
     check(
         "if 0 then begin endif",
         expect![[r#"
-        Source@0..21
-          IfStmt@0..21
-            KwIf@0..2 "if"
-            Whitespace@2..3 " "
-            IfBody@3..16
-              LiteralExpr@3..5
-                IntLiteral@3..4 "0"
-                Whitespace@4..5 " "
-              KwThen@5..9 "then"
-              Whitespace@9..10 " "
-              StmtList@10..16
-                BlockStmt@10..16
-                  KwBegin@10..15 "begin"
-                  Whitespace@15..16 " "
-                  StmtList@16..16
-                  EndGroup@16..16
-            EndGroup@16..21
-              KwEndIf@16..21 "endif"
-        error at 16..21: expected ’end’, but found ’endif’"#]],
+            Source@0..21
+              IfStmt@0..21
+                KwIf@0..2 "if"
+                Whitespace@2..3 " "
+                IfBody@3..16
+                  LiteralExpr@3..5
+                    IntLiteral@3..4 "0"
+                    Whitespace@4..5 " "
+                  KwThen@5..9 "then"
+                  Whitespace@9..10 " "
+                  StmtList@10..16
+                    BlockStmt@10..16
+                      KwBegin@10..15 "begin"
+                      Whitespace@15..16 " "
+                      StmtList@16..16
+                      EndGroup@16..16
+                EndGroup@16..21
+                  KwEndIf@16..21 "endif"
+            error at 16..21: expected ’end’, but found ’endif’
+            warn at 16..21: ’endif’ found, assuming it to be ’end if’"#]],
     );
 }
 
@@ -2562,13 +2575,14 @@ fn parse_loop_stmt_alt_end() {
     check(
         "loop endloop",
         expect![[r#"
-        Source@0..12
-          LoopStmt@0..12
-            KwLoop@0..4 "loop"
-            Whitespace@4..5 " "
-            StmtList@5..5
-            EndGroup@5..12
-              KwEndLoop@5..12 "endloop""#]],
+            Source@0..12
+              LoopStmt@0..12
+                KwLoop@0..4 "loop"
+                Whitespace@4..5 " "
+                StmtList@5..5
+                EndGroup@5..12
+                  KwEndLoop@5..12 "endloop"
+            warn at 5..12: ’endloop’ found, assuming it to be ’end loop’"#]],
     );
 }
 
@@ -2784,7 +2798,8 @@ fn parse_for_loop_alt_end() {
                       Whitespace@42..47 "\n    "
                 EndGroup@47..58
                   KwEndFor@47..53 "endfor"
-                  Whitespace@53..58 "\n    ""#]],
+                  Whitespace@53..58 "\n    "
+            warn at 47..53: ’endfor’ found, assuming it to be ’end for’"#]],
     );
 }
 
@@ -3194,7 +3209,8 @@ fn parse_case_stmt_alt_end() {
                   Whitespace@30..35 "\n    "
                   StmtList@35..35
                 EndGroup@35..42
-                  KwEndCase@35..42 "endcase""#]],
+                  KwEndCase@35..42 "endcase"
+            warn at 35..42: ’endcase’ found, assuming it to be ’end case’"#]],
     );
 }
 

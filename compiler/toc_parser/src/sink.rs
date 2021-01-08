@@ -1,6 +1,6 @@
 //! Sink for events
 use crate::event::Event;
-use crate::parser::ParseError;
+use crate::parser::ParseMessage;
 use crate::ParseResult;
 
 use rowan::GreenNodeBuilder;
@@ -14,7 +14,7 @@ pub(super) struct Sink<'t, 'src> {
     tokens: &'t [Token<'src>],
     cursor: usize,
     events: Vec<Event>,
-    errors: Vec<ParseError>,
+    errors: Vec<ParseMessage>,
 }
 
 impl<'t, 'src> Sink<'t, 'src> {
@@ -66,7 +66,7 @@ impl<'t, 'src> Sink<'t, 'src> {
                 }
                 Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
-                Event::Error(err) => self.errors.push(err),
+                Event::Message(err) => self.errors.push(err),
                 Event::Tombstone | Event::Placeholder => {}
             }
 

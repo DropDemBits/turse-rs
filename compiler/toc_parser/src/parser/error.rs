@@ -6,16 +6,17 @@ use toc_scanner::token::{TokenKind, TokenRange};
 use toc_scanner::ScannerError;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct ParseError {
-    pub(super) kind: ErrorKind,
+pub(crate) struct ParseMessage {
+    pub(super) kind: MessageKind,
     pub(super) range: TokenRange,
 }
 
-impl fmt::Display for ParseError {
+impl fmt::Display for ParseMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "error at {}..{}: ",
+            "{} at {}..{}: ",
+            self.kind.category(),
             u32::from(self.range.start()),
             u32::from(self.range.end()),
         )?;
@@ -24,33 +25,39 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl From<ScannerError> for ParseError {
+impl From<ScannerError> for ParseMessage {
     fn from(ScannerError(msg, at): ScannerError) -> Self {
         Self {
-            kind: ErrorKind::OtherError(msg),
+            kind: MessageKind::OtherError(msg),
             range: at,
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum ErrorKind {
+pub(crate) enum MessageKind {
     UnexpectedToken {
         expected: Vec<TokenKind>,
         expected_category: Option<Expected>,
         found: Option<TokenKind>,
     },
-    #[allow(unused)]
-    InvalidLiteral {
-        kind: InvalidLiteral,
-    },
     OtherError(String),
+    OtherWarn(String),
 }
 
-impl fmt::Display for ErrorKind {
+impl MessageKind {
+    fn category(&self) -> MessageCategory {
+        match self {
+            Self::UnexpectedToken { .. } | Self::OtherError(..) => MessageCategory::Error,
+            Self::OtherWarn(..) => MessageCategory::Warn,
+        }
+    }
+}
+
+impl fmt::Display for MessageKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
-            ErrorKind::UnexpectedToken {
+            Self::UnexpectedToken {
                 expected,
                 expected_category,
                 found,
@@ -82,13 +89,25 @@ impl fmt::Display for ErrorKind {
 
                 Ok(())
             }
-            ErrorKind::InvalidLiteral { kind } => {
-                write!(f, "{}", kind)
-            }
-            ErrorKind::OtherError(msg) => {
+            Self::OtherError(msg) | Self::OtherWarn(msg) => {
                 write!(f, "{}", msg)
             }
         }
+    }
+}
+
+#[derive(Debug)]
+enum MessageCategory {
+    Error,
+    Warn,
+}
+
+impl fmt::Display for MessageCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Error => "error",
+            Self::Warn => "warn",
+        })
     }
 }
 
@@ -109,71 +128,6 @@ impl fmt::Display for Expected {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-#[allow(unused)]
-pub(crate) enum InvalidLiteral {
-    // Int Literals
-    /// Int literal is unrepresentable in normal Turing code
-    IntUnrepresentable,
-
-    // Real literals
-    /// Real literal is unrepresentable in normal Turing code
-    RealUnrepresentable,
-    /// Real literal is missing exponent digits
-    RealMissingExponentDigits,
-
-    // Radix literals
-    /// Radix literal base is outside of the accepted range (2..=36)
-    RadixInvalidBase,
-    /// Radix literal contains a digit outside of the base's range
-    RadixInvalidDigit,
-    /// Radix literal is missing the digits portion
-    RadixNoDigits,
-
-    // String/Char Literals
-    /// CharSeq Literal is missing the terminator
-    CharSeqMissingTerminator,
-    /// Invalid escape character
-    CharSeqInvalidEscape,
-    /// Octal escape character is greater than 255
-    CharSeqBadOctalEscape,
-    /// Unicode escape character is greater than U+10FFFF
-    CharSeqBadUnicodeEscape,
-    /// Unicode escape character is a surrogate character
-    CharSeqUnicodeSurrogateEscape,
-    /// Escape character (x, u, U) is missing hex digits
-    CharSeqEscapeMissingDigits,
-}
-
-impl fmt::Display for InvalidLiteral {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let text = match self {
-            InvalidLiteral::IntUnrepresentable => "invalid int literal",
-            InvalidLiteral::RealUnrepresentable => "invalid real literal",
-            InvalidLiteral::RealMissingExponentDigits => "real literal is missing exponent digits",
-            InvalidLiteral::RadixInvalidBase => "the base is outside the accepted range of 2 - 36",
-            InvalidLiteral::RadixInvalidDigit => {
-                "a digit in the literal is not an accepted character for the base"
-            }
-            InvalidLiteral::RadixNoDigits => "literal is missing digits",
-            InvalidLiteral::CharSeqMissingTerminator => {
-                "literal is missing the terminating character"
-            }
-            InvalidLiteral::CharSeqInvalidEscape => "invalid escape character",
-            InvalidLiteral::CharSeqBadOctalEscape => "octal escape character is greater than 255",
-            InvalidLiteral::CharSeqBadUnicodeEscape => {
-                "unicode escape character is greater than U+10FFFF"
-            }
-            InvalidLiteral::CharSeqUnicodeSurrogateEscape => {
-                "unicode escape character encodes a surrogate"
-            }
-            InvalidLiteral::CharSeqEscapeMissingDigits => "escape sequence is missing hex digits",
-        };
-
-        write!(f, "{}", text)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -181,10 +135,10 @@ mod test {
     use std::ops::Range;
 
     #[track_caller]
-    fn check(kind: ErrorKind, range: Range<u32>, out: Expect) {
+    fn check(kind: MessageKind, range: Range<u32>, out: Expect) {
         let range = TokenRange::new(range.start.into(), range.end.into());
 
-        let err = ParseError { kind, range };
+        let err = ParseMessage { kind, range };
 
         out.assert_eq(&format!("{}", err));
     }
@@ -192,7 +146,7 @@ mod test {
     #[test]
     fn single_expected_but_found() {
         check(
-            ErrorKind::UnexpectedToken {
+            MessageKind::UnexpectedToken {
                 expected: vec![TokenKind::Assign],
                 expected_category: None,
                 found: Some(TokenKind::Equ),
@@ -205,7 +159,7 @@ mod test {
     #[test]
     fn single_expected_but_not_found() {
         check(
-            ErrorKind::UnexpectedToken {
+            MessageKind::UnexpectedToken {
                 expected: vec![TokenKind::Range],
                 expected_category: None,
                 found: None,
@@ -218,7 +172,7 @@ mod test {
     #[test]
     fn multiple_expected_but_found() {
         check(
-            ErrorKind::UnexpectedToken {
+            MessageKind::UnexpectedToken {
                 expected: vec![
                     TokenKind::Identifier,
                     TokenKind::Bits,
@@ -238,7 +192,7 @@ mod test {
     #[test]
     fn two_expected_but_found() {
         check(
-            ErrorKind::UnexpectedToken {
+            MessageKind::UnexpectedToken {
                 expected: vec![TokenKind::Const, TokenKind::Var],
                 expected_category: None,
                 found: Some(TokenKind::Colon),
@@ -251,7 +205,7 @@ mod test {
     #[test]
     fn multiple_expected_but_not_found() {
         check(
-            ErrorKind::UnexpectedToken {
+            MessageKind::UnexpectedToken {
                 expected: vec![
                     TokenKind::Plus,
                     TokenKind::Minus,
@@ -270,7 +224,7 @@ mod test {
     fn unexpected_category_over_list() {
         // category has preference over token list
         check(
-            ErrorKind::UnexpectedToken {
+            MessageKind::UnexpectedToken {
                 expected: vec![TokenKind::Pervasive],
                 expected_category: Some(Expected::Expression),
                 found: Some(TokenKind::Var),
@@ -278,5 +232,14 @@ mod test {
             3..6,
             expect![[r#"error at 3..6: expected expression, but found ’var’"#]],
         )
+    }
+
+    #[test]
+    fn other_error_message() {
+        check(
+            MessageKind::OtherError("this is not a real error message".to_string()),
+            1..3,
+            expect![["error at 1..3: this is not a real error message"]],
+        );
     }
 }

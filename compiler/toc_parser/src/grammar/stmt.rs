@@ -118,7 +118,7 @@ fn stmt_only_kw(
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
     if p.at(TokenKind::Equ) {
         // Simple assignment, but mistyped `=` instead of `:=`
-        // TODO: Warn about mistakes like this
+        p.warn_alias("’:=’");
 
         let m = p.start();
         p.bump(); // bump `=`
@@ -207,9 +207,9 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     // if type is implied, then init is not allowed
     // refining error: for const, could say that initialzer is required
     if p.at(TokenKind::Equ) {
+        p.warn_alias("’:=’");
         p.bump(); // bump `=`
 
-        // TODO: Warn about mistake token
         expr::expect_expr(p);
     } else if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
         expr::expect_expr(p);
@@ -352,9 +352,10 @@ fn elseif_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
 
     let m = p.start();
 
-    if p.eat(TokenKind::Elseif) || p.eat(TokenKind::Elif) {
+    if p.at(TokenKind::Elseif) || p.at(TokenKind::Elif) {
         // `elsif` is blessed version
-        // TODO: Warn of mistake token
+        p.warn_alias("’elsif’");
+        p.bump();
     } else {
         // nom `elsif`
         p.bump();
@@ -476,8 +477,17 @@ fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<Complete
 fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
     let m = p.start();
 
-    if combined.map(|kind| p.eat(kind)).unwrap_or(false) {
-        // TODO: Warn of mistake token
+    if combined.map(|kind| p.at(kind)).unwrap_or(false) {
+        let tail_text = match tail {
+            TokenKind::If => "if",
+            TokenKind::Case => "case",
+            TokenKind::For => "for",
+            TokenKind::Loop => "loop",
+            _ => unreachable!("not a combined end"),
+        };
+
+        p.warn_alias(&format!("’end {}’", tail_text));
+        p.bump();
     } else {
         p.expect(TokenKind::End);
         p.expect(tail);
