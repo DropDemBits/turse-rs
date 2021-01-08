@@ -5,7 +5,7 @@ mod parser;
 mod sink;
 mod source;
 
-use parser::ParseError;
+use parser::ParseMessage;
 use source::Source;
 use toc_scanner::Scanner;
 use toc_syntax::SyntaxNode;
@@ -27,7 +27,7 @@ pub fn parse(source: &str) -> ParseResult {
 
 pub struct ParseResult {
     node: GreenNode,
-    errors: Vec<ParseError>,
+    errors: Vec<ParseMessage>,
 }
 
 impl ParseResult {

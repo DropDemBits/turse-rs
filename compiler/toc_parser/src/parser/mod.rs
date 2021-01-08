@@ -3,11 +3,11 @@ mod error;
 pub(crate) mod marker;
 
 use drop_bomb::DropBomb;
-pub(crate) use error::{Expected, ParseError};
+pub(crate) use error::{Expected, ParseMessage};
 
 use crate::event::Event;
 use crate::grammar;
-use crate::parser::error::ErrorKind;
+use crate::parser::error::MessageKind;
 use crate::parser::marker::Marker;
 use crate::source::Source;
 
@@ -145,6 +145,20 @@ impl<'t, 'src> Parser<'t, 'src> {
         UnexpectedBuilder::new(self)
     }
 
+    /// Reports a token alias warning at the current token
+    pub(crate) fn warn_alias(&mut self, normal: &str) {
+        let current = self.source.peek_token();
+
+        let (found, range) = current
+            .map(|tok| (tok.kind, tok.range.clone()))
+            .expect("warning of alias at end of file");
+
+        self.events.push(Event::Message(ParseMessage {
+            kind: MessageKind::OtherWarn(format!("{} found, assuming it to be {}", found, normal)),
+            range,
+        }));
+    }
+
     /// Checks if the cursor is past the end of the file
     pub(crate) fn at_end(&mut self) -> bool {
         self.peek().is_none()
@@ -225,8 +239,8 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             "Extra call to `error_unexpected`"
         );
 
-        self.p.events.push(Event::Error(ParseError {
-            kind: ErrorKind::UnexpectedToken {
+        self.p.events.push(Event::Message(ParseMessage {
+            kind: MessageKind::UnexpectedToken {
                 expected: mem::take(&mut self.p.expected_kinds),
                 expected_category: self.category,
                 found,

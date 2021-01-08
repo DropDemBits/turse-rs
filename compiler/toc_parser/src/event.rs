@@ -1,5 +1,5 @@
 //! Events produced during parsing
-use crate::parser::ParseError;
+use crate::parser::ParseMessage;
 
 use toc_syntax::SyntaxKind;
 
@@ -12,7 +12,7 @@ pub(crate) enum Event {
     },
     AddToken,
     FinishNode,
-    Error(ParseError),
+    Message(ParseMessage),
     Placeholder,
     /// Dropped start node
     Tombstone,
