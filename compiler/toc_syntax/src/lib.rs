@@ -304,6 +304,7 @@ pub enum SyntaxKind {
     BitsExpr,
     CallExpr,
     IndirectTy,
+    SizeSpec,
     PrimType,
     NameType,
     BitRange,

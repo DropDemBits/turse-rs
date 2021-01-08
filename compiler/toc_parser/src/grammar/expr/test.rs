@@ -3240,6 +3240,19 @@ fn parse_bits_no_args() {
 }
 
 #[test]
+fn recover_just_bits() {
+    check(
+        "bits",
+        expect![[r#"
+        Source@0..4
+          CallStmt@0..4
+            BitsExpr@0..4
+              KwBits@0..4 "bits"
+        error at 0..4: expected ’(’"#]],
+    );
+}
+
+#[test]
 fn parse_objclass_expr() {
     check(
         "_:= objectclass(a)",
@@ -3323,5 +3336,226 @@ fn parse_objclass_no_args() {
               ParamList@11..13
                 LeftParen@11..12 "("
                 RightParen@12..13 ")""#]],
+    );
+}
+
+#[test]
+fn recover_just_objclass() {
+    check(
+        "objectclass",
+        expect![[r#"
+        Source@0..11
+          CallStmt@0..11
+            ObjClassExpr@0..11
+              KwObjectClass@0..11 "objectclass"
+        error at 0..11: expected ’(’"#]],
+    );
+}
+
+#[test]
+fn parse_cheat_expr() {
+    check(
+        "_ := cheat(char(80), 8)",
+        expect![[r#"
+        Source@0..23
+          AssignStmt@0..23
+            NameExpr@0..2
+              Name@0..2
+                Identifier@0..1 "_"
+                Whitespace@1..2 " "
+            AsnOp@2..5
+              Assign@2..4 ":="
+              Whitespace@4..5 " "
+            CheatExpr@5..23
+              KwCheat@5..10 "cheat"
+              LeftParen@10..11 "("
+              SizedCharType@11..19
+                KwChar@11..15 "char"
+                LeftParen@15..16 "("
+                SeqLength@16..18
+                  LiteralExpr@16..18
+                    IntLiteral@16..18 "80"
+                RightParen@18..19 ")"
+              Comma@19..20 ","
+              Whitespace@20..21 " "
+              LiteralExpr@21..22
+                IntLiteral@21..22 "8"
+              RightParen@22..23 ")""#]],
+    );
+}
+
+#[test]
+fn parse_cheat_expr_with_opt_size_spec() {
+    check(
+        "_ := cheat(int, 8 : 4)",
+        expect![[r#"
+        Source@0..22
+          AssignStmt@0..22
+            NameExpr@0..2
+              Name@0..2
+                Identifier@0..1 "_"
+                Whitespace@1..2 " "
+            AsnOp@2..5
+              Assign@2..4 ":="
+              Whitespace@4..5 " "
+            CheatExpr@5..22
+              KwCheat@5..10 "cheat"
+              LeftParen@10..11 "("
+              PrimType@11..14
+                KwInt@11..14 "int"
+              Comma@14..15 ","
+              Whitespace@15..16 " "
+              LiteralExpr@16..18
+                IntLiteral@16..17 "8"
+                Whitespace@17..18 " "
+              SizeSpec@18..21
+                Colon@18..19 ":"
+                Whitespace@19..20 " "
+                LiteralExpr@20..21
+                  IntLiteral@20..21 "4"
+              RightParen@21..22 ")""#]],
+    );
+}
+
+#[test]
+fn parse_cheat_ref() {
+    check(
+        "cheat(int, a)",
+        expect![[r#"
+        Source@0..13
+          CallStmt@0..13
+            CheatExpr@0..13
+              KwCheat@0..5 "cheat"
+              LeftParen@5..6 "("
+              PrimType@6..9
+                KwInt@6..9 "int"
+              Comma@9..10 ","
+              Whitespace@10..11 " "
+              NameExpr@11..12
+                Name@11..12
+                  Identifier@11..12 "a"
+              RightParen@12..13 ")""#]],
+    );
+}
+
+#[test]
+fn recover_cheat_expr_missing_size_spec_expr() {
+    check(
+        "_:=cheat(int, a : )",
+        expect![[r#"
+        Source@0..19
+          AssignStmt@0..19
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CheatExpr@3..19
+              KwCheat@3..8 "cheat"
+              LeftParen@8..9 "("
+              PrimType@9..12
+                KwInt@9..12 "int"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              NameExpr@14..16
+                Name@14..16
+                  Identifier@14..15 "a"
+                  Whitespace@15..16 " "
+              SizeSpec@16..18
+                Colon@16..17 ":"
+                Whitespace@17..18 " "
+              RightParen@18..19 ")"
+        error at 18..19: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_cheat_expr_missing_expr() {
+    check(
+        "_:=cheat(int, )",
+        expect![[r#"
+        Source@0..15
+          AssignStmt@0..15
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CheatExpr@3..15
+              KwCheat@3..8 "cheat"
+              LeftParen@8..9 "("
+              PrimType@9..12
+                KwInt@9..12 "int"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              RightParen@14..15 ")"
+        error at 14..15: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_cheat_expr_missing_comma() {
+    check(
+        "_:=cheat(int)",
+        expect![[r#"
+        Source@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CheatExpr@3..13
+              KwCheat@3..8 "cheat"
+              LeftParen@8..9 "("
+              PrimType@9..12
+                KwInt@9..12 "int"
+              RightParen@12..13 ")"
+        error at 12..13: expected ’,’, but found ’)’
+        error at 12..13: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_cheat_expr_empty() {
+    check(
+        "_:=cheat()",
+        expect![[r#"
+        Source@0..10
+          AssignStmt@0..10
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CheatExpr@3..10
+              KwCheat@3..8 "cheat"
+              LeftParen@8..9 "("
+              RightParen@9..10 ")"
+        error at 9..10: expected type specifier, but found ’)’
+        error at 9..10: expected ’,’, but found ’)’
+        error at 9..10: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_just_cheat() {
+    check(
+        "_:=cheat",
+        expect![[r#"
+        Source@0..8
+          AssignStmt@0..8
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CheatExpr@3..8
+              KwCheat@3..8 "cheat"
+        error at 3..8: expected ’(’
+        error at 3..8: expected type specifier
+        error at 3..8: expected ’,’
+        error at 3..8: expected expression
+        error at 3..8: expected ’:’ or ’)’"#]],
     );
 }

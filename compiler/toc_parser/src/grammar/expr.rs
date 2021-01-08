@@ -136,6 +136,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Caret => { deref_expr(p) }
             TokenKind::Bits => { bits_expr(p) }
             TokenKind::ObjectClass => { objclass_expr(p) }
+            TokenKind::Cheat => { cheat_expr(p) }
             _ => {
                 p.with_extra_recovery(&[TokenKind::At], |p| {
                     ty::ty_primitive(p)
@@ -250,6 +251,40 @@ fn objclass_expr(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ObjClassExpr))
 }
 
+fn cheat_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Cheat));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        p.expect(TokenKind::LeftParen);
+
+        p.with_extra_recovery(&[TokenKind::Comma], |p| {
+            // parse a ty
+            ty::ty(p);
+        });
+        p.expect(TokenKind::Comma);
+
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            self::expect_expr(p);
+        });
+
+        if p.at(TokenKind::Colon) {
+            // Eat cheat size spec
+            let m = p.start();
+            p.bump();
+
+            self::expect_expr(p);
+
+            m.complete(p, SyntaxKind::SizeSpec);
+        }
+    });
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::CheatExpr))
+}
+
 fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::LeftParen));
 
@@ -275,9 +310,6 @@ fn literal_expr(p: &mut Parser) -> Option<CompletedMarker> {
     );
 
     let m = p.start();
-
-    // TODO: Validate literal is actually valid
-    // TODO: Report invalid literals
 
     // bump token
     // Token gets automagically transformed into the correct type
