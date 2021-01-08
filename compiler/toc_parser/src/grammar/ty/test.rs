@@ -1340,23 +1340,26 @@ fn parse_collection_type() {
 #[test]
 fn parse_collection_type_forward() {
     check(
-        "type _ : collection of forward",
+        "type _ : collection of forward a",
         expect![[r#"
-            Source@0..30
-              TypeDecl@0..30
-                KwType@0..4 "type"
-                Whitespace@4..5 " "
-                Name@5..7
-                  Identifier@5..6 "_"
-                  Whitespace@6..7 " "
-                Colon@7..8 ":"
-                Whitespace@8..9 " "
-                CollectionType@9..30
-                  KwCollection@9..19 "collection"
-                  Whitespace@19..20 " "
-                  KwOf@20..22 "of"
-                  Whitespace@22..23 " "
-                  KwForward@23..30 "forward""#]],
+        Source@0..32
+          TypeDecl@0..32
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..32
+              KwCollection@9..19 "collection"
+              Whitespace@19..20 " "
+              KwOf@20..22 "of"
+              Whitespace@22..23 " "
+              KwForward@23..30 "forward"
+              Whitespace@30..31 " "
+              Name@31..32
+                Identifier@31..32 "a""#]],
     )
 }
 
@@ -1403,6 +1406,30 @@ fn recover_collection_type_no_of() {
                     KwInt@20..23 "int"
             error at 20..23: expected ’of’, but found ’int’
             error at 20..23: expected type specifier"#]],
+    )
+}
+
+#[test]
+fn recover_collection_type_no_forward_name() {
+    check(
+        "type _ : collection of forward",
+        expect![[r#"
+        Source@0..30
+          TypeDecl@0..30
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            CollectionType@9..30
+              KwCollection@9..19 "collection"
+              Whitespace@19..20 " "
+              KwOf@20..22 "of"
+              Whitespace@22..23 " "
+              KwForward@23..30 "forward"
+        error at 23..30: expected identifier"#]],
     )
 }
 
