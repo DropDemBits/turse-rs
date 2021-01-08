@@ -3148,3 +3148,180 @@ fn recover_just_indirect_ty() {
         error at 0..4: expected statement"#]],
     );
 }
+
+#[test]
+fn parse_bits_expr() {
+    check(
+        "_:= bits(a, 1)",
+        expect![[r#"
+        Source@0..14
+          AssignStmt@0..14
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..4
+              Assign@1..3 ":="
+              Whitespace@3..4 " "
+            BitsExpr@4..14
+              KwBits@4..8 "bits"
+              ParamList@8..14
+                LeftParen@8..9 "("
+                Param@9..12
+                  NameExpr@9..10
+                    Name@9..10
+                      Identifier@9..10 "a"
+                  Comma@10..11 ","
+                  Whitespace@11..12 " "
+                Param@12..13
+                  LiteralExpr@12..13
+                    IntLiteral@12..13 "1"
+                RightParen@13..14 ")""#]],
+    );
+}
+
+#[test]
+fn parse_bits_ref() {
+    check(
+        "bits(a, 1)",
+        expect![[r#"
+        Source@0..10
+          CallStmt@0..10
+            BitsExpr@0..10
+              KwBits@0..4 "bits"
+              ParamList@4..10
+                LeftParen@4..5 "("
+                Param@5..8
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
+                  Comma@6..7 ","
+                  Whitespace@7..8 " "
+                Param@8..9
+                  LiteralExpr@8..9
+                    IntLiteral@8..9 "1"
+                RightParen@9..10 ")""#]],
+    );
+}
+
+#[test]
+fn parse_bits_single_arg() {
+    // Rejected during lowering
+    check(
+        "bits(a)",
+        expect![[r#"
+        Source@0..7
+          CallStmt@0..7
+            BitsExpr@0..7
+              KwBits@0..4 "bits"
+              ParamList@4..7
+                LeftParen@4..5 "("
+                Param@5..6
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
+                RightParen@6..7 ")""#]],
+    );
+}
+
+#[test]
+fn parse_bits_no_args() {
+    // Rejected during lowering
+    check(
+        "bits()",
+        expect![[r#"
+        Source@0..6
+          CallStmt@0..6
+            BitsExpr@0..6
+              KwBits@0..4 "bits"
+              ParamList@4..6
+                LeftParen@4..5 "("
+                RightParen@5..6 ")""#]],
+    );
+}
+
+#[test]
+fn parse_objclass_expr() {
+    check(
+        "_:= objectclass(a)",
+        expect![[r#"
+        Source@0..18
+          AssignStmt@0..18
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..4
+              Assign@1..3 ":="
+              Whitespace@3..4 " "
+            ObjClassExpr@4..18
+              KwObjectClass@4..15 "objectclass"
+              ParamList@15..18
+                LeftParen@15..16 "("
+                Param@16..17
+                  NameExpr@16..17
+                    Name@16..17
+                      Identifier@16..17 "a"
+                RightParen@17..18 ")""#]],
+    );
+}
+
+#[test]
+fn parse_objclass_ref() {
+    // Rejected during lowering
+    check(
+        "objectclass(a)",
+        expect![[r#"
+        Source@0..14
+          CallStmt@0..14
+            ObjClassExpr@0..14
+              KwObjectClass@0..11 "objectclass"
+              ParamList@11..14
+                LeftParen@11..12 "("
+                Param@12..13
+                  NameExpr@12..13
+                    Name@12..13
+                      Identifier@12..13 "a"
+                RightParen@13..14 ")""#]],
+    );
+}
+
+#[test]
+fn parse_objclass_many_args() {
+    // Rejected during lowering
+    check(
+        "objectclass(a, b)",
+        expect![[r#"
+        Source@0..17
+          CallStmt@0..17
+            ObjClassExpr@0..17
+              KwObjectClass@0..11 "objectclass"
+              ParamList@11..17
+                LeftParen@11..12 "("
+                Param@12..15
+                  NameExpr@12..13
+                    Name@12..13
+                      Identifier@12..13 "a"
+                  Comma@13..14 ","
+                  Whitespace@14..15 " "
+                Param@15..16
+                  NameExpr@15..16
+                    Name@15..16
+                      Identifier@15..16 "b"
+                RightParen@16..17 ")""#]],
+    );
+}
+
+#[test]
+fn parse_objclass_no_args() {
+    // Rejected during lowering
+    check(
+        "objectclass()",
+        expect![[r#"
+        Source@0..13
+          CallStmt@0..13
+            ObjClassExpr@0..13
+              KwObjectClass@0..11 "objectclass"
+              ParamList@11..13
+                LeftParen@11..12 "("
+                RightParen@12..13 ")""#]],
+    );
+}

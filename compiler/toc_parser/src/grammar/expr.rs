@@ -25,7 +25,9 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // starting:
     // - name_expr
     // - deref_expr
-    // x bits_expr
+    // - bits_expr
+    // - objclass_expr
+    // x cheat_expr
 
     // continuations:
     // - field_expr
@@ -132,7 +134,8 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
         |p| match {
             TokenKind::Identifier => { name_expr(p) }
             TokenKind::Caret => { deref_expr(p) }
-            TokenKind::Bits => { todo!() }
+            TokenKind::Bits => { bits_expr(p) }
+            TokenKind::ObjectClass => { objclass_expr(p) }
             _ => {
                 p.with_extra_recovery(&[TokenKind::At], |p| {
                     ty::ty_primitive(p)
@@ -213,6 +216,38 @@ fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {
     expr_binding_power(p, right_binding_power);
 
     Some(m.complete(p, SyntaxKind::DerefExpr))
+}
+
+fn bits_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Bits));
+
+    let m = p.start();
+    p.bump();
+
+    if p.at(TokenKind::LeftParen) {
+        // Eat a parameter list
+        super::param_list(p);
+    } else {
+        p.error(None);
+    }
+
+    Some(m.complete(p, SyntaxKind::BitsExpr))
+}
+
+fn objclass_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::ObjectClass));
+
+    let m = p.start();
+    p.bump();
+
+    if p.at(TokenKind::LeftParen) {
+        // Eat a parameter list
+        super::param_list(p);
+    } else {
+        p.error(None);
+    }
+
+    Some(m.complete(p, SyntaxKind::ObjClassExpr))
 }
 
 fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
