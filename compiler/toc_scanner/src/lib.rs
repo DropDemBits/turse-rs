@@ -1,4 +1,6 @@
 //! Scanner for lexing tokens
+// TODO: Report errors for invalid escape characters when lowering (reduces code duplication)
+// TODO: Merger scanner errors into sink's error place
 pub mod token;
 
 use logos::Logos;
@@ -700,6 +702,13 @@ mod test {
             expect![[r#"error at 0..5: string literal ends at the end of the line"#]],
         );
 
+        // Escaped terminator
+        expect_with_error(
+            r#""abcd\""#,
+            &TokenKind::StringLiteral,
+            expect![[r#"error at 0..7: string literal ends at the end of the line"#]],
+        );
+
         // Mismatched delimiter
         expect_with_error(
             "\"abcd'",
@@ -745,6 +754,13 @@ mod test {
             "'abcd",
             &TokenKind::CharLiteral,
             expect![[r#"error at 0..5: char literal ends at the end of the line"#]],
+        );
+
+        // Escaped terminator
+        expect_with_error(
+            r#"'abcd\'"#,
+            &TokenKind::CharLiteral,
+            expect![[r#"error at 0..7: char literal ends at the end of the line"#]],
         );
 
         // Mismatched delimiter
