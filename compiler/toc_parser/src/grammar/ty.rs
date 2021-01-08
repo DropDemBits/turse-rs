@@ -424,7 +424,9 @@ fn collection_type(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
     p.expect(TokenKind::Of);
 
-    if !p.eat(TokenKind::Forward) {
+    if p.eat(TokenKind::Forward) {
+        super::name(p);
+    } else {
         self::ty(p);
     }
 

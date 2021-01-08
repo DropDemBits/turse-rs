@@ -3338,3 +3338,275 @@ fn recover_on_case_stmt() {
             error at 18..22: expected expression, but found ’case’"#]],
     );
 }
+
+#[test]
+fn parse_bind_decl() {
+    check(
+        "bind a to k.l.m",
+        expect![[r#"
+        Source@0..15
+          BindDecl@0..15
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..15
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              KwTo@7..9 "to"
+              Whitespace@9..10 " "
+              FieldExpr@10..15
+                FieldExpr@10..13
+                  NameExpr@10..11
+                    Name@10..11
+                      Identifier@10..11 "k"
+                  Dot@11..12 "."
+                  Name@12..13
+                    Identifier@12..13 "l"
+                Dot@13..14 "."
+                Name@14..15
+                  Identifier@14..15 "m""#]],
+    );
+}
+
+#[test]
+fn parse_bind_decl_many_bindings() {
+    check(
+        "bind a to b, c to d, e to f",
+        expect![[r#"
+        Source@0..27
+          BindDecl@0..27
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..11
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              KwTo@7..9 "to"
+              Whitespace@9..10 " "
+              NameExpr@10..11
+                Name@10..11
+                  Identifier@10..11 "b"
+            Comma@11..12 ","
+            Whitespace@12..13 " "
+            BindItem@13..19
+              Name@13..15
+                Identifier@13..14 "c"
+                Whitespace@14..15 " "
+              KwTo@15..17 "to"
+              Whitespace@17..18 " "
+              NameExpr@18..19
+                Name@18..19
+                  Identifier@18..19 "d"
+            Comma@19..20 ","
+            Whitespace@20..21 " "
+            BindItem@21..27
+              Name@21..23
+                Identifier@21..22 "e"
+                Whitespace@22..23 " "
+              KwTo@23..25 "to"
+              Whitespace@25..26 " "
+              NameExpr@26..27
+                Name@26..27
+                  Identifier@26..27 "f""#]],
+    );
+}
+
+#[test]
+fn parse_bind_decl_opt_var() {
+    check(
+        "bind var a to b",
+        expect![[r#"
+        Source@0..15
+          BindDecl@0..15
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..15
+              KwVar@5..8 "var"
+              Whitespace@8..9 " "
+              Name@9..11
+                Identifier@9..10 "a"
+                Whitespace@10..11 " "
+              KwTo@11..13 "to"
+              Whitespace@13..14 " "
+              NameExpr@14..15
+                Name@14..15
+                  Identifier@14..15 "b""#]],
+    );
+}
+
+#[test]
+fn parse_bind_decl_opt_register() {
+    check(
+        "bind register a to b",
+        expect![[r#"
+        Source@0..20
+          BindDecl@0..20
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..20
+              KwRegister@5..13 "register"
+              Whitespace@13..14 " "
+              Name@14..16
+                Identifier@14..15 "a"
+                Whitespace@15..16 " "
+              KwTo@16..18 "to"
+              Whitespace@18..19 " "
+              NameExpr@19..20
+                Name@19..20
+                  Identifier@19..20 "b""#]],
+    );
+}
+
+#[test]
+fn parse_bind_decl_opt_var_register() {
+    check(
+        "bind var register a to b",
+        expect![[r#"
+        Source@0..24
+          BindDecl@0..24
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..24
+              KwVar@5..8 "var"
+              Whitespace@8..9 " "
+              KwRegister@9..17 "register"
+              Whitespace@17..18 " "
+              Name@18..20
+                Identifier@18..19 "a"
+                Whitespace@19..20 " "
+              KwTo@20..22 "to"
+              Whitespace@22..23 " "
+              NameExpr@23..24
+                Name@23..24
+                  Identifier@23..24 "b""#]],
+    );
+}
+
+#[test]
+fn parse_bind_decl_not_to_ref() {
+    // rejected during lowering/validation
+    check(
+        "bind a to 1",
+        expect![[r#"
+        Source@0..11
+          BindDecl@0..11
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..11
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              KwTo@7..9 "to"
+              Whitespace@9..10 " "
+              LiteralExpr@10..11
+                IntLiteral@10..11 "1""#]],
+    );
+}
+
+#[test]
+fn recover_bind_decl_missing_name() {
+    // rejected during lowering/validation
+    check(
+        "bind to b",
+        expect![[r#"
+        Source@0..9
+          BindDecl@0..9
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..9
+              KwTo@5..7 "to"
+              Whitespace@7..8 " "
+              NameExpr@8..9
+                Name@8..9
+                  Identifier@8..9 "b"
+        error at 5..7: expected identifier, but found ’to’"#]],
+    );
+}
+
+#[test]
+fn recover_bind_decl_missing_to() {
+    // rejected during lowering/validation
+    check(
+        "bind a b",
+        expect![[r#"
+        Source@0..8
+          BindDecl@0..8
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..8
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              Error@7..8
+                Identifier@7..8 "b"
+        error at 7..8: expected ’to’, but found identifier
+        error at 7..8: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_bind_decl_missing_binding() {
+    // rejected during lowering/validation
+    check(
+        "bind a to",
+        expect![[r#"
+        Source@0..9
+          BindDecl@0..9
+            KwBind@0..4 "bind"
+            Whitespace@4..5 " "
+            BindItem@5..9
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              KwTo@7..9 "to"
+        error at 7..9: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_just_bind() {
+    // rejected during lowering/validation
+    check(
+        "bind",
+        expect![[r#"
+        Source@0..4
+          BindDecl@0..4
+            KwBind@0..4 "bind"
+            BindItem@4..4
+        error at 0..4: expected identifier
+        error at 0..4: expected ’to’
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_bind() {
+    // rejected during lowering/validation
+    check(
+        "var i := \nbind e to i",
+        expect![[r#"
+        Source@0..21
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          BindDecl@10..21
+            KwBind@10..14 "bind"
+            Whitespace@14..15 " "
+            BindItem@15..21
+              Name@15..17
+                Identifier@15..16 "e"
+                Whitespace@16..17 " "
+              KwTo@17..19 "to"
+              Whitespace@19..20 " "
+              NameExpr@20..21
+                Name@20..21
+                  Identifier@20..21 "i"
+        error at 10..14: expected expression, but found ’bind’"#]],
+    );
+}

@@ -10,7 +10,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
             TokenKind::Type => { type_decl(p) }
-            // bind_decl
+            TokenKind::Bind => { bind_decl(p) }
             // procedure_decl
             // functionn_decl
             // forward_decl
@@ -178,6 +178,8 @@ fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
     }
 }
 
+// Decls //
+
 fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     assert!(p.at(TokenKind::Var) || p.at(TokenKind::Const));
     let mut require_initializer = p.at(TokenKind::Const);
@@ -239,6 +241,42 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     Some(m.complete(p, SyntaxKind::TypeDecl))
 }
+
+fn bind_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Bind));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        bind_item(p);
+        while p.eat(TokenKind::Comma) {
+            bind_item(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::BindDecl))
+}
+
+fn bind_item(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'var'? 'register'? Name to Expr
+
+    let m = p.start();
+    // Optional attrs
+    p.hidden_eat(TokenKind::Var);
+    p.hidden_eat(TokenKind::Register);
+
+    p.with_extra_recovery(&[TokenKind::To], |p| {
+        super::name(p);
+    });
+    p.expect(TokenKind::To);
+
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::BindItem))
+}
+
+// Stmts //
 
 fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::For));

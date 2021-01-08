@@ -22,6 +22,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Var,
     TokenKind::Const,
     TokenKind::Type,
+    TokenKind::Bind,
     // Stmts //
     TokenKind::For,
     TokenKind::Loop,

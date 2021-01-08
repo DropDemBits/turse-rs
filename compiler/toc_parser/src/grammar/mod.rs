@@ -6,9 +6,9 @@
 // - const_decl
 // - var_decl
 // - type_decl
-// | bind_decl
+// - bind_decl
 // | procedure_decl
-// | functions_decl
+// | function_decl
 // | forward_decl
 // | deferred_decl
 // | module_decl
