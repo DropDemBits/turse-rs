@@ -17,9 +17,13 @@ use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
 const STMT_START_RECOVERY_SET: &[TokenKind] = &[
+    // Decls //
     TokenKind::Var,
     TokenKind::Const,
     TokenKind::Type,
+    // Stmts //
+    TokenKind::Loop,
+    TokenKind::Exit,
     TokenKind::If,
     TokenKind::Elif,
     TokenKind::Elsif,

@@ -29,8 +29,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             // seek_stmt
             // tell_stmt
             // for_stmt
-            // loop_stmt
-            // exit_stmt
+            TokenKind::Loop =>{ loop_stmt(p) }
+            TokenKind::Exit =>{ exit_stmt(p) }
             TokenKind::If => { if_stmt(p) }
             TokenKind::Elif,
             TokenKind::Elsif,
@@ -236,6 +236,31 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::TypeDecl))
+}
+
+fn loop_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Loop));
+
+    let m = p.start();
+    p.bump();
+
+    self::stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::Loop, Some(TokenKind::EndLoop));
+    Some(m.complete(p, SyntaxKind::LoopStmt))
+}
+
+fn exit_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Exit));
+
+    let m = p.start();
+    p.bump();
+
+    if p.eat(TokenKind::When) {
+        expr::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::ExitStmt))
 }
 
 fn if_stmt(p: &mut Parser) -> Option<CompletedMarker> {
