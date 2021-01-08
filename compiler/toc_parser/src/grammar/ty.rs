@@ -396,12 +396,7 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
 
     if !p.at(TokenKind::Colon) {
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
-            // Expr list (optional)
-            if let Some(..) = expr::expect_expr(p) {
-                while p.eat(TokenKind::Comma) {
-                    expr::expect_expr(p);
-                }
-            }
+            expr::expr_list(p);
         });
     }
 

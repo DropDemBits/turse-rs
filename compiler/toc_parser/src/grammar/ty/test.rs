@@ -2407,8 +2407,9 @@ fn parse_union_type() {
                   UnionVariant@25..42
                     KwLabel@25..30 "label"
                     Whitespace@30..31 " "
-                    LiteralExpr@31..32
-                      IntLiteral@31..32 "1"
+                    ExprList@31..32
+                      LiteralExpr@31..32
+                        IntLiteral@31..32 "1"
                     Colon@32..33 ":"
                     Whitespace@33..34 " "
                     RecordField@34..42
@@ -2540,12 +2541,13 @@ fn union_type_many_variants() {
                   UnionVariant@28..56
                     KwLabel@28..33 "label"
                     Whitespace@33..34 " "
-                    LiteralExpr@34..35
-                      IntLiteral@34..35 "1"
-                    Comma@35..36 ","
-                    Whitespace@36..37 " "
-                    LiteralExpr@37..38
-                      IntLiteral@37..38 "2"
+                    ExprList@34..38
+                      LiteralExpr@34..35
+                        IntLiteral@34..35 "1"
+                      Comma@35..36 ","
+                      Whitespace@36..37 " "
+                      LiteralExpr@37..38
+                        IntLiteral@37..38 "2"
                     Colon@38..39 ":"
                     Whitespace@39..40 " "
                     RecordField@40..48
@@ -2651,6 +2653,7 @@ fn recover_union_type_missing_label_colon() {
                   UnionVariant@25..31
                     KwLabel@25..30 "label"
                     Whitespace@30..31 " "
+                    ExprList@31..31
                   EndGroup@31..40
                     KwEnd@31..34 "end"
                     Whitespace@34..35 " "
@@ -2766,7 +2769,9 @@ fn recover_bare_union_type() {
 
 #[test]
 fn recover_record_type_on_var() {
-    check("type _ : record\nvar a : int", expect![[r#"
+    check(
+        "type _ : record\nvar a : int",
+        expect![[r#"
         Source@0..27
           TypeDecl@0..16
             KwType@0..4 "type"
@@ -2797,7 +2802,8 @@ fn recover_record_type_on_var() {
         error at 16..19: expected ’,’ or ’:’, but found ’var’
         error at 16..19: expected type specifier, but found ’var’
         error at 16..19: expected ’;’ or ’end’, but found ’var’
-        error at 16..19: expected ’record’, but found ’var’"#]]);
+        error at 16..19: expected ’record’, but found ’var’"#]],
+    );
 }
 
 #[test]

@@ -2349,8 +2349,9 @@ fn parse_init_expr() {
                 InitExpr@3..10
                   KwInit@3..7 "init"
                   LeftParen@7..8 "("
-                  LiteralExpr@8..9
-                    IntLiteral@8..9 "1"
+                  ExprList@8..9
+                    LiteralExpr@8..9
+                      IntLiteral@8..9 "1"
                   RightParen@9..10 ")""#]],
     );
 }
@@ -2370,16 +2371,17 @@ fn init_expr_multiple_exprs() {
                 InitExpr@3..16
                   KwInit@3..7 "init"
                   LeftParen@7..8 "("
-                  LiteralExpr@8..9
-                    IntLiteral@8..9 "1"
-                  Comma@9..10 ","
-                  Whitespace@10..11 " "
-                  LiteralExpr@11..12
-                    IntLiteral@11..12 "2"
-                  Comma@12..13 ","
-                  Whitespace@13..14 " "
-                  LiteralExpr@14..15
-                    IntLiteral@14..15 "3"
+                  ExprList@8..15
+                    LiteralExpr@8..9
+                      IntLiteral@8..9 "1"
+                    Comma@9..10 ","
+                    Whitespace@10..11 " "
+                    LiteralExpr@11..12
+                      IntLiteral@11..12 "2"
+                    Comma@12..13 ","
+                    Whitespace@13..14 " "
+                    LiteralExpr@14..15
+                      IntLiteral@14..15 "3"
                   RightParen@15..16 ")""#]],
     );
 }
@@ -2399,13 +2401,14 @@ fn recover_init_expr_missing_delimiter() {
                 InitExpr@3..14
                   KwInit@3..7 "init"
                   LeftParen@7..8 "("
-                  LiteralExpr@8..9
-                    IntLiteral@8..9 "1"
-                  Comma@9..10 ","
-                  Whitespace@10..11 " "
-                  LiteralExpr@11..13
-                    IntLiteral@11..12 "2"
-                    Whitespace@12..13 " "
+                  ExprList@8..13
+                    LiteralExpr@8..9
+                      IntLiteral@8..9 "1"
+                    Comma@9..10 ","
+                    Whitespace@10..11 " "
+                    LiteralExpr@11..13
+                      IntLiteral@11..12 "2"
+                      Whitespace@12..13 " "
                   Error@13..14
                     IntLiteral@13..14 "3"
               Error@14..15
@@ -2430,12 +2433,13 @@ fn recover_init_expr_missing_right_paren() {
                 InitExpr@3..12
                   KwInit@3..7 "init"
                   LeftParen@7..8 "("
-                  LiteralExpr@8..9
-                    IntLiteral@8..9 "1"
-                  Comma@9..10 ","
-                  Whitespace@10..11 " "
-                  LiteralExpr@11..12
-                    IntLiteral@11..12 "2"
+                  ExprList@8..12
+                    LiteralExpr@8..9
+                      IntLiteral@8..9 "1"
+                    Comma@9..10 ","
+                    Whitespace@10..11 " "
+                    LiteralExpr@11..12
+                      IntLiteral@11..12 "2"
             error at 11..12: expected ’,’ or ’)’"#]],
     );
 }
@@ -2457,14 +2461,15 @@ fn recover_init_expr_missing_left_paren() {
                   Whitespace@7..8 " "
                   Error@8..9
                     IntLiteral@8..9 "1"
-                  Error@9..11
-                    Comma@9..10 ","
-                    Whitespace@10..11 " "
+                  ExprList@9..11
+                    Error@9..11
+                      Comma@9..10 ","
+                      Whitespace@10..11 " "
                   Error@11..12
                     IntLiteral@11..12 "2"
             error at 8..9: expected ’(’, but found int literal
             error at 9..10: expected expression, but found ’,’
-            error at 11..12: expected ’,’ or ’)’, but found int literal"#]],
+            error at 11..12: expected ’)’, but found int literal"#]],
     );
 }
 
@@ -2483,6 +2488,7 @@ fn recover_init_expr_empty() {
                 InitExpr@3..9
                   KwInit@3..7 "init"
                   LeftParen@7..8 "("
+                  ExprList@8..8
                   RightParen@8..9 ")"
             error at 8..9: expected expression, but found ’)’"#]],
     );
@@ -3242,7 +3248,9 @@ fn parse_bits_ref_range() {
 #[test]
 fn parse_bits_ref_relative_range() {
     // Reject during lowering
-    check("bits(a, 1 .. *)", expect![[r#"
+    check(
+        "bits(a, 1 .. *)",
+        expect![[r#"
         Source@0..15
           CallStmt@0..15
             BitsExpr@0..15
@@ -3264,7 +3272,8 @@ fn parse_bits_ref_relative_range() {
                     Whitespace@12..13 " "
                     RelativeBound@13..14
                       Star@13..14 "*"
-                RightParen@14..15 ")""#]]);
+                RightParen@14..15 ")""#]],
+    );
 }
 
 #[test]

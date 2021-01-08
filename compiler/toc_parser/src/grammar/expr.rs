@@ -58,6 +58,19 @@ pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
     expr_binding_power(p, 0)
 }
 
+pub(super) fn expr_list(p: &mut Parser) -> Option<CompletedMarker> {
+    // Expr list (optional)
+    let m = p.start();
+
+    if let Some(..) = expr::expect_expr(p) {
+        while p.eat(TokenKind::Comma) {
+            expr::expect_expr(p);
+        }
+    }
+
+    Some(m.complete(p, SyntaxKind::ExprList))
+}
+
 /// Parses a reference
 pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     // Exprs:
@@ -367,11 +380,7 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.expect(TokenKind::LeftParen);
 
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        self::expect_expr(p);
-
-        while p.eat(TokenKind::Comma) {
-            self::expect_expr(p);
-        }
+        self::expr_list(p);
     });
 
     p.expect(TokenKind::RightParen);
