@@ -36,8 +36,8 @@
 // - call_stmt
 // - return_stmt
 // - result_stmt
-// | new_stmt
-// | free_stmt
+// - new_stmt
+// - free_stmt
 // - tag_stmt
 // - fork_stmt
 // - signal_stmt

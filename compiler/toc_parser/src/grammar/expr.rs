@@ -66,11 +66,13 @@ pub(super) fn expr_list(p: &mut Parser) -> Option<CompletedMarker> {
     // Expr list (optional)
     let m = p.start();
 
-    if let Some(..) = expr::expect_expr(p) {
-        while p.eat(TokenKind::Comma) {
-            expr::expect_expr(p);
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        if let Some(..) = expr::expect_expr(p) {
+            while p.eat(TokenKind::Comma) {
+                expr::expect_expr(p);
+            }
         }
-    }
+    });
 
     Some(m.complete(p, SyntaxKind::ExprList))
 }

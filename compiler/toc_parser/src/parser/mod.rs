@@ -25,23 +25,23 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Bind,
     TokenKind::Procedure,
     TokenKind::Function,
-    // forward
-    // deferred
-    // body
-    // module
-    // class
-    // monitor
+    // TokenKind::Forward,
+    // TokenKind::Deferred,
+    // TokenKind::Body,
+    // TokenKind::Module,
+    // TokenKind::Class,
+    // TokenKind::Monitor,
 
     // Stmts //
-    // include
-    // open
-    // close
-    // put
-    // get
-    // read
-    // write
-    // seek
-    // tell
+    // TokenKind::Include,
+    // TokenKind::Open,
+    // TokenKind::Close,
+    // TokenKind::Put,
+    // TokenKind::Get,
+    // TokenKind::Read,
+    // TokenKind::Write,
+    // TokenKind::Seek,
+    // TokenKind::Tell,
     TokenKind::For,
     TokenKind::Loop,
     TokenKind::Exit,
@@ -56,8 +56,8 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Assert,
     TokenKind::Return,
     TokenKind::Result_,
-    // new
-    // free
+    TokenKind::New,
+    TokenKind::Free,
     TokenKind::Tag,
     TokenKind::Fork,
     TokenKind::Signal,
@@ -69,9 +69,9 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Init,
     TokenKind::Post,
     TokenKind::Handler,
-    // implement
-    // import
-    // export
+    // TokenKind::Implement
+    // TokenKind::Import
+    // TokenKind::Export
 ];
 
 pub(crate) struct Parser<'t, 'src> {
