@@ -218,7 +218,8 @@ fn short_pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::PointerType))
 }
 
-fn subprog_type(p: &mut Parser) -> Option<CompletedMarker> {
+// expose because it's used by param_decl
+pub(super) fn subprog_type(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Procedure) || p.at(TokenKind::Function));
 
     let is_fcn_ty = p.at(TokenKind::Function);
@@ -254,44 +255,8 @@ fn subprog_type(p: &mut Parser) -> Option<CompletedMarker> {
     ))
 }
 
-fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
-    // ParamSpec: '(' ParamDecl ( ',' ParamDecl )* ')'
-    let m = p.start();
-
-    p.expect(TokenKind::LeftParen);
-    p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
-        if !p.at(TokenKind::RightParen) {
-            if let Some(..) = self::param_decl(p) {
-                while p.eat(TokenKind::Comma) {
-                    self::param_decl(p);
-                }
-            }
-        }
-    });
-    p.expect(TokenKind::RightParen);
-
-    Some(m.complete(p, SyntaxKind::ParamSpec))
-}
-
-fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
-    match_token!(|p| match {
-        TokenKind::Function,
-        TokenKind::Procedure => {
-            let m = p.start();
-            ty::subprog_type(p);
-            Some(m.complete(p,SyntaxKind::ParamDecl))
-        }
-        TokenKind::Var,
-        TokenKind::Register,
-        TokenKind::Identifier => { constvar_param(p) }
-        _ => {
-            // not a thing
-            None
-        }
-    })
-}
-
-fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
+// expose because it's used by param_decl
+pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Var) || p.at(TokenKind::Register) || p.at(TokenKind::Identifier));
 
     let m = p.start();

@@ -11,8 +11,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Const => { const_var_decl(p) }
             TokenKind::Type => { type_decl(p) }
             TokenKind::Bind => { bind_decl(p) }
-            // procedure_decl
-            // functionn_decl
+            TokenKind::Procedure => { procedure_decl(p) }
+            TokenKind::Function => { function_decl(p) }
             // forward_decl
             // deferred_decl
             // module_decl
@@ -274,6 +274,102 @@ fn bind_item(p: &mut Parser) -> Option<CompletedMarker> {
     expr::expect_expr(p);
 
     Some(m.complete(p, SyntaxKind::BindItem))
+}
+
+fn procedure_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Procedure));
+    let m = p.start();
+
+    proc_header(p);
+    stmt_list(p, None);
+    eat_end_group(p, TokenKind::Identifier, None);
+
+    Some(m.complete(p, SyntaxKind::ProcDecl))
+}
+
+fn function_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Function));
+    let m = p.start();
+
+    fcn_header(p);
+    stmt_list(p, None);
+    eat_end_group(p, TokenKind::Identifier, None);
+
+    Some(m.complete(p, SyntaxKind::FcnDecl))
+}
+
+fn proc_header(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Procedure));
+
+    let m = p.start();
+    p.bump();
+
+    attr_pervasive(p);
+
+    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+        super::name(p);
+
+        if p.at(TokenKind::LeftParen) {
+            super::param_spec(p);
+        }
+    });
+
+    device_spec(p);
+
+    Some(m.complete(p, SyntaxKind::ProcHeader))
+}
+
+fn fcn_header(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Function));
+
+    let m = p.start();
+    p.bump();
+
+    attr_pervasive(p);
+
+    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+        super::name(p);
+
+        if p.at(TokenKind::LeftParen) {
+            super::param_spec(p);
+        }
+    });
+
+    fcn_result(p);
+
+    Some(m.complete(p, SyntaxKind::FcnHeader))
+}
+
+fn device_spec(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Colon) {
+        return None; // device_spec is completely optional
+    }
+
+    let m = p.start();
+    p.bump();
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::DeviceSpec))
+}
+
+fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Identifier) && !p.at(TokenKind::Colon) {
+        // not optional
+        p.error_unexpected().report();
+        return None;
+    }
+
+    let m = p.start();
+
+    if p.at(TokenKind::Identifier) {
+        super::name(p);
+    }
+
+    p.expect(TokenKind::Colon);
+
+    ty::ty(p);
+
+    Some(m.complete(p, SyntaxKind::FcnResult))
 }
 
 // Stmts //

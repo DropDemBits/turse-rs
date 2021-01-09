@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::Location;
+use std::fmt;
 
 /// Parsed token
 #[derive(Debug, PartialEq, Clone)]

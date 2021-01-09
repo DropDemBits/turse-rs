@@ -187,3 +187,40 @@ pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
 
     Some((m.complete(p, SyntaxKind::Param), found_comma))
 }
+
+pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
+    // ParamSpec: '(' ParamDecl ( ',' ParamDecl )* ')'
+    let m = p.start();
+
+    p.expect(TokenKind::LeftParen);
+    p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
+        if !p.at(TokenKind::RightParen) {
+            if let Some(..) = self::param_decl(p) {
+                while p.eat(TokenKind::Comma) {
+                    self::param_decl(p);
+                }
+            }
+        }
+    });
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::ParamSpec))
+}
+
+pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        TokenKind::Function,
+        TokenKind::Procedure => {
+            let m = p.start();
+            ty::subprog_type(p);
+            Some(m.complete(p,SyntaxKind::ParamDecl))
+        }
+        TokenKind::Var,
+        TokenKind::Register,
+        TokenKind::Identifier => { ty::constvar_param(p) }
+        _ => {
+            // not a thing
+            None
+        }
+    })
+}

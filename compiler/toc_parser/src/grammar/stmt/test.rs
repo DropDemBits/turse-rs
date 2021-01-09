@@ -3610,3 +3610,567 @@ fn recover_on_bind() {
         error at 10..14: expected expression, but found ’bind’"#]],
     );
 }
+
+#[test]
+fn parse_proc_decl() {
+    check(
+        r#"
+    procedure a (a : int)
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..57
+              Whitespace@0..5 "\n    "
+              ProcDecl@5..57
+                ProcHeader@5..35
+                  KwProcedure@5..14 "procedure"
+                  Whitespace@14..15 " "
+                  Name@15..17
+                    Identifier@15..16 "a"
+                    Whitespace@16..17 " "
+                  ParamSpec@17..35
+                    LeftParen@17..18 "("
+                    ParamDecl@18..25
+                      NameList@18..20
+                        Name@18..20
+                          Identifier@18..19 "a"
+                          Whitespace@19..20 " "
+                      Colon@20..21 ":"
+                      Whitespace@21..22 " "
+                      PrimType@22..25
+                        KwInt@22..25 "int"
+                    RightParen@25..26 ")"
+                    Whitespace@26..35 "\n        "
+                StmtList@35..52
+                  AssertStmt@35..52
+                    KwAssert@35..41 "assert"
+                    Whitespace@41..42 " "
+                    LiteralExpr@42..52
+                      KwFalse@42..47 "false"
+                      Whitespace@47..52 "\n    "
+                EndGroup@52..57
+                  KwEnd@52..55 "end"
+                  Whitespace@55..56 " "
+                  Identifier@56..57 "a""#]],
+    );
+}
+
+#[test]
+fn parse_proc_decl_opt_devspec() {
+    check(
+        r#"
+    procedure a (a : int) : 1 + 3
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..65
+              Whitespace@0..5 "\n    "
+              ProcDecl@5..65
+                ProcHeader@5..43
+                  KwProcedure@5..14 "procedure"
+                  Whitespace@14..15 " "
+                  Name@15..17
+                    Identifier@15..16 "a"
+                    Whitespace@16..17 " "
+                  ParamSpec@17..27
+                    LeftParen@17..18 "("
+                    ParamDecl@18..25
+                      NameList@18..20
+                        Name@18..20
+                          Identifier@18..19 "a"
+                          Whitespace@19..20 " "
+                      Colon@20..21 ":"
+                      Whitespace@21..22 " "
+                      PrimType@22..25
+                        KwInt@22..25 "int"
+                    RightParen@25..26 ")"
+                    Whitespace@26..27 " "
+                  DeviceSpec@27..43
+                    Colon@27..28 ":"
+                    Whitespace@28..29 " "
+                    BinaryExpr@29..43
+                      LiteralExpr@29..31
+                        IntLiteral@29..30 "1"
+                        Whitespace@30..31 " "
+                      Plus@31..32 "+"
+                      Whitespace@32..33 " "
+                      LiteralExpr@33..43
+                        IntLiteral@33..34 "3"
+                        Whitespace@34..43 "\n        "
+                StmtList@43..60
+                  AssertStmt@43..60
+                    KwAssert@43..49 "assert"
+                    Whitespace@49..50 " "
+                    LiteralExpr@50..60
+                      KwFalse@50..55 "false"
+                      Whitespace@55..60 "\n    "
+                EndGroup@60..65
+                  KwEnd@60..63 "end"
+                  Whitespace@63..64 " "
+                  Identifier@64..65 "a""#]],
+    );
+}
+
+#[test]
+fn parse_proc_plain() {
+    check(
+        r#"
+    procedure a
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..47
+              Whitespace@0..5 "\n    "
+              ProcDecl@5..47
+                ProcHeader@5..25
+                  KwProcedure@5..14 "procedure"
+                  Whitespace@14..15 " "
+                  Name@15..25
+                    Identifier@15..16 "a"
+                    Whitespace@16..25 "\n        "
+                StmtList@25..42
+                  AssertStmt@25..42
+                    KwAssert@25..31 "assert"
+                    Whitespace@31..32 " "
+                    LiteralExpr@32..42
+                      KwFalse@32..37 "false"
+                      Whitespace@37..42 "\n    "
+                EndGroup@42..47
+                  KwEnd@42..45 "end"
+                  Whitespace@45..46 " "
+                  Identifier@46..47 "a""#]],
+    );
+}
+
+#[test]
+fn recover_proc_decl_missing_name() {
+    check(
+        r#"
+    procedure
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..45
+              Whitespace@0..5 "\n    "
+              ProcDecl@5..45
+                ProcHeader@5..23
+                  KwProcedure@5..14 "procedure"
+                  Whitespace@14..23 "\n        "
+                StmtList@23..40
+                  AssertStmt@23..40
+                    KwAssert@23..29 "assert"
+                    Whitespace@29..30 " "
+                    LiteralExpr@30..40
+                      KwFalse@30..35 "false"
+                      Whitespace@35..40 "\n    "
+                EndGroup@40..45
+                  KwEnd@40..43 "end"
+                  Whitespace@43..44 " "
+                  Identifier@44..45 "a"
+            error at 23..29: expected identifier, but found ’assert’"#]],
+    );
+}
+
+#[test]
+fn recover_proc_decl_missing_tail_name() {
+    check(
+        r#"
+    procedure a
+        assert false
+    end"#,
+        expect![[r#"
+            Source@0..45
+              Whitespace@0..5 "\n    "
+              ProcDecl@5..45
+                ProcHeader@5..25
+                  KwProcedure@5..14 "procedure"
+                  Whitespace@14..15 " "
+                  Name@15..25
+                    Identifier@15..16 "a"
+                    Whitespace@16..25 "\n        "
+                StmtList@25..42
+                  AssertStmt@25..42
+                    KwAssert@25..31 "assert"
+                    Whitespace@31..32 " "
+                    LiteralExpr@32..42
+                      KwFalse@32..37 "false"
+                      Whitespace@37..42 "\n    "
+                EndGroup@42..45
+                  KwEnd@42..45 "end"
+            error at 42..45: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_proc() {
+    check(
+        r#"
+    var i :=
+    procedure a
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..60
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              ProcDecl@18..60
+                ProcHeader@18..38
+                  KwProcedure@18..27 "procedure"
+                  Whitespace@27..28 " "
+                  Name@28..38
+                    Identifier@28..29 "a"
+                    Whitespace@29..38 "\n        "
+                StmtList@38..55
+                  AssertStmt@38..55
+                    KwAssert@38..44 "assert"
+                    Whitespace@44..45 " "
+                    LiteralExpr@45..55
+                      KwFalse@45..50 "false"
+                      Whitespace@50..55 "\n    "
+                EndGroup@55..60
+                  KwEnd@55..58 "end"
+                  Whitespace@58..59 " "
+                  Identifier@59..60 "a"
+            error at 18..27: expected expression, but found ’procedure’"#]],
+    );
+}
+
+#[test]
+fn parse_fcn_decl() {
+    check(
+        r#"
+    function a (a : int) : int
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..62
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..62
+                FcnHeader@5..40
+                  KwFunction@5..13 "function"
+                  Whitespace@13..14 " "
+                  Name@14..16
+                    Identifier@14..15 "a"
+                    Whitespace@15..16 " "
+                  ParamSpec@16..26
+                    LeftParen@16..17 "("
+                    ParamDecl@17..24
+                      NameList@17..19
+                        Name@17..19
+                          Identifier@17..18 "a"
+                          Whitespace@18..19 " "
+                      Colon@19..20 ":"
+                      Whitespace@20..21 " "
+                      PrimType@21..24
+                        KwInt@21..24 "int"
+                    RightParen@24..25 ")"
+                    Whitespace@25..26 " "
+                  FcnResult@26..40
+                    Colon@26..27 ":"
+                    Whitespace@27..28 " "
+                    PrimType@28..40
+                      KwInt@28..31 "int"
+                      Whitespace@31..40 "\n        "
+                StmtList@40..57
+                  AssertStmt@40..57
+                    KwAssert@40..46 "assert"
+                    Whitespace@46..47 " "
+                    LiteralExpr@47..57
+                      KwFalse@47..52 "false"
+                      Whitespace@52..57 "\n    "
+                EndGroup@57..62
+                  KwEnd@57..60 "end"
+                  Whitespace@60..61 " "
+                  Identifier@61..62 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_decl_opt_ret_name() {
+    check(
+        r#"
+    fcn a (a : int) ae : int
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..60
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..60
+                FcnHeader@5..38
+                  KwFunction@5..8 "fcn"
+                  Whitespace@8..9 " "
+                  Name@9..11
+                    Identifier@9..10 "a"
+                    Whitespace@10..11 " "
+                  ParamSpec@11..21
+                    LeftParen@11..12 "("
+                    ParamDecl@12..19
+                      NameList@12..14
+                        Name@12..14
+                          Identifier@12..13 "a"
+                          Whitespace@13..14 " "
+                      Colon@14..15 ":"
+                      Whitespace@15..16 " "
+                      PrimType@16..19
+                        KwInt@16..19 "int"
+                    RightParen@19..20 ")"
+                    Whitespace@20..21 " "
+                  FcnResult@21..38
+                    Name@21..24
+                      Identifier@21..23 "ae"
+                      Whitespace@23..24 " "
+                    Colon@24..25 ":"
+                    Whitespace@25..26 " "
+                    PrimType@26..38
+                      KwInt@26..29 "int"
+                      Whitespace@29..38 "\n        "
+                StmtList@38..55
+                  AssertStmt@38..55
+                    KwAssert@38..44 "assert"
+                    Whitespace@44..45 " "
+                    LiteralExpr@45..55
+                      KwFalse@45..50 "false"
+                      Whitespace@50..55 "\n    "
+                EndGroup@55..60
+                  KwEnd@55..58 "end"
+                  Whitespace@58..59 " "
+                  Identifier@59..60 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_plain() {
+    check(
+        r#"
+    fcn a a : int
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..49
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..49
+                FcnHeader@5..27
+                  KwFunction@5..8 "fcn"
+                  Whitespace@8..9 " "
+                  Name@9..11
+                    Identifier@9..10 "a"
+                    Whitespace@10..11 " "
+                  FcnResult@11..27
+                    Name@11..13
+                      Identifier@11..12 "a"
+                      Whitespace@12..13 " "
+                    Colon@13..14 ":"
+                    Whitespace@14..15 " "
+                    PrimType@15..27
+                      KwInt@15..18 "int"
+                      Whitespace@18..27 "\n        "
+                StmtList@27..44
+                  AssertStmt@27..44
+                    KwAssert@27..33 "assert"
+                    Whitespace@33..34 " "
+                    LiteralExpr@34..44
+                      KwFalse@34..39 "false"
+                      Whitespace@39..44 "\n    "
+                EndGroup@44..49
+                  KwEnd@44..47 "end"
+                  Whitespace@47..48 " "
+                  Identifier@48..49 "a""#]],
+    );
+}
+
+#[test]
+fn recover_fcn_decl_missing_name() {
+    check(
+        r#"
+    fcn : int
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..45
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..45
+                FcnHeader@5..23
+                  KwFunction@5..8 "fcn"
+                  Whitespace@8..9 " "
+                  FcnResult@9..23
+                    Colon@9..10 ":"
+                    Whitespace@10..11 " "
+                    PrimType@11..23
+                      KwInt@11..14 "int"
+                      Whitespace@14..23 "\n        "
+                StmtList@23..40
+                  AssertStmt@23..40
+                    KwAssert@23..29 "assert"
+                    Whitespace@29..30 " "
+                    LiteralExpr@30..40
+                      KwFalse@30..35 "false"
+                      Whitespace@35..40 "\n    "
+                EndGroup@40..45
+                  KwEnd@40..43 "end"
+                  Whitespace@43..44 " "
+                  Identifier@44..45 "a"
+            error at 9..10: expected identifier, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_fcn_decl_missing_tail_name() {
+    check(
+        r#"
+    fcn a : int
+        assert false
+    end"#,
+        expect![[r#"
+            Source@0..45
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..45
+                FcnHeader@5..25
+                  KwFunction@5..8 "fcn"
+                  Whitespace@8..9 " "
+                  Name@9..11
+                    Identifier@9..10 "a"
+                    Whitespace@10..11 " "
+                  FcnResult@11..25
+                    Colon@11..12 ":"
+                    Whitespace@12..13 " "
+                    PrimType@13..25
+                      KwInt@13..16 "int"
+                      Whitespace@16..25 "\n        "
+                StmtList@25..42
+                  AssertStmt@25..42
+                    KwAssert@25..31 "assert"
+                    Whitespace@31..32 " "
+                    LiteralExpr@32..42
+                      KwFalse@32..37 "false"
+                      Whitespace@37..42 "\n    "
+                EndGroup@42..45
+                  KwEnd@42..45 "end"
+            error at 42..45: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_fcn_decl_missing_ret_ty() {
+    check(
+        r#"
+    fcn a :
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..43
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..43
+                FcnHeader@5..21
+                  KwFunction@5..8 "fcn"
+                  Whitespace@8..9 " "
+                  Name@9..11
+                    Identifier@9..10 "a"
+                    Whitespace@10..11 " "
+                  FcnResult@11..21
+                    Colon@11..12 ":"
+                    Whitespace@12..21 "\n        "
+                StmtList@21..38
+                  AssertStmt@21..38
+                    KwAssert@21..27 "assert"
+                    Whitespace@27..28 " "
+                    LiteralExpr@28..38
+                      KwFalse@28..33 "false"
+                      Whitespace@33..38 "\n    "
+                EndGroup@38..43
+                  KwEnd@38..41 "end"
+                  Whitespace@41..42 " "
+                  Identifier@42..43 "a"
+            error at 21..27: expected type specifier, but found ’assert’"#]],
+    );
+}
+
+#[test]
+fn recover_fcn_decl_missing_colon() {
+    check(
+        r#"
+    fcn a int
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..45
+              Whitespace@0..5 "\n    "
+              FcnDecl@5..45
+                FcnHeader@5..23
+                  KwFunction@5..8 "fcn"
+                  Whitespace@8..9 " "
+                  Name@9..11
+                    Identifier@9..10 "a"
+                    Whitespace@10..11 " "
+                  Error@11..23
+                    KwInt@11..14 "int"
+                    Whitespace@14..23 "\n        "
+                StmtList@23..40
+                  AssertStmt@23..40
+                    KwAssert@23..29 "assert"
+                    Whitespace@29..30 " "
+                    LiteralExpr@30..40
+                      KwFalse@30..35 "false"
+                      Whitespace@35..40 "\n    "
+                EndGroup@40..45
+                  KwEnd@40..43 "end"
+                  Whitespace@43..44 " "
+                  Identifier@44..45 "a"
+            error at 11..14: expected ’(’, identifier or ’:’, but found ’int’"#]],
+    );
+}
+
+#[test]
+fn recover_on_fcn() {
+    check(
+        r#"
+    var i :=
+    fcn a : int
+        assert false
+    end a"#,
+        expect![[r#"
+            Source@0..60
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              FcnDecl@18..60
+                FcnHeader@18..38
+                  KwFunction@18..21 "fcn"
+                  Whitespace@21..22 " "
+                  Name@22..24
+                    Identifier@22..23 "a"
+                    Whitespace@23..24 " "
+                  FcnResult@24..38
+                    Colon@24..25 ":"
+                    Whitespace@25..26 " "
+                    PrimType@26..38
+                      KwInt@26..29 "int"
+                      Whitespace@29..38 "\n        "
+                StmtList@38..55
+                  AssertStmt@38..55
+                    KwAssert@38..44 "assert"
+                    Whitespace@44..45 " "
+                    LiteralExpr@45..55
+                      KwFalse@45..50 "false"
+                      Whitespace@50..55 "\n    "
+                EndGroup@55..60
+                  KwEnd@55..58 "end"
+                  Whitespace@58..59 " "
+                  Identifier@59..60 "a"
+            error at 18..21: expected expression, but found ’function’"#]],
+    );
+}
