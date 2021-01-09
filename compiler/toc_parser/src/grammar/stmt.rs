@@ -18,9 +18,9 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Forward => { forward_decl(p) }
             TokenKind::Deferred => { deferred_decl(p) }
             TokenKind::Body => { body_decl(p) }
-            // module_decl
-            // class_decl
-            // monitor_decl
+            TokenKind::Module => { module_decl(p) }
+            TokenKind::Class => { class_decl(p) }
+            TokenKind::Monitor => { monitor_decl(p) }
 
             // include_stmt
             // open_stmt
@@ -58,6 +58,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Init => { init_stmt(p) }
             TokenKind::Post => { stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt) }
             TokenKind::Handler => { handler_stmt(p) }
+            // inherit_stmt
             // implement_stmt
             // implement_by_stmt
             // import_stmt
@@ -450,6 +451,64 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     eat_end_group(p, TokenKind::Identifier, None);
     Some(m.complete(p, SyntaxKind::BodyDecl))
+}
+
+fn module_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Module));
+    let m = p.start();
+    p.bump();
+
+    attr_pervasive(p);
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        super::name(p);
+    });
+
+    stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::Identifier, None);
+    Some(m.complete(p, SyntaxKind::ModuleDecl))
+}
+
+fn class_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Class));
+    let m = p.start();
+    p.bump();
+
+    attr_pervasive(p);
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        super::name(p);
+    });
+
+    stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::Identifier, None);
+    Some(m.complete(p, SyntaxKind::ClassDecl))
+}
+
+fn monitor_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Monitor));
+    let m = p.start();
+    p.bump();
+
+    let as_class = p.eat(TokenKind::Class);
+
+    attr_pervasive(p);
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        super::name(p);
+        device_spec(p);
+    });
+
+    stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::Identifier, None);
+    Some(m.complete(
+        p,
+        if as_class {
+            SyntaxKind::ClassDecl
+        } else {
+            SyntaxKind::MonitorDecl
+        },
+    ))
 }
 
 // Stmts //

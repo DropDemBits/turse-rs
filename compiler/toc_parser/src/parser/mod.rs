@@ -25,12 +25,15 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Bind,
     TokenKind::Procedure,
     TokenKind::Function,
+    // TokenKind::Process,
+    // TokenKind::External,
     TokenKind::Forward,
     TokenKind::Deferred,
     TokenKind::Body,
-    // TokenKind::Module,
-    // TokenKind::Class,
-    // TokenKind::Monitor,
+    TokenKind::Module,
+    TokenKind::Class,
+    TokenKind::Monitor,
+    //
 
     // Stmts //
     // TokenKind::Include,
@@ -69,6 +72,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Init,
     TokenKind::Post,
     TokenKind::Handler,
+    // TokenKind::Inherit
     // TokenKind::Implement
     // TokenKind::Import
     // TokenKind::Export
