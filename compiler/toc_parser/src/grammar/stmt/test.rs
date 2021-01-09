@@ -5412,3 +5412,635 @@ fn recover_on_free() {
         error at 10..14: expected expression, but found ’free’"#]],
     );
 }
+
+#[test]
+fn parse_deferred_proc() {
+    check(
+        r#"deferred proc a()"#,
+        expect![[r#"
+        Source@0..17
+          DeferredDecl@0..17
+            KwDeferred@0..8 "deferred"
+            Whitespace@8..9 " "
+            ProcHeader@9..17
+              KwProcedure@9..13 "proc"
+              Whitespace@13..14 " "
+              Name@14..15
+                Identifier@14..15 "a"
+              ParamSpec@15..17
+                LeftParen@15..16 "("
+                RightParen@16..17 ")""#]],
+    );
+}
+
+#[test]
+fn parse_deferred_fcn() {
+    check(
+        r#"deferred fcn a() : int"#,
+        expect![[r#"
+        Source@0..22
+          DeferredDecl@0..22
+            KwDeferred@0..8 "deferred"
+            Whitespace@8..9 " "
+            FcnHeader@9..22
+              KwFunction@9..12 "fcn"
+              Whitespace@12..13 " "
+              Name@13..14
+                Identifier@13..14 "a"
+              ParamSpec@14..17
+                LeftParen@14..15 "("
+                RightParen@15..16 ")"
+                Whitespace@16..17 " "
+              FcnResult@17..22
+                Colon@17..18 ":"
+                Whitespace@18..19 " "
+                PrimType@19..22
+                  KwInt@19..22 "int""#]],
+    );
+}
+
+#[test]
+fn recover_just_deferred() {
+    check(
+        r#"deferred"#,
+        expect![[r#"
+        Source@0..8
+          Error@0..8
+            KwDeferred@0..8 "deferred"
+        error at 0..8: expected ’function’ or ’procedure’"#]],
+    );
+}
+
+#[test]
+fn recover_on_deferred() {
+    check(
+        r#"
+    var i := 
+    deferred proc a"#,
+        expect![[r#"
+            Source@0..34
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..19
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..19 " \n    "
+              DeferredDecl@19..34
+                KwDeferred@19..27 "deferred"
+                Whitespace@27..28 " "
+                ProcHeader@28..34
+                  KwProcedure@28..32 "proc"
+                  Whitespace@32..33 " "
+                  Name@33..34
+                    Identifier@33..34 "a"
+            error at 19..27: expected expression, but found ’deferred’"#]],
+    );
+}
+
+#[test]
+fn parse_forward_proc() {
+    check(
+        r#"forward proc a()"#,
+        expect![[r#"
+        Source@0..16
+          ForwardDecl@0..16
+            KwForward@0..7 "forward"
+            Whitespace@7..8 " "
+            ProcHeader@8..16
+              KwProcedure@8..12 "proc"
+              Whitespace@12..13 " "
+              Name@13..14
+                Identifier@13..14 "a"
+              ParamSpec@14..16
+                LeftParen@14..15 "("
+                RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_forward_fcn() {
+    check(
+        r#"forward fcn a() : int"#,
+        expect![[r#"
+        Source@0..21
+          ForwardDecl@0..21
+            KwForward@0..7 "forward"
+            Whitespace@7..8 " "
+            FcnHeader@8..21
+              KwFunction@8..11 "fcn"
+              Whitespace@11..12 " "
+              Name@12..13
+                Identifier@12..13 "a"
+              ParamSpec@13..16
+                LeftParen@13..14 "("
+                RightParen@14..15 ")"
+                Whitespace@15..16 " "
+              FcnResult@16..21
+                Colon@16..17 ":"
+                Whitespace@17..18 " "
+                PrimType@18..21
+                  KwInt@18..21 "int""#]],
+    );
+}
+
+#[test]
+fn parse_forward_decl_import_list() {
+    check(
+        r#"forward proc a import b, var c, const d, forward e"#,
+        expect![[r#"
+            Source@0..50
+              ForwardDecl@0..50
+                KwForward@0..7 "forward"
+                Whitespace@7..8 " "
+                ProcHeader@8..15
+                  KwProcedure@8..12 "proc"
+                  Whitespace@12..13 " "
+                  Name@13..15
+                    Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                KwImport@15..21 "import"
+                Whitespace@21..22 " "
+                ImportList@22..50
+                  ImportItem@22..23
+                    ExternalItem@22..23
+                      Name@22..23
+                        Identifier@22..23 "b"
+                  Comma@23..24 ","
+                  Whitespace@24..25 " "
+                  ImportItem@25..30
+                    KwVar@25..28 "var"
+                    Whitespace@28..29 " "
+                    ExternalItem@29..30
+                      Name@29..30
+                        Identifier@29..30 "c"
+                  Comma@30..31 ","
+                  Whitespace@31..32 " "
+                  ImportItem@32..39
+                    KwConst@32..37 "const"
+                    Whitespace@37..38 " "
+                    ExternalItem@38..39
+                      Name@38..39
+                        Identifier@38..39 "d"
+                  Comma@39..40 ","
+                  Whitespace@40..41 " "
+                  ImportItem@41..50
+                    KwForward@41..48 "forward"
+                    Whitespace@48..49 " "
+                    ExternalItem@49..50
+                      Name@49..50
+                        Identifier@49..50 "e""#]],
+    );
+}
+
+#[test]
+fn recover_forward_decl_missing_import_name() {
+    check(
+        r#"forward proc a import"#,
+        expect![[r#"
+        Source@0..21
+          ForwardDecl@0..21
+            KwForward@0..7 "forward"
+            Whitespace@7..8 " "
+            ProcHeader@8..15
+              KwProcedure@8..12 "proc"
+              Whitespace@12..13 " "
+              Name@13..15
+                Identifier@13..14 "a"
+                Whitespace@14..15 " "
+            KwImport@15..21 "import"
+            ImportList@21..21
+              ImportItem@21..21
+                ExternalItem@21..21
+        error at 15..21: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_forward() {
+    check(
+        r#"forward"#,
+        expect![[r#"
+        Source@0..7
+          Error@0..7
+            KwForward@0..7 "forward"
+        error at 0..7: expected ’function’ or ’procedure’"#]],
+    );
+}
+
+#[test]
+fn recover_on_forward() {
+    check(
+        r#"
+    var i := 
+    forward proc a"#,
+        expect![[r#"
+            Source@0..33
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..19
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..19 " \n    "
+              ForwardDecl@19..33
+                KwForward@19..26 "forward"
+                Whitespace@26..27 " "
+                ProcHeader@27..33
+                  KwProcedure@27..31 "proc"
+                  Whitespace@31..32 " "
+                  Name@32..33
+                    Identifier@32..33 "a"
+            error at 19..26: expected expression, but found ’forward’"#]],
+    );
+}
+
+#[test]
+fn parse_body_proc() {
+    check(
+        r#"
+    body proc a() : 1
+    end a"#,
+        expect![[r#"
+            Source@0..32
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..32
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                ProcHeader@10..27
+                  KwProcedure@10..14 "proc"
+                  Whitespace@14..15 " "
+                  Name@15..16
+                    Identifier@15..16 "a"
+                  ParamSpec@16..19
+                    LeftParen@16..17 "("
+                    RightParen@17..18 ")"
+                    Whitespace@18..19 " "
+                  DeviceSpec@19..27
+                    Colon@19..20 ":"
+                    Whitespace@20..21 " "
+                    LiteralExpr@21..27
+                      IntLiteral@21..22 "1"
+                      Whitespace@22..27 "\n    "
+                StmtList@27..27
+                EndGroup@27..32
+                  KwEnd@27..30 "end"
+                  Whitespace@30..31 " "
+                  Identifier@31..32 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_proc_bare() {
+    check(
+        r#"
+    body proc a
+    end a"#,
+        expect![[r#"
+            Source@0..26
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..26
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                ProcHeader@10..21
+                  KwProcedure@10..14 "proc"
+                  Whitespace@14..15 " "
+                  Name@15..21
+                    Identifier@15..16 "a"
+                    Whitespace@16..21 "\n    "
+                StmtList@21..21
+                EndGroup@21..26
+                  KwEnd@21..24 "end"
+                  Whitespace@24..25 " "
+                  Identifier@25..26 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_fcn() {
+    check(
+        r#"
+    body fcn a() : int
+    end a"#,
+        expect![[r#"
+            Source@0..33
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..33
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                FcnHeader@10..28
+                  KwFunction@10..13 "fcn"
+                  Whitespace@13..14 " "
+                  Name@14..15
+                    Identifier@14..15 "a"
+                  ParamSpec@15..18
+                    LeftParen@15..16 "("
+                    RightParen@16..17 ")"
+                    Whitespace@17..18 " "
+                  FcnResult@18..28
+                    Colon@18..19 ":"
+                    Whitespace@19..20 " "
+                    PrimType@20..28
+                      KwInt@20..23 "int"
+                      Whitespace@23..28 "\n    "
+                StmtList@28..28
+                EndGroup@28..33
+                  KwEnd@28..31 "end"
+                  Whitespace@31..32 " "
+                  Identifier@32..33 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_fcn_no_ret_ty() {
+    // reject during validation
+    check(
+        r#"
+    body fcn a()
+    end a"#,
+        expect![[r#"
+            Source@0..27
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..27
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                FcnHeader@10..22
+                  KwFunction@10..13 "fcn"
+                  Whitespace@13..14 " "
+                  Name@14..15
+                    Identifier@14..15 "a"
+                  ParamSpec@15..22
+                    LeftParen@15..16 "("
+                    RightParen@16..17 ")"
+                    Whitespace@17..22 "\n    "
+                StmtList@22..22
+                EndGroup@22..27
+                  KwEnd@22..25 "end"
+                  Whitespace@25..26 " "
+                  Identifier@26..27 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_fcn_bare() {
+    check(
+        r#"
+    body fcn a
+    end a"#,
+        expect![[r#"
+            Source@0..25
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..25
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                FcnHeader@10..20
+                  KwFunction@10..13 "fcn"
+                  Whitespace@13..14 " "
+                  Name@14..20
+                    Identifier@14..15 "a"
+                    Whitespace@15..20 "\n    "
+                StmtList@20..20
+                EndGroup@20..25
+                  KwEnd@20..23 "end"
+                  Whitespace@23..24 " "
+                  Identifier@24..25 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_plain() {
+    check(
+        r#"
+    body a
+    end a"#,
+        expect![[r#"
+            Source@0..21
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..21
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                PlainHeader@10..16
+                  Name@10..16
+                    Identifier@10..11 "a"
+                    Whitespace@11..16 "\n    "
+                StmtList@16..16
+                EndGroup@16..21
+                  KwEnd@16..19 "end"
+                  Whitespace@19..20 " "
+                  Identifier@20..21 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_plain_with_params() {
+    check(
+        r#"
+    body a (k : int)
+    end a"#,
+        expect![[r#"
+            Source@0..31
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..31
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                PlainHeader@10..26
+                  Name@10..12
+                    Identifier@10..11 "a"
+                    Whitespace@11..12 " "
+                  ParamSpec@12..26
+                    LeftParen@12..13 "("
+                    ParamDecl@13..20
+                      NameList@13..15
+                        Name@13..15
+                          Identifier@13..14 "k"
+                          Whitespace@14..15 " "
+                      Colon@15..16 ":"
+                      Whitespace@16..17 " "
+                      PrimType@17..20
+                        KwInt@17..20 "int"
+                    RightParen@20..21 ")"
+                    Whitespace@21..26 "\n    "
+                StmtList@26..26
+                EndGroup@26..31
+                  KwEnd@26..29 "end"
+                  Whitespace@29..30 " "
+                  Identifier@30..31 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_plain_with_params_and_ret_ty() {
+    check(
+        r#"
+    body a (k : int) : int
+    end a"#,
+        expect![[r#"
+            Source@0..37
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..37
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                PlainHeader@10..32
+                  Name@10..12
+                    Identifier@10..11 "a"
+                    Whitespace@11..12 " "
+                  ParamSpec@12..22
+                    LeftParen@12..13 "("
+                    ParamDecl@13..20
+                      NameList@13..15
+                        Name@13..15
+                          Identifier@13..14 "k"
+                          Whitespace@14..15 " "
+                      Colon@15..16 ":"
+                      Whitespace@16..17 " "
+                      PrimType@17..20
+                        KwInt@17..20 "int"
+                    RightParen@20..21 ")"
+                    Whitespace@21..22 " "
+                  FcnResult@22..32
+                    Colon@22..23 ":"
+                    Whitespace@23..24 " "
+                    PrimType@24..32
+                      KwInt@24..27 "int"
+                      Whitespace@27..32 "\n    "
+                StmtList@32..32
+                EndGroup@32..37
+                  KwEnd@32..35 "end"
+                  Whitespace@35..36 " "
+                  Identifier@36..37 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_plain_with_ret_ty() {
+    check(
+        r#"
+    body a : int
+    end a"#,
+        expect![[r#"
+            Source@0..27
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..27
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                PlainHeader@10..22
+                  Name@10..12
+                    Identifier@10..11 "a"
+                    Whitespace@11..12 " "
+                  FcnResult@12..22
+                    Colon@12..13 ":"
+                    Whitespace@13..14 " "
+                    PrimType@14..22
+                      KwInt@14..17 "int"
+                      Whitespace@17..22 "\n    "
+                StmtList@22..22
+                EndGroup@22..27
+                  KwEnd@22..25 "end"
+                  Whitespace@25..26 " "
+                  Identifier@26..27 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_plain_with_params_and_full_ret_ty() {
+    // reject during validation (?)
+    check(
+        r#"
+    body a (k : int) no : int
+    end a"#,
+        expect![[r#"
+            Source@0..40
+              Whitespace@0..5 "\n    "
+              BodyDecl@5..40
+                KwBody@5..9 "body"
+                Whitespace@9..10 " "
+                PlainHeader@10..35
+                  Name@10..12
+                    Identifier@10..11 "a"
+                    Whitespace@11..12 " "
+                  ParamSpec@12..22
+                    LeftParen@12..13 "("
+                    ParamDecl@13..20
+                      NameList@13..15
+                        Name@13..15
+                          Identifier@13..14 "k"
+                          Whitespace@14..15 " "
+                      Colon@15..16 ":"
+                      Whitespace@16..17 " "
+                      PrimType@17..20
+                        KwInt@17..20 "int"
+                    RightParen@20..21 ")"
+                    Whitespace@21..22 " "
+                  FcnResult@22..35
+                    Name@22..25
+                      Identifier@22..24 "no"
+                      Whitespace@24..25 " "
+                    Colon@25..26 ":"
+                    Whitespace@26..27 " "
+                    PrimType@27..35
+                      KwInt@27..30 "int"
+                      Whitespace@30..35 "\n    "
+                StmtList@35..35
+                EndGroup@35..40
+                  KwEnd@35..38 "end"
+                  Whitespace@38..39 " "
+                  Identifier@39..40 "a""#]],
+    );
+}
+
+#[test]
+fn recover_just_body() {
+    check(
+        r#"body"#,
+        expect![[r#"
+        Source@0..4
+          BodyDecl@0..4
+            KwBody@0..4 "body"
+            StmtList@4..4
+            EndGroup@4..4
+        error at 0..4: expected ’function’, ’procedure’ or identifier
+        error at 0..4: expected ’end’
+        error at 0..4: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_body() {
+    check(
+        r#"
+    var i :=
+    body a
+    end a"#,
+        expect![[r#"
+            Source@0..34
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              BodyDecl@18..34
+                KwBody@18..22 "body"
+                Whitespace@22..23 " "
+                PlainHeader@23..29
+                  Name@23..29
+                    Identifier@23..24 "a"
+                    Whitespace@24..29 "\n    "
+                StmtList@29..29
+                EndGroup@29..34
+                  KwEnd@29..32 "end"
+                  Whitespace@32..33 " "
+                  Identifier@33..34 "a"
+            error at 18..22: expected expression, but found ’body’"#]],
+    );
+}

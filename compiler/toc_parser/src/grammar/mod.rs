@@ -9,8 +9,9 @@
 // - bind_decl
 // - procedure_decl
 // - function_decl
-// | forward_decl
-// | deferred_decl
+// - forward_decl
+// - deferred_decl
+// - body_decl
 // | module_decl
 // | class_decl
 // | monitor_decl
