@@ -25,7 +25,23 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Bind,
     TokenKind::Procedure,
     TokenKind::Function,
+    // forward
+    // deferred
+    // body
+    // module
+    // class
+    // monitor
+
     // Stmts //
+    // include
+    // open
+    // close
+    // put
+    // get
+    // read
+    // write
+    // seek
+    // tell
     TokenKind::For,
     TokenKind::Loop,
     TokenKind::Exit,
@@ -40,10 +56,22 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Assert,
     TokenKind::Return,
     TokenKind::Result_,
+    // new
+    // free
+    // tag
+    // fork
     TokenKind::Signal,
     TokenKind::Pause,
+    TokenKind::Quit,
     TokenKind::Checked,
     TokenKind::Unchecked,
+    TokenKind::Pre,
+    TokenKind::Init,
+    TokenKind::Post,
+    TokenKind::Handler,
+    // implement
+    // import
+    // export
 ];
 
 pub(crate) struct Parser<'t, 'src> {
@@ -79,6 +107,16 @@ impl<'t, 'src> Parser<'t, 'src> {
     /// Returns `true` if the expected token is of `kind`
     pub(crate) fn at(&mut self, kind: TokenKind) -> bool {
         self.expected_kinds.push(kind);
+        self.peek() == Some(kind)
+    }
+
+    /// Checks if the next token is of `kind`
+    ///
+    /// Does not add the token to the expected_kinds list
+    ///
+    /// # Returns
+    /// Returns `true` if the token was eaten
+    pub(crate) fn at_hidden(&mut self, kind: TokenKind) -> bool {
         self.peek() == Some(kind)
     }
 
