@@ -192,6 +192,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     match_token! {
         |p| match {
             TokenKind::Identifier => { name_expr(p) }
+            TokenKind::Self_ => { self_expr(p) }
             TokenKind::Caret => { deref_expr(p) }
             TokenKind::Bits => { bits_expr(p) }
             TokenKind::ObjectClass => { objclass_expr(p) }
@@ -260,10 +261,17 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
 fn name_expr(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Identifier));
 
-    // nom name
     let m = p.start();
     super::name(p);
     Some(m.complete(p, SyntaxKind::NameExpr))
+}
+
+fn self_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Self_));
+
+    let m = p.start();
+    p.bump(); // nom 'self'
+    Some(m.complete(p, SyntaxKind::SelfExpr))
 }
 
 fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {

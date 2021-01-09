@@ -68,6 +68,7 @@
 // - range_expr (used in string subscripting)
 // - cheat_expr
 // - objclass_expr
+// - self_expr
 
 // types
 // - primitive_type (including sized variants)

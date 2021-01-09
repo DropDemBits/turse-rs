@@ -306,6 +306,7 @@ pub enum SyntaxKind {
     ParenExpr,
     RefExpr,
     NameExpr,
+    SelfExpr,
     FieldExpr,
     DerefExpr,
     ArrowExpr,
