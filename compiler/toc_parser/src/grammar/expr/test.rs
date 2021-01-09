@@ -3924,3 +3924,47 @@ fn recover_call_expr_relative_bound_missing_minus() {
         error at 8..9: expected statement, but found ’)’"#]],
     );
 }
+
+#[test]
+fn parse_self_expr() {
+    check("_:=self -> a", expect![[r#"
+        Source@0..12
+          AssignStmt@0..12
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            ArrowExpr@3..12
+              SelfExpr@3..8
+                KwSelf@3..7 "self"
+                Whitespace@7..8 " "
+              Arrow@8..10 "->"
+              Whitespace@10..11 " "
+              Name@11..12
+                Identifier@11..12 "a""#]]);
+}
+
+#[test]
+fn parse_self_ref() {
+    check("self -> a", expect![[r#"
+        Source@0..9
+          CallStmt@0..9
+            ArrowExpr@0..9
+              SelfExpr@0..5
+                KwSelf@0..4 "self"
+                Whitespace@4..5 " "
+              Arrow@5..7 "->"
+              Whitespace@7..8 " "
+              Name@8..9
+                Identifier@8..9 "a""#]]);
+}
+
+#[test]
+fn parse_just_self() {
+    check("self", expect![[r#"
+        Source@0..4
+          CallStmt@0..4
+            SelfExpr@0..4
+              KwSelf@0..4 "self""#]]);
+}
