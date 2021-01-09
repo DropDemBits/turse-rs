@@ -5195,3 +5195,220 @@ fn recover_on_fork() {
         error at 10..14: expected expression, but found ’fork’"#]],
     );
 }
+
+#[test]
+fn parse_new_stmt() {
+    check(
+        "new a",
+        expect![[r#"
+        Source@0..5
+          NewStmt@0..5
+            KwNew@0..3 "new"
+            Whitespace@3..4 " "
+            ExprList@4..5
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a""#]],
+    );
+}
+
+#[test]
+fn parse_new_stmt_opt_pointer_spec() {
+    check(
+        "new A, ptr",
+        expect![[r#"
+        Source@0..10
+          NewStmt@0..10
+            KwNew@0..3 "new"
+            Whitespace@3..4 " "
+            ExprList@4..10
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "A"
+              Comma@5..6 ","
+              Whitespace@6..7 " "
+              NameExpr@7..10
+                Name@7..10
+                  Identifier@7..10 "ptr""#]],
+    );
+}
+
+#[test]
+fn parse_new_stmt_resize_array() {
+    check(
+        "new ary, 1, 2, 3, 4",
+        expect![[r#"
+        Source@0..19
+          NewStmt@0..19
+            KwNew@0..3 "new"
+            Whitespace@3..4 " "
+            ExprList@4..19
+              NameExpr@4..7
+                Name@4..7
+                  Identifier@4..7 "ary"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              LiteralExpr@9..10
+                IntLiteral@9..10 "1"
+              Comma@10..11 ","
+              Whitespace@11..12 " "
+              LiteralExpr@12..13
+                IntLiteral@12..13 "2"
+              Comma@13..14 ","
+              Whitespace@14..15 " "
+              LiteralExpr@15..16
+                IntLiteral@15..16 "3"
+              Comma@16..17 ","
+              Whitespace@17..18 " "
+              LiteralExpr@18..19
+                IntLiteral@18..19 "4""#]],
+    );
+}
+
+#[test]
+fn recover_just_new() {
+    check(
+        "new",
+        expect![[r#"
+        Source@0..3
+          NewStmt@0..3
+            KwNew@0..3 "new"
+            ExprList@3..3
+        error at 0..3: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_new() {
+    check(
+        "var i := \nnew a",
+        expect![[r#"
+        Source@0..15
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          NewStmt@10..15
+            KwNew@10..13 "new"
+            Whitespace@13..14 " "
+            ExprList@14..15
+              NameExpr@14..15
+                Name@14..15
+                  Identifier@14..15 "a"
+        error at 10..13: expected expression, but found ’new’"#]],
+    );
+}
+
+#[test]
+fn parse_free_stmt() {
+    check(
+        "free a",
+        expect![[r#"
+        Source@0..6
+          FreeStmt@0..6
+            KwFree@0..4 "free"
+            Whitespace@4..5 " "
+            ExprList@5..6
+              NameExpr@5..6
+                Name@5..6
+                  Identifier@5..6 "a""#]],
+    );
+}
+
+#[test]
+fn parse_free_stmt_opt_pointer_spec() {
+    check(
+        "free A, ptr",
+        expect![[r#"
+        Source@0..11
+          FreeStmt@0..11
+            KwFree@0..4 "free"
+            Whitespace@4..5 " "
+            ExprList@5..11
+              NameExpr@5..6
+                Name@5..6
+                  Identifier@5..6 "A"
+              Comma@6..7 ","
+              Whitespace@7..8 " "
+              NameExpr@8..11
+                Name@8..11
+                  Identifier@8..11 "ptr""#]],
+    );
+}
+
+#[test]
+fn parse_free_stmt_multiple_exprs() {
+    // reject during lowering
+    check(
+        "free ary, 1, 2, 3, 4",
+        expect![[r#"
+        Source@0..20
+          FreeStmt@0..20
+            KwFree@0..4 "free"
+            Whitespace@4..5 " "
+            ExprList@5..20
+              NameExpr@5..8
+                Name@5..8
+                  Identifier@5..8 "ary"
+              Comma@8..9 ","
+              Whitespace@9..10 " "
+              LiteralExpr@10..11
+                IntLiteral@10..11 "1"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              LiteralExpr@13..14
+                IntLiteral@13..14 "2"
+              Comma@14..15 ","
+              Whitespace@15..16 " "
+              LiteralExpr@16..17
+                IntLiteral@16..17 "3"
+              Comma@17..18 ","
+              Whitespace@18..19 " "
+              LiteralExpr@19..20
+                IntLiteral@19..20 "4""#]],
+    );
+}
+
+#[test]
+fn recover_just_free() {
+    check(
+        "free",
+        expect![[r#"
+        Source@0..4
+          FreeStmt@0..4
+            KwFree@0..4 "free"
+            ExprList@4..4
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_free() {
+    check(
+        "var i := \nfree a",
+        expect![[r#"
+        Source@0..16
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          FreeStmt@10..16
+            KwFree@10..14 "free"
+            Whitespace@14..15 " "
+            ExprList@15..16
+              NameExpr@15..16
+                Name@15..16
+                  Identifier@15..16 "a"
+        error at 10..14: expected expression, but found ’free’"#]],
+    );
+}

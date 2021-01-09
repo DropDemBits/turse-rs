@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod test;
 
-use expr::expect_expr;
+use expr::{expect_expr, expr_list};
 
 use super::*;
 
@@ -45,8 +45,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Assert => { stmt_with_expr(p, TokenKind::Assert, SyntaxKind::AssertStmt) }
             TokenKind::Return => { stmt_only_kw(p, TokenKind::Return, SyntaxKind::ReturnStmt) }
             TokenKind::Result_ => { stmt_with_expr(p, TokenKind::Result_, SyntaxKind::ResultStmt) }
-            // new_stmt
-            // free_stmt
+            TokenKind::New => { heap_stmt(p, SyntaxKind::NewStmt) }
+            TokenKind::Free => { heap_stmt(p, SyntaxKind::FreeStmt) }
             TokenKind::Tag => { tag_stmt(p) }
             TokenKind::Fork => { fork_stmt(p) }
             TokenKind::Signal => { stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt) }
@@ -583,6 +583,18 @@ fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     m_end.complete(p, SyntaxKind::EndGroup);
 
     Some(m.complete(p, SyntaxKind::BlockStmt))
+}
+
+fn heap_stmt(p: &mut Parser, syntax_kind: SyntaxKind) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::New) || p.at(TokenKind::Free));
+
+    let m = p.start();
+    p.bump();
+
+    // Unbounded amount of entries for the heap stmts
+    expr_list(p);
+
+    Some(m.complete(p, syntax_kind))
 }
 
 fn tag_stmt(p: &mut Parser) -> Option<CompletedMarker> {
