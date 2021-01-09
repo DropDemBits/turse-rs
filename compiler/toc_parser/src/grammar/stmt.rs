@@ -2,6 +2,8 @@
 #[cfg(test)]
 mod test;
 
+use expr::expect_expr;
+
 use super::*;
 
 pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
@@ -15,6 +17,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Function => { function_decl(p) }
             // forward_decl
             // deferred_decl
+            // body_decl
             // module_decl
             // class_decl
             // monitor_decl
@@ -48,13 +51,13 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             // fork_stmt
             TokenKind::Signal => { stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt) }
             TokenKind::Pause => { stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt) }
-            // quit_stmt
+            TokenKind::Quit => { quit_stmt(p) }
             TokenKind::Checked => { stmt_only_kw(p, TokenKind::Checked, SyntaxKind::CheckednessStmt) }
             TokenKind::Unchecked => { stmt_only_kw(p, TokenKind::Unchecked, SyntaxKind::CheckednessStmt) }
-            // pre_stmt
-            // init_stmt
-            // post_stmt
-            // handler_stmt
+            TokenKind::Pre => { stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt) }
+            TokenKind::Init => { init_stmt(p) }
+            TokenKind::Post => { stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt) }
+            TokenKind::Handler => { handler_stmt(p) }
             // implement_stmt
             // implement_by_stmt
             // import_stmt
@@ -116,7 +119,7 @@ fn stmt_only_kw(
 }
 
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
-    if p.at(TokenKind::Equ) {
+    if p.at_hidden(TokenKind::Equ) {
         // Simple assignment, but mistyped `=` instead of `:=`
         p.warn_alias("’:=’");
 
@@ -124,9 +127,6 @@ fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
         p.bump(); // bump `=`
         return Some(m.complete(p, SyntaxKind::AsnOp));
     }
-
-    // Reset expected tokens to drop `=`
-    p.reset_expected_tokens();
 
     if p.at(TokenKind::Assign) {
         // Simple assignment
@@ -208,7 +208,7 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     // note when validating: if array is init-sized, then it should require 'init'
     // if type is implied, then init is not allowed
     // refining error: for const, could say that initialzer is required
-    if p.at(TokenKind::Equ) {
+    if p.at_hidden(TokenKind::Equ) {
         p.warn_alias("’:=’");
         p.bump(); // bump `=`
 
@@ -583,6 +583,94 @@ fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     m_end.complete(p, SyntaxKind::EndGroup);
 
     Some(m.complete(p, SyntaxKind::BlockStmt))
+}
+
+fn quit_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'quit' cause:( '>' | '<' )? code:( ':' Expr )?
+    debug_assert!(p.at(TokenKind::Quit));
+
+    let m = p.start();
+    p.bump();
+
+    // quit_cause
+    match_token!(|p| match {
+        TokenKind::Less,
+        TokenKind::Greater => {
+            let m = p.start();
+            p.bump();
+            m.complete(p, SyntaxKind::QuitCause);
+        }
+        _ => {}
+    });
+
+    if p.eat(TokenKind::Colon) {
+        // quit_code
+        expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::QuitStmt))
+}
+
+fn init_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'init' InitVar (',' InitVar)*
+    debug_assert!(p.at(TokenKind::Init));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        init_var(p);
+
+        while p.eat(TokenKind::Comma) {
+            init_var(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::InitStmt))
+}
+
+fn init_var(p: &mut Parser) -> Option<CompletedMarker> {
+    // Name ':=' Expr
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Assign, TokenKind::Equ], |p| {
+        super::name(p);
+    });
+
+    if p.at_hidden(TokenKind::Equ) {
+        // blessed version is `:=`
+        p.warn_alias(":=");
+        p.bump();
+    } else {
+        p.expect(TokenKind::Assign);
+    }
+
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::InitVar))
+}
+
+fn handler_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'handler' '(' Name ')' StmtList 'end' 'handler'
+    debug_assert!(p.at(TokenKind::Handler));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(
+        &[TokenKind::Identifier, TokenKind::RightParen, TokenKind::End],
+        |p| {
+            p.expect(TokenKind::LeftParen);
+            super::name(p);
+            p.expect(TokenKind::RightParen);
+        },
+    );
+
+    stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::Handler, None);
+
+    Some(m.complete(p, SyntaxKind::HandlerStmt))
 }
 
 /// Parses stmts until the first `end` is reached, or until any `TokenKind` in

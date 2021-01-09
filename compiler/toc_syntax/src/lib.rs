@@ -250,7 +250,7 @@ pub enum SyntaxKind {
     PreStmt,
     InitStmt,
     PostStmt,
-    ExceptionHandler,
+    HandlerStmt,
     SubprogHeader,
     InitVar,
     BodyDecl,

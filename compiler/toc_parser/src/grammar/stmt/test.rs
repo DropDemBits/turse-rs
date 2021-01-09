@@ -76,7 +76,7 @@ fn recover_just_var() {
                 KwVar@0..3 "var"
                 NameList@3..3
             error at 0..3: expected identifier
-            error at 0..3: expected ’,’, ’:’, ’=’ or ’:=’"#]],
+            error at 0..3: expected ’,’, ’:’ or ’:=’"#]],
     )
 }
 
@@ -309,7 +309,7 @@ fn recover_const_decl_no_init() {
                 Whitespace@9..10 " "
                 PrimType@10..13
                   KwInt@10..13 "int"
-            error at 10..13: expected ’=’ or ’:=’"#]],
+            error at 10..13: expected ’:=’"#]],
     )
 }
 
@@ -403,7 +403,7 @@ fn recover_bare_var_decl() {
                 NameList@4..5
                   Name@4..5
                     Identifier@4..5 "a"
-            error at 4..5: expected ’,’, ’:’, ’=’ or ’:=’"#]],
+            error at 4..5: expected ’,’, ’:’ or ’:=’"#]],
     )
 }
 
@@ -419,7 +419,7 @@ fn recover_bare_const_decl() {
                 NameList@6..7
                   Name@6..7
                     Identifier@6..7 "a"
-            error at 6..7: expected ’,’, ’:’, ’=’ or ’:=’"#]],
+            error at 6..7: expected ’,’, ’:’ or ’:=’"#]],
     )
 }
 
@@ -4172,5 +4172,628 @@ fn recover_on_fcn() {
                   Whitespace@58..59 " "
                   Identifier@59..60 "a"
             error at 18..21: expected expression, but found ’function’"#]],
+    );
+}
+
+#[test]
+fn parse_pre_stmt() {
+    check(
+        "pre 1 + 1 = 2",
+        expect![[r#"
+        Source@0..13
+          PreStmt@0..13
+            KwPre@0..3 "pre"
+            Whitespace@3..4 " "
+            BinaryExpr@4..13
+              BinaryExpr@4..10
+                LiteralExpr@4..6
+                  IntLiteral@4..5 "1"
+                  Whitespace@5..6 " "
+                Plus@6..7 "+"
+                Whitespace@7..8 " "
+                LiteralExpr@8..10
+                  IntLiteral@8..9 "1"
+                  Whitespace@9..10 " "
+              Equ@10..11 "="
+              Whitespace@11..12 " "
+              LiteralExpr@12..13
+                IntLiteral@12..13 "2""#]],
+    );
+}
+
+#[test]
+fn recover_just_pre() {
+    check(
+        "pre",
+        expect![[r#"
+        Source@0..3
+          PreStmt@0..3
+            KwPre@0..3 "pre"
+        error at 0..3: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_pre() {
+    check(
+        "var i := \npre true",
+        expect![[r#"
+        Source@0..18
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          PreStmt@10..18
+            KwPre@10..13 "pre"
+            Whitespace@13..14 " "
+            LiteralExpr@14..18
+              KwTrue@14..18 "true"
+        error at 10..13: expected expression, but found ’pre’"#]],
+    );
+}
+
+#[test]
+fn parse_post_stmt() {
+    check(
+        "post 1 + 1 = 2",
+        expect![[r#"
+        Source@0..14
+          PostStmt@0..14
+            KwPost@0..4 "post"
+            Whitespace@4..5 " "
+            BinaryExpr@5..14
+              BinaryExpr@5..11
+                LiteralExpr@5..7
+                  IntLiteral@5..6 "1"
+                  Whitespace@6..7 " "
+                Plus@7..8 "+"
+                Whitespace@8..9 " "
+                LiteralExpr@9..11
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..11 " "
+              Equ@11..12 "="
+              Whitespace@12..13 " "
+              LiteralExpr@13..14
+                IntLiteral@13..14 "2""#]],
+    );
+}
+
+#[test]
+fn recover_just_post() {
+    check(
+        "post",
+        expect![[r#"
+        Source@0..4
+          PostStmt@0..4
+            KwPost@0..4 "post"
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_post() {
+    check(
+        "var i := \npost true",
+        expect![[r#"
+        Source@0..19
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          PostStmt@10..19
+            KwPost@10..14 "post"
+            Whitespace@14..15 " "
+            LiteralExpr@15..19
+              KwTrue@15..19 "true"
+        error at 10..14: expected expression, but found ’post’"#]],
+    );
+}
+
+#[test]
+fn parse_init_stmt() {
+    check(
+        "init k := 1",
+        expect![[r#"
+        Source@0..11
+          InitStmt@0..11
+            KwInit@0..4 "init"
+            Whitespace@4..5 " "
+            InitVar@5..11
+              Name@5..7
+                Identifier@5..6 "k"
+                Whitespace@6..7 " "
+              Assign@7..9 ":="
+              Whitespace@9..10 " "
+              LiteralExpr@10..11
+                IntLiteral@10..11 "1""#]],
+    );
+}
+
+#[test]
+fn parse_init_stmt_alt_asn() {
+    check(
+        "init k = 1",
+        expect![[r#"
+        Source@0..10
+          InitStmt@0..10
+            KwInit@0..4 "init"
+            Whitespace@4..5 " "
+            InitVar@5..10
+              Name@5..7
+                Identifier@5..6 "k"
+                Whitespace@6..7 " "
+              Equ@7..8 "="
+              Whitespace@8..9 " "
+              LiteralExpr@9..10
+                IntLiteral@9..10 "1"
+        warn at 7..8: ’=’ found, assuming it to be :="#]],
+    );
+}
+
+#[test]
+fn parse_init_stmt_multiple() {
+    check(
+        "init k := 1, l := k, m := 3",
+        expect![[r#"
+        Source@0..27
+          InitStmt@0..27
+            KwInit@0..4 "init"
+            Whitespace@4..5 " "
+            InitVar@5..11
+              Name@5..7
+                Identifier@5..6 "k"
+                Whitespace@6..7 " "
+              Assign@7..9 ":="
+              Whitespace@9..10 " "
+              LiteralExpr@10..11
+                IntLiteral@10..11 "1"
+            Comma@11..12 ","
+            Whitespace@12..13 " "
+            InitVar@13..19
+              Name@13..15
+                Identifier@13..14 "l"
+                Whitespace@14..15 " "
+              Assign@15..17 ":="
+              Whitespace@17..18 " "
+              NameExpr@18..19
+                Name@18..19
+                  Identifier@18..19 "k"
+            Comma@19..20 ","
+            Whitespace@20..21 " "
+            InitVar@21..27
+              Name@21..23
+                Identifier@21..22 "m"
+                Whitespace@22..23 " "
+              Assign@23..25 ":="
+              Whitespace@25..26 " "
+              LiteralExpr@26..27
+                IntLiteral@26..27 "3""#]],
+    );
+}
+
+#[test]
+fn recover_init_stmt_missing_asn() {
+    check(
+        "init a 1",
+        expect![[r#"
+        Source@0..8
+          InitStmt@0..8
+            KwInit@0..4 "init"
+            Whitespace@4..5 " "
+            InitVar@5..8
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              Error@7..8
+                IntLiteral@7..8 "1"
+        error at 7..8: expected ’:=’, but found int literal
+        error at 7..8: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_init_stmt_missing_expr() {
+    check(
+        "init a :=",
+        expect![[r#"
+        Source@0..9
+          InitStmt@0..9
+            KwInit@0..4 "init"
+            Whitespace@4..5 " "
+            InitVar@5..9
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+              Assign@7..9 ":="
+        error at 7..9: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_init_stmt_missing_name() {
+    check(
+        "init := 1",
+        expect![[r#"
+        Source@0..9
+          InitStmt@0..9
+            KwInit@0..4 "init"
+            Whitespace@4..5 " "
+            InitVar@5..9
+              Assign@5..7 ":="
+              Whitespace@7..8 " "
+              LiteralExpr@8..9
+                IntLiteral@8..9 "1"
+        error at 5..7: expected identifier, but found ’:=’"#]],
+    );
+}
+
+#[test]
+fn recover_just_init() {
+    check(
+        "init",
+        expect![[r#"
+        Source@0..4
+          InitStmt@0..4
+            KwInit@0..4 "init"
+            InitVar@4..4
+        error at 0..4: expected identifier
+        error at 0..4: expected ’:=’
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_init() {
+    check(
+        "loop end\ninit a := 1",
+        expect![[r#"
+        Source@0..20
+          LoopStmt@0..9
+            KwLoop@0..4 "loop"
+            Whitespace@4..5 " "
+            StmtList@5..5
+            EndGroup@5..9
+              KwEnd@5..8 "end"
+              Whitespace@8..9 "\n"
+          InitStmt@9..20
+            KwInit@9..13 "init"
+            Whitespace@13..14 " "
+            InitVar@14..20
+              Name@14..16
+                Identifier@14..15 "a"
+                Whitespace@15..16 " "
+              Assign@16..18 ":="
+              Whitespace@18..19 " "
+              LiteralExpr@19..20
+                IntLiteral@19..20 "1"
+        error at 9..13: expected ’loop’, but found ’init’"#]],
+    );
+}
+
+#[test]
+fn parse_handler_stmt() {
+    check(
+        "handler (k) return end handler",
+        expect![[r#"
+        Source@0..30
+          HandlerStmt@0..30
+            KwHandler@0..7 "handler"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            Name@9..10
+              Identifier@9..10 "k"
+            RightParen@10..11 ")"
+            Whitespace@11..12 " "
+            StmtList@12..19
+              ReturnStmt@12..19
+                KwReturn@12..18 "return"
+                Whitespace@18..19 " "
+            EndGroup@19..30
+              KwEnd@19..22 "end"
+              Whitespace@22..23 " "
+              KwHandler@23..30 "handler""#]],
+    );
+}
+
+#[test]
+fn recover_handler_stmt_missing_name() {
+    check(
+        "handler () return end handler",
+        expect![[r#"
+        Source@0..29
+          HandlerStmt@0..29
+            KwHandler@0..7 "handler"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            RightParen@9..10 ")"
+            Whitespace@10..11 " "
+            StmtList@11..18
+              ReturnStmt@11..18
+                KwReturn@11..17 "return"
+                Whitespace@17..18 " "
+            EndGroup@18..29
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              KwHandler@22..29 "handler"
+        error at 9..10: expected identifier, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_handler_stmt_missing_left_paren() {
+    check(
+        "handler a) return end handler",
+        expect![[r#"
+        Source@0..29
+          HandlerStmt@0..29
+            KwHandler@0..7 "handler"
+            Whitespace@7..8 " "
+            Name@8..9
+              Identifier@8..9 "a"
+            RightParen@9..10 ")"
+            Whitespace@10..11 " "
+            StmtList@11..18
+              ReturnStmt@11..18
+                KwReturn@11..17 "return"
+                Whitespace@17..18 " "
+            EndGroup@18..29
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              KwHandler@22..29 "handler"
+        error at 8..9: expected ’(’, but found identifier"#]],
+    );
+}
+
+#[test]
+fn recover_handler_stmt_missing_right_paren() {
+    check(
+        "handler (a return end handler",
+        expect![[r#"
+        Source@0..29
+          HandlerStmt@0..29
+            KwHandler@0..7 "handler"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            Name@9..11
+              Identifier@9..10 "a"
+              Whitespace@10..11 " "
+            StmtList@11..18
+              ReturnStmt@11..18
+                KwReturn@11..17 "return"
+                Whitespace@17..18 " "
+            EndGroup@18..29
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              KwHandler@22..29 "handler"
+        error at 11..17: expected ’)’, but found ’return’"#]],
+    );
+}
+
+#[test]
+fn recover_handler_stmt_missing_name_portion() {
+    check(
+        "handler return end handler",
+        expect![[r#"
+        Source@0..26
+          HandlerStmt@0..26
+            KwHandler@0..7 "handler"
+            Whitespace@7..8 " "
+            StmtList@8..15
+              ReturnStmt@8..15
+                KwReturn@8..14 "return"
+                Whitespace@14..15 " "
+            EndGroup@15..26
+              KwEnd@15..18 "end"
+              Whitespace@18..19 " "
+              KwHandler@19..26 "handler"
+        error at 8..14: expected ’(’, but found ’return’
+        error at 8..14: expected identifier, but found ’return’
+        error at 8..14: expected ’)’, but found ’return’"#]],
+    );
+}
+
+#[test]
+fn recover_handler_stmt_missing_tail() {
+    check(
+        "handler (a) return end",
+        expect![[r#"
+        Source@0..22
+          HandlerStmt@0..22
+            KwHandler@0..7 "handler"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            Name@9..10
+              Identifier@9..10 "a"
+            RightParen@10..11 ")"
+            Whitespace@11..12 " "
+            StmtList@12..19
+              ReturnStmt@12..19
+                KwReturn@12..18 "return"
+                Whitespace@18..19 " "
+            EndGroup@19..22
+              KwEnd@19..22 "end"
+        error at 19..22: expected ’handler’"#]],
+    );
+}
+
+#[test]
+fn recover_just_handler() {
+    check(
+        "handler",
+        expect![[r#"
+        Source@0..7
+          HandlerStmt@0..7
+            KwHandler@0..7 "handler"
+            StmtList@7..7
+            EndGroup@7..7
+        error at 0..7: expected ’(’
+        error at 0..7: expected identifier
+        error at 0..7: expected ’)’
+        error at 0..7: expected ’end’
+        error at 0..7: expected ’handler’"#]],
+    );
+}
+
+#[test]
+fn recover_on_handler() {
+    check(
+        "var i := \nhandler (a) end handler",
+        expect![[r#"
+        Source@0..33
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          HandlerStmt@10..33
+            KwHandler@10..17 "handler"
+            Whitespace@17..18 " "
+            LeftParen@18..19 "("
+            Name@19..20
+              Identifier@19..20 "a"
+            RightParen@20..21 ")"
+            Whitespace@21..22 " "
+            StmtList@22..22
+            EndGroup@22..33
+              KwEnd@22..25 "end"
+              Whitespace@25..26 " "
+              KwHandler@26..33 "handler"
+        error at 10..17: expected expression, but found ’handler’"#]],
+    );
+}
+
+#[test]
+fn parse_quit_stmt() {
+    check(
+        "quit",
+        expect![[r#"
+        Source@0..4
+          QuitStmt@0..4
+            KwQuit@0..4 "quit""#]],
+    );
+}
+
+#[test]
+fn parse_quit_stmt_opt_reason_lt() {
+    check(
+        "quit <",
+        expect![[r#"
+        Source@0..6
+          QuitStmt@0..6
+            KwQuit@0..4 "quit"
+            Whitespace@4..5 " "
+            QuitCause@5..6
+              Less@5..6 "<""#]],
+    );
+}
+
+#[test]
+fn parse_quit_stmt_opt_reason_gt() {
+    check(
+        "quit >",
+        expect![[r#"
+        Source@0..6
+          QuitStmt@0..6
+            KwQuit@0..4 "quit"
+            Whitespace@4..5 " "
+            QuitCause@5..6
+              Greater@5..6 ">""#]],
+    );
+}
+
+#[test]
+fn parse_quit_stmt_opt_quit_code() {
+    check(
+        "quit : 1 + 1",
+        expect![[r#"
+        Source@0..12
+          QuitStmt@0..12
+            KwQuit@0..4 "quit"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            BinaryExpr@7..12
+              LiteralExpr@7..9
+                IntLiteral@7..8 "1"
+                Whitespace@8..9 " "
+              Plus@9..10 "+"
+              Whitespace@10..11 " "
+              LiteralExpr@11..12
+                IntLiteral@11..12 "1""#]],
+    );
+}
+
+#[test]
+fn parse_quit_stmt_all_opt() {
+    check(
+        "quit < : 1 + 1",
+        expect![[r#"
+        Source@0..14
+          QuitStmt@0..14
+            KwQuit@0..4 "quit"
+            Whitespace@4..5 " "
+            QuitCause@5..7
+              Less@5..6 "<"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            BinaryExpr@9..14
+              LiteralExpr@9..11
+                IntLiteral@9..10 "1"
+                Whitespace@10..11 " "
+              Plus@11..12 "+"
+              Whitespace@12..13 " "
+              LiteralExpr@13..14
+                IntLiteral@13..14 "1""#]],
+    );
+}
+
+#[test]
+fn recover_quit_stmt_missing_code_expr() {
+    check(
+        "quit : ",
+        expect![[r#"
+        Source@0..7
+          QuitStmt@0..7
+            KwQuit@0..4 "quit"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+        error at 6..7: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_quit() {
+    check(
+        "var i := \nquit",
+        expect![[r#"
+        Source@0..14
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          QuitStmt@10..14
+            KwQuit@10..14 "quit"
+        error at 10..14: expected expression, but found ’quit’"#]],
     );
 }
