@@ -9,12 +9,14 @@
 // - bind_decl
 // - procedure_decl
 // - function_decl
+// | process_decl
+// | external_decl
 // - forward_decl
 // - deferred_decl
 // - body_decl
-// | module_decl
-// | class_decl
-// | monitor_decl
+// - module_decl
+// - class_decl
+// - monitor_decl
 
 // - assign_stmt
 // | include_stmt
@@ -49,6 +51,7 @@
 // - init_stmt
 // - post_stmt
 // - handler_stmt
+// | inherit_stmt
 // | implement_stmt
 // | implement_by_stmt
 // x import_stmt

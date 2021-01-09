@@ -6044,3 +6044,514 @@ fn recover_on_body() {
             error at 18..22: expected expression, but found ’body’"#]],
     );
 }
+
+#[test]
+fn parse_module_decl() {
+    check(
+        "module a end a",
+        expect![[r#"
+        Source@0..14
+          ModuleDecl@0..14
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            StmtList@9..9
+            EndGroup@9..14
+              KwEnd@9..12 "end"
+              Whitespace@12..13 " "
+              Identifier@13..14 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_attr_pervasive() {
+    check(
+        "module pervasive a end a",
+        expect![[r#"
+        Source@0..24
+          ModuleDecl@0..24
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            KwPervasive@7..16 "pervasive"
+            Whitespace@16..17 " "
+            Name@17..19
+              Identifier@17..18 "a"
+              Whitespace@18..19 " "
+            StmtList@19..19
+            EndGroup@19..24
+              KwEnd@19..22 "end"
+              Whitespace@22..23 " "
+              Identifier@23..24 "a""#]],
+    );
+}
+
+#[test]
+fn recover_module_decl_missing_name() {
+    check(
+        "module end a",
+        expect![[r#"
+        Source@0..12
+          ModuleDecl@0..12
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            StmtList@7..7
+            EndGroup@7..12
+              KwEnd@7..10 "end"
+              Whitespace@10..11 " "
+              Identifier@11..12 "a"
+        error at 7..10: expected identifier, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_module_decl_missing_tail_name() {
+    check(
+        "module a end",
+        expect![[r#"
+        Source@0..12
+          ModuleDecl@0..12
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            StmtList@9..9
+            EndGroup@9..12
+              KwEnd@9..12 "end"
+        error at 9..12: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_module() {
+    check(
+        "module",
+        expect![[r#"
+        Source@0..6
+          ModuleDecl@0..6
+            KwModule@0..6 "module"
+            StmtList@6..6
+            EndGroup@6..6
+        error at 0..6: expected identifier
+        error at 0..6: expected ’end’
+        error at 0..6: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_module() {
+    check(
+        "var i := \nmodule a end a",
+        expect![[r#"
+        Source@0..24
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ModuleDecl@10..24
+            KwModule@10..16 "module"
+            Whitespace@16..17 " "
+            Name@17..19
+              Identifier@17..18 "a"
+              Whitespace@18..19 " "
+            StmtList@19..19
+            EndGroup@19..24
+              KwEnd@19..22 "end"
+              Whitespace@22..23 " "
+              Identifier@23..24 "a"
+        error at 10..16: expected expression, but found ’module’"#]],
+    );
+}
+
+#[test]
+fn parse_class_decl() {
+    check(
+        "class a end a",
+        expect![[r#"
+        Source@0..13
+          ClassDecl@0..13
+            KwClass@0..5 "class"
+            Whitespace@5..6 " "
+            Name@6..8
+              Identifier@6..7 "a"
+              Whitespace@7..8 " "
+            StmtList@8..8
+            EndGroup@8..13
+              KwEnd@8..11 "end"
+              Whitespace@11..12 " "
+              Identifier@12..13 "a""#]],
+    );
+}
+
+#[test]
+fn parse_class_decl_attr_pervasive() {
+    check(
+        "class * a end a",
+        expect![[r#"
+        Source@0..15
+          ClassDecl@0..15
+            KwClass@0..5 "class"
+            Whitespace@5..6 " "
+            Star@6..7 "*"
+            Whitespace@7..8 " "
+            Name@8..10
+              Identifier@8..9 "a"
+              Whitespace@9..10 " "
+            StmtList@10..10
+            EndGroup@10..15
+              KwEnd@10..13 "end"
+              Whitespace@13..14 " "
+              Identifier@14..15 "a""#]],
+    );
+}
+
+#[test]
+fn recover_class_decl_missing_name() {
+    check(
+        "class end a",
+        expect![[r#"
+        Source@0..11
+          ClassDecl@0..11
+            KwClass@0..5 "class"
+            Whitespace@5..6 " "
+            StmtList@6..6
+            EndGroup@6..11
+              KwEnd@6..9 "end"
+              Whitespace@9..10 " "
+              Identifier@10..11 "a"
+        error at 6..9: expected identifier, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_class_decl_missing_tail_name() {
+    check(
+        "class a end",
+        expect![[r#"
+        Source@0..11
+          ClassDecl@0..11
+            KwClass@0..5 "class"
+            Whitespace@5..6 " "
+            Name@6..8
+              Identifier@6..7 "a"
+              Whitespace@7..8 " "
+            StmtList@8..8
+            EndGroup@8..11
+              KwEnd@8..11 "end"
+        error at 8..11: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_class() {
+    check(
+        "class",
+        expect![[r#"
+        Source@0..5
+          ClassDecl@0..5
+            KwClass@0..5 "class"
+            StmtList@5..5
+            EndGroup@5..5
+        error at 0..5: expected identifier
+        error at 0..5: expected ’end’
+        error at 0..5: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_class() {
+    check(
+        "var i := \nclass a end a",
+        expect![[r#"
+        Source@0..23
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ClassDecl@10..23
+            KwClass@10..15 "class"
+            Whitespace@15..16 " "
+            Name@16..18
+              Identifier@16..17 "a"
+              Whitespace@17..18 " "
+            StmtList@18..18
+            EndGroup@18..23
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              Identifier@22..23 "a"
+        error at 10..15: expected expression, but found ’class’"#]],
+    );
+}
+
+#[test]
+fn parse_monitor_decl() {
+    check(
+        "monitor a end a",
+        expect![[r#"
+        Source@0..15
+          MonitorDecl@0..15
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            Name@8..10
+              Identifier@8..9 "a"
+              Whitespace@9..10 " "
+            StmtList@10..10
+            EndGroup@10..15
+              KwEnd@10..13 "end"
+              Whitespace@13..14 " "
+              Identifier@14..15 "a""#]],
+    );
+}
+
+#[test]
+fn parse_monitor_decl_attr_pervasive() {
+    check(
+        "monitor pervasive a end a",
+        expect![[r#"
+        Source@0..25
+          MonitorDecl@0..25
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            KwPervasive@8..17 "pervasive"
+            Whitespace@17..18 " "
+            Name@18..20
+              Identifier@18..19 "a"
+              Whitespace@19..20 " "
+            StmtList@20..20
+            EndGroup@20..25
+              KwEnd@20..23 "end"
+              Whitespace@23..24 " "
+              Identifier@24..25 "a""#]],
+    );
+}
+
+#[test]
+fn parse_monitor_decl_opt_dev_spec() {
+    check(
+        "monitor a : 1 + 2 end a",
+        expect![[r#"
+        Source@0..23
+          MonitorDecl@0..23
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            Name@8..10
+              Identifier@8..9 "a"
+              Whitespace@9..10 " "
+            DeviceSpec@10..18
+              Colon@10..11 ":"
+              Whitespace@11..12 " "
+              BinaryExpr@12..18
+                LiteralExpr@12..14
+                  IntLiteral@12..13 "1"
+                  Whitespace@13..14 " "
+                Plus@14..15 "+"
+                Whitespace@15..16 " "
+                LiteralExpr@16..18
+                  IntLiteral@16..17 "2"
+                  Whitespace@17..18 " "
+            StmtList@18..18
+            EndGroup@18..23
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              Identifier@22..23 "a""#]],
+    );
+}
+
+#[test]
+fn recover_monitor_decl_missing_dev_spec_expr() {
+    check(
+        "monitor a : end a",
+        expect![[r#"
+        Source@0..17
+          MonitorDecl@0..17
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            Name@8..10
+              Identifier@8..9 "a"
+              Whitespace@9..10 " "
+            DeviceSpec@10..12
+              Colon@10..11 ":"
+              Whitespace@11..12 " "
+            StmtList@12..12
+            EndGroup@12..17
+              KwEnd@12..15 "end"
+              Whitespace@15..16 " "
+              Identifier@16..17 "a"
+        error at 12..15: expected expression, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_monitor_decl_missing_name() {
+    check(
+        "monitor end a",
+        expect![[r#"
+        Source@0..13
+          MonitorDecl@0..13
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            StmtList@8..8
+            EndGroup@8..13
+              KwEnd@8..11 "end"
+              Whitespace@11..12 " "
+              Identifier@12..13 "a"
+        error at 8..11: expected identifier, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_monitor_decl_missing_tail_name() {
+    check(
+        "monitor a end",
+        expect![[r#"
+        Source@0..13
+          MonitorDecl@0..13
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            Name@8..10
+              Identifier@8..9 "a"
+              Whitespace@9..10 " "
+            StmtList@10..10
+            EndGroup@10..13
+              KwEnd@10..13 "end"
+        error at 10..13: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_monitor() {
+    check(
+        "monitor",
+        expect![[r#"
+        Source@0..7
+          MonitorDecl@0..7
+            KwMonitor@0..7 "monitor"
+            StmtList@7..7
+            EndGroup@7..7
+        error at 0..7: expected identifier
+        error at 0..7: expected ’:’ or ’end’
+        error at 0..7: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_monitor() {
+    check(
+        "var i := \nmonitor a end a",
+        expect![[r#"
+        Source@0..25
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          MonitorDecl@10..25
+            KwMonitor@10..17 "monitor"
+            Whitespace@17..18 " "
+            Name@18..20
+              Identifier@18..19 "a"
+              Whitespace@19..20 " "
+            StmtList@20..20
+            EndGroup@20..25
+              KwEnd@20..23 "end"
+              Whitespace@23..24 " "
+              Identifier@24..25 "a"
+        error at 10..17: expected expression, but found ’monitor’"#]],
+    );
+}
+
+#[test]
+fn parse_monitor_class_decl() {
+    check(
+        "monitor class a end a",
+        expect![[r#"
+        Source@0..21
+          ClassDecl@0..21
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            KwClass@8..13 "class"
+            Whitespace@13..14 " "
+            Name@14..16
+              Identifier@14..15 "a"
+              Whitespace@15..16 " "
+            StmtList@16..16
+            EndGroup@16..21
+              KwEnd@16..19 "end"
+              Whitespace@19..20 " "
+              Identifier@20..21 "a""#]],
+    );
+}
+
+#[test]
+fn parse_monitor_class_decl_attr_pervasive() {
+    check(
+        "monitor class pervasive a end a",
+        expect![[r#"
+        Source@0..31
+          ClassDecl@0..31
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            KwClass@8..13 "class"
+            Whitespace@13..14 " "
+            KwPervasive@14..23 "pervasive"
+            Whitespace@23..24 " "
+            Name@24..26
+              Identifier@24..25 "a"
+              Whitespace@25..26 " "
+            StmtList@26..26
+            EndGroup@26..31
+              KwEnd@26..29 "end"
+              Whitespace@29..30 " "
+              Identifier@30..31 "a""#]],
+    );
+}
+
+#[test]
+fn parse_monitor_class_decl_opt_dev_spec() {
+    check(
+        "monitor class a : 1 + 2 end a",
+        expect![[r#"
+        Source@0..29
+          ClassDecl@0..29
+            KwMonitor@0..7 "monitor"
+            Whitespace@7..8 " "
+            KwClass@8..13 "class"
+            Whitespace@13..14 " "
+            Name@14..16
+              Identifier@14..15 "a"
+              Whitespace@15..16 " "
+            DeviceSpec@16..24
+              Colon@16..17 ":"
+              Whitespace@17..18 " "
+              BinaryExpr@18..24
+                LiteralExpr@18..20
+                  IntLiteral@18..19 "1"
+                  Whitespace@19..20 " "
+                Plus@20..21 "+"
+                Whitespace@21..22 " "
+                LiteralExpr@22..24
+                  IntLiteral@22..23 "2"
+                  Whitespace@23..24 " "
+            StmtList@24..24
+            EndGroup@24..29
+              KwEnd@24..27 "end"
+              Whitespace@27..28 " "
+              Identifier@28..29 "a""#]],
+    );
+}
