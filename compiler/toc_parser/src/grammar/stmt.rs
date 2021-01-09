@@ -47,8 +47,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Result_ => { stmt_with_expr(p, TokenKind::Result_, SyntaxKind::ResultStmt) }
             // new_stmt
             // free_stmt
-            // tag_stmt
-            // fork_stmt
+            TokenKind::Tag => { tag_stmt(p) }
+            TokenKind::Fork => { fork_stmt(p) }
             TokenKind::Signal => { stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt) }
             TokenKind::Pause => { stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt) }
             TokenKind::Quit => { quit_stmt(p) }
@@ -263,8 +263,8 @@ fn bind_item(p: &mut Parser) -> Option<CompletedMarker> {
 
     let m = p.start();
     // Optional attrs
-    p.hidden_eat(TokenKind::Var);
-    p.hidden_eat(TokenKind::Register);
+    attr_var(p);
+    attr_register(p);
 
     p.with_extra_recovery(&[TokenKind::To], |p| {
         super::name(p);
@@ -585,6 +585,62 @@ fn block_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::BlockStmt))
 }
 
+fn tag_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'tag' Reference ',' Expr
+    debug_assert!(p.at(TokenKind::Tag));
+    let m = p.start();
+    p.bump();
+
+    // union_ref
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        expr::expect_expr(p);
+    });
+    p.expect(TokenKind::Comma);
+
+    // tag_val
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::TagStmt))
+}
+
+fn fork_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'fork' CallExpr ( ':' Reference )? ( ',' Expr )? ( ',' Reference )?
+    debug_assert!(p.at(TokenKind::Fork));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+        // process_id (contains the full call expr, including params)
+        expr::expect_expr(p);
+    });
+
+    if p.eat(TokenKind::Colon) {
+        p.with_extra_recovery(&[TokenKind::Comma], |p| {
+            // status
+            let m = p.start();
+            expr::expect_expr(p);
+            m.complete(p, SyntaxKind::ForkStatus);
+
+            // stack_size
+            if p.eat(TokenKind::Comma) {
+                let m = p.start();
+                expr::expect_expr(p);
+                m.complete(p, SyntaxKind::StackSize);
+            }
+
+            // process_ref
+            if p.eat(TokenKind::Comma) {
+                let m = p.start();
+                expr::expect_expr(p);
+                m.complete(p, SyntaxKind::ProcessDesc);
+            }
+        });
+    }
+
+    Some(m.complete(p, SyntaxKind::ForkStmt))
+}
+
 fn quit_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     // 'quit' cause:( '>' | '<' )? code:( ':' Expr )?
     debug_assert!(p.at(TokenKind::Quit));
@@ -719,6 +775,7 @@ fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
 }
 
 fn attr_pervasive(p: &mut Parser) {
+    // ???: How to deal with pervasive attr variants?
     match_token!(|p| match {
         TokenKind::Pervasive => { p.bump() }
         TokenKind::Star => { p.bump() }
@@ -731,6 +788,13 @@ fn attr_pervasive(p: &mut Parser) {
 
 fn attr_register(p: &mut Parser) {
     if !p.eat(TokenKind::Register) {
+        // dont clog up the expected tokens with the attributes
+        p.reset_expected_tokens();
+    }
+}
+
+fn attr_var(p: &mut Parser) {
+    if !p.eat(TokenKind::Var) {
         // dont clog up the expected tokens with the attributes
         p.reset_expected_tokens();
     }

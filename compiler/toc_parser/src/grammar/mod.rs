@@ -38,8 +38,8 @@
 // - result_stmt
 // | new_stmt
 // | free_stmt
-// | tag_stmt
-// | fork_stmt
+// - tag_stmt
+// - fork_stmt
 // - signal_stmt
 // - pause_stmt
 // - quit_stmt

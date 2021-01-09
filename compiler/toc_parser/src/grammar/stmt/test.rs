@@ -4797,3 +4797,401 @@ fn recover_on_quit() {
         error at 10..14: expected expression, but found ’quit’"#]],
     );
 }
+
+#[test]
+fn parse_tag_stmt() {
+    check(
+        "tag a, 1 + 2",
+        expect![[r#"
+        Source@0..12
+          TagStmt@0..12
+            KwTag@0..3 "tag"
+            Whitespace@3..4 " "
+            NameExpr@4..5
+              Name@4..5
+                Identifier@4..5 "a"
+            Comma@5..6 ","
+            Whitespace@6..7 " "
+            BinaryExpr@7..12
+              LiteralExpr@7..9
+                IntLiteral@7..8 "1"
+                Whitespace@8..9 " "
+              Plus@9..10 "+"
+              Whitespace@10..11 " "
+              LiteralExpr@11..12
+                IntLiteral@11..12 "2""#]],
+    );
+}
+
+#[test]
+fn recover_tag_stmt_missing_tag_val() {
+    check(
+        "tag a, ",
+        expect![[r#"
+        Source@0..7
+          TagStmt@0..7
+            KwTag@0..3 "tag"
+            Whitespace@3..4 " "
+            NameExpr@4..5
+              Name@4..5
+                Identifier@4..5 "a"
+            Comma@5..6 ","
+            Whitespace@6..7 " "
+        error at 6..7: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_tag_stmt_missing_tag_comma() {
+    check(
+        "tag a 1",
+        expect![[r#"
+        Source@0..7
+          TagStmt@0..7
+            KwTag@0..3 "tag"
+            Whitespace@3..4 " "
+            NameExpr@4..6
+              Name@4..6
+                Identifier@4..5 "a"
+                Whitespace@5..6 " "
+            Error@6..7
+              IntLiteral@6..7 "1"
+        error at 6..7: expected ’,’, but found int literal
+        error at 6..7: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_tag_stmt_missing_ref() {
+    check(
+        "tag , 1",
+        expect![[r#"
+        Source@0..7
+          TagStmt@0..7
+            KwTag@0..3 "tag"
+            Whitespace@3..4 " "
+            Comma@4..5 ","
+            Whitespace@5..6 " "
+            LiteralExpr@6..7
+              IntLiteral@6..7 "1"
+        error at 4..5: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_just_tag() {
+    check(
+        "tag",
+        expect![[r#"
+        Source@0..3
+          TagStmt@0..3
+            KwTag@0..3 "tag"
+        error at 0..3: expected expression
+        error at 0..3: expected ’,’
+        error at 0..3: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_tag() {
+    check(
+        "var i := \ntag a, 1",
+        expect![[r#"
+        Source@0..18
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          TagStmt@10..18
+            KwTag@10..13 "tag"
+            Whitespace@13..14 " "
+            NameExpr@14..15
+              Name@14..15
+                Identifier@14..15 "a"
+            Comma@15..16 ","
+            Whitespace@16..17 " "
+            LiteralExpr@17..18
+              IntLiteral@17..18 "1"
+        error at 10..13: expected expression, but found ’tag’"#]],
+    );
+}
+
+#[test]
+fn parse_fork_stmt() {
+    check(
+        "fork a(pa, ra)",
+        expect![[r#"
+        Source@0..14
+          ForkStmt@0..14
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            CallExpr@5..14
+              NameExpr@5..6
+                Name@5..6
+                  Identifier@5..6 "a"
+              ParamList@6..14
+                LeftParen@6..7 "("
+                Param@7..11
+                  NameExpr@7..9
+                    Name@7..9
+                      Identifier@7..9 "pa"
+                  Comma@9..10 ","
+                  Whitespace@10..11 " "
+                Param@11..13
+                  NameExpr@11..13
+                    Name@11..13
+                      Identifier@11..13 "ra"
+                RightParen@13..14 ")""#]],
+    );
+}
+
+#[test]
+fn parse_fork_stmt_empty_params() {
+    check(
+        "fork a()",
+        expect![[r#"
+        Source@0..8
+          ForkStmt@0..8
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            CallExpr@5..8
+              NameExpr@5..6
+                Name@5..6
+                  Identifier@5..6 "a"
+              ParamList@6..8
+                LeftParen@6..7 "("
+                RightParen@7..8 ")""#]],
+    );
+}
+
+#[test]
+fn parse_fork_stmt_no_params() {
+    check(
+        "fork a",
+        expect![[r#"
+        Source@0..6
+          ForkStmt@0..6
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..6
+              Name@5..6
+                Identifier@5..6 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fork_stmt_opt_status() {
+    check(
+        "fork a : stat",
+        expect![[r#"
+        Source@0..13
+          ForkStmt@0..13
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..7
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ForkStatus@9..13
+              NameExpr@9..13
+                Name@9..13
+                  Identifier@9..13 "stat""#]],
+    );
+}
+
+#[test]
+fn parse_fork_stmt_opt_stack_size() {
+    check(
+        "fork a : stat, 24",
+        expect![[r#"
+        Source@0..17
+          ForkStmt@0..17
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..7
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ForkStatus@9..13
+              NameExpr@9..13
+                Name@9..13
+                  Identifier@9..13 "stat"
+            Comma@13..14 ","
+            Whitespace@14..15 " "
+            StackSize@15..17
+              LiteralExpr@15..17
+                IntLiteral@15..17 "24""#]],
+    );
+}
+
+#[test]
+fn parse_fork_stmt_opt_process_ref() {
+    check(
+        "fork a : stat, 24, a",
+        expect![[r#"
+        Source@0..20
+          ForkStmt@0..20
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..7
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ForkStatus@9..13
+              NameExpr@9..13
+                Name@9..13
+                  Identifier@9..13 "stat"
+            Comma@13..14 ","
+            Whitespace@14..15 " "
+            StackSize@15..17
+              LiteralExpr@15..17
+                IntLiteral@15..17 "24"
+            Comma@17..18 ","
+            Whitespace@18..19 " "
+            ProcessDesc@19..20
+              NameExpr@19..20
+                Name@19..20
+                  Identifier@19..20 "a""#]],
+    );
+}
+
+#[test]
+fn recover_fork_stmt_process_ref_missing_ref() {
+    check(
+        "fork a : stat, 24, ",
+        expect![[r#"
+        Source@0..19
+          ForkStmt@0..19
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..7
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ForkStatus@9..13
+              NameExpr@9..13
+                Name@9..13
+                  Identifier@9..13 "stat"
+            Comma@13..14 ","
+            Whitespace@14..15 " "
+            StackSize@15..17
+              LiteralExpr@15..17
+                IntLiteral@15..17 "24"
+            Comma@17..18 ","
+            Whitespace@18..19 " "
+            ProcessDesc@19..19
+        error at 18..19: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_fork_stmt_process_ref_missing_stack_size_expr() {
+    check(
+        "fork a : stat, , a",
+        expect![[r#"
+        Source@0..18
+          ForkStmt@0..18
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..7
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ForkStatus@9..13
+              NameExpr@9..13
+                Name@9..13
+                  Identifier@9..13 "stat"
+            Comma@13..14 ","
+            Whitespace@14..15 " "
+            StackSize@15..15
+            Comma@15..16 ","
+            Whitespace@16..17 " "
+            ProcessDesc@17..18
+              NameExpr@17..18
+                Name@17..18
+                  Identifier@17..18 "a"
+        error at 15..16: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_fork_stmt_process_ref_missing_stat_ref() {
+    check(
+        "fork a : , , a",
+        expect![[r#"
+        Source@0..14
+          ForkStmt@0..14
+            KwFork@0..4 "fork"
+            Whitespace@4..5 " "
+            NameExpr@5..7
+              Name@5..7
+                Identifier@5..6 "a"
+                Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            ForkStatus@9..9
+            Comma@9..10 ","
+            Whitespace@10..11 " "
+            StackSize@11..11
+            Comma@11..12 ","
+            Whitespace@12..13 " "
+            ProcessDesc@13..14
+              NameExpr@13..14
+                Name@13..14
+                  Identifier@13..14 "a"
+        error at 9..10: expected expression, but found ’,’
+        error at 11..12: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_just_fork() {
+    check(
+        "fork",
+        expect![[r#"
+        Source@0..4
+          ForkStmt@0..4
+            KwFork@0..4 "fork"
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_fork() {
+    check(
+        "var i := \nfork a",
+        expect![[r#"
+        Source@0..16
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ForkStmt@10..16
+            KwFork@10..14 "fork"
+            Whitespace@14..15 " "
+            NameExpr@15..16
+              Name@15..16
+                Identifier@15..16 "a"
+        error at 10..14: expected expression, but found ’fork’"#]],
+    );
+}

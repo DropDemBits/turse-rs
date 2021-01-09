@@ -58,8 +58,8 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Result_,
     // new
     // free
-    // tag
-    // fork
+    TokenKind::Tag,
+    TokenKind::Fork,
     TokenKind::Signal,
     TokenKind::Pause,
     TokenKind::Quit,
