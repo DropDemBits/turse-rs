@@ -6,13 +6,13 @@ mod types;
 
 use crate::context::CompileContext;
 use crate::scanner::Scanner;
-use toc_core::token::{Token, TokenType};
 use toc_ast::ast::expr::{BinaryOp, Expr, ExprKind, UnaryOp};
 use toc_ast::ast::ident::{IdentId, Identifier, RefKind};
 use toc_ast::ast::stmt::{Block, BlockKind, Stmt, StmtKind};
 use toc_ast::scope;
 use toc_ast::types::{Type, TypeRef, TypeTable};
 use toc_ast::unit::CodeUnit;
+use toc_core::token::{Token, TokenType};
 use toc_core::{Location, StatusReporter};
 
 use std::cell::RefCell;
