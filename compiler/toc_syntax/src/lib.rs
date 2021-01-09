@@ -261,6 +261,7 @@ pub enum SyntaxKind {
     ImplementStmt,
     ImplementByStmt,
     ExportStmt,
+    ImportList,
     ImportItem,
     ImportAttr,
     ExternalItem,

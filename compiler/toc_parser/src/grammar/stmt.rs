@@ -15,9 +15,9 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Bind => { bind_decl(p) }
             TokenKind::Procedure => { procedure_decl(p) }
             TokenKind::Function => { function_decl(p) }
-            // forward_decl
-            // deferred_decl
-            // body_decl
+            TokenKind::Forward => { forward_decl(p) }
+            TokenKind::Deferred => { deferred_decl(p) }
+            TokenKind::Body => { body_decl(p) }
             // module_decl
             // class_decl
             // monitor_decl
@@ -291,7 +291,7 @@ fn function_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Function));
     let m = p.start();
 
-    fcn_header(p);
+    fcn_header(p, true);
     stmt_list(p, None);
     eat_end_group(p, TokenKind::Identifier, None);
 
@@ -319,7 +319,7 @@ fn proc_header(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ProcHeader))
 }
 
-fn fcn_header(p: &mut Parser) -> Option<CompletedMarker> {
+fn fcn_header(p: &mut Parser, require_result: bool) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Function));
 
     let m = p.start();
@@ -335,7 +335,10 @@ fn fcn_header(p: &mut Parser) -> Option<CompletedMarker> {
         }
     });
 
-    fcn_result(p);
+    if fcn_result(p).is_none() && require_result {
+        // result ty is needed
+        p.error_unexpected().report();
+    }
 
     Some(m.complete(p, SyntaxKind::FcnHeader))
 }
@@ -354,8 +357,7 @@ fn device_spec(p: &mut Parser) -> Option<CompletedMarker> {
 
 fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
     if !p.at(TokenKind::Identifier) && !p.at(TokenKind::Colon) {
-        // not optional
-        p.error_unexpected().report();
+        // none to parse
         return None;
     }
 
@@ -370,6 +372,84 @@ fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
     ty::ty(p);
 
     Some(m.complete(p, SyntaxKind::FcnResult))
+}
+
+fn forward_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Forward));
+
+    let m = p.start();
+    p.bump();
+
+    match_token!(|p| match {
+        TokenKind::Function => { fcn_header(p, true); }
+        TokenKind::Procedure => { proc_header(p); }
+        _ => {
+            // just 'forward' by itself
+            p.error_unexpected().with_marker(m).report();
+            return None;
+        }
+    });
+
+    if p.hidden_eat(TokenKind::Import) {
+        import_list(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::ForwardDecl))
+}
+
+fn deferred_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Deferred));
+
+    let m = p.start();
+    p.bump();
+
+    match_token!(|p| match {
+        TokenKind::Function => { fcn_header(p, true); }
+        TokenKind::Procedure => { proc_header(p); }
+        _ => {
+            // just 'deferred' by itself
+            p.error_unexpected().with_marker(m).report();
+            return None;
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::DeferredDecl))
+}
+
+fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Body));
+    let m = p.start();
+    p.bump();
+
+    match_token!(|p| match {
+        TokenKind::Function => { fcn_header(p, false); }
+        TokenKind::Procedure => { proc_header(p); }
+        TokenKind::Identifier => {
+            // Expect just param spec & result ty
+            let m = p.start();
+            super::name(p);
+
+            if p.at(TokenKind::LeftParen) {
+                p.with_extra_recovery(&[TokenKind::Colon], |p| {
+                    super::param_spec(p);
+                });
+            }
+
+            if p.at(TokenKind::Colon) || p.at(TokenKind::Identifier) {
+                fcn_result(p);
+            }
+            m.complete(p,SyntaxKind::PlainHeader);
+        }
+        _ => {
+            // Not an expected token
+            p.error_unexpected().report();
+        }
+    });
+
+    stmt_list(p, None);
+
+    eat_end_group(p, TokenKind::Identifier, None);
+    Some(m.complete(p, SyntaxKind::BodyDecl))
 }
 
 // Stmts //
@@ -741,6 +821,55 @@ fn handler_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::HandlerStmt))
 }
 
+fn import_list(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        import_item(p);
+        while p.eat(TokenKind::Comma) {
+            import_item(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::ImportList))
+}
+
+fn import_item(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    match_token!(|p| match {
+        TokenKind::Var,
+        TokenKind::Const,
+        TokenKind::Forward => { p.bump(); }
+        _ => {
+            // don't keep optional attr to expecteds
+            p.reset_expected_tokens();
+        }
+    });
+
+    external_item(p);
+
+    Some(m.complete(p, SyntaxKind::ImportItem))
+}
+
+fn external_item(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::In], |p| {
+        super::name(p);
+    });
+
+    // external_path
+    if p.at(TokenKind::In) {
+        p.with_extra_recovery(&[TokenKind::StringLiteral], |p| {
+            p.expect(TokenKind::In);
+        });
+        p.expect(TokenKind::StringLiteral);
+    }
+
+    Some(m.complete(p, SyntaxKind::ExternalItem))
+}
+
 /// Parses stmts until the first `end` is reached, or until any `TokenKind` in
 /// `excluding` is reached
 fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<CompletedMarker> {
@@ -787,7 +916,7 @@ fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
 }
 
 fn attr_pervasive(p: &mut Parser) {
-    // ???: How to deal with pervasive attr variants?
+    // ???: How to deal with pervasive attr variants when lowering?
     match_token!(|p| match {
         TokenKind::Pervasive => { p.bump() }
         TokenKind::Star => { p.bump() }
