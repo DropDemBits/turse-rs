@@ -64,8 +64,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Implement => { implement_stmt(p) }
             TokenKind::Import => { import_stmt(p) }
             TokenKind::Export => { export_stmt(p) }
-            _ => expr::reference(p).and_then(|m| {
-                let m = m.precede(p);
+            _ => expr::reference(p).and_then(|cm| {
+                let m = cm.precede(p);
                 // check if there's an asn nearby
                 if parse_asn_op(p).is_some() {
                     // parse an assign stmt

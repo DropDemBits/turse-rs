@@ -7,6 +7,7 @@ use super::*;
 pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
     ty_primitive(p).or_else(|| {
         match_token!(|p| match {
+            TokenKind::Include => { super::include_glob(p) }
             TokenKind::Flexible,
             TokenKind::Array => { array_type(p) } // array_type
             TokenKind::Enum => { enum_type(p) } // enum_type
