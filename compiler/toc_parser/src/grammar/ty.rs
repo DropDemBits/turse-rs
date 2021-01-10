@@ -198,8 +198,11 @@ fn pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
 
     let m = p.start();
     p.eat(TokenKind::Unchecked);
-    p.eat(TokenKind::Pointer);
-    p.expect(TokenKind::To);
+
+    if !p.eat(TokenKind::Caret) {
+        p.expect(TokenKind::Pointer);
+        p.expect(TokenKind::To);
+    }
 
     // parse pointed to type
     self::ty(p);
