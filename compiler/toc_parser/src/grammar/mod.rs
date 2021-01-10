@@ -73,6 +73,7 @@
 // - cheat_expr
 // - objclass_expr
 // - self_expr
+// - nil_expr
 
 // types
 // - primitive_type (including sized variants)

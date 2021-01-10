@@ -3928,7 +3928,9 @@ fn recover_call_expr_relative_bound_missing_minus() {
 
 #[test]
 fn parse_self_expr() {
-    check("_:=self -> a", expect![[r#"
+    check(
+        "_:=self -> a",
+        expect![[r#"
         Source@0..12
           AssignStmt@0..12
             NameExpr@0..1
@@ -3943,12 +3945,15 @@ fn parse_self_expr() {
               Arrow@8..10 "->"
               Whitespace@10..11 " "
               Name@11..12
-                Identifier@11..12 "a""#]]);
+                Identifier@11..12 "a""#]],
+    );
 }
 
 #[test]
 fn parse_self_ref() {
-    check("self -> a", expect![[r#"
+    check(
+        "self -> a",
+        expect![[r#"
         Source@0..9
           CallStmt@0..9
             ArrowExpr@0..9
@@ -3958,14 +3963,143 @@ fn parse_self_ref() {
               Arrow@5..7 "->"
               Whitespace@7..8 " "
               Name@8..9
-                Identifier@8..9 "a""#]]);
+                Identifier@8..9 "a""#]],
+    );
 }
 
 #[test]
 fn parse_just_self() {
-    check("self", expect![[r#"
+    check(
+        "self",
+        expect![[r#"
         Source@0..4
           CallStmt@0..4
             SelfExpr@0..4
-              KwSelf@0..4 "self""#]]);
+              KwSelf@0..4 "self""#]],
+    );
+}
+
+#[test]
+fn parse_nil_expr() {
+    check(
+        "_:=nil",
+        expect![[r#"
+        Source@0..6
+          AssignStmt@0..6
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            NilExpr@3..6
+              KwNil@3..6 "nil""#]],
+    );
+}
+
+#[test]
+fn parse_nil_expr_opt_spec() {
+    check(
+        "_:=nil (a.b.c.d)",
+        expect![[r#"
+        Source@0..16
+          AssignStmt@0..16
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            NilExpr@3..16
+              KwNil@3..6 "nil"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              FieldExpr@8..15
+                FieldExpr@8..13
+                  FieldExpr@8..11
+                    NameExpr@8..9
+                      Name@8..9
+                        Identifier@8..9 "a"
+                    Dot@9..10 "."
+                    Name@10..11
+                      Identifier@10..11 "b"
+                  Dot@11..12 "."
+                  Name@12..13
+                    Identifier@12..13 "c"
+                Dot@13..14 "."
+                Name@14..15
+                  Identifier@14..15 "d"
+              RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_nil_expr_opt_spec_not_ref() {
+    // reject in validation
+    check(
+        "_:=nil (1 + 1)",
+        expect![[r#"
+        Source@0..14
+          AssignStmt@0..14
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            NilExpr@3..14
+              KwNil@3..6 "nil"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              BinaryExpr@8..13
+                LiteralExpr@8..10
+                  IntLiteral@8..9 "1"
+                  Whitespace@9..10 " "
+                Plus@10..11 "+"
+                Whitespace@11..12 " "
+                LiteralExpr@12..13
+                  IntLiteral@12..13 "1"
+              RightParen@13..14 ")""#]],
+    );
+}
+
+#[test]
+fn recover_nil_expr_missing_spec() {
+    check(
+        "_:=nil ()",
+        expect![[r#"
+        Source@0..9
+          AssignStmt@0..9
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            NilExpr@3..9
+              KwNil@3..6 "nil"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              RightParen@8..9 ")"
+        error at 8..9: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_nil_expr_missing_right_paren() {
+    check(
+        "_:=nil (a",
+        expect![[r#"
+        Source@0..9
+          AssignStmt@0..9
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            NilExpr@3..9
+              KwNil@3..6 "nil"
+              Whitespace@6..7 " "
+              LeftParen@7..8 "("
+              NameExpr@8..9
+                Name@8..9
+                  Identifier@8..9 "a"
+        error at 8..9: expected ’)’"#]],
+    );
 }
