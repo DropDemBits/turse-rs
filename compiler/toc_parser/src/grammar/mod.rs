@@ -9,8 +9,8 @@
 // - bind_decl
 // - procedure_decl
 // - function_decl
-// | process_decl
-// | external_decl
+// - process_decl
+// - external_decl
 // - forward_decl
 // - deferred_decl
 // - body_decl

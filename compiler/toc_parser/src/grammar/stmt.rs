@@ -15,6 +15,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Bind => { bind_decl(p) }
             TokenKind::Procedure => { procedure_decl(p) }
             TokenKind::Function => { function_decl(p) }
+            TokenKind::Process => { process_decl(p) }
+            TokenKind::External => { external_decl(p) }
             TokenKind::Forward => { forward_decl(p) }
             TokenKind::Deferred => { deferred_decl(p) }
             TokenKind::Body => { body_decl(p) }
@@ -281,7 +283,10 @@ fn procedure_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Procedure));
     let m = p.start();
 
-    proc_header(p);
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        proc_header(p);
+    });
+
     stmt_list(p, None);
     eat_end_group(p, TokenKind::Identifier, None);
 
@@ -292,7 +297,10 @@ fn function_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Function));
     let m = p.start();
 
-    fcn_header(p, true);
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        fcn_header(p, true);
+    });
+
     stmt_list(p, None);
     eat_end_group(p, TokenKind::Identifier, None);
 
@@ -375,6 +383,90 @@ fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::FcnResult))
 }
 
+fn process_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Process));
+
+    let m = p.start();
+    p.bump();
+
+    attr_pervasive(p);
+
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+            super::name(p);
+
+            if p.at(TokenKind::LeftParen) {
+                param_spec(p);
+            }
+        });
+
+        if p.eat(TokenKind::Colon) {
+            expr::expect_expr(p);
+        }
+    });
+
+    stmt_list(p, None);
+    eat_end_group(p, TokenKind::Identifier, None);
+
+    Some(m.complete(p, SyntaxKind::ProcessDecl))
+}
+
+fn external_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::External));
+    let m = p.start();
+    p.bump();
+
+    expr::expr(p); // optional external_spec
+
+    // don't clog up expected tokens from optional expr
+    p.reset_expected_tokens();
+
+    match_token!(|p| match {
+        TokenKind::Function => {
+            fcn_header(p, true);
+        }
+        TokenKind::Procedure => {
+            proc_header(p);
+        }
+        TokenKind::Var => {
+            let mut require_initializer = true;
+            let m = p.start();
+            p.bump();
+
+            p.with_extra_recovery(&[TokenKind::Equ, TokenKind::Assign], |p| {
+                p.with_extra_recovery(&[TokenKind::Colon], |p| {
+                    super::name(p);
+                });
+
+                // optional type
+                if p.eat(TokenKind::Colon) {
+                    require_initializer = false;
+                    ty::ty(p);
+                }
+            });
+
+            // optional (maybe) init expr
+            if p.at_hidden(TokenKind::Equ) {
+                p.warn_alias(":=");
+                p.bump();
+                expr::expect_expr(p);
+            } else if p.eat(TokenKind::Assign) {
+                expr::expect_expr(p);
+            } else if require_initializer {
+                // it's required
+                p.error_unexpected().report();
+            }
+
+            m.complete(p, SyntaxKind::ExternalVar);
+        }
+        _ => {
+            p.error_unexpected().report();
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::ExternalDecl))
+}
+
 fn forward_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Forward));
 
@@ -422,29 +514,31 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    match_token!(|p| match {
-        TokenKind::Function => { fcn_header(p, false); }
-        TokenKind::Procedure => { proc_header(p); }
-        TokenKind::Identifier => {
-            // Expect just param spec & result ty
-            let m = p.start();
-            super::name(p);
+    p.with_extra_recovery(&[TokenKind::End], |p| {
+        match_token!(|p| match {
+            TokenKind::Function => { fcn_header(p, false); }
+            TokenKind::Procedure => { proc_header(p); }
+            TokenKind::Identifier => {
+                // Expect just param spec & result ty
+                let m = p.start();
+                super::name(p);
 
-            if p.at(TokenKind::LeftParen) {
-                p.with_extra_recovery(&[TokenKind::Colon], |p| {
-                    super::param_spec(p);
-                });
-            }
+                if p.at(TokenKind::LeftParen) {
+                    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+                        super::param_spec(p);
+                    });
+                }
 
-            if p.at(TokenKind::Colon) || p.at(TokenKind::Identifier) {
-                fcn_result(p);
+                if p.at(TokenKind::Colon) || p.at(TokenKind::Identifier) {
+                    fcn_result(p);
+                }
+                m.complete(p,SyntaxKind::PlainHeader);
             }
-            m.complete(p,SyntaxKind::PlainHeader);
-        }
-        _ => {
-            // Not an expected token
-            p.error_unexpected().report();
-        }
+            _ => {
+                // Not an expected token
+                p.error_unexpected().report();
+            }
+        });
     });
 
     stmt_list(p, None);
