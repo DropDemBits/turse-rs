@@ -72,10 +72,10 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Init,
     TokenKind::Post,
     TokenKind::Handler,
-    // TokenKind::Inherit
-    // TokenKind::Implement
-    // TokenKind::Import
-    // TokenKind::Export
+    TokenKind::Inherit,
+    TokenKind::Implement,
+    TokenKind::Import,
+    TokenKind::Export,
 ];
 
 pub(crate) struct Parser<'t, 'src> {
