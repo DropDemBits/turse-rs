@@ -191,8 +191,9 @@ fn parse_var_decl_with_pervasive_attr() {
               ConstVarDecl@0..21
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
-                KwPervasive@4..13 "pervasive"
-                Whitespace@13..14 " "
+                PervasiveAttr@4..14
+                  KwPervasive@4..13 "pervasive"
+                  Whitespace@13..14 " "
                 NameList@14..16
                   Name@14..16
                     Identifier@14..15 "a"
@@ -213,8 +214,9 @@ fn parse_var_decl_with_alt_pervasive_attr() {
               ConstVarDecl@0..13
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
-                Star@4..5 "*"
-                Whitespace@5..6 " "
+                PervasiveAttr@4..6
+                  Star@4..5 "*"
+                  Whitespace@5..6 " "
                 NameList@6..8
                   Name@6..8
                     Identifier@6..7 "a"
@@ -235,8 +237,9 @@ fn parse_var_decl_with_register_attr() {
               ConstVarDecl@0..20
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
-                KwRegister@4..12 "register"
-                Whitespace@12..13 " "
+                RegisterAttr@4..13
+                  KwRegister@4..12 "register"
+                  Whitespace@12..13 " "
                 NameList@13..15
                   Name@13..15
                     Identifier@13..14 "a"
@@ -257,10 +260,12 @@ fn parse_var_decl_with_all_attrs() {
               ConstVarDecl@0..30
                 KwVar@0..3 "var"
                 Whitespace@3..4 " "
-                KwPervasive@4..13 "pervasive"
-                Whitespace@13..14 " "
-                KwRegister@14..22 "register"
-                Whitespace@22..23 " "
+                PervasiveAttr@4..14
+                  KwPervasive@4..13 "pervasive"
+                  Whitespace@13..14 " "
+                RegisterAttr@14..23
+                  KwRegister@14..22 "register"
+                  Whitespace@22..23 " "
                 NameList@23..25
                   Name@23..25
                     Identifier@23..24 "a"
@@ -1261,8 +1266,9 @@ fn parse_type_decl_with_pervasive_attr() {
               TypeDecl@0..22
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
-                KwPervasive@5..14 "pervasive"
-                Whitespace@14..15 " "
+                PervasiveAttr@5..15
+                  KwPervasive@5..14 "pervasive"
+                  Whitespace@14..15 " "
                 Name@15..17
                   Identifier@15..16 "a"
                   Whitespace@16..17 " "
@@ -1282,8 +1288,9 @@ fn parse_type_decl_with_star_attr() {
               TypeDecl@0..14
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
-                Star@5..6 "*"
-                Whitespace@6..7 " "
+                PervasiveAttr@5..7
+                  Star@5..6 "*"
+                  Whitespace@6..7 " "
                 Name@7..9
                   Identifier@7..8 "a"
                   Whitespace@8..9 " "
@@ -3416,21 +3423,22 @@ fn parse_bind_decl_opt_var() {
     check(
         "bind var a to b",
         expect![[r#"
-        Source@0..15
-          BindDecl@0..15
-            KwBind@0..4 "bind"
-            Whitespace@4..5 " "
-            BindItem@5..15
-              KwVar@5..8 "var"
-              Whitespace@8..9 " "
-              Name@9..11
-                Identifier@9..10 "a"
-                Whitespace@10..11 " "
-              KwTo@11..13 "to"
-              Whitespace@13..14 " "
-              NameExpr@14..15
-                Name@14..15
-                  Identifier@14..15 "b""#]],
+            Source@0..15
+              BindDecl@0..15
+                KwBind@0..4 "bind"
+                Whitespace@4..5 " "
+                BindItem@5..15
+                  VarAttr@5..9
+                    KwVar@5..8 "var"
+                    Whitespace@8..9 " "
+                  Name@9..11
+                    Identifier@9..10 "a"
+                    Whitespace@10..11 " "
+                  KwTo@11..13 "to"
+                  Whitespace@13..14 " "
+                  NameExpr@14..15
+                    Name@14..15
+                      Identifier@14..15 "b""#]],
     );
 }
 
@@ -3439,21 +3447,22 @@ fn parse_bind_decl_opt_register() {
     check(
         "bind register a to b",
         expect![[r#"
-        Source@0..20
-          BindDecl@0..20
-            KwBind@0..4 "bind"
-            Whitespace@4..5 " "
-            BindItem@5..20
-              KwRegister@5..13 "register"
-              Whitespace@13..14 " "
-              Name@14..16
-                Identifier@14..15 "a"
-                Whitespace@15..16 " "
-              KwTo@16..18 "to"
-              Whitespace@18..19 " "
-              NameExpr@19..20
-                Name@19..20
-                  Identifier@19..20 "b""#]],
+            Source@0..20
+              BindDecl@0..20
+                KwBind@0..4 "bind"
+                Whitespace@4..5 " "
+                BindItem@5..20
+                  RegisterAttr@5..14
+                    KwRegister@5..13 "register"
+                    Whitespace@13..14 " "
+                  Name@14..16
+                    Identifier@14..15 "a"
+                    Whitespace@15..16 " "
+                  KwTo@16..18 "to"
+                  Whitespace@18..19 " "
+                  NameExpr@19..20
+                    Name@19..20
+                      Identifier@19..20 "b""#]],
     );
 }
 
@@ -3462,23 +3471,25 @@ fn parse_bind_decl_opt_var_register() {
     check(
         "bind var register a to b",
         expect![[r#"
-        Source@0..24
-          BindDecl@0..24
-            KwBind@0..4 "bind"
-            Whitespace@4..5 " "
-            BindItem@5..24
-              KwVar@5..8 "var"
-              Whitespace@8..9 " "
-              KwRegister@9..17 "register"
-              Whitespace@17..18 " "
-              Name@18..20
-                Identifier@18..19 "a"
-                Whitespace@19..20 " "
-              KwTo@20..22 "to"
-              Whitespace@22..23 " "
-              NameExpr@23..24
-                Name@23..24
-                  Identifier@23..24 "b""#]],
+            Source@0..24
+              BindDecl@0..24
+                KwBind@0..4 "bind"
+                Whitespace@4..5 " "
+                BindItem@5..24
+                  VarAttr@5..9
+                    KwVar@5..8 "var"
+                    Whitespace@8..9 " "
+                  RegisterAttr@9..18
+                    KwRegister@9..17 "register"
+                    Whitespace@17..18 " "
+                  Name@18..20
+                    Identifier@18..19 "a"
+                    Whitespace@19..20 " "
+                  KwTo@20..22 "to"
+                  Whitespace@22..23 " "
+                  NameExpr@23..24
+                    Name@23..24
+                      Identifier@23..24 "b""#]],
     );
 }
 
@@ -5572,24 +5583,27 @@ fn parse_forward_decl_import_list() {
                   Comma@23..24 ","
                   Whitespace@24..25 " "
                   ImportItem@25..30
-                    KwVar@25..28 "var"
-                    Whitespace@28..29 " "
+                    VarAttr@25..29
+                      KwVar@25..28 "var"
+                      Whitespace@28..29 " "
                     ExternalItem@29..30
                       Name@29..30
                         Identifier@29..30 "c"
                   Comma@30..31 ","
                   Whitespace@31..32 " "
                   ImportItem@32..39
-                    KwConst@32..37 "const"
-                    Whitespace@37..38 " "
+                    ConstAttr@32..38
+                      KwConst@32..37 "const"
+                      Whitespace@37..38 " "
                     ExternalItem@38..39
                       Name@38..39
                         Identifier@38..39 "d"
                   Comma@39..40 ","
                   Whitespace@40..41 " "
                   ImportItem@41..50
-                    KwForward@41..48 "forward"
-                    Whitespace@48..49 " "
+                    ForwardAttr@41..49
+                      KwForward@41..48 "forward"
+                      Whitespace@48..49 " "
                     ExternalItem@49..50
                       Name@49..50
                         Identifier@49..50 "e""#]],
@@ -5601,21 +5615,21 @@ fn recover_forward_decl_missing_import_name() {
     check(
         r#"forward proc a import"#,
         expect![[r#"
-        Source@0..21
-          ForwardDecl@0..21
-            KwForward@0..7 "forward"
-            Whitespace@7..8 " "
-            ProcHeader@8..15
-              KwProcedure@8..12 "proc"
-              Whitespace@12..13 " "
-              Name@13..15
-                Identifier@13..14 "a"
-                Whitespace@14..15 " "
-            KwImport@15..21 "import"
-            ImportList@21..21
-              ImportItem@21..21
-                ExternalItem@21..21
-        error at 15..21: expected identifier"#]],
+            Source@0..21
+              ForwardDecl@0..21
+                KwForward@0..7 "forward"
+                Whitespace@7..8 " "
+                ProcHeader@8..15
+                  KwProcedure@8..12 "proc"
+                  Whitespace@12..13 " "
+                  Name@13..15
+                    Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                KwImport@15..21 "import"
+                ImportList@21..21
+                  ImportItem@21..21
+                    ExternalItem@21..21
+            error at 15..21: expected string literal or identifier"#]],
     );
 }
 
@@ -6070,20 +6084,21 @@ fn parse_module_decl_attr_pervasive() {
     check(
         "module pervasive a end a",
         expect![[r#"
-        Source@0..24
-          ModuleDecl@0..24
-            KwModule@0..6 "module"
-            Whitespace@6..7 " "
-            KwPervasive@7..16 "pervasive"
-            Whitespace@16..17 " "
-            Name@17..19
-              Identifier@17..18 "a"
-              Whitespace@18..19 " "
-            StmtList@19..19
-            EndGroup@19..24
-              KwEnd@19..22 "end"
-              Whitespace@22..23 " "
-              Identifier@23..24 "a""#]],
+            Source@0..24
+              ModuleDecl@0..24
+                KwModule@0..6 "module"
+                Whitespace@6..7 " "
+                PervasiveAttr@7..17
+                  KwPervasive@7..16 "pervasive"
+                  Whitespace@16..17 " "
+                Name@17..19
+                  Identifier@17..18 "a"
+                  Whitespace@18..19 " "
+                StmtList@19..19
+                EndGroup@19..24
+                  KwEnd@19..22 "end"
+                  Whitespace@22..23 " "
+                  Identifier@23..24 "a""#]],
     );
 }
 
@@ -6195,20 +6210,21 @@ fn parse_class_decl_attr_pervasive() {
     check(
         "class * a end a",
         expect![[r#"
-        Source@0..15
-          ClassDecl@0..15
-            KwClass@0..5 "class"
-            Whitespace@5..6 " "
-            Star@6..7 "*"
-            Whitespace@7..8 " "
-            Name@8..10
-              Identifier@8..9 "a"
-              Whitespace@9..10 " "
-            StmtList@10..10
-            EndGroup@10..15
-              KwEnd@10..13 "end"
-              Whitespace@13..14 " "
-              Identifier@14..15 "a""#]],
+            Source@0..15
+              ClassDecl@0..15
+                KwClass@0..5 "class"
+                Whitespace@5..6 " "
+                PervasiveAttr@6..8
+                  Star@6..7 "*"
+                  Whitespace@7..8 " "
+                Name@8..10
+                  Identifier@8..9 "a"
+                  Whitespace@9..10 " "
+                StmtList@10..10
+                EndGroup@10..15
+                  KwEnd@10..13 "end"
+                  Whitespace@13..14 " "
+                  Identifier@14..15 "a""#]],
     );
 }
 
@@ -6320,20 +6336,21 @@ fn parse_monitor_decl_attr_pervasive() {
     check(
         "monitor pervasive a end a",
         expect![[r#"
-        Source@0..25
-          MonitorDecl@0..25
-            KwMonitor@0..7 "monitor"
-            Whitespace@7..8 " "
-            KwPervasive@8..17 "pervasive"
-            Whitespace@17..18 " "
-            Name@18..20
-              Identifier@18..19 "a"
-              Whitespace@19..20 " "
-            StmtList@20..20
-            EndGroup@20..25
-              KwEnd@20..23 "end"
-              Whitespace@23..24 " "
-              Identifier@24..25 "a""#]],
+            Source@0..25
+              MonitorDecl@0..25
+                KwMonitor@0..7 "monitor"
+                Whitespace@7..8 " "
+                PervasiveAttr@8..18
+                  KwPervasive@8..17 "pervasive"
+                  Whitespace@17..18 " "
+                Name@18..20
+                  Identifier@18..19 "a"
+                  Whitespace@19..20 " "
+                StmtList@20..20
+                EndGroup@20..25
+                  KwEnd@20..23 "end"
+                  Whitespace@23..24 " "
+                  Identifier@24..25 "a""#]],
     );
 }
 
@@ -6503,22 +6520,23 @@ fn parse_monitor_class_decl_attr_pervasive() {
     check(
         "monitor class pervasive a end a",
         expect![[r#"
-        Source@0..31
-          ClassDecl@0..31
-            KwMonitor@0..7 "monitor"
-            Whitespace@7..8 " "
-            KwClass@8..13 "class"
-            Whitespace@13..14 " "
-            KwPervasive@14..23 "pervasive"
-            Whitespace@23..24 " "
-            Name@24..26
-              Identifier@24..25 "a"
-              Whitespace@25..26 " "
-            StmtList@26..26
-            EndGroup@26..31
-              KwEnd@26..29 "end"
-              Whitespace@29..30 " "
-              Identifier@30..31 "a""#]],
+            Source@0..31
+              ClassDecl@0..31
+                KwMonitor@0..7 "monitor"
+                Whitespace@7..8 " "
+                KwClass@8..13 "class"
+                Whitespace@13..14 " "
+                PervasiveAttr@14..24
+                  KwPervasive@14..23 "pervasive"
+                  Whitespace@23..24 " "
+                Name@24..26
+                  Identifier@24..25 "a"
+                  Whitespace@25..26 " "
+                StmtList@26..26
+                EndGroup@26..31
+                  KwEnd@26..29 "end"
+                  Whitespace@29..30 " "
+                  Identifier@30..31 "a""#]],
     );
 }
 
@@ -7162,5 +7180,659 @@ fn recover_on_external() {
                 Identifier@23..24 "i"
         error at 10..18: expected expression, but found ’external’
         error at 23..24: expected ’:’ or ’:=’"#]],
+    );
+}
+
+#[test]
+fn parse_inherit_stmt() {
+    check(
+        r#"inherit p"#,
+        expect![[r#"
+        Source@0..9
+          InheritStmt@0..9
+            KwInherit@0..7 "inherit"
+            Whitespace@7..8 " "
+            ExternalItem@8..9
+              Name@8..9
+                Identifier@8..9 "p""#]],
+    );
+}
+
+#[test]
+fn parse_inherit_stmt_alt_path() {
+    check(
+        r#"inherit "p""#,
+        expect![[r#"
+        Source@0..11
+          InheritStmt@0..11
+            KwInherit@0..7 "inherit"
+            Whitespace@7..8 " "
+            ExternalItem@8..11
+              StringLiteral@8..11 "\"p\"""#]],
+    );
+}
+
+#[test]
+fn parse_inherit_stmt_opt_parens() {
+    check(
+        r#"inherit (p)"#,
+        expect![[r#"
+        Source@0..11
+          InheritStmt@0..11
+            KwInherit@0..7 "inherit"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            ExternalItem@9..10
+              Name@9..10
+                Identifier@9..10 "p"
+            RightParen@10..11 ")""#]],
+    );
+}
+
+#[test]
+fn recover_inherit_stmt_missing_left_paren() {
+    check(
+        r#"inherit p)"#,
+        expect![[r#"
+        Source@0..10
+          InheritStmt@0..9
+            KwInherit@0..7 "inherit"
+            Whitespace@7..8 " "
+            ExternalItem@8..9
+              Name@8..9
+                Identifier@8..9 "p"
+          Error@9..10
+            RightParen@9..10 ")"
+        error at 9..10: expected statement, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_inherit_stmt_missing_right_paren() {
+    check(
+        r#"inherit (p"#,
+        expect![[r#"
+        Source@0..10
+          InheritStmt@0..10
+            KwInherit@0..7 "inherit"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            ExternalItem@9..10
+              Name@9..10
+                Identifier@9..10 "p"
+        error at 9..10: expected ’in’ or ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_inherit_just_parens() {
+    check(
+        "inherit ()",
+        expect![[r#"
+        Source@0..10
+          InheritStmt@0..10
+            KwInherit@0..7 "inherit"
+            Whitespace@7..8 " "
+            LeftParen@8..9 "("
+            ExternalItem@9..9
+            RightParen@9..10 ")"
+        error at 9..10: expected string literal or identifier, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_just_inherit() {
+    check(
+        r#"inherit"#,
+        expect![[r#"
+            Source@0..7
+              InheritStmt@0..7
+                KwInherit@0..7 "inherit"
+                ExternalItem@7..7
+            error at 0..7: expected ’(’, string literal or identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_inherit() {
+    check(
+        r#"var i := inherit p"#,
+        expect![[r#"
+        Source@0..18
+          ConstVarDecl@0..9
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..9 " "
+          InheritStmt@9..18
+            KwInherit@9..16 "inherit"
+            Whitespace@16..17 " "
+            ExternalItem@17..18
+              Name@17..18
+                Identifier@17..18 "p"
+        error at 9..16: expected expression, but found ’inherit’"#]],
+    );
+}
+
+#[test]
+fn parse_implement_stmt() {
+    check(
+        r#"implement k"#,
+        expect![[r#"
+        Source@0..11
+          ImplementStmt@0..11
+            KwImplement@0..9 "implement"
+            Whitespace@9..10 " "
+            ExternalItem@10..11
+              Name@10..11
+                Identifier@10..11 "k""#]],
+    );
+}
+
+#[test]
+fn parse_implement_by_stmt() {
+    check(
+        r#"implement by k"#,
+        expect![[r#"
+        Source@0..14
+          ImplementByStmt@0..14
+            KwImplement@0..9 "implement"
+            Whitespace@9..10 " "
+            KwBy@10..12 "by"
+            Whitespace@12..13 " "
+            ExternalItem@13..14
+              Name@13..14
+                Identifier@13..14 "k""#]],
+    );
+}
+
+#[test]
+fn parse_implement_stmt_opt_parens() {
+    check(
+        r#"implement (k)"#,
+        expect![[r#"
+        Source@0..13
+          ImplementStmt@0..13
+            KwImplement@0..9 "implement"
+            Whitespace@9..10 " "
+            LeftParen@10..11 "("
+            ExternalItem@11..12
+              Name@11..12
+                Identifier@11..12 "k"
+            RightParen@12..13 ")""#]],
+    );
+}
+
+#[test]
+fn parse_implement_by_stmt_opt_parens() {
+    check(
+        r#"implement by (k)"#,
+        expect![[r#"
+        Source@0..16
+          ImplementByStmt@0..16
+            KwImplement@0..9 "implement"
+            Whitespace@9..10 " "
+            KwBy@10..12 "by"
+            Whitespace@12..13 " "
+            LeftParen@13..14 "("
+            ExternalItem@14..15
+              Name@14..15
+                Identifier@14..15 "k"
+            RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn recover_implement_just_parens() {
+    check(
+        "implement ()",
+        expect![[r#"
+        Source@0..12
+          ImplementStmt@0..12
+            KwImplement@0..9 "implement"
+            Whitespace@9..10 " "
+            LeftParen@10..11 "("
+            ExternalItem@11..11
+            RightParen@11..12 ")"
+        error at 11..12: expected string literal or identifier, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_implement_by_just_parens() {
+    check(
+        "implement by ()",
+        expect![[r#"
+        Source@0..15
+          ImplementByStmt@0..15
+            KwImplement@0..9 "implement"
+            Whitespace@9..10 " "
+            KwBy@10..12 "by"
+            Whitespace@12..13 " "
+            LeftParen@13..14 "("
+            ExternalItem@14..14
+            RightParen@14..15 ")"
+        error at 14..15: expected string literal or identifier, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_just_implement() {
+    check(
+        r#"implement"#,
+        expect![[r#"
+            Source@0..9
+              ImplementStmt@0..9
+                KwImplement@0..9 "implement"
+                ExternalItem@9..9
+            error at 0..9: expected ’by’, ’(’, string literal or identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_implement() {
+    check(
+        r#"var i := implement p"#,
+        expect![[r#"
+        Source@0..20
+          ConstVarDecl@0..9
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..9 " "
+          ImplementStmt@9..20
+            KwImplement@9..18 "implement"
+            Whitespace@18..19 " "
+            ExternalItem@19..20
+              Name@19..20
+                Identifier@19..20 "p"
+        error at 9..18: expected expression, but found ’implement’"#]],
+    );
+}
+
+#[test]
+fn parse_import_stmt() {
+    check(
+        r#"import a, "b", c in "not_cee""#,
+        expect![[r#"
+        Source@0..29
+          ImportStmt@0..29
+            KwImport@0..6 "import"
+            Whitespace@6..7 " "
+            ImportList@7..29
+              ImportItem@7..8
+                ExternalItem@7..8
+                  Name@7..8
+                    Identifier@7..8 "a"
+              Comma@8..9 ","
+              Whitespace@9..10 " "
+              ImportItem@10..13
+                ExternalItem@10..13
+                  StringLiteral@10..13 "\"b\""
+              Comma@13..14 ","
+              Whitespace@14..15 " "
+              ImportItem@15..29
+                ExternalItem@15..29
+                  Name@15..17
+                    Identifier@15..16 "c"
+                    Whitespace@16..17 " "
+                  KwIn@17..19 "in"
+                  Whitespace@19..20 " "
+                  StringLiteral@20..29 "\"not_cee\"""#]],
+    );
+}
+
+#[test]
+fn parse_import_stmt_opt_parens() {
+    check(
+        "import (a)",
+        expect![[r#"
+        Source@0..10
+          ImportStmt@0..10
+            KwImport@0..6 "import"
+            Whitespace@6..7 " "
+            LeftParen@7..8 "("
+            ImportList@8..9
+              ImportItem@8..9
+                ExternalItem@8..9
+                  Name@8..9
+                    Identifier@8..9 "a"
+            RightParen@9..10 ")""#]],
+    );
+}
+
+#[test]
+fn parse_import_stmt_attrs() {
+    // 'forward' not allowed in this position, rejected in validation
+    check(
+        "import var a, const b, forward c",
+        expect![[r#"
+        Source@0..32
+          ImportStmt@0..32
+            KwImport@0..6 "import"
+            Whitespace@6..7 " "
+            ImportList@7..32
+              ImportItem@7..12
+                VarAttr@7..11
+                  KwVar@7..10 "var"
+                  Whitespace@10..11 " "
+                ExternalItem@11..12
+                  Name@11..12
+                    Identifier@11..12 "a"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              ImportItem@14..21
+                ConstAttr@14..20
+                  KwConst@14..19 "const"
+                  Whitespace@19..20 " "
+                ExternalItem@20..21
+                  Name@20..21
+                    Identifier@20..21 "b"
+              Comma@21..22 ","
+              Whitespace@22..23 " "
+              ImportItem@23..32
+                ForwardAttr@23..31
+                  KwForward@23..30 "forward"
+                  Whitespace@30..31 " "
+                ExternalItem@31..32
+                  Name@31..32
+                    Identifier@31..32 "c""#]],
+    );
+}
+
+#[test]
+fn parse_import_stmt_empty() {
+    check(
+        "import ()",
+        expect![[r#"
+        Source@0..9
+          ImportStmt@0..9
+            KwImport@0..6 "import"
+            Whitespace@6..7 " "
+            LeftParen@7..8 "("
+            RightParen@8..9 ")""#]],
+    );
+}
+
+#[test]
+fn recover_import_stmt_missing_name_after_attr() {
+    check(
+        "import var",
+        expect![[r#"
+        Source@0..10
+          ImportStmt@0..10
+            KwImport@0..6 "import"
+            Whitespace@6..7 " "
+            ImportList@7..10
+              ImportItem@7..10
+                VarAttr@7..10
+                  KwVar@7..10 "var"
+                ExternalItem@10..10
+        error at 7..10: expected string literal or identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_import() {
+    check(
+        "import",
+        expect![[r#"
+        Source@0..6
+          ImportStmt@0..6
+            KwImport@0..6 "import"
+            ImportList@6..6
+              ImportItem@6..6
+                ExternalItem@6..6
+        error at 0..6: expected string literal or identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_import() {
+    check(
+        "var i := \nimport ()",
+        expect![[r#"
+        Source@0..19
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ImportStmt@10..19
+            KwImport@10..16 "import"
+            Whitespace@16..17 " "
+            LeftParen@17..18 "("
+            RightParen@18..19 ")"
+        error at 10..16: expected expression, but found ’import’"#]],
+    );
+}
+
+#[test]
+fn parse_export_stmt() {
+    check(
+        "export a, b, c, d",
+        expect![[r#"
+        Source@0..17
+          ExportStmt@0..17
+            KwExport@0..6 "export"
+            Whitespace@6..7 " "
+            ExportItem@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+            ExportItem@10..11
+              Name@10..11
+                Identifier@10..11 "b"
+            Comma@11..12 ","
+            Whitespace@12..13 " "
+            ExportItem@13..14
+              Name@13..14
+                Identifier@13..14 "c"
+            Comma@14..15 ","
+            Whitespace@15..16 " "
+            ExportItem@16..17
+              Name@16..17
+                Identifier@16..17 "d""#]],
+    );
+}
+
+#[test]
+fn parse_export_stmt_attrs() {
+    check(
+        "export var var a, pervasive * b, unqualified ~. c, opaque d",
+        expect![[r#"
+            Source@0..59
+              ExportStmt@0..59
+                KwExport@0..6 "export"
+                Whitespace@6..7 " "
+                ExportItem@7..16
+                  VarAttr@7..11
+                    KwVar@7..10 "var"
+                    Whitespace@10..11 " "
+                  VarAttr@11..15
+                    KwVar@11..14 "var"
+                    Whitespace@14..15 " "
+                  Name@15..16
+                    Identifier@15..16 "a"
+                Comma@16..17 ","
+                Whitespace@17..18 " "
+                ExportItem@18..31
+                  PervasiveAttr@18..28
+                    KwPervasive@18..27 "pervasive"
+                    Whitespace@27..28 " "
+                  PervasiveAttr@28..30
+                    Star@28..29 "*"
+                    Whitespace@29..30 " "
+                  Name@30..31
+                    Identifier@30..31 "b"
+                Comma@31..32 ","
+                Whitespace@32..33 " "
+                ExportItem@33..49
+                  UnqualifiedAttr@33..45
+                    KwUnqualified@33..44 "unqualified"
+                    Whitespace@44..45 " "
+                  UnqualifiedAttr@45..48
+                    Tilde@45..46 "~"
+                    Dot@46..47 "."
+                    Whitespace@47..48 " "
+                  Name@48..49
+                    Identifier@48..49 "c"
+                Comma@49..50 ","
+                Whitespace@50..51 " "
+                ExportItem@51..59
+                  OpaqueAttr@51..58
+                    KwOpaque@51..57 "opaque"
+                    Whitespace@57..58 " "
+                  Name@58..59
+                    Identifier@58..59 "d""#]],
+    );
+}
+
+#[test]
+fn parse_export_stmt_opt_parens() {
+    check(
+        "export (a)",
+        expect![[r#"
+        Source@0..10
+          ExportStmt@0..10
+            KwExport@0..6 "export"
+            Whitespace@6..7 " "
+            LeftParen@7..8 "("
+            ExportItem@8..9
+              Name@8..9
+                Identifier@8..9 "a"
+            RightParen@9..10 ")""#]],
+    );
+}
+
+#[test]
+fn parse_export_stmt_all() {
+    check(
+        "export all",
+        expect![[r#"
+        Source@0..10
+          ExportStmt@0..10
+            KwExport@0..6 "export"
+            Whitespace@6..7 " "
+            ExportItem@7..10
+              KwAll@7..10 "all""#]],
+    );
+}
+
+#[test]
+fn parse_export_stmt_attrs_and_all() {
+    check(
+        "export var ~.* all",
+        expect![[r#"
+        Source@0..18
+          ExportStmt@0..18
+            KwExport@0..6 "export"
+            Whitespace@6..7 " "
+            ExportItem@7..18
+              VarAttr@7..11
+                KwVar@7..10 "var"
+                Whitespace@10..11 " "
+              UnqualifiedAttr@11..13
+                Tilde@11..12 "~"
+                Dot@12..13 "."
+              PervasiveAttr@13..15
+                Star@13..14 "*"
+                Whitespace@14..15 " "
+              KwAll@15..18 "all""#]],
+    );
+}
+
+#[test]
+fn parse_export_stmt_multiple_alls() {
+    // reject during validation
+    check(
+        "export all, all, all, all",
+        expect![[r#"
+        Source@0..25
+          ExportStmt@0..25
+            KwExport@0..6 "export"
+            Whitespace@6..7 " "
+            ExportItem@7..10
+              KwAll@7..10 "all"
+            Comma@10..11 ","
+            Whitespace@11..12 " "
+            ExportItem@12..15
+              KwAll@12..15 "all"
+            Comma@15..16 ","
+            Whitespace@16..17 " "
+            ExportItem@17..20
+              KwAll@17..20 "all"
+            Comma@20..21 ","
+            Whitespace@21..22 " "
+            ExportItem@22..25
+              KwAll@22..25 "all""#]],
+    );
+}
+
+#[test]
+fn recover_export_stmt_missing_dot_after_not() {
+    check(
+        "export ~i",
+        expect![[r#"
+        Source@0..9
+          ExportStmt@0..9
+            KwExport@0..6 "export"
+            Whitespace@6..7 " "
+            ExportItem@7..9
+              Error@7..8
+                Tilde@7..8 "~"
+              Name@8..9
+                Identifier@8..9 "i"
+        error at 8..9: expected ’.’, but found identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_export() {
+    check(
+        "export",
+        expect![[r#"
+        Source@0..6
+          ExportStmt@0..6
+            KwExport@0..6 "export"
+            ExportItem@6..6
+        error at 0..6: expected ’all’ or identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_export() {
+    check(
+        "var i := \nexport ()",
+        expect![[r#"
+        Source@0..19
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ExportStmt@10..19
+            KwExport@10..16 "export"
+            Whitespace@16..17 " "
+            LeftParen@17..18 "("
+            RightParen@18..19 ")"
+        error at 10..16: expected expression, but found ’export’"#]],
     );
 }

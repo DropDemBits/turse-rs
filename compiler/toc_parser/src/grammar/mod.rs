@@ -51,11 +51,11 @@
 // - init_stmt
 // - post_stmt
 // - handler_stmt
-// | inherit_stmt
-// | implement_stmt
-// | implement_by_stmt
-// x import_stmt
-// | export_stmt
+// - inherit_stmt
+// - implement_stmt
+// - implement_by_stmt
+// - import_stmt
+// - export_stmt
 
 // exprs:
 // - init_expr

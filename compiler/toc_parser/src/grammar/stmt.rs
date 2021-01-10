@@ -60,11 +60,10 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Init => { init_stmt(p) }
             TokenKind::Post => { stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt) }
             TokenKind::Handler => { handler_stmt(p) }
-            // inherit_stmt
-            // implement_stmt
-            // implement_by_stmt
-            // import_stmt
-            // export_stmt
+            TokenKind::Inherit => { inherit_stmt(p) }
+            TokenKind::Implement => { implement_stmt(p) }
+            TokenKind::Import => { import_stmt(p) }
+            TokenKind::Export => { export_stmt(p) }
             _ => expr::reference(p).and_then(|m| {
                 let m = m.precede(p);
                 // check if there's an asn nearby
@@ -72,10 +71,10 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                     // parse an assign stmt
                     expr::expect_expr(p);
 
-                    Some(m.complete(p,SyntaxKind::AssignStmt))
+                    Some(m.complete(p, SyntaxKind::AssignStmt))
                 } else {
                     // plop as a call stmt
-                    Some(m.complete(p,SyntaxKind::CallStmt))
+                    Some(m.complete(p, SyntaxKind::CallStmt))
                 }
             }).or_else(|| {
                 // report as expecting a statement
@@ -974,6 +973,111 @@ fn handler_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::HandlerStmt))
 }
 
+fn inherit_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Inherit));
+    let m = p.start();
+    p.bump();
+
+    with_opt_parens(p, true, |p| {
+        external_item(p);
+    });
+
+    Some(m.complete(p, SyntaxKind::InheritStmt))
+}
+
+/// also covers implement_by_stmt
+fn implement_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Implement));
+    let m = p.start();
+    p.bump();
+
+    let as_implement_by = p.eat(TokenKind::By);
+
+    with_opt_parens(p, true, |p| {
+        external_item(p);
+    });
+
+    Some(m.complete(
+        p,
+        if as_implement_by {
+            SyntaxKind::ImplementByStmt
+        } else {
+            SyntaxKind::ImplementStmt
+        },
+    ))
+}
+
+fn import_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Import));
+
+    let m = p.start();
+    p.bump();
+
+    with_opt_parens(p, false, |p| {
+        import_list(p);
+    });
+
+    Some(m.complete(p, SyntaxKind::ImportStmt))
+}
+
+fn export_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Export));
+
+    let m = p.start();
+    p.bump();
+
+    with_opt_parens(p, false, |p| {
+        p.with_extra_recovery(&[TokenKind::Comma], |p| {
+            export_item(p);
+            while p.eat(TokenKind::Comma) {
+                export_item(p);
+            }
+        });
+    });
+
+    Some(m.complete(p, SyntaxKind::ExportStmt))
+}
+
+fn export_item(p: &mut Parser) -> Option<CompletedMarker> {
+    // ExportAttr* ( Name | 'all' )
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Identifier, TokenKind::All], |p| {
+        while attr_var(p)
+            .or_else(|| attr_unqualified(p))
+            .or_else(|| attr_pervasive(p))
+            .or_else(|| attr_opaque(p))
+            .is_some()
+        {
+            // continue parsing it
+        }
+    });
+
+    if !p.eat(TokenKind::All) {
+        super::name(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::ExportItem))
+}
+
+// Common //
+
+/// Parses thing but surrounded by optional parens.
+/// Handles requiring the right paren if left paren is encountered
+fn with_opt_parens(p: &mut Parser, require_something: bool, thing: impl FnOnce(&mut Parser)) {
+    let require_parens = p.eat(TokenKind::LeftParen);
+
+    if require_something || !p.at(TokenKind::RightParen) {
+        p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+            thing(p);
+        });
+    }
+
+    if require_parens && !p.eat(TokenKind::RightParen) {
+        p.error_unexpected().report();
+    }
+}
+
 fn import_list(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
@@ -990,15 +1094,9 @@ fn import_list(p: &mut Parser) -> Option<CompletedMarker> {
 fn import_item(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
-    match_token!(|p| match {
-        TokenKind::Var,
-        TokenKind::Const,
-        TokenKind::Forward => { p.bump(); }
-        _ => {
-            // don't keep optional attr to expecteds
-            p.reset_expected_tokens();
-        }
-    });
+    attr_var(p)
+        .or_else(|| attr_const(p))
+        .or_else(|| attr_forward(p));
 
     external_item(p);
 
@@ -1008,6 +1106,12 @@ fn import_item(p: &mut Parser) -> Option<CompletedMarker> {
 fn external_item(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
+    // Just the file path
+    if p.eat(TokenKind::StringLiteral) {
+        return Some(m.complete(p, SyntaxKind::ExternalItem));
+    }
+
+    // Named thing
     p.with_extra_recovery(&[TokenKind::In], |p| {
         super::name(p);
     });
@@ -1068,31 +1172,73 @@ fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
     m.complete(p, SyntaxKind::EndGroup);
 }
 
-fn attr_pervasive(p: &mut Parser) {
-    // ???: How to deal with pervasive attr variants when lowering?
+fn attr_pervasive(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
-        TokenKind::Pervasive => { p.bump() }
-        TokenKind::Star => { p.bump() }
+        TokenKind::Pervasive,
+        TokenKind::Star => {
+            let m = p.start();
+            p.bump();
+            Some(m.complete(p, SyntaxKind::PervasiveAttr))
+        }
         _ => {
             // dont clog up the expected tokens with the attributes
             p.reset_expected_tokens();
+            None
         }
-    });
+    })
 }
 
-fn attr_register(p: &mut Parser) {
-    if !p.eat(TokenKind::Register) {
-        // dont clog up the expected tokens with the attributes
-        p.reset_expected_tokens();
-    }
+fn attr_unqualified(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        TokenKind::Unqualified => {
+            let m = p.start();
+            p.bump();
+            Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
+        }
+        TokenKind::Tilde => {
+            // '~' '.'
+            let m = p.start();
+            p.bump();
+
+            if !p.eat(TokenKind::Dot) {
+                p.error_unexpected().with_marker(m).report();
+                None
+            } else {
+                Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
+            }
+        }
+        _ => {
+            // dont clog up the expected tokens with the attributes
+            p.reset_expected_tokens();
+            None
+        }
+    })
 }
 
-fn attr_var(p: &mut Parser) {
-    if !p.eat(TokenKind::Var) {
-        // dont clog up the expected tokens with the attributes
-        p.reset_expected_tokens();
-    }
+macro_rules! make_single_attr {
+    ($i:ident, $tk:expr, $kind:expr ) => {
+        fn $i(p: &mut Parser) -> Option<CompletedMarker> {
+            match_token!(|p| match {
+                $tk => {
+                    let m = p.start();
+                    p.bump();
+                    Some(m.complete(p, $kind))
+                }
+                _ => {
+                    // dont clog up the expected tokens with the attributes
+                    p.reset_expected_tokens();
+                    None
+                }
+            })
+        }
+    };
 }
+
+make_single_attr!(attr_register, TokenKind::Register, SyntaxKind::RegisterAttr);
+make_single_attr!(attr_var, TokenKind::Var, SyntaxKind::VarAttr);
+make_single_attr!(attr_const, TokenKind::Const, SyntaxKind::ConstAttr);
+make_single_attr!(attr_forward, TokenKind::Forward, SyntaxKind::ForwardAttr);
+make_single_attr!(attr_opaque, TokenKind::Opaque, SyntaxKind::OpaqueAttr);
 
 fn at_stmt_block_end(p: &mut Parser) -> bool {
     match_token!(|p| match {
