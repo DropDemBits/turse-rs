@@ -118,6 +118,7 @@ use toc_syntax::SyntaxKind;
 
 pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     let source = p.start();
+    p.hidden_eat(TokenKind::Unit);
     while !p.at_end() {
         stmt::stmt(p);
     }

@@ -7889,3 +7889,32 @@ fn recover_on_include() {
         error at 12..24: expected ’for’"#]],
     )
 }
+
+#[test]
+fn parse_unit() {
+    check(
+        "unit",
+        expect![[r#"
+        Source@0..4
+          KwUnit@0..4 "unit""#]],
+    );
+}
+
+#[test]
+fn recover_many_units() {
+    // only allowed as the first non-trivia token
+    check(
+        "unit unit unit",
+        expect![[r#"
+        Source@0..14
+          KwUnit@0..4 "unit"
+          Whitespace@4..5 " "
+          Error@5..10
+            KwUnit@5..9 "unit"
+            Whitespace@9..10 " "
+          Error@10..14
+            KwUnit@10..14 "unit"
+        error at 5..9: expected statement, but found ’unit’
+        error at 10..14: expected statement, but found ’unit’"#]],
+    );
+}
