@@ -3927,6 +3927,107 @@ fn recover_call_expr_relative_bound_missing_minus() {
 }
 
 #[test]
+fn parse_call_expr_all_item() {
+    check(
+        "_:=set_cons(all)",
+        expect![[r#"
+        Source@0..16
+          AssignStmt@0..16
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..16
+              NameExpr@3..11
+                Name@3..11
+                  Identifier@3..11 "set_cons"
+              ParamList@11..16
+                LeftParen@11..12 "("
+                Param@12..15
+                  AllItem@12..15
+                    KwAll@12..15 "all"
+                RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_call_expr_many_all_items() {
+    // reject in validation
+    check(
+        "_:=set_cons(all, all, all, all)",
+        expect![[r#"
+        Source@0..31
+          AssignStmt@0..31
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..31
+              NameExpr@3..11
+                Name@3..11
+                  Identifier@3..11 "set_cons"
+              ParamList@11..31
+                LeftParen@11..12 "("
+                Param@12..17
+                  AllItem@12..15
+                    KwAll@12..15 "all"
+                  Comma@15..16 ","
+                  Whitespace@16..17 " "
+                Param@17..22
+                  AllItem@17..20
+                    KwAll@17..20 "all"
+                  Comma@20..21 ","
+                  Whitespace@21..22 " "
+                Param@22..27
+                  AllItem@22..25
+                    KwAll@22..25 "all"
+                  Comma@25..26 ","
+                  Whitespace@26..27 " "
+                Param@27..30
+                  AllItem@27..30
+                    KwAll@27..30 "all"
+                RightParen@30..31 ")""#]],
+    );
+}
+
+#[test]
+fn recover_all_not_primary() {
+    check(
+        "_:=set_cons(all + 1)",
+        expect![[r#"
+        Source@0..20
+          AssignStmt@0..18
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            CallExpr@3..18
+              NameExpr@3..11
+                Name@3..11
+                  Identifier@3..11 "set_cons"
+              ParamList@11..18
+                LeftParen@11..12 "("
+                Param@12..16
+                  AllItem@12..16
+                    KwAll@12..15 "all"
+                    Whitespace@15..16 " "
+                Error@16..18
+                  Plus@16..17 "+"
+                  Whitespace@17..18 " "
+          CallStmt@18..19
+            LiteralExpr@18..19
+              IntLiteral@18..19 "1"
+          Error@19..20
+            RightParen@19..20 ")"
+        error at 16..17: expected ’,’ or ’)’, but found ’+’
+        error at 19..20: expected statement, but found ’)’"#]],
+    );
+}
+
+#[test]
 fn parse_self_expr() {
     check(
         "_:=self -> a",
