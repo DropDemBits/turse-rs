@@ -334,9 +334,9 @@ pub enum TokenKind {
     // Literals
     #[regex("[[:alpha:]_][[:alnum:]_]*")]
     Identifier,
-    #[regex("'[^\r\n']*('?)", check_char_literal)]
+    #[regex("'", nom_char_literal)]
     CharLiteral,
-    #[regex("\"[^\r\n\"]*(\"?)", check_string_literal)]
+    #[regex("\"", nom_string_literal)]
     StringLiteral,
     #[regex("\\.?[[:digit:]]+", nom_number_literal)]
     NumberLiteral(NumberKind),
@@ -405,40 +405,86 @@ fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
         .push_error("block comment is missing terminating ’*/’", lexer.span());
 }
 
-fn check_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
-    let slice: &str = lexer.slice();
-    let range = lexer.span();
+fn nom_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
+    let (bump_count, is_terminated, is_terminator_escaped) =
+        check_charseq_termination(lexer.remainder(), '\'');
+    lexer.bump(bump_count);
 
-    if slice.ends_with("\\'") {
+    if !is_terminated {
         // report error!
-        lexer.extras.push_error(
-            "char literal is missing terminator (terminator is escaped)",
-            range,
-        );
-    } else if !slice.ends_with('\'') {
-        // report error!
-        lexer
-            .extras
-            .push_error("char literal is missing terminator", range);
+        if is_terminator_escaped {
+            lexer.extras.push_error(
+                "char literal is missing terminator (terminator is escaped)",
+                lexer.span(),
+            );
+        } else {
+            lexer
+                .extras
+                .push_error("char literal is missing terminator", lexer.span());
+        }
     }
 }
 
-fn check_string_literal(lexer: &mut logos::Lexer<TokenKind>) {
-    let slice: &str = lexer.slice();
-    let range = lexer.span();
+fn nom_string_literal(lexer: &mut logos::Lexer<TokenKind>) {
+    let (bump_count, is_terminated, is_terminator_escaped) =
+        check_charseq_termination(lexer.remainder(), '"');
+    lexer.bump(bump_count);
 
-    if slice.ends_with("\\\"") {
+    if !is_terminated {
         // report error!
-        lexer.extras.push_error(
-            "string literal is missing terminator (terminator is escaped)",
-            range,
-        );
-    } else if !slice.ends_with('"') {
-        // report error!
-        lexer
-            .extras
-            .push_error("string literal is missing terminator", range);
+        if is_terminator_escaped {
+            lexer.extras.push_error(
+                "string literal is missing terminator (terminator is escaped)",
+                lexer.span(),
+            );
+        } else {
+            lexer
+                .extras
+                .push_error("string literal is missing terminator", lexer.span());
+        }
     }
+}
+
+fn check_charseq_termination(remainder: &str, terminator: char) -> (usize, bool, bool) {
+    let mut chars = remainder.char_indices().peekable();
+    let mut is_escaped = false;
+
+    while let Some((bump_to, chr)) = chars.next() {
+        match chr {
+            '\\' => {
+                let mut slash_count = 1_usize;
+
+                while let Some((_, '\\')) = chars.peek() {
+                    slash_count += 1;
+                    chars.next();
+                }
+
+                if slash_count % 2 == 1 {
+                    // possibly escaped terminator
+                    if let Some((_, c)) = chars.peek() {
+                        if *c == terminator {
+                            // is escaped, nom on it
+                            is_escaped = true;
+                            chars.next();
+                        }
+                    }
+                }
+            }
+            '\r' | '\n' => {
+                // also a terminating char, but not the right one
+                return (bump_to, false, is_escaped);
+            }
+            c if c == terminator => {
+                // is terminated (include terminator)
+                // safe to add by 1 since '\n' is always a 1 byte char in utf-8
+                return (bump_to + 1, true, false);
+            }
+            _ => {}
+        }
+    }
+
+    // bump it all, not terminated, maybe escaped
+    (remainder.len(), false, is_escaped)
 }
 
 fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
@@ -786,7 +832,8 @@ impl fmt::Display for TokenKind {
             TokenKind::RadixLiteral => "explicit int literal",
             TokenKind::Whitespace => "whitespace",
             TokenKind::Comment => "comment",
-            _ => unreachable!(),
+            TokenKind::Error => "invalid token",
+            _ => unreachable!("of token {:?}", self),
         })
     }
 }

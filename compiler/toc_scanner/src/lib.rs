@@ -680,6 +680,9 @@ mod test {
             ],
         );
 
+        // not an escaped terminator
+        expect(r#""abcd\\""#, &TokenKind::StringLiteral);
+
         // Invalid scanning should make a literal from the successfully parsed character
 
         // Ends at the end of line
@@ -723,6 +726,13 @@ mod test {
             &TokenKind::StringLiteral,
             expect![[r#"error at 0..6: string literal is missing terminator"#]],
         );
+
+        // Empty
+        expect_with_error(
+            r#"""#,
+            &TokenKind::StringLiteral,
+            expect![[r#"error at 0..1: string literal is missing terminator"#]],
+        );
     }
 
     #[test]
@@ -735,6 +745,9 @@ mod test {
                 (TokenKind::Identifier, "a"),
             ],
         );
+
+        // not an escaped terminator
+        expect(r#"'abcd\\'"#, &TokenKind::CharLiteral);
 
         // Invalid scanning should make a literal from the successfully parsed characters
 
@@ -778,6 +791,13 @@ mod test {
             "'abcd\"",
             &TokenKind::CharLiteral,
             expect![[r#"error at 0..6: char literal is missing terminator"#]],
+        );
+
+        // Empty
+        expect_with_error(
+            r#"'"#,
+            &TokenKind::CharLiteral,
+            expect![[r#"error at 0..1: char literal is missing terminator"#]],
         );
     }
 
