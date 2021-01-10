@@ -34,9 +34,11 @@ impl ParseResult {
     pub fn syntax(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.node.clone())
     }
-}
 
-impl ParseResult {
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
     pub fn debug_tree(&self) -> String {
         let mut s = String::new();
 

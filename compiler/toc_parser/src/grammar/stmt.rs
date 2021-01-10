@@ -72,6 +72,8 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
                     Some(m.complete(p, SyntaxKind::AssignStmt))
                 } else {
+                    // cleanup expected tokens, parsed a thing
+                    p.reset_expected_tokens();
                     // plop as a call stmt
                     Some(m.complete(p, SyntaxKind::CallStmt))
                 }
@@ -1020,7 +1022,7 @@ fn if_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
-    p.with_extra_recovery(&[TokenKind::EndIf, TokenKind::End, TokenKind::If], |p| {
+    p.with_extra_recovery(&[TokenKind::EndIf, TokenKind::End], |p| {
         // condition
         p.with_extra_recovery(&[TokenKind::Then], |p| {
             expr::expect_expr(p);
@@ -1079,9 +1081,9 @@ fn else_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    let stop_on_kind = &[TokenKind::EndIf, TokenKind::End, TokenKind::If];
-
-    p.with_extra_recovery(stop_on_kind, |p| self::stmt_list(p, Some(&[TokenKind::If])));
+    p.with_extra_recovery(&[TokenKind::EndIf, TokenKind::End], |p| {
+        self::stmt_list(p, None);
+    });
 
     if eat_tail {
         // Eat `end if` or `endif`
@@ -1470,7 +1472,8 @@ fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<Complete
 
     let at_excluded_set = |p: &mut Parser| {
         if let Some(excluded) = excluding {
-            excluded.iter().any(|kind| p.at(*kind))
+            // don't pollute the expected tokens list
+            excluded.iter().any(|kind| p.at_hidden(*kind))
         } else {
             false
         }
@@ -1577,16 +1580,22 @@ make_single_attr!(attr_forward, TokenKind::Forward, SyntaxKind::ForwardAttr);
 make_single_attr!(attr_opaque, TokenKind::Opaque, SyntaxKind::OpaqueAttr);
 
 fn at_stmt_block_end(p: &mut Parser) -> bool {
-    match_token!(|p| match {
+    let at_block_end = match_token!(|p| match {
         TokenKind::End,
         TokenKind::EndIf,
         TokenKind::EndCase,
         TokenKind::EndFor,
         TokenKind::EndLoop => {
-            // hide the checks
-            p.reset_expected_tokens();
+
             true
         }
-        _ => { false }
-    })
+        _ => {
+            false
+        }
+    });
+
+    // hide the checks
+    p.reset_expected_tokens();
+
+    at_block_end
 }

@@ -10277,3 +10277,57 @@ fn recover_on_get() {
             error at 18..21: expected expression, but found ’get’"#]],
     );
 }
+
+#[test]
+fn parse_nested_if_in_else() {
+    check(
+        r#"
+    if false then
+    else
+        a_filler_expr
+        if true then
+        end if
+    end if"#,
+        expect![[r#"
+            Source@0..96
+              Whitespace@0..5 "\n    "
+              IfStmt@5..96
+                KwIf@5..7 "if"
+                Whitespace@7..8 " "
+                IfBody@8..90
+                  LiteralExpr@8..14
+                    KwFalse@8..13 "false"
+                    Whitespace@13..14 " "
+                  KwThen@14..18 "then"
+                  Whitespace@18..23 "\n    "
+                  StmtList@23..23
+                  ElseStmt@23..90
+                    KwElse@23..27 "else"
+                    Whitespace@27..36 "\n        "
+                    StmtList@36..90
+                      CallStmt@36..58
+                        NameExpr@36..58
+                          Name@36..58
+                            Identifier@36..49 "a_filler_expr"
+                            Whitespace@49..58 "\n        "
+                      IfStmt@58..90
+                        KwIf@58..60 "if"
+                        Whitespace@60..61 " "
+                        IfBody@61..79
+                          LiteralExpr@61..66
+                            KwTrue@61..65 "true"
+                            Whitespace@65..66 " "
+                          KwThen@66..70 "then"
+                          Whitespace@70..79 "\n        "
+                          StmtList@79..79
+                        EndGroup@79..90
+                          KwEnd@79..82 "end"
+                          Whitespace@82..83 " "
+                          KwIf@83..85 "if"
+                          Whitespace@85..90 "\n    "
+                EndGroup@90..96
+                  KwEnd@90..93 "end"
+                  Whitespace@93..94 " "
+                  KwIf@94..96 "if""#]],
+    );
+}
