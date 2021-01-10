@@ -20,14 +20,14 @@
 
 // - include_glob
 // - assign_stmt
-// | open_stmt
-// | close_stmt
-// | put_stmt
-// | get_stmt
-// | read_stmt
-// | write_stmt
-// | seek_stmt
-// | tell_stmt
+// - open_stmt
+// - close_stmt
+// - put_stmt
+// - get_stmt
+// - read_stmt
+// - write_stmt
+// - seek_stmt
+// - tell_stmt
 // - for_stmt
 // - loop_stmt
 // - exit_stmt
