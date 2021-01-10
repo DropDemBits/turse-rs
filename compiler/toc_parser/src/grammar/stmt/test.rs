@@ -6555,3 +6555,612 @@ fn parse_monitor_class_decl_opt_dev_spec() {
               Identifier@28..29 "a""#]],
     );
 }
+
+#[test]
+fn parse_process_decl() {
+    check(
+        r#"
+    process a (a)
+        pre true
+    end a"#,
+        expect![[r#"
+            Source@0..45
+              Whitespace@0..5 "\n    "
+              ProcessDecl@5..45
+                KwProcess@5..12 "process"
+                Whitespace@12..13 " "
+                Name@13..15
+                  Identifier@13..14 "a"
+                  Whitespace@14..15 " "
+                ParamSpec@15..27
+                  LeftParen@15..16 "("
+                  ParamDecl@16..17
+                    NameList@16..17
+                      Name@16..17
+                        Identifier@16..17 "a"
+                  RightParen@17..18 ")"
+                  Whitespace@18..27 "\n        "
+                StmtList@27..40
+                  PreStmt@27..40
+                    KwPre@27..30 "pre"
+                    Whitespace@30..31 " "
+                    LiteralExpr@31..40
+                      KwTrue@31..35 "true"
+                      Whitespace@35..40 "\n    "
+                EndGroup@40..45
+                  KwEnd@40..43 "end"
+                  Whitespace@43..44 " "
+                  Identifier@44..45 "a"
+            error at 17..18: expected ’,’ or ’:’, but found ’)’
+            error at 17..18: expected type specifier, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn parse_process_decl_opt_stack_size() {
+    check(
+        r#"
+    process a (a) : 1 + t
+        pre true
+    end a"#,
+        expect![[r#"
+            Source@0..53
+              Whitespace@0..5 "\n    "
+              ProcessDecl@5..53
+                KwProcess@5..12 "process"
+                Whitespace@12..13 " "
+                Name@13..15
+                  Identifier@13..14 "a"
+                  Whitespace@14..15 " "
+                ParamSpec@15..19
+                  LeftParen@15..16 "("
+                  ParamDecl@16..17
+                    NameList@16..17
+                      Name@16..17
+                        Identifier@16..17 "a"
+                  RightParen@17..18 ")"
+                  Whitespace@18..19 " "
+                Colon@19..20 ":"
+                Whitespace@20..21 " "
+                BinaryExpr@21..35
+                  LiteralExpr@21..23
+                    IntLiteral@21..22 "1"
+                    Whitespace@22..23 " "
+                  Plus@23..24 "+"
+                  Whitespace@24..25 " "
+                  NameExpr@25..35
+                    Name@25..35
+                      Identifier@25..26 "t"
+                      Whitespace@26..35 "\n        "
+                StmtList@35..48
+                  PreStmt@35..48
+                    KwPre@35..38 "pre"
+                    Whitespace@38..39 " "
+                    LiteralExpr@39..48
+                      KwTrue@39..43 "true"
+                      Whitespace@43..48 "\n    "
+                EndGroup@48..53
+                  KwEnd@48..51 "end"
+                  Whitespace@51..52 " "
+                  Identifier@52..53 "a"
+            error at 17..18: expected ’,’ or ’:’, but found ’)’
+            error at 17..18: expected type specifier, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn parse_process_no_params() {
+    check(
+        r#"
+    process a
+        pre true
+    end a"#,
+        expect![[r#"
+            Source@0..41
+              Whitespace@0..5 "\n    "
+              ProcessDecl@5..41
+                KwProcess@5..12 "process"
+                Whitespace@12..13 " "
+                Name@13..23
+                  Identifier@13..14 "a"
+                  Whitespace@14..23 "\n        "
+                StmtList@23..36
+                  PreStmt@23..36
+                    KwPre@23..26 "pre"
+                    Whitespace@26..27 " "
+                    LiteralExpr@27..36
+                      KwTrue@27..31 "true"
+                      Whitespace@31..36 "\n    "
+                EndGroup@36..41
+                  KwEnd@36..39 "end"
+                  Whitespace@39..40 " "
+                  Identifier@40..41 "a""#]],
+    );
+}
+
+#[test]
+fn recover_process_decl_missing_stack_size_expr() {
+    check(
+        r#"
+    process a :
+    end a"#,
+        expect![[r#"
+            Source@0..26
+              Whitespace@0..5 "\n    "
+              ProcessDecl@5..26
+                KwProcess@5..12 "process"
+                Whitespace@12..13 " "
+                Name@13..15
+                  Identifier@13..14 "a"
+                  Whitespace@14..15 " "
+                Colon@15..16 ":"
+                Whitespace@16..21 "\n    "
+                StmtList@21..21
+                EndGroup@21..26
+                  KwEnd@21..24 "end"
+                  Whitespace@24..25 " "
+                  Identifier@25..26 "a"
+            error at 21..24: expected expression, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_process_decl_missing_name() {
+    check(
+        r#"
+    process
+    end a"#,
+        expect![[r#"
+            Source@0..22
+              Whitespace@0..5 "\n    "
+              ProcessDecl@5..22
+                KwProcess@5..12 "process"
+                Whitespace@12..17 "\n    "
+                StmtList@17..17
+                EndGroup@17..22
+                  KwEnd@17..20 "end"
+                  Whitespace@20..21 " "
+                  Identifier@21..22 "a"
+            error at 17..20: expected identifier, but found ’end’"#]],
+    );
+}
+
+#[test]
+fn recover_process_decl_missing_tail_name() {
+    check(
+        r#"
+    process a
+    end"#,
+        expect![[r#"
+            Source@0..22
+              Whitespace@0..5 "\n    "
+              ProcessDecl@5..22
+                KwProcess@5..12 "process"
+                Whitespace@12..13 " "
+                Name@13..19
+                  Identifier@13..14 "a"
+                  Whitespace@14..19 "\n    "
+                StmtList@19..19
+                EndGroup@19..22
+                  KwEnd@19..22 "end"
+            error at 19..22: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_just_process() {
+    check(
+        "process",
+        expect![[r#"
+        Source@0..7
+          ProcessDecl@0..7
+            KwProcess@0..7 "process"
+            StmtList@7..7
+            EndGroup@7..7
+        error at 0..7: expected identifier
+        error at 0..7: expected ’(’, ’:’ or ’end’
+        error at 0..7: expected identifier"#]],
+    );
+}
+
+#[test]
+fn recover_on_process() {
+    check(
+        r#"
+    var i :=
+    process a
+    end a"#,
+        expect![[r#"
+            Source@0..37
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              ProcessDecl@18..37
+                KwProcess@18..25 "process"
+                Whitespace@25..26 " "
+                Name@26..32
+                  Identifier@26..27 "a"
+                  Whitespace@27..32 "\n    "
+                StmtList@32..32
+                EndGroup@32..37
+                  KwEnd@32..35 "end"
+                  Whitespace@35..36 " "
+                  Identifier@36..37 "a"
+            error at 18..25: expected expression, but found ’process’"#]],
+    );
+}
+
+#[test]
+fn parse_external_fcn() {
+    check(
+        r#"external "error_last" fcn Last : int"#,
+        expect![[r#"
+        Source@0..36
+          ExternalDecl@0..36
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            LiteralExpr@9..22
+              StringLiteral@9..21 "\"error_last\""
+              Whitespace@21..22 " "
+            FcnHeader@22..36
+              KwFunction@22..25 "fcn"
+              Whitespace@25..26 " "
+              Name@26..31
+                Identifier@26..30 "Last"
+                Whitespace@30..31 " "
+              FcnResult@31..36
+                Colon@31..32 ":"
+                Whitespace@32..33 " "
+                PrimType@33..36
+                  KwInt@33..36 "int""#]],
+    );
+}
+
+#[test]
+fn parse_external_fcn_no_spec() {
+    check(
+        r#"external fcn Blit : int"#,
+        expect![[r#"
+        Source@0..23
+          ExternalDecl@0..23
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            FcnHeader@9..23
+              KwFunction@9..12 "fcn"
+              Whitespace@12..13 " "
+              Name@13..18
+                Identifier@13..17 "Blit"
+                Whitespace@17..18 " "
+              FcnResult@18..23
+                Colon@18..19 ":"
+                Whitespace@19..20 " "
+                PrimType@20..23
+                  KwInt@20..23 "int""#]],
+    );
+}
+
+#[test]
+fn parse_external_proc() {
+    check(
+        r#"external "view_update" proc Update"#,
+        expect![[r#"
+        Source@0..34
+          ExternalDecl@0..34
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            LiteralExpr@9..23
+              StringLiteral@9..22 "\"view_update\""
+              Whitespace@22..23 " "
+            ProcHeader@23..34
+              KwProcedure@23..27 "proc"
+              Whitespace@27..28 " "
+              Name@28..34
+                Identifier@28..34 "Update""#]],
+    );
+}
+
+#[test]
+fn parse_external_proc_no_spec() {
+    check(
+        r#"external proc unter"#,
+        expect![[r#"
+        Source@0..19
+          ExternalDecl@0..19
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            ProcHeader@9..19
+              KwProcedure@9..13 "proc"
+              Whitespace@13..14 " "
+              Name@14..19
+                Identifier@14..19 "unter""#]],
+    );
+}
+
+#[test]
+fn parse_external_var() {
+    check(
+        r#"external 1 + 1 - 1 var a : int := 2"#,
+        expect![[r#"
+        Source@0..35
+          ExternalDecl@0..35
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            BinaryExpr@9..19
+              BinaryExpr@9..15
+                LiteralExpr@9..11
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..11 " "
+                Plus@11..12 "+"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+              Minus@15..16 "-"
+              Whitespace@16..17 " "
+              LiteralExpr@17..19
+                IntLiteral@17..18 "1"
+                Whitespace@18..19 " "
+            ExternalVar@19..35
+              KwVar@19..22 "var"
+              Whitespace@22..23 " "
+              Name@23..25
+                Identifier@23..24 "a"
+                Whitespace@24..25 " "
+              Colon@25..26 ":"
+              Whitespace@26..27 " "
+              PrimType@27..31
+                KwInt@27..30 "int"
+                Whitespace@30..31 " "
+              Assign@31..33 ":="
+              Whitespace@33..34 " "
+              LiteralExpr@34..35
+                IntLiteral@34..35 "2""#]],
+    );
+}
+
+#[test]
+fn parse_external_var_named_spec() {
+    check(
+        r#"external "errno" var errno : int"#,
+        expect![[r#"
+        Source@0..32
+          ExternalDecl@0..32
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            LiteralExpr@9..17
+              StringLiteral@9..16 "\"errno\""
+              Whitespace@16..17 " "
+            ExternalVar@17..32
+              KwVar@17..20 "var"
+              Whitespace@20..21 " "
+              Name@21..27
+                Identifier@21..26 "errno"
+                Whitespace@26..27 " "
+              Colon@27..28 ":"
+              Whitespace@28..29 " "
+              PrimType@29..32
+                KwInt@29..32 "int""#]],
+    );
+}
+
+#[test]
+fn parse_external_var_alt_init() {
+    check(
+        r#"external 1 + 1 - 1 var a = 1"#,
+        expect![[r#"
+        Source@0..28
+          ExternalDecl@0..28
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            BinaryExpr@9..19
+              BinaryExpr@9..15
+                LiteralExpr@9..11
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..11 " "
+                Plus@11..12 "+"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+              Minus@15..16 "-"
+              Whitespace@16..17 " "
+              LiteralExpr@17..19
+                IntLiteral@17..18 "1"
+                Whitespace@18..19 " "
+            ExternalVar@19..28
+              KwVar@19..22 "var"
+              Whitespace@22..23 " "
+              Name@23..25
+                Identifier@23..24 "a"
+                Whitespace@24..25 " "
+              Equ@25..26 "="
+              Whitespace@26..27 " "
+              LiteralExpr@27..28
+                IntLiteral@27..28 "1"
+        warn at 25..26: ’=’ found, assuming it to be :="#]],
+    );
+}
+
+#[test]
+fn parse_external_var_no_init() {
+    check(
+        r#"external 1 + 1 - 1 var a : int"#,
+        expect![[r#"
+        Source@0..30
+          ExternalDecl@0..30
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            BinaryExpr@9..19
+              BinaryExpr@9..15
+                LiteralExpr@9..11
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..11 " "
+                Plus@11..12 "+"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+              Minus@15..16 "-"
+              Whitespace@16..17 " "
+              LiteralExpr@17..19
+                IntLiteral@17..18 "1"
+                Whitespace@18..19 " "
+            ExternalVar@19..30
+              KwVar@19..22 "var"
+              Whitespace@22..23 " "
+              Name@23..25
+                Identifier@23..24 "a"
+                Whitespace@24..25 " "
+              Colon@25..26 ":"
+              Whitespace@26..27 " "
+              PrimType@27..30
+                KwInt@27..30 "int""#]],
+    );
+}
+
+#[test]
+fn parse_external_var_no_ty() {
+    check(
+        r#"external 1 + 1 - 1 var a := 1"#,
+        expect![[r#"
+        Source@0..29
+          ExternalDecl@0..29
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            BinaryExpr@9..19
+              BinaryExpr@9..15
+                LiteralExpr@9..11
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..11 " "
+                Plus@11..12 "+"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+              Minus@15..16 "-"
+              Whitespace@16..17 " "
+              LiteralExpr@17..19
+                IntLiteral@17..18 "1"
+                Whitespace@18..19 " "
+            ExternalVar@19..29
+              KwVar@19..22 "var"
+              Whitespace@22..23 " "
+              Name@23..25
+                Identifier@23..24 "a"
+                Whitespace@24..25 " "
+              Assign@25..27 ":="
+              Whitespace@27..28 " "
+              LiteralExpr@28..29
+                IntLiteral@28..29 "1""#]],
+    );
+}
+
+#[test]
+fn recover_external_var_bare() {
+    check(
+        r#"external 1 + 1 - 1 var a"#,
+        expect![[r#"
+        Source@0..24
+          ExternalDecl@0..24
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+            BinaryExpr@9..19
+              BinaryExpr@9..15
+                LiteralExpr@9..11
+                  IntLiteral@9..10 "1"
+                  Whitespace@10..11 " "
+                Plus@11..12 "+"
+                Whitespace@12..13 " "
+                LiteralExpr@13..15
+                  IntLiteral@13..14 "1"
+                  Whitespace@14..15 " "
+              Minus@15..16 "-"
+              Whitespace@16..17 " "
+              LiteralExpr@17..19
+                IntLiteral@17..18 "1"
+                Whitespace@18..19 " "
+            ExternalVar@19..24
+              KwVar@19..22 "var"
+              Whitespace@22..23 " "
+              Name@23..24
+                Identifier@23..24 "a"
+        error at 23..24: expected ’:’ or ’:=’"#]],
+    );
+}
+
+#[test]
+fn recover_external_on_const() {
+    // not a valid construct, as ExternalDecl and ConstVarDecl
+    check(
+        r#"external const a : int := 1"#,
+        expect![[r#"
+        Source@0..27
+          ExternalDecl@0..9
+            KwExternal@0..8 "external"
+            Whitespace@8..9 " "
+          ConstVarDecl@9..27
+            KwConst@9..14 "const"
+            Whitespace@14..15 " "
+            NameList@15..17
+              Name@15..17
+                Identifier@15..16 "a"
+                Whitespace@16..17 " "
+            Colon@17..18 ":"
+            Whitespace@18..19 " "
+            PrimType@19..23
+              KwInt@19..22 "int"
+              Whitespace@22..23 " "
+            Assign@23..25 ":="
+            Whitespace@25..26 " "
+            LiteralExpr@26..27
+              IntLiteral@26..27 "1"
+        error at 9..14: expected ’function’, ’procedure’ or ’var’, but found ’const’"#]],
+    );
+}
+
+#[test]
+fn recover_just_external() {
+    check(
+        "external",
+        expect![[r#"
+        Source@0..8
+          ExternalDecl@0..8
+            KwExternal@0..8 "external"
+        error at 0..8: expected ’function’, ’procedure’ or ’var’"#]],
+    );
+}
+
+#[test]
+fn recover_on_external() {
+    check(
+        "var i := \nexternal var i",
+        expect![[r#"
+        Source@0..24
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ExternalDecl@10..24
+            KwExternal@10..18 "external"
+            Whitespace@18..19 " "
+            ExternalVar@19..24
+              KwVar@19..22 "var"
+              Whitespace@22..23 " "
+              Name@23..24
+                Identifier@23..24 "i"
+        error at 10..18: expected expression, but found ’external’
+        error at 23..24: expected ’:’ or ’:=’"#]],
+    );
+}
