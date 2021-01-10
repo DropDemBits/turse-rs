@@ -241,6 +241,7 @@ fn primary(p: &mut Parser) -> Option<CompletedMarker> {
         TokenKind::False => { literal_expr(p) }
         TokenKind::LeftParen => { paren_expr(p) }
         TokenKind::Init => { init_expr(p) }
+        TokenKind::Nil => { nil_expr(p) }
         _ => None
     })
 }
@@ -404,6 +405,23 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.expect(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::InitExpr))
+}
+
+fn nil_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    // nil ( '(' Reference ')' )?
+    debug_assert!(p.at(TokenKind::Nil));
+
+    let m = p.start();
+    p.bump();
+
+    if p.eat(TokenKind::LeftParen) {
+        p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+            expr::expect_expr(p);
+        });
+        p.expect(TokenKind::RightParen);
+    }
+
+    Some(m.complete(p, SyntaxKind::NilExpr))
 }
 
 fn indirect_expr_tail(p: &mut Parser, lhs: CompletedMarker) -> CompletedMarker {

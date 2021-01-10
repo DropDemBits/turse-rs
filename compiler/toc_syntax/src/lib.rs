@@ -313,6 +313,7 @@ pub enum SyntaxKind {
     CheatExpr,
     ObjClassExpr,
     InitExpr,
+    NilExpr,
     BinaryExpr,
     UnaryExpr,
     ParenExpr,
