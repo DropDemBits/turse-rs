@@ -24,15 +24,14 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Class => { class_decl(p) }
             TokenKind::Monitor => { monitor_decl(p) }
 
-            // include_stmt
-            // open_stmt
-            // close_stmt
-            // put_stmt
-            // get_stmt
-            // read_stmt
-            // write_stmt
-            // seek_stmt
-            // tell_stmt
+            TokenKind::Open => { open_stmt(p) }
+            TokenKind::Close => { close_stmt(p) }
+            TokenKind::Put => { put_stmt(p) }
+            TokenKind::Get => { get_stmt(p) }
+            TokenKind::Read => { read_stmt(p) }
+            TokenKind::Write => { write_stmt(p) }
+            TokenKind::Seek => { seek_stmt(p) }
+            TokenKind::Tell => { tell_stmt(p) }
             TokenKind::For =>{ for_stmt(p) }
             TokenKind::Loop =>{ loop_stmt(p) }
             TokenKind::Exit =>{ exit_stmt(p) }
@@ -605,6 +604,343 @@ fn monitor_decl(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 // Stmts //
+
+fn open_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Open));
+
+    let m = p.start();
+    p.bump();
+
+    if p.at(TokenKind::LeftParen) {
+        old_open(p);
+    } else {
+        new_open(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::OpenStmt))
+}
+
+fn old_open(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::LeftParen));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        p.with_extra_recovery(&[TokenKind::Comma], |p| {
+            expr::expect_expr(p);
+            p.expect(TokenKind::Comma);
+
+            // open_path
+            expr::expect_expr(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::OpenPath));
+            p.expect(TokenKind::Comma);
+        });
+
+        // open_mode
+        expr::expect_expr(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::OpenMode));
+    });
+
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::OldOpen))
+}
+
+fn new_open(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        // file_ref
+        p.expect(TokenKind::Colon);
+        expr::expect_expr(p);
+
+        // open_path
+        p.expect(TokenKind::Comma);
+        expr::expect_expr(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::OpenPath));
+
+        p.expect(TokenKind::Comma);
+        io_cap(p);
+
+        while p.eat(TokenKind::Comma) {
+            io_cap(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::NewOpen))
+}
+
+fn io_cap(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        TokenKind::Get,
+        TokenKind::Put,
+        TokenKind::Read,
+        TokenKind::Write,
+        TokenKind::Seek,
+        TokenKind::Mod => {
+            let m = p.start();
+            p.bump();
+            Some(m.complete(p, SyntaxKind::IoCap))
+        }
+        _ => {
+            p.error_unexpected().report();
+            None
+        }
+    })
+}
+
+fn close_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Close));
+
+    let m = p.start();
+    p.bump();
+
+    if p.at(TokenKind::LeftParen) {
+        // old close
+        let m = p.start();
+        p.bump();
+
+        p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+            expr::expect_expr(p);
+        });
+
+        p.expect(TokenKind::RightParen);
+        m.complete(p, SyntaxKind::OldClose);
+    } else {
+        // new close
+        let m = p.start();
+        p.expect(TokenKind::Colon);
+        expr::expect_expr(p);
+        m.complete(p, SyntaxKind::NewClose);
+    }
+
+    Some(m.complete(p, SyntaxKind::CloseStmt))
+}
+
+fn put_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Put));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        stream_num(p);
+
+        put_item(p);
+        while p.eat(TokenKind::Comma) {
+            put_item(p);
+        }
+    });
+
+    // add_newline?
+    p.eat(TokenKind::Range);
+
+    Some(m.complete(p, SyntaxKind::PutStmt))
+}
+
+fn put_item(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    if p.eat(TokenKind::Skip) {
+        Some(m.complete(p, SyntaxKind::PutItem))
+    } else {
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            expr::expect_expr(p);
+            // width
+            put_opt(p);
+            // fraction
+            put_opt(p);
+        });
+        // exp_width
+        put_opt(p);
+
+        Some(m.complete(p, SyntaxKind::PutItem))
+    }
+}
+
+fn put_opt(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Colon) {
+        return None;
+    }
+
+    let m = p.start();
+    p.bump();
+
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::PutOpt))
+}
+
+fn get_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Get));
+
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        stream_num(p);
+
+        get_item(p);
+        while p.eat(TokenKind::Comma) {
+            get_item(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::GetStmt))
+}
+
+fn get_item(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    if !p.eat(TokenKind::Skip) {
+        p.with_extra_recovery(&[TokenKind::Colon], |p| {
+            expr::expect_expr(p);
+        });
+
+        get_width(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::GetItem))
+}
+
+fn get_width(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Colon) {
+        return None;
+    }
+
+    let m = p.start();
+    p.bump();
+
+    if !p.eat(TokenKind::Star) {
+        expr::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::GetWidth))
+}
+
+fn stream_num(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Colon) {
+        return None;
+    }
+
+    let m = p.start();
+    p.expect(TokenKind::Colon);
+    expr::expect_expr(p);
+    p.expect(TokenKind::Comma);
+
+    Some(m.complete(p, SyntaxKind::StreamNum))
+}
+
+fn read_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Read));
+
+    let m = p.start();
+    p.bump();
+
+    binary_io(p);
+
+    Some(m.complete(p, SyntaxKind::ReadStmt))
+}
+
+fn write_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Write));
+
+    let m = p.start();
+    p.bump();
+
+    binary_io(p);
+
+    Some(m.complete(p, SyntaxKind::WriteStmt))
+}
+
+fn binary_io(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    p.with_extra_recovery(&[TokenKind::Colon, TokenKind::Comma], |p| {
+        // file_ref
+        p.expect(TokenKind::Colon);
+        expect_expr(p);
+
+        // status
+        if p.eat(TokenKind::Colon) {
+            expect_expr(p);
+        }
+
+        p.expect(TokenKind::Comma);
+
+        binary_item(p);
+        while p.eat(TokenKind::Comma) {
+            binary_item(p);
+        }
+    });
+
+    Some(m.complete(p, SyntaxKind::BinaryIO))
+}
+
+// expected to have ':' and ',' in extra recovery list
+fn binary_item(p: &mut Parser) -> Option<CompletedMarker> {
+    let m = p.start();
+
+    expr::expect_expr(p);
+
+    // requested_size
+    if p.at(TokenKind::Colon) {
+        let m = p.start();
+        p.bump();
+        expr::expect_expr(p);
+        m.complete(p, SyntaxKind::RequestSize);
+    }
+
+    // actual_size
+    if p.at(TokenKind::Colon) {
+        let m = p.start();
+        p.bump();
+        expr::expect_expr(p);
+        m.complete(p, SyntaxKind::ActualSize);
+    }
+
+    Some(m.complete(p, SyntaxKind::BinaryItem))
+}
+
+fn seek_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Seek));
+
+    let m = p.start();
+    p.bump();
+
+    // file_ref
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        p.expect(TokenKind::Colon);
+
+        expr::expect_expr(p);
+    });
+
+    // seek_to
+    p.expect(TokenKind::Comma);
+    if !p.eat(TokenKind::Star) {
+        expr::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::SeekStmt))
+}
+
+fn tell_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Tell));
+
+    let m = p.start();
+    p.bump();
+
+    // file_ref
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        p.expect(TokenKind::Colon);
+
+        expr::expect_expr(p);
+    });
+
+    // tell_store
+    p.expect(TokenKind::Comma);
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::TellStmt))
+}
 
 fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::For));

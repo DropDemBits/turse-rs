@@ -7918,3 +7918,2362 @@ fn recover_many_units() {
         error at 10..14: expected statement, but found ’unit’"#]],
     );
 }
+
+#[test]
+fn parse_tell_stmt() {
+    check(
+        "tell : a, b",
+        expect![[r#"
+        Source@0..11
+          TellStmt@0..11
+            KwTell@0..4 "tell"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            NameExpr@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+            NameExpr@10..11
+              Name@10..11
+                Identifier@10..11 "b""#]],
+    );
+}
+
+#[test]
+fn parse_tell_stmt_dest_not_ref() {
+    // reject in validation
+    check(
+        "tell : a, 1",
+        expect![[r#"
+        Source@0..11
+          TellStmt@0..11
+            KwTell@0..4 "tell"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            NameExpr@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+            LiteralExpr@10..11
+              IntLiteral@10..11 "1""#]],
+    );
+}
+
+#[test]
+fn recover_tell_stmt_missing_file_ref() {
+    check(
+        "tell : , a",
+        expect![[r#"
+        Source@0..10
+          TellStmt@0..10
+            KwTell@0..4 "tell"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            Comma@7..8 ","
+            Whitespace@8..9 " "
+            NameExpr@9..10
+              Name@9..10
+                Identifier@9..10 "a"
+        error at 7..8: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_tell_stmt_missing_tell_dest() {
+    check(
+        "tell : a, ",
+        expect![[r#"
+        Source@0..10
+          TellStmt@0..10
+            KwTell@0..4 "tell"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            NameExpr@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+        error at 9..10: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_just_tell() {
+    check(
+        "tell",
+        expect![[r#"
+        Source@0..4
+          TellStmt@0..4
+            KwTell@0..4 "tell"
+        error at 0..4: expected ’:’
+        error at 0..4: expected expression
+        error at 0..4: expected ’,’
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_tell() {
+    check(
+        "var i := \ntell : a, b",
+        expect![[r#"
+        Source@0..21
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          TellStmt@10..21
+            KwTell@10..14 "tell"
+            Whitespace@14..15 " "
+            Colon@15..16 ":"
+            Whitespace@16..17 " "
+            NameExpr@17..18
+              Name@17..18
+                Identifier@17..18 "a"
+            Comma@18..19 ","
+            Whitespace@19..20 " "
+            NameExpr@20..21
+              Name@20..21
+                Identifier@20..21 "b"
+        error at 10..14: expected expression, but found ’tell’"#]],
+    );
+}
+
+#[test]
+fn parse_seek_stmt() {
+    check(
+        "seek : a, b + 3",
+        expect![[r#"
+        Source@0..15
+          SeekStmt@0..15
+            KwSeek@0..4 "seek"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            NameExpr@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+            BinaryExpr@10..15
+              NameExpr@10..12
+                Name@10..12
+                  Identifier@10..11 "b"
+                  Whitespace@11..12 " "
+              Plus@12..13 "+"
+              Whitespace@13..14 " "
+              LiteralExpr@14..15
+                IntLiteral@14..15 "3""#]],
+    );
+}
+
+#[test]
+fn parse_seek_stmt_to_end() {
+    check(
+        "seek : a, *",
+        expect![[r#"
+        Source@0..11
+          SeekStmt@0..11
+            KwSeek@0..4 "seek"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            NameExpr@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+            Star@10..11 "*""#]],
+    );
+}
+
+#[test]
+fn recover_seek_stmt_missing_file_ref() {
+    check(
+        "seek : , a",
+        expect![[r#"
+        Source@0..10
+          SeekStmt@0..10
+            KwSeek@0..4 "seek"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            Comma@7..8 ","
+            Whitespace@8..9 " "
+            NameExpr@9..10
+              Name@9..10
+                Identifier@9..10 "a"
+        error at 7..8: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_seek_stmt_missing_to_expr() {
+    check(
+        "seek : a, ",
+        expect![[r#"
+        Source@0..10
+          SeekStmt@0..10
+            KwSeek@0..4 "seek"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            NameExpr@7..8
+              Name@7..8
+                Identifier@7..8 "a"
+            Comma@8..9 ","
+            Whitespace@9..10 " "
+        error at 9..10: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_just_seek() {
+    check(
+        "seek",
+        expect![[r#"
+        Source@0..4
+          SeekStmt@0..4
+            KwSeek@0..4 "seek"
+        error at 0..4: expected ’:’
+        error at 0..4: expected expression
+        error at 0..4: expected ’,’
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_seek() {
+    check(
+        "var i := \nseek : a, b",
+        expect![[r#"
+        Source@0..21
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          SeekStmt@10..21
+            KwSeek@10..14 "seek"
+            Whitespace@14..15 " "
+            Colon@15..16 ":"
+            Whitespace@16..17 " "
+            NameExpr@17..18
+              Name@17..18
+                Identifier@17..18 "a"
+            Comma@18..19 ","
+            Whitespace@19..20 " "
+            NameExpr@20..21
+              Name@20..21
+                Identifier@20..21 "b"
+        error at 10..14: expected expression, but found ’seek’"#]],
+    );
+}
+
+#[test]
+fn parse_read_stmt() {
+    check(
+        "read : fref, a, b, c, d",
+        expect![[r#"
+        Source@0..23
+          ReadStmt@0..23
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..23
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              BinaryItem@13..14
+                NameExpr@13..14
+                  Name@13..14
+                    Identifier@13..14 "a"
+              Comma@14..15 ","
+              Whitespace@15..16 " "
+              BinaryItem@16..17
+                NameExpr@16..17
+                  Name@16..17
+                    Identifier@16..17 "b"
+              Comma@17..18 ","
+              Whitespace@18..19 " "
+              BinaryItem@19..20
+                NameExpr@19..20
+                  Name@19..20
+                    Identifier@19..20 "c"
+              Comma@20..21 ","
+              Whitespace@21..22 " "
+              BinaryItem@22..23
+                NameExpr@22..23
+                  Name@22..23
+                    Identifier@22..23 "d""#]],
+    );
+}
+
+#[test]
+fn parse_read_stmt_opt_status() {
+    check(
+        "read : fref : sts, a",
+        expect![[r#"
+        Source@0..20
+          ReadStmt@0..20
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..20
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..12
+                Name@7..12
+                  Identifier@7..11 "fref"
+                  Whitespace@11..12 " "
+              Colon@12..13 ":"
+              Whitespace@13..14 " "
+              NameExpr@14..17
+                Name@14..17
+                  Identifier@14..17 "sts"
+              Comma@17..18 ","
+              Whitespace@18..19 " "
+              BinaryItem@19..20
+                NameExpr@19..20
+                  Name@19..20
+                    Identifier@19..20 "a""#]],
+    );
+}
+
+#[test]
+fn parse_read_stmt_all_item_variants() {
+    check(
+        "read : fref, a, b : sz, c : 1 + 2 : here",
+        expect![[r#"
+        Source@0..40
+          ReadStmt@0..40
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..40
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              BinaryItem@13..14
+                NameExpr@13..14
+                  Name@13..14
+                    Identifier@13..14 "a"
+              Comma@14..15 ","
+              Whitespace@15..16 " "
+              BinaryItem@16..22
+                NameExpr@16..18
+                  Name@16..18
+                    Identifier@16..17 "b"
+                    Whitespace@17..18 " "
+                RequestSize@18..22
+                  Colon@18..19 ":"
+                  Whitespace@19..20 " "
+                  NameExpr@20..22
+                    Name@20..22
+                      Identifier@20..22 "sz"
+              Comma@22..23 ","
+              Whitespace@23..24 " "
+              BinaryItem@24..40
+                NameExpr@24..26
+                  Name@24..26
+                    Identifier@24..25 "c"
+                    Whitespace@25..26 " "
+                RequestSize@26..34
+                  Colon@26..27 ":"
+                  Whitespace@27..28 " "
+                  BinaryExpr@28..34
+                    LiteralExpr@28..30
+                      IntLiteral@28..29 "1"
+                      Whitespace@29..30 " "
+                    Plus@30..31 "+"
+                    Whitespace@31..32 " "
+                    LiteralExpr@32..34
+                      IntLiteral@32..33 "2"
+                      Whitespace@33..34 " "
+                ActualSize@34..40
+                  Colon@34..35 ":"
+                  Whitespace@35..36 " "
+                  NameExpr@36..40
+                    Name@36..40
+                      Identifier@36..40 "here""#]],
+    );
+}
+
+#[test]
+fn recover_read_stmt_missing_actual_sz_expr() {
+    check(
+        "read : fref, a : 1 + 2 : , b",
+        expect![[r#"
+        Source@0..28
+          ReadStmt@0..28
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..28
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              BinaryItem@13..25
+                NameExpr@13..15
+                  Name@13..15
+                    Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                RequestSize@15..23
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  BinaryExpr@17..23
+                    LiteralExpr@17..19
+                      IntLiteral@17..18 "1"
+                      Whitespace@18..19 " "
+                    Plus@19..20 "+"
+                    Whitespace@20..21 " "
+                    LiteralExpr@21..23
+                      IntLiteral@21..22 "2"
+                      Whitespace@22..23 " "
+                ActualSize@23..25
+                  Colon@23..24 ":"
+                  Whitespace@24..25 " "
+              Comma@25..26 ","
+              Whitespace@26..27 " "
+              BinaryItem@27..28
+                NameExpr@27..28
+                  Name@27..28
+                    Identifier@27..28 "b"
+        error at 25..26: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_read_stmt_missing_req_sz_expr() {
+    check(
+        "read : fref, a :  : ok, b",
+        expect![[r#"
+        Source@0..25
+          ReadStmt@0..25
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..25
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              BinaryItem@13..22
+                NameExpr@13..15
+                  Name@13..15
+                    Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                RequestSize@15..18
+                  Colon@15..16 ":"
+                  Whitespace@16..18 "  "
+                ActualSize@18..22
+                  Colon@18..19 ":"
+                  Whitespace@19..20 " "
+                  NameExpr@20..22
+                    Name@20..22
+                      Identifier@20..22 "ok"
+              Comma@22..23 ","
+              Whitespace@23..24 " "
+              BinaryItem@24..25
+                NameExpr@24..25
+                  Name@24..25
+                    Identifier@24..25 "b"
+        error at 18..19: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_read_stmt_missing_item_data_expr() {
+    check(
+        "read : fref,  : req : ok, b",
+        expect![[r#"
+        Source@0..27
+          ReadStmt@0..27
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..27
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..14 "  "
+              BinaryItem@14..24
+                RequestSize@14..20
+                  Colon@14..15 ":"
+                  Whitespace@15..16 " "
+                  NameExpr@16..20
+                    Name@16..20
+                      Identifier@16..19 "req"
+                      Whitespace@19..20 " "
+                ActualSize@20..24
+                  Colon@20..21 ":"
+                  Whitespace@21..22 " "
+                  NameExpr@22..24
+                    Name@22..24
+                      Identifier@22..24 "ok"
+              Comma@24..25 ","
+              Whitespace@25..26 " "
+              BinaryItem@26..27
+                NameExpr@26..27
+                  Name@26..27
+                    Identifier@26..27 "b"
+        error at 14..15: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_read_stmt_missing_sts_ref() {
+    check(
+        "read : fref : , a : req : ok, b",
+        expect![[r#"
+        Source@0..31
+          ReadStmt@0..31
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..31
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..12
+                Name@7..12
+                  Identifier@7..11 "fref"
+                  Whitespace@11..12 " "
+              Colon@12..13 ":"
+              Whitespace@13..14 " "
+              Comma@14..15 ","
+              Whitespace@15..16 " "
+              BinaryItem@16..28
+                NameExpr@16..18
+                  Name@16..18
+                    Identifier@16..17 "a"
+                    Whitespace@17..18 " "
+                RequestSize@18..24
+                  Colon@18..19 ":"
+                  Whitespace@19..20 " "
+                  NameExpr@20..24
+                    Name@20..24
+                      Identifier@20..23 "req"
+                      Whitespace@23..24 " "
+                ActualSize@24..28
+                  Colon@24..25 ":"
+                  Whitespace@25..26 " "
+                  NameExpr@26..28
+                    Name@26..28
+                      Identifier@26..28 "ok"
+              Comma@28..29 ","
+              Whitespace@29..30 " "
+              BinaryItem@30..31
+                NameExpr@30..31
+                  Name@30..31
+                    Identifier@30..31 "b"
+        error at 14..15: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_read_stmt_missing_file_ref() {
+    check(
+        "read : : sts, a : req : ok, b",
+        expect![[r#"
+        Source@0..29
+          ReadStmt@0..29
+            KwRead@0..4 "read"
+            Whitespace@4..5 " "
+            BinaryIO@5..29
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              NameExpr@9..12
+                Name@9..12
+                  Identifier@9..12 "sts"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              BinaryItem@14..26
+                NameExpr@14..16
+                  Name@14..16
+                    Identifier@14..15 "a"
+                    Whitespace@15..16 " "
+                RequestSize@16..22
+                  Colon@16..17 ":"
+                  Whitespace@17..18 " "
+                  NameExpr@18..22
+                    Name@18..22
+                      Identifier@18..21 "req"
+                      Whitespace@21..22 " "
+                ActualSize@22..26
+                  Colon@22..23 ":"
+                  Whitespace@23..24 " "
+                  NameExpr@24..26
+                    Name@24..26
+                      Identifier@24..26 "ok"
+              Comma@26..27 ","
+              Whitespace@27..28 " "
+              BinaryItem@28..29
+                NameExpr@28..29
+                  Name@28..29
+                    Identifier@28..29 "b"
+        error at 7..8: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_just_read() {
+    check(
+        "read",
+        expect![[r#"
+        Source@0..4
+          ReadStmt@0..4
+            KwRead@0..4 "read"
+            BinaryIO@4..4
+              BinaryItem@4..4
+        error at 0..4: expected ’:’
+        error at 0..4: expected expression
+        error at 0..4: expected ’:’ or ’,’
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_read() {
+    check(
+        "var i := \nread : a, b",
+        expect![[r#"
+        Source@0..21
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          ReadStmt@10..21
+            KwRead@10..14 "read"
+            Whitespace@14..15 " "
+            BinaryIO@15..21
+              Colon@15..16 ":"
+              Whitespace@16..17 " "
+              NameExpr@17..18
+                Name@17..18
+                  Identifier@17..18 "a"
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              BinaryItem@20..21
+                NameExpr@20..21
+                  Name@20..21
+                    Identifier@20..21 "b"
+        error at 10..14: expected expression, but found ’read’"#]],
+    );
+}
+
+#[test]
+fn parse_write_stmt() {
+    check(
+        "write : fref, a, b, c, d",
+        expect![[r#"
+        Source@0..24
+          WriteStmt@0..24
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..24
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..12
+                Name@8..12
+                  Identifier@8..12 "fref"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              BinaryItem@14..15
+                NameExpr@14..15
+                  Name@14..15
+                    Identifier@14..15 "a"
+              Comma@15..16 ","
+              Whitespace@16..17 " "
+              BinaryItem@17..18
+                NameExpr@17..18
+                  Name@17..18
+                    Identifier@17..18 "b"
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              BinaryItem@20..21
+                NameExpr@20..21
+                  Name@20..21
+                    Identifier@20..21 "c"
+              Comma@21..22 ","
+              Whitespace@22..23 " "
+              BinaryItem@23..24
+                NameExpr@23..24
+                  Name@23..24
+                    Identifier@23..24 "d""#]],
+    );
+}
+
+#[test]
+fn parse_write_stmt_opt_status() {
+    check(
+        "write : fref : sts, a",
+        expect![[r#"
+        Source@0..21
+          WriteStmt@0..21
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..21
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..13
+                Name@8..13
+                  Identifier@8..12 "fref"
+                  Whitespace@12..13 " "
+              Colon@13..14 ":"
+              Whitespace@14..15 " "
+              NameExpr@15..18
+                Name@15..18
+                  Identifier@15..18 "sts"
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              BinaryItem@20..21
+                NameExpr@20..21
+                  Name@20..21
+                    Identifier@20..21 "a""#]],
+    );
+}
+
+#[test]
+fn parse_write_stmt_all_item_variants() {
+    check(
+        "write : fref, a, b : sz, c : 1 + 2 : here",
+        expect![[r#"
+        Source@0..41
+          WriteStmt@0..41
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..41
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..12
+                Name@8..12
+                  Identifier@8..12 "fref"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              BinaryItem@14..15
+                NameExpr@14..15
+                  Name@14..15
+                    Identifier@14..15 "a"
+              Comma@15..16 ","
+              Whitespace@16..17 " "
+              BinaryItem@17..23
+                NameExpr@17..19
+                  Name@17..19
+                    Identifier@17..18 "b"
+                    Whitespace@18..19 " "
+                RequestSize@19..23
+                  Colon@19..20 ":"
+                  Whitespace@20..21 " "
+                  NameExpr@21..23
+                    Name@21..23
+                      Identifier@21..23 "sz"
+              Comma@23..24 ","
+              Whitespace@24..25 " "
+              BinaryItem@25..41
+                NameExpr@25..27
+                  Name@25..27
+                    Identifier@25..26 "c"
+                    Whitespace@26..27 " "
+                RequestSize@27..35
+                  Colon@27..28 ":"
+                  Whitespace@28..29 " "
+                  BinaryExpr@29..35
+                    LiteralExpr@29..31
+                      IntLiteral@29..30 "1"
+                      Whitespace@30..31 " "
+                    Plus@31..32 "+"
+                    Whitespace@32..33 " "
+                    LiteralExpr@33..35
+                      IntLiteral@33..34 "2"
+                      Whitespace@34..35 " "
+                ActualSize@35..41
+                  Colon@35..36 ":"
+                  Whitespace@36..37 " "
+                  NameExpr@37..41
+                    Name@37..41
+                      Identifier@37..41 "here""#]],
+    );
+}
+
+#[test]
+fn recover_write_stmt_missing_actual_sz_expr() {
+    check(
+        "write : fref, a : 1 + 2 : , b",
+        expect![[r#"
+        Source@0..29
+          WriteStmt@0..29
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..29
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..12
+                Name@8..12
+                  Identifier@8..12 "fref"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              BinaryItem@14..26
+                NameExpr@14..16
+                  Name@14..16
+                    Identifier@14..15 "a"
+                    Whitespace@15..16 " "
+                RequestSize@16..24
+                  Colon@16..17 ":"
+                  Whitespace@17..18 " "
+                  BinaryExpr@18..24
+                    LiteralExpr@18..20
+                      IntLiteral@18..19 "1"
+                      Whitespace@19..20 " "
+                    Plus@20..21 "+"
+                    Whitespace@21..22 " "
+                    LiteralExpr@22..24
+                      IntLiteral@22..23 "2"
+                      Whitespace@23..24 " "
+                ActualSize@24..26
+                  Colon@24..25 ":"
+                  Whitespace@25..26 " "
+              Comma@26..27 ","
+              Whitespace@27..28 " "
+              BinaryItem@28..29
+                NameExpr@28..29
+                  Name@28..29
+                    Identifier@28..29 "b"
+        error at 26..27: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_write_stmt_missing_req_sz_expr() {
+    check(
+        "write : fref, a :  : ok, b",
+        expect![[r#"
+        Source@0..26
+          WriteStmt@0..26
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..26
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..12
+                Name@8..12
+                  Identifier@8..12 "fref"
+              Comma@12..13 ","
+              Whitespace@13..14 " "
+              BinaryItem@14..23
+                NameExpr@14..16
+                  Name@14..16
+                    Identifier@14..15 "a"
+                    Whitespace@15..16 " "
+                RequestSize@16..19
+                  Colon@16..17 ":"
+                  Whitespace@17..19 "  "
+                ActualSize@19..23
+                  Colon@19..20 ":"
+                  Whitespace@20..21 " "
+                  NameExpr@21..23
+                    Name@21..23
+                      Identifier@21..23 "ok"
+              Comma@23..24 ","
+              Whitespace@24..25 " "
+              BinaryItem@25..26
+                NameExpr@25..26
+                  Name@25..26
+                    Identifier@25..26 "b"
+        error at 19..20: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_write_stmt_missing_item_data_expr() {
+    check(
+        "write : fref,  : req : ok, b",
+        expect![[r#"
+        Source@0..28
+          WriteStmt@0..28
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..28
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..12
+                Name@8..12
+                  Identifier@8..12 "fref"
+              Comma@12..13 ","
+              Whitespace@13..15 "  "
+              BinaryItem@15..25
+                RequestSize@15..21
+                  Colon@15..16 ":"
+                  Whitespace@16..17 " "
+                  NameExpr@17..21
+                    Name@17..21
+                      Identifier@17..20 "req"
+                      Whitespace@20..21 " "
+                ActualSize@21..25
+                  Colon@21..22 ":"
+                  Whitespace@22..23 " "
+                  NameExpr@23..25
+                    Name@23..25
+                      Identifier@23..25 "ok"
+              Comma@25..26 ","
+              Whitespace@26..27 " "
+              BinaryItem@27..28
+                NameExpr@27..28
+                  Name@27..28
+                    Identifier@27..28 "b"
+        error at 15..16: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_write_stmt_missing_sts_ref() {
+    check(
+        "write : fref : , a : req : ok, b",
+        expect![[r#"
+        Source@0..32
+          WriteStmt@0..32
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..32
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..13
+                Name@8..13
+                  Identifier@8..12 "fref"
+                  Whitespace@12..13 " "
+              Colon@13..14 ":"
+              Whitespace@14..15 " "
+              Comma@15..16 ","
+              Whitespace@16..17 " "
+              BinaryItem@17..29
+                NameExpr@17..19
+                  Name@17..19
+                    Identifier@17..18 "a"
+                    Whitespace@18..19 " "
+                RequestSize@19..25
+                  Colon@19..20 ":"
+                  Whitespace@20..21 " "
+                  NameExpr@21..25
+                    Name@21..25
+                      Identifier@21..24 "req"
+                      Whitespace@24..25 " "
+                ActualSize@25..29
+                  Colon@25..26 ":"
+                  Whitespace@26..27 " "
+                  NameExpr@27..29
+                    Name@27..29
+                      Identifier@27..29 "ok"
+              Comma@29..30 ","
+              Whitespace@30..31 " "
+              BinaryItem@31..32
+                NameExpr@31..32
+                  Name@31..32
+                    Identifier@31..32 "b"
+        error at 15..16: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_write_stmt_missing_file_ref() {
+    check(
+        "write : : sts, a : req : ok, b",
+        expect![[r#"
+        Source@0..30
+          WriteStmt@0..30
+            KwWrite@0..5 "write"
+            Whitespace@5..6 " "
+            BinaryIO@6..30
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              Colon@8..9 ":"
+              Whitespace@9..10 " "
+              NameExpr@10..13
+                Name@10..13
+                  Identifier@10..13 "sts"
+              Comma@13..14 ","
+              Whitespace@14..15 " "
+              BinaryItem@15..27
+                NameExpr@15..17
+                  Name@15..17
+                    Identifier@15..16 "a"
+                    Whitespace@16..17 " "
+                RequestSize@17..23
+                  Colon@17..18 ":"
+                  Whitespace@18..19 " "
+                  NameExpr@19..23
+                    Name@19..23
+                      Identifier@19..22 "req"
+                      Whitespace@22..23 " "
+                ActualSize@23..27
+                  Colon@23..24 ":"
+                  Whitespace@24..25 " "
+                  NameExpr@25..27
+                    Name@25..27
+                      Identifier@25..27 "ok"
+              Comma@27..28 ","
+              Whitespace@28..29 " "
+              BinaryItem@29..30
+                NameExpr@29..30
+                  Name@29..30
+                    Identifier@29..30 "b"
+        error at 8..9: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_just_write() {
+    check(
+        "write",
+        expect![[r#"
+        Source@0..5
+          WriteStmt@0..5
+            KwWrite@0..5 "write"
+            BinaryIO@5..5
+              BinaryItem@5..5
+        error at 0..5: expected ’:’
+        error at 0..5: expected expression
+        error at 0..5: expected ’:’ or ’,’
+        error at 0..5: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_write() {
+    check(
+        "var i := \nwrite : a, b",
+        expect![[r#"
+        Source@0..22
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          WriteStmt@10..22
+            KwWrite@10..15 "write"
+            Whitespace@15..16 " "
+            BinaryIO@16..22
+              Colon@16..17 ":"
+              Whitespace@17..18 " "
+              NameExpr@18..19
+                Name@18..19
+                  Identifier@18..19 "a"
+              Comma@19..20 ","
+              Whitespace@20..21 " "
+              BinaryItem@21..22
+                NameExpr@21..22
+                  Name@21..22
+                    Identifier@21..22 "b"
+        error at 10..15: expected expression, but found ’write’"#]],
+    );
+}
+
+#[test]
+fn parse_old_open() {
+    check(
+        r#"open (a, "to_here", "rw+")"#,
+        expect![[r#"
+        Source@0..26
+          OpenStmt@0..26
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            OldOpen@5..26
+              LeftParen@5..6 "("
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "a"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              OpenPath@9..18
+                LiteralExpr@9..18
+                  StringLiteral@9..18 "\"to_here\""
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              OpenMode@20..25
+                LiteralExpr@20..25
+                  StringLiteral@20..25 "\"rw+\""
+              RightParen@25..26 ")""#]],
+    );
+}
+
+#[test]
+fn recover_old_open_missing_left_paren() {
+    check(
+        r#"open a, "to_here", "rw+")"#,
+        expect![[r#"
+        Source@0..25
+          OpenStmt@0..24
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            NewOpen@5..24
+              Error@5..6
+                Identifier@5..6 "a"
+              Comma@6..7 ","
+              Whitespace@7..8 " "
+              OpenPath@8..17
+                LiteralExpr@8..17
+                  StringLiteral@8..17 "\"to_here\""
+              Comma@17..18 ","
+              Whitespace@18..19 " "
+              Error@19..24
+                StringLiteral@19..24 "\"rw+\""
+          Error@24..25
+            RightParen@24..25 ")"
+        error at 5..6: expected ’(’ or ’:’, but found identifier
+        error at 6..7: expected expression, but found ’,’
+        error at 19..24: expected ’get’, ’put’, ’read’, ’write’, ’seek’ or ’mod’, but found string literal
+        error at 24..25: expected statement, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_old_open_missing_file_ref() {
+    check(
+        r#"open (, "to_here", "rw+")"#,
+        expect![[r#"
+        Source@0..25
+          OpenStmt@0..25
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            OldOpen@5..25
+              LeftParen@5..6 "("
+              Comma@6..7 ","
+              Whitespace@7..8 " "
+              OpenPath@8..17
+                LiteralExpr@8..17
+                  StringLiteral@8..17 "\"to_here\""
+              Comma@17..18 ","
+              Whitespace@18..19 " "
+              OpenMode@19..24
+                LiteralExpr@19..24
+                  StringLiteral@19..24 "\"rw+\""
+              RightParen@24..25 ")"
+        error at 6..7: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_old_open_missing_path() {
+    check(
+        r#"open (a, , "rw+")"#,
+        expect![[r#"
+        Source@0..17
+          OpenStmt@0..17
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            OldOpen@5..17
+              LeftParen@5..6 "("
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "a"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              Comma@9..10 ","
+              Whitespace@10..11 " "
+              OpenMode@11..16
+                LiteralExpr@11..16
+                  StringLiteral@11..16 "\"rw+\""
+              RightParen@16..17 ")"
+        error at 9..10: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_old_open_missing_() {
+    check(
+        r#"open (a, "to_here", "rw+")"#,
+        expect![[r#"
+        Source@0..26
+          OpenStmt@0..26
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            OldOpen@5..26
+              LeftParen@5..6 "("
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "a"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              OpenPath@9..18
+                LiteralExpr@9..18
+                  StringLiteral@9..18 "\"to_here\""
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              OpenMode@20..25
+                LiteralExpr@20..25
+                  StringLiteral@20..25 "\"rw+\""
+              RightParen@25..26 ")""#]],
+    );
+}
+
+#[test]
+fn recover_old_open_missing_mode() {
+    check(
+        r#"open (a, "to_here", )"#,
+        expect![[r#"
+        Source@0..21
+          OpenStmt@0..21
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            OldOpen@5..21
+              LeftParen@5..6 "("
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "a"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              OpenPath@9..18
+                LiteralExpr@9..18
+                  StringLiteral@9..18 "\"to_here\""
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              RightParen@20..21 ")"
+        error at 20..21: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_old_open_missing_right_paren() {
+    check(
+        r#"open (a, "to_here", "rw+""#,
+        expect![[r#"
+        Source@0..25
+          OpenStmt@0..25
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            OldOpen@5..25
+              LeftParen@5..6 "("
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "a"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              OpenPath@9..18
+                LiteralExpr@9..18
+                  StringLiteral@9..18 "\"to_here\""
+              Comma@18..19 ","
+              Whitespace@19..20 " "
+              OpenMode@20..25
+                LiteralExpr@20..25
+                  StringLiteral@20..25 "\"rw+\""
+        error at 20..25: expected ’)’"#]],
+    );
+}
+
+#[test]
+fn parse_new_open() {
+    check(
+        r#"open : fref, a_path, get, put, read, write, seek, mod"#,
+        expect![[r#"
+            Source@0..53
+              OpenStmt@0..53
+                KwOpen@0..4 "open"
+                Whitespace@4..5 " "
+                NewOpen@5..53
+                  Colon@5..6 ":"
+                  Whitespace@6..7 " "
+                  NameExpr@7..11
+                    Name@7..11
+                      Identifier@7..11 "fref"
+                  Comma@11..12 ","
+                  Whitespace@12..13 " "
+                  OpenPath@13..19
+                    NameExpr@13..19
+                      Name@13..19
+                        Identifier@13..19 "a_path"
+                  Comma@19..20 ","
+                  Whitespace@20..21 " "
+                  IoCap@21..24
+                    KwGet@21..24 "get"
+                  Comma@24..25 ","
+                  Whitespace@25..26 " "
+                  IoCap@26..29
+                    KwPut@26..29 "put"
+                  Comma@29..30 ","
+                  Whitespace@30..31 " "
+                  IoCap@31..35
+                    KwRead@31..35 "read"
+                  Comma@35..36 ","
+                  Whitespace@36..37 " "
+                  IoCap@37..42
+                    KwWrite@37..42 "write"
+                  Comma@42..43 ","
+                  Whitespace@43..44 " "
+                  IoCap@44..48
+                    KwSeek@44..48 "seek"
+                  Comma@48..49 ","
+                  Whitespace@49..50 " "
+                  IoCap@50..53
+                    KwMod@50..53 "mod""#]],
+    );
+}
+
+#[test]
+fn recover_new_open_missing_mode() {
+    check(
+        r#"open : fref, a_path, "#,
+        expect![[r#"
+        Source@0..21
+          OpenStmt@0..21
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            NewOpen@5..21
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              OpenPath@13..19
+                NameExpr@13..19
+                  Name@13..19
+                    Identifier@13..19 "a_path"
+              Comma@19..20 ","
+              Whitespace@20..21 " "
+        error at 20..21: expected ’get’, ’put’, ’read’, ’write’, ’seek’ or ’mod’"#]],
+    );
+}
+
+#[test]
+fn recover_new_open_missing_mode_in_list() {
+    check(
+        r#"open : fref, a_path, get, , mod"#,
+        expect![[r#"
+        Source@0..31
+          OpenStmt@0..31
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            NewOpen@5..31
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              OpenPath@13..19
+                NameExpr@13..19
+                  Name@13..19
+                    Identifier@13..19 "a_path"
+              Comma@19..20 ","
+              Whitespace@20..21 " "
+              IoCap@21..24
+                KwGet@21..24 "get"
+              Comma@24..25 ","
+              Whitespace@25..26 " "
+              Comma@26..27 ","
+              Whitespace@27..28 " "
+              IoCap@28..31
+                KwMod@28..31 "mod"
+        error at 26..27: expected ’get’, ’put’, ’read’, ’write’, ’seek’ or ’mod’, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_new_open_missing_path() {
+    check(
+        r#"open : fref, , get"#,
+        expect![[r#"
+        Source@0..18
+          OpenStmt@0..18
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            NewOpen@5..18
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              NameExpr@7..11
+                Name@7..11
+                  Identifier@7..11 "fref"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+              Comma@13..14 ","
+              Whitespace@14..15 " "
+              IoCap@15..18
+                KwGet@15..18 "get"
+        error at 13..14: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_new_open_missing_file_ref() {
+    check(
+        r#"open : , a_path, get"#,
+        expect![[r#"
+        Source@0..20
+          OpenStmt@0..20
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            NewOpen@5..20
+              Colon@5..6 ":"
+              Whitespace@6..7 " "
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+              OpenPath@9..15
+                NameExpr@9..15
+                  Name@9..15
+                    Identifier@9..15 "a_path"
+              Comma@15..16 ","
+              Whitespace@16..17 " "
+              IoCap@17..20
+                KwGet@17..20 "get"
+        error at 7..8: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_new_open_missing_colon() {
+    check(
+        r#"open fref, a_path, get"#,
+        expect![[r#"
+        Source@0..22
+          OpenStmt@0..22
+            KwOpen@0..4 "open"
+            Whitespace@4..5 " "
+            NewOpen@5..22
+              Error@5..9
+                Identifier@5..9 "fref"
+              Comma@9..10 ","
+              Whitespace@10..11 " "
+              OpenPath@11..17
+                NameExpr@11..17
+                  Name@11..17
+                    Identifier@11..17 "a_path"
+              Comma@17..18 ","
+              Whitespace@18..19 " "
+              IoCap@19..22
+                KwGet@19..22 "get"
+        error at 5..9: expected ’(’ or ’:’, but found identifier
+        error at 9..10: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_just_open() {
+    check(
+        r#"open"#,
+        expect![[r#"
+        Source@0..4
+          OpenStmt@0..4
+            KwOpen@0..4 "open"
+            NewOpen@4..4
+        error at 0..4: expected ’(’ or ’:’
+        error at 0..4: expected expression
+        error at 0..4: expected ’,’
+        error at 0..4: expected expression
+        error at 0..4: expected ’,’
+        error at 0..4: expected ’get’, ’put’, ’read’, ’write’, ’seek’ or ’mod’"#]],
+    );
+}
+
+#[test]
+fn recover_on_open() {
+    check(
+        r#"
+        var i :=
+        open : fref, a_path, get"#,
+        expect![[r#"
+            Source@0..50
+              Whitespace@0..9 "\n        "
+              ConstVarDecl@9..26
+                KwVar@9..12 "var"
+                Whitespace@12..13 " "
+                NameList@13..15
+                  Name@13..15
+                    Identifier@13..14 "i"
+                    Whitespace@14..15 " "
+                Assign@15..17 ":="
+                Whitespace@17..26 "\n        "
+              OpenStmt@26..50
+                KwOpen@26..30 "open"
+                Whitespace@30..31 " "
+                NewOpen@31..50
+                  Colon@31..32 ":"
+                  Whitespace@32..33 " "
+                  NameExpr@33..37
+                    Name@33..37
+                      Identifier@33..37 "fref"
+                  Comma@37..38 ","
+                  Whitespace@38..39 " "
+                  OpenPath@39..45
+                    NameExpr@39..45
+                      Name@39..45
+                        Identifier@39..45 "a_path"
+                  Comma@45..46 ","
+                  Whitespace@46..47 " "
+                  IoCap@47..50
+                    KwGet@47..50 "get"
+            error at 26..30: expected expression, but found ’open’"#]],
+    );
+}
+
+#[test]
+fn parse_old_close() {
+    check(
+        r#"close ( some_ref )"#,
+        expect![[r#"
+        Source@0..18
+          CloseStmt@0..18
+            KwClose@0..5 "close"
+            Whitespace@5..6 " "
+            OldClose@6..18
+              LeftParen@6..7 "("
+              Whitespace@7..8 " "
+              NameExpr@8..17
+                Name@8..17
+                  Identifier@8..16 "some_ref"
+                  Whitespace@16..17 " "
+              RightParen@17..18 ")""#]],
+    );
+}
+
+#[test]
+fn recover_old_close_missing_right_paren() {
+    check(
+        r#"close ( some_ref "#,
+        expect![[r#"
+        Source@0..17
+          CloseStmt@0..17
+            KwClose@0..5 "close"
+            Whitespace@5..6 " "
+            OldClose@6..17
+              LeftParen@6..7 "("
+              Whitespace@7..8 " "
+              NameExpr@8..17
+                Name@8..17
+                  Identifier@8..16 "some_ref"
+                  Whitespace@16..17 " "
+        error at 16..17: expected ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_old_close_missing_file_ref() {
+    check(
+        r#"close (  )"#,
+        expect![[r#"
+        Source@0..10
+          CloseStmt@0..10
+            KwClose@0..5 "close"
+            Whitespace@5..6 " "
+            OldClose@6..10
+              LeftParen@6..7 "("
+              Whitespace@7..9 "  "
+              RightParen@9..10 ")"
+        error at 9..10: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_old_close_missing_left_paren() {
+    check(
+        r#"close  some_ref )"#,
+        expect![[r#"
+        Source@0..17
+          CloseStmt@0..17
+            KwClose@0..5 "close"
+            Whitespace@5..7 "  "
+            NewClose@7..17
+              Error@7..16
+                Identifier@7..15 "some_ref"
+                Whitespace@15..16 " "
+              Error@16..17
+                RightParen@16..17 ")"
+        error at 7..15: expected ’(’ or ’:’, but found identifier
+        error at 16..17: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn parse_new_close() {
+    check(
+        r#"close : some_ref"#,
+        expect![[r#"
+        Source@0..16
+          CloseStmt@0..16
+            KwClose@0..5 "close"
+            Whitespace@5..6 " "
+            NewClose@6..16
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+              NameExpr@8..16
+                Name@8..16
+                  Identifier@8..16 "some_ref""#]],
+    );
+}
+
+#[test]
+fn recover_new_close_missing_file_ref() {
+    check(
+        r#"close : "#,
+        expect![[r#"
+        Source@0..8
+          CloseStmt@0..8
+            KwClose@0..5 "close"
+            Whitespace@5..6 " "
+            NewClose@6..8
+              Colon@6..7 ":"
+              Whitespace@7..8 " "
+        error at 7..8: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_new_close_missing_colon() {
+    check(
+        r#"close some_ref"#,
+        expect![[r#"
+        Source@0..14
+          CloseStmt@0..14
+            KwClose@0..5 "close"
+            Whitespace@5..6 " "
+            NewClose@6..14
+              Error@6..14
+                Identifier@6..14 "some_ref"
+        error at 6..14: expected ’(’ or ’:’, but found identifier
+        error at 6..14: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_just_close() {
+    check(
+        r#"close"#,
+        expect![[r#"
+        Source@0..5
+          CloseStmt@0..5
+            KwClose@0..5 "close"
+            NewClose@5..5
+        error at 0..5: expected ’(’ or ’:’
+        error at 0..5: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_close() {
+    check(
+        r#"
+        var i :=
+        close : some_ref"#,
+        expect![[r#"
+            Source@0..42
+              Whitespace@0..9 "\n        "
+              ConstVarDecl@9..26
+                KwVar@9..12 "var"
+                Whitespace@12..13 " "
+                NameList@13..15
+                  Name@13..15
+                    Identifier@13..14 "i"
+                    Whitespace@14..15 " "
+                Assign@15..17 ":="
+                Whitespace@17..26 "\n        "
+              CloseStmt@26..42
+                KwClose@26..31 "close"
+                Whitespace@31..32 " "
+                NewClose@32..42
+                  Colon@32..33 ":"
+                  Whitespace@33..34 " "
+                  NameExpr@34..42
+                    Name@34..42
+                      Identifier@34..42 "some_ref"
+            error at 26..31: expected expression, but found ’close’"#]],
+    );
+}
+
+#[test]
+fn parse_put_stmt() {
+    check(
+        r#"put a, "b" : 2, 1.0 : 3 : 5.0 , 1.0 : w : f : e, skip"#,
+        expect![[r#"
+            Source@0..53
+              PutStmt@0..53
+                KwPut@0..3 "put"
+                Whitespace@3..4 " "
+                PutItem@4..5
+                  NameExpr@4..5
+                    Name@4..5
+                      Identifier@4..5 "a"
+                Comma@5..6 ","
+                Whitespace@6..7 " "
+                PutItem@7..14
+                  LiteralExpr@7..11
+                    StringLiteral@7..10 "\"b\""
+                    Whitespace@10..11 " "
+                  PutOpt@11..14
+                    Colon@11..12 ":"
+                    Whitespace@12..13 " "
+                    LiteralExpr@13..14
+                      IntLiteral@13..14 "2"
+                Comma@14..15 ","
+                Whitespace@15..16 " "
+                PutItem@16..30
+                  LiteralExpr@16..20
+                    RealLiteral@16..19 "1.0"
+                    Whitespace@19..20 " "
+                  PutOpt@20..24
+                    Colon@20..21 ":"
+                    Whitespace@21..22 " "
+                    LiteralExpr@22..24
+                      IntLiteral@22..23 "3"
+                      Whitespace@23..24 " "
+                  PutOpt@24..30
+                    Colon@24..25 ":"
+                    Whitespace@25..26 " "
+                    LiteralExpr@26..30
+                      RealLiteral@26..29 "5.0"
+                      Whitespace@29..30 " "
+                Comma@30..31 ","
+                Whitespace@31..32 " "
+                PutItem@32..47
+                  LiteralExpr@32..36
+                    RealLiteral@32..35 "1.0"
+                    Whitespace@35..36 " "
+                  PutOpt@36..40
+                    Colon@36..37 ":"
+                    Whitespace@37..38 " "
+                    NameExpr@38..40
+                      Name@38..40
+                        Identifier@38..39 "w"
+                        Whitespace@39..40 " "
+                  PutOpt@40..44
+                    Colon@40..41 ":"
+                    Whitespace@41..42 " "
+                    NameExpr@42..44
+                      Name@42..44
+                        Identifier@42..43 "f"
+                        Whitespace@43..44 " "
+                  PutOpt@44..47
+                    Colon@44..45 ":"
+                    Whitespace@45..46 " "
+                    NameExpr@46..47
+                      Name@46..47
+                        Identifier@46..47 "e"
+                Comma@47..48 ","
+                Whitespace@48..49 " "
+                PutItem@49..53
+                  KwSkip@49..53 "skip""#]],
+    );
+}
+
+#[test]
+fn parse_put_stmt_opt_stream() {
+    check(
+        r#"put : strem, a"#,
+        expect![[r#"
+        Source@0..14
+          PutStmt@0..14
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..13
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..11
+                Name@6..11
+                  Identifier@6..11 "strem"
+              Comma@11..12 ","
+              Whitespace@12..13 " "
+            PutItem@13..14
+              NameExpr@13..14
+                Name@13..14
+                  Identifier@13..14 "a""#]],
+    );
+}
+
+#[test]
+fn parse_put_stmt_opt_no_nl() {
+    check(
+        r#"put a.."#,
+        expect![[r#"
+        Source@0..7
+          PutStmt@0..7
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            PutItem@4..5
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a"
+            Range@5..7 "..""#]],
+    );
+}
+
+#[test]
+fn recover_put_stmt_missing_opt_exp_expr() {
+    check(
+        r#"put : s, item : w : f :  .."#,
+        expect![[r#"
+        Source@0..27
+          PutStmt@0..27
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            PutItem@9..27
+              NameExpr@9..14
+                Name@9..14
+                  Identifier@9..13 "item"
+                  Whitespace@13..14 " "
+              PutOpt@14..18
+                Colon@14..15 ":"
+                Whitespace@15..16 " "
+                NameExpr@16..18
+                  Name@16..18
+                    Identifier@16..17 "w"
+                    Whitespace@17..18 " "
+              PutOpt@18..22
+                Colon@18..19 ":"
+                Whitespace@19..20 " "
+                NameExpr@20..22
+                  Name@20..22
+                    Identifier@20..21 "f"
+                    Whitespace@21..22 " "
+              PutOpt@22..27
+                Colon@22..23 ":"
+                Whitespace@23..25 "  "
+                Error@25..27
+                  Range@25..27 ".."
+        error at 25..27: expected expression, but found ’..’"#]],
+    );
+}
+
+#[test]
+fn recover_put_stmt_missing_opt_fract_expr() {
+    check(
+        r#"put : s, item : w :  : e .."#,
+        expect![[r#"
+        Source@0..27
+          PutStmt@0..27
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            PutItem@9..25
+              NameExpr@9..14
+                Name@9..14
+                  Identifier@9..13 "item"
+                  Whitespace@13..14 " "
+              PutOpt@14..18
+                Colon@14..15 ":"
+                Whitespace@15..16 " "
+                NameExpr@16..18
+                  Name@16..18
+                    Identifier@16..17 "w"
+                    Whitespace@17..18 " "
+              PutOpt@18..21
+                Colon@18..19 ":"
+                Whitespace@19..21 "  "
+              PutOpt@21..25
+                Colon@21..22 ":"
+                Whitespace@22..23 " "
+                NameExpr@23..25
+                  Name@23..25
+                    Identifier@23..24 "e"
+                    Whitespace@24..25 " "
+            Range@25..27 ".."
+        error at 21..22: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_put_stmt_missing_width_expr() {
+    check(
+        r#"put : s, item :  : f : e .."#,
+        expect![[r#"
+        Source@0..27
+          PutStmt@0..27
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            PutItem@9..25
+              NameExpr@9..14
+                Name@9..14
+                  Identifier@9..13 "item"
+                  Whitespace@13..14 " "
+              PutOpt@14..17
+                Colon@14..15 ":"
+                Whitespace@15..17 "  "
+              PutOpt@17..21
+                Colon@17..18 ":"
+                Whitespace@18..19 " "
+                NameExpr@19..21
+                  Name@19..21
+                    Identifier@19..20 "f"
+                    Whitespace@20..21 " "
+              PutOpt@21..25
+                Colon@21..22 ":"
+                Whitespace@22..23 " "
+                NameExpr@23..25
+                  Name@23..25
+                    Identifier@23..24 "e"
+                    Whitespace@24..25 " "
+            Range@25..27 ".."
+        error at 17..18: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_put_stmt_missing_item() {
+    check(
+        r#"put : s,  .."#,
+        expect![[r#"
+        Source@0..12
+          PutStmt@0..12
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..10
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..10 "  "
+            PutItem@10..12
+              Error@10..12
+                Range@10..12 ".."
+        error at 10..12: expected expression, but found ’..’"#]],
+    );
+}
+
+#[test]
+fn recover_put_stmt_missing_item_in_list() {
+    check(
+        r#"put : s, , a.."#,
+        expect![[r#"
+        Source@0..14
+          PutStmt@0..14
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            PutItem@9..9
+            Comma@9..10 ","
+            Whitespace@10..11 " "
+            PutItem@11..12
+              NameExpr@11..12
+                Name@11..12
+                  Identifier@11..12 "a"
+            Range@12..14 ".."
+        error at 9..10: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_put_stmt_missing_stream_expr() {
+    check(
+        r#"put : , item : w : f : e .."#,
+        expect![[r#"
+        Source@0..27
+          PutStmt@0..27
+            KwPut@0..3 "put"
+            Whitespace@3..4 " "
+            StreamNum@4..8
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              Comma@6..7 ","
+              Whitespace@7..8 " "
+            PutItem@8..25
+              NameExpr@8..13
+                Name@8..13
+                  Identifier@8..12 "item"
+                  Whitespace@12..13 " "
+              PutOpt@13..17
+                Colon@13..14 ":"
+                Whitespace@14..15 " "
+                NameExpr@15..17
+                  Name@15..17
+                    Identifier@15..16 "w"
+                    Whitespace@16..17 " "
+              PutOpt@17..21
+                Colon@17..18 ":"
+                Whitespace@18..19 " "
+                NameExpr@19..21
+                  Name@19..21
+                    Identifier@19..20 "f"
+                    Whitespace@20..21 " "
+              PutOpt@21..25
+                Colon@21..22 ":"
+                Whitespace@22..23 " "
+                NameExpr@23..25
+                  Name@23..25
+                    Identifier@23..24 "e"
+                    Whitespace@24..25 " "
+            Range@25..27 ".."
+        error at 6..7: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_just_put() {
+    check(
+        r#"put"#,
+        expect![[r#"
+        Source@0..3
+          PutStmt@0..3
+            KwPut@0..3 "put"
+            PutItem@3..3
+        error at 0..3: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_put() {
+    check(
+        r#"
+    var i :=
+    put skip"#,
+        expect![[r#"
+            Source@0..26
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              PutStmt@18..26
+                KwPut@18..21 "put"
+                Whitespace@21..22 " "
+                PutItem@22..26
+                  KwSkip@22..26 "skip"
+            error at 18..21: expected expression, but found ’put’"#]],
+    );
+}
+
+#[test]
+fn parse_get_stmt() {
+    check(
+        r#"get a, skip, to_end : *, or_width : 15"#,
+        expect![[r#"
+        Source@0..38
+          GetStmt@0..38
+            KwGet@0..3 "get"
+            Whitespace@3..4 " "
+            GetItem@4..5
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a"
+            Comma@5..6 ","
+            Whitespace@6..7 " "
+            GetItem@7..11
+              KwSkip@7..11 "skip"
+            Comma@11..12 ","
+            Whitespace@12..13 " "
+            GetItem@13..23
+              NameExpr@13..20
+                Name@13..20
+                  Identifier@13..19 "to_end"
+                  Whitespace@19..20 " "
+              GetWidth@20..23
+                Colon@20..21 ":"
+                Whitespace@21..22 " "
+                Star@22..23 "*"
+            Comma@23..24 ","
+            Whitespace@24..25 " "
+            GetItem@25..38
+              NameExpr@25..34
+                Name@25..34
+                  Identifier@25..33 "or_width"
+                  Whitespace@33..34 " "
+              GetWidth@34..38
+                Colon@34..35 ":"
+                Whitespace@35..36 " "
+                LiteralExpr@36..38
+                  IntLiteral@36..38 "15""#]],
+    )
+}
+
+#[test]
+fn parse_get_stmt_opt_stream() {
+    check(
+        r#"get : s, a"#,
+        expect![[r#"
+        Source@0..10
+          GetStmt@0..10
+            KwGet@0..3 "get"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            GetItem@9..10
+              NameExpr@9..10
+                Name@9..10
+                  Identifier@9..10 "a""#]],
+    )
+}
+
+#[test]
+fn recover_get_stmt_missing_width_expr() {
+    check(
+        r#"get : s, a, b : "#,
+        expect![[r#"
+        Source@0..16
+          GetStmt@0..16
+            KwGet@0..3 "get"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            GetItem@9..10
+              NameExpr@9..10
+                Name@9..10
+                  Identifier@9..10 "a"
+            Comma@10..11 ","
+            Whitespace@11..12 " "
+            GetItem@12..16
+              NameExpr@12..14
+                Name@12..14
+                  Identifier@12..13 "b"
+                  Whitespace@13..14 " "
+              GetWidth@14..16
+                Colon@14..15 ":"
+                Whitespace@15..16 " "
+        error at 15..16: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_get_stmt_missing_item() {
+    check(
+        r#"get : s, , b : *, c : 2"#,
+        expect![[r#"
+        Source@0..23
+          GetStmt@0..23
+            KwGet@0..3 "get"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            GetItem@9..9
+            Comma@9..10 ","
+            Whitespace@10..11 " "
+            GetItem@11..16
+              NameExpr@11..13
+                Name@11..13
+                  Identifier@11..12 "b"
+                  Whitespace@12..13 " "
+              GetWidth@13..16
+                Colon@13..14 ":"
+                Whitespace@14..15 " "
+                Star@15..16 "*"
+            Comma@16..17 ","
+            Whitespace@17..18 " "
+            GetItem@18..23
+              NameExpr@18..20
+                Name@18..20
+                  Identifier@18..19 "c"
+                  Whitespace@19..20 " "
+              GetWidth@20..23
+                Colon@20..21 ":"
+                Whitespace@21..22 " "
+                LiteralExpr@22..23
+                  IntLiteral@22..23 "2"
+        error at 9..10: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_get_stmt_missing_item_in_list() {
+    check(
+        r#"get : s, a,  : *, c : 2"#,
+        expect![[r#"
+        Source@0..23
+          GetStmt@0..23
+            KwGet@0..3 "get"
+            Whitespace@3..4 " "
+            StreamNum@4..9
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              NameExpr@6..7
+                Name@6..7
+                  Identifier@6..7 "s"
+              Comma@7..8 ","
+              Whitespace@8..9 " "
+            GetItem@9..10
+              NameExpr@9..10
+                Name@9..10
+                  Identifier@9..10 "a"
+            Comma@10..11 ","
+            Whitespace@11..13 "  "
+            GetItem@13..16
+              GetWidth@13..16
+                Colon@13..14 ":"
+                Whitespace@14..15 " "
+                Star@15..16 "*"
+            Comma@16..17 ","
+            Whitespace@17..18 " "
+            GetItem@18..23
+              NameExpr@18..20
+                Name@18..20
+                  Identifier@18..19 "c"
+                  Whitespace@19..20 " "
+              GetWidth@20..23
+                Colon@20..21 ":"
+                Whitespace@21..22 " "
+                LiteralExpr@22..23
+                  IntLiteral@22..23 "2"
+        error at 13..14: expected expression, but found ’:’"#]],
+    );
+}
+
+#[test]
+fn recover_get_stmt_missing_stream_expr() {
+    check(
+        r#"get : , a, b : *, c : 2"#,
+        expect![[r#"
+        Source@0..23
+          GetStmt@0..23
+            KwGet@0..3 "get"
+            Whitespace@3..4 " "
+            StreamNum@4..8
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              Comma@6..7 ","
+              Whitespace@7..8 " "
+            GetItem@8..9
+              NameExpr@8..9
+                Name@8..9
+                  Identifier@8..9 "a"
+            Comma@9..10 ","
+            Whitespace@10..11 " "
+            GetItem@11..16
+              NameExpr@11..13
+                Name@11..13
+                  Identifier@11..12 "b"
+                  Whitespace@12..13 " "
+              GetWidth@13..16
+                Colon@13..14 ":"
+                Whitespace@14..15 " "
+                Star@15..16 "*"
+            Comma@16..17 ","
+            Whitespace@17..18 " "
+            GetItem@18..23
+              NameExpr@18..20
+                Name@18..20
+                  Identifier@18..19 "c"
+                  Whitespace@19..20 " "
+              GetWidth@20..23
+                Colon@20..21 ":"
+                Whitespace@21..22 " "
+                LiteralExpr@22..23
+                  IntLiteral@22..23 "2"
+        error at 6..7: expected expression, but found ’,’"#]],
+    );
+}
+
+#[test]
+fn recover_just_get() {
+    check(
+        r#"get"#,
+        expect![[r#"
+        Source@0..3
+          GetStmt@0..3
+            KwGet@0..3 "get"
+            GetItem@3..3
+        error at 0..3: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_get() {
+    check(
+        r#"
+    var i :=
+    get skip"#,
+        expect![[r#"
+            Source@0..26
+              Whitespace@0..5 "\n    "
+              ConstVarDecl@5..18
+                KwVar@5..8 "var"
+                Whitespace@8..9 " "
+                NameList@9..11
+                  Name@9..11
+                    Identifier@9..10 "i"
+                    Whitespace@10..11 " "
+                Assign@11..13 ":="
+                Whitespace@13..18 "\n    "
+              GetStmt@18..26
+                KwGet@18..21 "get"
+                Whitespace@21..22 " "
+                GetItem@22..26
+                  KwSkip@22..26 "skip"
+            error at 18..21: expected expression, but found ’get’"#]],
+    );
+}

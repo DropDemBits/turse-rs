@@ -282,6 +282,7 @@ pub enum SyntaxKind {
     OpenKind,
     OldOpen,
     NewOpen,
+    OpenPath,
     OpenMode,
     IoCap,
     CloseKind,
