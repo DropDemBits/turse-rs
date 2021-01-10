@@ -751,6 +751,29 @@ fn parse_unchecked_pointer_type() {
 }
 
 #[test]
+fn parse_unchecked_short_pointer_type() {
+    check(
+        "type _ : unchecked ^addressint",
+        expect![[r#"
+        Source@0..30
+          TypeDecl@0..30
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..30
+              KwUnchecked@9..18 "unchecked"
+              Whitespace@18..19 " "
+              Caret@19..20 "^"
+              PrimType@20..30
+                KwAddressint@20..30 "addressint""#]],
+    );
+}
+
+#[test]
 fn parse_short_pointer_type() {
     check(
         "type _ : ^int",
@@ -792,6 +815,28 @@ fn recover_pointer_type_missing_to() {
                     KwAddressint@17..27 "addressint"
             error at 17..27: expected ’to’, but found ’addressint’
             error at 17..27: expected type specifier"#]],
+    );
+}
+
+#[test]
+fn recover_pointer_type_just_unchecked() {
+    check(
+        "type _ : unchecked",
+        expect![[r#"
+        Source@0..18
+          TypeDecl@0..18
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Name@5..7
+              Identifier@5..6 "_"
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PointerType@9..18
+              KwUnchecked@9..18 "unchecked"
+        error at 9..18: expected ’^’ or ’pointer’
+        error at 9..18: expected ’to’
+        error at 9..18: expected type specifier"#]],
     );
 }
 
