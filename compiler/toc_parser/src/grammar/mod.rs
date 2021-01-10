@@ -18,8 +18,8 @@
 // - class_decl
 // - monitor_decl
 
+// - include_glob
 // - assign_stmt
-// | include_stmt
 // | open_stmt
 // | close_stmt
 // | put_stmt
@@ -58,6 +58,7 @@
 // - export_stmt
 
 // exprs:
+// - include_glob
 // - init_expr
 // - literal_expr
 // - call_expr
@@ -76,6 +77,7 @@
 // - nil_expr
 
 // types
+// - include_glob
 // - primitive_type (including sized variants)
 // - name_type
 // - array_type
@@ -229,4 +231,14 @@ pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
             None
         }
     })
+}
+
+pub(self) fn include_glob(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'include' 'string_literal'
+    debug_assert!(p.at(TokenKind::Include));
+
+    let m = p.start();
+    p.bump();
+    p.expect(TokenKind::StringLiteral);
+    Some(m.complete(p, SyntaxKind::IncludeGlob))
 }

@@ -36,7 +36,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     //
 
     // Stmts //
-    // TokenKind::Include,
+    TokenKind::Include,
     // TokenKind::Open,
     // TokenKind::Close,
     // TokenKind::Put,
