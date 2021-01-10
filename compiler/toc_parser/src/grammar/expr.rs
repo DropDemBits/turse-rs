@@ -5,7 +5,13 @@ mod test;
 use super::*;
 use toc_syntax::{BinaryOp, SyntaxKind, UnaryOp};
 
-pub(super) fn expect_expr_or_range_item(p: &mut Parser) -> Option<CompletedMarker> {
+pub(super) fn expect_param_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    if p.at(TokenKind::All) {
+        let m = p.start();
+        p.bump();
+        return Some(m.complete(p, SyntaxKind::AllItem));
+    }
+
     let mut lhs = expect_range_bound(p)?;
 
     if p.at(TokenKind::Range) {

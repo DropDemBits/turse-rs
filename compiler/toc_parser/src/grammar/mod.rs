@@ -188,7 +188,7 @@ pub(self) fn param(p: &mut Parser) -> Option<(CompletedMarker, bool)> {
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma, TokenKind::RightParen], |p| {
-        expr::expect_expr_or_range_item(p);
+        expr::expect_param_expr(p);
     });
 
     // bump ',' onto param

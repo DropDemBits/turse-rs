@@ -334,6 +334,7 @@ pub enum SyntaxKind {
     BitRange,
     RangeSpec,
     Param,
+    AllItem,
     RangeItem,
     RangeBound,
     RelativeBound,
