@@ -6,32 +6,9 @@ use toc_syntax::{BinaryOp, UnaryOp};
 
 use super::*;
 
-/// Preprocessor parsing, in type position
-///
-/// Only 'include' is allowed
-pub(super) fn ty_preproc(p: &mut Parser) -> Option<CompletedMarker> {
-    if p.at(TokenKind::Include) {
-        include_preproc(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::PreprocTyGlob))
-    } else {
-        None
-    }
-}
-
-/// Preprocessor parsing, in expr/ref position
-///
-/// Only 'include' is allowed
-pub(super) fn expr_preproc(p: &mut Parser) -> Option<CompletedMarker> {
-    if p.at(TokenKind::Include) {
-        include_preproc(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::PreprocExprGlob))
-    } else {
-        None
-    }
-}
-
 /// Preprocessor parsing, in stmt position
 ///
-/// Only preprocessor conditionals are allowed, and 'include'
-/// should be captured by `expr_preproc`
+/// Only preprocessor conditionals and 'include' are allowed
 pub(super) fn stmt_preproc(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::PreprocIf => { if_preproc(p) }
@@ -40,10 +17,10 @@ pub(super) fn stmt_preproc(p: &mut Parser) -> Option<CompletedMarker> {
         TokenKind::PreprocElse => { else_preproc(p, true) } // recovery
         TokenKind::PreprocEnd,
         TokenKind::PreprocEndIf => { endif_preproc(p) } // recovery
-        TokenKind::Include => { unreachable!("should be captured by `expr_preproc`") },
+        TokenKind::Include => { include_preproc(p) },
         _ => None
     })
-    .map(|cm| cm.precede(p).complete(p, SyntaxKind::PreprocStmtGlob))
+    .map(|cm| cm.precede(p).complete(p, SyntaxKind::PreprocGlob))
 }
 
 fn include_preproc(p: &mut Parser) -> Option<CompletedMarker> {

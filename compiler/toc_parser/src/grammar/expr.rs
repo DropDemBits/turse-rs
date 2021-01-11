@@ -237,9 +237,6 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
                     // but those cases should be reported as errors when validating the AST
                     // TODO: Report non-callable expressions as errors
                     primary(p)
-                }).or_else(|| {
-                    // only include is allowed
-                    preproc::expr_preproc(p)
                 })
             }
         }

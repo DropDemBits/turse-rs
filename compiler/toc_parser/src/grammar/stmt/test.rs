@@ -7891,13 +7891,12 @@ fn parse_include_glob_stmt() {
         r#"include "oh_here_too" "#,
         expect![[r#"
             Source@0..22
-              CallStmt@0..22
-                PreprocExprGlob@0..22
-                  PPInclude@0..22
-                    KwInclude@0..7 "include"
-                    Whitespace@7..8 " "
-                    StringLiteral@8..21 "\"oh_here_too\""
-                    Whitespace@21..22 " ""#]],
+              PreprocGlob@0..22
+                PPInclude@0..22
+                  KwInclude@0..7 "include"
+                  Whitespace@7..8 " "
+                  StringLiteral@8..21 "\"oh_here_too\""
+                  Whitespace@21..22 " ""#]],
     );
 }
 
@@ -7907,10 +7906,9 @@ fn recover_just_include() {
         r#"include"#,
         expect![[r#"
             Source@0..7
-              CallStmt@0..7
-                PreprocExprGlob@0..7
-                  PPInclude@0..7
-                    KwInclude@0..7 "include"
+              PreprocGlob@0..7
+                PPInclude@0..7
+                  KwInclude@0..7 "include"
             error at 0..7: expected string literal"#]],
     );
 }
@@ -7924,16 +7922,17 @@ fn recover_on_include() {
               ForStmt@0..24
                 KwFor@0..3 "for"
                 Whitespace@3..4 " "
-                ForBounds@4..24
-                  PreprocExprGlob@4..24
+                ForBounds@4..4
+                StmtList@4..24
+                  PreprocGlob@4..24
                     PPInclude@4..24
                       KwInclude@4..11 "include"
                       Whitespace@11..12 " "
                       StringLiteral@12..24 "\"still_here\""
-                StmtList@24..24
                 EndGroup@24..24
             error at 4..11: expected identifier or ’:’, but found ’include’
-            error at 12..24: expected ’..’, ’by’, ’endfor’ or ’end’
+            error at 4..11: expected expression, but found ’include’
+            error at 12..24: expected ’endfor’ or ’end’
             error at 12..24: expected ’for’"#]],
     )
 }

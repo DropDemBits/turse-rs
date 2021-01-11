@@ -25,6 +25,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::PreprocElse,
     TokenKind::PreprocEnd,
     TokenKind::PreprocEndIf,
+    TokenKind::Include,
     //
 
     // Decls //
@@ -45,7 +46,6 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     //
 
     // Stmts //
-    TokenKind::Include,
     TokenKind::Open,
     TokenKind::Close,
     TokenKind::Put,

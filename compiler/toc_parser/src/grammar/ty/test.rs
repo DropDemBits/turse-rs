@@ -2930,12 +2930,13 @@ fn recover_union_variant_type_on_var() {
 }
 
 #[test]
-fn parse_include_glob_ty() {
+fn recover_include_glob_ty() {
+    // not allowed in ty position
     check(
         r#"type _ : include "some_foreign_location" "#,
         expect![[r#"
             Source@0..41
-              TypeDecl@0..41
+              TypeDecl@0..9
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
                 Name@5..7
@@ -2943,11 +2944,12 @@ fn parse_include_glob_ty() {
                   Whitespace@6..7 " "
                 Colon@7..8 ":"
                 Whitespace@8..9 " "
-                PreprocTyGlob@9..41
-                  PPInclude@9..41
-                    KwInclude@9..16 "include"
-                    Whitespace@16..17 " "
-                    StringLiteral@17..40 "\"some_foreign_location\""
-                    Whitespace@40..41 " ""#]],
+              PreprocGlob@9..41
+                PPInclude@9..41
+                  KwInclude@9..16 "include"
+                  Whitespace@16..17 " "
+                  StringLiteral@17..40 "\"some_foreign_location\""
+                  Whitespace@40..41 " "
+            error at 9..16: expected type specifier, but found ’include’"#]],
     )
 }

@@ -18,7 +18,7 @@ mod cond {
             expect![[r##"
                 Source@0..62
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..62
+                  PreprocGlob@5..62
                     PPIf@5..62
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -62,7 +62,7 @@ mod cond {
             expect![[r##"
                 Source@0..60
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..60
+                  PreprocGlob@5..60
                     PPIf@5..60
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -103,7 +103,7 @@ mod cond {
             expect![[r##"
                 Source@0..57
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..57
+                  PreprocGlob@5..57
                     PPIf@5..57
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -145,7 +145,7 @@ mod cond {
             expect![[r##"
                 Source@0..50
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..50
+                  PreprocGlob@5..50
                     PPIf@5..50
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -187,7 +187,7 @@ mod cond {
             expect![[r##"
                 Source@0..97
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..97
+                  PreprocGlob@5..97
                     PPIf@5..97
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -251,7 +251,7 @@ mod cond {
             expect![[r##"
                 Source@0..132
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..132
+                  PreprocGlob@5..132
                     PPIf@5..132
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -335,7 +335,7 @@ mod cond {
             expect![[r##"
                 Source@0..170
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..170
+                  PreprocGlob@5..170
                     PPIf@5..170
                       PPKwIf@5..8 "#if"
                       Whitespace@8..9 " "
@@ -425,7 +425,7 @@ mod cond {
             expect![[r##"
                 Source@0..47
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..47
+                  PreprocGlob@5..47
                     PPElseif@5..47
                       PPKwElsif@5..11 "#elsif"
                       Whitespace@11..12 " "
@@ -463,7 +463,7 @@ mod cond {
             expect![[r##"
                 Source@0..48
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..48
+                  PreprocGlob@5..48
                     PPElseif@5..48
                       PPKwElseif@5..12 "#elseif"
                       Whitespace@12..13 " "
@@ -502,7 +502,7 @@ mod cond {
             expect![[r##"
                 Source@0..39
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..39
+                  PreprocGlob@5..39
                     PPElse@5..39
                       PPKwElse@5..10 "#else"
                       Whitespace@10..15 "\n    "
@@ -532,7 +532,7 @@ mod cond {
             expect![[r##"
                 Source@0..17
                   Whitespace@0..5 "\n    "
-                  PreprocStmtGlob@5..17
+                  PreprocGlob@5..17
                     PPEndIf@5..17
                       PPKwEnd@5..9 "#end"
                       Whitespace@9..10 " "
@@ -546,11 +546,11 @@ mod cond {
         check(
             "#endif",
             expect![[r##"
-            Source@0..6
-              PreprocStmtGlob@0..6
-                PPEndIf@0..6
-                  PPKwEndIf@0..6 "#endif"
-            warn at 0..6: #endif found, assuming it to be #end if"##]],
+                Source@0..6
+                  PreprocGlob@0..6
+                    PPEndIf@0..6
+                      PPKwEndIf@0..6 "#endif"
+                warn at 0..6: #endif found, assuming it to be #end if"##]],
         );
     }
 
@@ -559,14 +559,14 @@ mod cond {
         check(
             "#if",
             expect![[r##"
-            Source@0..3
-              PreprocStmtGlob@0..3
-                PPIf@0..3
-                  PPKwIf@0..3 "#if"
-                  PPTokenBody@3..3
-            error at 0..3: expected preprocessor condition
-            error at 0..3: expected ’then’
-            error at 0..3: expected #elseif, #elsif, #else, #end or #endif"##]],
+                Source@0..3
+                  PreprocGlob@0..3
+                    PPIf@0..3
+                      PPKwIf@0..3 "#if"
+                      PPTokenBody@3..3
+                error at 0..3: expected preprocessor condition
+                error at 0..3: expected ’then’
+                error at 0..3: expected #elseif, #elsif, #else, #end or #endif"##]],
         );
     }
 
@@ -575,14 +575,14 @@ mod cond {
         check(
             "#elsif",
             expect![[r##"
-            Source@0..6
-              PreprocStmtGlob@0..6
-                PPElseif@0..6
-                  PPKwElsif@0..6 "#elsif"
-                  PPTokenBody@6..6
-            error at 0..6: expected preprocessor condition
-            error at 0..6: expected ’then’
-            error at 0..6: expected #elseif, #elsif, #else, #end or #endif"##]],
+                Source@0..6
+                  PreprocGlob@0..6
+                    PPElseif@0..6
+                      PPKwElsif@0..6 "#elsif"
+                      PPTokenBody@6..6
+                error at 0..6: expected preprocessor condition
+                error at 0..6: expected ’then’
+                error at 0..6: expected #elseif, #elsif, #else, #end or #endif"##]],
         );
     }
 
@@ -591,15 +591,15 @@ mod cond {
         check(
             "#elseif",
             expect![[r##"
-            Source@0..7
-              PreprocStmtGlob@0..7
-                PPElseif@0..7
-                  PPKwElseif@0..7 "#elseif"
-                  PPTokenBody@7..7
-            warn at 0..7: #elseif found, assuming it to be #elsif
-            error at 0..7: expected preprocessor condition
-            error at 0..7: expected ’then’
-            error at 0..7: expected #elseif, #elsif, #else, #end or #endif"##]],
+                Source@0..7
+                  PreprocGlob@0..7
+                    PPElseif@0..7
+                      PPKwElseif@0..7 "#elseif"
+                      PPTokenBody@7..7
+                warn at 0..7: #elseif found, assuming it to be #elsif
+                error at 0..7: expected preprocessor condition
+                error at 0..7: expected ’then’
+                error at 0..7: expected #elseif, #elsif, #else, #end or #endif"##]],
         );
     }
 
@@ -608,12 +608,12 @@ mod cond {
         check(
             "#else",
             expect![[r##"
-            Source@0..5
-              PreprocStmtGlob@0..5
-                PPElse@0..5
-                  PPKwElse@0..5 "#else"
-                  PPTokenBody@5..5
-            error at 0..5: expected #end or #endif"##]],
+                Source@0..5
+                  PreprocGlob@0..5
+                    PPElse@0..5
+                      PPKwElse@0..5 "#else"
+                      PPTokenBody@5..5
+                error at 0..5: expected #end or #endif"##]],
         );
     }
 
@@ -622,11 +622,11 @@ mod cond {
         check(
             "#end",
             expect![[r##"
-            Source@0..4
-              PreprocStmtGlob@0..4
-                PPEndIf@0..4
-                  PPKwEnd@0..4 "#end"
-            error at 0..4: expected ’if’"##]],
+                Source@0..4
+                  PreprocGlob@0..4
+                    PPEndIf@0..4
+                      PPKwEnd@0..4 "#end"
+                error at 0..4: expected ’if’"##]],
         );
     }
 
@@ -635,11 +635,11 @@ mod cond {
         check(
             "#endif",
             expect![[r##"
-            Source@0..6
-              PreprocStmtGlob@0..6
-                PPEndIf@0..6
-                  PPKwEndIf@0..6 "#endif"
-            warn at 0..6: #endif found, assuming it to be #end if"##]],
+                Source@0..6
+                  PreprocGlob@0..6
+                    PPEndIf@0..6
+                      PPKwEndIf@0..6 "#endif"
+                warn at 0..6: #endif found, assuming it to be #end if"##]],
         );
     }
 
@@ -665,7 +665,7 @@ mod cond {
                         Whitespace@10..11 " "
                     Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
-                  PreprocStmtGlob@18..57
+                  PreprocGlob@18..57
                     PPIf@18..57
                       PPKwIf@18..21 "#if"
                       Whitespace@21..22 " "
@@ -714,7 +714,7 @@ mod cond {
                         Whitespace@10..11 " "
                     Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
-                  PreprocStmtGlob@18..60
+                  PreprocGlob@18..60
                     PPElseif@18..60
                       PPKwElsif@18..24 "#elsif"
                       Whitespace@24..25 " "
@@ -763,7 +763,7 @@ mod cond {
                         Whitespace@10..11 " "
                     Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
-                  PreprocStmtGlob@18..61
+                  PreprocGlob@18..61
                     PPElseif@18..61
                       PPKwElseif@18..25 "#elseif"
                       Whitespace@25..26 " "
@@ -813,7 +813,7 @@ mod cond {
                         Whitespace@10..11 " "
                     Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
-                  PreprocStmtGlob@18..52
+                  PreprocGlob@18..52
                     PPElse@18..52
                       PPKwElse@18..23 "#else"
                       Whitespace@23..28 "\n    "
@@ -854,7 +854,7 @@ mod cond {
                         Whitespace@10..11 " "
                     Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
-                  PreprocStmtGlob@18..30
+                  PreprocGlob@18..30
                     PPEndIf@18..30
                       PPKwEnd@18..22 "#end"
                       Whitespace@22..23 " "
@@ -882,7 +882,7 @@ mod cond {
                         Whitespace@10..11 " "
                     Assign@11..13 ":="
                     Whitespace@13..18 "\n    "
-                  PreprocStmtGlob@18..24
+                  PreprocGlob@18..24
                     PPEndIf@18..24
                       PPKwEndIf@18..24 "#endif"
                 error at 18..24: expected expression, but found #endif
@@ -900,25 +900,25 @@ mod expr {
         check(
             "#if not A then #end if",
             expect![[r##"
-            Source@0..22
-              PreprocStmtGlob@0..22
-                PPIf@0..22
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPUnaryExpr@4..10
-                    KwNot@4..7 "not"
-                    Whitespace@7..8 " "
-                    PPNameExpr@8..10
-                      Name@8..10
-                        Identifier@8..9 "A"
-                        Whitespace@9..10 " "
-                  KwThen@10..14 "then"
-                  Whitespace@14..15 " "
-                  PPTokenBody@15..15
-                  PPEndIf@15..22
-                    PPKwEnd@15..19 "#end"
-                    Whitespace@19..20 " "
-                    KwIf@20..22 "if""##]],
+                Source@0..22
+                  PreprocGlob@0..22
+                    PPIf@0..22
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPUnaryExpr@4..10
+                        KwNot@4..7 "not"
+                        Whitespace@7..8 " "
+                        PPNameExpr@8..10
+                          Name@8..10
+                            Identifier@8..9 "A"
+                            Whitespace@9..10 " "
+                      KwThen@10..14 "then"
+                      Whitespace@14..15 " "
+                      PPTokenBody@15..15
+                      PPEndIf@15..22
+                        PPKwEnd@15..19 "#end"
+                        Whitespace@19..20 " "
+                        KwIf@20..22 "if""##]],
         )
     }
 
@@ -927,25 +927,25 @@ mod expr {
         check(
             "#if ~ A then #end if",
             expect![[r##"
-            Source@0..20
-              PreprocStmtGlob@0..20
-                PPIf@0..20
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPUnaryExpr@4..8
-                    Tilde@4..5 "~"
-                    Whitespace@5..6 " "
-                    PPNameExpr@6..8
-                      Name@6..8
-                        Identifier@6..7 "A"
-                        Whitespace@7..8 " "
-                  KwThen@8..12 "then"
-                  Whitespace@12..13 " "
-                  PPTokenBody@13..13
-                  PPEndIf@13..20
-                    PPKwEnd@13..17 "#end"
-                    Whitespace@17..18 " "
-                    KwIf@18..20 "if""##]],
+                Source@0..20
+                  PreprocGlob@0..20
+                    PPIf@0..20
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPUnaryExpr@4..8
+                        Tilde@4..5 "~"
+                        Whitespace@5..6 " "
+                        PPNameExpr@6..8
+                          Name@6..8
+                            Identifier@6..7 "A"
+                            Whitespace@7..8 " "
+                      KwThen@8..12 "then"
+                      Whitespace@12..13 " "
+                      PPTokenBody@13..13
+                      PPEndIf@13..20
+                        PPKwEnd@13..17 "#end"
+                        Whitespace@17..18 " "
+                        KwIf@18..20 "if""##]],
         )
     }
 
@@ -954,34 +954,34 @@ mod expr {
         check(
             "#if ~ not ~ not A then #end if",
             expect![[r##"
-            Source@0..30
-              PreprocStmtGlob@0..30
-                PPIf@0..30
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPUnaryExpr@4..18
-                    Tilde@4..5 "~"
-                    Whitespace@5..6 " "
-                    PPUnaryExpr@6..18
-                      KwNot@6..9 "not"
-                      Whitespace@9..10 " "
-                      PPUnaryExpr@10..18
-                        Tilde@10..11 "~"
-                        Whitespace@11..12 " "
-                        PPUnaryExpr@12..18
-                          KwNot@12..15 "not"
-                          Whitespace@15..16 " "
-                          PPNameExpr@16..18
-                            Name@16..18
-                              Identifier@16..17 "A"
-                              Whitespace@17..18 " "
-                  KwThen@18..22 "then"
-                  Whitespace@22..23 " "
-                  PPTokenBody@23..23
-                  PPEndIf@23..30
-                    PPKwEnd@23..27 "#end"
-                    Whitespace@27..28 " "
-                    KwIf@28..30 "if""##]],
+                Source@0..30
+                  PreprocGlob@0..30
+                    PPIf@0..30
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPUnaryExpr@4..18
+                        Tilde@4..5 "~"
+                        Whitespace@5..6 " "
+                        PPUnaryExpr@6..18
+                          KwNot@6..9 "not"
+                          Whitespace@9..10 " "
+                          PPUnaryExpr@10..18
+                            Tilde@10..11 "~"
+                            Whitespace@11..12 " "
+                            PPUnaryExpr@12..18
+                              KwNot@12..15 "not"
+                              Whitespace@15..16 " "
+                              PPNameExpr@16..18
+                                Name@16..18
+                                  Identifier@16..17 "A"
+                                  Whitespace@17..18 " "
+                      KwThen@18..22 "then"
+                      Whitespace@22..23 " "
+                      PPTokenBody@23..23
+                      PPEndIf@23..30
+                        PPKwEnd@23..27 "#end"
+                        Whitespace@27..28 " "
+                        KwIf@28..30 "if""##]],
         )
     }
 
@@ -990,29 +990,29 @@ mod expr {
         check(
             "#if A and B then #end if",
             expect![[r##"
-            Source@0..24
-              PreprocStmtGlob@0..24
-                PPIf@0..24
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPBinaryExpr@4..12
-                    PPNameExpr@4..6
-                      Name@4..6
-                        Identifier@4..5 "A"
-                        Whitespace@5..6 " "
-                    KwAnd@6..9 "and"
-                    Whitespace@9..10 " "
-                    PPNameExpr@10..12
-                      Name@10..12
-                        Identifier@10..11 "B"
-                        Whitespace@11..12 " "
-                  KwThen@12..16 "then"
-                  Whitespace@16..17 " "
-                  PPTokenBody@17..17
-                  PPEndIf@17..24
-                    PPKwEnd@17..21 "#end"
-                    Whitespace@21..22 " "
-                    KwIf@22..24 "if""##]],
+                Source@0..24
+                  PreprocGlob@0..24
+                    PPIf@0..24
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPBinaryExpr@4..12
+                        PPNameExpr@4..6
+                          Name@4..6
+                            Identifier@4..5 "A"
+                            Whitespace@5..6 " "
+                        KwAnd@6..9 "and"
+                        Whitespace@9..10 " "
+                        PPNameExpr@10..12
+                          Name@10..12
+                            Identifier@10..11 "B"
+                            Whitespace@11..12 " "
+                      KwThen@12..16 "then"
+                      Whitespace@16..17 " "
+                      PPTokenBody@17..17
+                      PPEndIf@17..24
+                        PPKwEnd@17..21 "#end"
+                        Whitespace@21..22 " "
+                        KwIf@22..24 "if""##]],
         )
     }
 
@@ -1021,29 +1021,29 @@ mod expr {
         check(
             "#if A & B then #end if",
             expect![[r##"
-            Source@0..22
-              PreprocStmtGlob@0..22
-                PPIf@0..22
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPBinaryExpr@4..10
-                    PPNameExpr@4..6
-                      Name@4..6
-                        Identifier@4..5 "A"
-                        Whitespace@5..6 " "
-                    Ampersand@6..7 "&"
-                    Whitespace@7..8 " "
-                    PPNameExpr@8..10
-                      Name@8..10
-                        Identifier@8..9 "B"
-                        Whitespace@9..10 " "
-                  KwThen@10..14 "then"
-                  Whitespace@14..15 " "
-                  PPTokenBody@15..15
-                  PPEndIf@15..22
-                    PPKwEnd@15..19 "#end"
-                    Whitespace@19..20 " "
-                    KwIf@20..22 "if""##]],
+                Source@0..22
+                  PreprocGlob@0..22
+                    PPIf@0..22
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPBinaryExpr@4..10
+                        PPNameExpr@4..6
+                          Name@4..6
+                            Identifier@4..5 "A"
+                            Whitespace@5..6 " "
+                        Ampersand@6..7 "&"
+                        Whitespace@7..8 " "
+                        PPNameExpr@8..10
+                          Name@8..10
+                            Identifier@8..9 "B"
+                            Whitespace@9..10 " "
+                      KwThen@10..14 "then"
+                      Whitespace@14..15 " "
+                      PPTokenBody@15..15
+                      PPEndIf@15..22
+                        PPKwEnd@15..19 "#end"
+                        Whitespace@19..20 " "
+                        KwIf@20..22 "if""##]],
         )
     }
 
@@ -1052,29 +1052,29 @@ mod expr {
         check(
             "#if A or B then #end if",
             expect![[r##"
-            Source@0..23
-              PreprocStmtGlob@0..23
-                PPIf@0..23
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPBinaryExpr@4..11
-                    PPNameExpr@4..6
-                      Name@4..6
-                        Identifier@4..5 "A"
-                        Whitespace@5..6 " "
-                    KwOr@6..8 "or"
-                    Whitespace@8..9 " "
-                    PPNameExpr@9..11
-                      Name@9..11
-                        Identifier@9..10 "B"
-                        Whitespace@10..11 " "
-                  KwThen@11..15 "then"
-                  Whitespace@15..16 " "
-                  PPTokenBody@16..16
-                  PPEndIf@16..23
-                    PPKwEnd@16..20 "#end"
-                    Whitespace@20..21 " "
-                    KwIf@21..23 "if""##]],
+                Source@0..23
+                  PreprocGlob@0..23
+                    PPIf@0..23
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPBinaryExpr@4..11
+                        PPNameExpr@4..6
+                          Name@4..6
+                            Identifier@4..5 "A"
+                            Whitespace@5..6 " "
+                        KwOr@6..8 "or"
+                        Whitespace@8..9 " "
+                        PPNameExpr@9..11
+                          Name@9..11
+                            Identifier@9..10 "B"
+                            Whitespace@10..11 " "
+                      KwThen@11..15 "then"
+                      Whitespace@15..16 " "
+                      PPTokenBody@16..16
+                      PPEndIf@16..23
+                        PPKwEnd@16..20 "#end"
+                        Whitespace@20..21 " "
+                        KwIf@21..23 "if""##]],
         )
     }
 
@@ -1083,29 +1083,29 @@ mod expr {
         check(
             "#if A | B then #end if",
             expect![[r##"
-            Source@0..22
-              PreprocStmtGlob@0..22
-                PPIf@0..22
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPBinaryExpr@4..10
-                    PPNameExpr@4..6
-                      Name@4..6
-                        Identifier@4..5 "A"
-                        Whitespace@5..6 " "
-                    Pipe@6..7 "|"
-                    Whitespace@7..8 " "
-                    PPNameExpr@8..10
-                      Name@8..10
-                        Identifier@8..9 "B"
-                        Whitespace@9..10 " "
-                  KwThen@10..14 "then"
-                  Whitespace@14..15 " "
-                  PPTokenBody@15..15
-                  PPEndIf@15..22
-                    PPKwEnd@15..19 "#end"
-                    Whitespace@19..20 " "
-                    KwIf@20..22 "if""##]],
+                Source@0..22
+                  PreprocGlob@0..22
+                    PPIf@0..22
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPBinaryExpr@4..10
+                        PPNameExpr@4..6
+                          Name@4..6
+                            Identifier@4..5 "A"
+                            Whitespace@5..6 " "
+                        Pipe@6..7 "|"
+                        Whitespace@7..8 " "
+                        PPNameExpr@8..10
+                          Name@8..10
+                            Identifier@8..9 "B"
+                            Whitespace@9..10 " "
+                      KwThen@10..14 "then"
+                      Whitespace@14..15 " "
+                      PPTokenBody@15..15
+                      PPEndIf@15..22
+                        PPKwEnd@15..19 "#end"
+                        Whitespace@19..20 " "
+                        KwIf@20..22 "if""##]],
         )
     }
 
@@ -1114,43 +1114,43 @@ mod expr {
         check(
             "#if A | B and C | D then #end if",
             expect![[r##"
-            Source@0..32
-              PreprocStmtGlob@0..32
-                PPIf@0..32
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPBinaryExpr@4..20
-                    PPBinaryExpr@4..16
-                      PPNameExpr@4..6
-                        Name@4..6
-                          Identifier@4..5 "A"
-                          Whitespace@5..6 " "
-                      Pipe@6..7 "|"
-                      Whitespace@7..8 " "
-                      PPBinaryExpr@8..16
-                        PPNameExpr@8..10
-                          Name@8..10
-                            Identifier@8..9 "B"
-                            Whitespace@9..10 " "
-                        KwAnd@10..13 "and"
-                        Whitespace@13..14 " "
-                        PPNameExpr@14..16
-                          Name@14..16
-                            Identifier@14..15 "C"
-                            Whitespace@15..16 " "
-                    Pipe@16..17 "|"
-                    Whitespace@17..18 " "
-                    PPNameExpr@18..20
-                      Name@18..20
-                        Identifier@18..19 "D"
-                        Whitespace@19..20 " "
-                  KwThen@20..24 "then"
-                  Whitespace@24..25 " "
-                  PPTokenBody@25..25
-                  PPEndIf@25..32
-                    PPKwEnd@25..29 "#end"
-                    Whitespace@29..30 " "
-                    KwIf@30..32 "if""##]],
+                Source@0..32
+                  PreprocGlob@0..32
+                    PPIf@0..32
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPBinaryExpr@4..20
+                        PPBinaryExpr@4..16
+                          PPNameExpr@4..6
+                            Name@4..6
+                              Identifier@4..5 "A"
+                              Whitespace@5..6 " "
+                          Pipe@6..7 "|"
+                          Whitespace@7..8 " "
+                          PPBinaryExpr@8..16
+                            PPNameExpr@8..10
+                              Name@8..10
+                                Identifier@8..9 "B"
+                                Whitespace@9..10 " "
+                            KwAnd@10..13 "and"
+                            Whitespace@13..14 " "
+                            PPNameExpr@14..16
+                              Name@14..16
+                                Identifier@14..15 "C"
+                                Whitespace@15..16 " "
+                        Pipe@16..17 "|"
+                        Whitespace@17..18 " "
+                        PPNameExpr@18..20
+                          Name@18..20
+                            Identifier@18..19 "D"
+                            Whitespace@19..20 " "
+                      KwThen@20..24 "then"
+                      Whitespace@24..25 " "
+                      PPTokenBody@25..25
+                      PPEndIf@25..32
+                        PPKwEnd@25..29 "#end"
+                        Whitespace@29..30 " "
+                        KwIf@30..32 "if""##]],
         )
     }
 
@@ -1159,22 +1159,22 @@ mod expr {
         check(
             "#if not then #end if",
             expect![[r##"
-            Source@0..20
-              PreprocStmtGlob@0..20
-                PPIf@0..20
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPUnaryExpr@4..8
-                    KwNot@4..7 "not"
-                    Whitespace@7..8 " "
-                  KwThen@8..12 "then"
-                  Whitespace@12..13 " "
-                  PPTokenBody@13..13
-                  PPEndIf@13..20
-                    PPKwEnd@13..17 "#end"
-                    Whitespace@17..18 " "
-                    KwIf@18..20 "if"
-            error at 8..12: expected preprocessor condition, but found ’then’"##]],
+                Source@0..20
+                  PreprocGlob@0..20
+                    PPIf@0..20
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPUnaryExpr@4..8
+                        KwNot@4..7 "not"
+                        Whitespace@7..8 " "
+                      KwThen@8..12 "then"
+                      Whitespace@12..13 " "
+                      PPTokenBody@13..13
+                      PPEndIf@13..20
+                        PPKwEnd@13..17 "#end"
+                        Whitespace@17..18 " "
+                        KwIf@18..20 "if"
+                error at 8..12: expected preprocessor condition, but found ’then’"##]],
         )
     }
 
@@ -1183,26 +1183,26 @@ mod expr {
         check(
             "#if A and then #end if",
             expect![[r##"
-            Source@0..22
-              PreprocStmtGlob@0..22
-                PPIf@0..22
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPBinaryExpr@4..10
-                    PPNameExpr@4..6
-                      Name@4..6
-                        Identifier@4..5 "A"
-                        Whitespace@5..6 " "
-                    KwAnd@6..9 "and"
-                    Whitespace@9..10 " "
-                  KwThen@10..14 "then"
-                  Whitespace@14..15 " "
-                  PPTokenBody@15..15
-                  PPEndIf@15..22
-                    PPKwEnd@15..19 "#end"
-                    Whitespace@19..20 " "
-                    KwIf@20..22 "if"
-            error at 10..14: expected preprocessor condition, but found ’then’"##]],
+                Source@0..22
+                  PreprocGlob@0..22
+                    PPIf@0..22
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPBinaryExpr@4..10
+                        PPNameExpr@4..6
+                          Name@4..6
+                            Identifier@4..5 "A"
+                            Whitespace@5..6 " "
+                        KwAnd@6..9 "and"
+                        Whitespace@9..10 " "
+                      KwThen@10..14 "then"
+                      Whitespace@14..15 " "
+                      PPTokenBody@15..15
+                      PPEndIf@15..22
+                        PPKwEnd@15..19 "#end"
+                        Whitespace@19..20 " "
+                        KwIf@20..22 "if"
+                error at 10..14: expected preprocessor condition, but found ’then’"##]],
         )
     }
 
@@ -1211,33 +1211,33 @@ mod expr {
         check(
             "#if A not B then #end if",
             expect![[r##"
-            Source@0..24
-              PreprocStmtGlob@0..24
-                PPIf@0..24
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  PPNameExpr@4..6
-                    Name@4..6
-                      Identifier@4..5 "A"
-                      Whitespace@5..6 " "
-                  Error@6..10
-                    KwNot@6..9 "not"
-                    Whitespace@9..10 " "
-                  PPTokenBody@10..17
-                    CallStmt@10..12
-                      NameExpr@10..12
-                        Name@10..12
-                          Identifier@10..11 "B"
-                          Whitespace@11..12 " "
-                    Error@12..17
-                      KwThen@12..16 "then"
-                      Whitespace@16..17 " "
-                  PPEndIf@17..24
-                    PPKwEnd@17..21 "#end"
-                    Whitespace@21..22 " "
-                    KwIf@22..24 "if"
-            error at 6..9: expected ’then’, but found ’not’
-            error at 12..16: expected statement, but found ’then’"##]],
+                Source@0..24
+                  PreprocGlob@0..24
+                    PPIf@0..24
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      PPNameExpr@4..6
+                        Name@4..6
+                          Identifier@4..5 "A"
+                          Whitespace@5..6 " "
+                      Error@6..10
+                        KwNot@6..9 "not"
+                        Whitespace@9..10 " "
+                      PPTokenBody@10..17
+                        CallStmt@10..12
+                          NameExpr@10..12
+                            Name@10..12
+                              Identifier@10..11 "B"
+                              Whitespace@11..12 " "
+                        Error@12..17
+                          KwThen@12..16 "then"
+                          Whitespace@16..17 " "
+                      PPEndIf@17..24
+                        PPKwEnd@17..21 "#end"
+                        Whitespace@21..22 " "
+                        KwIf@22..24 "if"
+                error at 6..9: expected ’then’, but found ’not’
+                error at 12..16: expected statement, but found ’then’"##]],
         )
     }
 
@@ -1246,36 +1246,38 @@ mod expr {
         check(
             "#if and B then #end if",
             expect![[r##"
-            Source@0..22
-              PreprocStmtGlob@0..22
-                PPIf@0..22
-                  PPKwIf@0..3 "#if"
-                  Whitespace@3..4 " "
-                  Error@4..8
-                    KwAnd@4..7 "and"
-                    Whitespace@7..8 " "
-                  Error@8..10
-                    Identifier@8..9 "B"
-                    Whitespace@9..10 " "
-                  PPTokenBody@10..15
-                    Error@10..15
-                      KwThen@10..14 "then"
-                      Whitespace@14..15 " "
-                  PPEndIf@15..22
-                    PPKwEnd@15..19 "#end"
-                    Whitespace@19..20 " "
-                    KwIf@20..22 "if"
-            error at 4..7: expected preprocessor condition, but found ’and’
-            error at 8..9: expected ’then’, but found identifier
-            error at 10..14: expected statement, but found ’then’"##]],
+                Source@0..22
+                  PreprocGlob@0..22
+                    PPIf@0..22
+                      PPKwIf@0..3 "#if"
+                      Whitespace@3..4 " "
+                      Error@4..8
+                        KwAnd@4..7 "and"
+                        Whitespace@7..8 " "
+                      Error@8..10
+                        Identifier@8..9 "B"
+                        Whitespace@9..10 " "
+                      PPTokenBody@10..15
+                        Error@10..15
+                          KwThen@10..14 "then"
+                          Whitespace@14..15 " "
+                      PPEndIf@15..22
+                        PPKwEnd@15..19 "#end"
+                        Whitespace@19..20 " "
+                        KwIf@20..22 "if"
+                error at 4..7: expected preprocessor condition, but found ’and’
+                error at 8..9: expected ’then’, but found identifier
+                error at 10..14: expected statement, but found ’then’"##]],
         )
     }
 
     #[test]
     fn parse_parens_preproc() {
-        check("#if (A and B) or C then #end if", expect![[r##"
+        check(
+            "#if (A and B) or C then #end if",
+            expect![[r##"
             Source@0..31
-              PreprocStmtGlob@0..31
+              PreprocGlob@0..31
                 PPIf@0..31
                   PPKwIf@0..3 "#if"
                   Whitespace@3..4 " "
@@ -1306,14 +1308,17 @@ mod expr {
                   PPEndIf@24..31
                     PPKwEnd@24..28 "#end"
                     Whitespace@28..29 " "
-                    KwIf@29..31 "if""##]])
+                    KwIf@29..31 "if""##]],
+        )
     }
 
     #[test]
     fn parens_change_precedence_preproc() {
-        check("#if (A | B) and (C | D) then #end if", expect![[r##"
+        check(
+            "#if (A | B) and (C | D) then #end if",
+            expect![[r##"
             Source@0..36
-              PreprocStmtGlob@0..36
+              PreprocGlob@0..36
                 PPIf@0..36
                   PPKwIf@0..3 "#if"
                   Whitespace@3..4 " "
@@ -1354,14 +1359,17 @@ mod expr {
                   PPEndIf@29..36
                     PPKwEnd@29..33 "#end"
                     Whitespace@33..34 " "
-                    KwIf@34..36 "if""##]])
+                    KwIf@34..36 "if""##]],
+        )
     }
 
     #[test]
     fn recover_parens_preproc_missing_right_paren() {
-        check("#if (A then #end if", expect![[r##"
+        check(
+            "#if (A then #end if",
+            expect![[r##"
             Source@0..19
-              PreprocStmtGlob@0..19
+              PreprocGlob@0..19
                 PPIf@0..19
                   PPKwIf@0..3 "#if"
                   Whitespace@3..4 " "
@@ -1378,14 +1386,17 @@ mod expr {
                     PPKwEnd@12..16 "#end"
                     Whitespace@16..17 " "
                     KwIf@17..19 "if"
-            error at 7..11: expected ’)’, but found ’then’"##]])
+            error at 7..11: expected ’)’, but found ’then’"##]],
+        )
     }
 
     #[test]
     fn recover_parens_preproc_missing_expr() {
-        check("#if () then #end if", expect![[r##"
+        check(
+            "#if () then #end if",
+            expect![[r##"
             Source@0..19
-              PreprocStmtGlob@0..19
+              PreprocGlob@0..19
                 PPIf@0..19
                   PPKwIf@0..3 "#if"
                   Whitespace@3..4 " "
@@ -1400,6 +1411,7 @@ mod expr {
                     PPKwEnd@12..16 "#end"
                     Whitespace@16..17 " "
                     KwIf@17..19 "if"
-            error at 5..6: expected preprocessor condition, but found ’)’"##]])
+            error at 5..6: expected preprocessor condition, but found ’)’"##]],
+        )
     }
 }

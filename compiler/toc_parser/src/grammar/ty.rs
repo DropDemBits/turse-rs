@@ -24,20 +24,19 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Timeout,
             TokenKind::Condition => { condition_type(p) } // condition_type
             _ => {
-                preproc::ty_preproc(p).or_else(|| {
-                    expr::expr(p).and_then(|cm| {
-                        // either name type or range type
-                        // further checks are pushed down to AST validation
-                        // so e.g. int literals are allowed in type position
-                        if p.at(TokenKind::Range) {
-                            // range tail
-                            range_type_tail(p, cm)
-                        } else {
-                            // Enclose expr (potential name ref) inside NameType
-                            Some(cm.precede(p).complete(p, SyntaxKind::NameType))
-                        }
-                    })
-                }).or_else(|| {
+                expr::expr(p).and_then(|cm| {
+                    // either name type or range type
+                    // further checks are pushed down to AST validation
+                    // so e.g. int literals are allowed in type position
+                    if p.at(TokenKind::Range) {
+                        // range tail
+                        range_type_tail(p, cm)
+                    } else {
+                        // Enclose expr (potential name ref) inside NameType
+                        Some(cm.precede(p).complete(p, SyntaxKind::NameType))
+                    }
+                })
+                .or_else(|| {
                     // not a ty
                     p.error_unexpected().with_category(Expected::Type).report();
                     None
