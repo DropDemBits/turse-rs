@@ -4400,49 +4400,56 @@ fn recover_nil_expr_missing_right_paren() {
 }
 
 #[test]
-fn parse_include_glob_expr() {
+fn recover_include_glob_expr() {
+    // not allowed in expr/ref position
     check(
         r#"_:=include "here" + 1"#,
         expect![[r#"
             Source@0..21
-              AssignStmt@0..21
+              AssignStmt@0..3
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                BinaryExpr@3..21
-                  PreprocExprGlob@3..18
-                    PPInclude@3..18
-                      KwInclude@3..10 "include"
-                      Whitespace@10..11 " "
-                      StringLiteral@11..17 "\"here\""
-                      Whitespace@17..18 " "
-                  Plus@18..19 "+"
-                  Whitespace@19..20 " "
-                  LiteralExpr@20..21
-                    IntLiteral@20..21 "1""#]],
+              PreprocGlob@3..18
+                PPInclude@3..18
+                  KwInclude@3..10 "include"
+                  Whitespace@10..11 " "
+                  StringLiteral@11..17 "\"here\""
+                  Whitespace@17..18 " "
+              Error@18..20
+                Plus@18..19 "+"
+                Whitespace@19..20 " "
+              CallStmt@20..21
+                LiteralExpr@20..21
+                  IntLiteral@20..21 "1"
+            error at 3..10: expected expression, but found ’include’
+            error at 18..19: expected statement, but found ’+’"#]],
     );
 }
 
 #[test]
-fn parse_include_glob_ref() {
+fn recover_include_glob_ref() {
+    // not allowed in expr/ref position
     check(
         r#"include "here" -> and_there"#,
         expect![[r#"
             Source@0..27
-              CallStmt@0..27
-                ArrowExpr@0..27
-                  PreprocExprGlob@0..15
-                    PPInclude@0..15
-                      KwInclude@0..7 "include"
-                      Whitespace@7..8 " "
-                      StringLiteral@8..14 "\"here\""
-                      Whitespace@14..15 " "
-                  Arrow@15..17 "->"
-                  Whitespace@17..18 " "
+              PreprocGlob@0..15
+                PPInclude@0..15
+                  KwInclude@0..7 "include"
+                  Whitespace@7..8 " "
+                  StringLiteral@8..14 "\"here\""
+                  Whitespace@14..15 " "
+              Error@15..18
+                Arrow@15..17 "->"
+                Whitespace@17..18 " "
+              CallStmt@18..27
+                NameExpr@18..27
                   Name@18..27
-                    Identifier@18..27 "and_there""#]],
+                    Identifier@18..27 "and_there"
+            error at 15..17: expected statement, but found ’->’"#]],
     );
 }
 
