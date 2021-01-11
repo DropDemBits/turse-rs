@@ -1354,7 +1354,7 @@ fn recover_tilde_as_infix() {
 }
 
 #[test]
-fn recover_tilde_not_infix() {
+fn recover_not_as_infix() {
     check(
         "_:=1 not 2",
         expect![[r#"
@@ -1415,6 +1415,24 @@ fn negation_over_arithmetic() {
                   Plus@6..7 "+"
                   LiteralExpr@7..9
                     IntLiteral@7..9 "20""#]],
+    );
+}
+
+#[test]
+fn recover_infix_missing_rhs() {
+    check(
+        "_:=not",
+        expect![[r#"
+        Source@0..6
+          AssignStmt@0..6
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            UnaryExpr@3..6
+              KwNot@3..6 "not"
+        error at 3..6: expected expression"#]],
     );
 }
 
@@ -2331,6 +2349,26 @@ fn recover_deref_not_reference() {
                     Caret@1..2 "^"
                     LiteralExpr@2..3
                       IntLiteral@2..3 "1""#]],
+    );
+}
+
+#[test]
+fn recover_deref_missing_rhs() {
+    check(
+        "_:=^^",
+        expect![[r#"
+        Source@0..5
+          AssignStmt@0..5
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            DerefExpr@3..5
+              Caret@3..4 "^"
+              DerefExpr@4..5
+                Caret@4..5 "^"
+        error at 4..5: expected expression"#]],
     );
 }
 
