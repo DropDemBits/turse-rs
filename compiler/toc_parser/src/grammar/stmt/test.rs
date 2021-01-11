@@ -7843,13 +7843,14 @@ fn parse_include_glob_stmt() {
     check(
         r#"include "oh_here_too" "#,
         expect![[r#"
-        Source@0..22
-          CallStmt@0..22
-            IncludeGlob@0..22
-              KwInclude@0..7 "include"
-              Whitespace@7..8 " "
-              StringLiteral@8..21 "\"oh_here_too\""
-              Whitespace@21..22 " ""#]],
+            Source@0..22
+              CallStmt@0..22
+                PreprocExprGlob@0..22
+                  PPInclude@0..22
+                    KwInclude@0..7 "include"
+                    Whitespace@7..8 " "
+                    StringLiteral@8..21 "\"oh_here_too\""
+                    Whitespace@21..22 " ""#]],
     );
 }
 
@@ -7858,11 +7859,12 @@ fn recover_just_include() {
     check(
         r#"include"#,
         expect![[r#"
-        Source@0..7
-          CallStmt@0..7
-            IncludeGlob@0..7
-              KwInclude@0..7 "include"
-        error at 0..7: expected string literal"#]],
+            Source@0..7
+              CallStmt@0..7
+                PreprocExprGlob@0..7
+                  PPInclude@0..7
+                    KwInclude@0..7 "include"
+            error at 0..7: expected string literal"#]],
     );
 }
 
@@ -7871,22 +7873,23 @@ fn recover_on_include() {
     check(
         r#"for include "still_here""#,
         expect![[r#"
-        Source@0..24
-          ForStmt@0..24
-            KwFor@0..3 "for"
-            Whitespace@3..4 " "
-            IncludeGlob@4..24
-              KwInclude@4..11 "include"
-              Whitespace@11..12 " "
-              StringLiteral@12..24 "\"still_here\""
-            StmtList@24..24
-            EndGroup@24..24
-        error at 4..11: expected identifier, but found ’include’
-        error at 4..11: expected ’:’, but found ’include’
-        error at 12..24: expected ’..’
-        error at 12..24: expected expression
-        error at 12..24: expected ’by’, ’endfor’ or ’end’
-        error at 12..24: expected ’for’"#]],
+            Source@0..24
+              ForStmt@0..24
+                KwFor@0..3 "for"
+                Whitespace@3..4 " "
+                PreprocExprGlob@4..24
+                  PPInclude@4..24
+                    KwInclude@4..11 "include"
+                    Whitespace@11..12 " "
+                    StringLiteral@12..24 "\"still_here\""
+                StmtList@24..24
+                EndGroup@24..24
+            error at 4..11: expected identifier, but found ’include’
+            error at 4..11: expected ’:’, but found ’include’
+            error at 12..24: expected ’..’
+            error at 12..24: expected expression
+            error at 12..24: expected ’by’, ’endfor’ or ’end’
+            error at 12..24: expected ’for’"#]],
     )
 }
 

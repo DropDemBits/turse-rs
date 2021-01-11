@@ -4248,23 +4248,24 @@ fn parse_include_glob_expr() {
     check(
         r#"_:=include "here" + 1"#,
         expect![[r#"
-        Source@0..21
-          AssignStmt@0..21
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            BinaryExpr@3..21
-              IncludeGlob@3..18
-                KwInclude@3..10 "include"
-                Whitespace@10..11 " "
-                StringLiteral@11..17 "\"here\""
-                Whitespace@17..18 " "
-              Plus@18..19 "+"
-              Whitespace@19..20 " "
-              LiteralExpr@20..21
-                IntLiteral@20..21 "1""#]],
+            Source@0..21
+              AssignStmt@0..21
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                BinaryExpr@3..21
+                  PreprocExprGlob@3..18
+                    PPInclude@3..18
+                      KwInclude@3..10 "include"
+                      Whitespace@10..11 " "
+                      StringLiteral@11..17 "\"here\""
+                      Whitespace@17..18 " "
+                  Plus@18..19 "+"
+                  Whitespace@19..20 " "
+                  LiteralExpr@20..21
+                    IntLiteral@20..21 "1""#]],
     );
 }
 
@@ -4273,17 +4274,18 @@ fn parse_include_glob_ref() {
     check(
         r#"include "here" -> and_there"#,
         expect![[r#"
-        Source@0..27
-          CallStmt@0..27
-            ArrowExpr@0..27
-              IncludeGlob@0..15
-                KwInclude@0..7 "include"
-                Whitespace@7..8 " "
-                StringLiteral@8..14 "\"here\""
-                Whitespace@14..15 " "
-              Arrow@15..17 "->"
-              Whitespace@17..18 " "
-              Name@18..27
-                Identifier@18..27 "and_there""#]],
+            Source@0..27
+              CallStmt@0..27
+                ArrowExpr@0..27
+                  PreprocExprGlob@0..15
+                    PPInclude@0..15
+                      KwInclude@0..7 "include"
+                      Whitespace@7..8 " "
+                      StringLiteral@8..14 "\"here\""
+                      Whitespace@14..15 " "
+                  Arrow@15..17 "->"
+                  Whitespace@17..18 " "
+                  Name@18..27
+                    Identifier@18..27 "and_there""#]],
     );
 }

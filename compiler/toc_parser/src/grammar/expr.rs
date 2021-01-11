@@ -201,7 +201,6 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     match_token! {
         |p| match {
-            TokenKind::Include => { super::include_glob(p) }
             TokenKind::Identifier => { name_expr(p) }
             TokenKind::Self_ => { self_expr(p) }
             TokenKind::Caret => { deref_expr(p) }
@@ -233,6 +232,9 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
                     // but those cases should be reported as errors when validating the AST
                     // TODO: Report non-callable expressions as errors
                     primary(p)
+                }).or_else(|| {
+                    // only include is allowed
+                    preproc::expr_preproc(p)
                 })
             }
         }

@@ -92,6 +92,7 @@
 // - condition_type
 
 mod expr;
+mod preproc;
 mod stmt;
 mod ty;
 
@@ -232,14 +233,4 @@ pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
             None
         }
     })
-}
-
-pub(self) fn include_glob(p: &mut Parser) -> Option<CompletedMarker> {
-    // 'include' 'string_literal'
-    debug_assert!(p.at(TokenKind::Include));
-
-    let m = p.start();
-    p.bump();
-    p.expect(TokenKind::StringLiteral);
-    Some(m.complete(p, SyntaxKind::IncludeGlob))
 }
