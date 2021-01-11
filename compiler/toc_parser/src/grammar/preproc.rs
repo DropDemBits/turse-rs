@@ -245,15 +245,18 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
 
 fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
     Some(match_token!(|p| match {
-        TokenKind::Not, TokenKind::Tilde => { UnaryOp::Not }
+        TokenKind::Not,
+        TokenKind::Tilde => { UnaryOp::Not }
         _ => return None
     }))
 }
 
 fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
     Some(match_token!(|p| match {
-        TokenKind::And, TokenKind::Ampersand => { BinaryOp::And }
-        TokenKind::Or, TokenKind::Pipe => { BinaryOp::Or }
+        TokenKind::And,
+        TokenKind::Ampersand => { BinaryOp::And }
+        TokenKind::Or,
+        TokenKind::Pipe => { BinaryOp::Or }
         _ => return None
     }))
 }

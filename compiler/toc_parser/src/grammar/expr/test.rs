@@ -1393,6 +1393,72 @@ fn parse_simple_prefix() {
                   LiteralExpr@4..6
                     IntLiteral@4..6 "10""#]],
     );
+    check("_:=+a", expect![[r#"
+        Source@0..5
+          AssignStmt@0..5
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            UnaryExpr@3..5
+              Plus@3..4 "+"
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a""#]]);
+    check("_:=^a", expect![[r#"
+        Source@0..5
+          AssignStmt@0..5
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            DerefExpr@3..5
+              Caret@3..4 "^"
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a""#]]);
+    check("_:=#a", expect![[r##"
+        Source@0..5
+          AssignStmt@0..5
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            UnaryExpr@3..5
+              Pound@3..4 "#"
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a""##]]);
+    check("_:=~a", expect![[r#"
+        Source@0..5
+          AssignStmt@0..5
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            UnaryExpr@3..5
+              Tilde@3..4 "~"
+              NameExpr@4..5
+                Name@4..5
+                  Identifier@4..5 "a""#]]);
+    check("_:=not a", expect![[r#"
+        Source@0..8
+          AssignStmt@0..8
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            UnaryExpr@3..8
+              KwNot@3..6 "not"
+              Whitespace@6..7 " "
+              NameExpr@7..8
+                Name@7..8
+                  Identifier@7..8 "a""#]]);
 }
 
 #[test]
@@ -3198,7 +3264,7 @@ fn recover_chained_indirect_tails() {
         "_:=a @ (1) @ (2)",
         expect![[r#"
             Source@0..16
-              AssignStmt@0..11
+              AssignStmt@0..13
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
@@ -3216,16 +3282,16 @@ fn recover_chained_indirect_tails() {
                     IntLiteral@8..9 "1"
                   RightParen@9..10 ")"
                   Whitespace@10..11 " "
-              Error@11..13
-                At@11..12 "@"
-                Whitespace@12..13 " "
+                Error@11..13
+                  At@11..12 "@"
+                  Whitespace@12..13 " "
               CallStmt@13..16
                 ParenExpr@13..16
                   LeftParen@13..14 "("
                   LiteralExpr@14..15
                     IntLiteral@14..15 "2"
                   RightParen@15..16 ")"
-            error at 11..12: expected statement, but found ’@’"#]],
+            error at 11..12: expected ’.’, ’->’, ’(’, ’=>’, ’|’, ’or’, ’&’, ’and’, ’<’, ’>’, ’=’, ’<=’, ’>=’, ’in’, ’~’, ’not’, ’+’, ’-’, ’xor’, ’*’, ’/’, ’div’, ’mod’, ’rem’, ’shl’, ’shr’ or ’**’, but found ’@’"#]],
     );
 }
 
@@ -4362,5 +4428,36 @@ fn parse_include_glob_ref() {
                   Whitespace@17..18 " "
                   Name@18..27
                     Identifier@18..27 "and_there""#]],
+    );
+}
+
+#[test]
+fn parse_infix_after_indirect() {
+    check(
+        "_:=int @ (1) >= 1",
+        expect![[r#"
+        Source@0..17
+          AssignStmt@0..17
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            BinaryExpr@3..17
+              IndirectExpr@3..13
+                PrimType@3..7
+                  KwInt@3..6 "int"
+                  Whitespace@6..7 " "
+                At@7..8 "@"
+                Whitespace@8..9 " "
+                LeftParen@9..10 "("
+                LiteralExpr@10..11
+                  IntLiteral@10..11 "1"
+                RightParen@11..12 ")"
+                Whitespace@12..13 " "
+              GreaterEqu@13..15 ">="
+              Whitespace@15..16 " "
+              LiteralExpr@16..17
+                IntLiteral@16..17 "1""#]],
     );
 }
