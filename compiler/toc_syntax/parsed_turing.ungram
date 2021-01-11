@@ -1,0 +1,824 @@
+// Turing Ungrammar, matching parse tree
+
+Name =
+  'ident'
+
+NameList =
+  ( Name ( ',' Name )* )
+
+//*************//
+// Attributes  //
+//*************//
+
+UnqualifiedAttr =
+  '~' '.'
+| 'unqualified'
+
+PervasiveAttr =
+  '*'
+| 'pervasive'
+
+RegisterAttr =
+  'register'
+
+ConstAttr =
+  'const'
+
+VarAttr =
+  'var'
+
+CheatAttr =
+  'cheat'
+
+ForwardAttr =
+  'forward'
+
+OpaqueAttr =
+  'opaque'
+
+//***************************//
+//      Top Level Items      //
+//***************************//
+
+Source =
+  'unit'?
+  Stmt*
+
+//***************************//
+//  Preprocessor Definitions //
+//***************************//
+
+// Only in Stmt position
+PreprocGlob =
+  PPInclude
+| PPIf
+| PPElseif
+| PPElse
+| PPEndIf
+
+PPInclude =
+  'include' 'string_literal'
+
+PPIf =
+  '#if' PPExpr 'then'
+    PPTokenBody
+  ( PPElse | PPElseif )
+  PPEndIf
+
+PPElseif =
+  ( '#elseif' | '#elsif' ) PPExpr 'then'
+    PPTokenBody
+  ( PPElse | PPElseif )
+
+PPElse =
+  '#else' PPTokenBody
+
+PPEndIf =
+  '#end' 'if'
+| '#endif'
+
+PPExpr =
+  PPBinaryExpr
+| PPUnaryExpr
+| PPNameExpr
+| PPParenExpr
+
+PPBinaryExpr =
+  PPExpr op:( 'and' | 'or' ) PPExpr
+
+PPUnaryExpr =
+  op:( 'not' ) PPExpr
+
+PPNameExpr =
+  Name
+
+PPParenExpr =
+  '(' PPExpr ')'
+
+PPTokenBody =
+  Stmt*
+
+//***************************//
+// Statements & Declarations //
+//***************************//
+
+Stmt =
+  ConstVarDecl
+| TypeDecl
+| BindDecl
+| ProcDecl
+| FcnDecl
+| ProcessDecl
+| ExternalDecl
+| ForwardDecl
+| DeferredDecl
+| BodyDecl
+| ModuleDecl
+| ClassDecl
+| MonitorDecl
+| AssignStmt
+| OpenStmt
+| CloseStmt
+| PutStmt
+| GetStmt
+| ReadStmt
+| WriteStmt
+| SeekStmt
+| TellStmt
+| ForStmt
+| LoopStmt
+| ExitStmt
+| IfStmt
+| CaseStmt
+| BlockStmt
+| InvariantStmt
+| AssertStmt
+| CallStmt
+| ReturnStmt
+| ResultStmt
+| NewStmt
+| FreeStmt
+| TagStmt
+| ForkStmt
+| SignalStmt
+| PauseStmt
+| QuitStmt
+| BreakStmt
+| CheckednessStmt
+| PreStmt
+| InitStmt
+| PostStmt
+| HandlerStmt
+| InheritStmt
+| ImplementStmt
+| ImplementByStmt
+| ImportStmt
+| ExportStmt
+
+StmtList =
+  ( Stmt ';'? )*
+
+ConstVarDecl =
+  kind:('var' | 'const')
+  PervasiveAttr? RegisterAttr?
+  decl_list:NameList
+  ( ':' type_spec:Type )?
+  init:( ':=' Expr )?
+
+TypeDecl =
+  'type' PervasiveAttr? decl_name:Name ':' ( 'forward' | named_ty:Type )
+
+BindDecl =
+  'bind' bindings:( BindItem ( ',' BindItem )* )
+
+BindItem =
+  as_var:VarAttr
+  to_register:RegisterAttr
+  bind_as:Name
+  'to' Reference
+  
+ProcDecl =
+  ProcHeader
+    StmtList
+  EndGroup
+
+ProcHeader =
+  'procedure' PervasiveAttr? Name params:ParamSpec? DeviceSpec?
+
+DeviceSpec =
+  ':' Expr
+
+FcnDecl =
+  FcnHeader
+    StmtList
+  EndGroup
+
+FcnHeader =
+  'function' PervasiveAttr? Name ParamSpec? FcnResult
+
+FcnResult =
+  Name? ':' Type
+
+SubprogHeader =
+  ProcHeader
+| FcnHeader
+
+ForwardDecl =
+  'forward' SubprogHeader ( 'import' ImportList )?
+
+DeferredDecl =
+  'deferred' SubprogHeader
+
+BodyDecl =
+  'body' BodyKind
+    StmtList
+  EndGroup
+
+BodyKind =
+  PlainHeader
+| ProcHeader
+| FcnHeader
+
+PlainHeader =
+  Name ParamSpec? FcnResult?
+
+ProcessDecl =
+  'process' PervasiveAttr? Name ParamSpec? stack_size:( ':' Expr )?
+    StmtList
+  EndGroup
+
+ExternalDecl =
+  'external' external_spec:Expr? ExternalKind
+
+ExternalKind =
+  ExternalFcn:FcnHeader
+| ExternalProc:ProcHeader
+| ExternalVar
+
+ExternalVar =
+  'var' Name ( ':' Type )? ( ':=' Expr )?
+
+ModuleDecl =
+  'module' PervasiveAttr? Name
+    StmtList
+  EndGroup
+
+ClassDecl =
+  'monitor'? 'class' PervasiveAttr? Name
+    StmtList
+  EndGroup
+
+MonitorDecl =
+  'monitor' PervasiveAttr? Name DeviceSpec?
+    StmtList
+  EndGroup
+
+AssignStmt =
+  Reference
+  op:AsnOp
+  Expr
+
+AsnOp = 
+  ':='
+| '=>' '='
+| 'or' '=' // aliased with '|'
+| 'and' '=' // aliased with '&'
+| '+' '='
+| '-' '='
+| 'xor' '='
+| '*' '='
+| '/' '='
+| 'div' '='
+| 'mod' '='
+| 'rem' '='
+| 'shl' '='
+| 'shr' '='
+| '**' '='
+
+OpenStmt =
+  'open' OpenKind
+  
+OpenKind =
+  OldOpen
+| NewOpen
+
+OldOpen =
+  '(' Reference ',' OpenPath ',' OpenMode ')'
+
+OpenPath =
+  Expr
+
+OpenMode =
+  Expr
+
+NewOpen =
+  ':' Reference ',' OpenPath ',' io_caps:( IoCap ( ',' IoCap )* )
+
+IoCap =
+  'get' | 'put'
+| 'read' | 'write'
+| 'seek' | 'mod'
+
+CloseStmt =
+  'close' CloseKind
+  
+CloseKind =
+  OldClose
+| NewClose
+
+OldClose =
+  '(' Reference ')'
+
+NewClose =
+  ':' Reference
+
+PutStmt =
+  'put' StreamNum? items:( PutItem ( ',' PutItem )* ) '..'?
+
+// Propose to change to PutKind alternation, PutItem putting, SkipItem covering both
+PutItem =
+  'skip'
+| Expr width:PutOpt? fraction:PutOpt? exp_width:PutOpt?
+
+PutOpt =
+  ':' Expr
+
+GetStmt =
+  'get' StreamNum? items:( GetItem ( ',' GetItem )* )
+
+// Propose to change to GetKind alternation, GettItem getting, SkipItem covering both
+GetItem =
+  'skip'
+| Reference GetWidth?
+
+GetWidth =
+  ':' ( Expr | '*' )
+
+StreamNum =
+  ':' Expr ','
+
+ReadStmt =
+  'read' BinaryIO
+
+WriteStmt =
+  'write' BinaryIO
+  
+BinaryIO =
+  ':' file_ref:Reference ( ':' status:Reference )? ',' items:( BinaryItem ( ',' BinaryItem )* )
+
+BinaryItem =
+  Reference RequestSize? ActualSize? 
+
+RequestSize =
+  ':' Expr
+
+ActualSize =
+  ':' Reference
+
+SeekStmt =
+  'seek' ':' file_ref:Reference ',' seek_to:( Expr | '*' )
+
+TellStmt =
+  'tell' ':' file_ref:Reference ',' Reference
+
+ForStmt =
+  'for' 'decreasing'? Name? ':' ForBounds steps:StepBy?
+    StmtList
+  EndGroup
+
+ForBounds =
+  from:Expr ( '..' to:Expr )?
+
+StepBy =
+  'by' Expr
+
+LoopStmt =
+  'loop'
+    StmtList
+  EndGroup
+
+ExitStmt =
+  'exit' ( 'when' condition:Expr )?
+
+IfStmt =
+  'if' IfBody
+  EndGroup
+
+IfBody =
+  Expr 'then'
+    true_branch:StmtList
+    false_branch:(
+      ElseStmt
+    | ElseifStmt
+    )
+
+ElseStmt =
+  'else' StmtList EndGroup?
+
+ElseifStmt =
+  'else_if' IfBody EndGroup?
+
+CaseStmt =
+  'case' Expr 'of'
+    CaseArm*
+  EndGroup
+
+CaseArm =
+  'label' select:ExprList? ':'
+      StmtList
+
+BlockStmt =
+  'begin' StmtList EndGroup
+
+InvariantStmt =
+  'invariant' Expr
+
+AssertStmt =
+  'assert' Expr
+
+CallStmt =
+  Reference // CallExpr & bare RefExpr are contained in Reference
+
+ReturnStmt =
+  'return'
+
+ResultStmt =
+  'result' Expr
+
+NewStmt =
+  'new' ( specialize_to:Reference ',' )? Reference ','? new_bounds:( Expr (',' Expr)* )
+
+FreeStmt =
+  'free' ( specialize_to:Reference ',' )? Reference
+
+TagStmt =
+  'tag' Reference ',' Expr
+
+ForkStmt =
+  'fork' Reference ParamList? ForkStatus? StackSize? ProcessDesc?
+
+ForkStatus =
+  ':' Reference
+
+StackSize =
+  ',' Expr
+
+ProcessDesc =
+  ',' Reference
+
+SignalStmt =
+  'signal' Reference
+
+WaitStmt =
+  'wait' Reference ( ',' wait_arg:Expr )?
+
+PauseStmt =
+  'pause' Expr
+
+QuitStmt =
+  'quit' reason:QuitCause? ( ':' quit_code:Expr )?
+
+QuitCause =
+  AtCaller:'<' // Caller failiure
+| BubbleUp:'>' // Exception bubbling/passthrough
+
+BreakStmt =
+  'break'
+
+CheckednessStmt =
+  Checkedness
+
+PreStmt =
+  'pre' Expr
+
+InitStmt =
+  'init' ( InitVar ( ',' InitVar )* )
+
+InitVar =
+  Name ':=' Expr
+
+PostStmt =
+  'post' Expr
+
+HandlerStmt =
+  'handler' '(' Name ')'
+    stmts:StmtList
+  EndGroup
+
+ImportStmt =
+  'import' '('? imports:ImportList ')'?
+
+ImportList =
+  ( ImportItem ( ',' ImportItem )* )
+
+ImportItem =
+  attrs:ImportAttr? ExternalItem
+
+ImportAttr =
+  VarAttr
+| ConstAttr
+| ForwardAttr
+
+ExportStmt =
+  'export' '('? exports:( ExportItem ( ',' ExportItem )* ) ')'?
+
+ExportItem =
+  attrs:ExportAttr* Name
+
+ExportAttr =
+  VarAttr
+| UnqualifiedAttr
+| PervasiveAttr
+| OpaqueAttr
+
+InheritStmt =
+  'inherit' '('? ExternalItem ')'?
+
+ImplementStmt =
+  'implement' '('? ExternalItem ')'?
+
+ImplementByStmt =
+  'implement' 'by' '('? ExternalItem ')'?
+
+ExternalItem =
+  ( Name from:( 'in' 'string_literal' )? )
+| 'string_literal'
+
+//*************//
+// Expressions //
+//*************//
+
+ExprList =
+  Expr ( ',' Expr )*
+
+Expr =
+  LiteralExpr // primary expr
+| ObjClassExpr // primary expr
+| InitExpr  // primary expr
+| NilExpr  // primary expr
+| SizeOfExpr // primary expr
+| BinaryExpr
+| UnaryExpr
+| ParenExpr
+// References below
+| NameExpr
+| SelfExpr
+| FieldExpr
+| DerefExpr
+| CheatExpr
+| NatCheatExpr
+| ArrowExpr
+| IndirectExpr
+| BitsExpr
+| CallExpr
+
+LiteralExpr =
+  literal:(
+    'int_literal'    // basic digits
+  | 'radix_literal'  // 16#00AA
+  | 'real_literal'   // .1 or 1.0 or 1e-5 or 1.0e10
+  | 'char_literal'   // 'eee'
+  | 'string_literal' // "fff"
+  | 'true' | 'false' // bool literals
+  )
+
+InitExpr =
+  'init' '('
+    ExprList
+  ')'
+
+NilExpr =
+  'nil' '('
+    Reference
+  ')'
+
+SizeOfExpr =
+  'sizeof' '(' ( PrimType |  Expr ) ')'
+
+BinaryExpr =
+  lhs:Expr
+  op:( // Sorted by prec level (lowest to highest)
+    '=>'
+  | 'or' // aliased with '|'
+  | 'and' // aliased with '&'
+  | '<' | '>' | '=' | '<=' | '>=' | '~=' | 'in' | '~in'
+  | '+' | '-' | 'xor'
+  | '*' | '/' | 'div' | 'mod' | 'rem' | 'shl' | 'shr'
+  | '**'
+  )
+  rhs:Expr
+
+UnaryExpr =
+  op:( // Sorted by prec level (lowest to highest)
+    'not' // aliased with '~'
+  | '+' | '-'
+  )
+  rhs:Expr
+
+ParenExpr =
+  '(' Expr ')'
+
+ObjClassExpr =
+  'objectclass' '(' Reference ')'
+
+// as reference if Expr is a Reference, otherwise as expr
+// Turing: register var refs are not considered as valid lhs exprs
+CheatExpr =
+  'cheat' '(' Type ',' Expr SizeSpec? ')'
+
+SizeSpec =
+  ':' Expr
+
+//*************//
+// References  //
+//*************//
+
+Reference =
+  NameExpr
+| SelfExpr
+| FieldExpr
+| DerefExpr
+| NatCheatExpr
+| ArrowExpr
+| IndirectExpr
+| BitsExpr
+| CallExpr
+
+NameExpr =
+  Name
+
+SelfExpr =
+  'self'
+
+FieldExpr =
+  Reference '.' Name
+
+ArrowExpr =
+  Reference '->' Name
+
+DerefExpr =
+  '^' Reference
+
+NatCheatExpr =
+  '#' Expr
+
+IndirectExpr =
+  IndirectTy '@' '(' Expr ')'
+
+IndirectTy =
+  PrimType
+| NameType
+
+BitsExpr =
+  'bits' '(' Expr ',' BitRange ')'
+
+BitRange =
+  Expr
+| RangeSpec
+
+// Covers Substring, Subscript, FcnCall
+// Covers PointerSpec, SetCons
+CallExpr =
+  Reference ParamList
+
+ParamList =
+  '('
+    ( Param ( ',' Param )* )
+  ')'
+
+Param =
+  Expr
+| AllItem
+| RangeItem
+
+AllItem =
+  'all'
+
+RangeItem =
+  start:RangeBound ( '..' end:RangeBound )?
+
+RangeBound =
+  RelativeBound
+| Expr
+
+RelativeBound =
+  '*' ( '-' Expr )?
+
+//*************//
+//    Types    //
+//*************//
+
+Type =
+  PrimType
+| NameType
+| RangeType
+| EnumType
+| ArrayType
+| SetType
+| RecordType
+| UnionType
+| PointerType
+| FcnType
+| ProcType
+| CollectionType
+| ConditionType
+
+PrimType =
+  'int' | 'int1' | 'int2' | 'int4'
+| 'nat' | 'nat1' | 'nat2' | 'nat4'
+| 'real' | 'real4' | 'real8'
+| 'boolean'
+| 'char' | 'string'
+| SizedCharType | SizedStringType
+
+SizedCharType =
+  'char' '(' SeqLength ')'
+
+SizedStringType =
+  'string' '(' SeqLength ')'
+
+// Wrap star in DynLength?
+SeqLength =
+  Expr
+| '*'
+
+NameType =
+  Reference
+
+RangeType =
+  RangeSpec
+
+RangeSpec =
+  begin:Expr '..' end:( '*' | Expr )
+  
+EnumType =
+  'enum' '(' fields:( Name ( ',' Name )* ) ')'
+
+ArrayType =
+  'flexible'? 'array' ranges:RangeList 'of' elem_ty:Type
+
+RangeList =
+  Type ( ',' Type )*
+
+SetType =
+  'set' 'of' elem_ty:Type
+
+RecordType =
+  'record'
+    RecordField*
+  EndGroup
+
+UnionType =
+  'union' tag_name:Name? ':' range_ty:Type 'of'
+    UnionVariants*
+  EndGroup
+
+UnionVariant =
+  'label' selectors:ExprList? ':'
+    RecordField*
+
+RecordField =
+  field_names:NameList ':' field_ty:Type ';'?
+
+PointerType =
+  is_checked:Checkedness?
+  ( 'pointer' 'to' | '^' )
+  to_ty:Type
+
+
+Checkedness =
+  'checked'
+| 'unchecked'
+
+FcnType =
+  'function' Name? ParamSpec ':' Type
+
+ProcType =
+  'procedure' Name? ParamSpec
+
+SubprogType =
+  FcnType
+| ProcType
+
+ParamSpec =
+  ( ParamDecl ( ',' ParamDecl )* )
+
+ParamDecl =
+  ConstVarParam
+| SubprogParam:SubprogType
+
+ConstVarParam =
+  pass_as_ref:VarAttr?
+  bind_to_register:RegisterAttr?
+  param_names:NameList
+  ':' coerce_type:CheatAttr? param_ty:Type
+
+CollectionType =
+  'collection' 'of' ( elem_ty:Type | ( 'forward' Name ) )
+
+ConditionType =
+  ConditionKind? 'condition'
+
+ConditionKind =
+  'priority'
+| 'deferred'
+| 'timeout'
+
+//*************//
+//    Misc     //
+//*************//
+
+EndGroup =
+  'end'
+| 'end' 'identifier'
+| 'end' 'case'
+| 'end' 'for'
+| 'end' 'if'
+| 'end' 'loop'
+| 'end' 'handler'
+| 'end' 'union'
+| 'end' 'record'
+| 'endcase'
+| 'endfor'
+| 'endif'
+| 'endloop'
