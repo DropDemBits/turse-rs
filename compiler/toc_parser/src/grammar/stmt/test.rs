@@ -7932,8 +7932,7 @@ fn recover_on_include() {
                       StringLiteral@12..24 "\"still_here\""
                 StmtList@24..24
                 EndGroup@24..24
-            error at 4..11: expected identifier, but found ’include’
-            error at 4..11: expected ’:’, but found ’include’
+            error at 4..11: expected identifier or ’:’, but found ’include’
             error at 12..24: expected ’..’, ’by’, ’endfor’ or ’end’
             error at 12..24: expected ’for’"#]],
     )
@@ -10467,5 +10466,37 @@ fn recover_on_wait() {
               Name@15..16
                 Identifier@15..16 "q"
         error at 10..14: expected expression, but found ’wait’"#]],
+    );
+}
+
+#[test]
+fn parse_break_stmt() {
+    check(
+        "break",
+        expect![[r#"
+        Source@0..5
+          BreakStmt@0..5
+            KwBreak@0..5 "break""#]],
+    );
+}
+
+#[test]
+fn recover_on_break() {
+    check(
+        "var i := \nbreak",
+        expect![[r#"
+        Source@0..15
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          BreakStmt@10..15
+            KwBreak@10..15 "break"
+        error at 10..15: expected expression, but found ’break’"#]],
     );
 }

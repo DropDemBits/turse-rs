@@ -1,6 +1,6 @@
 //! Grammar parsing
 
-// Todo list for parity with `toc_frontend/parser` (x) and completion (|)
+// All parsed items
 
 // stmts:
 // - const_decl
@@ -47,6 +47,7 @@
 // - pause_stmt
 // - wait_stmt
 // - quit_stmt
+// - break_stmt
 // - checkedness_stmt
 // - pre_stmt
 // - init_stmt

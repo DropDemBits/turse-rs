@@ -268,6 +268,7 @@ pub enum SyntaxKind {
     SignalStmt,
     PauseStmt,
     QuitStmt,
+    BreakStmt,
     CheckednessStmt,
     BlockStmt,
     Type,

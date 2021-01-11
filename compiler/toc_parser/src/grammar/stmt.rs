@@ -54,6 +54,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Pause => { stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt) }
             TokenKind::Wait => { wait_stmt(p) }
             TokenKind::Quit => { quit_stmt(p) }
+            TokenKind::Break => { stmt_only_kw(p, TokenKind::Break, SyntaxKind::BreakStmt) }
             TokenKind::Checked => { stmt_only_kw(p, TokenKind::Checked, SyntaxKind::CheckednessStmt) }
             TokenKind::Unchecked => { stmt_only_kw(p, TokenKind::Unchecked, SyntaxKind::CheckednessStmt) }
             TokenKind::Pre => { stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt) }
