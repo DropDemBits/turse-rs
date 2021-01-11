@@ -956,9 +956,10 @@ fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.hidden_eat(TokenKind::Decreasing);
 
-    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+    // index name (optional)
+    if p.at(TokenKind::Identifier) {
         super::name(p);
-    });
+    }
 
     p.with_extra_recovery(&[TokenKind::Range], |p| {
         p.expect(TokenKind::Colon);
