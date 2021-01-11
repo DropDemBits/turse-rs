@@ -162,6 +162,14 @@ pub enum SyntaxKind {
     KwWrite,
     KwXor,
 
+    // Preprocessor keywords
+    PPKwIf,
+    PPKwElseif,
+    PPKwElsif,
+    PPKwElse,
+    PPKwEnd,
+    PPKwEndIf,
+
     // Literals
     /// Normal integer literal
     IntLiteral,
@@ -204,7 +212,19 @@ pub enum SyntaxKind {
     StmtList,
     Stmt,
     ImportStmt,
-    IncludeGlob,
+    PreprocTyGlob,
+    PreprocExprGlob,
+    PreprocStmtGlob,
+    PPInclude,
+    PPIf,
+    PPTokenBody,
+    PPElseif,
+    PPElse,
+    PPEndIf,
+    PPExpr,
+    PPBinaryExpr,
+    PPUnaryExpr,
+    PPNameExpr,
     ConstVarDecl,
     TypeDecl,
     BindDecl,
@@ -523,6 +543,12 @@ impl From<TokenKind> for SyntaxKind {
             TokenKind::Comment => SyntaxKind::Comment,
             TokenKind::Error => SyntaxKind::Error,
             TokenKind::NumberLiteral(_) => unreachable!(), // always converted out
+            TokenKind::PreprocIf => SyntaxKind::PPKwIf,
+            TokenKind::PreprocElseIf => SyntaxKind::PPKwElseif,
+            TokenKind::PreprocElsIf => SyntaxKind::PPKwElsif,
+            TokenKind::PreprocElse => SyntaxKind::PPKwElse,
+            TokenKind::PreprocEnd => SyntaxKind::PPKwEnd,
+            TokenKind::PreprocEndIf => SyntaxKind::PPKwEndIf,
         }
     }
 }

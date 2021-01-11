@@ -18,6 +18,15 @@ use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 
 const STMT_START_RECOVERY_SET: &[TokenKind] = &[
+    // Preprocessor //
+    TokenKind::PreprocIf,
+    TokenKind::PreprocElseIf,
+    TokenKind::PreprocElsIf,
+    TokenKind::PreprocElse,
+    TokenKind::PreprocEnd,
+    TokenKind::PreprocEndIf,
+    //
+
     // Decls //
     TokenKind::Var,
     TokenKind::Const,

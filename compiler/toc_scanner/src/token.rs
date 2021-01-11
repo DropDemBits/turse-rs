@@ -355,6 +355,20 @@ pub enum TokenKind {
     #[token("/*", lex_block_comment)]
     Comment,
 
+    // Preprocessor
+    #[token("#if")]
+    PreprocIf,
+    #[token("#elseif")]
+    PreprocElseIf,
+    #[token("#elsif")]
+    PreprocElsIf,
+    #[token("#else")]
+    PreprocElse,
+    #[token("#end")]
+    PreprocEnd,
+    #[token("#endif")]
+    PreprocEndIf,
+
     #[error]
     Error,
 }
@@ -833,7 +847,13 @@ impl fmt::Display for TokenKind {
             TokenKind::Whitespace => "whitespace",
             TokenKind::Comment => "comment",
             TokenKind::Error => "invalid token",
-            _ => unreachable!("of token {:?}", self),
+            TokenKind::NumberLiteral(_) => unreachable!("never passed through"),
+            TokenKind::PreprocIf => "#if",
+            TokenKind::PreprocElseIf => "#elseif",
+            TokenKind::PreprocElsIf => "#elsif",
+            TokenKind::PreprocElse => "#else",
+            TokenKind::PreprocEnd => "#end",
+            TokenKind::PreprocEndIf => "#endif",
         })
     }
 }

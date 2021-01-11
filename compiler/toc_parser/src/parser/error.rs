@@ -114,6 +114,7 @@ impl fmt::Display for MessageCategory {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) enum Expected {
     Expression,
+    PreprocCondition,
     Statement,
     Type,
 }
@@ -122,6 +123,7 @@ impl fmt::Display for Expected {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Expression => "expression",
+            Self::PreprocCondition => "preprocessor condition",
             Self::Statement => "statement",
             Self::Type => "type specifier",
         })
