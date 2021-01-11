@@ -2,4 +2,9 @@
 
 members = [
     "compiler/toc",
+    "compiler/toc_dummy",
+    "fuzzers/parser_fuzz",
 ]
+
+[profile.release]
+debug = true
