@@ -319,6 +319,7 @@ pub enum SyntaxKind {
     BinaryItem,
     RequestSize,
     ActualSize,
+    ForBounds,
     StepBy,
     IfBody,
     ElseStmt,
