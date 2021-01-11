@@ -104,6 +104,16 @@ pub(super) fn reference(p: &mut Parser) -> Option<CompletedMarker> {
     expr_binding_power(p, toc_syntax::MIN_REF_BINDING_POWER)
 }
 
+fn expect_expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
+    expr_binding_power(p, min_binding_power).or_else(|| {
+        // report missing expr
+        p.error_unexpected()
+            .with_category(Expected::Expression)
+            .report();
+        None
+    })
+}
+
 fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
     let only_primaries = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
 
@@ -172,15 +182,7 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             _ => {
                 // wrap inside a binary expr
                 let m = lhs.precede(p);
-                let found_rhs = expr_binding_power(p, right_bind_power)
-                    .or_else(|| {
-                        // report missing expr
-                        p.error_unexpected()
-                            .with_category(Expected::Expression)
-                            .report();
-                        None
-                    })
-                    .is_some();
+                let found_rhs = expect_expr_binding_power(p, right_bind_power).is_some();
                 lhs = m.complete(p, SyntaxKind::BinaryExpr);
 
                 found_rhs
@@ -263,7 +265,7 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
     // nom on operator token
     p.bump();
 
-    expr_binding_power(p, right_binding_power);
+    expect_expr_binding_power(p, right_binding_power);
 
     Some(m.complete(p, SyntaxKind::UnaryExpr))
 }
@@ -293,7 +295,7 @@ fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.bump(); // nom caret
-    expr_binding_power(p, right_binding_power);
+    expect_expr_binding_power(p, right_binding_power);
 
     Some(m.complete(p, SyntaxKind::DerefExpr))
 }
