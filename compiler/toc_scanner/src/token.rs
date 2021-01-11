@@ -294,6 +294,8 @@ pub enum TokenKind {
     Shr,
     #[token("signal")]
     Signal,
+    #[token("sizeof")]
+    SizeOf,
     #[token("skip")]
     Skip,
     #[token("string")]
@@ -820,6 +822,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Shl => "’shl’",
             TokenKind::Shr => "’shr’",
             TokenKind::Signal => "’signal’",
+            TokenKind::SizeOf => "’sizeof’",
             TokenKind::Skip => "’skip’",
             TokenKind::String_ => "’string’",
             TokenKind::Tag => "’tag’",
