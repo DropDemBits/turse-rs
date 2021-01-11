@@ -4753,3 +4753,36 @@ fn recover_sizeof_expr_missing_arg() {
         error at 10..11: expected expression, but found ’)’"#]],
     );
 }
+
+#[test]
+fn parse_not_eq_after_higher_precedence_op() {
+    check(
+        "_:=A mod B not= 0",
+        expect![[r#"
+        Source@0..17
+          AssignStmt@0..17
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            BinaryExpr@3..17
+              BinaryExpr@3..11
+                NameExpr@3..5
+                  Name@3..5
+                    Identifier@3..4 "A"
+                    Whitespace@4..5 " "
+                KwMod@5..8 "mod"
+                Whitespace@8..9 " "
+                NameExpr@9..11
+                  Name@9..11
+                    Identifier@9..10 "B"
+                    Whitespace@10..11 " "
+              NotEq@11..16
+                KwNot@11..14 "not"
+                Equ@14..15 "="
+                Whitespace@15..16 " "
+              LiteralExpr@16..17
+                IntLiteral@16..17 "0""#]],
+    );
+}

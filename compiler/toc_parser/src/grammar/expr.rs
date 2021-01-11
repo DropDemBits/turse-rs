@@ -124,7 +124,7 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             lhs = indirect_expr_tail(p, lhs);
         }
 
-        let op = if let Some(op) = infix_op(p, only_primaries) {
+        let op = if let Some(op) = infix_op(p, min_binding_power) {
             op
         } else {
             // Not an infix operator, so let the caller decide the outcome
@@ -503,7 +503,7 @@ fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<UnaryOp> {
     })
 }
 
-fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
+fn infix_op(p: &mut Parser, min_infix_power: u8) -> Option<BinaryOp> {
     let ref_infix_ops = match_token!(|p| match {
         TokenKind::Dot => { Some(BinaryOp::Dot) },
         TokenKind::Arrow => { Some(BinaryOp::Arrow) },
@@ -511,7 +511,7 @@ fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
         _ => None,
     });
 
-    if only_primaries {
+    if min_infix_power >= toc_syntax::MIN_REF_BINDING_POWER {
         // Stop at the reference infix ops,
         // since the others can't form reference expressions
         return ref_infix_ops;
@@ -533,7 +533,7 @@ fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
                 TokenKind::In => { BinaryOp::In }
                 TokenKind::Tilde,
                 TokenKind::Not => {
-                    maybe_composite_not_op(p)?
+                    maybe_composite_not_op(p, min_infix_power)?
                 }
                 TokenKind::Plus => { BinaryOp::Add }
                 TokenKind::Minus => { BinaryOp::Sub }
@@ -555,8 +555,13 @@ fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
     })
 }
 
-pub(super) fn maybe_composite_not_op(p: &mut Parser) -> Option<BinaryOp> {
+pub(super) fn maybe_composite_not_op(p: &mut Parser, min_infix_power: u8) -> Option<BinaryOp> {
     debug_assert!(p.at(TokenKind::Not) || p.at(TokenKind::Tilde));
+
+    if BinaryOp::NotIn.binding_power().0 < min_infix_power {
+        // can't parse it anyways yet, leave it for later
+        return None;
+    }
 
     let m = p.start();
 
