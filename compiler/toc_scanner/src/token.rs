@@ -686,7 +686,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
 
 impl TokenKind {
     pub fn is_trivia(self) -> bool {
-        matches!(self, Self::Whitespace | Self::Comment)
+        matches!(self, Self::Whitespace | Self::Comment | Self::Error)
     }
 }
 
