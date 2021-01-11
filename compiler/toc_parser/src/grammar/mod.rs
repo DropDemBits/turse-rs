@@ -45,6 +45,7 @@
 // - fork_stmt
 // - signal_stmt
 // - pause_stmt
+// - wait_stmt
 // - quit_stmt
 // - checkedness_stmt
 // - pre_stmt
