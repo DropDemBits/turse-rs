@@ -222,6 +222,7 @@ pub enum SyntaxKind {
     PPElse,
     PPEndIf,
     PPExpr,
+    PPParenExpr,
     PPBinaryExpr,
     PPUnaryExpr,
     PPNameExpr,

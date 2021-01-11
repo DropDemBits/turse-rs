@@ -217,6 +217,15 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             let m = m.complete(p, SyntaxKind::Name).precede(p);
             Some(m.complete(p, SyntaxKind::PPNameExpr))
         },
+        TokenKind::LeftParen => {
+            let m = p.start();
+            p.bump();
+            p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+                preproc_expr(p);
+            });
+            p.expect(TokenKind::RightParen);
+            Some(m.complete(p, SyntaxKind::PPParenExpr))
+        }
         _ => prefix(p),
     })
 }

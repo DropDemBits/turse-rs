@@ -1270,4 +1270,136 @@ mod expr {
             error at 10..14: expected statement, but found ’then’"##]],
         )
     }
+
+    #[test]
+    fn parse_parens_preproc() {
+        check("#if (A and B) or C then #end if", expect![[r##"
+            Source@0..31
+              PreprocStmtGlob@0..31
+                PPIf@0..31
+                  PPKwIf@0..3 "#if"
+                  Whitespace@3..4 " "
+                  PPBinaryExpr@4..19
+                    PPParenExpr@4..14
+                      LeftParen@4..5 "("
+                      PPBinaryExpr@5..12
+                        PPNameExpr@5..7
+                          Name@5..7
+                            Identifier@5..6 "A"
+                            Whitespace@6..7 " "
+                        KwAnd@7..10 "and"
+                        Whitespace@10..11 " "
+                        PPNameExpr@11..12
+                          Name@11..12
+                            Identifier@11..12 "B"
+                      RightParen@12..13 ")"
+                      Whitespace@13..14 " "
+                    KwOr@14..16 "or"
+                    Whitespace@16..17 " "
+                    PPNameExpr@17..19
+                      Name@17..19
+                        Identifier@17..18 "C"
+                        Whitespace@18..19 " "
+                  KwThen@19..23 "then"
+                  Whitespace@23..24 " "
+                  PPTokenBody@24..24
+                  PPEndIf@24..31
+                    PPKwEnd@24..28 "#end"
+                    Whitespace@28..29 " "
+                    KwIf@29..31 "if""##]])
+    }
+
+    #[test]
+    fn parens_change_precedence_preproc() {
+        check("#if (A | B) and (C | D) then #end if", expect![[r##"
+            Source@0..36
+              PreprocStmtGlob@0..36
+                PPIf@0..36
+                  PPKwIf@0..3 "#if"
+                  Whitespace@3..4 " "
+                  PPBinaryExpr@4..24
+                    PPParenExpr@4..12
+                      LeftParen@4..5 "("
+                      PPBinaryExpr@5..10
+                        PPNameExpr@5..7
+                          Name@5..7
+                            Identifier@5..6 "A"
+                            Whitespace@6..7 " "
+                        Pipe@7..8 "|"
+                        Whitespace@8..9 " "
+                        PPNameExpr@9..10
+                          Name@9..10
+                            Identifier@9..10 "B"
+                      RightParen@10..11 ")"
+                      Whitespace@11..12 " "
+                    KwAnd@12..15 "and"
+                    Whitespace@15..16 " "
+                    PPParenExpr@16..24
+                      LeftParen@16..17 "("
+                      PPBinaryExpr@17..22
+                        PPNameExpr@17..19
+                          Name@17..19
+                            Identifier@17..18 "C"
+                            Whitespace@18..19 " "
+                        Pipe@19..20 "|"
+                        Whitespace@20..21 " "
+                        PPNameExpr@21..22
+                          Name@21..22
+                            Identifier@21..22 "D"
+                      RightParen@22..23 ")"
+                      Whitespace@23..24 " "
+                  KwThen@24..28 "then"
+                  Whitespace@28..29 " "
+                  PPTokenBody@29..29
+                  PPEndIf@29..36
+                    PPKwEnd@29..33 "#end"
+                    Whitespace@33..34 " "
+                    KwIf@34..36 "if""##]])
+    }
+
+    #[test]
+    fn recover_parens_preproc_missing_right_paren() {
+        check("#if (A then #end if", expect![[r##"
+            Source@0..19
+              PreprocStmtGlob@0..19
+                PPIf@0..19
+                  PPKwIf@0..3 "#if"
+                  Whitespace@3..4 " "
+                  PPParenExpr@4..7
+                    LeftParen@4..5 "("
+                    PPNameExpr@5..7
+                      Name@5..7
+                        Identifier@5..6 "A"
+                        Whitespace@6..7 " "
+                  KwThen@7..11 "then"
+                  Whitespace@11..12 " "
+                  PPTokenBody@12..12
+                  PPEndIf@12..19
+                    PPKwEnd@12..16 "#end"
+                    Whitespace@16..17 " "
+                    KwIf@17..19 "if"
+            error at 7..11: expected ’)’, but found ’then’"##]])
+    }
+
+    #[test]
+    fn recover_parens_preproc_missing_expr() {
+        check("#if () then #end if", expect![[r##"
+            Source@0..19
+              PreprocStmtGlob@0..19
+                PPIf@0..19
+                  PPKwIf@0..3 "#if"
+                  Whitespace@3..4 " "
+                  PPParenExpr@4..7
+                    LeftParen@4..5 "("
+                    RightParen@5..6 ")"
+                    Whitespace@6..7 " "
+                  KwThen@7..11 "then"
+                  Whitespace@11..12 " "
+                  PPTokenBody@12..12
+                  PPEndIf@12..19
+                    PPKwEnd@12..16 "#end"
+                    Whitespace@16..17 " "
+                    KwIf@17..19 "if"
+            error at 5..6: expected preprocessor condition, but found ’)’"##]])
+    }
 }
