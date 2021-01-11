@@ -211,6 +211,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Bits => { bits_expr(p) }
             TokenKind::ObjectClass => { objclass_expr(p) }
             TokenKind::Cheat => { cheat_expr(p) }
+            TokenKind::SizeOf => { sizeof_expr(p) }
             _ => {
                 p.with_extra_recovery(&[TokenKind::At], |p| {
                     ty::ty_primitive(p)
@@ -362,6 +363,21 @@ fn cheat_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.expect(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::CheatExpr))
+}
+
+fn sizeof_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::SizeOf));
+
+    let m = p.start();
+    p.bump();
+
+    p.expect(TokenKind::LeftParen);
+    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        ty::ty_primitive(p).or_else(|| expect_expr(p))
+    });
+    p.expect(TokenKind::RightParen);
+
+    Some(m.complete(p, SyntaxKind::SizeOfExpr))
 }
 
 fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {

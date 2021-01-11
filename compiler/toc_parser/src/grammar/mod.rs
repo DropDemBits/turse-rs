@@ -76,6 +76,7 @@
 // - objclass_expr
 // - self_expr
 // - nil_expr
+// - sizeof_expr
 
 // types
 // - include_glob

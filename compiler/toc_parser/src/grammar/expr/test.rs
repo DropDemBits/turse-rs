@@ -4497,3 +4497,259 @@ fn parse_nat_cheat_as_ref() {
               IntLiteral@8..9 "1""##]],
     );
 }
+
+#[test]
+fn parse_sizeof_expr_constexpr() {
+    check(
+        "_:=sizeof(1+2+3)",
+        expect![[r#"
+        Source@0..16
+          AssignStmt@0..16
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..16
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              BinaryExpr@10..15
+                BinaryExpr@10..13
+                  LiteralExpr@10..11
+                    IntLiteral@10..11 "1"
+                  Plus@11..12 "+"
+                  LiteralExpr@12..13
+                    IntLiteral@12..13 "2"
+                Plus@13..14 "+"
+                LiteralExpr@14..15
+                  IntLiteral@14..15 "3"
+              RightParen@15..16 ")""#]],
+    );
+}
+
+#[test]
+fn parse_sizeof_expr_varref() {
+    check(
+        "_:=sizeof(a.b.c.d)",
+        expect![[r#"
+        Source@0..18
+          AssignStmt@0..18
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..18
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              FieldExpr@10..17
+                FieldExpr@10..15
+                  FieldExpr@10..13
+                    NameExpr@10..11
+                      Name@10..11
+                        Identifier@10..11 "a"
+                    Dot@11..12 "."
+                    Name@12..13
+                      Identifier@12..13 "b"
+                  Dot@13..14 "."
+                  Name@14..15
+                    Identifier@14..15 "c"
+                Dot@15..16 "."
+                Name@16..17
+                  Identifier@16..17 "d"
+              RightParen@17..18 ")""#]],
+    );
+}
+
+#[test]
+fn parse_sizeof_expr_ty_prim() {
+    check(
+        "_:=sizeof(int)",
+        expect![[r#"
+        Source@0..14
+          AssignStmt@0..14
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..14
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              PrimType@10..13
+                KwInt@10..13 "int"
+              RightParen@13..14 ")""#]],
+    );
+}
+
+#[test]
+fn parse_sizeof_expr_ty_prim_sized() {
+    check(
+        "_:=sizeof(char(8))",
+        expect![[r#"
+        Source@0..18
+          AssignStmt@0..18
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..18
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              SizedCharType@10..17
+                KwChar@10..14 "char"
+                LeftParen@14..15 "("
+                SeqLength@15..16
+                  LiteralExpr@15..16
+                    IntLiteral@15..16 "8"
+                RightParen@16..17 ")"
+              RightParen@17..18 ")""#]],
+    );
+}
+
+#[test]
+fn parse_sizeof_expr_ty_prim_dyn_sized() {
+    // reject during validation
+    check(
+        "_:=sizeof(char(*))",
+        expect![[r#"
+        Source@0..18
+          AssignStmt@0..18
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..18
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              SizedCharType@10..17
+                KwChar@10..14 "char"
+                LeftParen@14..15 "("
+                SeqLength@15..16
+                  Star@15..16 "*"
+                RightParen@16..17 ")"
+              RightParen@17..18 ")""#]],
+    );
+}
+
+#[test]
+fn recover_sizeof_expr_not_ty_prim() {
+    check(
+        "_:=sizeof(collection of int)",
+        expect![[r#"
+        Source@0..28
+          AssignStmt@0..24
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..24
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              Error@10..21
+                KwCollection@10..20 "collection"
+                Whitespace@20..21 " "
+              Error@21..24
+                KwOf@21..23 "of"
+                Whitespace@23..24 " "
+          Error@24..28
+            PrimType@24..27
+              KwInt@24..27 "int"
+            RightParen@27..28 ")"
+        error at 10..20: expected expression, but found ’collection’
+        error at 21..23: expected ’)’, but found ’of’
+        error at 27..28: expected ’@’, but found ’)’
+        error at 27..28: expected statement"#]],
+    );
+}
+
+#[test]
+fn recover_sizeof_expr_missing_right_paren() {
+    check(
+        "_:=sizeof(a",
+        expect![[r#"
+        Source@0..11
+          AssignStmt@0..11
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..11
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              NameExpr@10..11
+                Name@10..11
+                  Identifier@10..11 "a"
+        error at 10..11: expected ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_sizeof_expr_missing_left_paren() {
+    check(
+        "_:=sizeof a)",
+        expect![[r#"
+        Source@0..12
+          AssignStmt@0..12
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..12
+              KwSizeOf@3..9 "sizeof"
+              Whitespace@9..10 " "
+              Error@10..11
+                Identifier@10..11 "a"
+              RightParen@11..12 ")"
+        error at 10..11: expected ’(’, but found identifier
+        error at 11..12: expected expression, but found ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_sizeof_expr_missing_parens() {
+    check(
+        "_:=sizeof a",
+        expect![[r#"
+        Source@0..11
+          AssignStmt@0..11
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..11
+              KwSizeOf@3..9 "sizeof"
+              Whitespace@9..10 " "
+              Error@10..11
+                Identifier@10..11 "a"
+        error at 10..11: expected ’(’, but found identifier
+        error at 10..11: expected expression
+        error at 10..11: expected ’)’"#]],
+    );
+}
+
+#[test]
+fn recover_sizeof_expr_missing_arg() {
+    check(
+        "_:=sizeof()",
+        expect![[r#"
+        Source@0..11
+          AssignStmt@0..11
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            SizeOfExpr@3..11
+              KwSizeOf@3..9 "sizeof"
+              LeftParen@9..10 "("
+              RightParen@10..11 ")"
+        error at 10..11: expected expression, but found ’)’"#]],
+    );
+}
