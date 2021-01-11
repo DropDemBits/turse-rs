@@ -2425,6 +2425,61 @@ fn init_expr_multiple_exprs() {
 }
 
 #[test]
+fn init_expr_opt_trailing_comma() {
+    check(
+        "_:=init(1,2,3,)",
+        expect![[r#"
+            Source@0..15
+              AssignStmt@0..15
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                InitExpr@3..15
+                  KwInit@3..7 "init"
+                  LeftParen@7..8 "("
+                  ExprList@8..14
+                    LiteralExpr@8..9
+                      IntLiteral@8..9 "1"
+                    Comma@9..10 ","
+                    LiteralExpr@10..11
+                      IntLiteral@10..11 "2"
+                    Comma@11..12 ","
+                    LiteralExpr@12..13
+                      IntLiteral@12..13 "3"
+                    Comma@13..14 ","
+                  RightParen@14..15 ")""#]],
+    );
+}
+
+#[test]
+fn recover_init_expr_missing_expr_in_list() {
+    check(
+        "_:=init(1,,3)",
+        expect![[r#"
+        Source@0..13
+          AssignStmt@0..13
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            InitExpr@3..13
+              KwInit@3..7 "init"
+              LeftParen@7..8 "("
+              ExprList@8..12
+                LiteralExpr@8..9
+                  IntLiteral@8..9 "1"
+                Comma@9..10 ","
+                Comma@10..11 ","
+                LiteralExpr@11..12
+                  IntLiteral@11..12 "3"
+              RightParen@12..13 ")"
+        error at 10..11: expected expression, but found ’,’"#]],
+    );
+}
+#[test]
 fn recover_init_expr_missing_delimiter() {
     check(
         "_:=init(1, 2 3)",
@@ -2451,7 +2506,7 @@ fn recover_init_expr_missing_delimiter() {
                     IntLiteral@13..14 "3"
               Error@14..15
                 RightParen@14..15 ")"
-            error at 13..14: expected ’,’ or ’)’, but found int literal
+            error at 13..14: expected ’)’, but found int literal
             error at 14..15: expected statement, but found ’)’"#]],
     );
 }
@@ -2478,7 +2533,7 @@ fn recover_init_expr_missing_right_paren() {
                     Whitespace@10..11 " "
                     LiteralExpr@11..12
                       IntLiteral@11..12 "2"
-            error at 11..12: expected ’,’ or ’)’"#]],
+            error at 11..12: expected ’)’"#]],
     );
 }
 
@@ -2488,27 +2543,25 @@ fn recover_init_expr_missing_left_paren() {
         "_:=init 1, 2",
         expect![[r#"
             Source@0..12
-              AssignStmt@0..11
+              AssignStmt@0..12
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                InitExpr@3..11
+                InitExpr@3..12
                   KwInit@3..7 "init"
                   Whitespace@7..8 " "
                   Error@8..9
                     IntLiteral@8..9 "1"
-                  ExprList@9..9
-                  Error@9..11
+                  ExprList@9..11
                     Comma@9..10 ","
                     Whitespace@10..11 " "
-              CallStmt@11..12
-                LiteralExpr@11..12
-                  IntLiteral@11..12 "2"
+                  Error@11..12
+                    IntLiteral@11..12 "2"
             error at 8..9: expected ’(’, but found int literal
             error at 9..10: expected expression, but found ’,’
-            error at 9..10: expected ’)’, but found ’,’"#]],
+            error at 11..12: expected ’)’, but found int literal"#]],
     );
 }
 
@@ -2531,6 +2584,28 @@ fn recover_init_expr_empty() {
                   RightParen@8..9 ")"
             error at 8..9: expected expression, but found ’)’"#]],
     );
+}
+
+#[test]
+fn recover_init_expr_just_comma() {
+    check(
+        "_:=init(,)",
+        expect![[r#"
+        Source@0..10
+          AssignStmt@0..10
+            NameExpr@0..1
+              Name@0..1
+                Identifier@0..1 "_"
+            AsnOp@1..3
+              Assign@1..3 ":="
+            InitExpr@3..10
+              KwInit@3..7 "init"
+              LeftParen@7..8 "("
+              ExprList@8..9
+                Comma@8..9 ","
+              RightParen@9..10 ")"
+        error at 8..9: expected expression, but found ’,’"#]],
+    )
 }
 
 #[test]

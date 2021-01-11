@@ -69,7 +69,7 @@ pub(super) fn expr(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 pub(super) fn expr_list(p: &mut Parser) -> Option<CompletedMarker> {
-    // Expr list (optional)
+    // Expr list
     let m = p.start();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
@@ -409,8 +409,22 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
     p.expect(TokenKind::LeftParen);
 
-    p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        self::expr_list(p);
+    p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
+        let m = p.start();
+
+        if let Some(..) = expr::expect_expr(p) {
+            while p.eat(TokenKind::Comma) && !p.at(TokenKind::RightParen) {
+                expr::expect_expr(p);
+            }
+
+            // Don't clog up expected tokens
+            p.reset_expected_tokens();
+        } else {
+            // eat optional trailing comma
+            p.eat(TokenKind::Comma);
+        }
+
+        m.complete(p, SyntaxKind::ExprList)
     });
 
     p.expect(TokenKind::RightParen);
