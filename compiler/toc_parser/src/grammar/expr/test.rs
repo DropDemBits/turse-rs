@@ -1393,7 +1393,9 @@ fn parse_simple_prefix() {
                   LiteralExpr@4..6
                     IntLiteral@4..6 "10""#]],
     );
-    check("_:=+a", expect![[r#"
+    check(
+        "_:=+a",
+        expect![[r#"
         Source@0..5
           AssignStmt@0..5
             NameExpr@0..1
@@ -1405,8 +1407,11 @@ fn parse_simple_prefix() {
               Plus@3..4 "+"
               NameExpr@4..5
                 Name@4..5
-                  Identifier@4..5 "a""#]]);
-    check("_:=^a", expect![[r#"
+                  Identifier@4..5 "a""#]],
+    );
+    check(
+        "_:=^a",
+        expect![[r#"
         Source@0..5
           AssignStmt@0..5
             NameExpr@0..1
@@ -1418,21 +1423,27 @@ fn parse_simple_prefix() {
               Caret@3..4 "^"
               NameExpr@4..5
                 Name@4..5
-                  Identifier@4..5 "a""#]]);
-    check("_:=#a", expect![[r##"
-        Source@0..5
-          AssignStmt@0..5
-            NameExpr@0..1
-              Name@0..1
-                Identifier@0..1 "_"
-            AsnOp@1..3
-              Assign@1..3 ":="
-            UnaryExpr@3..5
-              Pound@3..4 "#"
-              NameExpr@4..5
-                Name@4..5
-                  Identifier@4..5 "a""##]]);
-    check("_:=~a", expect![[r#"
+                  Identifier@4..5 "a""#]],
+    );
+    check(
+        "_:=#a",
+        expect![[r##"
+            Source@0..5
+              AssignStmt@0..5
+                NameExpr@0..1
+                  Name@0..1
+                    Identifier@0..1 "_"
+                AsnOp@1..3
+                  Assign@1..3 ":="
+                NatCheatExpr@3..5
+                  Pound@3..4 "#"
+                  NameExpr@4..5
+                    Name@4..5
+                      Identifier@4..5 "a""##]],
+    );
+    check(
+        "_:=~a",
+        expect![[r#"
         Source@0..5
           AssignStmt@0..5
             NameExpr@0..1
@@ -1444,8 +1455,11 @@ fn parse_simple_prefix() {
               Tilde@3..4 "~"
               NameExpr@4..5
                 Name@4..5
-                  Identifier@4..5 "a""#]]);
-    check("_:=not a", expect![[r#"
+                  Identifier@4..5 "a""#]],
+    );
+    check(
+        "_:=not a",
+        expect![[r#"
         Source@0..8
           AssignStmt@0..8
             NameExpr@0..1
@@ -1458,7 +1472,8 @@ fn parse_simple_prefix() {
               Whitespace@6..7 " "
               NameExpr@7..8
                 Name@7..8
-                  Identifier@7..8 "a""#]]);
+                  Identifier@7..8 "a""#]],
+    );
 }
 
 #[test]
@@ -4459,5 +4474,26 @@ fn parse_infix_after_indirect() {
               Whitespace@15..16 " "
               LiteralExpr@16..17
                 IntLiteral@16..17 "1""#]],
+    );
+}
+
+#[test]
+fn parse_nat_cheat_as_ref() {
+    check(
+        "#woo := 1",
+        expect![[r##"
+        Source@0..9
+          AssignStmt@0..9
+            NatCheatExpr@0..5
+              Pound@0..1 "#"
+              NameExpr@1..5
+                Name@1..5
+                  Identifier@1..4 "woo"
+                  Whitespace@4..5 " "
+            AsnOp@5..8
+              Assign@5..7 ":="
+              Whitespace@7..8 " "
+            LiteralExpr@8..9
+              IntLiteral@8..9 "1""##]],
     );
 }

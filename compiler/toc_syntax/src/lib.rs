@@ -344,6 +344,7 @@ pub enum SyntaxKind {
     SelfExpr,
     FieldExpr,
     DerefExpr,
+    NatCheatExpr,
     ArrowExpr,
     IndirectExpr,
     BitsExpr,
@@ -583,7 +584,7 @@ pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 
 // Operators
 
-pub const MIN_REF_BINDING_POWER: u8 = 21;
+pub const MIN_REF_BINDING_POWER: u8 = 19;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BinaryOp {
@@ -665,7 +666,7 @@ impl BinaryOp {
             // ((), 16) is for prefix "+" and "-"
             Self::Exp => (18, 17),
             // ((), 20) is for "#"
-            Self::Call | Self::Arrow | Self::Dot => (MIN_REF_BINDING_POWER, 22),
+            Self::Call | Self::Arrow | Self::Dot => (21, 22),
             // ((), 24) is for "^"
         }
     }

@@ -117,7 +117,7 @@ fn expect_expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Co
 fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<CompletedMarker> {
     let only_primaries = min_binding_power >= toc_syntax::MIN_REF_BINDING_POWER;
 
-    let mut lhs = lhs(p).or_else(|| if !only_primaries { prefix(p) } else { None })?;
+    let mut lhs = lhs(p).or_else(|| prefix(p, only_primaries))?;
 
     loop {
         if p.at(TokenKind::At) {
@@ -208,7 +208,6 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
         |p| match {
             TokenKind::Identifier => { name_expr(p) }
             TokenKind::Self_ => { self_expr(p) }
-            TokenKind::Caret => { deref_expr(p) }
             TokenKind::Bits => { bits_expr(p) }
             TokenKind::ObjectClass => { objclass_expr(p) }
             TokenKind::Cheat => { cheat_expr(p) }
@@ -262,8 +261,8 @@ fn primary(p: &mut Parser) -> Option<CompletedMarker> {
     })
 }
 
-fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
-    let op = prefix_op(p)?;
+fn prefix(p: &mut Parser, only_primaries: bool) -> Option<CompletedMarker> {
+    let op = prefix_op(p, only_primaries)?;
 
     // parse a prefix op
     let m = p.start();
@@ -274,7 +273,13 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
 
     expect_expr_binding_power(p, right_binding_power);
 
-    Some(m.complete(p, SyntaxKind::UnaryExpr))
+    let kind = match op {
+        UnaryOp::Deref => SyntaxKind::DerefExpr,
+        UnaryOp::NatCheat => SyntaxKind::NatCheatExpr,
+        _ => SyntaxKind::UnaryExpr,
+    };
+
+    Some(m.complete(p, kind))
 }
 
 fn name_expr(p: &mut Parser) -> Option<CompletedMarker> {
@@ -291,20 +296,6 @@ fn self_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump(); // nom 'self'
     Some(m.complete(p, SyntaxKind::SelfExpr))
-}
-
-fn deref_expr(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Caret));
-
-    // parse rhs with the correct binding power
-    let ((), right_binding_power) = UnaryOp::Deref.binding_power();
-
-    let m = p.start();
-
-    p.bump(); // nom caret
-    expect_expr_binding_power(p, right_binding_power);
-
-    Some(m.complete(p, SyntaxKind::DerefExpr))
 }
 
 fn bits_expr(p: &mut Parser) -> Option<CompletedMarker> {
@@ -471,15 +462,29 @@ fn indirect_expr_tail(p: &mut Parser, lhs: CompletedMarker) -> CompletedMarker {
     m.complete(p, SyntaxKind::IndirectExpr)
 }
 
-fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
-    Some(match_token!(|p| match {
-        TokenKind::Tilde,
-        TokenKind::Not => { UnaryOp::Not }
-        TokenKind::Plus => { UnaryOp::Identity }
-        TokenKind::Minus => { UnaryOp::Negate }
-        TokenKind::Pound => { UnaryOp::NatCheat }
-        _ => return None,
-    }))
+fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<UnaryOp> {
+    let ref_prefix_ops = match_token!(|p| match {
+        TokenKind::Caret => { Some(UnaryOp::Deref) }
+        TokenKind::Pound => { Some(UnaryOp::NatCheat) }
+        _ => None,
+    });
+
+    if only_primaries {
+        // Stop at the reference prefix ops,
+        // since the others can't form reference expressions
+        return ref_prefix_ops;
+    }
+
+    ref_prefix_ops.or_else(|| {
+        Some(match_token!(|p| match {
+            TokenKind::Tilde,
+            TokenKind::Not => { UnaryOp::Not }
+            TokenKind::Plus => { UnaryOp::Identity }
+            TokenKind::Minus => { UnaryOp::Negate }
+            TokenKind::Pound => { UnaryOp::NatCheat }
+            _ => return None,
+        }))
+    })
 }
 
 fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
@@ -487,9 +492,7 @@ fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
         TokenKind::Dot => { Some(BinaryOp::Dot) },
         TokenKind::Arrow => { Some(BinaryOp::Arrow) },
         TokenKind::LeftParen => { Some(BinaryOp::Call) },
-        _ => {
-            None
-        },
+        _ => None,
     });
 
     if only_primaries {
