@@ -960,15 +960,26 @@ fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {
         super::name(p);
     });
 
-    // For-range
-    // left bound
     p.with_extra_recovery(&[TokenKind::Range], |p| {
         p.expect(TokenKind::Colon);
-        expr::expect_expr(p);
     });
-    // right bound
-    p.expect(TokenKind::Range);
-    expr::expect_expr(p);
+
+    // For-range
+    {
+        let m = p.start();
+
+        // left bound
+        p.with_extra_recovery(&[TokenKind::Range], |p| {
+            expr::expect_expr(p);
+        });
+
+        if p.eat(TokenKind::Range) {
+            // right bound is optional
+            expr::expect_expr(p);
+        }
+
+        m.complete(p, SyntaxKind::ForBounds);
+    }
 
     // optional step by expr
     if p.at(TokenKind::By) {

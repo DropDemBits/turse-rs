@@ -2746,14 +2746,15 @@ fn parse_for_loop() {
                   Whitespace@10..11 " "
                 Colon@11..12 ":"
                 Whitespace@12..13 " "
-                LiteralExpr@13..15
-                  IntLiteral@13..14 "1"
-                  Whitespace@14..15 " "
-                Range@15..17 ".."
-                Whitespace@17..18 " "
-                LiteralExpr@18..28
-                  IntLiteral@18..19 "3"
-                  Whitespace@19..28 "\n        "
+                ForBounds@13..28
+                  LiteralExpr@13..15
+                    IntLiteral@13..14 "1"
+                    Whitespace@14..15 " "
+                  Range@15..17 ".."
+                  Whitespace@17..18 " "
+                  LiteralExpr@18..28
+                    IntLiteral@18..19 "3"
+                    Whitespace@19..28 "\n        "
                 StmtList@28..47
                   InvariantStmt@28..47
                     KwInvariant@28..37 "invariant"
@@ -2788,14 +2789,15 @@ fn parse_for_loop_alt_end() {
                   Whitespace@10..11 " "
                 Colon@11..12 ":"
                 Whitespace@12..13 " "
-                LiteralExpr@13..15
-                  IntLiteral@13..14 "1"
-                  Whitespace@14..15 " "
-                Range@15..17 ".."
-                Whitespace@17..18 " "
-                LiteralExpr@18..28
-                  IntLiteral@18..19 "3"
-                  Whitespace@19..28 "\n        "
+                ForBounds@13..28
+                  LiteralExpr@13..15
+                    IntLiteral@13..14 "1"
+                    Whitespace@14..15 " "
+                  Range@15..17 ".."
+                  Whitespace@17..18 " "
+                  LiteralExpr@18..28
+                    IntLiteral@18..19 "3"
+                    Whitespace@19..28 "\n        "
                 StmtList@28..47
                   InvariantStmt@28..47
                     KwInvariant@28..37 "invariant"
@@ -2831,14 +2833,15 @@ fn parse_decreasing_for_loop() {
                   Whitespace@21..22 " "
                 Colon@22..23 ":"
                 Whitespace@23..24 " "
-                LiteralExpr@24..26
-                  IntLiteral@24..25 "1"
-                  Whitespace@25..26 " "
-                Range@26..28 ".."
-                Whitespace@28..29 " "
-                LiteralExpr@29..39
-                  IntLiteral@29..30 "3"
-                  Whitespace@30..39 "\n        "
+                ForBounds@24..39
+                  LiteralExpr@24..26
+                    IntLiteral@24..25 "1"
+                    Whitespace@25..26 " "
+                  Range@26..28 ".."
+                  Whitespace@28..29 " "
+                  LiteralExpr@29..39
+                    IntLiteral@29..30 "3"
+                    Whitespace@30..39 "\n        "
                 StmtList@39..58
                   InvariantStmt@39..58
                     KwInvariant@39..48 "invariant"
@@ -2875,14 +2878,15 @@ fn parse_for_loop_opt_step_by() {
                   Whitespace@21..22 " "
                 Colon@22..23 ":"
                 Whitespace@23..24 " "
-                LiteralExpr@24..26
-                  IntLiteral@24..25 "1"
-                  Whitespace@25..26 " "
-                Range@26..28 ".."
-                Whitespace@28..29 " "
-                LiteralExpr@29..31
-                  IntLiteral@29..30 "8"
-                  Whitespace@30..31 " "
+                ForBounds@24..31
+                  LiteralExpr@24..26
+                    IntLiteral@24..25 "1"
+                    Whitespace@25..26 " "
+                  Range@26..28 ".."
+                  Whitespace@28..29 " "
+                  LiteralExpr@29..31
+                    IntLiteral@29..30 "8"
+                    Whitespace@30..31 " "
                 StepBy@31..44
                   KwBy@31..33 "by"
                   Whitespace@33..34 " "
@@ -2905,6 +2909,43 @@ fn parse_for_loop_opt_step_by() {
 }
 
 #[test]
+fn parse_for_loop_alt_bounds() {
+    check(
+        r#"
+    for i : a_range
+        invariant true
+    end for"#,
+        expect![[r#"
+            Source@0..55
+              Whitespace@0..5 "\n    "
+              ForStmt@5..55
+                KwFor@5..8 "for"
+                Whitespace@8..9 " "
+                Name@9..11
+                  Identifier@9..10 "i"
+                  Whitespace@10..11 " "
+                Colon@11..12 ":"
+                Whitespace@12..13 " "
+                ForBounds@13..29
+                  NameExpr@13..29
+                    Name@13..29
+                      Identifier@13..20 "a_range"
+                      Whitespace@20..29 "\n        "
+                StmtList@29..48
+                  InvariantStmt@29..48
+                    KwInvariant@29..38 "invariant"
+                    Whitespace@38..39 " "
+                    LiteralExpr@39..48
+                      KwTrue@39..43 "true"
+                      Whitespace@43..48 "\n    "
+                EndGroup@48..55
+                  KwEnd@48..51 "end"
+                  Whitespace@51..52 " "
+                  KwFor@52..55 "for""#]],
+    );
+}
+
+#[test]
 fn recover_for_loop_missing_name() {
     check(
         r#"
@@ -2920,14 +2961,15 @@ fn recover_for_loop_missing_name() {
                 Whitespace@8..9 " "
                 Colon@9..10 ":"
                 Whitespace@10..11 " "
-                LiteralExpr@11..13
-                  IntLiteral@11..12 "1"
-                  Whitespace@12..13 " "
-                Range@13..15 ".."
-                Whitespace@15..16 " "
-                LiteralExpr@16..26
-                  IntLiteral@16..17 "8"
-                  Whitespace@17..26 "\n        "
+                ForBounds@11..26
+                  LiteralExpr@11..13
+                    IntLiteral@11..12 "1"
+                    Whitespace@12..13 " "
+                  Range@13..15 ".."
+                  Whitespace@15..16 " "
+                  LiteralExpr@16..26
+                    IntLiteral@16..17 "8"
+                    Whitespace@17..26 "\n        "
                 StmtList@26..45
                   InvariantStmt@26..45
                     KwInvariant@26..35 "invariant"
@@ -2963,11 +3005,12 @@ fn recover_for_loop_missing_left_bound() {
                   Whitespace@10..11 " "
                 Colon@11..12 ":"
                 Whitespace@12..13 " "
-                Range@13..15 ".."
-                Whitespace@15..16 " "
-                LiteralExpr@16..26
-                  IntLiteral@16..17 "8"
-                  Whitespace@17..26 "\n        "
+                ForBounds@13..26
+                  Range@13..15 ".."
+                  Whitespace@15..16 " "
+                  LiteralExpr@16..26
+                    IntLiteral@16..17 "8"
+                    Whitespace@17..26 "\n        "
                 StmtList@26..45
                   InvariantStmt@26..45
                     KwInvariant@26..35 "invariant"
@@ -2985,17 +3028,19 @@ fn recover_for_loop_missing_left_bound() {
 }
 
 #[test]
-fn recover_for_loop_missing_range() {
+fn parse_for_loop_bound_over_single_int() {
+    // reject in validation
     check(
         r#"
-    for i : 1 8
+    for i : 1
+        ay
         invariant true
     end for
     "#,
         expect![[r#"
-            Source@0..56
+            Source@0..65
               Whitespace@0..5 "\n    "
-              ForStmt@5..56
+              ForStmt@5..65
                 KwFor@5..8 "for"
                 Whitespace@8..9 " "
                 Name@9..11
@@ -3003,26 +3048,27 @@ fn recover_for_loop_missing_range() {
                   Whitespace@10..11 " "
                 Colon@11..12 ":"
                 Whitespace@12..13 " "
-                LiteralExpr@13..15
-                  IntLiteral@13..14 "1"
-                  Whitespace@14..15 " "
-                Error@15..25
-                  IntLiteral@15..16 "8"
-                  Whitespace@16..25 "\n        "
-                StmtList@25..44
-                  InvariantStmt@25..44
-                    KwInvariant@25..34 "invariant"
-                    Whitespace@34..35 " "
-                    LiteralExpr@35..44
-                      KwTrue@35..39 "true"
-                      Whitespace@39..44 "\n    "
-                EndGroup@44..56
-                  KwEnd@44..47 "end"
-                  Whitespace@47..48 " "
-                  KwFor@48..51 "for"
-                  Whitespace@51..56 "\n    "
-            error at 15..16: expected ’..’, but found int literal
-            error at 25..34: expected expression, but found ’invariant’"#]],
+                ForBounds@13..23
+                  LiteralExpr@13..23
+                    IntLiteral@13..14 "1"
+                    Whitespace@14..23 "\n        "
+                StmtList@23..53
+                  CallStmt@23..34
+                    NameExpr@23..34
+                      Name@23..34
+                        Identifier@23..25 "ay"
+                        Whitespace@25..34 "\n        "
+                  InvariantStmt@34..53
+                    KwInvariant@34..43 "invariant"
+                    Whitespace@43..44 " "
+                    LiteralExpr@44..53
+                      KwTrue@44..48 "true"
+                      Whitespace@48..53 "\n    "
+                EndGroup@53..65
+                  KwEnd@53..56 "end"
+                  Whitespace@56..57 " "
+                  KwFor@57..60 "for"
+                  Whitespace@60..65 "\n    ""#]],
     );
 }
 
@@ -3045,11 +3091,12 @@ fn recover_for_loop_missing_right_bound() {
                   Whitespace@10..11 " "
                 Colon@11..12 ":"
                 Whitespace@12..13 " "
-                LiteralExpr@13..15
-                  IntLiteral@13..14 "1"
-                  Whitespace@14..15 " "
-                Range@15..17 ".."
-                Whitespace@17..26 "\n        "
+                ForBounds@13..26
+                  LiteralExpr@13..15
+                    IntLiteral@13..14 "1"
+                    Whitespace@14..15 " "
+                  Range@15..17 ".."
+                  Whitespace@17..26 "\n        "
                 StmtList@26..45
                   InvariantStmt@26..45
                     KwInvariant@26..35 "invariant"
@@ -3095,14 +3142,15 @@ fn recover_on_for_loop() {
                   Whitespace@23..24 " "
                 Colon@24..25 ":"
                 Whitespace@25..26 " "
-                LiteralExpr@26..28
-                  IntLiteral@26..27 "1"
-                  Whitespace@27..28 " "
-                Range@28..30 ".."
-                Whitespace@30..31 " "
-                LiteralExpr@31..41
-                  IntLiteral@31..32 "8"
-                  Whitespace@32..41 "\n        "
+                ForBounds@26..41
+                  LiteralExpr@26..28
+                    IntLiteral@26..27 "1"
+                    Whitespace@27..28 " "
+                  Range@28..30 ".."
+                  Whitespace@30..31 " "
+                  LiteralExpr@31..41
+                    IntLiteral@31..32 "8"
+                    Whitespace@32..41 "\n        "
                 StmtList@41..60
                   InvariantStmt@41..60
                     KwInvariant@41..50 "invariant"
@@ -7877,18 +7925,17 @@ fn recover_on_include() {
               ForStmt@0..24
                 KwFor@0..3 "for"
                 Whitespace@3..4 " "
-                PreprocExprGlob@4..24
-                  PPInclude@4..24
-                    KwInclude@4..11 "include"
-                    Whitespace@11..12 " "
-                    StringLiteral@12..24 "\"still_here\""
+                ForBounds@4..24
+                  PreprocExprGlob@4..24
+                    PPInclude@4..24
+                      KwInclude@4..11 "include"
+                      Whitespace@11..12 " "
+                      StringLiteral@12..24 "\"still_here\""
                 StmtList@24..24
                 EndGroup@24..24
             error at 4..11: expected identifier, but found ’include’
             error at 4..11: expected ’:’, but found ’include’
-            error at 12..24: expected ’..’
-            error at 12..24: expected expression
-            error at 12..24: expected ’by’, ’endfor’ or ’end’
+            error at 12..24: expected ’..’, ’by’, ’endfor’ or ’end’
             error at 12..24: expected ’for’"#]],
     )
 }
