@@ -74,6 +74,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Fork,
     TokenKind::Signal,
     TokenKind::Pause,
+    TokenKind::Wait,
     TokenKind::Quit,
     TokenKind::Checked,
     TokenKind::Unchecked,

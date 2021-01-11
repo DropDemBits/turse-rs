@@ -10334,3 +10334,92 @@ fn parse_nested_if_in_else() {
                   KwIf@94..96 "if""#]],
     );
 }
+
+#[test]
+fn parse_wait_stmt() {
+    check(
+        "wait a",
+        expect![[r#"
+        Source@0..6
+          WaitStmt@0..6
+            KwWait@0..4 "wait"
+            Whitespace@4..5 " "
+            NameExpr@5..6
+              Name@5..6
+                Identifier@5..6 "a""#]],
+    );
+}
+
+#[test]
+fn parse_wait_stmt_opt_arg() {
+    check(
+        "wait a, 1",
+        expect![[r#"
+        Source@0..9
+          WaitStmt@0..9
+            KwWait@0..4 "wait"
+            Whitespace@4..5 " "
+            NameExpr@5..6
+              Name@5..6
+                Identifier@5..6 "a"
+            Comma@6..7 ","
+            Whitespace@7..8 " "
+            LiteralExpr@8..9
+              IntLiteral@8..9 "1""#]],
+    );
+}
+
+#[test]
+fn recover_wait_stmt_missing_opt_arg_expr() {
+    check(
+        "wait a, ",
+        expect![[r#"
+        Source@0..8
+          WaitStmt@0..8
+            KwWait@0..4 "wait"
+            Whitespace@4..5 " "
+            NameExpr@5..6
+              Name@5..6
+                Identifier@5..6 "a"
+            Comma@6..7 ","
+            Whitespace@7..8 " "
+        error at 7..8: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_just_wait() {
+    check(
+        "wait",
+        expect![[r#"
+        Source@0..4
+          WaitStmt@0..4
+            KwWait@0..4 "wait"
+        error at 0..4: expected expression"#]],
+    );
+}
+
+#[test]
+fn recover_on_wait() {
+    check(
+        "var i := \nwait q",
+        expect![[r#"
+        Source@0..16
+          ConstVarDecl@0..10
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..6
+              Name@4..6
+                Identifier@4..5 "i"
+                Whitespace@5..6 " "
+            Assign@6..8 ":="
+            Whitespace@8..10 " \n"
+          WaitStmt@10..16
+            KwWait@10..14 "wait"
+            Whitespace@14..15 " "
+            NameExpr@15..16
+              Name@15..16
+                Identifier@15..16 "q"
+        error at 10..14: expected expression, but found ’wait’"#]],
+    );
+}

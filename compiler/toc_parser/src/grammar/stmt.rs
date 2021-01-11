@@ -52,6 +52,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Fork => { fork_stmt(p) }
             TokenKind::Signal => { stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt) }
             TokenKind::Pause => { stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt) }
+            TokenKind::Wait => { wait_stmt(p) }
             TokenKind::Quit => { quit_stmt(p) }
             TokenKind::Checked => { stmt_only_kw(p, TokenKind::Checked, SyntaxKind::CheckednessStmt) }
             TokenKind::Unchecked => { stmt_only_kw(p, TokenKind::Unchecked, SyntaxKind::CheckednessStmt) }
@@ -1224,6 +1225,23 @@ fn fork_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::ForkStmt))
+}
+
+fn wait_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'wait' Reference ( ',' Expr )?
+    debug_assert!(p.at(TokenKind::Wait));
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::Comma], |p| {
+        expr::expect_expr(p);
+    });
+
+    if p.eat(TokenKind::Comma) {
+        expr::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::WaitStmt))
 }
 
 fn quit_stmt(p: &mut Parser) -> Option<CompletedMarker> {
