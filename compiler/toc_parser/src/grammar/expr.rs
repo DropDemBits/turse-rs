@@ -122,8 +122,6 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
     loop {
         if p.at(TokenKind::At) {
             lhs = indirect_expr_tail(p, lhs);
-            // can't chain indirect expr tails, so stop
-            break;
         }
 
         let op = if let Some(op) = infix_op(p, only_primaries) {
@@ -131,8 +129,15 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
         } else {
             // Not an infix operator, so let the caller decide the outcome
 
-            // It's probably the end of an expression, so dropped the acquired expected tokens
-            p.reset_expected_tokens();
+            if p.at_hidden(TokenKind::At) {
+                // can't chain indirect expr tails
+                // outcome has been decided
+                p.error_unexpected().report();
+            } else {
+                // It's probably the end of an expression, so dropped the acquired expected tokens
+                p.reset_expected_tokens();
+            }
+
             break;
         };
 
@@ -468,6 +473,7 @@ fn indirect_expr_tail(p: &mut Parser, lhs: CompletedMarker) -> CompletedMarker {
 
 fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
     Some(match_token!(|p| match {
+        TokenKind::Tilde,
         TokenKind::Not => { UnaryOp::Not }
         TokenKind::Plus => { UnaryOp::Identity }
         TokenKind::Minus => { UnaryOp::Negate }
@@ -506,10 +512,8 @@ fn infix_op(p: &mut Parser, only_primaries: bool) -> Option<BinaryOp> {
                 TokenKind::LessEqu => { BinaryOp::LessEq }
                 TokenKind::GreaterEqu => { BinaryOp::GreaterEq }
                 TokenKind::In => { BinaryOp::In }
+                TokenKind::Tilde,
                 TokenKind::Not => {
-                    maybe_composite_not_op(p)?
-                }
-                TokenKind::Tilde => {
                     maybe_composite_not_op(p)?
                 }
                 TokenKind::Plus => { BinaryOp::Add }
