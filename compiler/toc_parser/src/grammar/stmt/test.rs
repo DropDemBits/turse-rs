@@ -2946,7 +2946,7 @@ fn parse_for_loop_alt_bounds() {
 }
 
 #[test]
-fn recover_for_loop_missing_name() {
+fn parse_for_loop_opt_name() {
     check(
         r#"
     for : 1 .. 8
@@ -2981,8 +2981,7 @@ fn recover_for_loop_missing_name() {
                   KwEnd@45..48 "end"
                   Whitespace@48..49 " "
                   KwFor@49..52 "for"
-                  Whitespace@52..57 "\n    "
-            error at 9..10: expected identifier, but found ’:’"#]],
+                  Whitespace@52..57 "\n    ""#]],
     );
 }
 
