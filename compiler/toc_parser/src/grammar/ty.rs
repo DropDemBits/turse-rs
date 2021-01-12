@@ -276,7 +276,7 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
 
     ty::ty(p);
 
-    Some(m.complete(p, SyntaxKind::ParamDecl))
+    Some(m.complete(p, SyntaxKind::ConstVarParam))
 }
 
 fn record_type(p: &mut Parser) -> Option<CompletedMarker> {

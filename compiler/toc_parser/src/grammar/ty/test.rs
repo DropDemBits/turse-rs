@@ -1722,7 +1722,7 @@ fn parse_fcn_type() {
                     Whitespace@20..21 " "
                   ParamSpec@21..34
                     LeftParen@21..22 "("
-                    ParamDecl@22..32
+                    ConstVarParam@22..32
                       NameList@22..27
                         Name@22..23
                           Identifier@22..23 "a"
@@ -1766,7 +1766,7 @@ fn parse_proc_type() {
                     Whitespace@21..22 " "
                   ParamSpec@22..34
                     LeftParen@22..23 "("
-                    ParamDecl@23..33
+                    ConstVarParam@23..33
                       NameList@23..28
                         Name@23..24
                           Identifier@23..24 "a"
@@ -1805,7 +1805,7 @@ fn recover_proc_type_with_result_ty() {
                     Whitespace@21..22 " "
                   ParamSpec@22..35
                     LeftParen@22..23 "("
-                    ParamDecl@23..33
+                    ConstVarParam@23..33
                       NameList@23..28
                         Name@23..24
                           Identifier@23..24 "a"
@@ -1854,7 +1854,7 @@ fn recover_fcn_type_without_result_ty() {
                     Whitespace@20..21 " "
                   ParamSpec@21..33
                     LeftParen@21..22 "("
-                    ParamDecl@22..32
+                    ConstVarParam@22..32
                       NameList@22..27
                         Name@22..23
                           Identifier@22..23 "a"
@@ -1892,7 +1892,7 @@ fn parse_fcn_type_opt_name() {
                   Whitespace@17..18 " "
                   ParamSpec@18..31
                     LeftParen@18..19 "("
-                    ParamDecl@19..29
+                    ConstVarParam@19..29
                       NameList@19..24
                         Name@19..20
                           Identifier@19..20 "a"
@@ -1994,30 +1994,29 @@ fn parse_proc_type_fcn_param() {
                     Whitespace@21..22 " "
                   ParamSpec@22..55
                     LeftParen@22..23 "("
-                    ParamDecl@23..54
-                      FcnType@23..54
-                        KwFunction@23..31 "function"
-                        Whitespace@31..32 " "
-                        Name@32..38
-                          Identifier@32..37 "embed"
-                          Whitespace@37..38 " "
-                        ParamSpec@38..49
-                          LeftParen@38..39 "("
-                          ParamDecl@39..47
-                            NameList@39..41
-                              Name@39..41
-                                Identifier@39..40 "a"
-                                Whitespace@40..41 " "
-                            Colon@41..42 ":"
-                            Whitespace@42..43 " "
-                            KwChar@43..47
-                              KwChar@43..47 "char"
-                          RightParen@47..48 ")"
-                          Whitespace@48..49 " "
-                        Colon@49..50 ":"
-                        Whitespace@50..51 " "
-                        PrimType@51..54
-                          KwInt@51..54 "int"
+                    FcnType@23..54
+                      KwFunction@23..31 "function"
+                      Whitespace@31..32 " "
+                      Name@32..38
+                        Identifier@32..37 "embed"
+                        Whitespace@37..38 " "
+                      ParamSpec@38..49
+                        LeftParen@38..39 "("
+                        ConstVarParam@39..47
+                          NameList@39..41
+                            Name@39..41
+                              Identifier@39..40 "a"
+                              Whitespace@40..41 " "
+                          Colon@41..42 ":"
+                          Whitespace@42..43 " "
+                          KwChar@43..47
+                            KwChar@43..47 "char"
+                        RightParen@47..48 ")"
+                        Whitespace@48..49 " "
+                      Colon@49..50 ":"
+                      Whitespace@50..51 " "
+                      PrimType@51..54
+                        KwInt@51..54 "int"
                     RightParen@54..55 ")""#]],
     );
 }
@@ -2044,7 +2043,7 @@ fn parse_proc_type_all_constvar_attrs() {
                     Whitespace@21..22 " "
                   ParamSpec@22..50
                     LeftParen@22..23 "("
-                    ParamDecl@23..49
+                    ConstVarParam@23..49
                       KwVar@23..26 "var"
                       Whitespace@26..27 " "
                       KwRegister@27..35 "register"
@@ -2085,7 +2084,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                     Whitespace@21..22 " "
                   ParamSpec@22..42
                     LeftParen@22..23 "("
-                    ParamDecl@23..41
+                    ConstVarParam@23..41
                       KwVar@23..26 "var"
                       Whitespace@26..27 " "
                       KwRegister@27..35 "register"
@@ -2118,7 +2117,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                     Whitespace@21..22 " "
                   ParamSpec@22..33
                     LeftParen@22..23 "("
-                    ParamDecl@23..32
+                    ConstVarParam@23..32
                       KwVar@23..26 "var"
                       Whitespace@26..27 " "
                       NameList@27..27
@@ -2149,7 +2148,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                     Whitespace@21..22 " "
                   ParamSpec@22..38
                     LeftParen@22..23 "("
-                    ParamDecl@23..37
+                    ConstVarParam@23..37
                       KwRegister@23..31 "register"
                       Whitespace@31..32 " "
                       NameList@32..32
@@ -2184,7 +2183,7 @@ fn recover_proc_type_constvar_missing_ty() {
                     Whitespace@21..22 " "
                   ParamSpec@22..28
                     LeftParen@22..23 "("
-                    ParamDecl@23..27
+                    ConstVarParam@23..27
                       NameList@23..25
                         Name@23..25
                           Identifier@23..24 "a"

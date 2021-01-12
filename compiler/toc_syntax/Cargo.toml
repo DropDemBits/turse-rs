@@ -7,8 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Local deps
 toc_scanner = { path = "../toc_scanner" }
-
+# External deps
 rowan = "^0.10"
 num-derive = "^0.3"
 num-traits = "0.2"

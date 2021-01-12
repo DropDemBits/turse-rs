@@ -223,11 +223,7 @@ pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
 pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::Function,
-        TokenKind::Procedure => {
-            let m = p.start();
-            ty::subprog_type(p);
-            Some(m.complete(p,SyntaxKind::ParamDecl))
-        }
+        TokenKind::Procedure => { ty::subprog_type(p) }
         TokenKind::Var,
         TokenKind::Register,
         TokenKind::Identifier => { ty::constvar_param(p) }
@@ -245,7 +241,9 @@ mod test {
 
     #[test]
     fn skip_trivia() {
-        check("var i := ??? 1 /* skipped */ % skipped too", expect![[r#"
+        check(
+            "var i := ??? 1 /* skipped */ % skipped too",
+            expect![[r#"
             Source@0..42
               ConstVarDecl@0..42
                 KwVar@0..3 "var"
@@ -268,6 +266,7 @@ mod test {
                   Comment@29..42 "% skipped too"
             error at 9..10: invalid character
             error at 10..11: invalid character
-            error at 11..12: invalid character"#]]);
+            error at 11..12: invalid character"#]],
+        );
     }
 }

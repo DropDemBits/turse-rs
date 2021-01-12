@@ -23,7 +23,7 @@ macro_rules! ast_node {
 }
 
 macro_rules! ast_node_group {
-    ($node_group:ident, $($kind:pat => $variant:ident:$ast:ident),+ $(,)?) => {
+    ($node_group:ident, $($kind:pat => $variant:ident : $ast:ident),+ $(,)?) => {
         #[derive(Debug, PartialEq, Eq, Hash)]
         pub enum $node_group {
             $($variant($ast),)+
@@ -32,7 +32,6 @@ macro_rules! ast_node_group {
             pub fn cast(syntax: SyntaxNode) -> Option<Self> {
                 match syntax.kind() {
                     $($kind => Some(Self::$variant($ast::cast(syntax)?)),)+
-                    _ => None
                 }
             }
 
@@ -52,7 +51,6 @@ macro_rules! ast_node_group {
             pub fn cast(syntax: SyntaxNode) -> Option<Self> {
                 match syntax.kind() {
                     $($kind => Some(Self::$ast($ast::cast(syntax)?)),)+
-                    _ => None
                 }
             }
 
@@ -82,12 +80,13 @@ ast_node!(ForwardAttr);
 ast_node!(OpaqueAttr);
 
 // Preprocs
-ast_node_group!(PreprocGlob,
-    SyntaxKind::PPInclude => Include:PPInclude,
+ast_node!(PreprocGlob);
+ast_node_group!(PreprocCmd,
     SyntaxKind::PPIf => If:PPIf,
     SyntaxKind::PPElseif => Elseif:PPElseif,
     SyntaxKind::PPElse => Else:PPElse,
     SyntaxKind::PPEndIf => EndIf:PPEndIf,
+    _ => Include:PPInclude,
 );
 
 ast_node!(PPInclude);
@@ -99,8 +98,8 @@ ast_node!(PPEndIf);
 ast_node_group!(PPExpr,
     SyntaxKind::PPBinaryExpr => BinaryExpr:PPBinaryExpr,
     SyntaxKind::PPUnaryExpr => UnaryExpr:PPUnaryExpr,
-    SyntaxKind::PPNameExpr => NameExpr:PPNameExpr,
     SyntaxKind::PPParenExpr => ParenExpr:PPParenExpr,
+    _ => NameExpr:PPNameExpr,
 );
 
 ast_node!(PPBinaryExpr);
@@ -112,7 +111,6 @@ ast_node!(PPTokenBody);
 
 // Stmt
 ast_node_group!(Stmt,
-    SyntaxKind::PreprocGlob => PreprocGlob,
     SyntaxKind::ConstVarDecl => ConstVarDecl,
     SyntaxKind::TypeDecl => TypeDecl,
     SyntaxKind::BindDecl => BindDecl,
@@ -155,6 +153,7 @@ ast_node_group!(Stmt,
     SyntaxKind::QuitStmt => QuitStmt,
     SyntaxKind::BreakStmt => BreakStmt,
     SyntaxKind::CheckednessStmt => CheckednessStmt,
+    _ => PreprocGlob,
 );
 
 ast_node!(StmtList);
@@ -218,29 +217,29 @@ ast_node!(FcnHeader);
 ast_node!(FcnResult);
 
 ast_node_group!(SubprogHeader,
-    SyntaxKind::ProcHeader => ProcHeader,
     SyntaxKind::FcnHeader => FcnHeader,
+    _ => ProcHeader,
 );
 
 ast_node_group!(BodyKind,
-    SyntaxKind::PlainHeader => PlainHeader,
     SyntaxKind::ProcHeader => ProcHeader,
     SyntaxKind::FcnHeader => FcnHeader,
+    _ => PlainHeader,
 );
 ast_node!(PlainHeader);
 
 ast_node_group!(ExternalKind,
     SyntaxKind::FcnHeader => ExternalFcn:FcnHeader,
     SyntaxKind::ProcHeader => ExternalProc:ProcHeader,
-    SyntaxKind::ExternalVar => ExternalVar:ExternalVar,
+    _ => ExternalVar:ExternalVar,
 );
 ast_node!(ExternalVar);
 
 ast_node!(AsnOp); // AsnOp is special (in impl)
 
 ast_node_group!(OpenKind,
-    SyntaxKind::OldOpen => OldOpen,
     SyntaxKind::NewOpen => NewOpen,
+    _ => OldOpen,
 );
 ast_node!(OldOpen);
 ast_node!(OpenPath);
@@ -250,8 +249,8 @@ ast_node!(NewOpen);
 ast_node!(IoCap); // IoCap is special (in impl)
 
 ast_node_group!(CloseKind,
-    SyntaxKind::OldClose => OldClose,
     SyntaxKind::NewClose => NewClose,
+    _ => OldClose,
 );
 
 ast_node!(OldClose);
@@ -290,7 +289,7 @@ ast_node!(ImportItem);
 ast_node_group!(ImportAttr,
     SyntaxKind::VarAttr => VarAttr,
     SyntaxKind::ConstAttr => ConstAttr,
-    SyntaxKind::ForwardAttr => ForwardAttr,
+    _ => ForwardAttr,
 );
 
 ast_node!(ExportItem);
@@ -298,7 +297,7 @@ ast_node_group!(ExportAttr,
     SyntaxKind::VarAttr => VarAttr,
     SyntaxKind::UnqualifiedAttr => UnqualifiedAttr,
     SyntaxKind::PervasiveAttr => PervasiveAttr,
-    SyntaxKind::OpaqueAttr => OpaqueAttr,
+    _ => OpaqueAttr,
 );
 
 ast_node!(ExternalItem);
@@ -341,7 +340,7 @@ ast_node_group!(Expr,
     SyntaxKind::ArrowExpr => ArrowExpr,
     SyntaxKind::IndirectExpr => IndirectExpr,
     SyntaxKind::BitsExpr => BitsExpr,
-    SyntaxKind::CallExpr => CallExpr,
+    _ => CallExpr,
 );
 
 ast_node_group!(Reference,
@@ -354,32 +353,33 @@ ast_node_group!(Reference,
     SyntaxKind::ArrowExpr => ArrowExpr,
     SyntaxKind::IndirectExpr => IndirectExpr,
     SyntaxKind::BitsExpr => BitsExpr,
-    SyntaxKind::CallExpr => CallExpr,
+    _ => CallExpr,
 );
 
 ast_node!(SizeSpec);
 ast_node_group!(IndirectTy,
     SyntaxKind::PrimType => PrimTy:PrimType,
-    SyntaxKind::Reference => NameTy:Reference,
+    _ => NameTy:Reference,
 );
 
 ast_node_group!(BitRange,
-    SyntaxKind::Expr => Expr,
     SyntaxKind::RangeSpec => RangeSpec,
+    _ => Expr,
 );
 
 ast_node!(ParamList);
-ast_node_group!(Param,
-    SyntaxKind::Expr => Expr,
+ast_node!(Param);
+ast_node_group!(ParamKind,
     SyntaxKind::AllItem => AllItem,
     SyntaxKind::RangeItem => RangeItem,
+    _ => Expr,
 );
 
 ast_node!(AllItem);
 ast_node!(RangeItem);
 ast_node_group!(RangeBound,
     SyntaxKind::RelativeBound => RelativeBound,
-    SyntaxKind::Expr => Expr,
+    _ => Expr,
 );
 ast_node!(RelativeBound);
 
@@ -411,7 +411,7 @@ ast_node_group!(Type,
     SyntaxKind::FcnType => FcnType,
     SyntaxKind::ProcType => ProcType,
     SyntaxKind::CollectionType => CollectionType,
-    SyntaxKind::ConditionType => ConditionType,
+    _ => ConditionType,
 );
 
 ast_node!(SizedCharType);
@@ -427,12 +427,12 @@ ast_node!(Checkedness);
 
 ast_node_group!(SubprogType,
     SyntaxKind::FcnType => FcnType,
-    SyntaxKind::ProcType => ProcType,
+    _ => ProcType,
 );
 
 ast_node_group!(ParamDecl,
     SyntaxKind::ConstVarParam => ConstVarParam:ConstVarParam,
-    SyntaxKind::SubprogType => SubprogParam:SubprogType,
+    _ => SubprogParam:SubprogType,
 );
 ast_node!(ConstVarParam);
 

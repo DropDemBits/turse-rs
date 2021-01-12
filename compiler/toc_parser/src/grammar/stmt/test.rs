@@ -3688,7 +3688,7 @@ fn parse_proc_decl() {
                     Whitespace@16..17 " "
                   ParamSpec@17..35
                     LeftParen@17..18 "("
-                    ParamDecl@18..25
+                    ConstVarParam@18..25
                       NameList@18..20
                         Name@18..20
                           Identifier@18..19 "a"
@@ -3732,7 +3732,7 @@ fn parse_proc_decl_opt_devspec() {
                     Whitespace@16..17 " "
                   ParamSpec@17..27
                     LeftParen@17..18 "("
-                    ParamDecl@18..25
+                    ConstVarParam@18..25
                       NameList@18..20
                         Name@18..20
                           Identifier@18..19 "a"
@@ -3920,7 +3920,7 @@ fn parse_fcn_decl() {
                     Whitespace@15..16 " "
                   ParamSpec@16..26
                     LeftParen@16..17 "("
-                    ParamDecl@17..24
+                    ConstVarParam@17..24
                       NameList@17..19
                         Name@17..19
                           Identifier@17..18 "a"
@@ -3970,7 +3970,7 @@ fn parse_fcn_decl_opt_ret_name() {
                     Whitespace@10..11 " "
                   ParamSpec@11..21
                     LeftParen@11..12 "("
-                    ParamDecl@12..19
+                    ConstVarParam@12..19
                       NameList@12..14
                         Name@12..14
                           Identifier@12..13 "a"
@@ -5916,7 +5916,7 @@ fn parse_body_plain_with_params() {
                     Whitespace@11..12 " "
                   ParamSpec@12..26
                     LeftParen@12..13 "("
-                    ParamDecl@13..20
+                    ConstVarParam@13..20
                       NameList@13..15
                         Name@13..15
                           Identifier@13..14 "k"
@@ -5953,7 +5953,7 @@ fn parse_body_plain_with_params_and_ret_ty() {
                     Whitespace@11..12 " "
                   ParamSpec@12..22
                     LeftParen@12..13 "("
-                    ParamDecl@13..20
+                    ConstVarParam@13..20
                       NameList@13..15
                         Name@13..15
                           Identifier@13..14 "k"
@@ -6027,7 +6027,7 @@ fn parse_body_plain_with_params_and_full_ret_ty() {
                     Whitespace@11..12 " "
                   ParamSpec@12..22
                     LeftParen@12..13 "("
-                    ParamDecl@13..20
+                    ConstVarParam@13..20
                       NameList@13..15
                         Name@13..15
                           Identifier@13..14 "k"
@@ -6639,7 +6639,7 @@ fn parse_process_decl() {
                   Whitespace@14..15 " "
                 ParamSpec@15..27
                   LeftParen@15..16 "("
-                  ParamDecl@16..17
+                  ConstVarParam@16..17
                     NameList@16..17
                       Name@16..17
                         Identifier@16..17 "a"
@@ -6679,7 +6679,7 @@ fn parse_process_decl_opt_stack_size() {
                   Whitespace@14..15 " "
                 ParamSpec@15..19
                   LeftParen@15..16 "("
-                  ParamDecl@16..17
+                  ConstVarParam@16..17
                     NameList@16..17
                       Name@16..17
                         Identifier@16..17 "a"

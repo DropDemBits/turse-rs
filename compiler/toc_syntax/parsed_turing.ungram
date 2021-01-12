@@ -663,10 +663,13 @@ CallExpr =
 
 ParamList =
   '('
-    ( Param ( ',' Param )* )
+    ( Param* )
   ')'
 
 Param =
+  ParamKind ','?
+
+ParamKind
   Expr
 | AllItem
 | RangeItem
