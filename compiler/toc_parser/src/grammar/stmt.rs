@@ -129,7 +129,7 @@ fn stmt_only_kw(
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
     if p.at_hidden(TokenKind::Equ) {
         // Simple assignment, but mistyped `=` instead of `:=`
-        p.warn_alias("’:=’");
+        p.warn_alias("‘:=’");
 
         let m = p.start();
         p.bump(); // bump `=`
@@ -217,7 +217,7 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     // if type is implied, then init is not allowed
     // refining error: for const, could say that initialzer is required
     if p.at_hidden(TokenKind::Equ) {
-        p.warn_alias("’:=’");
+        p.warn_alias("‘:=’");
         p.bump(); // bump `=`
 
         expr::expect_expr(p);
@@ -452,7 +452,7 @@ fn external_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
             // optional (maybe) init expr
             if p.at_hidden(TokenKind::Equ) {
-                p.warn_alias(":=");
+                p.warn_alias("‘:=’");
                 p.bump();
                 expr::expect_expr(p);
             } else if p.eat(TokenKind::Assign) {
@@ -1075,7 +1075,7 @@ fn elseif_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
 
     if p.at(TokenKind::Elseif) || p.at(TokenKind::Elif) {
         // `elsif` is blessed version
-        p.warn_alias("’elsif’");
+        p.warn_alias("‘elsif’");
         p.bump();
     } else {
         // nom `elsif`
@@ -1311,7 +1311,7 @@ fn init_var(p: &mut Parser) -> Option<CompletedMarker> {
 
     if p.at_hidden(TokenKind::Equ) {
         // blessed version is `:=`
-        p.warn_alias(":=");
+        p.warn_alias("‘:=’");
         p.bump();
     } else {
         p.expect(TokenKind::Assign);

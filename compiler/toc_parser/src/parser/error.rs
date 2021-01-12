@@ -154,7 +154,7 @@ mod test {
                 found: Some(TokenKind::Equ),
             },
             11..12,
-            expect![["error at 11..12: expected ’:=’, but found ’=’"]],
+            expect![[r#"error at 11..12: expected ‘:=’, but found ‘=’"#]],
         );
     }
 
@@ -167,7 +167,7 @@ mod test {
                 found: None,
             },
             5..6,
-            expect![["error at 5..6: expected ’..’"]],
+            expect![[r#"error at 5..6: expected ‘..’"#]],
         );
     }
 
@@ -186,7 +186,7 @@ mod test {
             },
             5..8,
             expect![[
-                r#"error at 5..8: expected identifier, ’bits’, ’cheat’ or ’^’, but found int literal"#
+                r#"error at 5..8: expected identifier, ‘bits’, ‘cheat’ or ‘^’, but found int literal"#
             ]],
         );
     }
@@ -200,7 +200,7 @@ mod test {
                 found: Some(TokenKind::Colon),
             },
             2..3,
-            expect![[r#"error at 2..3: expected ’const’ or ’var’, but found ’:’"#]],
+            expect![[r#"error at 2..3: expected ‘const’ or ‘var’, but found ‘:’"#]],
         );
     }
 
@@ -218,7 +218,7 @@ mod test {
                 found: None,
             },
             5..8,
-            expect![[r#"error at 5..8: expected ’+’, ’-’, ’not’ or ’in’"#]],
+            expect![[r#"error at 5..8: expected ‘+’, ‘-’, ‘not’ or ‘in’"#]],
         );
     }
 
@@ -232,7 +232,7 @@ mod test {
                 found: Some(TokenKind::Var),
             },
             3..6,
-            expect![[r#"error at 3..6: expected expression, but found ’var’"#]],
+            expect![[r#"error at 3..6: expected expression, but found ‘var’"#]],
         )
     }
 
