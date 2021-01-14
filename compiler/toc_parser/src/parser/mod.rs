@@ -7,7 +7,7 @@ pub(crate) use error::{Expected, ParseMessage};
 
 use crate::event::Event;
 use crate::grammar;
-use crate::parser::error::MessageKind;
+use crate::parser::error::MessageInfo;
 use crate::parser::marker::Marker;
 use crate::source::Source;
 
@@ -210,7 +210,7 @@ impl<'t, 'src> Parser<'t, 'src> {
             .expect("warning of alias at end of file");
 
         self.events.push(Event::Message(ParseMessage {
-            kind: MessageKind::OtherWarn(format!("{} found, assuming it to be {}", found, normal)),
+            info: MessageInfo::OtherWarn(format!("{} found, assuming it to be {}", found, normal)),
             range,
         }));
     }
@@ -296,7 +296,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
         );
 
         self.p.events.push(Event::Message(ParseMessage {
-            kind: MessageKind::UnexpectedToken {
+            info: MessageInfo::UnexpectedToken {
                 expected: mem::take(&mut self.p.expected_kinds),
                 expected_category: self.category,
                 found,

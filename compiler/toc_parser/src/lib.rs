@@ -5,8 +5,8 @@ mod parser;
 mod sink;
 mod source;
 
-use parser::ParseMessage;
 use source::Source;
+use toc_reporting::{MessageKind, ReportMessage};
 use toc_scanner::Scanner;
 use toc_syntax::SyntaxNode;
 
@@ -15,19 +15,19 @@ use rowan::GreenNode;
 use crate::sink::Sink;
 
 pub fn parse(source: &str) -> ParseResult {
-    let (tokens, scanner_errors) = Scanner::new(source).collect_all();
+    let (tokens, scanner_msgs) = Scanner::new(source).collect_all();
 
     let source = Source::new(&tokens);
     let parser = parser::Parser::new(source);
     let events = parser.parse();
-    let sink = Sink::new(&tokens, events, scanner_errors);
+    let sink = Sink::new(&tokens, events, scanner_msgs);
 
     sink.finish()
 }
 
 pub struct ParseResult {
     node: GreenNode,
-    errors: Vec<ParseMessage>,
+    messages: Vec<ReportMessage>,
 }
 
 impl ParseResult {
@@ -36,7 +36,13 @@ impl ParseResult {
     }
 
     pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
+        self.messages
+            .iter()
+            .any(|msg| msg.kind() == MessageKind::Error)
+    }
+
+    pub fn messages(&self) -> &[ReportMessage] {
+        &self.messages
     }
 
     pub fn debug_tree(&self) -> String {
@@ -48,7 +54,7 @@ impl ParseResult {
         // trim trailing newline
         s.push_str(&tree[0..tree.len() - 1]);
 
-        for err in &self.errors {
+        for err in &self.messages {
             s.push_str(&format!("\n{}", err));
         }
 

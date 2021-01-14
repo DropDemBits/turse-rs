@@ -884,8 +884,16 @@ dependencies = [
  "num-derive",
  "num-traits",
  "rowan",
+ "toc_reporting",
  "toc_scanner",
  "toc_syntax",
+]
+
+[[package]]
+name = "toc_reporting"
+version = "0.1.0"
+dependencies = [
+ "text-size",
 ]
 
 [[package]]
@@ -895,7 +903,7 @@ dependencies = [
  "expect-test",
  "lexical",
  "logos",
- "text-size",
+ "toc_reporting",
 ]
 
 [[package]]
@@ -905,6 +913,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "rowan",
+ "toc_reporting",
  "toc_scanner",
 ]
 

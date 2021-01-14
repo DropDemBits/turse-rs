@@ -5,57 +5,45 @@ pub mod token;
 
 use logos::Logos;
 use std::ops::Range;
-use text_size::TextRange;
+use toc_reporting::{MessageKind, MessageSink};
 use token::{NumberKind, Token, TokenKind};
 
-#[derive(Debug)]
-pub struct ScannerError(pub String, pub TextRange);
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ErrorFerry {
-    /// Pending errors to be added to the scanner blob
-    pending_errors: Vec<ScannerError>,
+    sink: MessageSink,
 }
 
 impl ErrorFerry {
     pub(crate) fn push_error(&mut self, message: &str, span: Range<usize>) {
-        self.pending_errors.push(ScannerError(
-            message.to_string(),
-            token::span_to_text_range(span),
-        ));
+        self.sink
+            .report(MessageKind::Error, message, token::span_to_text_range(span));
     }
-}
 
-impl Default for ErrorFerry {
-    fn default() -> Self {
-        Self {
-            pending_errors: vec![],
-        }
+    pub(crate) fn finish(self) -> MessageSink {
+        self.sink
     }
 }
 
 /// Scanner for tokens
 pub struct Scanner<'s> {
     inner: logos::Lexer<'s, TokenKind>,
-    errors: Vec<ScannerError>,
 }
 
 impl<'s> Scanner<'s> {
     pub fn new(source: &'s str) -> Self {
         Self {
             inner: TokenKind::lexer(source),
-            errors: vec![],
         }
     }
 
-    pub fn collect_all(mut self) -> (Vec<Token<'s>>, Vec<ScannerError>) {
+    pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageSink) {
         let mut toks = vec![];
 
         while let Some(token) = self.next() {
             toks.push(token)
         }
 
-        (toks, self.errors)
+        (toks, self.inner.extras.finish())
     }
 }
 
@@ -79,10 +67,6 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
             other => other,
         };
 
-        // take pending errors
-        self.errors
-            .append(&mut std::mem::take(&mut self.inner.extras.pending_errors));
-
         let text = self.inner.slice();
         let range = token::span_to_text_range(self.inner.span());
 
@@ -101,14 +85,19 @@ mod test {
         let (toks, errors) = scanner.collect_all();
         let toks: Vec<(TokenKind, &str)> =
             toks.into_iter().map(|tok| (tok.kind, tok.lexeme)).collect();
-        let errors = build_error_list(&errors);
+        let errors = build_error_list(errors);
 
         (toks, errors)
     }
 
-    fn build_error_list(errors: &[ScannerError]) -> String {
+    fn build_error_list(sink: MessageSink) -> String {
+        let errors = sink.finish();
         let mut buf = String::new();
-        for ScannerError(msg, at) in errors {
+
+        for msg in errors {
+            let at = msg.text_range();
+            let msg = msg.message();
+
             let (start, end): (usize, usize) = (at.start().into(), at.end().into());
             buf.push_str(&format!("error at {}..{}: {}\n", start, end, msg));
         }
@@ -129,7 +118,7 @@ mod test {
         let token = scanner.next().unwrap();
         assert_eq!(token.kind, *kind);
         assert_eq!(token.lexeme, source);
-        assert_eq!(build_error_list(&scanner.errors), "");
+        assert_eq!(build_error_list(scanner.inner.extras.finish()), "");
     }
 
     /// Runs the lexer over the given text, and asserts if the expected tokens
@@ -161,7 +150,7 @@ mod test {
         assert_eq!(token.kind, *kind);
         assert_eq!(token.lexeme, source);
 
-        let buf = build_error_list(&scanner.errors);
+        let buf = build_error_list(scanner.inner.extras.finish());
 
         expecting.assert_eq(&buf);
     }

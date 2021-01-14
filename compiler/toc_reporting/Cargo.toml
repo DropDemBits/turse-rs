@@ -1,5 +1,5 @@
 [package]
-name = "toc_scanner"
+name = "toc_reporting"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2018"
@@ -7,9 +7,4 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toc_reporting = { path = "../toc_reporting" }
-logos = "^0.11"
-lexical = { version = "^5.1", features = [ "radix" ] }
-
-[dev-dependencies]
-expect-test = "=1.0.1"
+text-size = "1.0.0"

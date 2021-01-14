@@ -3,39 +3,53 @@
 use std::fmt;
 
 use toc_scanner::token::{TokenKind, TokenRange};
-use toc_scanner::ScannerError;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ParseMessage {
-    pub(super) kind: MessageKind,
+    pub(super) info: MessageInfo,
     pub(super) range: TokenRange,
+}
+
+impl ParseMessage {
+    pub(crate) fn category(&self) -> toc_reporting::MessageKind {
+        match self.info {
+            MessageInfo::UnexpectedToken { .. } | MessageInfo::OtherError(..) => {
+                toc_reporting::MessageKind::Error
+            }
+            MessageInfo::OtherWarn(..) => toc_reporting::MessageKind::Warning,
+        }
+    }
+
+    pub(crate) fn message(&self) -> String {
+        format!("{}", self.info)
+    }
+
+    pub(crate) fn range(&self) -> toc_reporting::TextRange {
+        self.range
+    }
 }
 
 impl fmt::Display for ParseMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let kind = match self.category() {
+            toc_reporting::MessageKind::Warning => "warn",
+            toc_reporting::MessageKind::Error => "error",
+        };
+
         write!(
             f,
             "{} at {}..{}: ",
-            self.kind.category(),
+            kind,
             u32::from(self.range.start()),
             u32::from(self.range.end()),
         )?;
 
-        self.kind.fmt(f)
-    }
-}
-
-impl From<ScannerError> for ParseMessage {
-    fn from(ScannerError(msg, at): ScannerError) -> Self {
-        Self {
-            kind: MessageKind::OtherError(msg),
-            range: at,
-        }
+        self.info.fmt(f)
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum MessageKind {
+pub(crate) enum MessageInfo {
     UnexpectedToken {
         expected: Vec<TokenKind>,
         expected_category: Option<Expected>,
@@ -45,16 +59,7 @@ pub(crate) enum MessageKind {
     OtherWarn(String),
 }
 
-impl MessageKind {
-    fn category(&self) -> MessageCategory {
-        match self {
-            Self::UnexpectedToken { .. } | Self::OtherError(..) => MessageCategory::Error,
-            Self::OtherWarn(..) => MessageCategory::Warn,
-        }
-    }
-}
-
-impl fmt::Display for MessageKind {
+impl fmt::Display for MessageInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
             Self::UnexpectedToken {
@@ -96,21 +101,6 @@ impl fmt::Display for MessageKind {
     }
 }
 
-#[derive(Debug)]
-enum MessageCategory {
-    Error,
-    Warn,
-}
-
-impl fmt::Display for MessageCategory {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Error => "error",
-            Self::Warn => "warn",
-        })
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) enum Expected {
     Expression,
@@ -137,10 +127,10 @@ mod test {
     use std::ops::Range;
 
     #[track_caller]
-    fn check(kind: MessageKind, range: Range<u32>, out: Expect) {
+    fn check(info: MessageInfo, range: Range<u32>, out: Expect) {
         let range = TokenRange::new(range.start.into(), range.end.into());
 
-        let err = ParseMessage { kind, range };
+        let err = ParseMessage { info, range };
 
         out.assert_eq(&format!("{}", err));
     }
@@ -148,7 +138,7 @@ mod test {
     #[test]
     fn single_expected_but_found() {
         check(
-            MessageKind::UnexpectedToken {
+            MessageInfo::UnexpectedToken {
                 expected: vec![TokenKind::Assign],
                 expected_category: None,
                 found: Some(TokenKind::Equ),
@@ -161,7 +151,7 @@ mod test {
     #[test]
     fn single_expected_but_not_found() {
         check(
-            MessageKind::UnexpectedToken {
+            MessageInfo::UnexpectedToken {
                 expected: vec![TokenKind::Range],
                 expected_category: None,
                 found: None,
@@ -174,7 +164,7 @@ mod test {
     #[test]
     fn multiple_expected_but_found() {
         check(
-            MessageKind::UnexpectedToken {
+            MessageInfo::UnexpectedToken {
                 expected: vec![
                     TokenKind::Identifier,
                     TokenKind::Bits,
@@ -194,7 +184,7 @@ mod test {
     #[test]
     fn two_expected_but_found() {
         check(
-            MessageKind::UnexpectedToken {
+            MessageInfo::UnexpectedToken {
                 expected: vec![TokenKind::Const, TokenKind::Var],
                 expected_category: None,
                 found: Some(TokenKind::Colon),
@@ -207,7 +197,7 @@ mod test {
     #[test]
     fn multiple_expected_but_not_found() {
         check(
-            MessageKind::UnexpectedToken {
+            MessageInfo::UnexpectedToken {
                 expected: vec![
                     TokenKind::Plus,
                     TokenKind::Minus,
@@ -226,7 +216,7 @@ mod test {
     fn unexpected_category_over_list() {
         // category has preference over token list
         check(
-            MessageKind::UnexpectedToken {
+            MessageInfo::UnexpectedToken {
                 expected: vec![TokenKind::Pervasive],
                 expected_category: Some(Expected::Expression),
                 found: Some(TokenKind::Var),
@@ -239,7 +229,7 @@ mod test {
     #[test]
     fn other_error_message() {
         check(
-            MessageKind::OtherError("this is not a real error message".to_string()),
+            MessageInfo::OtherError("this is not a real error message".to_string()),
             1..3,
             expect![["error at 1..3: this is not a real error message"]],
         );

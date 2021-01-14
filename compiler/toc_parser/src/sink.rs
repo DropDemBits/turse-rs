@@ -1,12 +1,11 @@
 //! Sink for events
 use crate::event::Event;
-use crate::parser::ParseMessage;
 use crate::ParseResult;
 
 use rowan::GreenNodeBuilder;
 use std::mem;
+use toc_reporting::MessageSink;
 use toc_scanner::token::Token;
-use toc_scanner::ScannerError;
 use toc_syntax::SyntaxKind;
 
 pub(super) struct Sink<'t, 'src> {
@@ -14,21 +13,21 @@ pub(super) struct Sink<'t, 'src> {
     tokens: &'t [Token<'src>],
     cursor: usize,
     events: Vec<Event>,
-    errors: Vec<ParseMessage>,
+    msg_sink: MessageSink,
 }
 
 impl<'t, 'src> Sink<'t, 'src> {
     pub(super) fn new(
         tokens: &'t [Token<'src>],
         events: Vec<Event>,
-        scanner_errors: Vec<ScannerError>,
+        scanner_pending: MessageSink,
     ) -> Self {
         Self {
             builder: GreenNodeBuilder::new(),
             tokens,
             cursor: 0,
             events,
-            errors: scanner_errors.into_iter().map(|err| err.into()).collect(),
+            msg_sink: scanner_pending,
         }
     }
 
@@ -66,7 +65,10 @@ impl<'t, 'src> Sink<'t, 'src> {
                 }
                 Event::AddToken => self.token(),
                 Event::FinishNode => self.builder.finish_node(),
-                Event::Message(err) => self.errors.push(err),
+                Event::Message(msg) => {
+                    self.msg_sink
+                        .report(msg.category(), &msg.message(), msg.range())
+                }
                 Event::Tombstone | Event::Placeholder => {}
             }
 
@@ -75,7 +77,7 @@ impl<'t, 'src> Sink<'t, 'src> {
 
         ParseResult {
             node: self.builder.finish(),
-            errors: self.errors,
+            messages: self.msg_sink.finish(),
         }
     }
 

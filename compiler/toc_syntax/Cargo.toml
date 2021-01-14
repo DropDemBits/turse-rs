@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 # Local deps
+toc_reporting = { path = "../toc_reporting" }
 toc_scanner = { path = "../toc_scanner" }
 # External deps
 rowan = "^0.10"

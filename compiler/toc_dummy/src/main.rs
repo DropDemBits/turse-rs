@@ -17,9 +17,13 @@ fn main() {
 
     println!("Parsed output: {}", parsed.debug_tree());
     let validate_res = validate::validate_ast(parsed.syntax());
-    for msg in validate_res.errors() {
-        let (start, end): (usize, usize) = (msg.1.start().into(), msg.1.end().into());
-        println!("error at {}..{}: {}", start, end, msg.0);
+    let msgs = parsed
+        .messages()
+        .iter()
+        .chain(validate_res.messages().iter());
+
+    for msg in msgs {
+        println!("{}", msg);
     }
 
     std::process::exit(if parsed.has_errors() { -1 } else { 0 });
