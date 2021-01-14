@@ -81,7 +81,13 @@ ast_node!(OpaqueAttr);
 
 // Preprocs
 ast_node!(PreprocGlob);
-ast_node_group!(PreprocCmd,
+impl PreprocGlob {
+    pub fn contained(&self) -> Option<SyntaxNode> {
+        self.0.first_child()
+    }
+}
+
+ast_node_group!(PreprocKind,
     SyntaxKind::PPIf => If:PPIf,
     SyntaxKind::PPElseif => Elseif:PPElseif,
     SyntaxKind::PPElse => Else:PPElse,
@@ -149,6 +155,7 @@ ast_node_group!(Stmt,
     SyntaxKind::TagStmt => TagStmt,
     SyntaxKind::ForkStmt => ForkStmt,
     SyntaxKind::SignalStmt => SignalStmt,
+    SyntaxKind::WaitStmt => WaitStmt,
     SyntaxKind::PauseStmt => PauseStmt,
     SyntaxKind::QuitStmt => QuitStmt,
     SyntaxKind::BreakStmt => BreakStmt,
@@ -197,6 +204,7 @@ ast_node!(FreeStmt);
 ast_node!(TagStmt);
 ast_node!(ForkStmt);
 ast_node!(SignalStmt);
+ast_node!(WaitStmt);
 ast_node!(PauseStmt);
 ast_node!(QuitStmt);
 ast_node!(BreakStmt);

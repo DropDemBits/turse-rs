@@ -50,6 +50,9 @@ Source =
 
 // Only in Stmt position
 PreprocGlob =
+  kind:PreprocKind
+
+PreprocKind =
   PPInclude
 | PPIf
 | PPElseif
@@ -244,7 +247,7 @@ ModuleDecl =
   EndGroup
 
 ClassDecl =
-  'monitor'? 'class' PervasiveAttr? Name
+  'monitor'? 'class' PervasiveAttr? Name DeviceSpec?
     StmtList
   EndGroup
 
@@ -359,7 +362,7 @@ SeekStmt =
   'seek' ':' file_ref:Reference ',' seek_to:( Expr | '*' )
 
 TellStmt =
-  'tell' ':' file_ref:Reference ',' Reference
+  'tell' ':' file_ref:Reference ',' tell_to:Reference
 
 ForStmt =
   'for' 'decreasing'? Name? ':' ForBounds steps:StepBy?
@@ -370,7 +373,7 @@ ForBounds =
   from:Expr ( '..' to:Expr )?
 
 StepBy =
-  'by' Expr
+  'by' change_by:Expr
 
 LoopStmt =
   'loop'
@@ -385,7 +388,7 @@ IfStmt =
   EndGroup
 
 IfBody =
-  Expr 'then'
+  condition:Expr 'then'
     true_branch:StmtList
     false_branch:(
       ElseStmt
@@ -411,10 +414,10 @@ BlockStmt =
   'begin' StmtList EndGroup
 
 InvariantStmt =
-  'invariant' Expr
+  'invariant' condition:Expr
 
 AssertStmt =
-  'assert' Expr
+  'assert' condition:Expr
 
 CallStmt =
   Reference // CallExpr & bare RefExpr are contained in Reference
@@ -469,7 +472,7 @@ CheckednessStmt =
   Checkedness
 
 PreStmt =
-  'pre' Expr
+  'pre' condition:Expr
 
 InitStmt =
   'init' ( InitVar ( ',' InitVar )* )
@@ -478,7 +481,7 @@ InitVar =
   Name ':=' Expr
 
 PostStmt =
-  'post' Expr
+  'post' condition:Expr
 
 HandlerStmt =
   'handler' '(' Name ')'
@@ -562,6 +565,9 @@ LiteralExpr =
   | 'true' | 'false' // bool literals
   )
 
+ObjClassExpr =
+  'objectclass' '(' Reference ')'
+
 InitExpr =
   'init' '('
     ExprList
@@ -597,9 +603,6 @@ UnaryExpr =
 
 ParenExpr =
   '(' Expr ')'
-
-ObjClassExpr =
-  'objectclass' '(' Reference ')'
 
 // as reference if Expr is a Reference, otherwise as expr
 // Turing: register var refs are not considered as valid lhs exprs
@@ -753,7 +756,7 @@ RecordType =
 
 UnionType =
   'union' tag_name:Name? ':' range_ty:Type 'of'
-    UnionVariants*
+    UnionVariant*
   EndGroup
 
 UnionVariant =
@@ -774,10 +777,10 @@ Checkedness =
 | 'unchecked'
 
 FcnType =
-  'function' Name? ParamSpec ':' Type
+  'function' Name? ParamSpec? ':' Type
 
 ProcType =
-  'procedure' Name? ParamSpec
+  'procedure' Name? ParamSpec?
 
 SubprogType =
   FcnType
