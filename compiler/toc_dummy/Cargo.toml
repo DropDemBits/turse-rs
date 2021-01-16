@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 toc_parser = { path = "../toc_parser" }
+toc_validate = { path = "../toc_validate" }
 toc_syntax = { path = "../toc_syntax" }

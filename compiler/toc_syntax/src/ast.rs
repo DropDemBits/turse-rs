@@ -143,6 +143,8 @@ ast_node_group!(Stmt,
     SyntaxKind::LoopStmt => LoopStmt,
     SyntaxKind::ExitStmt => ExitStmt,
     SyntaxKind::IfStmt => IfStmt,
+    SyntaxKind::ElseifStmt => ElseifStmt,
+    SyntaxKind::ElseStmt => ElseStmt,
     SyntaxKind::CaseStmt => CaseStmt,
     SyntaxKind::BlockStmt => BlockStmt,
     SyntaxKind::InvariantStmt => InvariantStmt,
@@ -192,6 +194,8 @@ ast_node!(ForStmt);
 ast_node!(LoopStmt);
 ast_node!(ExitStmt);
 ast_node!(IfStmt);
+ast_node!(ElseifStmt);
+ast_node!(ElseStmt);
 ast_node!(CaseStmt);
 ast_node!(BlockStmt);
 ast_node!(InvariantStmt);

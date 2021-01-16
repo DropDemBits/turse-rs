@@ -2,8 +2,6 @@
 
 use std::{env, fs, io};
 
-use toc_syntax::validate;
-
 fn load_contents(path: &str) -> io::Result<String> {
     let contents = fs::read(path)?;
     let contents = String::from_utf8_lossy(&contents).to_string();
@@ -16,7 +14,7 @@ fn main() {
     let parsed = toc_parser::parse(&contents);
 
     println!("Parsed output: {}", parsed.debug_tree());
-    let validate_res = validate::validate_ast(parsed.syntax());
+    let validate_res = toc_validate::validate_ast(parsed.syntax());
     let msgs = parsed
         .messages()
         .iter()

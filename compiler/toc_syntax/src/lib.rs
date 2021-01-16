@@ -1,6 +1,5 @@
 //! Concrete Syntax Tree for the Turing language
 pub mod ast;
-pub mod validate;
 
 use num_traits::{FromPrimitive, ToPrimitive};
 use rowan::Language;

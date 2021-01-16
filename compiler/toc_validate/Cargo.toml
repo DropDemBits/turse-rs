@@ -1,5 +1,5 @@
 [package]
-name = "toc_syntax"
+name = "toc_validate"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2018"
@@ -7,9 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# Local deps
-toc_scanner = { path = "../toc_scanner" }
-# External deps
-rowan = "^0.10"
-num-derive = "^0.3"
-num-traits = "0.2"
+toc_reporting = { path = "../toc_reporting" }
+toc_syntax = { path = "../toc_syntax" }
+
+[dev-dependencies]
+toc_parser = { path = "../toc_parser" }
+expect-test = "=1.0.1"

@@ -850,6 +850,7 @@ version = "0.1.0"
 dependencies = [
  "toc_parser",
  "toc_syntax",
+ "toc_validate",
 ]
 
 [[package]]
@@ -913,8 +914,17 @@ dependencies = [
  "num-derive",
  "num-traits",
  "rowan",
- "toc_reporting",
  "toc_scanner",
+]
+
+[[package]]
+name = "toc_validate"
+version = "0.1.0"
+dependencies = [
+ "expect-test",
+ "toc_parser",
+ "toc_reporting",
+ "toc_syntax",
 ]
 
 [[package]]
