@@ -36,13 +36,8 @@ pub fn validate_ast(root: SyntaxNode) -> ValidateResult {
         sink: MessageSink::new(),
     };
 
-    for node in root.descendants() {
-        match_ast!(match node {
-            ast::PreprocGlob(pp_glob) => validate_preproc_glob(pp_glob, &mut ctx),
-            ast::ElseStmt(stmt) => validate_else_stmt(stmt, &mut ctx),
-            ast::ElseifStmt(stmt) => validate_elseif_stmt(stmt, &mut ctx),
-            _ => (),
-        })
+    if let Some(source) = ast::Source::cast(root) {
+        validate_source(source, &mut ctx);
     }
 
     ctx.finish()
@@ -63,6 +58,19 @@ impl ValidateCtx {
     }
 }
 
+fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
+    let root = src.syntax();
+
+    for node in root.descendants() {
+        match_ast!(match node {
+            ast::PreprocGlob(pp_glob) => validate_preproc_glob(pp_glob, ctx),
+            ast::ElseStmt(stmt) => validate_else_stmt(stmt, ctx),
+            ast::ElseifStmt(stmt) => validate_elseif_stmt(stmt, ctx),
+            _ => (),
+        })
+    }
+}
+
 fn validate_preproc_glob(glob: ast::PreprocGlob, ctx: &mut ValidateCtx) {
     let thing = glob.contained().unwrap();
     match_ast!(match thing {
@@ -76,7 +84,7 @@ fn validate_preproc_glob(glob: ast::PreprocGlob, ctx: &mut ValidateCtx) {
 fn validate_else_stmt(stmt: ast::ElseStmt, ctx: &mut ValidateCtx) {
     let parent_kind = stmt.syntax().parent().map(|p| p.kind());
 
-    if !matches!(parent_kind, Some(SyntaxKind::IfStmt)) {
+    if !matches!(parent_kind, Some(SyntaxKind::IfBody)) {
         without_matching(stmt.syntax(), "if", ctx);
     }
 }
@@ -84,7 +92,7 @@ fn validate_else_stmt(stmt: ast::ElseStmt, ctx: &mut ValidateCtx) {
 fn validate_elseif_stmt(stmt: ast::ElseifStmt, ctx: &mut ValidateCtx) {
     let parent_kind = stmt.syntax().parent().map(|p| p.kind());
 
-    if !matches!(parent_kind, Some(SyntaxKind::IfStmt)) {
+    if !matches!(parent_kind, Some(SyntaxKind::IfBody)) {
         without_matching(stmt.syntax(), "if", ctx);
     }
 }
@@ -104,7 +112,7 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     let validate_res = validate_ast(res.syntax());
 
     let mut buf = String::new();
-    for msg in validate_res.messages() {
+    for msg in res.messages().iter().chain(validate_res.messages().iter()) {
         buf.push_str(&format!("{}\n", msg));
     }
     let trimmed = buf.trim_end();

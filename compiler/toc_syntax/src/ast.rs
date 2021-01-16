@@ -63,7 +63,7 @@ macro_rules! ast_node_group {
     };
 }
 
-// Basic defs
+// Basic node defs
 
 ast_node!(Source);
 ast_node!(Name);
@@ -451,7 +451,7 @@ ast_node!(ConstVarParam);
 ast_node!(ConditionKind);
 
 impl Source {
-    pub fn unit(&self) -> Option<SyntaxToken> {
+    pub fn unit_token(&self) -> Option<SyntaxToken> {
         self.0
             .first_token()
             .filter(|token| matches!(token.kind(), SyntaxKind::KwUnit))
