@@ -77,7 +77,12 @@ mod test {
 
     #[test]
     fn parse_empty_file() {
-        check("", expect![[r#"Source@0..0"#]])
+        check(
+            "",
+            expect![[r#"
+            Source@0..0
+              StmtList@0..0"#]],
+        )
     }
 
     #[test]
@@ -85,7 +90,8 @@ mod test {
     fn parse_whitespace() {
         check("   \t\n   ", expect![[r#"
             Source@0..8
-              Whitespace@0..8 "   \t\n   ""#]]);
+              Whitespace@0..8 "   \t\n   "
+              StmtList@8..8"#]]);
     }
 
     #[test]
@@ -93,7 +99,8 @@ mod test {
     fn parse_line_comment() {
         check("% hello", expect![[r#"
             Source@0..7
-              Comment@0..7 "% hello""#]]);
+              Comment@0..7 "% hello"
+              StmtList@7..7"#]]);
     }
 
     #[test]
@@ -101,7 +108,8 @@ mod test {
     fn parse_block_comment() {
         check("/* hello */", expect![[r#"
             Source@0..11
-              Comment@0..11 "/* hello */""#]]);
+              Comment@0..11 "/* hello */"
+              StmtList@11..11"#]]);
     }
 
     #[test]
@@ -109,17 +117,18 @@ mod test {
     fn scanner_errors_into_parser_errors() {
         check("var e := 1e", expect![[r#"
             Source@0..11
-              ConstVarDecl@0..11
-                KwVar@0..3 "var"
-                Whitespace@3..4 " "
-                NameList@4..6
-                  Name@4..6
-                    Identifier@4..5 "e"
-                    Whitespace@5..6 " "
-                Assign@6..8 ":="
-                Whitespace@8..9 " "
-                LiteralExpr@9..11
-                  RealLiteral@9..11 "1e"
+              StmtList@0..11
+                ConstVarDecl@0..11
+                  KwVar@0..3 "var"
+                  Whitespace@3..4 " "
+                  NameList@4..6
+                    Name@4..6
+                      Identifier@4..5 "e"
+                      Whitespace@5..6 " "
+                  Assign@6..8 ":="
+                  Whitespace@8..9 " "
+                  LiteralExpr@9..11
+                    RealLiteral@9..11 "1e"
             error at 9..11: real literal is missing exponent digits"#]]);
     }
 }
