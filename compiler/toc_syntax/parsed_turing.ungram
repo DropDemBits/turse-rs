@@ -243,17 +243,36 @@ ExternalVar =
 
 ModuleDecl =
   'module' PervasiveAttr? Name
+    ImplementStmt?
+    ImplementByStmt?
+    ImportStmt?
+    ExportStmt?
+    PreStmt?
     StmtList
+    PostStmt?
   EndGroup
 
 ClassDecl =
   'monitor'? 'class' PervasiveAttr? Name DeviceSpec?
+    InheritStmt?
+    ImplementStmt?
+    ImplementByStmt?
+    ImportStmt?
+    ExportStmt?
+    PreStmt?
     StmtList
+    PostStmt?
   EndGroup
 
 MonitorDecl =
   'monitor' PervasiveAttr? Name DeviceSpec?
+    ImplementStmt?
+    ImplementByStmt?
+    ImportStmt?
+    ExportStmt?
+    PreStmt?
     StmtList
+    PostStmt?
   EndGroup
 
 AssignStmt =

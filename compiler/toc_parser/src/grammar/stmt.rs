@@ -562,7 +562,7 @@ fn module_decl(p: &mut Parser) -> Option<CompletedMarker> {
         super::name(p);
     });
 
-    stmt_list(p, None);
+    module_body(p);
 
     eat_end_group(p, TokenKind::Identifier, None);
     Some(m.complete(p, SyntaxKind::ModuleDecl))
@@ -578,7 +578,10 @@ fn class_decl(p: &mut Parser) -> Option<CompletedMarker> {
         super::name(p);
     });
 
-    stmt_list(p, None);
+    if p.at(TokenKind::Inherit) {
+        inherit_stmt(p);
+    }
+    module_body(p);
 
     eat_end_group(p, TokenKind::Identifier, None);
     Some(m.complete(p, SyntaxKind::ClassDecl))
@@ -597,7 +600,10 @@ fn monitor_decl(p: &mut Parser) -> Option<CompletedMarker> {
         device_spec(p);
     });
 
-    stmt_list(p, None);
+    if as_class && p.at(TokenKind::Inherit) {
+        inherit_stmt(p);
+    }
+    module_body(p);
 
     eat_end_group(p, TokenKind::Identifier, None);
     Some(m.complete(
@@ -608,6 +614,39 @@ fn monitor_decl(p: &mut Parser) -> Option<CompletedMarker> {
             SyntaxKind::MonitorDecl
         },
     ))
+}
+
+fn module_body(p: &mut Parser) {
+    // implement
+    // implement by
+    // import_stmt
+    // export_stmt
+
+    if p.at(TokenKind::Implement) {
+        if let (_, false) = implement_or_implement_by_stmt(p) {
+            if p.at(TokenKind::Implement) {
+                implement_by_stmt(p);
+            }
+        }
+    }
+
+    if p.at(TokenKind::Import) {
+        import_stmt(p);
+    }
+
+    if p.at(TokenKind::Export) {
+        export_stmt(p);
+    }
+
+    if p.at(TokenKind::Pre) {
+        stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt);
+    }
+
+    stmt_list(p, Some(&[TokenKind::Post]));
+
+    if p.at(TokenKind::Post) {
+        stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt);
+    }
 }
 
 // Stmts //
@@ -1357,8 +1396,12 @@ fn inherit_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::InheritStmt))
 }
 
-/// also covers implement_by_stmt
+/// covers both implement_stmt and implement_by_stmt
 fn implement_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    implement_or_implement_by_stmt(p).0
+}
+
+fn implement_or_implement_by_stmt(p: &mut Parser) -> (Option<CompletedMarker>, bool) {
     debug_assert!(p.at(TokenKind::Implement));
     let m = p.start();
     p.bump();
@@ -1369,14 +1412,34 @@ fn implement_stmt(p: &mut Parser) -> Option<CompletedMarker> {
         external_item(p);
     });
 
-    Some(m.complete(
-        p,
-        if as_implement_by {
-            SyntaxKind::ImplementByStmt
-        } else {
-            SyntaxKind::ImplementStmt
-        },
-    ))
+    (
+        Some(m.complete(
+            p,
+            if as_implement_by {
+                SyntaxKind::ImplementByStmt
+            } else {
+                SyntaxKind::ImplementStmt
+            },
+        )),
+        as_implement_by,
+    )
+}
+
+/// only covers implement_by_stmt
+fn implement_by_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Implement));
+    let m = p.start();
+    p.bump();
+
+    p.with_extra_recovery(&[TokenKind::LeftParen], |p| {
+        p.expect(TokenKind::By);
+    });
+
+    with_opt_parens(p, true, |p| {
+        external_item(p);
+    });
+
+    Some(m.complete(p, SyntaxKind::ImplementByStmt))
 }
 
 fn import_stmt(p: &mut Parser) -> Option<CompletedMarker> {

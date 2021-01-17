@@ -6150,6 +6150,339 @@ fn parse_module_decl_attr_pervasive() {
 }
 
 #[test]
+fn parse_module_decl_embedded_implement() {
+    check(
+        "module a implement a end a",
+        expect![[r#"
+        Source@0..26
+          ModuleDecl@0..26
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            ImplementStmt@9..21
+              KwImplement@9..18 "implement"
+              Whitespace@18..19 " "
+              ExternalItem@19..21
+                Name@19..21
+                  Identifier@19..20 "a"
+                  Whitespace@20..21 " "
+            StmtList@21..21
+            EndGroup@21..26
+              KwEnd@21..24 "end"
+              Whitespace@24..25 " "
+              Identifier@25..26 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_embedded_implement_by() {
+    // implement and implement by are required
+    check(
+        "module a implement a implement by a end a",
+        expect![[r#"
+        Source@0..41
+          ModuleDecl@0..41
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            ImplementStmt@9..21
+              KwImplement@9..18 "implement"
+              Whitespace@18..19 " "
+              ExternalItem@19..21
+                Name@19..21
+                  Identifier@19..20 "a"
+                  Whitespace@20..21 " "
+            ImplementByStmt@21..36
+              KwImplement@21..30 "implement"
+              Whitespace@30..31 " "
+              KwBy@31..33 "by"
+              Whitespace@33..34 " "
+              ExternalItem@34..36
+                Name@34..36
+                  Identifier@34..35 "a"
+                  Whitespace@35..36 " "
+            StmtList@36..36
+            EndGroup@36..41
+              KwEnd@36..39 "end"
+              Whitespace@39..40 " "
+              Identifier@40..41 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_double_implement_by() {
+    // 2nd implement by goes into StmtList
+    check(
+        "module a implement by a implement by a end a",
+        expect![[r#"
+        Source@0..44
+          ModuleDecl@0..44
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            ImplementByStmt@9..24
+              KwImplement@9..18 "implement"
+              Whitespace@18..19 " "
+              KwBy@19..21 "by"
+              Whitespace@21..22 " "
+              ExternalItem@22..24
+                Name@22..24
+                  Identifier@22..23 "a"
+                  Whitespace@23..24 " "
+            StmtList@24..39
+              ImplementByStmt@24..39
+                KwImplement@24..33 "implement"
+                Whitespace@33..34 " "
+                KwBy@34..36 "by"
+                Whitespace@36..37 " "
+                ExternalItem@37..39
+                  Name@37..39
+                    Identifier@37..38 "a"
+                    Whitespace@38..39 " "
+            EndGroup@39..44
+              KwEnd@39..42 "end"
+              Whitespace@42..43 " "
+              Identifier@43..44 "a""#]],
+    );
+}
+
+#[test]
+fn recover_module_decl_double_implement() {
+    check(
+        "module a implement a implement a end a",
+        expect![[r#"
+        Source@0..38
+          ModuleDecl@0..38
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            ImplementStmt@9..21
+              KwImplement@9..18 "implement"
+              Whitespace@18..19 " "
+              ExternalItem@19..21
+                Name@19..21
+                  Identifier@19..20 "a"
+                  Whitespace@20..21 " "
+            ImplementByStmt@21..37
+              KwImplement@21..30 "implement"
+              Whitespace@30..31 " "
+              Error@31..33
+                Identifier@31..32 "a"
+                Whitespace@32..33 " "
+              ExternalItem@33..37
+                Error@33..37
+                  KwEnd@33..36 "end"
+                  Whitespace@36..37 " "
+            StmtList@37..38
+              CallStmt@37..38
+                NameExpr@37..38
+                  Name@37..38
+                    Identifier@37..38 "a"
+            EndGroup@38..38
+        error at 31..32: expected ‘by’, but found identifier
+        error at 33..36: expected ‘(’, string literal or identifier, but found ‘end’
+        error at 37..38: expected ‘post’ or ‘end’
+        error at 37..38: expected identifier"#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_embedded_import() {
+    check(
+        "module a import a end a",
+        expect![[r#"
+        Source@0..23
+          ModuleDecl@0..23
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            ImportStmt@9..18
+              KwImport@9..15 "import"
+              Whitespace@15..16 " "
+              ImportList@16..18
+                ImportItem@16..18
+                  ExternalItem@16..18
+                    Name@16..18
+                      Identifier@16..17 "a"
+                      Whitespace@17..18 " "
+            StmtList@18..18
+            EndGroup@18..23
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              Identifier@22..23 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_embedded_export() {
+    check(
+        "module a export a end a",
+        expect![[r#"
+        Source@0..23
+          ModuleDecl@0..23
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            ExportStmt@9..18
+              KwExport@9..15 "export"
+              Whitespace@15..16 " "
+              ExportItem@16..18
+                Name@16..18
+                  Identifier@16..17 "a"
+                  Whitespace@17..18 " "
+            StmtList@18..18
+            EndGroup@18..23
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              Identifier@22..23 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_embedded_pre() {
+    check(
+        "module a pre a end a",
+        expect![[r#"
+        Source@0..20
+          ModuleDecl@0..20
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            PreStmt@9..15
+              KwPre@9..12 "pre"
+              Whitespace@12..13 " "
+              NameExpr@13..15
+                Name@13..15
+                  Identifier@13..14 "a"
+                  Whitespace@14..15 " "
+            StmtList@15..15
+            EndGroup@15..20
+              KwEnd@15..18 "end"
+              Whitespace@18..19 " "
+              Identifier@19..20 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_double_pre() {
+    // 2nd is part of StmtList
+    check(
+        "module a pre a pre a end a",
+        expect![[r#"
+        Source@0..26
+          ModuleDecl@0..26
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            PreStmt@9..15
+              KwPre@9..12 "pre"
+              Whitespace@12..13 " "
+              NameExpr@13..15
+                Name@13..15
+                  Identifier@13..14 "a"
+                  Whitespace@14..15 " "
+            StmtList@15..21
+              PreStmt@15..21
+                KwPre@15..18 "pre"
+                Whitespace@18..19 " "
+                NameExpr@19..21
+                  Name@19..21
+                    Identifier@19..20 "a"
+                    Whitespace@20..21 " "
+            EndGroup@21..26
+              KwEnd@21..24 "end"
+              Whitespace@24..25 " "
+              Identifier@25..26 "a""#]],
+    );
+}
+
+#[test]
+fn parse_module_decl_embedded_post() {
+    // 2nd is part of StmtList
+    check(
+        "module a post a end a",
+        expect![[r#"
+        Source@0..21
+          ModuleDecl@0..21
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            StmtList@9..9
+            PostStmt@9..16
+              KwPost@9..13 "post"
+              Whitespace@13..14 " "
+              NameExpr@14..16
+                Name@14..16
+                  Identifier@14..15 "a"
+                  Whitespace@15..16 " "
+            EndGroup@16..21
+              KwEnd@16..19 "end"
+              Whitespace@19..20 " "
+              Identifier@20..21 "a""#]],
+    );
+}
+
+#[test]
+fn recover_module_decl_double_post() {
+    // end a is dropped out
+    check(
+        "module a post a post a end a",
+        expect![[r#"
+        Source@0..28
+          ModuleDecl@0..16
+            KwModule@0..6 "module"
+            Whitespace@6..7 " "
+            Name@7..9
+              Identifier@7..8 "a"
+              Whitespace@8..9 " "
+            StmtList@9..9
+            PostStmt@9..16
+              KwPost@9..13 "post"
+              Whitespace@13..14 " "
+              NameExpr@14..16
+                Name@14..16
+                  Identifier@14..15 "a"
+                  Whitespace@15..16 " "
+            EndGroup@16..16
+          PostStmt@16..23
+            KwPost@16..20 "post"
+            Whitespace@20..21 " "
+            NameExpr@21..23
+              Name@21..23
+                Identifier@21..22 "a"
+                Whitespace@22..23 " "
+          Error@23..27
+            KwEnd@23..26 "end"
+            Whitespace@26..27 " "
+          CallStmt@27..28
+            NameExpr@27..28
+              Name@27..28
+                Identifier@27..28 "a"
+        error at 16..20: expected ‘end’, but found ‘post’
+        error at 16..20: expected identifier, but found ‘post’
+        error at 23..26: expected statement, but found ‘end’"#]],
+    );
+}
+
+#[test]
 fn recover_module_decl_missing_name() {
     check(
         "module end a",
@@ -6197,7 +6530,7 @@ fn recover_just_module() {
                 StmtList@6..6
                 EndGroup@6..6
             error at 0..6: expected identifier
-            error at 0..6: expected ‘end’
+            error at 0..6: expected ‘implement’, ‘import’, ‘export’, ‘pre’, ‘post’ or ‘end’
             error at 0..6: expected identifier"#]],
     );
 }
@@ -6276,6 +6609,33 @@ fn parse_class_decl_attr_pervasive() {
 }
 
 #[test]
+fn parse_class_decl_embedded_inherit() {
+    check(
+        "class a inherit a end a",
+        expect![[r#"
+        Source@0..23
+          ClassDecl@0..23
+            KwClass@0..5 "class"
+            Whitespace@5..6 " "
+            Name@6..8
+              Identifier@6..7 "a"
+              Whitespace@7..8 " "
+            InheritStmt@8..18
+              KwInherit@8..15 "inherit"
+              Whitespace@15..16 " "
+              ExternalItem@16..18
+                Name@16..18
+                  Identifier@16..17 "a"
+                  Whitespace@17..18 " "
+            StmtList@18..18
+            EndGroup@18..23
+              KwEnd@18..21 "end"
+              Whitespace@21..22 " "
+              Identifier@22..23 "a""#]],
+    );
+}
+
+#[test]
 fn recover_class_decl_missing_name() {
     check(
         "class end a",
@@ -6323,7 +6683,7 @@ fn recover_just_class() {
                 StmtList@5..5
                 EndGroup@5..5
             error at 0..5: expected identifier
-            error at 0..5: expected ‘end’
+            error at 0..5: expected ‘inherit’, ‘implement’, ‘import’, ‘export’, ‘pre’, ‘post’ or ‘end’
             error at 0..5: expected identifier"#]],
     );
 }
@@ -6505,7 +6865,7 @@ fn recover_just_monitor() {
                 StmtList@7..7
                 EndGroup@7..7
             error at 0..7: expected identifier
-            error at 0..7: expected ‘:’ or ‘end’
+            error at 0..7: expected ‘:’, ‘implement’, ‘import’, ‘export’, ‘pre’, ‘post’ or ‘end’
             error at 0..7: expected identifier"#]],
     );
 }
