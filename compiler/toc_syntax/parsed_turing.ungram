@@ -4,7 +4,7 @@ Name =
   'ident'
 
 NameList =
-  ( Name ( ',' Name )* )
+  names:( Name ( ',' Name )* )
 
 //*************//
 // Attributes  //
@@ -50,7 +50,7 @@ Source =
 
 // Only in Stmt position
 PreprocGlob =
-  kind:PreprocKind
+  directive:PreprocKind
 
 PreprocKind =
   PPInclude
@@ -60,7 +60,7 @@ PreprocKind =
 | PPEndIf
 
 PPInclude =
-  'include' 'string_literal'
+  'include' path:'string_literal'
 
 PPIf =
   '#if' PPExpr 'then'

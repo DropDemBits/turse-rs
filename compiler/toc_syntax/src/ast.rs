@@ -1,6 +1,23 @@
 //! AST nodes
 use super::{SyntaxKind, SyntaxNode, SyntaxToken};
 
+mod helper {
+    use crate::{SyntaxKind, SyntaxNode, SyntaxToken};
+
+    pub(super) fn first_token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
+        node.first_token().filter(|token| token.kind() == kind)
+    }
+
+    pub(super) fn token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
+        node.children_with_tokens()
+            .filter_map(|thing| match thing {
+                rowan::NodeOrToken::Token(tk) if tk.kind() == kind => Some(tk),
+                _ => None,
+            })
+            .next()
+    }
+}
+
 macro_rules! ast_node {
     ($ast:ident) => {
         #[derive(Debug, PartialEq, Eq, Hash)]
@@ -81,11 +98,6 @@ ast_node!(OpaqueAttr);
 
 // Preprocs
 ast_node!(PreprocGlob);
-impl PreprocGlob {
-    pub fn contained(&self) -> Option<SyntaxNode> {
-        self.0.first_child()
-    }
-}
 
 ast_node_group!(PreprocKind,
     SyntaxKind::PPIf => If:PPIf,
@@ -450,24 +462,103 @@ ast_node!(ConstVarParam);
 
 ast_node!(ConditionKind);
 
+// Misc
+ast_node!(EndGroup);
+
+impl Name {
+    pub fn identifier_token(&self) -> Option<SyntaxToken> {
+        helper::first_token(&self.0, SyntaxKind::Identifier)
+    }
+}
+
+impl NameList {
+    pub fn names(&self) -> impl Iterator<Item = Name> + '_ {
+        self.0.children().filter_map(Name::cast)
+    }
+}
+
+impl PreprocGlob {
+    pub fn directive(&self) -> Option<PreprocKind> {
+        self.0.children().find_map(PreprocKind::cast)
+    }
+}
+
 impl Source {
     pub fn unit_token(&self) -> Option<SyntaxToken> {
-        self.0
-            .first_token()
-            .filter(|token| matches!(token.kind(), SyntaxKind::KwUnit))
+        helper::first_token(&self.0, SyntaxKind::KwUnit)
     }
 
     pub fn import_stmt(&self) -> Option<ImportStmt> {
-        self.0.first_child().and_then(ImportStmt::cast)
+        self.0.children().find_map(ImportStmt::cast)
     }
 
-    pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ {
-        self.0.children().filter_map(Stmt::cast)
+    pub fn stmt_list(&self) -> Option<StmtList> {
+        self.0.children().find_map(StmtList::cast)
     }
 }
 
 impl StmtList {
     pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ {
         self.0.children().filter_map(Stmt::cast)
+    }
+}
+
+impl ModuleDecl {
+    pub fn module_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::KwModule)
+    }
+
+    pub fn name(&self) -> Option<Name> {
+        self.0.children().find_map(Name::cast)
+    }
+
+    pub fn end_group(&self) -> Option<EndGroup> {
+        self.0.children().find_map(EndGroup::cast)
+    }
+}
+
+impl ClassDecl {
+    pub fn monitor_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::KwMonitor)
+    }
+
+    pub fn class_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::KwClass)
+    }
+
+    pub fn name(&self) -> Option<Name> {
+        self.0.children().find_map(Name::cast)
+    }
+
+    pub fn device_spec(&self) -> Option<DeviceSpec> {
+        self.0.children().find_map(DeviceSpec::cast)
+    }
+
+    pub fn end_group(&self) -> Option<EndGroup> {
+        self.0.children().find_map(EndGroup::cast)
+    }
+}
+
+impl MonitorDecl {
+    pub fn monitor_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::KwMonitor)
+    }
+
+    pub fn name(&self) -> Option<Name> {
+        self.0.children().find_map(Name::cast)
+    }
+
+    pub fn device_spec(&self) -> Option<DeviceSpec> {
+        self.0.children().find_map(DeviceSpec::cast)
+    }
+
+    pub fn end_group(&self) -> Option<EndGroup> {
+        self.0.children().find_map(EndGroup::cast)
+    }
+}
+
+impl EndGroup {
+    pub fn identifier_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::Identifier)
     }
 }

@@ -18,7 +18,6 @@ node restrictions.
   - `ClassDecl`
   - `MonitorDecl`
 - If the `unit` token is not present, then an ImportStmt is allowed as the first statement
-  (but not in any other positions)
 
 ### `Name`
 
@@ -127,7 +126,7 @@ node restrictions.
 ### `ProcDecl`
 
 - Accepted only in top-level blocks
-- The following nodes are allowed as the first statements in the specified order:
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `ImportStmt`
   - `PreStmt`
   - `InitStmt`
@@ -147,7 +146,7 @@ node restrictions.
 ### `FcnDecl`
 
 - Accepted only in top-level blocks
-- The following nodes are allowed as the first statements in the specified order:
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `ImportStmt`
   - `PreStmt`
   - `InitStmt`
@@ -166,7 +165,7 @@ node restrictions.
 ### `ProcessDecl`
 
 - Accepted only in top-level blocks, excluding classes
-- The following nodes are allowed as the first statements in the specified order:
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `ImportStmt`
   - `PreStmt`
   - `InitStmt`
@@ -194,8 +193,7 @@ node restrictions.
 ### `BodyDecl`
 
 - Accepted only in top-level blocks
-- The following nodes are allowed as the first statements in the specified order:
-  - `ImportStmt`
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `PreStmt`
   - `InitStmt`
   - `PostStmt`
@@ -209,21 +207,23 @@ node restrictions.
 
 ### `ModuleDecl`
 
-- The following nodes are allowed as the first statements in the specified order:
+- The identifier in `EndGroup` must match the `ModuleDecl`'s identifier
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `ImplementStmt`
   - `ImplementByStmt`
   - `ImportStmt`
   - `ExportStmt`
   - `PreStmt`
   All specified statements are not required to be present
-- The following nodes are allowed as the final statement:
+- (Enforced by Parser) The following nodes are allowed as the final statement:
   - `PostStmt`
   All specified statements are not required to be present
-- The identifier in `EndGroup` must match the `ModuleDecl`'s identifier
 
 ### `ClassDecl`
 
-- The following nodes are allowed as the first statements in the specified order:
+- The identifier in `EndGroup` must match the `ClassDecl`'s identifier
+- Always reject `DeviceSpec` node, regardless of if the `monitor` token is present
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `InheritStmt`
   - `ImplementStmt`
   - `ImplementByStmt`
@@ -231,15 +231,14 @@ node restrictions.
   - `ExportStmt`
   - `PreStmt`
   All specified statements are not required to be present
-- The following nodes are allowed as the final statement:
+- (Enforced by Parser) The following nodes are allowed as the final statement:
   - `PostStmt`
   All specified statements are not required to be present
-- The identifier in `EndGroup` must match the `ClassDecl`'s identifier
-- Always reject `DeviceSpec` node, regardless of if the `monitor` token is present
 
 ### `MonitorDecl`
 
-- The following nodes are allowed as the first statements in the specified order:
+- The identifier in `EndGroup` must match the `ClassDecl`'s identifier
+- (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `InheritStmt`
   - `ImplementStmt`
   - `ImplementByStmt`
@@ -247,10 +246,9 @@ node restrictions.
   - `ExportStmt`
   - `PreStmt`
   All specified statements are not required to be present
-- The following nodes are allowed as the final statement:
+- (Enforced by Parser) The following nodes are allowed as the final statement:
   - `PostStmt`
   All specified statements are not required to be present
-- The identifier in `EndGroup` must match the `ClassDecl`'s identifier
 
 ### `AssignStmt`
 
