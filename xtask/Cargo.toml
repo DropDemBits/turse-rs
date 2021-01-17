@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 ungrammar = "1.6.0"
 anyhow = "1.0.0"
+quote = "1.0"
+heck = "0.3"
+xshell = "0.1"

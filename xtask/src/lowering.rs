@@ -1,5 +1,5 @@
 //! Lowering ungrammar files
-use std::collections::HashMap;
+use std::collections::BTreeSet;
 
 use ungrammar::{Grammar, Rule};
 
@@ -21,50 +21,94 @@ Item {
 }
 */
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub(super) struct NodeId(pub usize);
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub(super) struct TokenId(pub usize);
-
 #[derive(Debug)]
-pub(super) struct LoweredGrammar<'s> {
-    pub(super) node_data: Vec<Node<'s>>,
-    pub(super) token_data: Vec<String>,
+pub(super) struct LoweredGrammar {
+    pub(super) nodes: Vec<Node>,
+    pub(super) groups: Vec<Group>,
+    pub(super) tokens: Vec<String>,
+    group_names: BTreeSet<String>,
+}
+
+impl LoweredGrammar {
+    pub(super) fn is_group(&self, item_name: &str) -> bool {
+        self.group_names.contains(item_name)
+    }
 }
 
 #[derive(Debug)]
-pub(super) struct Node<'s> {
-    pub(super) name: &'s str,
-    pub(super) children: Vec<NodeChild<'s>>,
+pub(super) struct Group {
+    pub(super) name: String,
+    pub(super) variants: Vec<Variant>,
 }
 
 #[derive(Debug)]
-pub(super) struct NodeChild<'s> {
-    pub(super) provided_name: Option<&'s str>,
-    pub(super) to: ChildKind,
+pub(super) struct Variant {
+    pub(super) provided_name: Option<String>,
+    pub(super) variant: String,
+}
+
+#[derive(Debug)]
+pub(super) struct Node {
+    pub(super) name: String,
+    pub(super) children: Vec<Child>,
+}
+
+#[derive(Debug)]
+pub(super) struct Child {
+    pub(super) provided_name: Option<String>,
+    pub(super) kind: ChildKind,
 }
 
 #[derive(Debug)]
 pub(super) enum ChildKind {
     Item(NodeOrToken),
     List(NodeOrToken),
-    Alternate(NodeOrToken),
+}
+
+impl PartialEq for ChildKind {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Self::Item(a) => {
+                if let Self::Item(b) = other {
+                    a == b
+                } else {
+                    false
+                }
+            }
+            Self::List(a) => {
+                if let Self::List(b) = other {
+                    a == b
+                } else {
+                    false
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
 pub(super) enum NodeOrToken {
-    Node(NodeId),
-    Token(TokenId),
+    Node(String),
+    Token(String),
+}
+
+impl PartialEq for NodeOrToken {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Self::Token(a) => {
+                if let Self::Token(b) = other {
+                    a == b
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
 }
 
 pub(super) fn lower_grammar(grammar: &Grammar) -> LoweredGrammar {
     let mut ctx = LowerCtx::new();
-
-    // first pass, adding nodes
-    for root_node in grammar.iter() {
-        ctx.add_node(&grammar[root_node].name);
-    }
 
     for root_node in grammar.iter() {
         visit_node(root_node, grammar, &mut ctx);
@@ -73,176 +117,96 @@ pub(super) fn lower_grammar(grammar: &Grammar) -> LoweredGrammar {
     ctx.finish()
 }
 
-struct LowerCtx<'s> {
-    node_data: Vec<Node<'s>>,
+struct LowerCtx {
+    node_data: Vec<Node>,
+    group_data: Vec<Group>,
     token_data: Vec<String>,
-    name_to_node: HashMap<String, NodeId>,
-    name_to_token: HashMap<String, TokenId>,
-    next_node_id: usize,
-    next_token_id: usize,
+    group_names: BTreeSet<String>,
 }
 
-impl<'s> LowerCtx<'s> {
+impl LowerCtx {
     fn new() -> Self {
         Self {
             node_data: vec![],
+            group_data: vec![],
             token_data: vec![],
-            name_to_node: HashMap::new(),
-            name_to_token: HashMap::new(),
-            next_node_id: 0,
-            next_token_id: 0,
+            group_names: BTreeSet::new(),
         }
     }
 
-    fn add_node(&mut self, name: &'s str) -> NodeId {
-        let id = NodeId(self.next_node_id);
-        self.next_node_id += 1;
-
-        self.name_to_node.insert(name.to_string(), id);
-        self.node_data.push(Node {
-            name,
-            children: vec![],
-        });
-
-        id
-    }
-
-    fn add_child_to_node(&mut self, node: NodeId, child: NodeChild<'s>) {
-        self.node_data[node.0].children.push(child);
-    }
-
-    fn add_token(&mut self, name: &str) -> TokenId {
-        let id = TokenId(self.next_token_id);
-        self.next_token_id += 1;
-
-        self.token_data.push(name.to_string());
-        self.name_to_token.insert(name.to_string(), id);
-
-        id
-    }
-
-    fn get_token(&mut self, name: &str) -> TokenId {
-        if let Some(id) = self.name_to_token.get(name) {
-            *id
-        } else {
-            self.add_token(name)
-        }
-    }
-
-    fn get_node(&mut self, name: &str) -> Option<NodeId> {
-        self.name_to_node.get(name).copied()
-    }
-
-    fn finish(self) -> LoweredGrammar<'s> {
+    fn finish(self) -> LoweredGrammar {
         LoweredGrammar {
-            node_data: self.node_data,
-            token_data: self.token_data,
+            nodes: self.node_data,
+            groups: self.group_data,
+            tokens: self.token_data,
+            group_names: self.group_names,
         }
     }
 }
 
-fn visit_node<'g>(node: ungrammar::Node, g: &'g Grammar, ctx: &mut LowerCtx<'g>) {
+fn visit_node<'g>(node: ungrammar::Node, g: &'g Grammar, ctx: &mut LowerCtx) {
     let data = &g[node];
-    let id = ctx.get_node(&data.name).unwrap();
 
-    visit_rule(&data.rule, id, g, ctx);
+    if let Some(variants) = try_as_group(&data.rule, g) {
+        ctx.group_data.push(Group {
+            name: data.name.clone(),
+            variants,
+        });
+        ctx.group_names.insert(data.name.clone());
+    } else {
+        let mut children = vec![];
+        visit_rule(&data.rule, g, &mut children);
+
+        let mut i = 0;
+        'next: while i < children.len() {
+            for j in 0..i {
+                if &children[i].kind == &children[j].kind {
+                    children.remove(i);
+                    continue 'next;
+                }
+            }
+            i += 1;
+        }
+        children.dedup_by(|a, b| a.kind == b.kind);
+
+        ctx.node_data.push(Node {
+            name: data.name.clone(),
+            children,
+        })
+    }
 }
 
-fn visit_rule<'g>(rule: &'g Rule, parent: NodeId, g: &'g Grammar, ctx: &mut LowerCtx<'g>) {
-    if try_as_list(rule, parent, g, ctx).is_some() {
+fn visit_rule<'g>(rule: &'g Rule, g: &'g Grammar, children: &mut Vec<Child>) {
+    if let Some(child) = try_as_list(rule, g) {
+        // push list
+        children.push(child);
         return;
     }
 
     match rule {
-        Rule::Seq(subs) => {
+        Rule::Alt(rules) | Rule::Seq(rules) => {
             // Rule list
-            for rule in subs {
-                visit_rule(rule, parent, g, ctx);
-            }
-        }
-        Rule::Alt(alts) => {
-            // Check complexity
-            #[derive(Debug, PartialEq, Clone, Copy)]
-            enum Complexity {
-                Unknown,
-                SimpleNode,
-                SimpleToken,
-                Complex,
-            }
-
-            let mut actual_complexity = Complexity::Unknown;
-
-            for rule in alts {
-                fn get_inner_rule_complexity(rule: &Rule) -> Complexity {
-                    match rule {
-                        Rule::Labeled { rule, .. } => get_inner_rule_complexity(rule),
-                        Rule::Node(_) => Complexity::SimpleNode,
-                        Rule::Token(_) => Complexity::SimpleToken,
-                        _ => Complexity::Complex,
-                    }
-                }
-
-                let transition_to = get_inner_rule_complexity(rule);
-
-                actual_complexity = match actual_complexity {
-                    Complexity::Unknown => transition_to,
-                    Complexity::SimpleNode if transition_to == Complexity::SimpleToken => {
-                        Complexity::Complex
-                    }
-                    Complexity::SimpleToken if transition_to == Complexity::SimpleNode => {
-                        Complexity::Complex
-                    }
-                    Complexity::Complex => Complexity::Complex,
-                    _ if transition_to == Complexity::Complex => Complexity::Complex,
-                    _ => actual_complexity,
-                };
-            }
-
-            match actual_complexity {
-                Complexity::Complex => {
-                    // as seq list
-                    for rule in alts {
-                        visit_rule(rule, parent, g, ctx);
-                    }
-                }
-                Complexity::Unknown => unreachable!(),
-                _ => {
-                    for rule in alts {
-                        let child = visit_terminal_rule(rule, g, ctx);
-                        let child = match child.to {
-                            ChildKind::Item(to) => NodeChild {
-                                provided_name: None,
-                                to: ChildKind::Alternate(to),
-                            },
-                            _ => unreachable!(),
-                        };
-
-                        ctx.add_child_to_node(parent, child);
-                    }
-                }
+            for rule in rules {
+                visit_rule(rule, g, children);
             }
         }
         Rule::Opt(rule) => {
             // visit inner
-            visit_rule(rule, parent, g, ctx);
+            visit_rule(rule, g, children);
         }
         _ => {
-            let child = visit_terminal_rule(rule, g, ctx);
-
-            ctx.add_child_to_node(parent, child);
+            if let Some(child) = visit_terminal_rule(rule, g, children) {
+                children.push(child);
+            }
         }
     }
 }
 
-fn try_as_list<'g>(
-    rule: &'g Rule,
-    parent: NodeId,
-    g: &'g Grammar,
-    ctx: &mut LowerCtx<'g>,
-) -> Option<()> {
+fn try_as_list<'g>(rule: &'g Rule, g: &'g Grammar) -> Option<Child> {
     // ( Item ( ',' Item )* )
     // or name:( Item ( ',' Item )* )
 
+    // try and get child name
     let (rule, maybe_name) = if let Rule::Labeled {
         label,
         rule: inner_rule,
@@ -253,6 +217,7 @@ fn try_as_list<'g>(
         (rule, None)
     };
 
+    // Get rules
     let mut rules = if let Rule::Seq(subs) = rule {
         subs.iter()
     } else {
@@ -272,15 +237,14 @@ fn try_as_list<'g>(
                             && item == other_item
                         {
                             // It's a list
-                            let item = NodeOrToken::Node(ctx.get_node(&g[*item].name).unwrap());
+                            let item = NodeOrToken::Node(g[*item].name.clone());
 
-                            let list = NodeChild {
-                                provided_name: maybe_name,
-                                to: ChildKind::List(item),
+                            let list = Child {
+                                provided_name: maybe_name.map(|s| s.to_string()),
+                                kind: ChildKind::List(item),
                             };
 
-                            ctx.add_child_to_node(parent, list);
-                            return Some(());
+                            return Some(list);
                         }
                     }
                 }
@@ -291,45 +255,91 @@ fn try_as_list<'g>(
     None
 }
 
-fn visit_terminal_rule<'g>(rule: &'g Rule, g: &'g Grammar, ctx: &mut LowerCtx) -> NodeChild<'g> {
+fn try_as_group(rule: &Rule, g: &Grammar) -> Option<Vec<Variant>> {
+    let alts = if let Rule::Alt(alts) = rule {
+        alts
+    } else {
+        // not a group
+        return None;
+    };
+
+    let mut variants = vec![];
+    for rule in alts {
+        match rule {
+            Rule::Labeled { label, rule } => {
+                if let Rule::Node(nd) = &**rule {
+                    variants.push(Variant {
+                        provided_name: Some(label.clone()),
+                        variant: g[*nd].name.clone(),
+                    });
+                } else {
+                    return None;
+                }
+            }
+            Rule::Node(nd) => {
+                variants.push(Variant {
+                    provided_name: None,
+                    variant: g[*nd].name.clone(),
+                });
+            }
+            _ => return None,
+        }
+    }
+
+    // need dedup?
+
+    Some(variants)
+}
+
+fn visit_terminal_rule(rule: &Rule, g: &Grammar, children: &mut Vec<Child>) -> Option<Child> {
     match rule {
         Rule::Labeled { label, rule } => {
-            let inner = visit_terminal_rule(rule, g, ctx);
+            let manual_impl = &["lhs", "op", "rhs", "literal"];
 
-            NodeChild {
-                provided_name: Some(label.as_str()),
-                ..inner
+            if manual_impl.contains(&label.as_str()) {
+                // skip over for now
+                return None;
             }
+
+            let inner = visit_terminal_rule(rule, g, children)?;
+
+            Some(Child {
+                provided_name: Some(label.clone()),
+                ..inner
+            })
         }
         Rule::Node(id) => {
-            let kind = NodeOrToken::Node(ctx.get_node(&g[*id].name).unwrap());
+            let kind = NodeOrToken::Node(g[*id].name.clone());
 
-            NodeChild {
+            Some(Child {
                 provided_name: None,
-                to: ChildKind::Item(kind),
-            }
+                kind: ChildKind::Item(kind),
+            })
         }
         Rule::Token(id) => {
-            let kind = NodeOrToken::Token(ctx.get_token(&g[*id].name));
+            let kind = NodeOrToken::Token(g[*id].name.clone());
 
-            NodeChild {
+            Some(Child {
                 provided_name: None,
-                to: ChildKind::Item(kind),
-            }
+                kind: ChildKind::Item(kind),
+            })
         }
-        Rule::Rep(inner) => {
-            let inner = visit_terminal_rule(inner, g, ctx);
+        Rule::Rep(rule) => {
+            let inner = visit_terminal_rule(rule, g, children)?;
 
-            match inner.to {
-                ChildKind::Item(to) => NodeChild {
-                    provided_name: None,
-                    to: ChildKind::List(to),
+            Some(Child {
+                provided_name: None,
+                kind: match inner.kind {
+                    ChildKind::Item(item) => ChildKind::List(item),
+                    ChildKind::List(_) => inner.kind,
                 },
-                ChildKind::List(_) => inner,
-                _ => unreachable!(),
-            }
+            })
         }
-        Rule::Opt(rule) => visit_terminal_rule(rule, g, ctx),
-        _ => unreachable!("seq & alt aren't terminal {:?}", rule),
+        Rule::Opt(rule) => visit_terminal_rule(rule, g, children),
+        _ => {
+            // chain back up
+            visit_rule(rule, g, children);
+            None
+        }
     }
 }

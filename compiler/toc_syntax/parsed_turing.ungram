@@ -65,13 +65,13 @@ PPInclude =
 PPIf =
   '#if' PPExpr 'then'
     PPTokenBody
-  ( PPElse | PPElseif )
+  ( PPElse | PPElseif )?
   PPEndIf
 
 PPElseif =
   ( '#elseif' | '#elsif' ) PPExpr 'then'
     PPTokenBody
-  ( PPElse | PPElseif )
+  ( PPElse | PPElseif )?
 
 PPElse =
   '#else' PPTokenBody
@@ -87,17 +87,13 @@ PPExpr =
 | PPParenExpr
 
 PPBinaryExpr =
-  PPExpr op:PPBinaryOp PPExpr
-
-PPBinaryOp =
-  'and'
-| 'or'
+  lhs:PPExpr
+  op:( 'and' | 'or' )
+  rhs:PPExpr
 
 PPUnaryExpr =
-  op:PPUnaryExpr PPExpr
-
-PPUnaryOp =
-  'not'
+  op:( 'not' )
+  rhs:PPExpr
 
 PPNameExpr =
   Name
@@ -166,18 +162,14 @@ Stmt =
 | ExportStmt
 
 StmtList =
-  Stmt*
+  stmts:Stmt*
 
 ConstVarDecl =
-  kind:ConstVarKind
+  ( 'var' | 'const' )
   PervasiveAttr? RegisterAttr?
   decl_list:NameList
   ( ':' type_spec:Type )?
   ( ':=' init:Expr )?
-
-ConstVarKind =
-  'var'
-| 'const'
 
 TypeDecl =
   'type' PervasiveAttr? decl_name:Name ':' ( 'forward' | named_ty:Type )
@@ -312,23 +304,24 @@ AssignStmt =
 
 AsnOp = 
   ':='
-| ( CompoundAsnOp '=' )
-
-CompoundAsnOp =
-  '=>' 
-| 'or' | '|' // aliases
-| 'and' | '&' // aliases
-| '+'
-| '-'
-| 'xor'
-| '*'
-| '/'
-| 'div'
-| 'mod'
-| 'rem'
-| 'shl'
-| 'shr'
-| '**'
+| (
+    ( '=>' 
+    | 'or' | '|' // aliases
+    | 'and' | '&' // aliases
+    | '+'
+    | '-'
+    | 'xor'
+    | '*'
+    | '/'
+    | 'div'
+    | 'mod'
+    | 'rem'
+    | 'shl'
+    | 'shr'
+    | '**'
+    )
+    '='
+  )
 
 OpenStmt =
   'open' OpenKind
@@ -410,12 +403,9 @@ RequestSize =
 ActualSize =
   ':' Reference
 
+// Promote seek_to to a node (as well as tell_to)
 SeekStmt =
-  'seek' ':' file_ref:Reference ',' seek_to:SeekKind
-
-SeekKind =
-  Expr
-| '*'
+  'seek' ':' file_ref:Reference ',' ( '*' | Expr )
 
 TellStmt =
   'tell' ':' file_ref:Reference ',' tell_to:Reference
@@ -446,17 +436,13 @@ IfStmt =
 IfBody =
   condition:Expr 'then'
     true_branch:StmtList
-    FalseBranch?
-
-FalseBranch =
-  ElseStmt
-| ElseifStmt
+    ( ElseStmt | ElseifStmt )?
 
 ElseStmt =
   'else' StmtList EndGroup?
 
 ElseifStmt =
-  'else_if' IfBody EndGroup?
+  ( 'elsif' | 'elseif' ) IfBody EndGroup?
 
 CaseStmt =
   'case' Expr 'of'
@@ -613,15 +599,14 @@ Expr =
 | CallExpr
 
 LiteralExpr =
-  Literal
-
-Literal =
-  'int_literal'    // basic digits
-| 'radix_literal'  // 16#00AA
-| 'real_literal'   // .1 or 1.0 or 1e-5 or 1.0e10
-| 'char_literal'   // 'eee'
-| 'string_literal' // "fff"
-| 'true' | 'false' // bool literals
+  literal:(
+    'int_literal'    // basic digits
+  | 'radix_literal'  // 16#00AA
+  | 'real_literal'   // .1 or 1.0 or 1e-5 or 1.0e10
+  | 'char_literal'   // 'eee'
+  | 'string_literal' // "fff"
+  | 'true' | 'false' // bool literals
+  )
 
 ObjClassExpr =
   'objectclass' '(' Reference ')'
@@ -637,35 +622,35 @@ NilExpr =
   ')'
 
 SizeOfExpr =
-  'sizeof' '(' SizeFor ')'
-
-SizeFor =
-  Type
-| Expr
+  'sizeof' '(' size_of:( Type | Expr ) ')'
 
 BinaryExpr =
   lhs:Expr
-  op:BinaryOp
+  op:(
+    // Sorted by prec level (lowest to highest)
+    '=>'
+  | 'or' | '|'  // aliases
+  | 'and' | '&' // aliases
+  | '<' | '>' | '=' | '<=' | '>=' | NotEq | 'in' | NotIn
+  | '+' | '-' | 'xor'
+  | '*' | '/' | 'div' | 'mod' | 'rem' | 'shl' | 'shr'
+  | '**'
+  )
   rhs:Expr
 
-BinaryOp =
-// Sorted by prec level (lowest to highest)
-  '=>'
-| 'or' | '|'  // aliases
-| 'and' | '&' // aliases
-| '<' | '>' | '=' | '<=' | '>=' | '~=' | 'in' | '~in'
-| '+' | '-' | 'xor'
-| '*' | '/' | 'div' | 'mod' | 'rem' | 'shl' | 'shr'
-| '**'
+NotEq =
+ ( 'not' | '~' ) '='
+
+NotIn =
+ ( 'not' | '~' ) 'in'
 
 UnaryExpr =
-  op:UnaryOp
+  op:(
+    // Sorted by prec level (lowest to highest)
+    'not' | '~' // aliases
+  | '+' | '-'
+  )
   rhs:Expr
-
-UnaryOp =
-// Sorted by prec level (lowest to highest)
-  'not' | '~' // aliases
-| '+' | '-'
 
 ParenExpr =
   '(' Expr ')'
@@ -722,8 +707,8 @@ BitsExpr =
   'bits' '(' Expr ',' BitRange ')'
 
 BitRange =
-  Expr
-| RangeSpec
+  RangeSpec
+| Expr
 
 // Covers Substring, Subscript, FcnCall
 // Covers PointerSpec, SetCons
@@ -739,9 +724,9 @@ Param =
   ParamKind ','?
 
 ParamKind =
-  Expr
-| AllItem
+  AllItem
 | RangeItem
+| Expr
 
 AllItem =
   'all'
@@ -801,20 +786,16 @@ RangeType =
   RangeSpec
 
 RangeSpec =
-  begin:Expr '..' RangeEnd
-
-RangeEnd =
-  '*'
-| Expr
+  begin:Expr '..' ( '*' | Expr )
 
 EnumType =
   'enum' '(' fields:( Name ( ',' Name )* ) ')'
 
 ArrayType =
-  'flexible'? 'array' ranges:RangeList 'of' elem_ty:Type
+  'flexible'? 'array' RangeList 'of' elem_ty:Type
 
 RangeList =
-  Type ( ',' Type )*
+  ranges:( Type ( ',' Type )* )
 
 SetType =
   'set' 'of' elem_ty:Type
@@ -885,7 +866,8 @@ ConditionKind =
 //*************//
 
 EndGroup =
-  'end' (
+  'end'
+  (
     'identifier'
   | 'case'
   | 'for'

@@ -5,8 +5,10 @@
 mod test;
 
 use toc_reporting::{MessageKind, MessageSink, ReportMessage, TextRange};
-use toc_syntax::SyntaxNode;
-use toc_syntax::{ast, SyntaxKind};
+use toc_syntax::{
+    ast::{self, AstNode},
+    SyntaxKind, SyntaxNode,
+};
 
 // Taken from rust-analyzer's syntax crate
 macro_rules! match_ast {
