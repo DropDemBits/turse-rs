@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "xtask/",
     "compiler/toc",
     "compiler/toc_dummy",
     "fuzzers/parser_fuzz",
