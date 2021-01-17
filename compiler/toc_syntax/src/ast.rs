@@ -10,11 +10,8 @@ mod helper {
 
     pub(super) fn token(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
         node.children_with_tokens()
-            .filter_map(|thing| match thing {
-                rowan::NodeOrToken::Token(tk) if tk.kind() == kind => Some(tk),
-                _ => None,
-            })
-            .next()
+            .filter_map(|thing| thing.into_token())
+            .find(|tk| tk.kind() == kind)
     }
 }
 

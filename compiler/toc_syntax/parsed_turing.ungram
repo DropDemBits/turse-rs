@@ -1,7 +1,7 @@
 // Turing Ungrammar, matching parse tree
 
 Name =
-  'ident'
+  'identifier'
 
 NameList =
   names:( Name ( ',' Name )* )
@@ -87,10 +87,17 @@ PPExpr =
 | PPParenExpr
 
 PPBinaryExpr =
-  PPExpr op:( 'and' | 'or' ) PPExpr
+  PPExpr op:PPBinaryOp PPExpr
+
+PPBinaryOp =
+  'and'
+| 'or'
 
 PPUnaryExpr =
-  op:( 'not' ) PPExpr
+  op:PPUnaryExpr PPExpr
+
+PPUnaryOp =
+  'not'
 
 PPNameExpr =
   Name
@@ -159,14 +166,18 @@ Stmt =
 | ExportStmt
 
 StmtList =
-  ( Stmt ';'? )*
+  Stmt*
 
 ConstVarDecl =
-  kind:('var' | 'const')
+  kind:ConstVarKind
   PervasiveAttr? RegisterAttr?
   decl_list:NameList
   ( ':' type_spec:Type )?
-  init:( ':=' Expr )?
+  ( ':=' init:Expr )?
+
+ConstVarKind =
+  'var'
+| 'const'
 
 TypeDecl =
   'type' PervasiveAttr? decl_name:Name ':' ( 'forward' | named_ty:Type )
@@ -240,7 +251,7 @@ PlainHeader =
   Name ParamSpec? FcnResult?
 
 ProcessDecl =
-  'process' PervasiveAttr? Name ParamSpec? stack_size:( ':' Expr )?
+  'process' PervasiveAttr? Name ParamSpec? ( ':' stack_size:Expr )?
     ImportStmt?
     PreStmt?
     InitStmt?
@@ -301,20 +312,23 @@ AssignStmt =
 
 AsnOp = 
   ':='
-| '=>' '='
-| 'or' '=' // aliased with '|'
-| 'and' '=' // aliased with '&'
-| '+' '='
-| '-' '='
-| 'xor' '='
-| '*' '='
-| '/' '='
-| 'div' '='
-| 'mod' '='
-| 'rem' '='
-| 'shl' '='
-| 'shr' '='
-| '**' '='
+| ( CompoundAsnOp '=' )
+
+CompoundAsnOp =
+  '=>' 
+| 'or' | '|' // aliases
+| 'and' | '&' // aliases
+| '+'
+| '-'
+| 'xor'
+| '*'
+| '/'
+| 'div'
+| 'mod'
+| 'rem'
+| 'shl'
+| 'shr'
+| '**'
 
 OpenStmt =
   'open' OpenKind
@@ -397,7 +411,11 @@ ActualSize =
   ':' Reference
 
 SeekStmt =
-  'seek' ':' file_ref:Reference ',' seek_to:( Expr | '*' )
+  'seek' ':' file_ref:Reference ',' seek_to:SeekKind
+
+SeekKind =
+  Expr
+| '*'
 
 TellStmt =
   'tell' ':' file_ref:Reference ',' tell_to:Reference
@@ -428,10 +446,11 @@ IfStmt =
 IfBody =
   condition:Expr 'then'
     true_branch:StmtList
-    false_branch:(
-      ElseStmt
-    | ElseifStmt
-    )
+    FalseBranch?
+
+FalseBranch =
+  ElseStmt
+| ElseifStmt
 
 ElseStmt =
   'else' StmtList EndGroup?
@@ -562,7 +581,7 @@ ImplementByStmt =
   'implement' 'by' '('? ExternalItem ')'?
 
 ExternalItem =
-  ( Name from:( 'in' 'string_literal' )? )
+  ( Name ( 'in' from:'string_literal' )? )
 | 'string_literal'
 
 //*************//
@@ -594,14 +613,15 @@ Expr =
 | CallExpr
 
 LiteralExpr =
-  literal:(
-    'int_literal'    // basic digits
-  | 'radix_literal'  // 16#00AA
-  | 'real_literal'   // .1 or 1.0 or 1e-5 or 1.0e10
-  | 'char_literal'   // 'eee'
-  | 'string_literal' // "fff"
-  | 'true' | 'false' // bool literals
-  )
+  Literal
+
+Literal =
+  'int_literal'    // basic digits
+| 'radix_literal'  // 16#00AA
+| 'real_literal'   // .1 or 1.0 or 1e-5 or 1.0e10
+| 'char_literal'   // 'eee'
+| 'string_literal' // "fff"
+| 'true' | 'false' // bool literals
 
 ObjClassExpr =
   'objectclass' '(' Reference ')'
@@ -617,27 +637,35 @@ NilExpr =
   ')'
 
 SizeOfExpr =
-  'sizeof' '(' size_for:( Type |  Expr ) ')'
+  'sizeof' '(' SizeFor ')'
+
+SizeFor =
+  Type
+| Expr
 
 BinaryExpr =
   lhs:Expr
-  op:( // Sorted by prec level (lowest to highest)
-    '=>'
-  | 'or' // aliased with '|'
-  | 'and' // aliased with '&'
-  | '<' | '>' | '=' | '<=' | '>=' | '~=' | 'in' | '~in'
-  | '+' | '-' | 'xor'
-  | '*' | '/' | 'div' | 'mod' | 'rem' | 'shl' | 'shr'
-  | '**'
-  )
+  op:BinaryOp
   rhs:Expr
 
+BinaryOp =
+// Sorted by prec level (lowest to highest)
+  '=>'
+| 'or' | '|'  // aliases
+| 'and' | '&' // aliases
+| '<' | '>' | '=' | '<=' | '>=' | '~=' | 'in' | '~in'
+| '+' | '-' | 'xor'
+| '*' | '/' | 'div' | 'mod' | 'rem' | 'shl' | 'shr'
+| '**'
+
 UnaryExpr =
-  op:( // Sorted by prec level (lowest to highest)
-    'not' // aliased with '~'
-  | '+' | '-'
-  )
+  op:UnaryOp
   rhs:Expr
+
+UnaryOp =
+// Sorted by prec level (lowest to highest)
+  'not' | '~' // aliases
+| '+' | '-'
 
 ParenExpr =
   '(' Expr ')'
@@ -710,7 +738,7 @@ ParamList =
 Param =
   ParamKind ','?
 
-ParamKind
+ParamKind =
   Expr
 | AllItem
 | RangeItem
@@ -773,8 +801,12 @@ RangeType =
   RangeSpec
 
 RangeSpec =
-  begin:Expr '..' end:( '*' | Expr )
-  
+  begin:Expr '..' RangeEnd
+
+RangeEnd =
+  '*'
+| Expr
+
 EnumType =
   'enum' '(' fields:( Name ( ',' Name )* ) ')'
 
@@ -853,15 +885,16 @@ ConditionKind =
 //*************//
 
 EndGroup =
-  'end'
-| 'end' 'identifier'
-| 'end' 'case'
-| 'end' 'for'
-| 'end' 'if'
-| 'end' 'loop'
-| 'end' 'handler'
-| 'end' 'union'
-| 'end' 'record'
+  'end' (
+    'identifier'
+  | 'case'
+  | 'for'
+  | 'if'
+  | 'loop'
+  | 'handler'
+  | 'union'
+  | 'record'
+  )
 | 'endcase'
 | 'endfor'
 | 'endif'
