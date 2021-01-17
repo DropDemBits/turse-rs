@@ -811,10 +811,9 @@ fn recover_pointer_type_missing_to() {
                 PointerType@9..27
                   KwPointer@9..16 "pointer"
                   Whitespace@16..17 " "
-                  Error@17..27
+                  PrimType@17..27
                     KwAddressint@17..27 "addressint"
-            error at 17..27: expected ‘to’, but found ‘addressint’
-            error at 17..27: expected type specifier"#]],
+            error at 17..27: expected ‘to’, but found ‘addressint’"#]],
     );
 }
 
@@ -904,7 +903,7 @@ fn recover_enum_type_missing_delimiter() {
         "type _ : enum (a, b c)",
         expect![[r#"
             Source@0..22
-              TypeDecl@0..21
+              TypeDecl@0..20
                 KwType@0..4 "type"
                 Whitespace@4..5 " "
                 Name@5..7
@@ -912,7 +911,7 @@ fn recover_enum_type_missing_delimiter() {
                   Whitespace@6..7 " "
                 Colon@7..8 ":"
                 Whitespace@8..9 " "
-                EnumType@9..21
+                EnumType@9..20
                   KwEnum@9..13 "enum"
                   Whitespace@13..14 " "
                   LeftParen@14..15 "("
@@ -924,7 +923,9 @@ fn recover_enum_type_missing_delimiter() {
                     Name@18..20
                       Identifier@18..19 "b"
                       Whitespace@19..20 " "
-                  Error@20..21
+              CallStmt@20..21
+                NameExpr@20..21
+                  Name@20..21
                     Identifier@20..21 "c"
               Error@21..22
                 RightParen@21..22 ")"
@@ -1205,10 +1206,9 @@ fn recover_set_type_missing_of() {
                 SetType@9..17
                   KwSet@9..12 "set"
                   Whitespace@12..13 " "
-                  Error@13..17
+                  KwChar@13..17
                     KwChar@13..17 "char"
-            error at 13..17: expected ‘of’, but found ‘char’
-            error at 13..17: expected type specifier"#]],
+            error at 13..17: expected ‘of’, but found ‘char’"#]],
     );
 }
 
@@ -1447,10 +1447,9 @@ fn recover_collection_type_no_of() {
                 CollectionType@9..23
                   KwCollection@9..19 "collection"
                   Whitespace@19..20 " "
-                  Error@20..23
+                  PrimType@20..23
                     KwInt@20..23 "int"
-            error at 20..23: expected ‘of’, but found ‘int’
-            error at 20..23: expected type specifier"#]],
+            error at 20..23: expected ‘of’, but found ‘int’"#]],
     )
 }
 

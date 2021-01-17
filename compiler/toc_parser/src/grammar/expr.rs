@@ -335,13 +335,13 @@ fn cheat_expr(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        p.expect(TokenKind::LeftParen);
+        p.expect_punct(TokenKind::LeftParen);
 
         p.with_extra_recovery(&[TokenKind::Comma], |p| {
             // parse a ty
             ty::ty(p);
         });
-        p.expect(TokenKind::Comma);
+        p.expect_punct(TokenKind::Comma);
 
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
             self::expect_expr(p);
@@ -357,7 +357,7 @@ fn cheat_expr(p: &mut Parser) -> Option<CompletedMarker> {
             m.complete(p, SyntaxKind::SizeSpec);
         }
     });
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::CheatExpr))
 }
@@ -368,11 +368,11 @@ fn sizeof_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.expect(TokenKind::LeftParen);
+    p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
         ty::ty_primitive(p).or_else(|| expect_expr(p))
     });
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::SizeOfExpr))
 }
@@ -385,7 +385,7 @@ fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
 
     self::expect_expr(p);
 
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::ParenExpr))
 }
@@ -416,7 +416,7 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     p.bump();
-    p.expect(TokenKind::LeftParen);
+    p.expect_punct(TokenKind::LeftParen);
 
     p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
         let m = p.start();
@@ -436,7 +436,7 @@ fn init_expr(p: &mut Parser) -> Option<CompletedMarker> {
         m.complete(p, SyntaxKind::ExprList)
     });
 
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::InitExpr))
 }
@@ -452,7 +452,7 @@ fn nil_expr(p: &mut Parser) -> Option<CompletedMarker> {
         p.with_extra_recovery(&[TokenKind::RightParen], |p| {
             expr::expect_expr(p);
         });
-        p.expect(TokenKind::RightParen);
+        p.expect_punct(TokenKind::RightParen);
     }
 
     Some(m.complete(p, SyntaxKind::NilExpr))
@@ -466,11 +466,11 @@ fn indirect_expr_tail(p: &mut Parser, lhs: CompletedMarker) -> CompletedMarker {
     let m = lhs.precede(p);
     p.bump();
 
-    p.expect(TokenKind::LeftParen);
+    p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
         self::expr(p);
     });
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     m.complete(p, SyntaxKind::IndirectExpr)
 }

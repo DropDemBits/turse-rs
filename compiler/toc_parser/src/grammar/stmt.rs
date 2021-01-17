@@ -238,9 +238,7 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     super::name(p);
 
-    p.with_extra_recovery(&[TokenKind::Forward], |p| {
-        p.expect(TokenKind::Colon);
-    });
+    p.expect_punct(TokenKind::Colon);
 
     if !p.eat(TokenKind::Forward) {
         // parse a type (it's not a forward!)
@@ -277,7 +275,7 @@ fn bind_item(p: &mut Parser) -> Option<CompletedMarker> {
     p.with_extra_recovery(&[TokenKind::To], |p| {
         super::name(p);
     });
-    p.expect(TokenKind::To);
+    p.expect_punct(TokenKind::To);
 
     expr::expect_expr(p);
 
@@ -381,7 +379,7 @@ fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
         super::name(p);
     }
 
-    p.expect(TokenKind::Colon);
+    p.expect_punct(TokenKind::Colon);
 
     ty::ty(p);
 
@@ -675,18 +673,18 @@ fn old_open(p: &mut Parser) -> Option<CompletedMarker> {
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
         p.with_extra_recovery(&[TokenKind::Comma], |p| {
             expr::expect_expr(p);
-            p.expect(TokenKind::Comma);
+            p.expect_punct(TokenKind::Comma);
 
             // open_path
             expr::expect_expr(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::OpenPath));
-            p.expect(TokenKind::Comma);
+            p.expect_punct(TokenKind::Comma);
         });
 
         // open_mode
         expr::expect_expr(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::OpenMode));
     });
 
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::OldOpen))
 }
@@ -696,14 +694,14 @@ fn new_open(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
         // file_ref
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
         expr::expect_expr(p);
 
         // open_path
-        p.expect(TokenKind::Comma);
+        p.expect_punct(TokenKind::Comma);
         expr::expect_expr(p).map(|cm| cm.precede(p).complete(p, SyntaxKind::OpenPath));
 
-        p.expect(TokenKind::Comma);
+        p.expect_punct(TokenKind::Comma);
         io_cap(p);
 
         while p.eat(TokenKind::Comma) {
@@ -748,12 +746,12 @@ fn close_stmt(p: &mut Parser) -> Option<CompletedMarker> {
             expr::expect_expr(p);
         });
 
-        p.expect(TokenKind::RightParen);
+        p.expect_punct(TokenKind::RightParen);
         m.complete(p, SyntaxKind::OldClose);
     } else {
         // new close
         let m = p.start();
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
         expr::expect_expr(p);
         m.complete(p, SyntaxKind::NewClose);
     }
@@ -868,9 +866,9 @@ fn stream_num(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     let m = p.start();
-    p.expect(TokenKind::Colon);
+    p.expect_punct(TokenKind::Colon);
     expr::expect_expr(p);
-    p.expect(TokenKind::Comma);
+    p.expect_punct(TokenKind::Comma);
 
     Some(m.complete(p, SyntaxKind::StreamNum))
 }
@@ -902,7 +900,7 @@ fn binary_io(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::Colon, TokenKind::Comma], |p| {
         // file_ref
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
         expect_expr(p);
 
         // status
@@ -910,7 +908,7 @@ fn binary_io(p: &mut Parser) -> Option<CompletedMarker> {
             expect_expr(p);
         }
 
-        p.expect(TokenKind::Comma);
+        p.expect_punct(TokenKind::Comma);
 
         binary_item(p);
         while p.eat(TokenKind::Comma) {
@@ -954,13 +952,13 @@ fn seek_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     // file_ref
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
 
         expr::expect_expr(p);
     });
 
     // seek_to
-    p.expect(TokenKind::Comma);
+    p.expect_punct(TokenKind::Comma);
     if !p.eat(TokenKind::Star) {
         expr::expect_expr(p);
     }
@@ -976,13 +974,13 @@ fn tell_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     // file_ref
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
 
         expr::expect_expr(p);
     });
 
     // tell_store
-    p.expect(TokenKind::Comma);
+    p.expect_punct(TokenKind::Comma);
     expr::expect_expr(p);
 
     Some(m.complete(p, SyntaxKind::TellStmt))
@@ -1002,7 +1000,7 @@ fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     }
 
     p.with_extra_recovery(&[TokenKind::Range], |p| {
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
     });
 
     // For-range
@@ -1082,7 +1080,7 @@ fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
         // condition
         p.with_extra_recovery(&[TokenKind::Then], |p| {
             expr::expect_expr(p);
-            p.expect(TokenKind::Then);
+            p.expect_punct(TokenKind::Then);
         });
 
         // true_branch
@@ -1159,7 +1157,7 @@ fn case_stmt(p: &mut Parser) -> Option<CompletedMarker> {
         p.with_extra_recovery(&[TokenKind::Of], |p| {
             expr::expect_expr(p);
         });
-        p.expect(TokenKind::Of);
+        p.expect_punct(TokenKind::Of);
     });
 
     // Parse case arms
@@ -1187,7 +1185,7 @@ fn case_arm(p: &mut Parser) -> Option<CompletedMarker> {
         })
     }
 
-    p.expect(TokenKind::Colon);
+    p.expect_punct(TokenKind::Colon);
 
     // Nom on stmts
     self::stmt_list(p, Some(&[TokenKind::Label]));
@@ -1233,7 +1231,7 @@ fn tag_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
         expr::expect_expr(p);
     });
-    p.expect(TokenKind::Comma);
+    p.expect_punct(TokenKind::Comma);
 
     // tag_val
     expr::expect_expr(p);
@@ -1368,14 +1366,11 @@ fn handler_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.with_extra_recovery(
-        &[TokenKind::Identifier, TokenKind::RightParen, TokenKind::End],
-        |p| {
-            p.expect(TokenKind::LeftParen);
-            super::name(p);
-            p.expect(TokenKind::RightParen);
-        },
-    );
+    p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::End], |p| {
+        p.expect_punct(TokenKind::LeftParen);
+        super::name(p);
+        p.expect_punct(TokenKind::RightParen);
+    });
 
     stmt_list(p, None);
 
@@ -1431,9 +1426,7 @@ fn implement_by_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.with_extra_recovery(&[TokenKind::LeftParen], |p| {
-        p.expect(TokenKind::By);
-    });
+    p.expect_punct(TokenKind::By);
 
     with_opt_parens(p, true, |p| {
         external_item(p);
@@ -1553,9 +1546,7 @@ fn external_item(p: &mut Parser) -> Option<CompletedMarker> {
 
     // external_path
     if p.at(TokenKind::In) {
-        p.with_extra_recovery(&[TokenKind::StringLiteral], |p| {
-            p.expect(TokenKind::In);
-        });
+        p.expect_punct(TokenKind::In);
         p.expect(TokenKind::StringLiteral);
     }
 

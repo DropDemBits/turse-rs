@@ -2175,24 +2175,25 @@ fn recover_call_expr_missing_delim() {
         "_:=a(1 1)",
         expect![[r#"
             Source@0..9
-              AssignStmt@0..8
+              AssignStmt@0..7
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                CallExpr@3..8
+                CallExpr@3..7
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  ParamList@4..8
+                  ParamList@4..7
                     LeftParen@4..5 "("
                     Param@5..7
                       LiteralExpr@5..7
                         IntLiteral@5..6 "1"
                         Whitespace@6..7 " "
-                    Error@7..8
-                      IntLiteral@7..8 "1"
+              CallStmt@7..8
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1"
               Error@8..9
                 RightParen@8..9 ")"
             error at 7..8: expected ‘..’, ‘,’ or ‘)’, but found int literal
@@ -2566,13 +2567,13 @@ fn recover_init_expr_missing_delimiter() {
         "_:=init(1, 2 3)",
         expect![[r#"
             Source@0..15
-              AssignStmt@0..14
+              AssignStmt@0..13
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                InitExpr@3..14
+                InitExpr@3..13
                   KwInit@3..7 "init"
                   LeftParen@7..8 "("
                   ExprList@8..13
@@ -2583,8 +2584,9 @@ fn recover_init_expr_missing_delimiter() {
                     LiteralExpr@11..13
                       IntLiteral@11..12 "2"
                       Whitespace@12..13 " "
-                  Error@13..14
-                    IntLiteral@13..14 "3"
+              CallStmt@13..14
+                LiteralExpr@13..14
+                  IntLiteral@13..14 "3"
               Error@14..15
                 RightParen@14..15 ")"
             error at 13..14: expected ‘)’, but found int literal
@@ -2633,16 +2635,15 @@ fn recover_init_expr_missing_left_paren() {
                 InitExpr@3..12
                   KwInit@3..7 "init"
                   Whitespace@7..8 " "
-                  Error@8..9
-                    IntLiteral@8..9 "1"
-                  ExprList@9..11
+                  ExprList@8..12
+                    LiteralExpr@8..9
+                      IntLiteral@8..9 "1"
                     Comma@9..10 ","
                     Whitespace@10..11 " "
-                  Error@11..12
-                    IntLiteral@11..12 "2"
+                    LiteralExpr@11..12
+                      IntLiteral@11..12 "2"
             error at 8..9: expected ‘(’, but found int literal
-            error at 9..10: expected expression, but found ‘,’
-            error at 11..12: expected ‘)’, but found int literal"#]],
+            error at 11..12: expected ‘)’"#]],
     );
 }
 
@@ -4095,24 +4096,25 @@ fn recover_call_expr_relative_bound_missing_minus() {
         "_:=a(* 1)",
         expect![[r#"
             Source@0..9
-              AssignStmt@0..8
+              AssignStmt@0..7
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                CallExpr@3..8
+                CallExpr@3..7
                   NameExpr@3..4
                     Name@3..4
                       Identifier@3..4 "a"
-                  ParamList@4..8
+                  ParamList@4..7
                     LeftParen@4..5 "("
                     Param@5..7
                       RelativeBound@5..7
                         Star@5..6 "*"
                         Whitespace@6..7 " "
-                    Error@7..8
-                      IntLiteral@7..8 "1"
+              CallStmt@7..8
+                LiteralExpr@7..8
+                  IntLiteral@7..8 "1"
               Error@8..9
                 RightParen@8..9 ")"
             error at 7..8: expected ‘-’, ‘..’, ‘,’ or ‘)’, but found int literal
@@ -4192,28 +4194,27 @@ fn recover_all_not_primary() {
         "_:=set_cons(all + 1)",
         expect![[r#"
             Source@0..20
-              AssignStmt@0..18
+              AssignStmt@0..19
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                CallExpr@3..18
-                  NameExpr@3..11
-                    Name@3..11
-                      Identifier@3..11 "set_cons"
-                  ParamList@11..18
-                    LeftParen@11..12 "("
-                    Param@12..16
-                      AllItem@12..16
-                        KwAll@12..15 "all"
-                        Whitespace@15..16 " "
-                    Error@16..18
-                      Plus@16..17 "+"
-                      Whitespace@17..18 " "
-              CallStmt@18..19
-                LiteralExpr@18..19
-                  IntLiteral@18..19 "1"
+                BinaryExpr@3..19
+                  CallExpr@3..16
+                    NameExpr@3..11
+                      Name@3..11
+                        Identifier@3..11 "set_cons"
+                    ParamList@11..16
+                      LeftParen@11..12 "("
+                      Param@12..16
+                        AllItem@12..16
+                          KwAll@12..15 "all"
+                          Whitespace@15..16 " "
+                  Plus@16..17 "+"
+                  Whitespace@17..18 " "
+                  LiteralExpr@18..19
+                    IntLiteral@18..19 "1"
               Error@19..20
                 RightParen@19..20 ")"
             error at 16..17: expected ‘,’ or ‘)’, but found ‘+’
@@ -4647,27 +4648,28 @@ fn recover_sizeof_expr_not_ty_prim() {
         "_:=sizeof(collection of int)",
         expect![[r#"
             Source@0..28
-              AssignStmt@0..24
+              AssignStmt@0..21
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                SizeOfExpr@3..24
+                SizeOfExpr@3..21
                   KwSizeOf@3..9 "sizeof"
                   LeftParen@9..10 "("
                   Error@10..21
                     KwCollection@10..20 "collection"
                     Whitespace@20..21 " "
-                  Error@21..24
-                    KwOf@21..23 "of"
-                    Whitespace@23..24 " "
+              Error@21..24
+                KwOf@21..23 "of"
+                Whitespace@23..24 " "
               Error@24..28
                 PrimType@24..27
                   KwInt@24..27 "int"
                 RightParen@27..28 ")"
             error at 10..20: expected expression, but found ‘collection’
             error at 21..23: expected ‘)’, but found ‘of’
+            error at 21..23: expected statement, but found ‘of’
             error at 27..28: expected ‘@’, but found ‘)’
             error at 27..28: expected statement"#]],
     );
@@ -4710,11 +4712,11 @@ fn recover_sizeof_expr_missing_left_paren() {
                 SizeOfExpr@3..12
                   KwSizeOf@3..9 "sizeof"
                   Whitespace@9..10 " "
-                  Error@10..11
-                    Identifier@10..11 "a"
+                  NameExpr@10..11
+                    Name@10..11
+                      Identifier@10..11 "a"
                   RightParen@11..12 ")"
-            error at 10..11: expected ‘(’, but found identifier
-            error at 11..12: expected expression, but found ‘)’"#]],
+            error at 10..11: expected ‘(’, but found identifier"#]],
     );
 }
 
@@ -4733,10 +4735,10 @@ fn recover_sizeof_expr_missing_parens() {
                 SizeOfExpr@3..11
                   KwSizeOf@3..9 "sizeof"
                   Whitespace@9..10 " "
-                  Error@10..11
-                    Identifier@10..11 "a"
+                  NameExpr@10..11
+                    Name@10..11
+                      Identifier@10..11 "a"
             error at 10..11: expected ‘(’, but found identifier
-            error at 10..11: expected expression
             error at 10..11: expected ‘)’"#]],
     );
 }

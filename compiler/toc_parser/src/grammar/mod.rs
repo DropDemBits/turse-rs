@@ -183,7 +183,7 @@ pub(self) fn param_list(p: &mut Parser) -> Option<CompletedMarker> {
         }
     }
 
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::ParamList))
 }
@@ -205,7 +205,7 @@ pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
     // ParamSpec: '(' ParamDecl ( ',' ParamDecl )* ')'
     let m = p.start();
 
-    p.expect(TokenKind::LeftParen);
+    p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen, TokenKind::Comma], |p| {
         if !p.at(TokenKind::RightParen) {
             if let Some(..) = self::param_decl(p) {
@@ -215,7 +215,7 @@ pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
             }
         }
     });
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::ParamSpec))
 }

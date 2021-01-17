@@ -178,6 +178,21 @@ impl<'t, 'src> Parser<'t, 'src> {
         }
     }
 
+    /// Expects the next token to be of `kind`, otherwise reports an error.
+    ///
+    /// Does not consume the token if it was not expected.
+    ///
+    /// # Returns
+    /// Returns `true` if the expected token was found
+    pub(crate) fn expect_punct(&mut self, kind: TokenKind) -> bool {
+        if !self.eat(kind) {
+            self.error_unexpected().dont_eat().report();
+            false
+        } else {
+            true
+        }
+    }
+
     /// Runs the parser with the extra recovery tokens
     ///
     /// Recovery tokens are accumulated in nested `with_extra_recovery` calls
@@ -253,6 +268,7 @@ pub(crate) struct UnexpectedBuilder<'p, 't, 's> {
     p: &'p mut Parser<'t, 's>,
     category: Option<Expected>,
     marker: Option<Marker>,
+    eat_in_error: bool,
     bomb: DropBomb,
 }
 
@@ -262,6 +278,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             p,
             category: None,
             marker: None,
+            eat_in_error: true,
             bomb: DropBomb::new("missing call to `report`"),
         }
     }
@@ -275,6 +292,12 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
     /// Reports the unexpected error with the specified marker
     pub(crate) fn with_marker(mut self, marker: Marker) -> Self {
         self.marker = Some(marker);
+        self
+    }
+
+    /// Will not eat a token when building the error node
+    pub(crate) fn dont_eat(mut self) -> Self {
+        self.eat_in_error = false;
         self
     }
 
@@ -306,7 +329,8 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
 
         // If the cursor is at the end of file or is part of the recovery set,
         // error node does not need to be built
-        if !self.p.at_set(&STMT_START_RECOVERY_SET)
+        if self.eat_in_error
+        && !self.p.at_set(&STMT_START_RECOVERY_SET)
         && !self.p.at_set(&self.p.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
         && !self.p.at_end()
         {

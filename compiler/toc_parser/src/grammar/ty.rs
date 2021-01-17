@@ -109,7 +109,7 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
             m.complete(p, SyntaxKind::SeqLength);
         });
 
-        p.expect(TokenKind::RightParen);
+        p.expect_punct(TokenKind::RightParen);
 
         Some(m.complete(p, kind))
     } else {
@@ -138,7 +138,7 @@ fn array_type(p: &mut Parser) -> Option<CompletedMarker> {
         self::range_list(p);
     });
 
-    p.expect(TokenKind::Of);
+    p.expect_punct(TokenKind::Of);
 
     // on index type
     self::ty(p);
@@ -168,11 +168,11 @@ fn enum_type(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.expect(TokenKind::LeftParen);
+    p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
         super::name_list(p);
     });
-    p.expect(TokenKind::RightParen);
+    p.expect_punct(TokenKind::RightParen);
 
     Some(m.complete(p, SyntaxKind::EnumType))
 }
@@ -183,7 +183,7 @@ fn set_type(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.expect(TokenKind::Of);
+    p.expect_punct(TokenKind::Of);
 
     // parse index type
     self::ty(p);
@@ -199,7 +199,7 @@ fn pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
 
     if !p.eat(TokenKind::Caret) {
         p.expect(TokenKind::Pointer);
-        p.expect(TokenKind::To);
+        p.expect_punct(TokenKind::To);
     }
 
     // parse pointed to type
@@ -242,7 +242,7 @@ pub(super) fn subprog_type(p: &mut Parser) -> Option<CompletedMarker> {
 
     if is_fcn_ty {
         // result type
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
 
         self::ty(p);
     }
@@ -269,7 +269,7 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
         super::name_list(p);
     });
 
-    p.expect(TokenKind::Colon);
+    p.expect_punct(TokenKind::Colon);
 
     // optional: `cheat`
     p.eat(TokenKind::Cheat);
@@ -312,7 +312,7 @@ fn record_field(p: &mut Parser) -> Option<CompletedMarker> {
             parsed_any |= super::name_list(p).is_some();
         });
 
-        p.expect(TokenKind::Colon);
+        p.expect_punct(TokenKind::Colon);
 
         parsed_any |= ty::ty(p).is_some();
     });
@@ -337,11 +337,11 @@ fn union_type(p: &mut Parser) -> Option<CompletedMarker> {
     p.with_extra_recovery(&[TokenKind::End, TokenKind::Label], |p| {
         // range_ty
         p.with_extra_recovery(&[TokenKind::Of], |p| {
-            p.expect(TokenKind::Colon);
+            p.expect_punct(TokenKind::Colon);
             ty::ty(p);
         });
 
-        p.expect(TokenKind::Of);
+        p.expect_punct(TokenKind::Of);
 
         // variants
         while p.at(TokenKind::Label) {
@@ -369,7 +369,7 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
         });
     }
 
-    p.expect(TokenKind::Colon);
+    p.expect_punct(TokenKind::Colon);
     // end of label portion
 
     // Union fields
@@ -389,7 +389,7 @@ fn collection_type(p: &mut Parser) -> Option<CompletedMarker> {
 
     let m = p.start();
     p.bump();
-    p.expect(TokenKind::Of);
+    p.expect_punct(TokenKind::Of);
 
     if p.eat(TokenKind::Forward) {
         super::name(p);

@@ -1220,10 +1220,10 @@ mod expr {
                         Name@4..6
                           Identifier@4..5 "A"
                           Whitespace@5..6 " "
-                      Error@6..10
-                        KwNot@6..9 "not"
-                        Whitespace@9..10 " "
-                      PPTokenBody@10..17
+                      PPTokenBody@6..17
+                        Error@6..10
+                          KwNot@6..9 "not"
+                          Whitespace@9..10 " "
                         CallStmt@10..12
                           NameExpr@10..12
                             Name@10..12
@@ -1237,6 +1237,7 @@ mod expr {
                         Whitespace@21..22 " "
                         KwIf@22..24 "if"
                 error at 6..9: expected ‘then’, but found ‘not’
+                error at 6..9: expected statement, but found ‘not’
                 error at 12..16: expected statement, but found ‘then’"##]],
         )
     }
@@ -1254,10 +1255,12 @@ mod expr {
                       Error@4..8
                         KwAnd@4..7 "and"
                         Whitespace@7..8 " "
-                      Error@8..10
-                        Identifier@8..9 "B"
-                        Whitespace@9..10 " "
-                      PPTokenBody@10..15
+                      PPTokenBody@8..15
+                        CallStmt@8..10
+                          NameExpr@8..10
+                            Name@8..10
+                              Identifier@8..9 "B"
+                              Whitespace@9..10 " "
                         Error@10..15
                           KwThen@10..14 "then"
                           Whitespace@14..15 " "

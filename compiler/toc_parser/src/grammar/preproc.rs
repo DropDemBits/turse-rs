@@ -70,7 +70,7 @@ fn if_body(p: &mut Parser) {
         preproc_expr(p);
     });
 
-    p.expect(TokenKind::Then);
+    p.expect_punct(TokenKind::Then);
 
     stmt_glob(p, true);
 
@@ -200,7 +200,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             p.with_extra_recovery(&[TokenKind::RightParen], |p| {
                 preproc_expr(p);
             });
-            p.expect(TokenKind::RightParen);
+            p.expect_punct(TokenKind::RightParen);
             Some(m.complete(p, SyntaxKind::PPParenExpr))
         }
         _ => prefix(p),

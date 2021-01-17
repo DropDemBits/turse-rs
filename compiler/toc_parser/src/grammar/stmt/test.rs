@@ -3595,10 +3595,10 @@ fn recover_bind_decl_missing_to() {
                   Name@5..7
                     Identifier@5..6 "a"
                     Whitespace@6..7 " "
-                  Error@7..8
-                    Identifier@7..8 "b"
-            error at 7..8: expected ‘to’, but found identifier
-            error at 7..8: expected expression"#]],
+                  NameExpr@7..8
+                    Name@7..8
+                      Identifier@7..8 "b"
+            error at 7..8: expected ‘to’, but found identifier"#]],
     );
 }
 
@@ -4912,10 +4912,9 @@ fn recover_tag_stmt_missing_tag_comma() {
                   Name@4..6
                     Identifier@4..5 "a"
                     Whitespace@5..6 " "
-                Error@6..7
+                LiteralExpr@6..7
                   IntLiteral@6..7 "1"
-            error at 6..7: expected ‘,’, but found int literal
-            error at 6..7: expected expression"#]],
+            error at 6..7: expected ‘,’, but found int literal"#]],
     );
 }
 
@@ -6257,40 +6256,33 @@ fn recover_module_decl_double_implement() {
     check(
         "module a implement a implement a end a",
         expect![[r#"
-        Source@0..38
-          ModuleDecl@0..38
-            KwModule@0..6 "module"
-            Whitespace@6..7 " "
-            Name@7..9
-              Identifier@7..8 "a"
-              Whitespace@8..9 " "
-            ImplementStmt@9..21
-              KwImplement@9..18 "implement"
-              Whitespace@18..19 " "
-              ExternalItem@19..21
-                Name@19..21
-                  Identifier@19..20 "a"
-                  Whitespace@20..21 " "
-            ImplementByStmt@21..37
-              KwImplement@21..30 "implement"
-              Whitespace@30..31 " "
-              Error@31..33
-                Identifier@31..32 "a"
-                Whitespace@32..33 " "
-              ExternalItem@33..37
-                Error@33..37
+            Source@0..38
+              ModuleDecl@0..38
+                KwModule@0..6 "module"
+                Whitespace@6..7 " "
+                Name@7..9
+                  Identifier@7..8 "a"
+                  Whitespace@8..9 " "
+                ImplementStmt@9..21
+                  KwImplement@9..18 "implement"
+                  Whitespace@18..19 " "
+                  ExternalItem@19..21
+                    Name@19..21
+                      Identifier@19..20 "a"
+                      Whitespace@20..21 " "
+                ImplementByStmt@21..33
+                  KwImplement@21..30 "implement"
+                  Whitespace@30..31 " "
+                  ExternalItem@31..33
+                    Name@31..33
+                      Identifier@31..32 "a"
+                      Whitespace@32..33 " "
+                StmtList@33..33
+                EndGroup@33..38
                   KwEnd@33..36 "end"
                   Whitespace@36..37 " "
-            StmtList@37..38
-              CallStmt@37..38
-                NameExpr@37..38
-                  Name@37..38
-                    Identifier@37..38 "a"
-            EndGroup@38..38
-        error at 31..32: expected ‘by’, but found identifier
-        error at 33..36: expected ‘(’, string literal or identifier, but found ‘end’
-        error at 37..38: expected ‘post’ or ‘end’
-        error at 37..38: expected identifier"#]],
+                  Identifier@37..38 "a"
+            error at 31..32: expected ‘by’, but found identifier"#]],
     );
 }
 
@@ -9448,8 +9440,9 @@ fn recover_old_open_missing_left_paren() {
                 KwOpen@0..4 "open"
                 Whitespace@4..5 " "
                 NewOpen@5..24
-                  Error@5..6
-                    Identifier@5..6 "a"
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Comma@6..7 ","
                   Whitespace@7..8 " "
                   OpenPath@8..17
@@ -9462,7 +9455,6 @@ fn recover_old_open_missing_left_paren() {
               Error@24..25
                 RightParen@24..25 ")"
             error at 5..6: expected ‘(’ or ‘:’, but found identifier
-            error at 6..7: expected expression, but found ‘,’
             error at 19..24: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’, but found string literal
             error at 24..25: expected statement, but found ‘)’"#]],
     );
@@ -9773,8 +9765,9 @@ fn recover_new_open_missing_colon() {
                 KwOpen@0..4 "open"
                 Whitespace@4..5 " "
                 NewOpen@5..22
-                  Error@5..9
-                    Identifier@5..9 "fref"
+                  NameExpr@5..9
+                    Name@5..9
+                      Identifier@5..9 "fref"
                   Comma@9..10 ","
                   Whitespace@10..11 " "
                   OpenPath@11..17
@@ -9785,8 +9778,7 @@ fn recover_new_open_missing_colon() {
                   Whitespace@18..19 " "
                   IoCap@19..22
                     KwGet@19..22 "get"
-            error at 5..9: expected ‘(’ or ‘:’, but found identifier
-            error at 9..10: expected expression, but found ‘,’"#]],
+            error at 5..9: expected ‘(’ or ‘:’, but found identifier"#]],
     );
 }
 
@@ -9912,17 +9904,18 @@ fn recover_old_close_missing_left_paren() {
         r#"close  some_ref )"#,
         expect![[r#"
             Source@0..17
-              CloseStmt@0..17
+              CloseStmt@0..16
                 KwClose@0..5 "close"
                 Whitespace@5..7 "  "
-                NewClose@7..17
-                  Error@7..16
-                    Identifier@7..15 "some_ref"
-                    Whitespace@15..16 " "
-                  Error@16..17
-                    RightParen@16..17 ")"
+                NewClose@7..16
+                  NameExpr@7..16
+                    Name@7..16
+                      Identifier@7..15 "some_ref"
+                      Whitespace@15..16 " "
+              Error@16..17
+                RightParen@16..17 ")"
             error at 7..15: expected ‘(’ or ‘:’, but found identifier
-            error at 16..17: expected expression, but found ‘)’"#]],
+            error at 16..17: expected statement, but found ‘)’"#]],
     );
 }
 
@@ -9970,10 +9963,10 @@ fn recover_new_close_missing_colon() {
                 KwClose@0..5 "close"
                 Whitespace@5..6 " "
                 NewClose@6..14
-                  Error@6..14
-                    Identifier@6..14 "some_ref"
-            error at 6..14: expected ‘(’ or ‘:’, but found identifier
-            error at 6..14: expected expression"#]],
+                  NameExpr@6..14
+                    Name@6..14
+                      Identifier@6..14 "some_ref"
+            error at 6..14: expected ‘(’ or ‘:’, but found identifier"#]],
     );
 }
 
