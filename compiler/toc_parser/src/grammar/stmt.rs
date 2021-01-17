@@ -7,8 +7,13 @@ use expr::{expect_expr, expr_list};
 use super::*;
 
 pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
-    let m = match_token! {
+    match_token! {
         |p| match {
+            TokenKind::Semicolon => {
+                // Eat optional semicolons
+                while p.eat(TokenKind::Semicolon) {}
+                None
+            }
             TokenKind::Var => { const_var_decl(p) }
             TokenKind::Const => { const_var_decl(p) }
             TokenKind::Type => { type_decl(p) }
@@ -90,12 +95,7 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                     None
                 }),
         }
-    };
-
-    // Eat optional semicolon (don't let it show up in the expected kinds)
-    p.hidden_eat(TokenKind::Semicolon);
-
-    m
+    }
 }
 
 fn stmt_with_expr(

@@ -319,6 +319,8 @@ fn record_field(p: &mut Parser) -> Option<CompletedMarker> {
 
     // Optional semicolon
     parsed_any |= p.eat(TokenKind::Semicolon);
+    // Eat any optional trailing semicolons
+    while p.hidden_eat(TokenKind::Semicolon) {}
 
     Some(m.complete(p, SyntaxKind::RecordField)).filter(|_| parsed_any)
 }

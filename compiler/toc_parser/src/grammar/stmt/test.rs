@@ -43,6 +43,37 @@ fn parse_opt_semicolon() {
 }
 
 #[test]
+fn parse_many_opt_semicolons() {
+    check(
+        ";;;;;;;;;;checked;;;;;;;;;;",
+        expect![[r#"
+        Source@0..27
+          Semicolon@0..1 ";"
+          Semicolon@1..2 ";"
+          Semicolon@2..3 ";"
+          Semicolon@3..4 ";"
+          Semicolon@4..5 ";"
+          Semicolon@5..6 ";"
+          Semicolon@6..7 ";"
+          Semicolon@7..8 ";"
+          Semicolon@8..9 ";"
+          Semicolon@9..10 ";"
+          CheckednessStmt@10..17
+            KwChecked@10..17 "checked"
+          Semicolon@17..18 ";"
+          Semicolon@18..19 ";"
+          Semicolon@19..20 ";"
+          Semicolon@20..21 ";"
+          Semicolon@21..22 ";"
+          Semicolon@22..23 ";"
+          Semicolon@23..24 ";"
+          Semicolon@24..25 ";"
+          Semicolon@25..26 ";"
+          Semicolon@26..27 ";""#]],
+    )
+}
+
+#[test]
 fn report_not_a_stmt() {
     check(
         "pervasive",

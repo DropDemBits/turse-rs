@@ -2302,13 +2302,13 @@ fn parse_record_type_opt_semicolon() {
         r#"
     type _ : record
         a : int;
-        b, c, d : int;
+        b, c, d : int;;;;;;;;;;;;
         e : int;
     end record"#,
         expect![[r#"
-            Source@0..92
+            Source@0..103
               Whitespace@0..5 "\n    "
-              TypeDecl@5..92
+              TypeDecl@5..103
                 KwType@5..9 "type"
                 Whitespace@9..10 " "
                 Name@10..12
@@ -2316,7 +2316,7 @@ fn parse_record_type_opt_semicolon() {
                   Whitespace@11..12 " "
                 Colon@12..13 ":"
                 Whitespace@13..14 " "
-                RecordType@14..92
+                RecordType@14..103
                   KwRecord@14..20 "record"
                   Whitespace@20..29 "\n        "
                   RecordField@29..46
@@ -2330,7 +2330,7 @@ fn parse_record_type_opt_semicolon() {
                       KwInt@33..36 "int"
                     Semicolon@36..37 ";"
                     Whitespace@37..46 "\n        "
-                  RecordField@46..69
+                  RecordField@46..80
                     NameList@46..54
                       Name@46..47
                         Identifier@46..47 "b"
@@ -2348,22 +2348,33 @@ fn parse_record_type_opt_semicolon() {
                     PrimType@56..59
                       KwInt@56..59 "int"
                     Semicolon@59..60 ";"
-                    Whitespace@60..69 "\n        "
-                  RecordField@69..82
-                    NameList@69..71
-                      Name@69..71
-                        Identifier@69..70 "e"
-                        Whitespace@70..71 " "
-                    Colon@71..72 ":"
-                    Whitespace@72..73 " "
-                    PrimType@73..76
-                      KwInt@73..76 "int"
-                    Semicolon@76..77 ";"
-                    Whitespace@77..82 "\n    "
-                  EndGroup@82..92
-                    KwEnd@82..85 "end"
-                    Whitespace@85..86 " "
-                    KwRecord@86..92 "record""#]],
+                    Semicolon@60..61 ";"
+                    Semicolon@61..62 ";"
+                    Semicolon@62..63 ";"
+                    Semicolon@63..64 ";"
+                    Semicolon@64..65 ";"
+                    Semicolon@65..66 ";"
+                    Semicolon@66..67 ";"
+                    Semicolon@67..68 ";"
+                    Semicolon@68..69 ";"
+                    Semicolon@69..70 ";"
+                    Semicolon@70..71 ";"
+                    Whitespace@71..80 "\n        "
+                  RecordField@80..93
+                    NameList@80..82
+                      Name@80..82
+                        Identifier@80..81 "e"
+                        Whitespace@81..82 " "
+                    Colon@82..83 ":"
+                    Whitespace@83..84 " "
+                    PrimType@84..87
+                      KwInt@84..87 "int"
+                    Semicolon@87..88 ";"
+                    Whitespace@88..93 "\n    "
+                  EndGroup@93..103
+                    KwEnd@93..96 "end"
+                    Whitespace@96..97 " "
+                    KwRecord@97..103 "record""#]],
     );
 }
 
