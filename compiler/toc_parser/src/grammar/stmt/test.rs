@@ -509,6 +509,46 @@ fn recover_var_decl_not_a_ty() {
 }
 
 #[test]
+fn recover_var_decl_missing_name() {
+    check(
+        "var : int",
+        expect![[r#"
+        Source@0..9
+          ConstVarDecl@0..9
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..4
+            Colon@4..5 ":"
+            Whitespace@5..6 " "
+            PrimType@6..9
+              KwInt@6..9 "int"
+        error at 4..5: expected identifier, but found ‘:’"#]],
+    );
+}
+
+#[test]
+fn recover_var_decl_missing_final_name() {
+    check(
+        "var a, : int",
+        expect![[r#"
+        Source@0..12
+          ConstVarDecl@0..12
+            KwVar@0..3 "var"
+            Whitespace@3..4 " "
+            NameList@4..7
+              Name@4..5
+                Identifier@4..5 "a"
+              Comma@5..6 ","
+              Whitespace@6..7 " "
+            Colon@7..8 ":"
+            Whitespace@8..9 " "
+            PrimType@9..12
+              KwInt@9..12 "int"
+        error at 7..8: expected identifier, but found ‘:’"#]],
+    );
+}
+
+#[test]
 fn parse_var_decl_inferred_ty() {
     check(
         "var a := 1",
@@ -1347,6 +1387,23 @@ fn recover_type_decl_missing_type() {
                 Colon@7..8 ":"
                 Whitespace@8..9 " "
             error at 8..9: expected type specifier"#]],
+    );
+}
+
+#[test]
+fn recover_type_decl_missing_name() {
+    check(
+        "type : int",
+        expect![[r#"
+        Source@0..10
+          TypeDecl@0..10
+            KwType@0..4 "type"
+            Whitespace@4..5 " "
+            Colon@5..6 ":"
+            Whitespace@6..7 " "
+            PrimType@7..10
+              KwInt@7..10 "int"
+        error at 5..6: expected identifier, but found ‘:’"#]],
     );
 }
 
@@ -6086,6 +6143,38 @@ fn parse_body_plain_with_params_and_full_ret_ty() {
 }
 
 #[test]
+fn recover_body_plain_missing_name() {
+    check(
+        "body (k : int) end a",
+        expect![[r#"
+        Source@0..20
+          BodyDecl@0..20
+            KwBody@0..4 "body"
+            Whitespace@4..5 " "
+            PlainHeader@5..15
+              ParamSpec@5..15
+                LeftParen@5..6 "("
+                ConstVarParam@6..13
+                  NameList@6..8
+                    Name@6..8
+                      Identifier@6..7 "k"
+                      Whitespace@7..8 " "
+                  Colon@8..9 ":"
+                  Whitespace@9..10 " "
+                  PrimType@10..13
+                    KwInt@10..13 "int"
+                RightParen@13..14 ")"
+                Whitespace@14..15 " "
+            StmtList@15..15
+            EndGroup@15..20
+              KwEnd@15..18 "end"
+              Whitespace@18..19 " "
+              Identifier@19..20 "a"
+        error at 5..6: expected ‘function’, ‘procedure’ or identifier, but found ‘(’"#]],
+    );
+}
+
+#[test]
 fn recover_just_body() {
     check(
         r#"body"#,
@@ -6093,10 +6182,11 @@ fn recover_just_body() {
             Source@0..4
               BodyDecl@0..4
                 KwBody@0..4 "body"
+                PlainHeader@4..4
                 StmtList@4..4
                 EndGroup@4..4
             error at 0..4: expected ‘function’, ‘procedure’ or identifier
-            error at 0..4: expected ‘end’
+            error at 0..4: expected ‘(’, ‘:’, identifier or ‘end’
             error at 0..4: expected identifier"#]],
     );
 }

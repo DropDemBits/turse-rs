@@ -201,7 +201,9 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
     // (i.e. main, module, class, monitor, monitor class)
     attr_register(p);
 
-    super::name_list(p);
+    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+        super::name_list(p);
+    });
 
     if p.eat(TokenKind::Colon) {
         // parse type
@@ -236,7 +238,9 @@ fn type_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     attr_pervasive(p);
 
-    super::name(p);
+    p.with_extra_recovery(&[TokenKind::Colon], |p| {
+        super::name(p);
+    });
 
     p.expect_punct(TokenKind::Colon);
 
@@ -521,10 +525,12 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
         match_token!(|p| match {
             TokenKind::Function => { fcn_header(p, false); }
             TokenKind::Procedure => { proc_header(p); }
-            TokenKind::Identifier => {
+            _ => {
                 // Expect just param spec & result ty
                 let m = p.start();
-                super::name(p);
+                p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+                    super::name(p);
+                });
 
                 if p.at(TokenKind::LeftParen) {
                     p.with_extra_recovery(&[TokenKind::Colon], |p| {
@@ -536,10 +542,6 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
                     fcn_result(p);
                 }
                 m.complete(p,SyntaxKind::PlainHeader);
-            }
-            _ => {
-                // Not an expected token
-                p.error_unexpected().report();
             }
         });
     });
