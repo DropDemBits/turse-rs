@@ -4298,6 +4298,190 @@ fn parse_fcn_plain() {
 }
 
 #[test]
+fn parse_fcn_decl_embedded_import() {
+    check(
+        "fcn a : int import () end a",
+        expect![[r#"
+        Source@0..27
+          StmtList@0..27
+            FcnDecl@0..27
+              FcnHeader@0..12
+                KwFunction@0..3 "fcn"
+                Whitespace@3..4 " "
+                Name@4..6
+                  Identifier@4..5 "a"
+                  Whitespace@5..6 " "
+                FcnResult@6..12
+                  Colon@6..7 ":"
+                  Whitespace@7..8 " "
+                  PrimType@8..12
+                    KwInt@8..11 "int"
+                    Whitespace@11..12 " "
+              ImportStmt@12..22
+                KwImport@12..18 "import"
+                Whitespace@18..19 " "
+                LeftParen@19..20 "("
+                RightParen@20..21 ")"
+                Whitespace@21..22 " "
+              StmtList@22..22
+              EndGroup@22..27
+                KwEnd@22..25 "end"
+                Whitespace@25..26 " "
+                Identifier@26..27 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_decl_embedded_pre() {
+    check(
+        "fcn a : int pre true end a",
+        expect![[r#"
+        Source@0..26
+          StmtList@0..26
+            FcnDecl@0..26
+              FcnHeader@0..12
+                KwFunction@0..3 "fcn"
+                Whitespace@3..4 " "
+                Name@4..6
+                  Identifier@4..5 "a"
+                  Whitespace@5..6 " "
+                FcnResult@6..12
+                  Colon@6..7 ":"
+                  Whitespace@7..8 " "
+                  PrimType@8..12
+                    KwInt@8..11 "int"
+                    Whitespace@11..12 " "
+              PreStmt@12..21
+                KwPre@12..15 "pre"
+                Whitespace@15..16 " "
+                LiteralExpr@16..21
+                  KwTrue@16..20 "true"
+                  Whitespace@20..21 " "
+              StmtList@21..21
+              EndGroup@21..26
+                KwEnd@21..24 "end"
+                Whitespace@24..25 " "
+                Identifier@25..26 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_decl_embedded_init() {
+    check(
+        "fcn a : int init i := 1 end a",
+        expect![[r#"
+        Source@0..29
+          StmtList@0..29
+            FcnDecl@0..29
+              FcnHeader@0..12
+                KwFunction@0..3 "fcn"
+                Whitespace@3..4 " "
+                Name@4..6
+                  Identifier@4..5 "a"
+                  Whitespace@5..6 " "
+                FcnResult@6..12
+                  Colon@6..7 ":"
+                  Whitespace@7..8 " "
+                  PrimType@8..12
+                    KwInt@8..11 "int"
+                    Whitespace@11..12 " "
+              InitStmt@12..24
+                KwInit@12..16 "init"
+                Whitespace@16..17 " "
+                InitVar@17..24
+                  Name@17..19
+                    Identifier@17..18 "i"
+                    Whitespace@18..19 " "
+                  Assign@19..21 ":="
+                  Whitespace@21..22 " "
+                  LiteralExpr@22..24
+                    IntLiteral@22..23 "1"
+                    Whitespace@23..24 " "
+              StmtList@24..24
+              EndGroup@24..29
+                KwEnd@24..27 "end"
+                Whitespace@27..28 " "
+                Identifier@28..29 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_decl_embedded_post() {
+    check(
+        "fcn a : int post false end a",
+        expect![[r#"
+        Source@0..28
+          StmtList@0..28
+            FcnDecl@0..28
+              FcnHeader@0..12
+                KwFunction@0..3 "fcn"
+                Whitespace@3..4 " "
+                Name@4..6
+                  Identifier@4..5 "a"
+                  Whitespace@5..6 " "
+                FcnResult@6..12
+                  Colon@6..7 ":"
+                  Whitespace@7..8 " "
+                  PrimType@8..12
+                    KwInt@8..11 "int"
+                    Whitespace@11..12 " "
+              PostStmt@12..23
+                KwPost@12..16 "post"
+                Whitespace@16..17 " "
+                LiteralExpr@17..23
+                  KwFalse@17..22 "false"
+                  Whitespace@22..23 " "
+              StmtList@23..23
+              EndGroup@23..28
+                KwEnd@23..26 "end"
+                Whitespace@26..27 " "
+                Identifier@27..28 "a""#]],
+    );
+}
+
+#[test]
+fn parse_fcn_decl_embedded_handler() {
+    check(
+        "fcn a : int handler (_) end handler end a",
+        expect![[r#"
+        Source@0..41
+          StmtList@0..41
+            FcnDecl@0..41
+              FcnHeader@0..12
+                KwFunction@0..3 "fcn"
+                Whitespace@3..4 " "
+                Name@4..6
+                  Identifier@4..5 "a"
+                  Whitespace@5..6 " "
+                FcnResult@6..12
+                  Colon@6..7 ":"
+                  Whitespace@7..8 " "
+                  PrimType@8..12
+                    KwInt@8..11 "int"
+                    Whitespace@11..12 " "
+              HandlerStmt@12..36
+                KwHandler@12..19 "handler"
+                Whitespace@19..20 " "
+                LeftParen@20..21 "("
+                Name@21..22
+                  Identifier@21..22 "_"
+                RightParen@22..23 ")"
+                Whitespace@23..24 " "
+                StmtList@24..24
+                EndGroup@24..36
+                  KwEnd@24..27 "end"
+                  Whitespace@27..28 " "
+                  KwHandler@28..35 "handler"
+                  Whitespace@35..36 " "
+              StmtList@36..36
+              EndGroup@36..41
+                KwEnd@36..39 "end"
+                Whitespace@39..40 " "
+                Identifier@40..41 "a""#]],
+    );
+}
+
+#[test]
 fn recover_fcn_decl_missing_name() {
     check(
         r#"
@@ -6389,6 +6573,63 @@ fn parse_body_plain_with_params_and_full_ret_ty() {
 }
 
 #[test]
+fn parse_body_decl_and_import() {
+    // should not be embedded
+    check(
+        "body a import () end a",
+        expect![[r#"
+        Source@0..22
+          StmtList@0..22
+            BodyDecl@0..22
+              KwBody@0..4 "body"
+              Whitespace@4..5 " "
+              PlainHeader@5..7
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+              StmtList@7..17
+                ImportStmt@7..17
+                  KwImport@7..13 "import"
+                  Whitespace@13..14 " "
+                  LeftParen@14..15 "("
+                  RightParen@15..16 ")"
+                  Whitespace@16..17 " "
+              EndGroup@17..22
+                KwEnd@17..20 "end"
+                Whitespace@20..21 " "
+                Identifier@21..22 "a""#]],
+    );
+}
+
+#[test]
+fn parse_body_decl_embedded_pre() {
+    check(
+        "body a pre true end a",
+        expect![[r#"
+        Source@0..21
+          StmtList@0..21
+            BodyDecl@0..21
+              KwBody@0..4 "body"
+              Whitespace@4..5 " "
+              PlainHeader@5..7
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+              PreStmt@7..16
+                KwPre@7..10 "pre"
+                Whitespace@10..11 " "
+                LiteralExpr@11..16
+                  KwTrue@11..15 "true"
+                  Whitespace@15..16 " "
+              StmtList@16..16
+              EndGroup@16..21
+                KwEnd@16..19 "end"
+                Whitespace@19..20 " "
+                Identifier@20..21 "a""#]],
+    );
+}
+
+#[test]
 fn recover_body_plain_missing_name() {
     check(
         "body (k : int) end a",
@@ -6434,7 +6675,7 @@ fn recover_just_body() {
                   StmtList@4..4
                   EndGroup@4..4
             error at 0..4: expected ‘function’, ‘procedure’ or identifier
-            error at 0..4: expected ‘(’, ‘:’, identifier or ‘end’
+            error at 0..4: expected ‘(’, ‘:’, identifier, ‘pre’, ‘init’, ‘post’, ‘handler’ or ‘end’
             error at 0..4: expected identifier"#]],
     );
 }
@@ -7402,13 +7643,13 @@ fn parse_process_decl() {
                           Identifier@16..17 "a"
                     RightParen@17..18 ")"
                     Whitespace@18..27 "\n        "
-                  StmtList@27..40
-                    PreStmt@27..40
-                      KwPre@27..30 "pre"
-                      Whitespace@30..31 " "
-                      LiteralExpr@31..40
-                        KwTrue@31..35 "true"
-                        Whitespace@35..40 "\n    "
+                  PreStmt@27..40
+                    KwPre@27..30 "pre"
+                    Whitespace@30..31 " "
+                    LiteralExpr@31..40
+                      KwTrue@31..35 "true"
+                      Whitespace@35..40 "\n    "
+                  StmtList@40..40
                   EndGroup@40..45
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
@@ -7455,13 +7696,13 @@ fn parse_process_decl_opt_stack_size() {
                       Name@25..35
                         Identifier@25..26 "t"
                         Whitespace@26..35 "\n        "
-                  StmtList@35..48
-                    PreStmt@35..48
-                      KwPre@35..38 "pre"
-                      Whitespace@38..39 " "
-                      LiteralExpr@39..48
-                        KwTrue@39..43 "true"
-                        Whitespace@43..48 "\n    "
+                  PreStmt@35..48
+                    KwPre@35..38 "pre"
+                    Whitespace@38..39 " "
+                    LiteralExpr@39..48
+                      KwTrue@39..43 "true"
+                      Whitespace@43..48 "\n    "
+                  StmtList@48..48
                   EndGroup@48..53
                     KwEnd@48..51 "end"
                     Whitespace@51..52 " "
@@ -7488,13 +7729,13 @@ fn parse_process_no_params() {
                   Name@13..23
                     Identifier@13..14 "a"
                     Whitespace@14..23 "\n        "
-                  StmtList@23..36
-                    PreStmt@23..36
-                      KwPre@23..26 "pre"
-                      Whitespace@26..27 " "
-                      LiteralExpr@27..36
-                        KwTrue@27..31 "true"
-                        Whitespace@31..36 "\n    "
+                  PreStmt@23..36
+                    KwPre@23..26 "pre"
+                    Whitespace@26..27 " "
+                    LiteralExpr@27..36
+                      KwTrue@27..31 "true"
+                      Whitespace@31..36 "\n    "
+                  StmtList@36..36
                   EndGroup@36..41
                     KwEnd@36..39 "end"
                     Whitespace@39..40 " "
@@ -7586,7 +7827,7 @@ fn recover_just_process() {
                   StmtList@7..7
                   EndGroup@7..7
             error at 0..7: expected identifier
-            error at 0..7: expected ‘(’, ‘:’ or ‘end’
+            error at 0..7: expected ‘(’, ‘:’, ‘import’, ‘pre’, ‘init’, ‘post’, ‘handler’ or ‘end’
             error at 0..7: expected identifier"#]],
     );
 }

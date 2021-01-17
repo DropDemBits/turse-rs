@@ -294,7 +294,10 @@ fn procedure_decl(p: &mut Parser) -> Option<CompletedMarker> {
         proc_header(p);
     });
 
-    stmt_list(p, None);
+    if p.at(TokenKind::Import) {
+        import_stmt(p);
+    }
+    subprog_body(p);
     eat_end_group(p, TokenKind::Identifier, None);
 
     Some(m.complete(p, SyntaxKind::ProcDecl))
@@ -308,7 +311,10 @@ fn function_decl(p: &mut Parser) -> Option<CompletedMarker> {
         fcn_header(p, true);
     });
 
-    stmt_list(p, None);
+    if p.at(TokenKind::Import) {
+        import_stmt(p);
+    }
+    subprog_body(p);
     eat_end_group(p, TokenKind::Identifier, None);
 
     Some(m.complete(p, SyntaxKind::FcnDecl))
@@ -390,6 +396,23 @@ fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::FcnResult))
 }
 
+fn subprog_body(p: &mut Parser) {
+    if p.at(TokenKind::Pre) {
+        stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt);
+    }
+    if p.at(TokenKind::Init) {
+        init_stmt(p);
+    }
+    if p.at(TokenKind::Post) {
+        stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt);
+    }
+    if p.at(TokenKind::Handler) {
+        handler_stmt(p);
+    }
+
+    stmt_list(p, None);
+}
+
 fn process_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Process));
 
@@ -412,7 +435,10 @@ fn process_decl(p: &mut Parser) -> Option<CompletedMarker> {
         }
     });
 
-    stmt_list(p, None);
+    if p.at(TokenKind::Import) {
+        import_stmt(p);
+    }
+    subprog_body(p);
     eat_end_group(p, TokenKind::Identifier, None);
 
     Some(m.complete(p, SyntaxKind::ProcessDecl))
@@ -546,7 +572,7 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
         });
     });
 
-    stmt_list(p, None);
+    subprog_body(p);
 
     eat_end_group(p, TokenKind::Identifier, None);
     Some(m.complete(p, SyntaxKind::BodyDecl))

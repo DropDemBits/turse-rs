@@ -182,6 +182,11 @@ BindItem =
   
 ProcDecl =
   ProcHeader
+    ImportStmt?
+    PreStmt?
+    InitStmt?
+    PostStmt?
+    HandlerStmt?
     StmtList
   EndGroup
 
@@ -193,6 +198,11 @@ DeviceSpec =
 
 FcnDecl =
   FcnHeader
+    ImportStmt?
+    PreStmt?
+    InitStmt?
+    PostStmt?
+    HandlerStmt?
     StmtList
   EndGroup
 
@@ -214,6 +224,10 @@ DeferredDecl =
 
 BodyDecl =
   'body' BodyKind
+    PreStmt?
+    InitStmt?
+    PostStmt?
+    HandlerStmt?
     StmtList
   EndGroup
 
@@ -227,6 +241,11 @@ PlainHeader =
 
 ProcessDecl =
   'process' PervasiveAttr? Name ParamSpec? stack_size:( ':' Expr )?
+    ImportStmt?
+    PreStmt?
+    InitStmt?
+    PostStmt?
+    HandlerStmt?
     StmtList
   EndGroup
 
