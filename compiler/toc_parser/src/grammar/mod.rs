@@ -122,7 +122,12 @@ use toc_syntax::SyntaxKind;
 
 pub(crate) fn source(p: &mut Parser) -> CompletedMarker {
     let source = p.start();
-    p.hidden_eat(TokenKind::Unit);
+    let is_unit = p.hidden_eat(TokenKind::Unit);
+
+    if !is_unit && p.at_hidden(TokenKind::Import) {
+        // embed inside source node
+        stmt::import_stmt(p);
+    }
 
     {
         let m = p.start();

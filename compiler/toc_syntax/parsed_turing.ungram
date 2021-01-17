@@ -41,8 +41,8 @@ OpaqueAttr =
 //***************************//
 
 Source =
-  'unit'?
-  Stmt*
+  ( 'unit' | ImportStmt )?
+  StmtList
 
 //***************************//
 //  Preprocessor Definitions //

@@ -1437,7 +1437,8 @@ fn implement_by_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ImplementByStmt))
 }
 
-fn import_stmt(p: &mut Parser) -> Option<CompletedMarker> {
+/// Used as part of a source node
+pub(super) fn import_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Import));
 
     let m = p.start();

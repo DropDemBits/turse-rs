@@ -8304,30 +8304,68 @@ fn parse_import_stmt() {
         r#"import a, "b", c in "not_cee""#,
         expect![[r#"
             Source@0..29
-              StmtList@0..29
-                ImportStmt@0..29
-                  KwImport@0..6 "import"
-                  Whitespace@6..7 " "
-                  ImportList@7..29
-                    ImportItem@7..8
-                      ExternalItem@7..8
-                        Name@7..8
-                          Identifier@7..8 "a"
-                    Comma@8..9 ","
-                    Whitespace@9..10 " "
-                    ImportItem@10..13
-                      ExternalItem@10..13
-                        StringLiteral@10..13 "\"b\""
-                    Comma@13..14 ","
-                    Whitespace@14..15 " "
-                    ImportItem@15..29
-                      ExternalItem@15..29
-                        Name@15..17
-                          Identifier@15..16 "c"
-                          Whitespace@16..17 " "
-                        KwIn@17..19 "in"
-                        Whitespace@19..20 " "
-                        StringLiteral@20..29 "\"not_cee\"""#]],
+              ImportStmt@0..29
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                ImportList@7..29
+                  ImportItem@7..8
+                    ExternalItem@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
+                  Comma@8..9 ","
+                  Whitespace@9..10 " "
+                  ImportItem@10..13
+                    ExternalItem@10..13
+                      StringLiteral@10..13 "\"b\""
+                  Comma@13..14 ","
+                  Whitespace@14..15 " "
+                  ImportItem@15..29
+                    ExternalItem@15..29
+                      Name@15..17
+                        Identifier@15..16 "c"
+                        Whitespace@16..17 " "
+                      KwIn@17..19 "in"
+                      Whitespace@19..20 " "
+                      StringLiteral@20..29 "\"not_cee\""
+              StmtList@29..29"#]],
+    );
+}
+
+#[test]
+fn parse_multiple_import_stmt() {
+    check(
+        "import () import ()",
+        expect![[r#"
+        Source@0..19
+          ImportStmt@0..10
+            KwImport@0..6 "import"
+            Whitespace@6..7 " "
+            LeftParen@7..8 "("
+            RightParen@8..9 ")"
+            Whitespace@9..10 " "
+          StmtList@10..19
+            ImportStmt@10..19
+              KwImport@10..16 "import"
+              Whitespace@16..17 " "
+              LeftParen@17..18 "("
+              RightParen@18..19 ")""#]],
+    );
+}
+
+#[test]
+fn parse_import_stmt_in_unit() {
+    check(
+        "unit import ()",
+        expect![[r#"
+        Source@0..14
+          KwUnit@0..4 "unit"
+          Whitespace@4..5 " "
+          StmtList@5..14
+            ImportStmt@5..14
+              KwImport@5..11 "import"
+              Whitespace@11..12 " "
+              LeftParen@12..13 "("
+              RightParen@13..14 ")""#]],
     );
 }
 
@@ -8337,17 +8375,17 @@ fn parse_import_stmt_opt_parens() {
         "import (a)",
         expect![[r#"
             Source@0..10
-              StmtList@0..10
-                ImportStmt@0..10
-                  KwImport@0..6 "import"
-                  Whitespace@6..7 " "
-                  LeftParen@7..8 "("
-                  ImportList@8..9
-                    ImportItem@8..9
-                      ExternalItem@8..9
-                        Name@8..9
-                          Identifier@8..9 "a"
-                  RightParen@9..10 ")""#]],
+              ImportStmt@0..10
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                LeftParen@7..8 "("
+                ImportList@8..9
+                  ImportItem@8..9
+                    ExternalItem@8..9
+                      Name@8..9
+                        Identifier@8..9 "a"
+                RightParen@9..10 ")"
+              StmtList@10..10"#]],
     );
 }
 
@@ -8358,36 +8396,36 @@ fn parse_import_stmt_attrs() {
         "import var a, const b, forward c",
         expect![[r#"
             Source@0..32
-              StmtList@0..32
-                ImportStmt@0..32
-                  KwImport@0..6 "import"
-                  Whitespace@6..7 " "
-                  ImportList@7..32
-                    ImportItem@7..12
-                      VarAttr@7..11
-                        KwVar@7..10 "var"
-                        Whitespace@10..11 " "
-                      ExternalItem@11..12
-                        Name@11..12
-                          Identifier@11..12 "a"
-                    Comma@12..13 ","
-                    Whitespace@13..14 " "
-                    ImportItem@14..21
-                      ConstAttr@14..20
-                        KwConst@14..19 "const"
-                        Whitespace@19..20 " "
-                      ExternalItem@20..21
-                        Name@20..21
-                          Identifier@20..21 "b"
-                    Comma@21..22 ","
-                    Whitespace@22..23 " "
-                    ImportItem@23..32
-                      ForwardAttr@23..31
-                        KwForward@23..30 "forward"
-                        Whitespace@30..31 " "
-                      ExternalItem@31..32
-                        Name@31..32
-                          Identifier@31..32 "c""#]],
+              ImportStmt@0..32
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                ImportList@7..32
+                  ImportItem@7..12
+                    VarAttr@7..11
+                      KwVar@7..10 "var"
+                      Whitespace@10..11 " "
+                    ExternalItem@11..12
+                      Name@11..12
+                        Identifier@11..12 "a"
+                  Comma@12..13 ","
+                  Whitespace@13..14 " "
+                  ImportItem@14..21
+                    ConstAttr@14..20
+                      KwConst@14..19 "const"
+                      Whitespace@19..20 " "
+                    ExternalItem@20..21
+                      Name@20..21
+                        Identifier@20..21 "b"
+                  Comma@21..22 ","
+                  Whitespace@22..23 " "
+                  ImportItem@23..32
+                    ForwardAttr@23..31
+                      KwForward@23..30 "forward"
+                      Whitespace@30..31 " "
+                    ExternalItem@31..32
+                      Name@31..32
+                        Identifier@31..32 "c"
+              StmtList@32..32"#]],
     );
 }
 
@@ -8397,12 +8435,12 @@ fn parse_import_stmt_empty() {
         "import ()",
         expect![[r#"
             Source@0..9
-              StmtList@0..9
-                ImportStmt@0..9
-                  KwImport@0..6 "import"
-                  Whitespace@6..7 " "
-                  LeftParen@7..8 "("
-                  RightParen@8..9 ")""#]],
+              ImportStmt@0..9
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                LeftParen@7..8 "("
+                RightParen@8..9 ")"
+              StmtList@9..9"#]],
     );
 }
 
@@ -8412,15 +8450,15 @@ fn recover_import_stmt_missing_name_after_attr() {
         "import var",
         expect![[r#"
             Source@0..10
-              StmtList@0..10
-                ImportStmt@0..10
-                  KwImport@0..6 "import"
-                  Whitespace@6..7 " "
-                  ImportList@7..10
-                    ImportItem@7..10
-                      VarAttr@7..10
-                        KwVar@7..10 "var"
-                      ExternalItem@10..10
+              ImportStmt@0..10
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                ImportList@7..10
+                  ImportItem@7..10
+                    VarAttr@7..10
+                      KwVar@7..10 "var"
+                    ExternalItem@10..10
+              StmtList@10..10
             error at 7..10: expected string literal or identifier"#]],
     );
 }
@@ -8431,12 +8469,12 @@ fn recover_just_import() {
         "import",
         expect![[r#"
             Source@0..6
-              StmtList@0..6
-                ImportStmt@0..6
-                  KwImport@0..6 "import"
-                  ImportList@6..6
-                    ImportItem@6..6
-                      ExternalItem@6..6
+              ImportStmt@0..6
+                KwImport@0..6 "import"
+                ImportList@6..6
+                  ImportItem@6..6
+                    ExternalItem@6..6
+              StmtList@6..6
             error at 0..6: expected string literal or identifier"#]],
     );
 }
