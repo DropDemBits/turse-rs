@@ -126,7 +126,8 @@ fn generate_nodes(lowered: &LoweredGrammar) -> Result<String> {
                         (name, body, res)
                     }
                     lowering::NodeOrToken::Token(token) => {
-                        let name = format_ident!("{}_token", thing_to_method_name(token));
+                        let name =
+                            format_ident!("{}_token", thing_to_method_name(token).to_snake_case());
                         let syname = format_ident!("{}", token_to_syntax_name(&token));
                         let body = quote! { helper::token(&self.0, SyntaxKind::#syname) };
                         let res = quote! { Option<SyntaxToken> };
@@ -148,7 +149,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> Result<String> {
             };
 
             let name = if let Some(preferred_name) = &child.provided_name {
-                format_ident!("{}", preferred_name)
+                format_ident!("{}", preferred_name.to_snake_case())
             } else {
                 name
             };

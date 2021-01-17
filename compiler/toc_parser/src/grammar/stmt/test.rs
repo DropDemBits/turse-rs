@@ -9069,11 +9069,12 @@ fn parse_tell_stmt() {
                 TellStmt@0..11
                   KwTell@0..4 "tell"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
-                  NameExpr@7..8
-                    Name@7..8
-                      Identifier@7..8 "a"
+                  StreamNum@5..8
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
+                    NameExpr@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   NameExpr@10..11
@@ -9093,11 +9094,12 @@ fn parse_tell_stmt_dest_not_ref() {
                 TellStmt@0..11
                   KwTell@0..4 "tell"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
-                  NameExpr@7..8
-                    Name@7..8
-                      Identifier@7..8 "a"
+                  StreamNum@5..8
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
+                    NameExpr@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   LiteralExpr@10..11
@@ -9115,8 +9117,9 @@ fn recover_tell_stmt_missing_file_ref() {
                 TellStmt@0..10
                   KwTell@0..4 "tell"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
+                  StreamNum@5..7
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   NameExpr@9..10
@@ -9136,11 +9139,12 @@ fn recover_tell_stmt_missing_tell_dest() {
                 TellStmt@0..10
                   KwTell@0..4 "tell"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
-                  NameExpr@7..8
-                    Name@7..8
-                      Identifier@7..8 "a"
+                  StreamNum@5..8
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
+                    NameExpr@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
             error at 9..10: expected expression"#]],
@@ -9157,7 +9161,6 @@ fn recover_just_tell() {
                 TellStmt@0..4
                   KwTell@0..4 "tell"
             error at 0..4: expected ‘:’
-            error at 0..4: expected expression
             error at 0..4: expected ‘,’
             error at 0..4: expected expression"#]],
     );
@@ -9182,11 +9185,12 @@ fn recover_on_tell() {
                 TellStmt@10..21
                   KwTell@10..14 "tell"
                   Whitespace@14..15 " "
-                  Colon@15..16 ":"
-                  Whitespace@16..17 " "
-                  NameExpr@17..18
-                    Name@17..18
-                      Identifier@17..18 "a"
+                  StreamNum@15..18
+                    Colon@15..16 ":"
+                    Whitespace@16..17 " "
+                    NameExpr@17..18
+                      Name@17..18
+                        Identifier@17..18 "a"
                   Comma@18..19 ","
                   Whitespace@19..20 " "
                   NameExpr@20..21
@@ -9206,11 +9210,12 @@ fn parse_seek_stmt() {
                 SeekStmt@0..15
                   KwSeek@0..4 "seek"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
-                  NameExpr@7..8
-                    Name@7..8
-                      Identifier@7..8 "a"
+                  StreamNum@5..8
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
+                    NameExpr@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   BinaryExpr@10..15
@@ -9235,11 +9240,12 @@ fn parse_seek_stmt_to_end() {
                 SeekStmt@0..11
                   KwSeek@0..4 "seek"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
-                  NameExpr@7..8
-                    Name@7..8
-                      Identifier@7..8 "a"
+                  StreamNum@5..8
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
+                    NameExpr@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   Star@10..11 "*""#]],
@@ -9256,8 +9262,9 @@ fn recover_seek_stmt_missing_file_ref() {
                 SeekStmt@0..10
                   KwSeek@0..4 "seek"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
+                  StreamNum@5..7
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   NameExpr@9..10
@@ -9277,11 +9284,12 @@ fn recover_seek_stmt_missing_to_expr() {
                 SeekStmt@0..10
                   KwSeek@0..4 "seek"
                   Whitespace@4..5 " "
-                  Colon@5..6 ":"
-                  Whitespace@6..7 " "
-                  NameExpr@7..8
-                    Name@7..8
-                      Identifier@7..8 "a"
+                  StreamNum@5..8
+                    Colon@5..6 ":"
+                    Whitespace@6..7 " "
+                    NameExpr@7..8
+                      Name@7..8
+                        Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
             error at 9..10: expected expression"#]],
@@ -9298,7 +9306,6 @@ fn recover_just_seek() {
                 SeekStmt@0..4
                   KwSeek@0..4 "seek"
             error at 0..4: expected ‘:’
-            error at 0..4: expected expression
             error at 0..4: expected ‘,’
             error at 0..4: expected expression"#]],
     );
@@ -9323,11 +9330,12 @@ fn recover_on_seek() {
                 SeekStmt@10..21
                   KwSeek@10..14 "seek"
                   Whitespace@14..15 " "
-                  Colon@15..16 ":"
-                  Whitespace@16..17 " "
-                  NameExpr@17..18
-                    Name@17..18
-                      Identifier@17..18 "a"
+                  StreamNum@15..18
+                    Colon@15..16 ":"
+                    Whitespace@16..17 " "
+                    NameExpr@17..18
+                      Name@17..18
+                        Identifier@17..18 "a"
                   Comma@18..19 ","
                   Whitespace@19..20 " "
                   NameExpr@20..21
@@ -9348,11 +9356,12 @@ fn parse_read_stmt() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..23
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..11
-                      Name@7..11
-                        Identifier@7..11 "fref"
+                    StreamNum@5..11
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..11
+                        Name@7..11
+                          Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..14
@@ -9391,12 +9400,13 @@ fn parse_read_stmt_opt_status() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..20
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..12
-                      Name@7..12
-                        Identifier@7..11 "fref"
-                        Whitespace@11..12 " "
+                    StreamNum@5..12
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..12
+                        Name@7..12
+                          Identifier@7..11 "fref"
+                          Whitespace@11..12 " "
                     Colon@12..13 ":"
                     Whitespace@13..14 " "
                     NameExpr@14..17
@@ -9422,11 +9432,12 @@ fn parse_read_stmt_all_item_variants() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..40
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..11
-                      Name@7..11
-                        Identifier@7..11 "fref"
+                    StreamNum@5..11
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..11
+                        Name@7..11
+                          Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..14
@@ -9485,11 +9496,12 @@ fn recover_read_stmt_missing_actual_sz_expr() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..28
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..11
-                      Name@7..11
-                        Identifier@7..11 "fref"
+                    StreamNum@5..11
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..11
+                        Name@7..11
+                          Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..25
@@ -9533,11 +9545,12 @@ fn recover_read_stmt_missing_req_sz_expr() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..25
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..11
-                      Name@7..11
-                        Identifier@7..11 "fref"
+                    StreamNum@5..11
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..11
+                        Name@7..11
+                          Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..22
@@ -9575,11 +9588,12 @@ fn recover_read_stmt_missing_item_data_expr() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..27
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..11
-                      Name@7..11
-                        Identifier@7..11 "fref"
+                    StreamNum@5..11
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..11
+                        Name@7..11
+                          Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..14 "  "
                     BinaryItem@14..24
@@ -9617,12 +9631,13 @@ fn recover_read_stmt_missing_sts_ref() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..31
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
-                    NameExpr@7..12
-                      Name@7..12
-                        Identifier@7..11 "fref"
-                        Whitespace@11..12 " "
+                    StreamNum@5..12
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
+                      NameExpr@7..12
+                        Name@7..12
+                          Identifier@7..11 "fref"
+                          Whitespace@11..12 " "
                     Colon@12..13 ":"
                     Whitespace@13..14 " "
                     Comma@14..15 ","
@@ -9666,8 +9681,9 @@ fn recover_read_stmt_missing_file_ref() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..29
-                    Colon@5..6 ":"
-                    Whitespace@6..7 " "
+                    StreamNum@5..7
+                      Colon@5..6 ":"
+                      Whitespace@6..7 " "
                     Colon@7..8 ":"
                     Whitespace@8..9 " "
                     NameExpr@9..12
@@ -9715,7 +9731,6 @@ fn recover_just_read() {
                   BinaryIO@4..4
                     BinaryItem@4..4
             error at 0..4: expected ‘:’
-            error at 0..4: expected expression
             error at 0..4: expected ‘:’ or ‘,’
             error at 0..4: expected expression"#]],
     );
@@ -9741,11 +9756,12 @@ fn recover_on_read() {
                   KwRead@10..14 "read"
                   Whitespace@14..15 " "
                   BinaryIO@15..21
-                    Colon@15..16 ":"
-                    Whitespace@16..17 " "
-                    NameExpr@17..18
-                      Name@17..18
-                        Identifier@17..18 "a"
+                    StreamNum@15..18
+                      Colon@15..16 ":"
+                      Whitespace@16..17 " "
+                      NameExpr@17..18
+                        Name@17..18
+                          Identifier@17..18 "a"
                     Comma@18..19 ","
                     Whitespace@19..20 " "
                     BinaryItem@20..21
@@ -9767,11 +9783,12 @@ fn parse_write_stmt() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..24
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..12
-                      Name@8..12
-                        Identifier@8..12 "fref"
+                    StreamNum@6..12
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..12
+                        Name@8..12
+                          Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..15
@@ -9810,12 +9827,13 @@ fn parse_write_stmt_opt_status() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..21
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..13
-                      Name@8..13
-                        Identifier@8..12 "fref"
-                        Whitespace@12..13 " "
+                    StreamNum@6..13
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..13
+                        Name@8..13
+                          Identifier@8..12 "fref"
+                          Whitespace@12..13 " "
                     Colon@13..14 ":"
                     Whitespace@14..15 " "
                     NameExpr@15..18
@@ -9841,11 +9859,12 @@ fn parse_write_stmt_all_item_variants() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..41
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..12
-                      Name@8..12
-                        Identifier@8..12 "fref"
+                    StreamNum@6..12
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..12
+                        Name@8..12
+                          Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..15
@@ -9904,11 +9923,12 @@ fn recover_write_stmt_missing_actual_sz_expr() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..29
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..12
-                      Name@8..12
-                        Identifier@8..12 "fref"
+                    StreamNum@6..12
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..12
+                        Name@8..12
+                          Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..26
@@ -9952,11 +9972,12 @@ fn recover_write_stmt_missing_req_sz_expr() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..26
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..12
-                      Name@8..12
-                        Identifier@8..12 "fref"
+                    StreamNum@6..12
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..12
+                        Name@8..12
+                          Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..23
@@ -9994,11 +10015,12 @@ fn recover_write_stmt_missing_item_data_expr() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..28
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..12
-                      Name@8..12
-                        Identifier@8..12 "fref"
+                    StreamNum@6..12
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..12
+                        Name@8..12
+                          Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..15 "  "
                     BinaryItem@15..25
@@ -10036,12 +10058,13 @@ fn recover_write_stmt_missing_sts_ref() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..32
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
-                    NameExpr@8..13
-                      Name@8..13
-                        Identifier@8..12 "fref"
-                        Whitespace@12..13 " "
+                    StreamNum@6..13
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      NameExpr@8..13
+                        Name@8..13
+                          Identifier@8..12 "fref"
+                          Whitespace@12..13 " "
                     Colon@13..14 ":"
                     Whitespace@14..15 " "
                     Comma@15..16 ","
@@ -10085,8 +10108,9 @@ fn recover_write_stmt_missing_file_ref() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..30
-                    Colon@6..7 ":"
-                    Whitespace@7..8 " "
+                    StreamNum@6..8
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
                     Colon@8..9 ":"
                     Whitespace@9..10 " "
                     NameExpr@10..13
@@ -10134,7 +10158,6 @@ fn recover_just_write() {
                   BinaryIO@5..5
                     BinaryItem@5..5
             error at 0..5: expected ‘:’
-            error at 0..5: expected expression
             error at 0..5: expected ‘:’ or ‘,’
             error at 0..5: expected expression"#]],
     );
@@ -10160,11 +10183,12 @@ fn recover_on_write() {
                   KwWrite@10..15 "write"
                   Whitespace@15..16 " "
                   BinaryIO@16..22
-                    Colon@16..17 ":"
-                    Whitespace@17..18 " "
-                    NameExpr@18..19
-                      Name@18..19
-                        Identifier@18..19 "a"
+                    StreamNum@16..19
+                      Colon@16..17 ":"
+                      Whitespace@17..18 " "
+                      NameExpr@18..19
+                        Name@18..19
+                          Identifier@18..19 "a"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
                     BinaryItem@21..22
@@ -10884,7 +10908,8 @@ fn parse_put_stmt() {
                   Comma@47..48 ","
                   Whitespace@48..49 " "
                   PutItem@49..53
-                    KwSkip@49..53 "skip""#]],
+                    KwSkip@49..53 "skip"
+            error at 4..5: expected ‘:’ or ‘,’, but found identifier"#]],
     );
 }
 
@@ -10898,14 +10923,14 @@ fn parse_put_stmt_opt_stream() {
                 PutStmt@0..14
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..13
+                  StreamNum@4..11
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..11
                       Name@6..11
                         Identifier@6..11 "strem"
-                    Comma@11..12 ","
-                    Whitespace@12..13 " "
+                  Comma@11..12 ","
+                  Whitespace@12..13 " "
                   PutItem@13..14
                     NameExpr@13..14
                       Name@13..14
@@ -10927,7 +10952,8 @@ fn parse_put_stmt_opt_no_nl() {
                     NameExpr@4..5
                       Name@4..5
                         Identifier@4..5 "a"
-                  Range@5..7 "..""#]],
+                  Range@5..7 ".."
+            error at 4..5: expected ‘:’ or ‘,’, but found identifier"#]],
     );
 }
 
@@ -10941,14 +10967,14 @@ fn recover_put_stmt_missing_opt_exp_expr() {
                 PutStmt@0..27
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   PutItem@9..27
                     NameExpr@9..14
                       Name@9..14
@@ -10987,14 +11013,14 @@ fn recover_put_stmt_missing_opt_fract_expr() {
                 PutStmt@0..27
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   PutItem@9..25
                     NameExpr@9..14
                       Name@9..14
@@ -11032,14 +11058,14 @@ fn recover_put_stmt_missing_width_expr() {
                 PutStmt@0..27
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   PutItem@9..25
                     NameExpr@9..14
                       Name@9..14
@@ -11077,14 +11103,14 @@ fn recover_put_stmt_missing_item() {
                 PutStmt@0..12
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..10
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..10 "  "
+                  Comma@7..8 ","
+                  Whitespace@8..10 "  "
                   PutItem@10..12
                     Error@10..12
                       Range@10..12 ".."
@@ -11102,14 +11128,14 @@ fn recover_put_stmt_missing_item_in_list() {
                 PutStmt@0..14
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   PutItem@9..9
                   Comma@9..10 ","
                   Whitespace@10..11 " "
@@ -11132,11 +11158,11 @@ fn recover_put_stmt_missing_stream_expr() {
                 PutStmt@0..27
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..8
+                  StreamNum@4..6
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
-                    Comma@6..7 ","
-                    Whitespace@7..8 " "
+                  Comma@6..7 ","
+                  Whitespace@7..8 " "
                   PutItem@8..25
                     NameExpr@8..13
                       Name@8..13
@@ -11178,6 +11204,7 @@ fn recover_just_put() {
                 PutStmt@0..3
                   KwPut@0..3 "put"
                   PutItem@3..3
+            error at 0..3: expected ‘:’ or ‘,’
             error at 0..3: expected expression"#]],
     );
 }
@@ -11206,7 +11233,8 @@ fn recover_on_put() {
                   Whitespace@21..22 " "
                   PutItem@22..26
                     KwSkip@22..26 "skip"
-            error at 18..21: expected expression, but found ‘put’"#]],
+            error at 18..21: expected expression, but found ‘put’
+            error at 22..26: expected ‘:’ or ‘,’, but found ‘skip’"#]],
     );
 }
 
@@ -11250,7 +11278,8 @@ fn parse_get_stmt() {
                       Colon@34..35 ":"
                       Whitespace@35..36 " "
                       LiteralExpr@36..38
-                        IntLiteral@36..38 "15""#]],
+                        IntLiteral@36..38 "15"
+            error at 4..5: expected ‘:’ or ‘,’, but found identifier"#]],
     )
 }
 
@@ -11264,14 +11293,14 @@ fn parse_get_stmt_opt_stream() {
                 GetStmt@0..10
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   GetItem@9..10
                     NameExpr@9..10
                       Name@9..10
@@ -11289,14 +11318,14 @@ fn recover_get_stmt_missing_width_expr() {
                 GetStmt@0..16
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   GetItem@9..10
                     NameExpr@9..10
                       Name@9..10
@@ -11325,14 +11354,14 @@ fn recover_get_stmt_missing_item() {
                 GetStmt@0..23
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   GetItem@9..9
                   Comma@9..10 ","
                   Whitespace@10..11 " "
@@ -11371,14 +11400,14 @@ fn recover_get_stmt_missing_item_in_list() {
                 GetStmt@0..23
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
-                  StreamNum@4..9
+                  StreamNum@4..7
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
                     NameExpr@6..7
                       Name@6..7
                         Identifier@6..7 "s"
-                    Comma@7..8 ","
-                    Whitespace@8..9 " "
+                  Comma@7..8 ","
+                  Whitespace@8..9 " "
                   GetItem@9..10
                     NameExpr@9..10
                       Name@9..10
@@ -11416,11 +11445,11 @@ fn recover_get_stmt_missing_stream_expr() {
                 GetStmt@0..23
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
-                  StreamNum@4..8
+                  StreamNum@4..6
                     Colon@4..5 ":"
                     Whitespace@5..6 " "
-                    Comma@6..7 ","
-                    Whitespace@7..8 " "
+                  Comma@6..7 ","
+                  Whitespace@7..8 " "
                   GetItem@8..9
                     NameExpr@8..9
                       Name@8..9
@@ -11462,6 +11491,7 @@ fn recover_just_get() {
                 GetStmt@0..3
                   KwGet@0..3 "get"
                   GetItem@3..3
+            error at 0..3: expected ‘:’ or ‘,’
             error at 0..3: expected expression"#]],
     );
 }
@@ -11490,7 +11520,8 @@ fn recover_on_get() {
                   Whitespace@21..22 " "
                   GetItem@22..26
                     KwSkip@22..26 "skip"
-            error at 18..21: expected expression, but found ‘get’"#]],
+            error at 18..21: expected expression, but found ‘get’
+            error at 22..26: expected ‘:’ or ‘,’, but found ‘skip’"#]],
     );
 }
 

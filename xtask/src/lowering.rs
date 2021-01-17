@@ -294,7 +294,7 @@ fn try_as_group(rule: &Rule, g: &Grammar) -> Option<Vec<Variant>> {
 fn visit_terminal_rule(rule: &Rule, g: &Grammar, children: &mut Vec<Child>) -> Option<Child> {
     match rule {
         Rule::Labeled { label, rule } => {
-            let manual_impl = &["lhs", "op", "rhs", "literal"];
+            let manual_impl = &["lhs", "op", "rhs", "literal", "io_cap"];
 
             if manual_impl.contains(&label.as_str()) {
                 // skip over for now

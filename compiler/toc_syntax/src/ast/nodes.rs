@@ -1370,6 +1370,9 @@ impl PutStmt {
     pub fn stream_num(&self) -> Option<StreamNum> {
         helper::node(&self.0)
     }
+    pub fn comma_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::Comma)
+    }
     pub fn items(&self) -> impl Iterator<Item = PutItem> + '_ {
         helper::nodes(&self.0)
     }
@@ -1403,6 +1406,9 @@ impl GetStmt {
     }
     pub fn stream_num(&self) -> Option<StreamNum> {
         helper::node(&self.0)
+    }
+    pub fn comma_token(&self) -> Option<SyntaxToken> {
+        helper::token(&self.0, SyntaxKind::Comma)
     }
     pub fn items(&self) -> impl Iterator<Item = GetItem> + '_ {
         helper::nodes(&self.0)
@@ -1488,10 +1494,7 @@ impl SeekStmt {
     pub fn seek_token(&self) -> Option<SyntaxToken> {
         helper::token(&self.0, SyntaxKind::KwSeek)
     }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn file_ref(&self) -> Option<Reference> {
+    pub fn stream_num(&self) -> Option<StreamNum> {
         helper::node(&self.0)
     }
     pub fn comma_token(&self) -> Option<SyntaxToken> {
@@ -1528,10 +1531,7 @@ impl TellStmt {
     pub fn tell_token(&self) -> Option<SyntaxToken> {
         helper::token(&self.0, SyntaxKind::KwTell)
     }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn file_ref(&self) -> Option<Reference> {
+    pub fn stream_num(&self) -> Option<StreamNum> {
         helper::node(&self.0)
     }
     pub fn comma_token(&self) -> Option<SyntaxToken> {
@@ -3005,26 +3005,7 @@ impl AstNode for IoCap {
         &self.0
     }
 }
-impl IoCap {
-    pub fn get_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwGet)
-    }
-    pub fn put_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPut)
-    }
-    pub fn read_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwRead)
-    }
-    pub fn write_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwWrite)
-    }
-    pub fn seek_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSeek)
-    }
-    pub fn mod_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwMod)
-    }
-}
+impl IoCap {}
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct OldClose(SyntaxNode);
@@ -3110,9 +3091,6 @@ impl StreamNum {
     }
     pub fn expr(&self) -> Option<Expr> {
         helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
     }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3263,11 +3241,11 @@ impl AstNode for BinaryIO {
     }
 }
 impl BinaryIO {
+    pub fn stream_num(&self) -> Option<StreamNum> {
+        helper::node(&self.0)
+    }
     pub fn colon_token(&self) -> Option<SyntaxToken> {
         helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn file_ref(&self) -> Option<Reference> {
-        helper::node(&self.0)
     }
     pub fn status(&self) -> Option<Reference> {
         helper::node(&self.0)
@@ -3756,10 +3734,10 @@ impl AstNode for QuitCause {
     }
 }
 impl QuitCause {
-    pub fn AtCaller(&self) -> Option<SyntaxToken> {
+    pub fn at_caller(&self) -> Option<SyntaxToken> {
         helper::token(&self.0, SyntaxKind::Less)
     }
-    pub fn BubbleUp(&self) -> Option<SyntaxToken> {
+    pub fn bubble_up(&self) -> Option<SyntaxToken> {
         helper::token(&self.0, SyntaxKind::Greater)
     }
 }

@@ -795,6 +795,7 @@ fn put_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
         stream_num(p);
+        p.expect_punct(TokenKind::Comma);
 
         put_item(p);
         while p.eat(TokenKind::Comma) {
@@ -849,6 +850,7 @@ fn get_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
         stream_num(p);
+        p.expect_punct(TokenKind::Comma);
 
         get_item(p);
         while p.eat(TokenKind::Comma) {
@@ -888,19 +890,6 @@ fn get_width(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::GetWidth))
 }
 
-fn stream_num(p: &mut Parser) -> Option<CompletedMarker> {
-    if !p.at(TokenKind::Colon) {
-        return None;
-    }
-
-    let m = p.start();
-    p.expect_punct(TokenKind::Colon);
-    expr::expect_expr(p);
-    p.expect_punct(TokenKind::Comma);
-
-    Some(m.complete(p, SyntaxKind::StreamNum))
-}
-
 fn read_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Read));
 
@@ -928,8 +917,10 @@ fn binary_io(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.with_extra_recovery(&[TokenKind::Colon, TokenKind::Comma], |p| {
         // file_ref
-        p.expect_punct(TokenKind::Colon);
-        expect_expr(p);
+        stream_num(p).or_else(|| {
+            p.error_unexpected().dont_eat().report();
+            None
+        });
 
         // status
         if p.eat(TokenKind::Colon) {
@@ -980,9 +971,10 @@ fn seek_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     // file_ref
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        p.expect_punct(TokenKind::Colon);
-
-        expr::expect_expr(p);
+        stream_num(p).or_else(|| {
+            p.error_unexpected().dont_eat().report();
+            None
+        });
     });
 
     // seek_to
@@ -1002,9 +994,10 @@ fn tell_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 
     // file_ref
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        p.expect_punct(TokenKind::Colon);
-
-        expr::expect_expr(p);
+        stream_num(p).or_else(|| {
+            p.error_unexpected().dont_eat().report();
+            None
+        });
     });
 
     // tell_store
@@ -1012,6 +1005,18 @@ fn tell_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     expr::expect_expr(p);
 
     Some(m.complete(p, SyntaxKind::TellStmt))
+}
+
+fn stream_num(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::Colon) {
+        return None;
+    }
+
+    let m = p.start();
+    p.expect_punct(TokenKind::Colon);
+    expr::expect_expr(p);
+
+    Some(m.complete(p, SyntaxKind::StreamNum))
 }
 
 fn for_stmt(p: &mut Parser) -> Option<CompletedMarker> {

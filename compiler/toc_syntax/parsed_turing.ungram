@@ -343,9 +343,11 @@ NewOpen =
   ':' Reference ',' OpenPath ',' io_caps:( IoCap ( ',' IoCap )* )
 
 IoCap =
-  'get' | 'put'
-| 'read' | 'write'
-| 'seek' | 'mod'
+  io_cap:(
+    'get' | 'put'
+    | 'read' | 'write'
+    | 'seek' | 'mod'
+  )
 
 CloseStmt =
   'close' CloseKind
@@ -361,7 +363,7 @@ NewClose =
   ':' Reference
 
 PutStmt =
-  'put' StreamNum? items:( PutItem ( ',' PutItem )* ) '..'?
+  'put' ( StreamNum ',' )? items:( PutItem ( ',' PutItem )* ) '..'?
 
 // Propose to change to PutKind alternation, PutItem putting, SkipItem covering both
 PutItem =
@@ -372,7 +374,7 @@ PutOpt =
   ':' Expr
 
 GetStmt =
-  'get' StreamNum? items:( GetItem ( ',' GetItem )* )
+  'get' ( StreamNum ',' )? items:( GetItem ( ',' GetItem )* )
 
 // Propose to change to GetKind alternation, GettItem getting, SkipItem covering both
 GetItem =
@@ -382,9 +384,6 @@ GetItem =
 GetWidth =
   ':' ( Expr | '*' )
 
-StreamNum =
-  ':' Expr ','
-
 ReadStmt =
   'read' BinaryIO
 
@@ -392,7 +391,7 @@ WriteStmt =
   'write' BinaryIO
   
 BinaryIO =
-  ':' file_ref:Reference ( ':' status:Reference )? ',' items:( BinaryItem ( ',' BinaryItem )* )
+  StreamNum ( ':' status:Reference )? ',' items:( BinaryItem ( ',' BinaryItem )* )
 
 BinaryItem =
   Reference RequestSize? ActualSize? 
@@ -405,10 +404,13 @@ ActualSize =
 
 // Promote seek_to to a node (as well as tell_to)
 SeekStmt =
-  'seek' ':' file_ref:Reference ',' ( '*' | Expr )
+  'seek' StreamNum ',' ( '*' | Expr )
 
 TellStmt =
-  'tell' ':' file_ref:Reference ',' tell_to:Reference
+  'tell' StreamNum ',' tell_to:Reference
+
+StreamNum =
+  ':' Expr
 
 ForStmt =
   'for' 'decreasing'? Name? ':' ForBounds steps:StepBy?
@@ -867,16 +869,14 @@ ConditionKind =
 
 EndGroup =
   'end'
-  (
-    'identifier'
-  | 'case'
-  | 'for'
-  | 'if'
-  | 'loop'
-  | 'handler'
-  | 'union'
-  | 'record'
-  )
+| 'end' 'identifier'
+| 'end' 'case'
+| 'end' 'for'
+| 'end' 'if'
+| 'end' 'loop'
+| 'end' 'handler'
+| 'end' 'union'
+| 'end' 'record'
 | 'endcase'
 | 'endfor'
 | 'endif'
