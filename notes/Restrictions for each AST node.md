@@ -587,7 +587,7 @@ node restrictions.
 
 ### `SizeOfExpr`
 
-- None
+- `size_for` must be either an `Expr` or `PrimType`
 
 ### `BinaryExpr`
 

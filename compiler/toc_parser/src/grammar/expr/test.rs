@@ -4643,35 +4643,29 @@ fn parse_sizeof_expr_ty_prim_dyn_sized() {
 }
 
 #[test]
-fn recover_sizeof_expr_not_ty_prim() {
+fn parse_sizeof_expr_not_ty_prim() {
+    // reject in validation
     check(
         "_:=sizeof(collection of int)",
         expect![[r#"
             Source@0..28
-              AssignStmt@0..21
+              AssignStmt@0..28
                 NameExpr@0..1
                   Name@0..1
                     Identifier@0..1 "_"
                 AsnOp@1..3
                   Assign@1..3 ":="
-                SizeOfExpr@3..21
+                SizeOfExpr@3..28
                   KwSizeOf@3..9 "sizeof"
                   LeftParen@9..10 "("
-                  Error@10..21
+                  CollectionType@10..27
                     KwCollection@10..20 "collection"
                     Whitespace@20..21 " "
-              Error@21..24
-                KwOf@21..23 "of"
-                Whitespace@23..24 " "
-              Error@24..28
-                PrimType@24..27
-                  KwInt@24..27 "int"
-                RightParen@27..28 ")"
-            error at 10..20: expected expression, but found ‘collection’
-            error at 21..23: expected ‘)’, but found ‘of’
-            error at 21..23: expected statement, but found ‘of’
-            error at 27..28: expected ‘@’, but found ‘)’
-            error at 27..28: expected statement"#]],
+                    KwOf@21..23 "of"
+                    Whitespace@23..24 " "
+                    PrimType@24..27
+                      KwInt@24..27 "int"
+                  RightParen@27..28 ")""#]],
     );
 }
 

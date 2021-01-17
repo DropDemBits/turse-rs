@@ -370,7 +370,7 @@ fn sizeof_expr(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.expect_punct(TokenKind::LeftParen);
     p.with_extra_recovery(&[TokenKind::RightParen], |p| {
-        ty::ty_primitive(p).or_else(|| expect_expr(p))
+        ty::ty_structured(p).or_else(|| expect_expr(p))
     });
     p.expect_punct(TokenKind::RightParen);
 

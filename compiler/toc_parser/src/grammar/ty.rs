@@ -5,6 +5,29 @@ mod test;
 use super::*;
 
 pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
+    ty_or_ty_expr(p, true)
+}
+
+/// Only to be used in sizeof_expr
+pub(super) fn ty_structured(p: &mut Parser) -> Option<CompletedMarker> {
+    ty_or_ty_expr(p, false)
+}
+
+pub(super) fn ty_primitive(p: &mut Parser) -> Option<CompletedMarker> {
+    // TODO: Add 64 bit types (int8, nat8, long int, long nat)
+    match_token!(|p| match {
+        TokenKind::Addressint,
+        TokenKind::Boolean,
+        TokenKind::Int, TokenKind::Int1, TokenKind::Int2, TokenKind::Int4,
+        TokenKind::Nat, TokenKind::Nat1, TokenKind::Nat2, TokenKind::Nat4,
+        TokenKind::Real, TokenKind::Real4, TokenKind::Real8 => { prim_type(p) }
+        TokenKind::Char => { prim_charseq_type(p, TokenKind::Char) }
+        TokenKind::String_ => { prim_charseq_type(p, TokenKind::String_) }
+        _ => None // Not a primitive type
+    })
+}
+
+fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker> {
     ty_primitive(p).or_else(|| {
         match_token!(|p| match {
             TokenKind::Flexible,
@@ -24,39 +47,29 @@ pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Timeout,
             TokenKind::Condition => { condition_type(p) } // condition_type
             _ => {
-                expr::expr(p).and_then(|cm| {
-                    // either name type or range type
-                    // further checks are pushed down to AST validation
-                    // so e.g. int literals are allowed in type position
-                    if p.at(TokenKind::Range) {
-                        // range tail
-                        range_type_tail(p, cm)
-                    } else {
-                        // Enclose expr (potential name ref) inside NameType
-                        Some(cm.precede(p).complete(p, SyntaxKind::NameType))
-                    }
-                })
-                .or_else(|| {
-                    // not a ty
-                    p.error_unexpected().with_category(Expected::Type).report();
+                if allow_ty_expr {
+                    expr::expr(p).and_then(|cm| {
+                        // either name type or range type
+                        // further checks are pushed down to AST validation
+                        // so e.g. int literals are allowed in type position
+                        if p.at(TokenKind::Range) {
+                            // range tail
+                            range_type_tail(p, cm)
+                        } else {
+                            // Enclose expr (potential name ref) inside NameType
+                            Some(cm.precede(p).complete(p, SyntaxKind::NameType))
+                        }
+                    })
+                    .or_else(|| {
+                        // not a ty
+                        p.error_unexpected().with_category(Expected::Type).report();
+                        None
+                    })
+                } else {
                     None
-                })
+                }
             }
         })
-    })
-}
-
-pub(super) fn ty_primitive(p: &mut Parser) -> Option<CompletedMarker> {
-    // TODO: Add 64 bit types (int8, nat8, long int, long nat)
-    match_token!(|p| match {
-        TokenKind::Addressint,
-        TokenKind::Boolean,
-        TokenKind::Int, TokenKind::Int1, TokenKind::Int2, TokenKind::Int4,
-        TokenKind::Nat, TokenKind::Nat1, TokenKind::Nat2, TokenKind::Nat4,
-        TokenKind::Real, TokenKind::Real4, TokenKind::Real8 => { prim_type(p) }
-        TokenKind::Char => { prim_charseq_type(p, TokenKind::Char) }
-        TokenKind::String_ => { prim_charseq_type(p, TokenKind::String_) }
-        _ => None // Not a primitive type
     })
 }
 

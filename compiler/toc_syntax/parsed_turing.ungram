@@ -598,7 +598,7 @@ NilExpr =
   ')'
 
 SizeOfExpr =
-  'sizeof' '(' ( PrimType |  Expr ) ')'
+  'sizeof' '(' size_for:( Type |  Expr ) ')'
 
 BinaryExpr =
   lhs:Expr
