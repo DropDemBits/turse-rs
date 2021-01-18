@@ -1,5 +1,6 @@
 //! AST nodes
 mod nodes;
+mod nodes_ext;
 
 use super::SyntaxNode;
 pub use nodes::*;

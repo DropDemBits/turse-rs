@@ -368,6 +368,7 @@ pub enum SyntaxKind {
     ConditionKind,
     RangeList,
     EndGroup,
+    UnsizedBound,
 }
 
 impl From<TokenKind> for SyntaxKind {
@@ -576,7 +577,7 @@ pub const MIN_REF_BINDING_POWER: u8 = 19;
 pub enum BinaryOp {
     /// Addition / Set Union / String Concatenation (`+`)
     Add,
-    /// Subtraction / Set Subtraction (`*`)
+    /// Subtraction / Set Subtraction (`-`)
     Sub,
     /// Multiplication / Set Intersection (`*`)
     Mul,
@@ -680,5 +681,79 @@ impl UnaryOp {
             Self::NatCheat => ((), 20),
             Self::Deref => ((), 24),
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum IoKind {
+    /// `get` operation is allowed
+    Get,
+    /// `put` operation is allowed
+    Put,
+    /// `read` operation is allowed
+    Read,
+    /// `write` operation is allowed
+    Write,
+    /// `seek` and `tell` operations are allowed
+    Seek,
+    /// Existing file is opened for modification, instead of overwriting it
+    Mod,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum AssignOp {
+    /// Plain assignment
+    None,
+    /// Addition / Set Union / String Concatenation (`+`)
+    Add,
+    /// Subtraction / Set Subtraction (`-`)
+    Sub,
+    /// Multiplication / Set Intersection (`*`)
+    Mul,
+    /// Integer Division (`div`)
+    Div,
+    /// Real Division (`/`)
+    RealDiv,
+    /// Modulo (`mod`)
+    Mod,
+    /// Remainder (`rem`)
+    Rem,
+    /// Exponentiation (`**`)
+    Exp,
+    /// Bitwise/boolean And (`and`)
+    And,
+    /// Bitwise/boolean Or (`or`)
+    Or,
+    /// Bitwise/boolean Exclusive-Or (`xor`)
+    Xor,
+    /// Logical Shift Left (`shl`)
+    Shl,
+    /// Logical Shift Right (`shr`)
+    Shr,
+    /// Material Implication (`=>`)
+    Imply,
+}
+
+impl AssignOp {
+    pub fn as_binary_op(self) -> Option<BinaryOp> {
+        let op = match self {
+            AssignOp::Add => BinaryOp::Add,
+            AssignOp::Sub => BinaryOp::Sub,
+            AssignOp::Mul => BinaryOp::Mul,
+            AssignOp::Div => BinaryOp::Div,
+            AssignOp::RealDiv => BinaryOp::RealDiv,
+            AssignOp::Mod => BinaryOp::Mod,
+            AssignOp::Rem => BinaryOp::Rem,
+            AssignOp::Exp => BinaryOp::Exp,
+            AssignOp::And => BinaryOp::And,
+            AssignOp::Or => BinaryOp::Or,
+            AssignOp::Xor => BinaryOp::Xor,
+            AssignOp::Shl => BinaryOp::Shl,
+            AssignOp::Shr => BinaryOp::Shr,
+            AssignOp::Imply => BinaryOp::Imply,
+            _ => return None,
+        };
+
+        Some(op)
     }
 }

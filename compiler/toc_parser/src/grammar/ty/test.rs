@@ -629,7 +629,8 @@ fn parse_unbounded_range_type() {
                       Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
-                    Star@14..15 "*""#]],
+                    UnsizedBound@14..15
+                      Star@14..15 "*""#]],
     );
 }
 
@@ -1223,7 +1224,8 @@ fn parse_set_type_of_unbounded_range() {
                         Whitespace@17..18 " "
                       Range@18..20 ".."
                       Whitespace@20..21 " "
-                      Star@21..22 "*""#]],
+                      UnsizedBound@21..22
+                        Star@21..22 "*""#]],
     );
 }
 

@@ -445,7 +445,11 @@ fn range_type_tail(p: &mut Parser, lhs: CompletedMarker) -> Option<CompletedMark
     let m = lhs.precede(p);
     p.bump();
 
-    if !p.eat(TokenKind::Star) {
+    if p.at(TokenKind::Star) {
+        let m = p.start();
+        p.bump();
+        m.complete(p, SyntaxKind::UnsizedBound);
+    } else {
         // Just a regular range bound
         expr::expect_expr(p);
     }

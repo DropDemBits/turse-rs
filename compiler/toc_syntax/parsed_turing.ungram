@@ -10,31 +10,31 @@ NameList =
 // Attributes  //
 //*************//
 
+// We only care about the presence of the node, so the tokens can be hidden
+
 UnqualifiedAttr =
-  '~' '.'
-| 'unqualified'
+  attr:( '~' '.' | 'unqualified' )
 
 PervasiveAttr =
-  '*'
-| 'pervasive'
+  attr:( '*' | 'pervasive' )
 
 RegisterAttr =
-  'register'
+  attr:'register'
 
 ConstAttr =
-  'const'
+  attr:'const'
 
 VarAttr =
-  'var'
+  attr:'var'
 
 CheatAttr =
-  'cheat'
+  attr:'cheat'
 
 ForwardAttr =
-  'forward'
+  attr:'forward'
 
 OpaqueAttr =
-  'opaque'
+  attr:'opaque'
 
 //***************************//
 //      Top Level Items      //
@@ -63,15 +63,19 @@ PPInclude =
   'include' path:'string_literal'
 
 PPIf =
-  '#if' PPExpr 'then'
+  '#if' condition:PPExpr 'then'
     PPTokenBody
-  ( PPElse | PPElseif )?
+  false_branch:PPFalseBranch?
   PPEndIf
 
 PPElseif =
-  ( '#elseif' | '#elsif' ) PPExpr 'then'
+  ( '#elseif' | '#elsif' ) condition:PPExpr 'then'
     PPTokenBody
-  ( PPElse | PPElseif )?
+  false_branch:PPFalseBranch?
+
+PPFalseBranch =
+  PPElseif
+| PPElse
 
 PPElse =
   '#else' PPTokenBody
@@ -102,7 +106,7 @@ PPParenExpr =
   '(' PPExpr ')'
 
 PPTokenBody =
-  Stmt*
+  stmts:Stmt*
 
 //***************************//
 // Statements & Declarations //
@@ -303,24 +307,24 @@ AssignStmt =
   Expr
 
 AsnOp = 
-  ':='
-| (
-    ( '=>' 
-    | 'or' | '|' // aliases
-    | 'and' | '&' // aliases
-    | '+'
-    | '-'
-    | 'xor'
-    | '*'
-    | '/'
-    | 'div'
-    | 'mod'
-    | 'rem'
-    | 'shl'
-    | 'shr'
-    | '**'
-    )
-    '='
+  asn_kind:(
+    ':='
+  | '=>' '='
+  | 'or' '='
+  | '|' '=' // alias
+  | 'and' '='
+  | '&' '=' // alias
+  | '+' '='
+  | '-' '='
+  | 'xor' '='
+  | '*' '='
+  | '/' '='
+  | 'div' '='
+  | 'mod' '='
+  | 'rem' '='
+  | 'shl' '='
+  | 'shr' '='
+  | '**' '='
   )
 
 OpenStmt =
@@ -343,10 +347,10 @@ NewOpen =
   ':' Reference ',' OpenPath ',' io_caps:( IoCap ( ',' IoCap )* )
 
 IoCap =
-  io_cap:(
-    'get' | 'put'
-    | 'read' | 'write'
-    | 'seek' | 'mod'
+  io_kind:(
+    'get'  | 'put'
+  | 'read' | 'write'
+  | 'seek' | 'mod'
   )
 
 CloseStmt =
@@ -402,9 +406,8 @@ RequestSize =
 ActualSize =
   ':' Reference
 
-// Promote seek_to to a node (as well as tell_to)
 SeekStmt =
-  'seek' StreamNum ',' ( '*' | Expr )
+  'seek' StreamNum ',' ( '*' | seek_to:Expr )
 
 TellStmt =
   'tell' StreamNum ',' tell_to:Reference
@@ -421,7 +424,7 @@ ForBounds =
   from:Expr ( '..' to:Expr )?
 
 StepBy =
-  'by' change_by:Expr
+  'by' Expr
 
 LoopStmt =
   'loop'
@@ -438,7 +441,11 @@ IfStmt =
 IfBody =
   condition:Expr 'then'
     true_branch:StmtList
-    ( ElseStmt | ElseifStmt )?
+    false_branch:FalseBranch?
+
+FalseBranch =
+  ElseifStmt
+| ElseStmt
 
 ElseStmt =
   'else' StmtList EndGroup?
@@ -474,13 +481,13 @@ ResultStmt =
   'result' Expr
 
 NewStmt =
-  'new' ( specialize_to:Reference ',' )? Reference ','? new_bounds:( Expr (',' Expr)* )
+  'new' ExprList
 
 FreeStmt =
-  'free' ( specialize_to:Reference ',' )? Reference
+  'free' ExprList
 
 TagStmt =
-  'tag' Reference ',' Expr
+  'tag' tag_ref:Reference ',' tag_val:Expr
 
 ForkStmt =
   'fork' Reference ParamList? ForkStatus? StackSize? ProcessDesc?
@@ -498,7 +505,7 @@ SignalStmt =
   'signal' Reference
 
 WaitStmt =
-  'wait' Reference ( ',' wait_arg:Expr )?
+  'wait' wait_ref:Reference ( ',' wait_arg:Expr )?
 
 PauseStmt =
   'pause' Expr
@@ -551,7 +558,7 @@ ExportStmt =
   'export' '('? exports:( ExportItem ( ',' ExportItem )* ) ')'?
 
 ExportItem =
-  attrs:ExportAttr* Name
+  attrs:ExportAttr* ( Name | 'all' )
 
 ExportAttr =
   VarAttr
@@ -577,7 +584,7 @@ ExternalItem =
 //*************//
 
 ExprList =
-  Expr ( ',' Expr )*
+  exprs:( Expr ( ',' Expr )* )
 
 Expr =
   LiteralExpr // primary expr
@@ -624,7 +631,7 @@ NilExpr =
   ')'
 
 SizeOfExpr =
-  'sizeof' '(' size_of:( Type | Expr ) ')'
+  'sizeof' '(' ( ty_size:Type | ref_size:Reference ) ')'
 
 BinaryExpr =
   lhs:Expr
@@ -657,14 +664,6 @@ UnaryExpr =
 ParenExpr =
   '(' Expr ')'
 
-// as reference if Expr is a Reference, otherwise as expr
-// Turing: register var refs are not considered as valid lhs exprs
-CheatExpr =
-  'cheat' '(' Type ',' Expr SizeSpec? ')'
-
-SizeSpec =
-  ':' Expr
-
 //*************//
 // References  //
 //*************//
@@ -674,6 +673,7 @@ Reference =
 | SelfExpr
 | FieldExpr
 | DerefExpr
+| CheatExpr
 | NatCheatExpr
 | ArrowExpr
 | IndirectExpr
@@ -695,6 +695,14 @@ ArrowExpr =
 DerefExpr =
   '^' Reference
 
+// as reference if Expr is a Reference, otherwise as expr
+// Turing: register var refs are not considered as valid lhs exprs
+CheatExpr =
+  'cheat' '(' Type ',' Expr SizeSpec? ')'
+
+SizeSpec =
+  ':' Expr
+
 NatCheatExpr =
   '#' Expr
 
@@ -706,7 +714,7 @@ IndirectTy =
 | NameType
 
 BitsExpr =
-  'bits' '(' Expr ',' BitRange ')'
+  'bits' '(' Expr ',' bit_range:BitRange ')'
 
 BitRange =
   RangeSpec
@@ -718,9 +726,7 @@ CallExpr =
   Reference ParamList
 
 ParamList =
-  '('
-    ( Param* )
-  ')'
+  '(' Param* ')'
 
 Param =
   ParamKind ','?
@@ -763,12 +769,14 @@ Type =
 | ConditionType
 
 PrimType =
-  'int' | 'int1' | 'int2' | 'int4'
-| 'nat' | 'nat1' | 'nat2' | 'nat4'
-| 'real' | 'real4' | 'real8'
-| 'boolean'
-| 'char' | 'string'
-| SizedCharType | SizedStringType
+  prim:(
+    'int' | 'int1' | 'int2' | 'int4'
+  | 'nat' | 'nat1' | 'nat2' | 'nat4'
+  | 'real' | 'real4' | 'real8'
+  | 'boolean'
+  | 'char' | 'string'
+  | SizedCharType | SizedStringType
+  )
 
 SizedCharType =
   'char' '(' SeqLength ')'
@@ -788,7 +796,14 @@ RangeType =
   RangeSpec
 
 RangeSpec =
-  begin:Expr '..' ( '*' | Expr )
+  begin:Expr '..' end:EndBound
+
+EndBound =
+  UnsizedBound
+| Expr
+
+UnsizedBound =
+  '*'
 
 EnumType =
   'enum' '(' fields:( Name ( ',' Name )* ) ')'
