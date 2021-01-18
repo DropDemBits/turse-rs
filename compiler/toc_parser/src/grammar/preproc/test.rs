@@ -319,8 +319,7 @@ mod cond {
                           Whitespace@124..125 " "
                           KwIf@125..127 "if"
                           Whitespace@127..132 "\n    "
-                warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’
-                error at 108..115: expected ‘:’ or ‘,’, but found string literal"##]],
+                warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
         );
     }
 
@@ -417,9 +416,7 @@ mod cond {
                           Whitespace@162..163 " "
                           KwIf@163..165 "if"
                           Whitespace@165..170 "\n    "
-                warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’
-                error at 108..115: expected ‘:’ or ‘,’, but found string literal
-                error at 134..151: expected ‘:’ or ‘,’, but found string literal"##]],
+                warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
         );
     }
 

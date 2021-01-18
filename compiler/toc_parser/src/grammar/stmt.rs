@@ -794,8 +794,10 @@ fn put_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        stream_num(p);
-        p.expect_punct(TokenKind::Comma);
+        if p.at(TokenKind::Colon) {
+            stream_num(p);
+            p.expect_punct(TokenKind::Comma);
+        }
 
         put_item(p);
         while p.eat(TokenKind::Comma) {
@@ -849,8 +851,10 @@ fn get_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     p.with_extra_recovery(&[TokenKind::Comma], |p| {
-        stream_num(p);
-        p.expect_punct(TokenKind::Comma);
+        if p.at(TokenKind::Colon) {
+            stream_num(p);
+            p.expect_punct(TokenKind::Comma);
+        }
 
         get_item(p);
         while p.eat(TokenKind::Comma) {

@@ -10908,8 +10908,7 @@ fn parse_put_stmt() {
                   Comma@47..48 ","
                   Whitespace@48..49 " "
                   PutItem@49..53
-                    KwSkip@49..53 "skip"
-            error at 4..5: expected ‘:’ or ‘,’, but found identifier"#]],
+                    KwSkip@49..53 "skip""#]],
     );
 }
 
@@ -10952,8 +10951,7 @@ fn parse_put_stmt_opt_no_nl() {
                     NameExpr@4..5
                       Name@4..5
                         Identifier@4..5 "a"
-                  Range@5..7 ".."
-            error at 4..5: expected ‘:’ or ‘,’, but found identifier"#]],
+                  Range@5..7 "..""#]],
     );
 }
 
@@ -11204,7 +11202,6 @@ fn recover_just_put() {
                 PutStmt@0..3
                   KwPut@0..3 "put"
                   PutItem@3..3
-            error at 0..3: expected ‘:’ or ‘,’
             error at 0..3: expected expression"#]],
     );
 }
@@ -11233,8 +11230,7 @@ fn recover_on_put() {
                   Whitespace@21..22 " "
                   PutItem@22..26
                     KwSkip@22..26 "skip"
-            error at 18..21: expected expression, but found ‘put’
-            error at 22..26: expected ‘:’ or ‘,’, but found ‘skip’"#]],
+            error at 18..21: expected expression, but found ‘put’"#]],
     );
 }
 
@@ -11278,8 +11274,7 @@ fn parse_get_stmt() {
                       Colon@34..35 ":"
                       Whitespace@35..36 " "
                       LiteralExpr@36..38
-                        IntLiteral@36..38 "15"
-            error at 4..5: expected ‘:’ or ‘,’, but found identifier"#]],
+                        IntLiteral@36..38 "15""#]],
     )
 }
 
@@ -11491,7 +11486,6 @@ fn recover_just_get() {
                 GetStmt@0..3
                   KwGet@0..3 "get"
                   GetItem@3..3
-            error at 0..3: expected ‘:’ or ‘,’
             error at 0..3: expected expression"#]],
     );
 }
@@ -11520,8 +11514,7 @@ fn recover_on_get() {
                   Whitespace@21..22 " "
                   GetItem@22..26
                     KwSkip@22..26 "skip"
-            error at 18..21: expected expression, but found ‘get’
-            error at 22..26: expected ‘:’ or ‘,’, but found ‘skip’"#]],
+            error at 18..21: expected expression, but found ‘get’"#]],
     );
 }
 
