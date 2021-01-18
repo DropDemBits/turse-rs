@@ -7,5 +7,9 @@ members = [
     "fuzzers/parser_fuzz",
 ]
 
+default-members = [
+    "compiler/*",
+]
+
 [profile.release]
 debug = true
