@@ -82,11 +82,9 @@ impl CompletedMarker {
     /// Transforms a `CompletedMarker` back into a `Marker` for appending more tokens,
     /// or wrapping other syntax nodes
     pub(crate) fn precede(self, parser: &mut Parser) -> Marker {
-        let new_marker = parser.start().with_child(self.pos);
-
         // Modifying the child node is deferred to `complete`, allowing
         // a `precede` to be forgotten
 
-        new_marker
+        parser.start().with_child(self.pos)
     }
 }

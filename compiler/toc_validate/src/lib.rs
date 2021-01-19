@@ -156,16 +156,16 @@ pub(crate) enum BlockKind {
 
 impl BlockKind {
     fn is_top_level(self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::Main
-            | Self::Unit
-            | Self::Module
-            | Self::Class
-            | Self::Monitor
-            | Self::MonitorClass
-            | Self::MonitorDevice => true,
-            _ => false,
-        }
+                | Self::Unit
+                | Self::Module
+                | Self::Class
+                | Self::Monitor
+                | Self::MonitorClass
+                | Self::MonitorDevice
+        )
     }
 
     fn is_monitor(self) -> bool {
@@ -177,7 +177,7 @@ impl BlockKind {
 }
 
 pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
-    walk_blocks(start).nth(0).unwrap()
+    walk_blocks(start).next().unwrap()
 }
 
 pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {

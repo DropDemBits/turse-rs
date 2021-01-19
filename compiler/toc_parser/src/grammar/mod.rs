@@ -94,11 +94,6 @@
 // - collection_type
 // - condition_type
 
-mod expr;
-mod preproc;
-mod stmt;
-mod ty;
-
 /// Helper for matching tokens
 macro_rules! match_token {
     (|$parser:ident| match {
@@ -112,7 +107,10 @@ macro_rules! match_token {
     };
 }
 
-pub(self) use match_token;
+mod expr;
+mod preproc;
+mod stmt;
+mod ty;
 
 use crate::parser::marker::CompletedMarker;
 use crate::parser::Expected;

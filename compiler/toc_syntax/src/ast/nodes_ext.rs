@@ -5,7 +5,7 @@ use crate::{AssignOp, BinaryOp, IoKind, SyntaxElement, SyntaxKind, SyntaxToken, 
 
 impl PPBinaryExpr {
     pub fn lhs(&self) -> Option<PPExpr> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 
     pub fn op_kind(&self) -> Option<BinaryOp> {
@@ -40,17 +40,17 @@ impl PPUnaryExpr {
     }
 
     pub fn op_token(&self) -> Option<SyntaxToken> {
-        self.syntax().children_with_tokens().nth(0)?.into_token()
+        self.syntax().children_with_tokens().next()?.into_token()
     }
 
     pub fn rhs(&self) -> Option<PPExpr> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 }
 
 impl BinaryExpr {
     pub fn lhs(&self) -> Option<Expr> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 
     pub fn op_kind(&self) -> Option<BinaryOp> {
@@ -107,11 +107,11 @@ impl UnaryExpr {
     }
 
     pub fn op_token(&self) -> Option<SyntaxToken> {
-        self.syntax().children_with_tokens().nth(0)?.into_token()
+        self.syntax().children_with_tokens().next()?.into_token()
     }
 
     pub fn rhs(&self) -> Option<Expr> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 }
 
@@ -172,7 +172,7 @@ impl AsnOp {
 
 impl TagStmt {
     pub fn tag_ref(&self) -> Option<Reference> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 
     pub fn tag_val(&self) -> Option<Expr> {
@@ -182,7 +182,7 @@ impl TagStmt {
 
 impl WaitStmt {
     pub fn wait_ref(&self) -> Option<Reference> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 
     pub fn wait_val(&self) -> Option<Expr> {
@@ -202,7 +202,7 @@ impl PrimType {
 
 impl RangeSpec {
     pub fn begin(&self) -> Option<Expr> {
-        helper::nodes(self.syntax()).nth(0)
+        helper::nodes(self.syntax()).next()
     }
 
     pub fn end(&self) -> Option<EndBound> {

@@ -136,12 +136,10 @@ fn array_type(p: &mut Parser) -> Option<CompletedMarker> {
 
     let m = p.start();
 
-    if p.eat(TokenKind::Flexible) {
-        if !p.at(TokenKind::Array) {
-            // stop, not an array type
-            p.error_unexpected().with_marker(m).report();
-            return None;
-        }
+    if p.eat(TokenKind::Flexible) && !p.at(TokenKind::Array) {
+        // stop, not an array type
+        p.error_unexpected().with_marker(m).report();
+        return None;
     }
 
     // on 'array'

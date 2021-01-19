@@ -1,4 +1,5 @@
 //! Concrete Syntax Tree for the Turing language
+#[allow(clippy::match_like_matches_macro)]
 pub mod ast;
 
 use num_traits::{FromPrimitive, ToPrimitive};

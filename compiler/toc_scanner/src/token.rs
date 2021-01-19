@@ -639,8 +639,9 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
                 Ok(radix) if (2..=36).contains(&radix) => {
                     // valid radix
                     let value = lexical::parse_radix::<u64, _>(&digits_slice, radix);
-                    match value {
-                        Err(err) => match err.code {
+
+                    if let Err(err) = value {
+                        match err.code {
                             lexical::ErrorCode::Overflow => lexer
                                 .extras
                                 .push_error("explicit int literal is too large", lexer.span()),
@@ -667,8 +668,7 @@ fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {
                                 lexer.span(),
                             ),
                             _ => lexer.extras.push_error("invalid int literal", lexer.span()),
-                        },
-                        Ok(_) => { /* valid literal, don't do anything */ }
+                        }
                     }
                 }
                 _ => {

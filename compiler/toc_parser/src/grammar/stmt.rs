@@ -71,19 +71,19 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Import => { import_stmt(p) }
             TokenKind::Export => { export_stmt(p) }
             _ => expr::reference(p)
-                .and_then(|cm| {
+                .map(|cm| {
                     let m = cm.precede(p);
                     // check if there's an asn nearby
                     if parse_asn_op(p).is_some() {
                         // parse an assign stmt
                         expr::expect_expr(p);
 
-                        Some(m.complete(p, SyntaxKind::AssignStmt))
+                        m.complete(p, SyntaxKind::AssignStmt)
                     } else {
                         // cleanup expected tokens, parsed a thing
                         p.reset_expected_tokens();
                         // plop as a call stmt
-                        Some(m.complete(p, SyntaxKind::CallStmt))
+                        m.complete(p, SyntaxKind::CallStmt)
                     }
                 })
                 .or_else(|| preproc::stmt_preproc(p))

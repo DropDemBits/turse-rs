@@ -221,7 +221,7 @@ impl<'t, 'src> Parser<'t, 'src> {
         let current = self.source.peek_token();
 
         let (found, range) = current
-            .map(|tok| (tok.kind, tok.range.clone()))
+            .map(|tok| (tok.kind, tok.range))
             .expect("warning of alias at end of file");
 
         self.events.push(Event::Message(ParseMessage {
@@ -308,7 +308,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
         let current = self.p.source.peek_token();
 
         let (found, range) = match current {
-            Some(token) => (Some(token.kind), token.range.clone()),
+            Some(token) => (Some(token.kind), token.range),
             None => (None, self.p.source.last_token_range().unwrap()), // Last token always exists in a non-empty file
         };
 
