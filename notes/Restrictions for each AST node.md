@@ -207,6 +207,7 @@ node restrictions.
 
 ### `ModuleDecl`
 
+- Accepted only in top-level blocks
 - The identifier in `EndGroup` must match the `ModuleDecl`'s identifier
 - (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `ImplementStmt`
@@ -221,6 +222,7 @@ node restrictions.
 
 ### `ClassDecl`
 
+- Accepted only in top-level blocks that are not monitors or classes
 - The identifier in `EndGroup` must match the `ClassDecl`'s identifier
 - Always reject `DeviceSpec` node, regardless of if the `monitor` token is present
 - (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
@@ -237,6 +239,7 @@ node restrictions.
 
 ### `MonitorDecl`
 
+- Accepted only in top-level blocks that are not monitors
 - The identifier in `EndGroup` must match the `ClassDecl`'s identifier
 - (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
   - `InheritStmt`
@@ -421,11 +424,17 @@ node restrictions.
 
 ### `ReturnStmt`
 
+- Rejected in `FcnDecl`
+- (Semantic Restriction) Rejected in function-kind blocks
+  > `BodyDecl` has an unknown kind, so checking is copied over to semantic passes
 - Rejected in the top level of module-kind blocks
 
 ### `ResultStmt`
 
-- Only allowed in `FcnDecl`
+- Allowed in `FcnDecl` or function-kind blocks
+- (Semantic Restriction) Allowed in function-kind blocks
+  > `BodyDecl` has an unknown kind, so checking is copied over to semantic passes
+- Rejected in all other places not specified
 - (Type Restriction) expr must be a compatible type with the `FcnDecl`'s return value
 
 ### `NewStmt`

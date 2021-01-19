@@ -100,6 +100,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
     for node in root.descendants() {
         match_ast!(match node {
             ast::PreprocGlob(pp_glob) => validate_preproc_glob(pp_glob, ctx),
+            ast::ConstVarDecl(decl) => validate_constvar_decl(decl, ctx),
             ast::ModuleDecl(decl) => validate_module_decl(decl, ctx),
             ast::ClassDecl(decl) => validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => validate_monitor_decl(decl, ctx),
@@ -120,14 +121,38 @@ fn validate_preproc_glob(glob: ast::PreprocGlob, ctx: &mut ValidateCtx) {
     });
 }
 
+fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut ValidateCtx) {
+    if let Some(attr) = decl.register_attr() {
+        // 'register' attr is not allowed in top-level blocks:
+
+        if block_containing_node(decl.syntax()).is_top_level() {
+            ctx.push_error(
+                "‘register’ attribute is not allowed at module level",
+                attr.syntax().text_range(),
+            );
+        }
+    }
+
+    // TODO: stuff relating to init expr
+}
+
 fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
+    // Check contained in location
+    if !block_containing_node(decl.syntax()).is_top_level() {
+        ctx.push_error(
+            "modules can only be declared at the program, module, or monitor level",
+            decl.module_token().unwrap().text_range(),
+        );
+    }
+
     check_matching_names(decl.name(), decl.end_group(), ctx);
 }
 
 fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
+    let is_monitor_class = decl.monitor_token().is_some();
+
     if let Some(dev_spec) = decl.device_spec() {
-        decl.monitor_token()
-            .expect("non-monitor class has device spec");
+        assert!(is_monitor_class, "non-monitor class has device spec");
 
         ctx.push_error(
             "device specification is not allowed for monitor classes",
@@ -135,10 +160,75 @@ fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
         )
     }
 
+    // Check contained in location
+    if is_monitor_class {
+        // specialize for monitor classes
+        match block_containing_node(decl.syntax()) {
+            block if block.is_monitor() => {
+                ctx.push_error(
+                    "monitor classes cannot be declared inside of monitors",
+                    decl.class_token().unwrap().text_range(),
+                );
+            }
+            BlockKind::Class => {
+                ctx.push_error(
+                    "monitor classes cannot be declared inside of classes",
+                    decl.class_token().unwrap().text_range(),
+                );
+            }
+            block if !block.is_top_level() => {
+                ctx.push_error(
+                    "monitor classes can only be declared at the program, module, or monitor level",
+                    decl.class_token().unwrap().text_range(),
+                );
+            }
+            _ => {}
+        }
+    } else {
+        match block_containing_node(decl.syntax()) {
+            block if block.is_monitor() => {
+                ctx.push_error(
+                    "classes cannot be declared inside of monitors",
+                    decl.class_token().unwrap().text_range(),
+                );
+            }
+            BlockKind::Class => {
+                ctx.push_error(
+                    "classes cannot be declared inside of other classes",
+                    decl.class_token().unwrap().text_range(),
+                );
+            }
+            block if !block.is_top_level() => {
+                ctx.push_error(
+                    "classes can only be declared at the program, module, or monitor level",
+                    decl.class_token().unwrap().text_range(),
+                );
+            }
+            _ => {}
+        }
+    }
+
     check_matching_names(decl.name(), decl.end_group(), ctx);
 }
 
 fn validate_monitor_decl(decl: ast::MonitorDecl, ctx: &mut ValidateCtx) {
+    // Check contained in location
+    match block_containing_node(decl.syntax()) {
+        block if block.is_monitor() => {
+            ctx.push_error(
+                "monitors cannot be declared inside of other monitors",
+                decl.monitor_token().unwrap().text_range(),
+            );
+        }
+        block if !block.is_top_level() => {
+            ctx.push_error(
+                "monitors can only be declared at the program, module, or monitor level",
+                decl.monitor_token().unwrap().text_range(),
+            );
+        }
+        _ => {}
+    }
+
     check_matching_names(decl.name(), decl.end_group(), ctx);
 }
 
@@ -201,4 +291,95 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     let trimmed = buf.trim_end();
 
     expected.assert_eq(trimmed);
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum BlockKind {
+    Main,
+    Unit,
+    Module,
+    Class,
+    Monitor,
+    MonitorClass,
+    MonitorDevice,
+    Function,
+    Procedure,
+    Process,
+    Body,
+    Loop,
+    Inner,
+}
+
+impl BlockKind {
+    fn is_top_level(self) -> bool {
+        match self {
+            Self::Main
+            | Self::Unit
+            | Self::Module
+            | Self::Class
+            | Self::Monitor
+            | Self::MonitorClass
+            | Self::MonitorDevice => true,
+            _ => false,
+        }
+    }
+
+    fn is_monitor(self) -> bool {
+        matches!(
+            self,
+            BlockKind::Monitor | BlockKind::MonitorClass | BlockKind::MonitorDevice
+        )
+    }
+}
+
+fn block_containing_node(start: &SyntaxNode) -> BlockKind {
+    walk_blocks(start).nth(0).unwrap()
+}
+
+fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {
+    // walk up parents
+    let mut parent = start.parent();
+
+    std::iter::from_fn(move || {
+        let kind = loop {
+            match_ast!(match (parent.as_ref()?) {
+                ast::Source(src) =>
+                    break if src.unit_token().is_some() {
+                        BlockKind::Unit
+                    } else {
+                        BlockKind::Main
+                    },
+                ast::ModuleDecl(_m) => break BlockKind::Module,
+                ast::MonitorDecl(mon) =>
+                    break if mon.device_spec().is_some() {
+                        BlockKind::MonitorDevice
+                    } else {
+                        BlockKind::Monitor
+                    },
+                ast::ClassDecl(clz) =>
+                    break if clz.monitor_token().is_some() {
+                        BlockKind::MonitorClass
+                    } else {
+                        BlockKind::Class
+                    },
+                ast::FcnDecl(_f) => break BlockKind::Function,
+                ast::ProcDecl(_f) => break BlockKind::Procedure,
+                ast::ProcessDecl(_f) => break BlockKind::Process,
+                ast::BodyDecl(_o) => break BlockKind::Body,
+                ast::ForStmt(_f) => break BlockKind::Loop,
+                ast::LoopStmt(_f) => break BlockKind::Loop,
+                ast::IfStmt(_o) => break BlockKind::Inner,
+                ast::ElseifStmt(_o) => break BlockKind::Inner,
+                ast::ElseStmt(_o) => break BlockKind::Inner,
+                ast::CaseStmt(_o) => break BlockKind::Inner,
+                ast::BlockStmt(_o) => break BlockKind::Inner,
+                ast::HandlerStmt(_o) => break BlockKind::Inner,
+                _ => (),
+            });
+
+            parent = parent.as_ref()?.parent();
+        };
+
+        Some(kind)
+    })
 }
