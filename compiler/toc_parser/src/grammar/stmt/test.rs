@@ -4048,6 +4048,34 @@ fn parse_proc_plain() {
 }
 
 #[test]
+fn parse_proc_decl_embedded_import() {
+    check(
+        "proc a import () end a",
+        expect![[r#"
+        Source@0..22
+          StmtList@0..22
+            ProcDecl@0..22
+              ProcHeader@0..7
+                KwProcedure@0..4 "proc"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+              ImportStmt@7..17
+                KwImport@7..13 "import"
+                Whitespace@13..14 " "
+                LeftParen@14..15 "("
+                RightParen@15..16 ")"
+                Whitespace@16..17 " "
+              StmtList@17..17
+              EndGroup@17..22
+                KwEnd@17..20 "end"
+                Whitespace@20..21 " "
+                Identifier@21..22 "a""#]],
+    );
+}
+
+#[test]
 fn recover_proc_decl_missing_name() {
     check(
         r#"
@@ -7619,6 +7647,36 @@ fn parse_monitor_class_decl_opt_dev_spec() {
 }
 
 #[test]
+fn parse_monitor_class_decl_embedded_inherit() {
+    check(
+        "monitor class a inherit a end a",
+        expect![[r#"
+        Source@0..31
+          StmtList@0..31
+            ClassDecl@0..31
+              KwMonitor@0..7 "monitor"
+              Whitespace@7..8 " "
+              KwClass@8..13 "class"
+              Whitespace@13..14 " "
+              Name@14..16
+                Identifier@14..15 "a"
+                Whitespace@15..16 " "
+              InheritStmt@16..26
+                KwInherit@16..23 "inherit"
+                Whitespace@23..24 " "
+                ExternalItem@24..26
+                  Name@24..26
+                    Identifier@24..25 "a"
+                    Whitespace@25..26 " "
+              StmtList@26..26
+              EndGroup@26..31
+                KwEnd@26..29 "end"
+                Whitespace@29..30 " "
+                Identifier@30..31 "a""#]],
+    );
+}
+
+#[test]
 fn parse_process_decl() {
     check(
         r#"
@@ -7740,6 +7798,33 @@ fn parse_process_no_params() {
                     KwEnd@36..39 "end"
                     Whitespace@39..40 " "
                     Identifier@40..41 "a""#]],
+    );
+}
+
+#[test]
+fn parse_process_decl_embedded_import() {
+    check(
+        "process a import () end a",
+        expect![[r#"
+        Source@0..25
+          StmtList@0..25
+            ProcessDecl@0..25
+              KwProcess@0..7 "process"
+              Whitespace@7..8 " "
+              Name@8..10
+                Identifier@8..9 "a"
+                Whitespace@9..10 " "
+              ImportStmt@10..20
+                KwImport@10..16 "import"
+                Whitespace@16..17 " "
+                LeftParen@17..18 "("
+                RightParen@18..19 ")"
+                Whitespace@19..20 " "
+              StmtList@20..20
+              EndGroup@20..25
+                KwEnd@20..23 "end"
+                Whitespace@23..24 " "
+                Identifier@24..25 "a""#]],
     );
 }
 
