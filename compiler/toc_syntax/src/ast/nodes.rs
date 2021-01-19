@@ -19,14 +19,10 @@ impl AstNode for Name {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl Name {
-    pub fn identifier_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Identifier)
-    }
+    pub fn identifier_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Identifier) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -44,14 +40,10 @@ impl AstNode for NameList {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameList {
-    pub fn names(&self) -> impl Iterator<Item = Name> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn names(&self) -> impl Iterator<Item = Name> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -69,9 +61,7 @@ impl AstNode for UnqualifiedAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnqualifiedAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -90,9 +80,7 @@ impl AstNode for PervasiveAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PervasiveAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -111,9 +99,7 @@ impl AstNode for RegisterAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RegisterAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -132,9 +118,7 @@ impl AstNode for ConstAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ConstAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -153,9 +137,7 @@ impl AstNode for VarAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl VarAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -174,9 +156,7 @@ impl AstNode for CheatAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CheatAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -195,9 +175,7 @@ impl AstNode for ForwardAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForwardAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -216,9 +194,7 @@ impl AstNode for OpaqueAttr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OpaqueAttr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -237,20 +213,12 @@ impl AstNode for Source {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl Source {
-    pub fn unit_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwUnit)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
+    pub fn unit_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwUnit) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -268,23 +236,13 @@ impl AstNode for ImportStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ImportStmt {
-    pub fn import_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwImport)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn imports(&self) -> Option<ImportList> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn import_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwImport) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn imports(&self) -> Option<ImportList> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -302,14 +260,10 @@ impl AstNode for StmtList {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl StmtList {
-    pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -327,14 +281,10 @@ impl AstNode for PreprocGlob {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PreprocGlob {
-    pub fn directive(&self) -> Option<PreprocKind> {
-        helper::node(&self.0)
-    }
+    pub fn directive(&self) -> Option<PreprocKind> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -352,17 +302,11 @@ impl AstNode for PPInclude {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPInclude {
-    pub fn include_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwInclude)
-    }
-    pub fn path(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::StringLiteral)
-    }
+    pub fn include_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInclude) }
+    pub fn path(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::StringLiteral) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -380,29 +324,15 @@ impl AstNode for PPIf {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPIf {
-    pub fn pp_if_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::PPKwIf)
-    }
-    pub fn condition(&self) -> Option<PPExpr> {
-        helper::node(&self.0)
-    }
-    pub fn then_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwThen)
-    }
-    pub fn pp_token_body(&self) -> Option<PPTokenBody> {
-        helper::node(&self.0)
-    }
-    pub fn false_branch(&self) -> Option<PPFalseBranch> {
-        helper::node(&self.0)
-    }
-    pub fn pp_end_if(&self) -> Option<PPEndIf> {
-        helper::node(&self.0)
-    }
+    pub fn pp_if_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwIf) }
+    pub fn condition(&self) -> Option<PPExpr> { helper::node(&self.0) }
+    pub fn then_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwThen) }
+    pub fn pp_token_body(&self) -> Option<PPTokenBody> { helper::node(&self.0) }
+    pub fn false_branch(&self) -> Option<PPFalseBranch> { helper::node(&self.0) }
+    pub fn pp_end_if(&self) -> Option<PPEndIf> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -420,29 +350,15 @@ impl AstNode for PPElseif {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPElseif {
-    pub fn pp_elseif_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::PPKwElseif)
-    }
-    pub fn pp_elsif_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::PPKwElsif)
-    }
-    pub fn condition(&self) -> Option<PPExpr> {
-        helper::node(&self.0)
-    }
-    pub fn then_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwThen)
-    }
-    pub fn pp_token_body(&self) -> Option<PPTokenBody> {
-        helper::node(&self.0)
-    }
-    pub fn false_branch(&self) -> Option<PPFalseBranch> {
-        helper::node(&self.0)
-    }
+    pub fn pp_elseif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwElseif) }
+    pub fn pp_elsif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwElsif) }
+    pub fn condition(&self) -> Option<PPExpr> { helper::node(&self.0) }
+    pub fn then_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwThen) }
+    pub fn pp_token_body(&self) -> Option<PPTokenBody> { helper::node(&self.0) }
+    pub fn false_branch(&self) -> Option<PPFalseBranch> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -460,17 +376,11 @@ impl AstNode for PPElse {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPElse {
-    pub fn pp_else_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::PPKwElse)
-    }
-    pub fn pp_token_body(&self) -> Option<PPTokenBody> {
-        helper::node(&self.0)
-    }
+    pub fn pp_else_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwElse) }
+    pub fn pp_token_body(&self) -> Option<PPTokenBody> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -488,20 +398,12 @@ impl AstNode for PPEndIf {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPEndIf {
-    pub fn pp_end_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::PPKwEnd)
-    }
-    pub fn if_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwIf)
-    }
-    pub fn pp_endif_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::PPKwEndIf)
-    }
+    pub fn pp_end_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwEnd) }
+    pub fn if_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIf) }
+    pub fn pp_endif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwEndIf) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -519,14 +421,10 @@ impl AstNode for PPTokenBody {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPTokenBody {
-    pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn stmts(&self) -> impl Iterator<Item = Stmt> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -544,9 +442,7 @@ impl AstNode for PPBinaryExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPBinaryExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -565,9 +461,7 @@ impl AstNode for PPUnaryExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPUnaryExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -586,14 +480,10 @@ impl AstNode for PPNameExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPNameExpr {
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -611,20 +501,12 @@ impl AstNode for PPParenExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PPParenExpr {
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn pp_expr(&self) -> Option<PPExpr> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn pp_expr(&self) -> Option<PPExpr> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -642,38 +524,18 @@ impl AstNode for ConstVarDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ConstVarDecl {
-    pub fn var_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwVar)
-    }
-    pub fn const_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwConst)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn register_attr(&self) -> Option<RegisterAttr> {
-        helper::node(&self.0)
-    }
-    pub fn decl_list(&self) -> Option<NameList> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn type_spec(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn assign_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Assign)
-    }
-    pub fn init(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn var_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwVar) }
+    pub fn const_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwConst) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn register_attr(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn decl_list(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn type_spec(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
+    pub fn init(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -691,29 +553,15 @@ impl AstNode for TypeDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl TypeDecl {
-    pub fn type_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwType)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn decl_name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn forward_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwForward)
-    }
-    pub fn named_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn type_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwType) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn decl_name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn forward_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwForward) }
+    pub fn named_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -731,17 +579,11 @@ impl AstNode for BindDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BindDecl {
-    pub fn bind_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBind)
-    }
-    pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn bind_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBind) }
+    pub fn bindings(&self) -> impl Iterator<Item = BindItem> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -759,35 +601,17 @@ impl AstNode for ProcDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ProcDecl {
-    pub fn proc_header(&self) -> Option<ProcHeader> {
-        helper::node(&self.0)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn init_stmt(&self) -> Option<InitStmt> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn proc_header(&self) -> Option<ProcHeader> { helper::node(&self.0) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -805,35 +629,17 @@ impl AstNode for FcnDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FcnDecl {
-    pub fn fcn_header(&self) -> Option<FcnHeader> {
-        helper::node(&self.0)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn init_stmt(&self) -> Option<InitStmt> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn fcn_header(&self) -> Option<FcnHeader> { helper::node(&self.0) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -851,50 +657,22 @@ impl AstNode for ProcessDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ProcessDecl {
-    pub fn process_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwProcess)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn param_spec(&self) -> Option<ParamSpec> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn stack_size(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn init_stmt(&self) -> Option<InitStmt> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn process_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcess) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn stack_size(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -912,20 +690,12 @@ impl AstNode for ExternalDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExternalDecl {
-    pub fn external_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwExternal)
-    }
-    pub fn external_spec(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn external_kind(&self) -> Option<ExternalKind> {
-        helper::node(&self.0)
-    }
+    pub fn external_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwExternal) }
+    pub fn external_spec(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn external_kind(&self) -> Option<ExternalKind> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -943,23 +713,13 @@ impl AstNode for ForwardDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForwardDecl {
-    pub fn forward_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwForward)
-    }
-    pub fn subprog_header(&self) -> Option<SubprogHeader> {
-        helper::node(&self.0)
-    }
-    pub fn import_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwImport)
-    }
-    pub fn import_list(&self) -> Option<ImportList> {
-        helper::node(&self.0)
-    }
+    pub fn forward_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwForward) }
+    pub fn subprog_header(&self) -> Option<SubprogHeader> { helper::node(&self.0) }
+    pub fn import_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwImport) }
+    pub fn import_list(&self) -> Option<ImportList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -977,17 +737,11 @@ impl AstNode for DeferredDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl DeferredDecl {
-    pub fn deferred_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwDeferred)
-    }
-    pub fn subprog_header(&self) -> Option<SubprogHeader> {
-        helper::node(&self.0)
-    }
+    pub fn deferred_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwDeferred) }
+    pub fn subprog_header(&self) -> Option<SubprogHeader> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1005,35 +759,17 @@ impl AstNode for BodyDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BodyDecl {
-    pub fn body_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBody)
-    }
-    pub fn body_kind(&self) -> Option<BodyKind> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn init_stmt(&self) -> Option<InitStmt> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn body_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBody) }
+    pub fn body_kind(&self) -> Option<BodyKind> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1051,44 +787,20 @@ impl AstNode for ModuleDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ModuleDecl {
-    pub fn module_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwModule)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn implement_stmt(&self) -> Option<ImplementStmt> {
-        helper::node(&self.0)
-    }
-    pub fn implement_by_stmt(&self) -> Option<ImplementByStmt> {
-        helper::node(&self.0)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn export_stmt(&self) -> Option<ExportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn module_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwModule) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn implement_stmt(&self) -> Option<ImplementStmt> { helper::node(&self.0) }
+    pub fn implement_by_stmt(&self) -> Option<ImplementByStmt> { helper::node(&self.0) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn export_stmt(&self) -> Option<ExportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1106,53 +818,23 @@ impl AstNode for ClassDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ClassDecl {
-    pub fn monitor_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwMonitor)
-    }
-    pub fn class_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwClass)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn device_spec(&self) -> Option<DeviceSpec> {
-        helper::node(&self.0)
-    }
-    pub fn inherit_stmt(&self) -> Option<InheritStmt> {
-        helper::node(&self.0)
-    }
-    pub fn implement_stmt(&self) -> Option<ImplementStmt> {
-        helper::node(&self.0)
-    }
-    pub fn implement_by_stmt(&self) -> Option<ImplementByStmt> {
-        helper::node(&self.0)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn export_stmt(&self) -> Option<ExportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn monitor_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwMonitor) }
+    pub fn class_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwClass) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn device_spec(&self) -> Option<DeviceSpec> { helper::node(&self.0) }
+    pub fn inherit_stmt(&self) -> Option<InheritStmt> { helper::node(&self.0) }
+    pub fn implement_stmt(&self) -> Option<ImplementStmt> { helper::node(&self.0) }
+    pub fn implement_by_stmt(&self) -> Option<ImplementByStmt> { helper::node(&self.0) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn export_stmt(&self) -> Option<ExportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1170,47 +852,21 @@ impl AstNode for MonitorDecl {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl MonitorDecl {
-    pub fn monitor_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwMonitor)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn device_spec(&self) -> Option<DeviceSpec> {
-        helper::node(&self.0)
-    }
-    pub fn implement_stmt(&self) -> Option<ImplementStmt> {
-        helper::node(&self.0)
-    }
-    pub fn implement_by_stmt(&self) -> Option<ImplementByStmt> {
-        helper::node(&self.0)
-    }
-    pub fn import_stmt(&self) -> Option<ImportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn export_stmt(&self) -> Option<ExportStmt> {
-        helper::node(&self.0)
-    }
-    pub fn pre_stmt(&self) -> Option<PreStmt> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn post_stmt(&self) -> Option<PostStmt> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn monitor_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwMonitor) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn device_spec(&self) -> Option<DeviceSpec> { helper::node(&self.0) }
+    pub fn implement_stmt(&self) -> Option<ImplementStmt> { helper::node(&self.0) }
+    pub fn implement_by_stmt(&self) -> Option<ImplementByStmt> { helper::node(&self.0) }
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn export_stmt(&self) -> Option<ExportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1228,17 +884,11 @@ impl AstNode for AssignStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl AssignStmt {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1256,17 +906,11 @@ impl AstNode for OpenStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OpenStmt {
-    pub fn open_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwOpen)
-    }
-    pub fn open_kind(&self) -> Option<OpenKind> {
-        helper::node(&self.0)
-    }
+    pub fn open_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOpen) }
+    pub fn open_kind(&self) -> Option<OpenKind> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1284,17 +928,11 @@ impl AstNode for CloseStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CloseStmt {
-    pub fn close_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwClose)
-    }
-    pub fn close_kind(&self) -> Option<CloseKind> {
-        helper::node(&self.0)
-    }
+    pub fn close_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwClose) }
+    pub fn close_kind(&self) -> Option<CloseKind> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1312,26 +950,14 @@ impl AstNode for PutStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PutStmt {
-    pub fn put_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPut)
-    }
-    pub fn stream_num(&self) -> Option<StreamNum> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn items(&self) -> impl Iterator<Item = PutItem> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn range_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Range)
-    }
+    pub fn put_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPut) }
+    pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn items(&self) -> impl Iterator<Item = PutItem> + '_ { helper::nodes(&self.0) }
+    pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1349,23 +975,13 @@ impl AstNode for GetStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl GetStmt {
-    pub fn get_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwGet)
-    }
-    pub fn stream_num(&self) -> Option<StreamNum> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn items(&self) -> impl Iterator<Item = GetItem> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn get_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwGet) }
+    pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn items(&self) -> impl Iterator<Item = GetItem> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1383,17 +999,11 @@ impl AstNode for ReadStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ReadStmt {
-    pub fn read_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwRead)
-    }
-    pub fn binary_io(&self) -> Option<BinaryIO> {
-        helper::node(&self.0)
-    }
+    pub fn read_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwRead) }
+    pub fn binary_io(&self) -> Option<BinaryIO> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1411,17 +1021,11 @@ impl AstNode for WriteStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl WriteStmt {
-    pub fn write_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwWrite)
-    }
-    pub fn binary_io(&self) -> Option<BinaryIO> {
-        helper::node(&self.0)
-    }
+    pub fn write_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwWrite) }
+    pub fn binary_io(&self) -> Option<BinaryIO> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1439,26 +1043,14 @@ impl AstNode for SeekStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SeekStmt {
-    pub fn seek_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSeek)
-    }
-    pub fn stream_num(&self) -> Option<StreamNum> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn star_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Star)
-    }
-    pub fn seek_to(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn seek_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSeek) }
+    pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
+    pub fn seek_to(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1476,23 +1068,13 @@ impl AstNode for TellStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl TellStmt {
-    pub fn tell_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwTell)
-    }
-    pub fn stream_num(&self) -> Option<StreamNum> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn tell_to(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn tell_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTell) }
+    pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn tell_to(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1510,35 +1092,17 @@ impl AstNode for ForStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForStmt {
-    pub fn for_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFor)
-    }
-    pub fn decreasing_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwDecreasing)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn for_bounds(&self) -> Option<ForBounds> {
-        helper::node(&self.0)
-    }
-    pub fn steps(&self) -> Option<StepBy> {
-        helper::node(&self.0)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn for_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFor) }
+    pub fn decreasing_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwDecreasing) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn for_bounds(&self) -> Option<ForBounds> { helper::node(&self.0) }
+    pub fn steps(&self) -> Option<StepBy> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1556,20 +1120,12 @@ impl AstNode for LoopStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl LoopStmt {
-    pub fn loop_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwLoop)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn loop_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLoop) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1587,20 +1143,12 @@ impl AstNode for ExitStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExitStmt {
-    pub fn exit_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwExit)
-    }
-    pub fn when_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwWhen)
-    }
-    pub fn condition(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn exit_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwExit) }
+    pub fn when_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwWhen) }
+    pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1618,20 +1166,12 @@ impl AstNode for IfStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl IfStmt {
-    pub fn if_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwIf)
-    }
-    pub fn if_body(&self) -> Option<IfBody> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn if_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIf) }
+    pub fn if_body(&self) -> Option<IfBody> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1649,26 +1189,14 @@ impl AstNode for CaseStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CaseStmt {
-    pub fn case_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwCase)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn of_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwOf)
-    }
-    pub fn case_arm(&self) -> impl Iterator<Item = CaseArm> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn case_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwCase) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
+    pub fn case_arm(&self) -> impl Iterator<Item = CaseArm> + '_ { helper::nodes(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1686,20 +1214,12 @@ impl AstNode for BlockStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BlockStmt {
-    pub fn begin_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBegin)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn begin_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBegin) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1717,17 +1237,11 @@ impl AstNode for InvariantStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl InvariantStmt {
-    pub fn invariant_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwInvariant)
-    }
-    pub fn condition(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn invariant_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInvariant) }
+    pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1745,17 +1259,11 @@ impl AstNode for AssertStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl AssertStmt {
-    pub fn assert_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwAssert)
-    }
-    pub fn condition(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn assert_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwAssert) }
+    pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1773,14 +1281,10 @@ impl AstNode for CallStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CallStmt {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1798,14 +1302,10 @@ impl AstNode for ReturnStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ReturnStmt {
-    pub fn return_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwReturn)
-    }
+    pub fn return_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwReturn) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1823,17 +1323,11 @@ impl AstNode for ResultStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ResultStmt {
-    pub fn result_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwResult)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn result_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwResult) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1851,17 +1345,11 @@ impl AstNode for NewStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NewStmt {
-    pub fn new_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwNew)
-    }
-    pub fn expr_list(&self) -> Option<ExprList> {
-        helper::node(&self.0)
-    }
+    pub fn new_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwNew) }
+    pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1879,17 +1367,11 @@ impl AstNode for FreeStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FreeStmt {
-    pub fn free_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFree)
-    }
-    pub fn expr_list(&self) -> Option<ExprList> {
-        helper::node(&self.0)
-    }
+    pub fn free_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFree) }
+    pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1907,17 +1389,11 @@ impl AstNode for TagStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl TagStmt {
-    pub fn tag_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwTag)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
+    pub fn tag_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTag) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1935,29 +1411,15 @@ impl AstNode for ForkStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForkStmt {
-    pub fn fork_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFork)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn param_list(&self) -> Option<ParamList> {
-        helper::node(&self.0)
-    }
-    pub fn fork_status(&self) -> Option<ForkStatus> {
-        helper::node(&self.0)
-    }
-    pub fn stack_size(&self) -> Option<StackSize> {
-        helper::node(&self.0)
-    }
-    pub fn process_desc(&self) -> Option<ProcessDesc> {
-        helper::node(&self.0)
-    }
+    pub fn fork_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFork) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
+    pub fn fork_status(&self) -> Option<ForkStatus> { helper::node(&self.0) }
+    pub fn stack_size(&self) -> Option<StackSize> { helper::node(&self.0) }
+    pub fn process_desc(&self) -> Option<ProcessDesc> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1975,17 +1437,11 @@ impl AstNode for SignalStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SignalStmt {
-    pub fn signal_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSignal)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn signal_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSignal) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2003,17 +1459,11 @@ impl AstNode for PauseStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PauseStmt {
-    pub fn pause_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPause)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn pause_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPause) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2031,23 +1481,13 @@ impl AstNode for QuitStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl QuitStmt {
-    pub fn quit_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwQuit)
-    }
-    pub fn reason(&self) -> Option<QuitCause> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn quit_code(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn quit_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwQuit) }
+    pub fn reason(&self) -> Option<QuitCause> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn quit_code(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2065,14 +1505,10 @@ impl AstNode for BreakStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BreakStmt {
-    pub fn break_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBreak)
-    }
+    pub fn break_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBreak) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2090,14 +1526,10 @@ impl AstNode for CheckednessStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CheckednessStmt {
-    pub fn checkedness(&self) -> Option<Checkedness> {
-        helper::node(&self.0)
-    }
+    pub fn checkedness(&self) -> Option<Checkedness> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2115,17 +1547,11 @@ impl AstNode for PreStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PreStmt {
-    pub fn pre_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPre)
-    }
-    pub fn condition(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn pre_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPre) }
+    pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2143,17 +1569,11 @@ impl AstNode for InitStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl InitStmt {
-    pub fn init_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwInit)
-    }
-    pub fn init_var(&self) -> impl Iterator<Item = InitVar> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn init_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInit) }
+    pub fn init_var(&self) -> impl Iterator<Item = InitVar> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2171,17 +1591,11 @@ impl AstNode for PostStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PostStmt {
-    pub fn post_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPost)
-    }
-    pub fn condition(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn post_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPost) }
+    pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2199,29 +1613,15 @@ impl AstNode for HandlerStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl HandlerStmt {
-    pub fn handler_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwHandler)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
-    pub fn stmts(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn handler_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwHandler) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
+    pub fn stmts(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2239,23 +1639,13 @@ impl AstNode for InheritStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl InheritStmt {
-    pub fn inherit_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwInherit)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn external_item(&self) -> Option<ExternalItem> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn inherit_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInherit) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn external_item(&self) -> Option<ExternalItem> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2273,23 +1663,13 @@ impl AstNode for ImplementStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ImplementStmt {
-    pub fn implement_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwImplement)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn external_item(&self) -> Option<ExternalItem> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn implement_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwImplement) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn external_item(&self) -> Option<ExternalItem> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2307,26 +1687,14 @@ impl AstNode for ImplementByStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ImplementByStmt {
-    pub fn implement_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwImplement)
-    }
-    pub fn by_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBy)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn external_item(&self) -> Option<ExternalItem> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn implement_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwImplement) }
+    pub fn by_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBy) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn external_item(&self) -> Option<ExternalItem> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2344,23 +1712,13 @@ impl AstNode for ExportStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExportStmt {
-    pub fn export_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwExport)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn exports(&self) -> impl Iterator<Item = ExportItem> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn export_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwExport) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn exports(&self) -> impl Iterator<Item = ExportItem> + '_ { helper::nodes(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2378,26 +1736,14 @@ impl AstNode for BindItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BindItem {
-    pub fn as_var(&self) -> Option<VarAttr> {
-        helper::node(&self.0)
-    }
-    pub fn to_register(&self) -> Option<RegisterAttr> {
-        helper::node(&self.0)
-    }
-    pub fn bind_as(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn to_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwTo)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn as_var(&self) -> Option<VarAttr> { helper::node(&self.0) }
+    pub fn to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn bind_as(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2415,26 +1761,14 @@ impl AstNode for ProcHeader {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ProcHeader {
-    pub fn procedure_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwProcedure)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn params(&self) -> Option<ParamSpec> {
-        helper::node(&self.0)
-    }
-    pub fn device_spec(&self) -> Option<DeviceSpec> {
-        helper::node(&self.0)
-    }
+    pub fn procedure_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcedure) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn device_spec(&self) -> Option<DeviceSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2452,50 +1786,22 @@ impl AstNode for EndGroup {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl EndGroup {
-    pub fn end_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwEnd)
-    }
-    pub fn identifier_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Identifier)
-    }
-    pub fn case_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwCase)
-    }
-    pub fn for_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFor)
-    }
-    pub fn if_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwIf)
-    }
-    pub fn loop_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwLoop)
-    }
-    pub fn handler_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwHandler)
-    }
-    pub fn union_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwUnion)
-    }
-    pub fn record_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwRecord)
-    }
-    pub fn endcase_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwEndCase)
-    }
-    pub fn endfor_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwEndFor)
-    }
-    pub fn endif_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwEndIf)
-    }
-    pub fn endloop_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwEndLoop)
-    }
+    pub fn end_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEnd) }
+    pub fn identifier_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Identifier) }
+    pub fn case_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwCase) }
+    pub fn for_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFor) }
+    pub fn if_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIf) }
+    pub fn loop_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLoop) }
+    pub fn handler_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwHandler) }
+    pub fn union_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwUnion) }
+    pub fn record_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwRecord) }
+    pub fn endcase_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEndCase) }
+    pub fn endfor_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEndFor) }
+    pub fn endif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEndIf) }
+    pub fn endloop_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEndLoop) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2513,14 +1819,10 @@ impl AstNode for ParamSpec {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ParamSpec {
-    pub fn param_decl(&self) -> impl Iterator<Item = ParamDecl> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn param_decl(&self) -> impl Iterator<Item = ParamDecl> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2538,17 +1840,11 @@ impl AstNode for DeviceSpec {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl DeviceSpec {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2566,26 +1862,14 @@ impl AstNode for FcnHeader {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FcnHeader {
-    pub fn function_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFunction)
-    }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> {
-        helper::node(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn param_spec(&self) -> Option<ParamSpec> {
-        helper::node(&self.0)
-    }
-    pub fn fcn_result(&self) -> Option<FcnResult> {
-        helper::node(&self.0)
-    }
+    pub fn function_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFunction) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2603,20 +1887,12 @@ impl AstNode for FcnResult {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FcnResult {
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2634,14 +1910,10 @@ impl AstNode for ImportList {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ImportList {
-    pub fn import_item(&self) -> impl Iterator<Item = ImportItem> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn import_item(&self) -> impl Iterator<Item = ImportItem> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2659,20 +1931,12 @@ impl AstNode for PlainHeader {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PlainHeader {
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn param_spec(&self) -> Option<ParamSpec> {
-        helper::node(&self.0)
-    }
-    pub fn fcn_result(&self) -> Option<FcnResult> {
-        helper::node(&self.0)
-    }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2690,29 +1954,15 @@ impl AstNode for ExternalVar {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExternalVar {
-    pub fn var_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwVar)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn assign_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Assign)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn var_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwVar) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2730,9 +1980,7 @@ impl AstNode for AsnOp {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl AsnOp {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2751,29 +1999,15 @@ impl AstNode for OldOpen {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OldOpen {
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn open_path(&self) -> Option<OpenPath> {
-        helper::node(&self.0)
-    }
-    pub fn open_mode(&self) -> Option<OpenMode> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn open_path(&self) -> Option<OpenPath> { helper::node(&self.0) }
+    pub fn open_mode(&self) -> Option<OpenMode> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2791,26 +2025,14 @@ impl AstNode for NewOpen {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NewOpen {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn open_path(&self) -> Option<OpenPath> {
-        helper::node(&self.0)
-    }
-    pub fn io_caps(&self) -> impl Iterator<Item = IoCap> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn open_path(&self) -> Option<OpenPath> { helper::node(&self.0) }
+    pub fn io_caps(&self) -> impl Iterator<Item = IoCap> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2828,14 +2050,10 @@ impl AstNode for OpenPath {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OpenPath {
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2853,14 +2071,10 @@ impl AstNode for OpenMode {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OpenMode {
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2878,9 +2092,7 @@ impl AstNode for IoCap {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl IoCap {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2899,20 +2111,12 @@ impl AstNode for OldClose {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl OldClose {
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2930,17 +2134,11 @@ impl AstNode for NewClose {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NewClose {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2958,17 +2156,11 @@ impl AstNode for StreamNum {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl StreamNum {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2986,26 +2178,14 @@ impl AstNode for PutItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PutItem {
-    pub fn skip_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSkip)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn width(&self) -> Option<PutOpt> {
-        helper::node(&self.0)
-    }
-    pub fn fraction(&self) -> Option<PutOpt> {
-        helper::node(&self.0)
-    }
-    pub fn exp_width(&self) -> Option<PutOpt> {
-        helper::node(&self.0)
-    }
+    pub fn skip_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSkip) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn width(&self) -> Option<PutOpt> { helper::node(&self.0) }
+    pub fn fraction(&self) -> Option<PutOpt> { helper::node(&self.0) }
+    pub fn exp_width(&self) -> Option<PutOpt> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3023,17 +2203,11 @@ impl AstNode for PutOpt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PutOpt {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3051,20 +2225,12 @@ impl AstNode for GetItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl GetItem {
-    pub fn skip_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSkip)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn get_width(&self) -> Option<GetWidth> {
-        helper::node(&self.0)
-    }
+    pub fn skip_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSkip) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn get_width(&self) -> Option<GetWidth> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3082,20 +2248,12 @@ impl AstNode for GetWidth {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl GetWidth {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn star_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Star)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3113,26 +2271,14 @@ impl AstNode for BinaryIO {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BinaryIO {
-    pub fn stream_num(&self) -> Option<StreamNum> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn status(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn items(&self) -> impl Iterator<Item = BinaryItem> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn status(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn items(&self) -> impl Iterator<Item = BinaryItem> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3150,20 +2296,12 @@ impl AstNode for BinaryItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BinaryItem {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn request_size(&self) -> Option<RequestSize> {
-        helper::node(&self.0)
-    }
-    pub fn actual_size(&self) -> Option<ActualSize> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn request_size(&self) -> Option<RequestSize> { helper::node(&self.0) }
+    pub fn actual_size(&self) -> Option<ActualSize> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3181,17 +2319,11 @@ impl AstNode for RequestSize {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RequestSize {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3209,17 +2341,11 @@ impl AstNode for ActualSize {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ActualSize {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3237,20 +2363,12 @@ impl AstNode for ForBounds {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForBounds {
-    pub fn from(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn range_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Range)
-    }
-    pub fn to(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn from(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
+    pub fn to(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3268,17 +2386,11 @@ impl AstNode for StepBy {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl StepBy {
-    pub fn by_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBy)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn by_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBy) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3296,23 +2408,13 @@ impl AstNode for IfBody {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl IfBody {
-    pub fn condition(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn then_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwThen)
-    }
-    pub fn true_branch(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn false_branch(&self) -> Option<FalseBranch> {
-        helper::node(&self.0)
-    }
+    pub fn condition(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn then_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwThen) }
+    pub fn true_branch(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn false_branch(&self) -> Option<FalseBranch> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3330,23 +2432,13 @@ impl AstNode for ElseifStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ElseifStmt {
-    pub fn elsif_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwElsif)
-    }
-    pub fn elseif_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwElseif)
-    }
-    pub fn if_body(&self) -> Option<IfBody> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn elsif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwElsif) }
+    pub fn elseif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwElseif) }
+    pub fn if_body(&self) -> Option<IfBody> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3364,20 +2456,12 @@ impl AstNode for ElseStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ElseStmt {
-    pub fn else_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwElse)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn else_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwElse) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3395,23 +2479,13 @@ impl AstNode for CaseArm {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CaseArm {
-    pub fn label_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwLabel)
-    }
-    pub fn select(&self) -> Option<ExprList> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn stmt_list(&self) -> Option<StmtList> {
-        helper::node(&self.0)
-    }
+    pub fn label_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLabel) }
+    pub fn select(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3429,14 +2503,10 @@ impl AstNode for ExprList {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExprList {
-    pub fn exprs(&self) -> impl Iterator<Item = Expr> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn exprs(&self) -> impl Iterator<Item = Expr> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3454,20 +2524,12 @@ impl AstNode for ParamList {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ParamList {
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn param(&self) -> impl Iterator<Item = Param> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn param(&self) -> impl Iterator<Item = Param> + '_ { helper::nodes(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3485,17 +2547,11 @@ impl AstNode for ForkStatus {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForkStatus {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3513,17 +2569,11 @@ impl AstNode for StackSize {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl StackSize {
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3541,17 +2591,11 @@ impl AstNode for ProcessDesc {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ProcessDesc {
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3569,17 +2613,11 @@ impl AstNode for WaitStmt {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl WaitStmt {
-    pub fn wait_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwWait)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
+    pub fn wait_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwWait) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3597,17 +2635,11 @@ impl AstNode for QuitCause {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl QuitCause {
-    pub fn at_caller(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Less)
-    }
-    pub fn bubble_up(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Greater)
-    }
+    pub fn at_caller(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Less) }
+    pub fn bubble_up(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Greater) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3625,17 +2657,11 @@ impl AstNode for Checkedness {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl Checkedness {
-    pub fn checked_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwChecked)
-    }
-    pub fn unchecked_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwUnchecked)
-    }
+    pub fn checked_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwChecked) }
+    pub fn unchecked_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwUnchecked) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3653,20 +2679,12 @@ impl AstNode for InitVar {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl InitVar {
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn assign_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Assign)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn assign_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Assign) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3684,17 +2702,11 @@ impl AstNode for ImportItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ImportItem {
-    pub fn attrs(&self) -> Option<ImportAttr> {
-        helper::node(&self.0)
-    }
-    pub fn external_item(&self) -> Option<ExternalItem> {
-        helper::node(&self.0)
-    }
+    pub fn attrs(&self) -> Option<ImportAttr> { helper::node(&self.0) }
+    pub fn external_item(&self) -> Option<ExternalItem> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3712,20 +2724,12 @@ impl AstNode for ExternalItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExternalItem {
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn in_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwIn)
-    }
-    pub fn from(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::StringLiteral)
-    }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn in_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIn) }
+    pub fn from(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::StringLiteral) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3743,20 +2747,12 @@ impl AstNode for ExportItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ExportItem {
-    pub fn attrs(&self) -> impl Iterator<Item = ExportAttr> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn all_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwAll)
-    }
+    pub fn attrs(&self) -> impl Iterator<Item = ExportAttr> + '_ { helper::nodes(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn all_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwAll) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3774,9 +2770,7 @@ impl AstNode for LiteralExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl LiteralExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3795,23 +2789,13 @@ impl AstNode for ObjClassExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ObjClassExpr {
-    pub fn objectclass_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwObjectClass)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn objectclass_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwObjectClass) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3829,23 +2813,13 @@ impl AstNode for InitExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl InitExpr {
-    pub fn init_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwInit)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn expr_list(&self) -> Option<ExprList> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn init_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInit) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn expr_list(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3863,23 +2837,13 @@ impl AstNode for NilExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NilExpr {
-    pub fn nil_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwNil)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn nil_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwNil) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3897,26 +2861,14 @@ impl AstNode for SizeOfExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SizeOfExpr {
-    pub fn sizeof_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSizeOf)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn ty_size(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn ref_size(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn sizeof_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSizeOf) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn ty_size(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn ref_size(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3934,9 +2886,7 @@ impl AstNode for BinaryExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BinaryExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3955,9 +2905,7 @@ impl AstNode for UnaryExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnaryExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3976,20 +2924,12 @@ impl AstNode for ParenExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ParenExpr {
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4007,14 +2947,10 @@ impl AstNode for NameExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameExpr {
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4032,14 +2968,10 @@ impl AstNode for SelfExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SelfExpr {
-    pub fn self_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSelf)
-    }
+    pub fn self_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSelf) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4057,20 +2989,12 @@ impl AstNode for FieldExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FieldExpr {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn dot_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Dot)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn dot_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Dot) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4088,17 +3012,11 @@ impl AstNode for DerefExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl DerefExpr {
-    pub fn caret_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Caret)
-    }
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn caret_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Caret) }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4116,32 +3034,16 @@ impl AstNode for CheatExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CheatExpr {
-    pub fn cheat_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwCheat)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn size_spec(&self) -> Option<SizeSpec> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn cheat_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwCheat) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn size_spec(&self) -> Option<SizeSpec> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4159,17 +3061,11 @@ impl AstNode for NatCheatExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NatCheatExpr {
-    pub fn pound_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Pound)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn pound_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Pound) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4187,20 +3083,12 @@ impl AstNode for ArrowExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ArrowExpr {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn arrow_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Arrow)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn arrow_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Arrow) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4218,26 +3106,14 @@ impl AstNode for IndirectExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl IndirectExpr {
-    pub fn indirect_ty(&self) -> Option<IndirectTy> {
-        helper::node(&self.0)
-    }
-    pub fn at_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::At)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn indirect_ty(&self) -> Option<IndirectTy> { helper::node(&self.0) }
+    pub fn at_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::At) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4255,26 +3131,14 @@ impl AstNode for BitsExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BitsExpr {
-    pub fn bits_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwBits)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn bits_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBits) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4292,17 +3156,11 @@ impl AstNode for CallExpr {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CallExpr {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
-    pub fn param_list(&self) -> Option<ParamList> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4320,20 +3178,12 @@ impl AstNode for NotEq {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NotEq {
-    pub fn not_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwNot)
-    }
-    pub fn tilde_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Tilde)
-    }
-    pub fn equ_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Equ)
-    }
+    pub fn not_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwNot) }
+    pub fn tilde_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Tilde) }
+    pub fn equ_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Equ) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4351,20 +3201,12 @@ impl AstNode for NotIn {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NotIn {
-    pub fn not_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwNot)
-    }
-    pub fn tilde_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Tilde)
-    }
-    pub fn in_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwIn)
-    }
+    pub fn not_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwNot) }
+    pub fn tilde_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Tilde) }
+    pub fn in_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIn) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4382,17 +3224,11 @@ impl AstNode for SizeSpec {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SizeSpec {
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4410,9 +3246,7 @@ impl AstNode for PrimType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PrimType {}
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -4431,14 +3265,10 @@ impl AstNode for NameType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameType {
-    pub fn reference(&self) -> Option<Reference> {
-        helper::node(&self.0)
-    }
+    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4456,14 +3286,10 @@ impl AstNode for RangeSpec {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeSpec {
-    pub fn range_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Range)
-    }
+    pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4481,17 +3307,11 @@ impl AstNode for Param {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl Param {
-    pub fn param_kind(&self) -> Option<ParamKind> {
-        helper::node(&self.0)
-    }
-    pub fn comma_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Comma)
-    }
+    pub fn param_kind(&self) -> Option<ParamKind> { helper::node(&self.0) }
+    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4509,14 +3329,10 @@ impl AstNode for AllItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl AllItem {
-    pub fn all_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwAll)
-    }
+    pub fn all_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwAll) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4534,17 +3350,11 @@ impl AstNode for RangeItem {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeItem {
-    pub fn start(&self) -> Option<RangeBound> {
-        helper::node(&self.0)
-    }
-    pub fn range_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Range)
-    }
+    pub fn start(&self) -> Option<RangeBound> { helper::node(&self.0) }
+    pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4562,20 +3372,12 @@ impl AstNode for RelativeBound {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RelativeBound {
-    pub fn star_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Star)
-    }
-    pub fn minus_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Minus)
-    }
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
+    pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
+    pub fn minus_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Minus) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4593,14 +3395,10 @@ impl AstNode for RangeType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeType {
-    pub fn range_spec(&self) -> Option<RangeSpec> {
-        helper::node(&self.0)
-    }
+    pub fn range_spec(&self) -> Option<RangeSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4618,23 +3416,13 @@ impl AstNode for EnumType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl EnumType {
-    pub fn enum_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwEnum)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn fields(&self) -> impl Iterator<Item = Name> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn enum_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEnum) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn fields(&self) -> impl Iterator<Item = Name> + '_ { helper::nodes(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4652,26 +3440,14 @@ impl AstNode for ArrayType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ArrayType {
-    pub fn flexible_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFlexible)
-    }
-    pub fn array_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwArray)
-    }
-    pub fn range_list(&self) -> Option<RangeList> {
-        helper::node(&self.0)
-    }
-    pub fn of_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwOf)
-    }
-    pub fn elem_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn flexible_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFlexible) }
+    pub fn array_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwArray) }
+    pub fn range_list(&self) -> Option<RangeList> { helper::node(&self.0) }
+    pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
+    pub fn elem_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4689,20 +3465,12 @@ impl AstNode for SetType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SetType {
-    pub fn set_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwSet)
-    }
-    pub fn of_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwOf)
-    }
-    pub fn elem_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn set_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSet) }
+    pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
+    pub fn elem_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4720,20 +3488,13 @@ impl AstNode for RecordType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RecordType {
-    pub fn record_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwRecord)
-    }
-    pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
+    pub fn record_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwRecord) }
+    pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ { helper::nodes(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4751,32 +3512,17 @@ impl AstNode for UnionType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnionType {
-    pub fn union_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwUnion)
-    }
-    pub fn tag_name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn range_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn of_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwOf)
-    }
-    pub fn union_variant(&self) -> impl Iterator<Item = UnionVariant> + '_ {
-        helper::nodes(&self.0)
-    }
-    pub fn end_group(&self) -> Option<EndGroup> {
-        helper::node(&self.0)
-    }
+    pub fn packed_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPacked) }
+    pub fn union_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwUnion) }
+    pub fn tag_name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn range_ty(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
+    pub fn union_variant(&self) -> impl Iterator<Item = UnionVariant> + '_ { helper::nodes(&self.0) }
+    pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4794,26 +3540,14 @@ impl AstNode for PointerType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl PointerType {
-    pub fn is_checked(&self) -> Option<Checkedness> {
-        helper::node(&self.0)
-    }
-    pub fn pointer_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPointer)
-    }
-    pub fn to_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwTo)
-    }
-    pub fn caret_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Caret)
-    }
-    pub fn to_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn is_checked(&self) -> Option<Checkedness> { helper::node(&self.0) }
+    pub fn pointer_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPointer) }
+    pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
+    pub fn caret_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Caret) }
+    pub fn to_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4831,26 +3565,14 @@ impl AstNode for FcnType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FcnType {
-    pub fn function_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwFunction)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn param_spec(&self) -> Option<ParamSpec> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn function_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFunction) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4868,20 +3590,12 @@ impl AstNode for ProcType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ProcType {
-    pub fn procedure_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwProcedure)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
-    pub fn param_spec(&self) -> Option<ParamSpec> {
-        helper::node(&self.0)
-    }
+    pub fn procedure_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcedure) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4899,26 +3613,14 @@ impl AstNode for CollectionType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CollectionType {
-    pub fn collection_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwCollection)
-    }
-    pub fn of_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwOf)
-    }
-    pub fn elem_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn forward_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwForward)
-    }
-    pub fn name(&self) -> Option<Name> {
-        helper::node(&self.0)
-    }
+    pub fn collection_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwCollection) }
+    pub fn of_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwOf) }
+    pub fn elem_ty(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn forward_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwForward) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4936,17 +3638,11 @@ impl AstNode for ConditionType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ConditionType {
-    pub fn condition_kind(&self) -> Option<ConditionKind> {
-        helper::node(&self.0)
-    }
-    pub fn condition_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwCondition)
-    }
+    pub fn condition_kind(&self) -> Option<ConditionKind> { helper::node(&self.0) }
+    pub fn condition_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwCondition) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4964,23 +3660,13 @@ impl AstNode for SizedCharType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SizedCharType {
-    pub fn char_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwChar)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn seq_length(&self) -> Option<SeqLength> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn char_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwChar) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn seq_length(&self) -> Option<SeqLength> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4998,23 +3684,13 @@ impl AstNode for SizedStringType {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SizedStringType {
-    pub fn string_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwString)
-    }
-    pub fn left_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::LeftParen)
-    }
-    pub fn seq_length(&self) -> Option<SeqLength> {
-        helper::node(&self.0)
-    }
-    pub fn right_paren_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::RightParen)
-    }
+    pub fn string_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwString) }
+    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
+    pub fn seq_length(&self) -> Option<SeqLength> { helper::node(&self.0) }
+    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5032,17 +3708,11 @@ impl AstNode for SeqLength {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl SeqLength {
-    pub fn expr(&self) -> Option<Expr> {
-        helper::node(&self.0)
-    }
-    pub fn star_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Star)
-    }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
+    pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5060,14 +3730,10 @@ impl AstNode for UnsizedBound {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnsizedBound {
-    pub fn star_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Star)
-    }
+    pub fn star_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Star) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5085,14 +3751,10 @@ impl AstNode for RangeList {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeList {
-    pub fn ranges(&self) -> impl Iterator<Item = Type> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn ranges(&self) -> impl Iterator<Item = Type> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5110,23 +3772,13 @@ impl AstNode for RecordField {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RecordField {
-    pub fn field_names(&self) -> Option<NameList> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn field_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
-    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Semicolon)
-    }
+    pub fn field_names(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn field_ty(&self) -> Option<Type> { helper::node(&self.0) }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Semicolon) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5144,23 +3796,13 @@ impl AstNode for UnionVariant {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl UnionVariant {
-    pub fn label_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwLabel)
-    }
-    pub fn selectors(&self) -> Option<ExprList> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ {
-        helper::nodes(&self.0)
-    }
+    pub fn label_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwLabel) }
+    pub fn selectors(&self) -> Option<ExprList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn record_field(&self) -> impl Iterator<Item = RecordField> + '_ { helper::nodes(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5178,29 +3820,15 @@ impl AstNode for ConstVarParam {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ConstVarParam {
-    pub fn pass_as_ref(&self) -> Option<VarAttr> {
-        helper::node(&self.0)
-    }
-    pub fn bind_to_register(&self) -> Option<RegisterAttr> {
-        helper::node(&self.0)
-    }
-    pub fn param_names(&self) -> Option<NameList> {
-        helper::node(&self.0)
-    }
-    pub fn colon_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::Colon)
-    }
-    pub fn coerce_type(&self) -> Option<CheatAttr> {
-        helper::node(&self.0)
-    }
-    pub fn param_ty(&self) -> Option<Type> {
-        helper::node(&self.0)
-    }
+    pub fn pass_as_ref(&self) -> Option<VarAttr> { helper::node(&self.0) }
+    pub fn bind_to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
+    pub fn param_names(&self) -> Option<NameList> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn coerce_type(&self) -> Option<CheatAttr> { helper::node(&self.0) }
+    pub fn param_ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -5218,20 +3846,12 @@ impl AstNode for ConditionKind {
             _ => false,
         }
     }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.0
-    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ConditionKind {
-    pub fn priority_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwPriority)
-    }
-    pub fn deferred_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwDeferred)
-    }
-    pub fn timeout_token(&self) -> Option<SyntaxToken> {
-        helper::token(&self.0, SyntaxKind::KwTimeout)
-    }
+    pub fn priority_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwPriority) }
+    pub fn deferred_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwDeferred) }
+    pub fn timeout_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTimeout) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PreprocKind {

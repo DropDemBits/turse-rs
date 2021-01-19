@@ -2,6 +2,8 @@
 #[cfg(test)]
 mod test;
 
+use crate::parser::marker::Marker;
+
 use super::*;
 
 pub(super) fn ty(p: &mut Parser) -> Option<CompletedMarker> {
@@ -41,6 +43,7 @@ fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker>
             TokenKind::Function => { subprog_type(p) } // subprog_type
             TokenKind::Record => { record_type(p) } // record_type
             TokenKind::Union => { union_type(p) } // union_type
+            TokenKind::Packed => { packed_type(p) }
             TokenKind::Collection => { collection_type(p) } // collection_type
             TokenKind::Priority,
             TokenKind::Deferred,
@@ -294,6 +297,12 @@ fn record_type(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Record));
 
     let m = p.start();
+    record_type_tail(p, m)
+}
+
+fn record_type_tail(p: &mut Parser, m: Marker) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Record));
+
     p.bump();
 
     p.with_extra_recovery(&[TokenKind::End], |p| {
@@ -340,6 +349,12 @@ fn union_type(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Union));
 
     let m = p.start();
+    union_type_tail(p, m)
+}
+
+fn union_type_tail(p: &mut Parser, m: Marker) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Union));
+
     p.bump();
 
     // optional: tag name
@@ -395,6 +410,28 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
     });
 
     Some(m.complete(p, SyntaxKind::UnionVariant))
+}
+
+fn packed_type(p: &mut Parser) -> Option<CompletedMarker> {
+    // 'packed' ( 'record' | 'union' )
+    debug_assert!(p.at(TokenKind::Packed));
+
+    let m = p.start();
+    p.bump();
+
+    match_token!(|p| match {
+        TokenKind::Record => {
+            record_type_tail(p, m)
+        }
+        TokenKind::Union => {
+            union_type_tail(p, m)
+        }
+        _ => {
+            // Unexpected type
+            p.error_unexpected().with_marker(m).report();
+            None
+        }
+    })
 }
 
 fn collection_type(p: &mut Parser) -> Option<CompletedMarker> {

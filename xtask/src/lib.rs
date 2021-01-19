@@ -38,7 +38,10 @@ pub fn do_codegen() -> Result<()> {
         .run()
         .context("failed to run rustfmt")?;
 
-    let formatted = cmd!("rustfmt").stdin(contents).output()?.stdout;
+    let formatted = cmd!("rustfmt --config fn_single_line=true --config max_width=120")
+        .stdin(contents)
+        .output()?
+        .stdout;
 
     fs::write(generated_nodes.as_path(), formatted)?;
 
@@ -391,12 +394,12 @@ fn thing_to_method_name(token: &str) -> &str {
         "#" => "pound",
         "=>" => "imply",
         "<=" => "less_equ",
-        "(" => "left_paren",
+        "(" => "l_paren",
         "<" => "less",
         "-" => "minus",
         "+" => "plus",
         "|" => "pipe",
-        ")" => "right_paren",
+        ")" => "r_paren",
         ";" => "semicolon",
         "/" => "slash",
         "*" => "star",

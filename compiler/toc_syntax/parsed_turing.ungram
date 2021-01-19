@@ -818,12 +818,12 @@ SetType =
   'set' 'of' elem_ty:Type
 
 RecordType =
-  'record'
+  'packed'? 'record'
     RecordField*
   EndGroup
 
 UnionType =
-  'union' tag_name:Name? ':' range_ty:Type 'of'
+  'packed'? 'union' tag_name:Name? ':' range_ty:Type 'of'
     UnionVariant*
   EndGroup
 

@@ -2304,6 +2304,43 @@ fn parse_record_type() {
 }
 
 #[test]
+fn parse_record_type_packed_attr() {
+    check(
+        "type _ : packed record a : int end record",
+        expect![[r#"
+        Source@0..41
+          StmtList@0..41
+            TypeDecl@0..41
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..7
+                Identifier@5..6 "_"
+                Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RecordType@9..41
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwRecord@16..22 "record"
+                Whitespace@22..23 " "
+                RecordField@23..31
+                  NameList@23..25
+                    Name@23..25
+                      Identifier@23..24 "a"
+                      Whitespace@24..25 " "
+                  Colon@25..26 ":"
+                  Whitespace@26..27 " "
+                  PrimType@27..31
+                    KwInt@27..30 "int"
+                    Whitespace@30..31 " "
+                EndGroup@31..41
+                  KwEnd@31..34 "end"
+                  Whitespace@34..35 " "
+                  KwRecord@35..41 "record""#]],
+    );
+}
+
+#[test]
 fn parse_record_type_many_fields() {
     check(
         r#"
@@ -2588,6 +2625,55 @@ fn parse_union_type() {
                       KwEnd@42..45 "end"
                       Whitespace@45..46 " "
                       KwUnion@46..51 "union""#]],
+    );
+}
+
+#[test]
+fn parse_union_type_packed_attr() {
+    check(
+        "type _ : packed union : char of label : a : int end union",
+        expect![[r#"
+            Source@0..57
+              StmtList@0..57
+                TypeDecl@0..57
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..7
+                    Identifier@5..6 "_"
+                    Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  UnionType@9..57
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    KwUnion@16..21 "union"
+                    Whitespace@21..22 " "
+                    Colon@22..23 ":"
+                    Whitespace@23..24 " "
+                    KwChar@24..29
+                      KwChar@24..28 "char"
+                      Whitespace@28..29 " "
+                    KwOf@29..31 "of"
+                    Whitespace@31..32 " "
+                    UnionVariant@32..48
+                      KwLabel@32..37 "label"
+                      Whitespace@37..38 " "
+                      Colon@38..39 ":"
+                      Whitespace@39..40 " "
+                      RecordField@40..48
+                        NameList@40..42
+                          Name@40..42
+                            Identifier@40..41 "a"
+                            Whitespace@41..42 " "
+                        Colon@42..43 ":"
+                        Whitespace@43..44 " "
+                        PrimType@44..48
+                          KwInt@44..47 "int"
+                          Whitespace@47..48 " "
+                    EndGroup@48..57
+                      KwEnd@48..51 "end"
+                      Whitespace@51..52 " "
+                      KwUnion@52..57 "union""#]],
     );
 }
 
@@ -3027,6 +3113,51 @@ fn recover_union_variant_type_on_var() {
             error at 36..39: expected type specifier, but found ‘var’
             error at 36..39: expected ‘;’, ‘label’ or ‘end’, but found ‘var’
             error at 36..39: expected ‘union’, but found ‘var’"#]],
+    );
+}
+
+#[test]
+fn recover_packed_not_packable_type() {
+    check(
+        "type _ : packed int",
+        expect![[r#"
+        Source@0..19
+          StmtList@0..19
+            TypeDecl@0..19
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..7
+                Identifier@5..6 "_"
+                Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              Error@9..19
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+                KwInt@16..19 "int"
+        error at 16..19: expected ‘record’ or ‘union’, but found ‘int’"#]],
+    );
+}
+
+#[test]
+fn recover_just_packed() {
+    check(
+        "type _ : packed ",
+        expect![[r#"
+        Source@0..16
+          StmtList@0..16
+            TypeDecl@0..16
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..7
+                Identifier@5..6 "_"
+                Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              Error@9..16
+                KwPacked@9..15 "packed"
+                Whitespace@15..16 " "
+        error at 15..16: expected ‘record’ or ‘union’"#]],
     );
 }
 
