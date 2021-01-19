@@ -1,16 +1,19 @@
 //! AST validation
 //! Checking if things hold up to stricter syntax semantics
 // fancy quotes: ‘’
+mod preproc;
+mod stmt;
 #[cfg(test)]
 mod test;
 
 use toc_reporting::{MessageKind, MessageSink, ReportMessage, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
-    SyntaxKind, SyntaxNode,
+    SyntaxNode,
 };
 
 // Taken from rust-analyzer's syntax crate
+#[macro_export]
 macro_rules! match_ast {
     (match $node:ident { $($tt:tt)* }) => { match_ast!(match ($node) { $($tt)* }) };
 
@@ -99,183 +102,16 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
     // Indiscriminately go over descendant nodes
     for node in root.descendants() {
         match_ast!(match node {
-            ast::PreprocGlob(pp_glob) => validate_preproc_glob(pp_glob, ctx),
-            ast::ConstVarDecl(decl) => validate_constvar_decl(decl, ctx),
-            ast::ModuleDecl(decl) => validate_module_decl(decl, ctx),
-            ast::ClassDecl(decl) => validate_class_decl(decl, ctx),
-            ast::MonitorDecl(decl) => validate_monitor_decl(decl, ctx),
-            ast::ElseStmt(stmt) => validate_else_stmt(stmt, ctx),
-            ast::ElseifStmt(stmt) => validate_elseif_stmt(stmt, ctx),
+            ast::PreprocGlob(pp_glob) => preproc::validate_preproc_glob(pp_glob, ctx),
+            ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
+            ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
+            ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
+            ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),
+            ast::ElseStmt(stmt) => stmt::validate_else_stmt(stmt, ctx),
+            ast::ElseifStmt(stmt) => stmt::validate_elseif_stmt(stmt, ctx),
             _ => (),
         })
     }
-}
-
-fn validate_preproc_glob(glob: ast::PreprocGlob, ctx: &mut ValidateCtx) {
-    let directive = glob.directive().unwrap();
-    match_ast!(match (directive.syntax()) {
-        ast::PPElseif(nd) => without_matching(nd.syntax(), "#if", ctx),
-        ast::PPElse(nd) => without_matching(nd.syntax(), "#if", ctx),
-        ast::PPEndIf(nd) => without_matching(nd.syntax(), "#if", ctx),
-        _ => (),
-    });
-}
-
-fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut ValidateCtx) {
-    if let Some(attr) = decl.register_attr() {
-        // 'register' attr is not allowed in top-level blocks:
-
-        if block_containing_node(decl.syntax()).is_top_level() {
-            ctx.push_error(
-                "‘register’ attribute is not allowed at module level",
-                attr.syntax().text_range(),
-            );
-        }
-    }
-
-    // TODO: stuff relating to init expr
-}
-
-fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
-    // Check contained in location
-    if !block_containing_node(decl.syntax()).is_top_level() {
-        ctx.push_error(
-            "modules can only be declared at the program, module, or monitor level",
-            decl.module_token().unwrap().text_range(),
-        );
-    }
-
-    check_matching_names(decl.name(), decl.end_group(), ctx);
-}
-
-fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
-    let is_monitor_class = decl.monitor_token().is_some();
-
-    if let Some(dev_spec) = decl.device_spec() {
-        assert!(is_monitor_class, "non-monitor class has device spec");
-
-        ctx.push_error(
-            "device specification is not allowed for monitor classes",
-            dev_spec.syntax().text_range(),
-        )
-    }
-
-    // Check contained in location
-    if is_monitor_class {
-        // specialize for monitor classes
-        match block_containing_node(decl.syntax()) {
-            block if block.is_monitor() => {
-                ctx.push_error(
-                    "monitor classes cannot be declared inside of monitors",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            BlockKind::Class => {
-                ctx.push_error(
-                    "monitor classes cannot be declared inside of classes",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            block if !block.is_top_level() => {
-                ctx.push_error(
-                    "monitor classes can only be declared at the program, module, or monitor level",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            _ => {}
-        }
-    } else {
-        match block_containing_node(decl.syntax()) {
-            block if block.is_monitor() => {
-                ctx.push_error(
-                    "classes cannot be declared inside of monitors",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            BlockKind::Class => {
-                ctx.push_error(
-                    "classes cannot be declared inside of other classes",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            block if !block.is_top_level() => {
-                ctx.push_error(
-                    "classes can only be declared at the program, module, or monitor level",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            _ => {}
-        }
-    }
-
-    check_matching_names(decl.name(), decl.end_group(), ctx);
-}
-
-fn validate_monitor_decl(decl: ast::MonitorDecl, ctx: &mut ValidateCtx) {
-    // Check contained in location
-    match block_containing_node(decl.syntax()) {
-        block if block.is_monitor() => {
-            ctx.push_error(
-                "monitors cannot be declared inside of other monitors",
-                decl.monitor_token().unwrap().text_range(),
-            );
-        }
-        block if !block.is_top_level() => {
-            ctx.push_error(
-                "monitors can only be declared at the program, module, or monitor level",
-                decl.monitor_token().unwrap().text_range(),
-            );
-        }
-        _ => {}
-    }
-
-    check_matching_names(decl.name(), decl.end_group(), ctx);
-}
-
-fn check_matching_names(
-    decl_name: Option<ast::Name>,
-    end_group: Option<ast::EndGroup>,
-    ctx: &mut ValidateCtx,
-) {
-    if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
-        if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
-            if end_name.text() != decl_name.text() {
-                ctx.push_error(
-                    &format!(
-                        "end identifier ‘{}’ does not match ‘{}’",
-                        end_name.text(),
-                        decl_name.text()
-                    ),
-                    end_name.text_range(),
-                )
-                // TODO: add additional diagnostic referring to the declared identifier
-            }
-        }
-    }
-}
-
-fn validate_else_stmt(stmt: ast::ElseStmt, ctx: &mut ValidateCtx) {
-    let parent_kind = stmt.syntax().parent().map(|p| p.kind());
-
-    if !matches!(parent_kind, Some(SyntaxKind::IfBody)) {
-        without_matching(stmt.syntax(), "if", ctx);
-    }
-}
-
-fn validate_elseif_stmt(stmt: ast::ElseifStmt, ctx: &mut ValidateCtx) {
-    let parent_kind = stmt.syntax().parent().map(|p| p.kind());
-
-    if !matches!(parent_kind, Some(SyntaxKind::IfBody)) {
-        without_matching(stmt.syntax(), "if", ctx);
-    }
-}
-
-fn without_matching(node: &SyntaxNode, thing: &str, ctx: &mut ValidateCtx) {
-    let first = node.first_token().unwrap();
-    ctx.push_error(
-        &format!("found ‘{}’ without matching ‘{}’", first.text(), thing),
-        first.text_range(),
-    );
 }
 
 #[cfg(test)]
@@ -293,8 +129,16 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     expected.assert_eq(trimmed);
 }
 
+pub(crate) fn without_matching(node: &SyntaxNode, thing: &str, ctx: &mut ValidateCtx) {
+    let first = node.first_token().unwrap();
+    ctx.push_error(
+        &format!("found ‘{}’ without matching ‘{}’", first.text(), thing),
+        first.text_range(),
+    );
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum BlockKind {
+pub(crate) enum BlockKind {
     Main,
     Unit,
     Module,
@@ -332,11 +176,11 @@ impl BlockKind {
     }
 }
 
-fn block_containing_node(start: &SyntaxNode) -> BlockKind {
+pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
     walk_blocks(start).nth(0).unwrap()
 }
 
-fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {
+pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {
     // walk up parents
     let mut parent = start.parent();
 
