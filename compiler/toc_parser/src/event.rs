@@ -1,6 +1,4 @@
 //! Events produced during parsing
-use crate::parser::ParseMessage;
-
 use toc_syntax::SyntaxKind;
 
 #[derive(Debug, PartialEq)]
@@ -12,7 +10,6 @@ pub(crate) enum Event {
     },
     AddToken,
     FinishNode,
-    Message(ParseMessage),
     Placeholder,
     /// Dropped start node
     Tombstone,

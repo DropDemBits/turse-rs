@@ -19,8 +19,8 @@ pub fn parse(source: &str) -> ParseResult {
 
     let source = Source::new(&tokens);
     let parser = parser::Parser::new(source);
-    let events = parser.parse();
-    let sink = Sink::new(&tokens, events, scanner_msgs);
+    let (events, parser_msgs) = parser.parse();
+    let sink = Sink::new(&tokens, events, vec![scanner_msgs, parser_msgs]);
 
     sink.finish()
 }

@@ -3,11 +3,12 @@ mod error;
 pub(crate) mod marker;
 
 use drop_bomb::DropBomb;
-pub(crate) use error::{Expected, ParseMessage};
+pub(crate) use error::Expected;
+use toc_reporting::MessageSink;
 
 use crate::event::Event;
 use crate::grammar;
-use crate::parser::error::MessageInfo;
+use crate::parser::error::ParseMessage;
 use crate::parser::marker::Marker;
 use crate::source::Source;
 
@@ -92,6 +93,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
 pub(crate) struct Parser<'t, 'src> {
     source: Source<'t, 'src>,
     events: Vec<Event>,
+    msg_sink: MessageSink,
     expected_kinds: Vec<TokenKind>,
     // Invariant: can only be modified in `with_extra_recovery`
     extra_recovery: Rc<RefCell<Vec<TokenKind>>>,
@@ -102,14 +104,15 @@ impl<'t, 'src> Parser<'t, 'src> {
         Self {
             source,
             events: vec![],
+            msg_sink: MessageSink::new(),
             expected_kinds: vec![],
             extra_recovery: Rc::new(RefCell::new(vec![])),
         }
     }
 
-    pub(crate) fn parse(mut self) -> Vec<Event> {
+    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageSink) {
         grammar::source(&mut self);
-        self.events
+        (self.events, self.msg_sink)
     }
 
     fn peek(&mut self) -> Option<TokenKind> {
@@ -224,10 +227,11 @@ impl<'t, 'src> Parser<'t, 'src> {
             .map(|tok| (tok.kind, tok.range))
             .expect("warning of alias at end of file");
 
-        self.events.push(Event::Message(ParseMessage {
-            info: MessageInfo::OtherWarn(format!("{} found, assuming it to be {}", found, normal)),
+        self.msg_sink.report(
+            toc_reporting::MessageKind::Warning,
+            &format!("{} found, assuming it to be {}", found, normal),
             range,
-        }));
+        );
     }
 
     /// Checks if the cursor is past the end of the file
@@ -318,14 +322,18 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             "Extra call to `error_unexpected`"
         );
 
-        self.p.events.push(Event::Message(ParseMessage {
-            info: MessageInfo::UnexpectedToken {
-                expected: mem::take(&mut self.p.expected_kinds),
-                expected_category: self.category,
-                found,
-            },
+        self.p.msg_sink.report(
+            toc_reporting::MessageKind::Error,
+            &format!(
+                "{}",
+                ParseMessage::UnexpectedToken {
+                    expected: mem::take(&mut self.p.expected_kinds),
+                    expected_category: self.category,
+                    found,
+                }
+            ),
             range,
-        }));
+        );
 
         // If the cursor is at the end of file or is part of the recovery set,
         // error node does not need to be built
