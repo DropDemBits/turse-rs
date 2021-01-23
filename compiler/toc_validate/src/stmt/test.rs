@@ -209,3 +209,101 @@ end a
             error at 70..75: monitor classes cannot be declared inside of monitors"#]],
     );
 }
+
+#[test]
+fn report_bind_decl_in_main_block() {
+    check(
+        "bind a to b",
+        expect![[r#"error at 0..11: ‘bind’ declaration is not allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_bind_decl_in_module_block() {
+    check(
+        "module q bind a to b end q",
+        expect![[r#"error at 9..21: ‘bind’ declaration is not allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_bind_decl_in_class_block() {
+    check(
+        "class q bind a to b end q",
+        expect![[r#"error at 8..20: ‘bind’ declaration is not allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_bind_decl_in_monitor_block() {
+    check(
+        "monitor q bind a to b end q",
+        expect![[r#"error at 10..22: ‘bind’ declaration is not allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_bind_decl_in_monitor_class_block() {
+    check(
+        "monitor class q bind a to b end q",
+        expect![[r#"error at 16..28: ‘bind’ declaration is not allowed at module level"#]],
+    );
+}
+
+#[test]
+fn bind_decl_in_inner_blocks() {
+    check(
+        "begin bind a to b end if true then bind c to d end if",
+        expect![[]],
+    );
+}
+
+#[test]
+fn report_init_expr_with_int_ty() {
+    check(
+        "var a : int := init(1)",
+        expect![[r#"error at 15..22: ‘init’ initializer is not allowed here"#]],
+    );
+}
+
+#[test]
+fn report_init_expr_with_no_ty() {
+    check(
+        "var a := init(1)",
+        expect![[r#"error at 9..16: ‘init’ initializer is not allowed here"#]],
+    );
+}
+
+#[test]
+fn init_expr_with_array_ty() {
+    check("var a : array 1 .. 3 of int := init(1, 2, 3)", expect![[]]);
+}
+
+#[test]
+fn init_expr_with_record_ty() {
+    check("var a : record a : int end record := init(1)", expect![[]]);
+}
+
+#[test]
+fn init_expr_with_union_ty() {
+    check(
+        "var a : union : 1 .. 3 of label : a : int end union := init(1, 2)",
+        expect![[]],
+    );
+}
+
+#[test]
+fn report_not_init_expr_with_unbounded_array() {
+    check(
+        "var a : array 1 .. * of int := 2",
+        expect![[r#"error at 31..32: ‘init’ initializer is required here"#]],
+    );
+}
+
+#[test]
+fn report_no_initializer_with_unbounded_array() {
+    check(
+        "var a : array 1 .. * of int",
+        expect![[r#"error at 8..27: ‘init’ initializer is required after here"#]],
+    );
+}

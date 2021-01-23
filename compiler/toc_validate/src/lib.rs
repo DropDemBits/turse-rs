@@ -104,6 +104,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
         match_ast!(match node {
             ast::PreprocGlob(pp_glob) => preproc::validate_preproc_glob(pp_glob, ctx),
             ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
+            ast::BindDecl(decl) => stmt::validate_bind_decl(decl, ctx),
             ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
             ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),

@@ -714,11 +714,7 @@ IndirectTy =
 | NameType
 
 BitsExpr =
-  'bits' '(' Expr ',' bit_range:BitRange ')'
-
-BitRange =
-  RangeSpec
-| Expr
+  'bits' ParamList
 
 // Covers Substring, Subscript, FcnCall
 // Covers PointerSpec, SetCons
@@ -793,9 +789,6 @@ NameType =
   Reference
 
 RangeType =
-  RangeSpec
-
-RangeSpec =
   begin:Expr '..' end:EndBound
 
 EndBound =

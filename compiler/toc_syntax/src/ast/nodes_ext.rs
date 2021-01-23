@@ -190,17 +190,11 @@ impl WaitStmt {
     }
 }
 
-impl BitsExpr {
-    pub fn bit_range(&self) -> Option<BitRange> {
-        helper::nodes(self.syntax()).nth(1)
-    }
-}
-
 impl PrimType {
     // TODO: prim
 }
 
-impl RangeSpec {
+impl RangeType {
     pub fn begin(&self) -> Option<Expr> {
         helper::nodes(self.syntax()).next()
     }

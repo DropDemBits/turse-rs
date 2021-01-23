@@ -113,6 +113,7 @@ node restrictions.
 - Rejects `RegisterAttr` in top-level blocks
 - Requires `InitExpr` to be the initializer expr if the type is of an unsized array
   (i.e. an array with any range ending with `*`)
+- Accepts `InitExpr` if the type is an array, record, or union
 - Rejects `InitExpr` for all other type specs (including absent ones)
 
 ### `TypeDecl`

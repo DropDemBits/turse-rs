@@ -3135,10 +3135,7 @@ impl AstNode for BitsExpr {
 }
 impl BitsExpr {
     pub fn bits_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBits) }
-    pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
-    pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
-    pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
+    pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3272,27 +3269,6 @@ impl NameType {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct RangeSpec(SyntaxNode);
-impl AstNode for RangeSpec {
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::RangeSpec => Some(Self(syntax)),
-            _ => None,
-        }
-    }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
-            SyntaxKind::RangeSpec => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode { &self.0 }
-}
-impl RangeSpec {
-    pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[repr(transparent)]
 pub struct Param(SyntaxNode);
 impl AstNode for Param {
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -3398,7 +3374,7 @@ impl AstNode for RangeType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeType {
-    pub fn range_spec(&self) -> Option<RangeSpec> { helper::node(&self.0) }
+    pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4658,33 +4634,6 @@ impl AstNode for IndirectTy {
         match self {
             Self::PrimType(node) => &node.syntax(),
             Self::NameType(node) => &node.syntax(),
-        }
-    }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum BitRange {
-    RangeSpec(RangeSpec),
-    Expr(Expr),
-}
-impl AstNode for BitRange {
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::RangeSpec => Some(Self::RangeSpec(AstNode::cast(syntax)?)),
-            _ if Expr::can_cast(&syntax) => Some(Self::Expr(AstNode::cast(syntax)?)),
-            _ => None,
-        }
-    }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
-            SyntaxKind::RangeSpec => true,
-            _ if Expr::can_cast(&syntax) => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        match self {
-            Self::RangeSpec(node) => &node.syntax(),
-            Self::Expr(node) => &node.syntax(),
         }
     }
 }

@@ -22,7 +22,92 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
         }
     }
 
-    // TODO: stuff relating to init expr
+    // Check for the required presence or absence of an init expr
+
+    // Require Conditions:
+    // Require(Expr::InitExpr)
+    //     if decl.type_spec() is Some(Type::ArrayType(array_ty))
+    //        and array_ty.ranges() contains unbounded range
+
+    // Accept Conditions:
+    // Accept(Expr::InitExpr) if decl.type_spec() is Some(Type::ArrayType | Type::RecordType | Type::UnionType)
+
+    // Reject Conditions:
+    // Reject(Expr::InitExpr) if not (decl.type_spec() is Some(Type::ArrayType | Type::RecordType | Type::UnionType))
+    // Reject(_)
+    //     if decl.type_spec() is Some(Type::ArrayType(array_ty))
+    //        and array_ty.ranges() contains unbounded range
+
+    if let Some(ast::Expr::InitExpr(init_expr)) = decl.init() {
+        // Has init expr initializer, allowed here?
+        if let Some(ty) = decl.type_spec() {
+            // Yes type spec, only allowed for array, record, or union types
+            if !matches!(ty, ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_))
+            {
+                ctx.push_error(
+                    "‘init’ initializer is not allowed here",
+                    init_expr.syntax().text_range(),
+                );
+                // TODO: add additional diagnostic referring to the type spec not being an array, record, or union type
+            }
+        } else {
+            // No type spec, never allowed
+            ctx.push_error(
+                "‘init’ initializer is not allowed here",
+                init_expr.syntax().text_range(),
+            );
+        }
+    } else if let Some(ast::Type::ArrayType(array_ty)) = decl.type_spec() {
+        // Has array type spec, is unbounded?
+        // An array is unbounded if at least one of its ranges is unbounded
+        if let Some(ranges) = array_ty.range_list() {
+            let mut ranges = ranges.ranges();
+
+            // Check if the array is unbounded
+            let is_unbounded = loop {
+                let range = if let Some(range) = ranges.next() {
+                    range
+                } else {
+                    break false;
+                };
+
+                if let ast::Type::RangeType(range_ty) = range {
+                    let is_unbounded = range_ty
+                        .end()
+                        .map(|end_bound| matches!(end_bound, ast::EndBound::UnsizedBound(_)))
+                        .unwrap_or_default();
+
+                    if is_unbounded {
+                        break true;
+                    }
+                }
+            };
+
+            if is_unbounded {
+                // init expr is required
+                if !matches!(decl.init(), Some(ast::Expr::InitExpr(_))) {
+                    // Report at either the initializer expr, or the array type spec
+                    if let Some(init) = decl.init() {
+                        let report_here = init.syntax().text_range();
+                        ctx.push_error("‘init’ initializer is required here", report_here);
+                    } else {
+                        let report_after = array_ty.syntax().text_range();
+                        ctx.push_error("‘init’ initializer is required after here", report_after);
+                    }
+                }
+                // TODO: add additional diagnostic referring to the type spec saying that it's because it's an unbounded array
+            }
+        }
+    }
+}
+
+pub(super) fn validate_bind_decl(decl: ast::BindDecl, ctx: &mut ValidateCtx) {
+    if block_containing_node(decl.syntax()).is_top_level() {
+        ctx.push_error(
+            "‘bind’ declaration is not allowed at module level",
+            decl.syntax().text_range(),
+        );
+    }
 }
 
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
@@ -121,7 +206,7 @@ pub(super) fn validate_monitor_decl(decl: ast::MonitorDecl, ctx: &mut ValidateCt
     check_matching_names(decl.name(), decl.end_group(), ctx);
 }
 
-pub(super) fn check_matching_names(
+fn check_matching_names(
     decl_name: Option<ast::Name>,
     end_group: Option<ast::EndGroup>,
     ctx: &mut ValidateCtx,
