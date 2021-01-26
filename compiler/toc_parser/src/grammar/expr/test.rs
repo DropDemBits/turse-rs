@@ -1750,8 +1750,7 @@ fn recover_missing_closing_paren_and_rhs() {
                       LiteralExpr@4..5
                         IntLiteral@4..5 "1"
                       Plus@5..6 "+"
-            error at 5..6: expected expression
-            error at 5..6: expected ‘)’"#]],
+            error at 5..6: expected expression"#]],
     );
 }
 
@@ -1874,8 +1873,7 @@ fn recover_field_missing_closing_paren_and_field() {
                         Name@4..5
                           Identifier@4..5 "a"
                       Dot@5..6 "."
-            error at 5..6: expected identifier
-            error at 5..6: expected ‘)’"#]],
+            error at 5..6: expected identifier"#]],
     );
 }
 
@@ -1977,8 +1975,7 @@ fn recover_arrow_missing_closing_paren_and_field() {
                         Name@4..5
                           Identifier@4..5 "a"
                       Arrow@5..7 "->"
-            error at 5..7: expected identifier
-            error at 5..7: expected ‘)’"#]],
+            error at 5..7: expected identifier"#]],
     );
 }
 
@@ -2265,8 +2262,7 @@ fn recover_call_expr_missing_last_arg_and_closing_paren() {
                           IntLiteral@5..6 "1"
                         Comma@6..7 ","
                       Param@7..7
-            error at 6..7: expected expression
-            error at 6..7: expected ‘,’ or ‘)’"#]],
+            error at 6..7: expected expression"#]],
     );
 }
 
@@ -3494,8 +3490,7 @@ fn recover_just_indirect_ty() {
                 Error@0..4
                   KwChar@0..4
                     KwChar@0..4 "char"
-            error at 0..4: expected ‘(’ or ‘@’
-            error at 0..4: expected statement"#]],
+            error at 0..4: expected ‘(’ or ‘@’"#]],
     );
 }
 
@@ -3946,8 +3941,7 @@ fn recover_cheat_expr_missing_comma() {
                     PrimType@9..12
                       KwInt@9..12 "int"
                     RightParen@12..13 ")"
-            error at 12..13: expected ‘,’, but found ‘)’
-            error at 12..13: expected expression, but found ‘)’"#]],
+            error at 12..13: expected ‘,’, but found ‘)’"#]],
     );
 }
 
@@ -3968,9 +3962,7 @@ fn recover_cheat_expr_empty() {
                     KwCheat@3..8 "cheat"
                     LeftParen@8..9 "("
                     RightParen@9..10 ")"
-            error at 9..10: expected type specifier, but found ‘)’
-            error at 9..10: expected ‘,’, but found ‘)’
-            error at 9..10: expected expression, but found ‘)’"#]],
+            error at 9..10: expected type specifier, but found ‘)’"#]],
     );
 }
 
@@ -3989,11 +3981,7 @@ fn recover_just_cheat() {
                     Assign@1..3 ":="
                   CheatExpr@3..8
                     KwCheat@3..8 "cheat"
-            error at 3..8: expected ‘(’
-            error at 3..8: expected type specifier
-            error at 3..8: expected ‘,’
-            error at 3..8: expected expression
-            error at 3..8: expected ‘:’ or ‘)’"#]],
+            error at 3..8: expected ‘(’"#]],
     );
 }
 
@@ -4933,8 +4921,7 @@ fn recover_sizeof_expr_missing_parens() {
                     NameExpr@10..11
                       Name@10..11
                         Identifier@10..11 "a"
-            error at 10..11: expected ‘(’, but found identifier
-            error at 10..11: expected ‘)’"#]],
+            error at 10..11: expected ‘(’, but found identifier"#]],
     );
 }
 

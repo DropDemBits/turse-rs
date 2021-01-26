@@ -111,8 +111,7 @@ fn recover_just_var() {
                 ConstVarDecl@0..3
                   KwVar@0..3 "var"
                   NameList@3..3
-            error at 0..3: expected identifier
-            error at 0..3: expected ‘,’, ‘:’ or ‘:=’"#]],
+            error at 0..3: expected identifier"#]],
     )
 }
 
@@ -1503,8 +1502,7 @@ fn recover_type_decl_missing_colon_and_type() {
                   Whitespace@4..5 " "
                   Name@5..6
                     Identifier@5..6 "a"
-            error at 5..6: expected ‘:’
-            error at 5..6: expected type specifier"#]],
+            error at 5..6: expected ‘:’"#]],
     );
 }
 
@@ -1517,9 +1515,7 @@ fn recover_just_type() {
               StmtList@0..4
                 TypeDecl@0..4
                   KwType@0..4 "type"
-            error at 0..4: expected identifier
-            error at 0..4: expected ‘:’
-            error at 0..4: expected type specifier"#]],
+            error at 0..4: expected identifier"#]],
     );
 }
 
@@ -1833,8 +1829,7 @@ fn recover_if_stmt_missing_end() {
                     KwThen@8..12 "then"
                     StmtList@12..12
                   EndGroup@12..12
-            error at 8..12: expected ‘else’, ‘elseif’, ‘elsif’, ‘elif’, ‘endif’ or ‘end’
-            error at 8..12: expected ‘if’"#]],
+            error at 8..12: expected ‘else’, ‘elseif’, ‘elsif’, ‘elif’, ‘endif’ or ‘end’"#]],
     );
 }
 
@@ -2045,8 +2040,7 @@ fn recover_if_stmt_multiple_elses() {
                             Whitespace@26..27 " "
                             KwIf@27..29 "if"
                   EndGroup@29..29
-            error at 27..29: expected ‘endif’ or ‘end’
-            error at 27..29: expected ‘if’"#]],
+            error at 27..29: expected ‘endif’ or ‘end’"#]],
     );
 }
 
@@ -2357,8 +2351,7 @@ fn recover_on_invariant() {
                   Whitespace@8..10 " \n"
                 InvariantStmt@10..19
                   KwInvariant@10..19 "invariant"
-            error at 10..19: expected expression, but found ‘invariant’
-            error at 10..19: expected expression"#]],
+            error at 10..19: expected expression, but found ‘invariant’"#]],
     );
 }
 
@@ -2845,8 +2838,7 @@ fn recover_just_loop() {
                       EndGroup@11..14
                         KwEnd@11..14 "end"
                   EndGroup@14..14
-            error at 11..14: expected ‘endloop’ or ‘end’
-            error at 11..14: expected ‘loop’"#]],
+            error at 11..14: expected ‘endloop’ or ‘end’"#]],
     );
 }
 
@@ -3874,9 +3866,7 @@ fn recover_just_bind() {
                 BindDecl@0..4
                   KwBind@0..4 "bind"
                   BindItem@4..4
-            error at 0..4: expected identifier
-            error at 0..4: expected ‘to’
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected identifier"#]],
     );
 }
 
@@ -4932,10 +4922,9 @@ fn recover_init_stmt_missing_asn() {
                     Name@5..7
                       Identifier@5..6 "a"
                       Whitespace@6..7 " "
-                    Error@7..8
+                    LiteralExpr@7..8
                       IntLiteral@7..8 "1"
-            error at 7..8: expected ‘:=’, but found int literal
-            error at 7..8: expected expression"#]],
+            error at 7..8: expected ‘:=’, but found int literal"#]],
     );
 }
 
@@ -4987,9 +4976,7 @@ fn recover_just_init() {
                 InitStmt@0..4
                   KwInit@0..4 "init"
                   InitVar@4..4
-            error at 0..4: expected identifier
-            error at 0..4: expected ‘:=’
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected identifier"#]],
     );
 }
 
@@ -5143,9 +5130,7 @@ fn recover_handler_stmt_missing_name_portion() {
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
                     KwHandler@19..26 "handler"
-            error at 8..14: expected ‘(’, but found ‘return’
-            error at 8..14: expected identifier, but found ‘return’
-            error at 8..14: expected ‘)’, but found ‘return’"#]],
+            error at 8..14: expected ‘(’, but found ‘return’"#]],
     );
 }
 
@@ -5185,11 +5170,7 @@ fn recover_just_handler() {
                   KwHandler@0..7 "handler"
                   StmtList@7..7
                   EndGroup@7..7
-            error at 0..7: expected ‘(’
-            error at 0..7: expected identifier
-            error at 0..7: expected ‘)’
-            error at 0..7: expected ‘end’
-            error at 0..7: expected ‘handler’"#]],
+            error at 0..7: expected ‘(’"#]],
     );
 }
 
@@ -5447,8 +5428,6 @@ fn recover_just_tag() {
               StmtList@0..3
                 TagStmt@0..3
                   KwTag@0..3 "tag"
-            error at 0..3: expected expression
-            error at 0..3: expected ‘,’
             error at 0..3: expected expression"#]],
     );
 }
@@ -6702,9 +6681,7 @@ fn recover_just_body() {
                   PlainHeader@4..4
                   StmtList@4..4
                   EndGroup@4..4
-            error at 0..4: expected ‘function’, ‘procedure’ or identifier
-            error at 0..4: expected ‘(’, ‘:’, identifier, ‘pre’, ‘init’, ‘post’, ‘handler’ or ‘end’
-            error at 0..4: expected identifier"#]],
+            error at 0..4: expected ‘function’, ‘procedure’ or identifier"#]],
     );
 }
 
@@ -7120,7 +7097,6 @@ fn recover_module_decl_double_post() {
                     Name@27..28
                       Identifier@27..28 "a"
             error at 16..20: expected ‘end’, but found ‘post’
-            error at 16..20: expected identifier, but found ‘post’
             error at 23..26: expected statement, but found ‘end’"#]],
     );
 }
@@ -7175,8 +7151,6 @@ fn recover_just_module() {
                   KwModule@0..6 "module"
                   StmtList@6..6
                   EndGroup@6..6
-            error at 0..6: expected identifier
-            error at 0..6: expected ‘implement’, ‘import’, ‘export’, ‘pre’, ‘post’ or ‘end’
             error at 0..6: expected identifier"#]],
     );
 }
@@ -7335,8 +7309,6 @@ fn recover_just_class() {
                   KwClass@0..5 "class"
                   StmtList@5..5
                   EndGroup@5..5
-            error at 0..5: expected identifier
-            error at 0..5: expected ‘inherit’, ‘implement’, ‘import’, ‘export’, ‘pre’, ‘post’ or ‘end’
             error at 0..5: expected identifier"#]],
     );
 }
@@ -7525,8 +7497,6 @@ fn recover_just_monitor() {
                   KwMonitor@0..7 "monitor"
                   StmtList@7..7
                   EndGroup@7..7
-            error at 0..7: expected identifier
-            error at 0..7: expected ‘:’, ‘implement’, ‘import’, ‘export’, ‘pre’, ‘post’ or ‘end’
             error at 0..7: expected identifier"#]],
     );
 }
@@ -7712,8 +7682,7 @@ fn parse_process_decl() {
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
                     Identifier@44..45 "a"
-            error at 17..18: expected ‘,’ or ‘:’, but found ‘)’
-            error at 17..18: expected type specifier, but found ‘)’"#]],
+            error at 17..18: expected ‘,’ or ‘:’, but found ‘)’"#]],
     );
 }
 
@@ -7765,8 +7734,7 @@ fn parse_process_decl_opt_stack_size() {
                     KwEnd@48..51 "end"
                     Whitespace@51..52 " "
                     Identifier@52..53 "a"
-            error at 17..18: expected ‘,’ or ‘:’, but found ‘)’
-            error at 17..18: expected type specifier, but found ‘)’"#]],
+            error at 17..18: expected ‘,’ or ‘:’, but found ‘)’"#]],
     );
 }
 
@@ -7911,8 +7879,6 @@ fn recover_just_process() {
                   KwProcess@0..7 "process"
                   StmtList@7..7
                   EndGroup@7..7
-            error at 0..7: expected identifier
-            error at 0..7: expected ‘(’, ‘:’, ‘import’, ‘pre’, ‘init’, ‘post’, ‘handler’ or ‘end’
             error at 0..7: expected identifier"#]],
     );
 }
@@ -9107,9 +9073,7 @@ fn recover_on_include() {
                         StringLiteral@12..24 "\"still_here\""
                   EndGroup@24..24
             error at 4..11: expected identifier or ‘:’, but found ‘include’
-            error at 4..11: expected expression, but found ‘include’
-            error at 12..24: expected ‘endfor’ or ‘end’
-            error at 12..24: expected ‘for’"#]],
+            error at 12..24: expected ‘endfor’ or ‘end’"#]],
     )
 }
 
@@ -9245,9 +9209,7 @@ fn recover_just_tell() {
               StmtList@0..4
                 TellStmt@0..4
                   KwTell@0..4 "tell"
-            error at 0..4: expected ‘:’
-            error at 0..4: expected ‘,’
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected ‘:’"#]],
     );
 }
 
@@ -9390,9 +9352,7 @@ fn recover_just_seek() {
               StmtList@0..4
                 SeekStmt@0..4
                   KwSeek@0..4 "seek"
-            error at 0..4: expected ‘:’
-            error at 0..4: expected ‘,’
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected ‘:’"#]],
     );
 }
 
@@ -9815,9 +9775,7 @@ fn recover_just_read() {
                   KwRead@0..4 "read"
                   BinaryIO@4..4
                     BinaryItem@4..4
-            error at 0..4: expected ‘:’
-            error at 0..4: expected ‘:’ or ‘,’
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected ‘:’"#]],
     );
 }
 
@@ -10242,9 +10200,7 @@ fn recover_just_write() {
                   KwWrite@0..5 "write"
                   BinaryIO@5..5
                     BinaryItem@5..5
-            error at 0..5: expected ‘:’
-            error at 0..5: expected ‘:’ or ‘,’
-            error at 0..5: expected expression"#]],
+            error at 0..5: expected ‘:’"#]],
     );
 }
 
@@ -10687,12 +10643,7 @@ fn recover_just_open() {
                 OpenStmt@0..4
                   KwOpen@0..4 "open"
                   NewOpen@4..4
-            error at 0..4: expected ‘(’ or ‘:’
-            error at 0..4: expected expression
-            error at 0..4: expected ‘,’
-            error at 0..4: expected expression
-            error at 0..4: expected ‘,’
-            error at 0..4: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’"#]],
+            error at 0..4: expected ‘(’ or ‘:’"#]],
     );
 }
 
@@ -10884,8 +10835,7 @@ fn recover_just_close() {
                 CloseStmt@0..5
                   KwClose@0..5 "close"
                   NewClose@5..5
-            error at 0..5: expected ‘(’ or ‘:’
-            error at 0..5: expected expression"#]],
+            error at 0..5: expected ‘(’ or ‘:’"#]],
     );
 }
 

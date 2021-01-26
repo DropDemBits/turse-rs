@@ -223,7 +223,8 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
         p.bump(); // bump `=`
 
         expr::expect_expr(p);
-    } else if (require_initializer && p.expect(TokenKind::Assign)) || p.eat(TokenKind::Assign) {
+    } else if (require_initializer && p.expect_punct(TokenKind::Assign)) || p.eat(TokenKind::Assign)
+    {
         expr::expect_expr(p);
     }
 
@@ -1388,7 +1389,7 @@ fn init_var(p: &mut Parser) -> Option<CompletedMarker> {
         p.warn_alias("‘:=’");
         p.bump();
     } else {
-        p.expect(TokenKind::Assign);
+        p.expect_punct(TokenKind::Assign);
     }
 
     expr::expect_expr(p);

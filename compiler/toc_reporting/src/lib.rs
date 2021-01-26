@@ -72,6 +72,12 @@ impl MessageSink {
         });
     }
 
+    /// Removes any subsequent messages that share the same text range
+    pub fn dedup_shared_ranges(&mut self) {
+        self.messages
+            .dedup_by(|a, b| a.range == b.range && a.kind == b.kind)
+    }
+
     /// Finishes reporting any messages, giving back the final message list
     pub fn finish(self) -> Vec<ReportMessage> {
         self.messages

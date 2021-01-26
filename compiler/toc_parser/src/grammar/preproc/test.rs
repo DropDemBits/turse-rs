@@ -577,9 +577,7 @@ mod cond {
                       PPIf@0..3
                         PPKwIf@0..3 "#if"
                         PPTokenBody@3..3
-                error at 0..3: expected preprocessor condition
-                error at 0..3: expected ‘then’
-                error at 0..3: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’"##]],
+                error at 0..3: expected preprocessor condition"##]],
         );
     }
 
@@ -594,9 +592,7 @@ mod cond {
                       PPElseif@0..6
                         PPKwElsif@0..6 "#elsif"
                         PPTokenBody@6..6
-                error at 0..6: expected preprocessor condition
-                error at 0..6: expected ‘then’
-                error at 0..6: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’"##]],
+                error at 0..6: expected preprocessor condition"##]],
         );
     }
 
@@ -612,9 +608,7 @@ mod cond {
                         PPKwElseif@0..7 "#elseif"
                         PPTokenBody@7..7
                 warn at 0..7: ‘#elseif’ found, assuming it to be ‘#elsif’
-                error at 0..7: expected preprocessor condition
-                error at 0..7: expected ‘then’
-                error at 0..7: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’"##]],
+                error at 0..7: expected preprocessor condition"##]],
         );
     }
 
@@ -1272,7 +1266,6 @@ mod expr {
                           Whitespace@21..22 " "
                           KwIf@22..24 "if"
                 error at 6..9: expected ‘then’, but found ‘not’
-                error at 6..9: expected statement, but found ‘not’
                 error at 12..16: expected statement, but found ‘then’"##]],
         )
     }

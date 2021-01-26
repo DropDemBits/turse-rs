@@ -682,8 +682,7 @@ fn recover_range_type_not_an_expr() {
                     Error@14..21
                       PrimType@14..21
                         KwBoolean@14..21 "boolean"
-            error at 14..21: expected ‘@’
-            error at 14..21: expected expression"#]],
+            error at 14..21: expected ‘@’"#]],
     );
 }
 
@@ -861,9 +860,7 @@ fn recover_pointer_type_just_unchecked() {
                   Whitespace@8..9 " "
                   PointerType@9..18
                     KwUnchecked@9..18 "unchecked"
-            error at 9..18: expected ‘^’ or ‘pointer’
-            error at 9..18: expected ‘to’
-            error at 9..18: expected type specifier"#]],
+            error at 9..18: expected ‘^’ or ‘pointer’"#]],
     );
 }
 
@@ -1055,8 +1052,7 @@ fn recover_enum_type_missing_name_and_right_paren() {
                       Name@18..19
                         Identifier@18..19 "b"
                       Comma@19..20 ","
-            error at 19..20: expected identifier
-            error at 19..20: expected ‘,’ or ‘)’"#]],
+            error at 19..20: expected identifier"#]],
     )
 }
 
@@ -1296,8 +1292,7 @@ fn recover_just_set() {
                   Whitespace@8..9 " "
                   SetType@9..12
                     KwSet@9..12 "set"
-            error at 9..12: expected ‘of’
-            error at 9..12: expected type specifier"#]],
+            error at 9..12: expected ‘of’"#]],
     );
 }
 
@@ -1548,8 +1543,7 @@ fn recover_just_collection() {
                   Whitespace@8..9 " "
                   CollectionType@9..19
                     KwCollection@9..19 "collection"
-            error at 9..19: expected ‘of’
-            error at 9..19: expected type specifier"#]],
+            error at 9..19: expected ‘of’"#]],
     )
 }
 
@@ -1890,8 +1884,7 @@ fn recover_proc_type_with_result_ty() {
                   PrimType@37..40
                     KwInt@37..40 "int"
             error at 35..36: expected statement, but found ‘:’
-            error at 37..40: expected ‘@’
-            error at 37..40: expected statement"#]],
+            error at 37..40: expected ‘@’"#]],
     );
 }
 
@@ -1932,8 +1925,7 @@ fn recover_fcn_type_without_result_ty() {
                         PrimType@29..32
                           KwInt@29..32 "int"
                       RightParen@32..33 ")"
-            error at 32..33: expected ‘:’
-            error at 32..33: expected type specifier"#]],
+            error at 32..33: expected ‘:’"#]],
     );
 }
 
@@ -2573,8 +2565,7 @@ fn recover_just_record() {
                   RecordType@9..15
                     KwRecord@9..15 "record"
                     EndGroup@15..15
-            error at 9..15: expected ‘end’
-            error at 9..15: expected ‘record’"#]],
+            error at 9..15: expected ‘end’"#]],
     );
 }
 
@@ -2695,11 +2686,7 @@ fn recover_just_union() {
                   UnionType@9..14
                     KwUnion@9..14 "union"
                     EndGroup@14..14
-            error at 9..14: expected identifier or ‘:’
-            error at 9..14: expected type specifier
-            error at 9..14: expected ‘of’
-            error at 9..14: expected ‘label’ or ‘end’
-            error at 9..14: expected ‘union’"#]],
+            error at 9..14: expected identifier or ‘:’"#]],
     );
 }
 
@@ -2728,8 +2715,7 @@ fn recover_just_union_head() {
                       Whitespace@24..25 " "
                     KwOf@25..27 "of"
                     EndGroup@27..27
-            error at 25..27: expected ‘label’ or ‘end’
-            error at 25..27: expected ‘union’"#]],
+            error at 25..27: expected ‘label’ or ‘end’"#]],
     );
 }
 
@@ -2912,8 +2898,7 @@ fn recover_union_type_missing_label_colon() {
                       KwEnd@31..34 "end"
                       Whitespace@34..35 " "
                       KwUnion@35..40 "union"
-            error at 31..34: expected expression, but found ‘end’
-            error at 31..34: expected ‘:’, but found ‘end’"#]],
+            error at 31..34: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -3018,9 +3003,7 @@ fn recover_bare_union_type() {
                       KwEnd@15..18 "end"
                       Whitespace@18..19 " "
                       KwUnion@19..24 "union"
-            error at 15..18: expected identifier or ‘:’, but found ‘end’
-            error at 15..18: expected type specifier, but found ‘end’
-            error at 15..18: expected ‘of’, but found ‘end’"#]],
+            error at 15..18: expected identifier or ‘:’, but found ‘end’"#]],
     );
 }
 
@@ -3056,11 +3039,7 @@ fn recover_record_type_on_var() {
                   Whitespace@23..24 " "
                   PrimType@24..27
                     KwInt@24..27 "int"
-            error at 16..19: expected ‘end’ or identifier, but found ‘var’
-            error at 16..19: expected ‘,’ or ‘:’, but found ‘var’
-            error at 16..19: expected type specifier, but found ‘var’
-            error at 16..19: expected ‘;’ or ‘end’, but found ‘var’
-            error at 16..19: expected ‘record’, but found ‘var’"#]],
+            error at 16..19: expected ‘end’ or identifier, but found ‘var’"#]],
     );
 }
 
@@ -3108,11 +3087,7 @@ fn recover_union_variant_type_on_var() {
                   Whitespace@43..44 " "
                   PrimType@44..47
                     KwInt@44..47 "int"
-            error at 36..39: expected ‘end’, ‘label’ or identifier, but found ‘var’
-            error at 36..39: expected ‘,’ or ‘:’, but found ‘var’
-            error at 36..39: expected type specifier, but found ‘var’
-            error at 36..39: expected ‘;’, ‘label’ or ‘end’, but found ‘var’
-            error at 36..39: expected ‘union’, but found ‘var’"#]],
+            error at 36..39: expected ‘end’, ‘label’ or identifier, but found ‘var’"#]],
     );
 }
 
