@@ -84,7 +84,7 @@ impl<'t, 'src> Sink<'t, 'src> {
     fn token(&mut self) {
         let token = &self.tokens[self.cursor];
         let kind: SyntaxKind = token.kind.into();
-        let text = token.lexeme.into();
+        let text = token.lexeme;
 
         self.builder.token(kind.into(), text);
         self.cursor += 1;
