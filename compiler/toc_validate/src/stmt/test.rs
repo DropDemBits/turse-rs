@@ -307,3 +307,178 @@ fn report_no_initializer_with_unbounded_array() {
         expect![[r#"error at 8..27: ‘init’ initializer is required after here"#]],
     );
 }
+
+#[test]
+fn proc_decl_in_main() {
+    check("proc a end a", expect![[]]);
+}
+
+#[test]
+fn proc_decl_in_module() {
+    check("module q proc a end a end q", expect![[]]);
+}
+
+#[test]
+fn report_proc_decl_in_proc_decl() {
+    check(
+        "proc a proc a end a end a",
+        expect![[r#"error at 7..20: ‘procedure’ declaration is only allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_proc_decl_in_block_stmt() {
+    check(
+        "begin proc a end a end",
+        expect![[r#"error at 6..19: ‘procedure’ declaration is only allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_dev_spec_in_forward_decl() {
+    check(
+        "forward proc a : 2",
+        expect![[r#"error at 15..18: device specification is not allowed here"#]],
+    );
+}
+
+#[test]
+fn report_dev_spec_in_main_proc() {
+    check(
+        "proc a : 2 end a",
+        expect![[r#"error at 7..11: device specification is not allowed here"#]],
+    );
+}
+
+#[test]
+fn report_dev_spec_in_monitor_proc() {
+    check(
+        "monitor a proc a : 2 end a end a",
+        expect![[r#"error at 17..21: device specification is not allowed here"#]],
+    );
+    panic!("oop");
+}
+
+#[test]
+fn dev_spec_in_dev_monitor_proc() {
+    check("monitor a : 3 proc a : 2 end a end a", expect![[]]);
+}
+
+#[test]
+fn fcn_decl_in_main() {
+    check("fcn a : int end a", expect![[]]);
+}
+
+#[test]
+fn fcn_decl_in_module() {
+    check("module q fcn a : int end a end q", expect![[]]);
+}
+
+#[test]
+fn report_fcn_decl_in_fcn_decl() {
+    check(
+        "fcn a : int fcn a : int end a end a",
+        expect![[r#"error at 12..30: ‘function’ declaration is only allowed at module level"#]],
+    );
+}
+
+#[test]
+fn report_fcn_decl_in_block_stmt() {
+    check(
+        "begin fcn a : int end a end",
+        expect![[r#"error at 6..24: ‘function’ declaration is only allowed at module level"#]],
+    );
+}
+
+#[test]
+fn process_decl_in_main() {
+    check("proc a end a", expect![[]]);
+}
+
+#[test]
+fn process_decl_in_module() {
+    check("module q process a end a end q", expect![[]]);
+}
+
+#[test]
+fn process_decl_in_monitor() {
+    check("monitor q process a end a end q", expect![[]]);
+}
+
+#[test]
+fn report_process_decl_in_monitor_class() {
+    check(
+        "monitor class q process a end a end q",
+        expect![[
+            r#"error at 16..32: ‘process’ declarations is not allowed in monitor classes or classes"#
+        ]],
+    );
+}
+
+#[test]
+fn report_process_decl_in_class() {
+    check(
+        "class q process a end a end q",
+        expect![[
+            r#"error at 8..24: ‘process’ declarations is not allowed in monitor classes or classes"#
+        ]],
+    );
+}
+
+#[test]
+fn report_process_decl_in_process_decl() {
+    check(
+        "process a process a end a end a",
+        expect![[
+            r#"error at 10..26: ‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s"#
+        ]],
+    );
+}
+
+#[test]
+fn report_process_decl_in_block_stmt() {
+    check(
+        "begin process a end a end",
+        expect![[
+            r#"error at 6..22: ‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s"#
+        ]],
+    );
+}
+
+#[test]
+fn report_external_var() {
+    check(
+        "external \"eee\" var a := 1",
+        expect![[r#"error at 15..25: ‘external’ variables are not supported in this compiler"#]],
+    );
+}
+
+#[test]
+fn report_deferred_decl_in_main() {
+    check(
+        "deferred proc a",
+        expect![[
+            r#"error at 0..15: ‘deferred’ declaration is only allowed in module-kind blocks"#
+        ]],
+    );
+}
+
+#[test]
+fn deferred_decl_in_module() {
+    check("module q deferred proc a end q", expect![[]]);
+}
+
+#[test]
+fn deferred_decl_in_monitor() {
+    check("monitor q deferred proc a end q", expect![[]]);
+}
+
+#[test]
+fn deferred_decl_in_monitor_class() {
+    check("monitor class q deferred proc a end q", expect![[]]);
+}
+
+#[test]
+fn deferred_decl_in_class() {
+    check("class q deferred proc a end q", expect![[]]);
+}

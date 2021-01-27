@@ -7,7 +7,7 @@ use toc_syntax::{
     SyntaxKind,
 };
 
-use crate::{block_containing_node, without_matching};
+use crate::{block_containing_node, walk_blocks, without_matching};
 use crate::{BlockKind, ValidateCtx};
 
 pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut ValidateCtx) {
@@ -105,6 +105,83 @@ pub(super) fn validate_bind_decl(decl: ast::BindDecl, ctx: &mut ValidateCtx) {
     if block_containing_node(decl.syntax()).is_top_level() {
         ctx.push_error(
             "‘bind’ declaration is not allowed at module level",
+            decl.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_proc_decl(decl: ast::ProcDecl, ctx: &mut ValidateCtx) {
+    if !block_containing_node(decl.syntax()).is_top_level() {
+        ctx.push_error(
+            "‘procedure’ declaration is only allowed at module level",
+            decl.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx) {
+    if let Some(dev_spec) = node.device_spec() {
+        // Check if we're in a device monitor block, at the top level
+        if !matches!(
+            node.syntax().parent().map(|parent| parent.kind()),
+            Some(SyntaxKind::ProcDecl)
+        ) {
+            // not allowed here
+            ctx.push_error(
+                "device specification is not allowed here",
+                dev_spec.syntax().text_range(),
+            );
+        } else {
+            let mut parent_blocks = walk_blocks(node.syntax());
+            debug_assert_eq!(parent_blocks.next(), Some(BlockKind::Procedure)); // over parent proc decl
+
+            if !matches!(parent_blocks.next(), Some(BlockKind::MonitorDevice)) {
+                // not in a device monitor
+                ctx.push_error(
+                    "device specification is not allowed here",
+                    dev_spec.syntax().text_range(),
+                );
+            }
+        }
+    }
+}
+
+pub(super) fn validate_fcn_decl(decl: ast::FcnDecl, ctx: &mut ValidateCtx) {
+    if !block_containing_node(decl.syntax()).is_top_level() {
+        ctx.push_error(
+            "‘function’ declaration is only allowed at module level",
+            decl.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCtx) {
+    let parent_kind = block_containing_node(decl.syntax());
+
+    if !parent_kind.is_top_level() {
+        ctx.push_error(
+            "‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s",
+            decl.syntax().text_range(),
+        );
+    } else if matches!(parent_kind, BlockKind::Class | BlockKind::MonitorClass) {
+        ctx.push_error(
+            "‘process’ declarations is not allowed in monitor classes or classes",
+            decl.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_external_var(decl: ast::ExternalVar, ctx: &mut ValidateCtx) {
+    ctx.push_error(
+        "‘external’ variables are not supported in this compiler",
+        decl.syntax().text_range(),
+    );
+}
+
+pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut ValidateCtx) {
+    if !block_containing_node(decl.syntax()).is_module_kind() {
+        ctx.push_error(
+            "‘deferred’ declaration is only allowed in module-kind blocks",
             decl.syntax().text_range(),
         );
     }

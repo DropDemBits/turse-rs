@@ -137,12 +137,12 @@ node restrictions.
 
 ### `ProcHeader`
 
-- If `DeviceSpec` is present, the `ParamSpec` is required to be absent
-- (Semantic Restriction) The procedure name must not be exported if `DeviceSpec` is present
+- `DeviceSpec` is rejected if the node is not in a device monitor block
+- `DeviceSpec` is rejected if the parent node is not a `ProcDecl`
 
 ### `DeviceSpec`
 
-- Rejected if the node is not in a device monitor block
+- None (Checked by `ProcHeader`)
 
 ### `FcnDecl`
 
@@ -256,7 +256,7 @@ node restrictions.
 
 ### `AssignStmt`
 
-- Lhs must be a `Reference`
+- (Semantic Restriction) Lhs must be a `Reference`
 
 ### `AsnOp`
 

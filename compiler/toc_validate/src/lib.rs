@@ -12,6 +12,18 @@ use toc_syntax::{
     SyntaxNode,
 };
 
+// Covering:
+// NewOpen
+// OldClose
+// NewClose
+
+// Requires handling literals
+// ExternalDecl
+
+// Requires scanning over & building simple ident resolve map
+// ForwardDecl
+// BodyDecl + resolved in the current unit
+
 // Taken from rust-analyzer's syntax crate
 #[macro_export]
 macro_rules! match_ast {
@@ -105,6 +117,12 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::PreprocGlob(pp_glob) => preproc::validate_preproc_glob(pp_glob, ctx),
             ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
             ast::BindDecl(decl) => stmt::validate_bind_decl(decl, ctx),
+            ast::ProcDecl(decl) => stmt::validate_proc_decl(decl, ctx),
+            ast::ProcHeader(node) => stmt::validate_proc_header(node, ctx),
+            ast::FcnDecl(decl) => stmt::validate_fcn_decl(decl, ctx),
+            ast::ProcessDecl(decl) => stmt::validate_process_decl(decl, ctx),
+            ast::ExternalVar(var) => stmt::validate_external_var(var, ctx),
+            ast::DeferredDecl(decl) => stmt::validate_deferred_decl(decl, ctx),
             ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
             ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),
@@ -175,6 +193,13 @@ impl BlockKind {
             BlockKind::Monitor | BlockKind::MonitorClass | BlockKind::MonitorDevice
         )
     }
+
+    fn is_module_kind(self) -> bool {
+        matches!(
+            self,
+            Self::Module | Self::Class | Self::Monitor | Self::MonitorClass | Self::MonitorDevice
+        )
+    }
 }
 
 pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
@@ -183,10 +208,12 @@ pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
 
 pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {
     // walk up parents
-    let mut parent = start.parent();
+    let mut parent = Some(start.clone());
 
     std::iter::from_fn(move || {
         let kind = loop {
+            parent = parent.as_ref().and_then(|n| n.parent());
+
             match_ast!(match (parent.as_ref()?) {
                 ast::Source(src) =>
                     break if src.unit_token().is_some() {
@@ -221,8 +248,6 @@ pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind>
                 ast::HandlerStmt(_o) => break BlockKind::Inner,
                 _ => (),
             });
-
-            parent = parent.as_ref()?.parent();
         };
 
         Some(kind)
