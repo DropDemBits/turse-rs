@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod test;
 
+use toc_syntax::SyntaxNode;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxKind,
@@ -16,7 +17,7 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
 
         if block_containing_node(decl.syntax()).is_top_level() {
             ctx.push_error(
-                "‘register’ attribute is not allowed at module level",
+                "‘register’ attribute is not allowed at module-like or program level",
                 attr.syntax().text_range(),
             );
         }
@@ -104,16 +105,7 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
 pub(super) fn validate_bind_decl(decl: ast::BindDecl, ctx: &mut ValidateCtx) {
     if block_containing_node(decl.syntax()).is_top_level() {
         ctx.push_error(
-            "‘bind’ declaration is not allowed at module level",
-            decl.syntax().text_range(),
-        );
-    }
-}
-
-pub(super) fn validate_proc_decl(decl: ast::ProcDecl, ctx: &mut ValidateCtx) {
-    if !block_containing_node(decl.syntax()).is_top_level() {
-        ctx.push_error(
-            "‘procedure’ declaration is only allowed at module level",
+            "‘bind’ declaration is not allowed at module-like or program level",
             decl.syntax().text_range(),
         );
     }
@@ -146,15 +138,6 @@ pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx)
     }
 }
 
-pub(super) fn validate_fcn_decl(decl: ast::FcnDecl, ctx: &mut ValidateCtx) {
-    if !block_containing_node(decl.syntax()).is_top_level() {
-        ctx.push_error(
-            "‘function’ declaration is only allowed at module level",
-            decl.syntax().text_range(),
-        );
-    }
-}
-
 pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCtx) {
     let parent_kind = block_containing_node(decl.syntax());
 
@@ -165,7 +148,7 @@ pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCt
         );
     } else if matches!(parent_kind, BlockKind::Class | BlockKind::MonitorClass) {
         ctx.push_error(
-            "‘process’ declarations is not allowed in monitor classes or classes",
+            "‘process’ declarations is not allowed in classes or monitor classes",
             decl.syntax().text_range(),
         );
     }
@@ -179,12 +162,7 @@ pub(super) fn validate_external_var(decl: ast::ExternalVar, ctx: &mut ValidateCt
 }
 
 pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut ValidateCtx) {
-    if !block_containing_node(decl.syntax()).is_module_kind() {
-        ctx.push_error(
-            "‘deferred’ declaration is only allowed in module-kind blocks",
-            decl.syntax().text_range(),
-        );
-    }
+    validate_in_module_kind(decl.syntax(), "‘deferred’ declaration", ctx);
 }
 
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
@@ -318,5 +296,23 @@ pub(super) fn validate_elseif_stmt(stmt: ast::ElseifStmt, ctx: &mut ValidateCtx)
 
     if !matches!(parent_kind, Some(SyntaxKind::IfBody)) {
         without_matching(stmt.syntax(), "if", ctx);
+    }
+}
+
+pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
+    if !dbg!(block_containing_node(node)).is_module_kind() {
+        ctx.push_error(
+            &format!("{} is only allowed in module-like blocks", kind),
+            node.text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
+    if !dbg!(block_containing_node(node)).is_top_level() {
+        ctx.push_error(
+            &format!("{} is only allowed at module-like or program level", kind),
+            node.text_range(),
+        );
     }
 }

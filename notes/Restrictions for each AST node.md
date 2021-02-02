@@ -8,6 +8,8 @@ node restrictions.
 ## Definitions
 
 - Top-level block: The main block, or any module-kind block (includes class, monitor, and module blocks)
+- Progam level: The main block
+- module-like block: Blocks that are similar to modules (includes class, monitor, and module blocks)
 
 ## Nodes
 
@@ -184,6 +186,7 @@ node restrictions.
 
 ### `ForwardDecl`
 
+- Accepted only in top-level blocks
 - (Note) Name node in SubprogHeader is required
 - (Semantic Restriction) Must have a corresponding `BodyDecl` within the import boundary
 

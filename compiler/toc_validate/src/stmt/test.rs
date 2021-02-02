@@ -70,7 +70,9 @@ fn only_missing_module_end_name() {
 fn report_var_register_attr_in_main() {
     check(
         "var register a : int",
-        expect![[r#"error at 4..13: ‘register’ attribute is not allowed at module level"#]],
+        expect![[
+            r#"error at 4..13: ‘register’ attribute is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -79,8 +81,8 @@ fn report_var_register_attr_in_unit() {
     check(
         "unit var register a : int",
         expect![[r#"
-        error at 5..25: expected a module, class, or monitor declaration
-        error at 9..18: ‘register’ attribute is not allowed at module level"#]],
+            error at 5..25: expected a module, class, or monitor declaration
+            error at 9..18: ‘register’ attribute is not allowed at module-like or program level"#]],
     );
 }
 
@@ -88,7 +90,9 @@ fn report_var_register_attr_in_unit() {
 fn report_var_register_attr_in_module() {
     check(
         "module a var register a : int end a",
-        expect![[r#"error at 13..22: ‘register’ attribute is not allowed at module level"#]],
+        expect![[
+            r#"error at 13..22: ‘register’ attribute is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -96,7 +100,9 @@ fn report_var_register_attr_in_module() {
 fn report_var_register_attr_in_monitor() {
     check(
         "monitor a var register a : int end a",
-        expect![[r#"error at 14..23: ‘register’ attribute is not allowed at module level"#]],
+        expect![[
+            r#"error at 14..23: ‘register’ attribute is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -104,7 +110,9 @@ fn report_var_register_attr_in_monitor() {
 fn report_var_register_attr_in_class() {
     check(
         "class a var register a : int end a",
-        expect![[r#"error at 12..21: ‘register’ attribute is not allowed at module level"#]],
+        expect![[
+            r#"error at 12..21: ‘register’ attribute is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -214,7 +222,9 @@ end a
 fn report_bind_decl_in_main_block() {
     check(
         "bind a to b",
-        expect![[r#"error at 0..11: ‘bind’ declaration is not allowed at module level"#]],
+        expect![[
+            r#"error at 0..11: ‘bind’ declaration is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -222,7 +232,9 @@ fn report_bind_decl_in_main_block() {
 fn report_bind_decl_in_module_block() {
     check(
         "module q bind a to b end q",
-        expect![[r#"error at 9..21: ‘bind’ declaration is not allowed at module level"#]],
+        expect![[
+            r#"error at 9..21: ‘bind’ declaration is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -230,7 +242,9 @@ fn report_bind_decl_in_module_block() {
 fn report_bind_decl_in_class_block() {
     check(
         "class q bind a to b end q",
-        expect![[r#"error at 8..20: ‘bind’ declaration is not allowed at module level"#]],
+        expect![[
+            r#"error at 8..20: ‘bind’ declaration is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -238,7 +252,9 @@ fn report_bind_decl_in_class_block() {
 fn report_bind_decl_in_monitor_block() {
     check(
         "monitor q bind a to b end q",
-        expect![[r#"error at 10..22: ‘bind’ declaration is not allowed at module level"#]],
+        expect![[
+            r#"error at 10..22: ‘bind’ declaration is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -246,7 +262,9 @@ fn report_bind_decl_in_monitor_block() {
 fn report_bind_decl_in_monitor_class_block() {
     check(
         "monitor class q bind a to b end q",
-        expect![[r#"error at 16..28: ‘bind’ declaration is not allowed at module level"#]],
+        expect![[
+            r#"error at 16..28: ‘bind’ declaration is not allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -322,7 +340,9 @@ fn proc_decl_in_module() {
 fn report_proc_decl_in_proc_decl() {
     check(
         "proc a proc a end a end a",
-        expect![[r#"error at 7..20: ‘procedure’ declaration is only allowed at module level"#]],
+        expect![[
+            r#"error at 7..20: ‘procedure’ declaration is only allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -330,7 +350,9 @@ fn report_proc_decl_in_proc_decl() {
 fn report_proc_decl_in_block_stmt() {
     check(
         "begin proc a end a end",
-        expect![[r#"error at 6..19: ‘procedure’ declaration is only allowed at module level"#]],
+        expect![[
+            r#"error at 6..19: ‘procedure’ declaration is only allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -356,7 +378,6 @@ fn report_dev_spec_in_monitor_proc() {
         "monitor a proc a : 2 end a end a",
         expect![[r#"error at 17..21: device specification is not allowed here"#]],
     );
-    panic!("oop");
 }
 
 #[test]
@@ -378,7 +399,9 @@ fn fcn_decl_in_module() {
 fn report_fcn_decl_in_fcn_decl() {
     check(
         "fcn a : int fcn a : int end a end a",
-        expect![[r#"error at 12..30: ‘function’ declaration is only allowed at module level"#]],
+        expect![[
+            r#"error at 12..30: ‘function’ declaration is only allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -386,7 +409,9 @@ fn report_fcn_decl_in_fcn_decl() {
 fn report_fcn_decl_in_block_stmt() {
     check(
         "begin fcn a : int end a end",
-        expect![[r#"error at 6..24: ‘function’ declaration is only allowed at module level"#]],
+        expect![[
+            r#"error at 6..24: ‘function’ declaration is only allowed at module-like or program level"#
+        ]],
     );
 }
 
@@ -410,7 +435,7 @@ fn report_process_decl_in_monitor_class() {
     check(
         "monitor class q process a end a end q",
         expect![[
-            r#"error at 16..32: ‘process’ declarations is not allowed in monitor classes or classes"#
+            r#"error at 16..32: ‘process’ declarations is not allowed in classes or monitor classes"#
         ]],
     );
 }
@@ -420,7 +445,7 @@ fn report_process_decl_in_class() {
     check(
         "class q process a end a end q",
         expect![[
-            r#"error at 8..24: ‘process’ declarations is not allowed in monitor classes or classes"#
+            r#"error at 8..24: ‘process’ declarations is not allowed in classes or monitor classes"#
         ]],
     );
 }
@@ -458,7 +483,7 @@ fn report_deferred_decl_in_main() {
     check(
         "deferred proc a",
         expect![[
-            r#"error at 0..15: ‘deferred’ declaration is only allowed in module-kind blocks"#
+            r#"error at 0..15: ‘deferred’ declaration is only allowed in module-like blocks"#
         ]],
     );
 }
