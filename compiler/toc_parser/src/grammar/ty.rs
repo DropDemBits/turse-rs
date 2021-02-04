@@ -305,14 +305,12 @@ fn record_type_tail(p: &mut Parser, m: Marker) -> Option<CompletedMarker> {
 
     p.bump();
 
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        while !p.at_end() && !p.at(TokenKind::End) {
-            if record_field(p).is_none() {
-                // Didn't parse anything
-                break;
-            }
+    while !p.at_end() && !p.at(TokenKind::End) {
+        if record_field(p).is_none() {
+            // Didn't parse anything
+            break;
         }
-    });
+    }
 
     let m_end = p.start();
     p.expect(TokenKind::End);
@@ -362,7 +360,7 @@ fn union_type_tail(p: &mut Parser, m: Marker) -> Option<CompletedMarker> {
         super::name(p);
     }
 
-    p.with_extra_recovery(&[TokenKind::End, TokenKind::Label], |p| {
+    p.with_extra_recovery(&[TokenKind::Label], |p| {
         // range_ty
         p.with_extra_recovery(&[TokenKind::Of], |p| {
             p.expect_punct(TokenKind::Colon);
@@ -401,7 +399,7 @@ fn union_variant(p: &mut Parser) -> Option<CompletedMarker> {
     // end of label portion
 
     // Union fields
-    p.with_extra_recovery(&[TokenKind::End, TokenKind::Label], |p| {
+    p.with_extra_recovery(&[TokenKind::Label], |p| {
         while !(p.at(TokenKind::End) || p.at(TokenKind::Label)) {
             if record_field(p).is_none() {
                 break;

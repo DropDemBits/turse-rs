@@ -70,6 +70,18 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Implement => { implement_stmt(p) }
             TokenKind::Import => { import_stmt(p) }
             TokenKind::Export => { export_stmt(p) }
+            TokenKind::End,
+            TokenKind::EndIf,
+            TokenKind::EndFor,
+            TokenKind::EndCase,
+            TokenKind::EndLoop => {
+                // Handling dangling end tokens
+                p.error_unexpected()
+                    .with_category(Expected::Statement)
+                    .force_eat()
+                    .report();
+                None
+            }
             _ => expr::reference(p)
                 .map(|cm| {
                     let m = cm.precede(p);
@@ -291,9 +303,7 @@ fn procedure_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Procedure));
     let m = p.start();
 
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        proc_header(p);
-    });
+    proc_header(p);
 
     if p.at(TokenKind::Import) {
         import_stmt(p);
@@ -308,9 +318,7 @@ fn function_decl(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Function));
     let m = p.start();
 
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        fcn_header(p, true);
-    });
+    fcn_header(p, true);
 
     if p.at(TokenKind::Import) {
         import_stmt(p);
@@ -422,19 +430,17 @@ fn process_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     attr_pervasive(p);
 
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
-            super::name(p);
+    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+        super::name(p);
 
-            if p.at(TokenKind::LeftParen) {
-                param_spec(p);
-            }
-        });
-
-        if p.eat(TokenKind::Colon) {
-            expr::expect_expr(p);
+        if p.at(TokenKind::LeftParen) {
+            param_spec(p);
         }
     });
+
+    if p.eat(TokenKind::Colon) {
+        expr::expect_expr(p);
+    }
 
     if p.at(TokenKind::Import) {
         import_stmt(p);
@@ -548,29 +554,27 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        match_token!(|p| match {
-            TokenKind::Function => { fcn_header(p, false); }
-            TokenKind::Procedure => { proc_header(p); }
-            _ => {
-                // Expect just param spec & result ty
-                let m = p.start();
-                p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
-                    super::name(p);
+    match_token!(|p| match {
+        TokenKind::Function => { fcn_header(p, false); }
+        TokenKind::Procedure => { proc_header(p); }
+        _ => {
+            // Expect just param spec & result ty
+            let m = p.start();
+            p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+                super::name(p);
+            });
+
+            if p.at(TokenKind::LeftParen) {
+                p.with_extra_recovery(&[TokenKind::Colon], |p| {
+                    super::param_spec(p);
                 });
-
-                if p.at(TokenKind::LeftParen) {
-                    p.with_extra_recovery(&[TokenKind::Colon], |p| {
-                        super::param_spec(p);
-                    });
-                }
-
-                if p.at(TokenKind::Colon) || p.at(TokenKind::Identifier) {
-                    fcn_result(p);
-                }
-                m.complete(p,SyntaxKind::PlainHeader);
             }
-        });
+
+            if p.at(TokenKind::Colon) || p.at(TokenKind::Identifier) {
+                fcn_result(p);
+            }
+            m.complete(p,SyntaxKind::PlainHeader);
+        }
     });
 
     subprog_body(p);
@@ -585,9 +589,7 @@ fn module_decl(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     attr_pervasive(p);
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        super::name(p);
-    });
+    super::name(p);
 
     module_body(p);
 
@@ -601,9 +603,7 @@ fn class_decl(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     attr_pervasive(p);
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        super::name(p);
-    });
+    super::name(p);
 
     if p.at(TokenKind::Inherit) {
         inherit_stmt(p);
@@ -622,10 +622,8 @@ fn monitor_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let as_class = p.eat(TokenKind::Class);
 
     attr_pervasive(p);
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        super::name(p);
-        device_spec(p);
-    });
+    super::name(p);
+    device_spec(p);
 
     if as_class && p.at(TokenKind::Inherit) {
         inherit_stmt(p);
@@ -1114,30 +1112,28 @@ fn if_stmt(p: &mut Parser) -> Option<CompletedMarker> {
 fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
-    p.with_extra_recovery(&[TokenKind::EndIf, TokenKind::End], |p| {
-        // condition
-        p.with_extra_recovery(&[TokenKind::Then], |p| {
-            expr::expect_expr(p);
-            p.expect_punct(TokenKind::Then);
-        });
+    // condition
+    p.with_extra_recovery(&[TokenKind::Then], |p| {
+        expr::expect_expr(p);
+        p.expect_punct(TokenKind::Then);
+    });
 
-        // true_branch
-        stmt_list(
-            p,
-            Some(&[
-                TokenKind::Else,
-                TokenKind::Elseif,
-                TokenKind::Elsif,
-                TokenKind::Elif,
-            ]),
-        );
+    // true_branch
+    stmt_list(
+        p,
+        Some(&[
+            TokenKind::Else,
+            TokenKind::Elseif,
+            TokenKind::Elsif,
+            TokenKind::Elif,
+        ]),
+    );
 
-        // false_branch
-        match_token!(|p| match {
-            TokenKind::Else => { else_stmt(p, false); }
-            TokenKind::Elseif, TokenKind::Elsif, TokenKind::Elif => { elseif_stmt(p, false); }
-            _ => { /* no false branch */ }
-        });
+    // false_branch
+    match_token!(|p| match {
+        TokenKind::Else => { else_stmt(p, false); }
+        TokenKind::Elseif, TokenKind::Elsif, TokenKind::Elif => { elseif_stmt(p, false); }
+        _ => { /* no false branch */ }
     });
 
     Some(m.complete(p, SyntaxKind::IfBody))
@@ -1173,9 +1169,7 @@ fn else_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.with_extra_recovery(&[TokenKind::EndIf, TokenKind::End], |p| {
-        self::stmt_list(p, None);
-    });
+    self::stmt_list(p, None);
 
     if eat_tail {
         // Eat `end if` or `endif`
@@ -1191,10 +1185,8 @@ fn case_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    p.with_extra_recovery(&[TokenKind::Label], |p| {
-        p.with_extra_recovery(&[TokenKind::Of], |p| {
-            expr::expect_expr(p);
-        });
+    p.with_extra_recovery(&[TokenKind::Label, TokenKind::Of], |p| {
+        expr::expect_expr(p);
         p.expect_punct(TokenKind::Of);
     });
 
@@ -1606,11 +1598,9 @@ fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<Complete
         }
     };
 
-    p.with_extra_recovery(&[TokenKind::End], |p| {
-        while !p.at_end() && !at_stmt_block_end(p) && !at_excluded_set(p) {
-            stmt::stmt(p);
-        }
-    });
+    while !p.at_end() && !at_stmt_block_end(p) && !at_excluded_set(p) {
+        stmt::stmt(p);
+    }
 
     Some(m.complete(p, SyntaxKind::StmtList))
 }

@@ -2909,7 +2909,7 @@ fn recover_union_type_not_label() {
         expect![[r#"
             Source@0..39
               StmtList@0..39
-                TypeDecl@0..34
+                TypeDecl@0..30
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
                   Name@5..7
@@ -2917,7 +2917,7 @@ fn recover_union_type_not_label() {
                     Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  UnionType@9..34
+                  UnionType@9..30
                     KwUnion@9..14 "union"
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
@@ -2931,13 +2931,13 @@ fn recover_union_type_not_label() {
                         Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
-                    EndGroup@25..34
+                    EndGroup@25..30
                       Error@25..30
                         Identifier@25..29 "nope"
                         Whitespace@29..30 " "
-                      Error@30..34
-                        KwEnd@30..33 "end"
-                        Whitespace@33..34 " "
+                Error@30..34
+                  KwEnd@30..33 "end"
+                  Whitespace@33..34 " "
                 Error@34..39
                   KwUnion@34..39 "union"
             error at 25..29: expected ‘label’ or ‘end’, but found identifier

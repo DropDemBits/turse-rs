@@ -2246,13 +2246,13 @@ fn recover_begin_with_endloop() {
         expect![[r#"
             Source@0..13
               StmtList@0..13
-                BlockStmt@0..13
+                BlockStmt@0..6
                   KwBegin@0..5 "begin"
                   Whitespace@5..6 " "
                   StmtList@6..6
-                  EndGroup@6..13
-                    Error@6..13
-                      KwEndLoop@6..13 "endloop"
+                  EndGroup@6..6
+                Error@6..13
+                  KwEndLoop@6..13 "endloop"
             error at 6..13: expected ‘end’, but found ‘endloop’"#]],
     );
 }
@@ -2264,13 +2264,13 @@ fn recover_begin_with_endfor() {
         expect![[r#"
             Source@0..12
               StmtList@0..12
-                BlockStmt@0..12
+                BlockStmt@0..6
                   KwBegin@0..5 "begin"
                   Whitespace@5..6 " "
                   StmtList@6..6
-                  EndGroup@6..12
-                    Error@6..12
-                      KwEndFor@6..12 "endfor"
+                  EndGroup@6..6
+                Error@6..12
+                  KwEndFor@6..12 "endfor"
             error at 6..12: expected ‘end’, but found ‘endfor’"#]],
     );
 }
@@ -2282,13 +2282,13 @@ fn recover_begin_with_endcase() {
         expect![[r#"
             Source@0..13
               StmtList@0..13
-                BlockStmt@0..13
+                BlockStmt@0..6
                   KwBegin@0..5 "begin"
                   Whitespace@5..6 " "
                   StmtList@6..6
-                  EndGroup@6..13
-                    Error@6..13
-                      KwEndCase@6..13 "endcase"
+                  EndGroup@6..6
+                Error@6..13
+                  KwEndCase@6..13 "endcase"
             error at 6..13: expected ‘end’, but found ‘endcase’"#]],
     );
 }
@@ -3327,6 +3327,49 @@ fn recover_for_loop_missing_right_bound() {
                     KwFor@49..52 "for"
                     Whitespace@52..57 "\n    "
             error at 26..35: expected expression, but found ‘invariant’"#]],
+    );
+}
+
+#[test]
+fn recover_for_loop_no_bounds() {
+    check(
+        "for : end for",
+        expect![[r#"
+        Source@0..13
+          StmtList@0..13
+            ForStmt@0..13
+              KwFor@0..3 "for"
+              Whitespace@3..4 " "
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              ForBounds@6..6
+              StmtList@6..6
+              EndGroup@6..13
+                KwEnd@6..9 "end"
+                Whitespace@9..10 " "
+                KwFor@10..13 "for"
+        error at 6..9: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_for_loop_no_bounds_and_alt_end() {
+    check(
+        "for : endfor",
+        expect![[r#"
+        Source@0..12
+          StmtList@0..12
+            ForStmt@0..12
+              KwFor@0..3 "for"
+              Whitespace@3..4 " "
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              ForBounds@6..6
+              StmtList@6..6
+              EndGroup@6..12
+                KwEndFor@6..12 "endfor"
+        error at 6..12: expected expression, but found ‘endfor’
+        warn at 6..12: ‘endfor’ found, assuming it to be ’end for’"#]],
     );
 }
 
@@ -11733,5 +11776,598 @@ fn recover_on_break() {
                 BreakStmt@10..15
                   KwBreak@10..15 "break"
             error at 10..15: expected expression, but found ‘break’"#]],
+    );
+}
+
+#[test]
+fn recover_fcn_decl_safe_end() {
+    check(
+        "fcn a : int pre end a",
+        expect![[r#"
+        Source@0..21
+          StmtList@0..21
+            FcnDecl@0..21
+              FcnHeader@0..12
+                KwFunction@0..3 "fcn"
+                Whitespace@3..4 " "
+                Name@4..6
+                  Identifier@4..5 "a"
+                  Whitespace@5..6 " "
+                FcnResult@6..12
+                  Colon@6..7 ":"
+                  Whitespace@7..8 " "
+                  PrimType@8..12
+                    KwInt@8..11 "int"
+                    Whitespace@11..12 " "
+              PreStmt@12..16
+                KwPre@12..15 "pre"
+                Whitespace@15..16 " "
+              StmtList@16..16
+              EndGroup@16..21
+                KwEnd@16..19 "end"
+                Whitespace@19..20 " "
+                Identifier@20..21 "a"
+        error at 16..19: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_proc_decl_safe_end() {
+    check(
+        "proc a pre end a",
+        expect![[r#"
+        Source@0..16
+          StmtList@0..16
+            ProcDecl@0..16
+              ProcHeader@0..7
+                KwProcedure@0..4 "proc"
+                Whitespace@4..5 " "
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+              PreStmt@7..11
+                KwPre@7..10 "pre"
+                Whitespace@10..11 " "
+              StmtList@11..11
+              EndGroup@11..16
+                KwEnd@11..14 "end"
+                Whitespace@14..15 " "
+                Identifier@15..16 "a"
+        error at 11..14: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_process_decl_safe_end() {
+    check(
+        "process a pre end a",
+        expect![[r#"
+        Source@0..19
+          StmtList@0..19
+            ProcessDecl@0..19
+              KwProcess@0..7 "process"
+              Whitespace@7..8 " "
+              Name@8..10
+                Identifier@8..9 "a"
+                Whitespace@9..10 " "
+              PreStmt@10..14
+                KwPre@10..13 "pre"
+                Whitespace@13..14 " "
+              StmtList@14..14
+              EndGroup@14..19
+                KwEnd@14..17 "end"
+                Whitespace@17..18 " "
+                Identifier@18..19 "a"
+        error at 14..17: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_module_decl_safe_end() {
+    check(
+        "module a pre end a",
+        expect![[r#"
+        Source@0..18
+          StmtList@0..18
+            ModuleDecl@0..18
+              KwModule@0..6 "module"
+              Whitespace@6..7 " "
+              Name@7..9
+                Identifier@7..8 "a"
+                Whitespace@8..9 " "
+              PreStmt@9..13
+                KwPre@9..12 "pre"
+                Whitespace@12..13 " "
+              StmtList@13..13
+              EndGroup@13..18
+                KwEnd@13..16 "end"
+                Whitespace@16..17 " "
+                Identifier@17..18 "a"
+        error at 13..16: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_monitor_decl_safe_end() {
+    check(
+        "monitor a pre end a",
+        expect![[r#"
+        Source@0..19
+          StmtList@0..19
+            MonitorDecl@0..19
+              KwMonitor@0..7 "monitor"
+              Whitespace@7..8 " "
+              Name@8..10
+                Identifier@8..9 "a"
+                Whitespace@9..10 " "
+              PreStmt@10..14
+                KwPre@10..13 "pre"
+                Whitespace@13..14 " "
+              StmtList@14..14
+              EndGroup@14..19
+                KwEnd@14..17 "end"
+                Whitespace@17..18 " "
+                Identifier@18..19 "a"
+        error at 14..17: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_class_decl_safe_end() {
+    check(
+        "class a pre end a",
+        expect![[r#"
+        Source@0..17
+          StmtList@0..17
+            ClassDecl@0..17
+              KwClass@0..5 "class"
+              Whitespace@5..6 " "
+              Name@6..8
+                Identifier@6..7 "a"
+                Whitespace@7..8 " "
+              PreStmt@8..12
+                KwPre@8..11 "pre"
+                Whitespace@11..12 " "
+              StmtList@12..12
+              EndGroup@12..17
+                KwEnd@12..15 "end"
+                Whitespace@15..16 " "
+                Identifier@16..17 "a"
+        error at 12..15: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_for_stmt_safe_end() {
+    check(
+        "for : end for",
+        expect![[r#"
+        Source@0..13
+          StmtList@0..13
+            ForStmt@0..13
+              KwFor@0..3 "for"
+              Whitespace@3..4 " "
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              ForBounds@6..6
+              StmtList@6..6
+              EndGroup@6..13
+                KwEnd@6..9 "end"
+                Whitespace@9..10 " "
+                KwFor@10..13 "for"
+        error at 6..9: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_for_stmt_safe_end_alt() {
+    check(
+        "for : endfor",
+        expect![[r#"
+        Source@0..12
+          StmtList@0..12
+            ForStmt@0..12
+              KwFor@0..3 "for"
+              Whitespace@3..4 " "
+              Colon@4..5 ":"
+              Whitespace@5..6 " "
+              ForBounds@6..6
+              StmtList@6..6
+              EndGroup@6..12
+                KwEndFor@6..12 "endfor"
+        error at 6..12: expected expression, but found ‘endfor’
+        warn at 6..12: ‘endfor’ found, assuming it to be ’end for’"#]],
+    );
+}
+
+#[test]
+fn recover_loop_stmt_safe_end() {
+    check(
+        "loop invariant end loop",
+        expect![[r#"
+        Source@0..23
+          StmtList@0..23
+            LoopStmt@0..23
+              KwLoop@0..4 "loop"
+              Whitespace@4..5 " "
+              StmtList@5..15
+                InvariantStmt@5..15
+                  KwInvariant@5..14 "invariant"
+                  Whitespace@14..15 " "
+              EndGroup@15..23
+                KwEnd@15..18 "end"
+                Whitespace@18..19 " "
+                KwLoop@19..23 "loop"
+        error at 15..18: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_loop_stmt_safe_end_alt() {
+    check(
+        "loop invariant endloop",
+        expect![[r#"
+        Source@0..22
+          StmtList@0..22
+            LoopStmt@0..22
+              KwLoop@0..4 "loop"
+              Whitespace@4..5 " "
+              StmtList@5..15
+                InvariantStmt@5..15
+                  KwInvariant@5..14 "invariant"
+                  Whitespace@14..15 " "
+              EndGroup@15..22
+                KwEndLoop@15..22 "endloop"
+        error at 15..22: expected expression, but found ‘endloop’
+        warn at 15..22: ‘endloop’ found, assuming it to be ’end loop’"#]],
+    );
+}
+
+#[test]
+fn recover_if_stmt_safe_end() {
+    check(
+        "if a then assert end if",
+        expect![[r#"
+        Source@0..23
+          StmtList@0..23
+            IfStmt@0..23
+              KwIf@0..2 "if"
+              Whitespace@2..3 " "
+              IfBody@3..17
+                NameExpr@3..5
+                  Name@3..5
+                    Identifier@3..4 "a"
+                    Whitespace@4..5 " "
+                KwThen@5..9 "then"
+                Whitespace@9..10 " "
+                StmtList@10..17
+                  AssertStmt@10..17
+                    KwAssert@10..16 "assert"
+                    Whitespace@16..17 " "
+              EndGroup@17..23
+                KwEnd@17..20 "end"
+                Whitespace@20..21 " "
+                KwIf@21..23 "if"
+        error at 17..20: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_if_stmt_safe_end_alt() {
+    check(
+        "if a then assert endif",
+        expect![[r#"
+        Source@0..22
+          StmtList@0..22
+            IfStmt@0..22
+              KwIf@0..2 "if"
+              Whitespace@2..3 " "
+              IfBody@3..17
+                NameExpr@3..5
+                  Name@3..5
+                    Identifier@3..4 "a"
+                    Whitespace@4..5 " "
+                KwThen@5..9 "then"
+                Whitespace@9..10 " "
+                StmtList@10..17
+                  AssertStmt@10..17
+                    KwAssert@10..16 "assert"
+                    Whitespace@16..17 " "
+              EndGroup@17..22
+                KwEndIf@17..22 "endif"
+        error at 17..22: expected expression, but found ‘endif’
+        warn at 17..22: ‘endif’ found, assuming it to be ’end if’"#]],
+    );
+}
+
+#[test]
+fn recover_elsif_stmt_safe_end() {
+    check(
+        "elsif a then assert end if",
+        expect![[r#"
+        Source@0..26
+          StmtList@0..26
+            ElseifStmt@0..26
+              KwElsif@0..5 "elsif"
+              Whitespace@5..6 " "
+              IfBody@6..20
+                NameExpr@6..8
+                  Name@6..8
+                    Identifier@6..7 "a"
+                    Whitespace@7..8 " "
+                KwThen@8..12 "then"
+                Whitespace@12..13 " "
+                StmtList@13..20
+                  AssertStmt@13..20
+                    KwAssert@13..19 "assert"
+                    Whitespace@19..20 " "
+              EndGroup@20..26
+                KwEnd@20..23 "end"
+                Whitespace@23..24 " "
+                KwIf@24..26 "if"
+        error at 20..23: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_elsif_stmt_safe_end_alt() {
+    check(
+        "elsif a then assert endif",
+        expect![[r#"
+        Source@0..25
+          StmtList@0..25
+            ElseifStmt@0..25
+              KwElsif@0..5 "elsif"
+              Whitespace@5..6 " "
+              IfBody@6..20
+                NameExpr@6..8
+                  Name@6..8
+                    Identifier@6..7 "a"
+                    Whitespace@7..8 " "
+                KwThen@8..12 "then"
+                Whitespace@12..13 " "
+                StmtList@13..20
+                  AssertStmt@13..20
+                    KwAssert@13..19 "assert"
+                    Whitespace@19..20 " "
+              EndGroup@20..25
+                KwEndIf@20..25 "endif"
+        error at 20..25: expected expression, but found ‘endif’
+        warn at 20..25: ‘endif’ found, assuming it to be ’end if’"#]],
+    );
+}
+
+#[test]
+fn recover_else_stmt_safe_end() {
+    check(
+        "else assert end if",
+        expect![[r#"
+        Source@0..18
+          StmtList@0..18
+            ElseStmt@0..18
+              KwElse@0..4 "else"
+              Whitespace@4..5 " "
+              StmtList@5..12
+                AssertStmt@5..12
+                  KwAssert@5..11 "assert"
+                  Whitespace@11..12 " "
+              EndGroup@12..18
+                KwEnd@12..15 "end"
+                Whitespace@15..16 " "
+                KwIf@16..18 "if"
+        error at 12..15: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_else_stmt_safe_end_alt() {
+    check(
+        "else assert endif",
+        expect![[r#"
+        Source@0..17
+          StmtList@0..17
+            ElseStmt@0..17
+              KwElse@0..4 "else"
+              Whitespace@4..5 " "
+              StmtList@5..12
+                AssertStmt@5..12
+                  KwAssert@5..11 "assert"
+                  Whitespace@11..12 " "
+              EndGroup@12..17
+                KwEndIf@12..17 "endif"
+        error at 12..17: expected expression, but found ‘endif’
+        warn at 12..17: ‘endif’ found, assuming it to be ’end if’"#]],
+    );
+}
+
+#[test]
+fn recover_case_stmt_safe_end() {
+    check(
+        "case a of label end case",
+        expect![[r#"
+        Source@0..24
+          StmtList@0..24
+            CaseStmt@0..24
+              KwCase@0..4 "case"
+              Whitespace@4..5 " "
+              NameExpr@5..7
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+              KwOf@7..9 "of"
+              Whitespace@9..10 " "
+              CaseArm@10..16
+                KwLabel@10..15 "label"
+                Whitespace@15..16 " "
+                ExprList@16..16
+                StmtList@16..16
+              EndGroup@16..24
+                KwEnd@16..19 "end"
+                Whitespace@19..20 " "
+                KwCase@20..24 "case"
+        error at 16..19: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_case_stmt_safe_alt_end() {
+    check(
+        "case a of label endcase",
+        expect![[r#"
+        Source@0..23
+          StmtList@0..23
+            CaseStmt@0..23
+              KwCase@0..4 "case"
+              Whitespace@4..5 " "
+              NameExpr@5..7
+                Name@5..7
+                  Identifier@5..6 "a"
+                  Whitespace@6..7 " "
+              KwOf@7..9 "of"
+              Whitespace@9..10 " "
+              CaseArm@10..16
+                KwLabel@10..15 "label"
+                Whitespace@15..16 " "
+                ExprList@16..16
+                StmtList@16..16
+              EndGroup@16..23
+                KwEndCase@16..23 "endcase"
+        error at 16..23: expected expression, but found ‘endcase’
+        warn at 16..23: ‘endcase’ found, assuming it to be ’end case’"#]],
+    );
+}
+
+#[test]
+fn recover_block_stmt_safe_end() {
+    check(
+        "begin assert end",
+        expect![[r#"
+        Source@0..16
+          StmtList@0..16
+            BlockStmt@0..16
+              KwBegin@0..5 "begin"
+              Whitespace@5..6 " "
+              StmtList@6..13
+                AssertStmt@6..13
+                  KwAssert@6..12 "assert"
+                  Whitespace@12..13 " "
+              EndGroup@13..16
+                KwEnd@13..16 "end"
+        error at 13..16: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_handler_stmt_safe_end() {
+    check(
+        "handler (a) assert end handler",
+        expect![[r#"
+        Source@0..30
+          StmtList@0..30
+            HandlerStmt@0..30
+              KwHandler@0..7 "handler"
+              Whitespace@7..8 " "
+              LeftParen@8..9 "("
+              Name@9..10
+                Identifier@9..10 "a"
+              RightParen@10..11 ")"
+              Whitespace@11..12 " "
+              StmtList@12..19
+                AssertStmt@12..19
+                  KwAssert@12..18 "assert"
+                  Whitespace@18..19 " "
+              EndGroup@19..30
+                KwEnd@19..22 "end"
+                Whitespace@22..23 " "
+                KwHandler@23..30 "handler"
+        error at 19..22: expected expression, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_just_end() {
+    check(
+        "end",
+        expect![[r#"
+        Source@0..3
+          StmtList@0..3
+            Error@0..3
+              KwEnd@0..3 "end"
+        error at 0..3: expected statement, but found ‘end’"#]],
+    );
+}
+
+#[test]
+fn recover_just_endif() {
+    check(
+        "endif",
+        expect![[r#"
+        Source@0..5
+          StmtList@0..5
+            Error@0..5
+              KwEndIf@0..5 "endif"
+        error at 0..5: expected statement, but found ‘endif’"#]],
+    );
+}
+
+#[test]
+fn recover_just_endloop() {
+    check(
+        "endloop",
+        expect![[r#"
+        Source@0..7
+          StmtList@0..7
+            Error@0..7
+              KwEndLoop@0..7 "endloop"
+        error at 0..7: expected statement, but found ‘endloop’"#]],
+    );
+}
+
+#[test]
+fn recover_just_endfor() {
+    check(
+        "endfor",
+        expect![[r#"
+        Source@0..6
+          StmtList@0..6
+            Error@0..6
+              KwEndFor@0..6 "endfor"
+        error at 0..6: expected statement, but found ‘endfor’"#]],
+    );
+}
+
+#[test]
+fn recover_just_endcase() {
+    check(
+        "endcase",
+        expect![[r#"
+        Source@0..7
+          StmtList@0..7
+            Error@0..7
+              KwEndCase@0..7 "endcase"
+        error at 0..7: expected statement, but found ‘endcase’"#]],
+    );
+}
+
+#[test]
+fn recover_mixed_endings() {
+    check(
+        "loop begin endloop",
+        expect![[r#"
+        Source@0..18
+          StmtList@0..18
+            LoopStmt@0..18
+              KwLoop@0..4 "loop"
+              Whitespace@4..5 " "
+              StmtList@5..11
+                BlockStmt@5..11
+                  KwBegin@5..10 "begin"
+                  Whitespace@10..11 " "
+                  StmtList@11..11
+                  EndGroup@11..11
+              EndGroup@11..18
+                KwEndLoop@11..18 "endloop"
+        error at 11..18: expected ‘end’, but found ‘endloop’
+        warn at 11..18: ‘endloop’ found, assuming it to be ’end loop’"#]],
     );
 }

@@ -88,6 +88,14 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
     TokenKind::Implement,
     TokenKind::Import,
     TokenKind::Export,
+    //
+
+    // Stmt Ends //
+    TokenKind::End,
+    TokenKind::EndIf,
+    TokenKind::EndFor,
+    TokenKind::EndCase,
+    TokenKind::EndLoop,
 ];
 
 pub(crate) struct Parser<'t, 'src> {
@@ -268,11 +276,20 @@ impl<'t, 'src> Parser<'t, 'src> {
     }
 }
 
+enum EatBehaviour {
+    /// Will eat a token, if present
+    Forced,
+    /// Will eat a token, if it is not in any recovery sets
+    Recovery,
+    /// Will never eat a token
+    Never,
+}
+
 pub(crate) struct UnexpectedBuilder<'p, 't, 's> {
     p: &'p mut Parser<'t, 's>,
     category: Option<Expected>,
     marker: Option<Marker>,
-    eat_in_error: bool,
+    eat_behaviour: EatBehaviour,
     bomb: DropBomb,
 }
 
@@ -282,7 +299,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             p,
             category: None,
             marker: None,
-            eat_in_error: true,
+            eat_behaviour: EatBehaviour::Recovery,
             bomb: DropBomb::new("missing call to `report`"),
         }
     }
@@ -301,7 +318,14 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
 
     /// Will not eat a token when building the error node
     pub(crate) fn dont_eat(mut self) -> Self {
-        self.eat_in_error = false;
+        self.eat_behaviour = EatBehaviour::Never;
+        self
+    }
+
+    /// Will always eat a token when building the error node, ignoring any
+    /// recovery sets
+    pub(crate) fn force_eat(mut self) -> Self {
+        self.eat_behaviour = EatBehaviour::Forced;
         self
     }
 
@@ -335,14 +359,14 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             range,
         );
 
-        // If the cursor is at the end of file or is part of the recovery set,
+        // If the cursor is part of the recovery set (and if we're set to respect recovery sets),
         // error node does not need to be built
-        if self.eat_in_error
-        && !self.p.at_set(&STMT_START_RECOVERY_SET)
-        && !self.p.at_set(&self.p.extra_recovery.clone().borrow()) // just cloning the Rc & reborrowing the contents
-        && !self.p.at_end()
-        {
-            // not in the recovery set? consume it! (wrap in error node)
+        let should_eat = matches!(self.eat_behaviour, EatBehaviour::Forced)
+            || !(self.p.at_set(&STMT_START_RECOVERY_SET)
+                || self.p.at_set(&self.p.extra_recovery.clone().borrow())); // just cloning the Rc & reborrowing the contents
+
+        // Never build a marker if we're at the end of the file, or behaviour is set to never eat
+        if !matches!(self.eat_behaviour, EatBehaviour::Never) && !self.p.at_end() && should_eat {
             let m = match self.marker {
                 Some(marker) => marker,
                 None => self.p.start(),
