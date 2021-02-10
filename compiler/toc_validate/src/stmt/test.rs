@@ -507,3 +507,221 @@ fn deferred_decl_in_monitor_class() {
 fn deferred_decl_in_class() {
     check("class q deferred proc a end q", expect![[]]);
 }
+
+#[test]
+fn forward_decl_in_main() {
+    check("forward proc a", expect![[]]);
+}
+
+#[test]
+fn forward_decl_in_module() {
+    check("module q forward proc a end q", expect![[]]);
+}
+
+#[test]
+fn report_forward_decl_in_proc_decl() {
+    check(
+        "proc a forward proc a end a",
+        expect![[
+            r#"error at 7..22: ‘forward’ declaration is only allowed at module-like or program level"#
+        ]],
+    );
+}
+
+#[test]
+fn report_forward_decl_in_block_stmt() {
+    check(
+        "begin forward proc a end",
+        expect![[
+            r#"error at 6..21: ‘forward’ declaration is only allowed at module-like or program level"#
+        ]],
+    );
+}
+
+#[test]
+fn body_decl_in_main() {
+    check("body a end a", expect![[]]);
+}
+
+#[test]
+fn body_decl_in_module() {
+    check("module q body a end a end q", expect![[]]);
+}
+
+#[test]
+fn report_body_decl_in_proc_decl() {
+    check(
+        "proc a body a end a end a",
+        expect![[
+            r#"error at 7..20: ‘body’ declaration is only allowed at module-like or program level"#
+        ]],
+    );
+}
+
+#[test]
+fn report_body_decl_in_block_stmt() {
+    check(
+        "begin body a end a end",
+        expect![[
+            r#"error at 6..19: ‘body’ declaration is only allowed at module-like or program level"#
+        ]],
+    );
+}
+
+#[test]
+fn new_open_text_caps() {
+    check("open : _, _, get, put, mod", expect![[]]);
+}
+
+#[test]
+fn new_open_binary_caps() {
+    check("open : _, _, read, write, seek", expect![[]]);
+}
+
+#[test]
+fn report_new_open_conflicting_read_caps() {
+    check(
+        "open : _, _, get, read",
+        expect![[r#"error at 5..22: Cannot use ‘get’/‘put’ with ‘read’/‘write’"#]],
+    );
+}
+
+#[test]
+fn report_new_open_conflicting_write_caps() {
+    check(
+        "open : _, _, put, write",
+        expect![[r#"error at 5..23: Cannot use ‘get’/‘put’ with ‘read’/‘write’"#]],
+    );
+}
+
+#[test]
+fn report_new_open_conflicting_mixed_caps() {
+    check(
+        "open : _, _, get, write",
+        expect![[r#"error at 5..23: Cannot use ‘get’/‘put’ with ‘read’/‘write’"#]],
+    );
+}
+
+#[test]
+fn for_stmt_partial_increasing() {
+    check("for : a end for", expect![[]]);
+}
+
+#[test]
+fn for_stmt_full_decreasing() {
+    check("for decreasing : a .. b end for", expect![[]]);
+}
+
+#[test]
+fn report_for_stmt_partial_decreasing() {
+    check("for decreasing : a end for", expect![[r#"error at 17..19: decreasing for-loop requires explicit end bound"#]]);
+}
+
+#[test]
+fn for_stmt_partial_decreasing_no_bounds() {
+    // Don't duplicate errors
+    check("for decreasing : end for", expect![[r#"error at 17..20: expected expression, but found ‘end’"#]]);
+}
+
+#[test]
+fn report_case_stmt_missing_arms() {
+    check("case a of end case", expect![[r#"error at 0..18: Missing ‘label’ arms for ‘case’ statement"#]]);
+}
+
+#[test]
+fn case_stmt_one_arm() {
+    check("case a of label 1: end case", expect![[]]);
+}
+
+#[test]
+fn report_case_stmt_one_arm_default() {
+    check("case a of label : end case", expect![[r#"error at 10..18: First ‘label’ arm must have at least one selector expression"#]]);
+}
+
+#[test]
+fn case_stmt_two_arms() {
+    check("case a of label 1: label : end case", expect![[]]);
+}
+
+#[test]
+fn case_stmt_many_arms() {
+    check("case a of label 1: label 2: label : end case", expect![[]]);
+}
+
+#[test]
+fn report_case_stmt_many_arms_many_defaults() {
+    check("case a of label 1: label : label : end case", expect![[r#"error at 27..35: Extra ‘label’ arm found after default arm"#]]);
+}
+
+#[test]
+fn report_case_stmt_many_arms_many_after_default() {
+    check(
+        "case a of label 1: label : label 2: label 2: label : end case",
+        expect![[r#"error at 27..53: Extra ‘label’ arms found after default arm"#]],
+    );
+}
+
+#[test]
+fn report_case_stmt_many_arms_after_first_default() {
+    check(
+        "case a of label : label 2: label 2: label : end case",
+        expect![[r#"
+            error at 10..18: First ‘label’ arm must have at least one selector expression
+            error at 18..44: Extra ‘label’ arms found after default arm"#]],
+    );
+}
+
+#[test]
+fn invariant_stmt_in_loop() {
+    check(
+        "loop invariant false invariant false invariant false end loop",
+        expect![[]],
+    );
+}
+
+#[test]
+fn invariant_stmt_in_for_loop() {
+    check(
+        "for : a invariant false invariant false invariant false end for",
+        expect![[]],
+    );
+}
+
+#[test]
+fn invariant_stmt_in_module() {
+    check(
+        "module a invariant false invariant false end a",
+        expect![[]],
+    );
+}
+
+#[test]
+fn invariant_stmt_in_monitor() {
+    check(
+        "monitor a invariant false invariant false end a",
+        expect![[]],
+    );
+}
+
+#[test]
+fn invariant_stmt_in_class() {
+    check("class a invariant false invariant false end a", expect![[]]);
+}
+
+#[test]
+fn invariant_stmt_in_monitor_class() {
+    check(
+        "monitor class a invariant false invariant false end a",
+        expect![[]],
+    );
+}
+
+#[test]
+fn report_invariant_stmt_in_main() {
+    check("invariant false", expect![[r#"error at 0..15: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#]]);
+}
+
+#[test]
+fn report_invariant_stmt_in_inner() {
+    check("begin invariant false end", expect![[r#"error at 6..22: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#]]);
+}

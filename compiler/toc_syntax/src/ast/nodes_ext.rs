@@ -121,7 +121,7 @@ impl LiteralExpr {
 
 impl IoCap {
     pub fn io_kind(&self) -> Option<IoKind> {
-        match self.syntax().kind() {
+        match self.syntax().first_token()?.kind() {
             SyntaxKind::KwGet => Some(IoKind::Get),
             SyntaxKind::KwPut => Some(IoKind::Put),
             SyntaxKind::KwRead => Some(IoKind::Read),

@@ -178,7 +178,7 @@ node restrictions.
 
 ### `ExternalDecl`
 
-- `AddressSpec` must be a string literal (int exprs aren't accepted in this position yet)
+- (Semantic Restriction) `AddressSpec` must be a string literal (int exprs aren't accepted in this position yet)
 
 ### `ExternalVar`
 
@@ -283,11 +283,9 @@ node restrictions.
 
 ### `NewOpen`
 
-- `file_ref` must be a `Reference`
+- (Semantic Restriction) `file_ref` must be a `Reference`
 - Must not have conflicting `IoCap`s present
-  - Conflict list:
-    - `get` conflicts with `read`
-    - `put` conflicts with `write`
+  - Conflict list is currently any binary `IoCap`s with any text `IoCap`s
 
 ### `IoCap`
 
@@ -299,11 +297,11 @@ node restrictions.
 
 ### `OldClose`
 
-- `file_ref` must be a `Reference`
+- (Semantic Restriction) `file_ref` must be a `Reference`
 
 ### `NewClose`
 
-- `file_ref` must be a `Reference`
+- (Semantic Restriction) `file_ref` must be a `Reference`
 
 ### `PutStmt`
 
@@ -344,7 +342,7 @@ node restrictions.
 
 ### `BinaryIO`
 
-- `status` must be a `Reference`
+- (Semantic Restriction) `status` must be a `Reference`
 - (Type Restriction) `status` must be a reference to an int-class variable
 
 ### `BinaryItem`
@@ -353,21 +351,21 @@ node restrictions.
 
 ### `RequestSize`
 
-- Unknown type restrictions
+- None (Only runtime value restrictions)
 
 ### `ActualSize`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 
 ### `SeekStmt`
 
-- `file_ref` must be a `Reference`
+- (Semantic Restriction) `file_ref` must be a `Reference`
 - (Type restriction) `seek_to` must be an int-class expression
 
 ### `TellStmt`
 
-- `file_ref` must be a `Reference`
-- `tell_to` must be a `Reference`
+- (Semantic Restriction) `file_ref` must be a `Reference`
+- (Semantic Restriction) `tell_to` must be a `Reference`
 
 ### `ForStmt`
 
@@ -398,11 +396,20 @@ node restrictions.
 
 - (Type Restriction) `condition` must be a boolean expr
 
+### `ElseIfStmt`
+
+- Always Rejected
+
+### `ElseStmt`
+
+- Always Rejected
+
 ### `CaseStmt`
 
 - (Type Restriction) expr must be an indexable type
 - At least one `CaseArm` must be present
 - If there is only one `CaseArm`, the `CaseArm`'s `select` must be present
+- Only one `CaseArm` may have `select` absent
 
 ### `CaseArm`
 
@@ -424,7 +431,7 @@ node restrictions.
 
 ### `CallStmt`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 
 ### `ReturnStmt`
 
@@ -443,36 +450,32 @@ node restrictions.
 
 ### `NewStmt`
 
-- If only 1 expr is present:
-  - expr must be a `Reference`
+- (Semantic Restriction) If only 1 expr is present, expr must be a `Reference`
 
 > ??? (Type Restriction)Deal with collection & class specializations, as well as
 > flexible array expansions
 
 ### `FreeStmt`
 
-- If only 1 expr is present:
-  - expr must be a `Reference`
-- If only 2 exprs are present:
-  - specialize_to must be a `Reference`
-  - expr must be a `Reference`
-- Any excess number of exprs are rejected
+- (Semantic Restriction) If only 1 expr is present, expr must be a `Reference`
+- (Semantic Restriction) If only 2 exprs are present, specialize_to must be a `Reference` and expr must be a `Reference`
+- (Semantic Restriction) Any excess number of exprs are rejected
 
 ### `TagStmt`
 
-- First expr must be a `Reference`
+- (Semantic Restriction) First expr must be a `Reference`
 - (Type Restriction) First expr must refer to a union variable
 - (Type Restriction) Second expr must be compatible with the union variable's tag type
 
 ### `ForkStmt`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must refer to a `Process` type
 - (Type Restriction) `ParamList` must be compatible with the `Process`'s `ParamSpec`
 
 ### `ForkStatus`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must refer to a boolean variable
 
 ### `StackSize`
@@ -481,17 +484,17 @@ node restrictions.
 
 ### `ProcessDesc`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must refer to an addressint variable
 
 ### `SignalStmt`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must refer to a `Condition` type
 
 ### `WaitStmt`
 
-- First expr must be a `Reference`
+- (Semantic Restriction) First expr must be a `Reference`
 - (Type Restriction) First expr must refer to a `Condition` type
 - (Type Restriction) `wait_arg` must be an integer expr
 - (Type Restriction) `wait_arg` must be present only if reference is to a priority condition,
@@ -584,7 +587,7 @@ node restrictions.
 
 ### `ObjClassExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must refer to a `Class` type
 
 ### `InitExpr`
@@ -593,12 +596,12 @@ node restrictions.
 
 ### `NilExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must refer to a `Collection` or `Class` type
 
 ### `SizeOfExpr`
 
-- `size_for` must be either an `Expr` or `PrimType`
+- (Semantic Restriction) `size_for` must be either an `Expr` or `PrimType`
 
 ### `BinaryExpr`
 
@@ -614,7 +617,7 @@ node restrictions.
 
 ### `NameExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 
 ### `SelfExpr`
 
@@ -622,12 +625,12 @@ node restrictions.
 
 ### `FieldExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) `Name` must be a field present in the reference type
 
 ### `DerefExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) expr must be a `Pointer` type
 
 ### `CheatExpr`
@@ -651,12 +654,12 @@ node restrictions.
 
 ### `ArrowExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) `Name` must be a field present in the reference type
 
 ### `IndirectExpr`
 
-- `indirect_ty` must be a `PrimType` or a `NameType`
+- (Semantic Restriction) `indirect_ty` must be a `PrimType` or a `NameType`
 - (Type Restriction) expr must be an addressint expr
 
 ### `BitsExpr`
@@ -666,7 +669,7 @@ node restrictions.
 
 ### `CallExpr`
 
-- expr must be a `Reference`
+- (Semantic Restriction) expr must be a `Reference`
 - (Type Restriction) `ParamList` must be compatible with the callable type's `ParamSpec`
 
 ### `ParamList`

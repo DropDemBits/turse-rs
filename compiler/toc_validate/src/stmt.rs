@@ -2,11 +2,11 @@
 #[cfg(test)]
 mod test;
 
-use toc_syntax::SyntaxNode;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxKind,
 };
+use toc_syntax::{IoKind, SyntaxNode};
 
 use crate::{block_containing_node, walk_blocks, without_matching};
 use crate::{BlockKind, ValidateCtx};
@@ -261,23 +261,42 @@ pub(super) fn validate_monitor_decl(decl: ast::MonitorDecl, ctx: &mut ValidateCt
     check_matching_names(decl.name(), decl.end_group(), ctx);
 }
 
-fn check_matching_names(
-    decl_name: Option<ast::Name>,
-    end_group: Option<ast::EndGroup>,
-    ctx: &mut ValidateCtx,
-) {
-    if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
-        if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
-            if end_name.text() != decl_name.text() {
+pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
+    // Check for conflicting io caps
+    let mut used_caps = vec![];
+
+    for cap in open.io_caps() {
+        if let Some(kind) = cap.io_kind() {
+            if !used_caps.iter().any(|(k, _)| *k == kind) {
+                // don't insert duplicates
+                used_caps.push((kind, open.syntax().text_range()));
+            }
+        }
+    }
+
+    // Conflicting caps:
+    // - Any text cap with a binary cap present (and the other way too)
+    let find_cap_pair = |a, b| used_caps.iter().find(|cap| cap.0 == a || cap.0 == b);
+
+    let text_cap = find_cap_pair(IoKind::Get, IoKind::Put);
+    let binary_cap = find_cap_pair(IoKind::Read, IoKind::Write);
+
+    if let Some((text_cap, _)) = text_cap.zip(binary_cap) {
+        // Conflicting io pair
+        ctx.push_error("Cannot use ‘get’/‘put’ with ‘read’/‘write’", text_cap.1);
+        // TODO: add additional diagnostic referring to the first binary cap
+    }
+}
+
+pub(super) fn validate_for_stmt(stmt: ast::ForStmt, ctx: &mut ValidateCtx) {
+    if let Some(bounds) = stmt.for_bounds() {
+        if stmt.decreasing_token().is_some() && bounds.range_token().is_none() {
+            if let Some(first) = bounds.from() {
+                // Missing other range part
                 ctx.push_error(
-                    &format!(
-                        "end identifier ‘{}’ does not match ‘{}’",
-                        end_name.text(),
-                        decl_name.text()
-                    ),
-                    end_name.text_range(),
-                )
-                // TODO: add additional diagnostic referring to the declared identifier
+                    "decreasing for-loop requires explicit end bound",
+                    first.syntax().text_range(),
+                );
             }
         }
     }
@@ -299,6 +318,82 @@ pub(super) fn validate_elseif_stmt(stmt: ast::ElseifStmt, ctx: &mut ValidateCtx)
     }
 }
 
+pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
+    #[derive(Clone, Copy)]
+    enum ArmKind {
+        Normal,
+        Default,
+    }
+
+    let all_arms: Vec<_> = stmt
+        .case_arm()
+        .map(|arm| {
+            let kind = if arm.select().is_some() {
+                ArmKind::Normal
+            } else {
+                ArmKind::Default
+            };
+
+            (kind, arm.syntax().text_range())
+        })
+        .collect();
+
+    // Accept Situations:
+    // ArmKind::Normal+ ArmKind::Default?
+
+    // Reject Conditions
+    // [None] -> Missing arm
+    // <ArmKind::Default> -> At least one case arm should have things
+    // ArmKind::Normal* ArmKind::Default <(ArmKind::Normal | ArmKind::Default)+> -> Extra case arms found
+
+    if all_arms.is_empty() {
+        ctx.push_error(
+            "Missing ‘label’ arms for ‘case’ statement",
+            stmt.syntax().text_range(),
+        );
+    } else {
+        // At least 1 arm present, check if it's a default arm
+        if let Some((ArmKind::Default, arm_range)) = all_arms.first() {
+            ctx.push_error(
+                "First ‘label’ arm must have at least one selector expression",
+                *arm_range,
+            );
+        }
+
+        // If there are many arms present, find the first arm after the default arm
+        let mut past_default_arm = all_arms
+            .iter()
+            .skip_while(|(kind, _)| matches!(kind, ArmKind::Normal))
+            .skip(1);
+
+        if let Some((_, extra_arm)) = past_default_arm.next() {
+            // At least one extra arm is found
+            assert!(all_arms.last().is_some());
+            let (_, last_arm) = all_arms.last().unwrap();
+
+            let full_range = extra_arm.cover(*last_arm);
+
+            if extra_arm == last_arm {
+                // Single extra arm
+                ctx.push_error("Extra ‘label’ arm found after default arm", full_range);
+            } else {
+                // Many extra arms
+                ctx.push_error("Extra ‘label’ arms found after default arm", full_range);
+            }
+        }
+    }
+}
+
+pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut ValidateCtx) {
+    let kind = block_containing_node(stmt.syntax());
+    if kind != BlockKind::Loop && !kind.is_module_kind() {
+        ctx.push_error(
+            "‘invariant’ statement is only allowed in loop statements and module-kind declarations",
+            stmt.syntax().text_range(),
+        );
+    }
+}
+
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !dbg!(block_containing_node(node)).is_module_kind() {
         ctx.push_error(
@@ -314,5 +409,27 @@ pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut Val
             &format!("{} is only allowed at module-like or program level", kind),
             node.text_range(),
         );
+    }
+}
+
+fn check_matching_names(
+    decl_name: Option<ast::Name>,
+    end_group: Option<ast::EndGroup>,
+    ctx: &mut ValidateCtx,
+) {
+    if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
+        if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
+            if end_name.text() != decl_name.text() {
+                ctx.push_error(
+                    &format!(
+                        "end identifier ‘{}’ does not match ‘{}’",
+                        end_name.text(),
+                        decl_name.text()
+                    ),
+                    end_name.text_range(),
+                )
+                // TODO: add additional diagnostic referring to the declared identifier
+            }
+        }
     }
 }

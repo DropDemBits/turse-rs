@@ -12,18 +12,6 @@ use toc_syntax::{
     SyntaxNode,
 };
 
-// Covering:
-// NewOpen
-// OldClose
-// NewClose
-
-// Requires handling literals
-// ExternalDecl
-
-// Requires scanning over & building simple ident resolve map
-// ForwardDecl
-// BodyDecl + resolved in the current unit
-
 // Taken from rust-analyzer's syntax crate
 #[macro_export]
 macro_rules! match_ast {
@@ -124,12 +112,20 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
                 stmt::validate_in_top_level(decl.syntax(), "‘function’ declaration", ctx),
             ast::ProcessDecl(decl) => stmt::validate_process_decl(decl, ctx),
             ast::ExternalVar(var) => stmt::validate_external_var(var, ctx),
+            ast::ForwardDecl(decl) =>
+                stmt::validate_in_top_level(decl.syntax(), "‘forward’ declaration", ctx),
             ast::DeferredDecl(decl) => stmt::validate_deferred_decl(decl, ctx),
+            ast::BodyDecl(decl) =>
+                stmt::validate_in_top_level(decl.syntax(), "‘body’ declaration", ctx),
             ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
             ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),
+            ast::NewOpen(open) => stmt::validate_new_open(open, ctx),
+            ast::ForStmt(stmt) => stmt::validate_for_stmt(stmt, ctx),
             ast::ElseStmt(stmt) => stmt::validate_else_stmt(stmt, ctx),
             ast::ElseifStmt(stmt) => stmt::validate_elseif_stmt(stmt, ctx),
+            ast::CaseStmt(stmt) => stmt::validate_case_stmt(stmt, ctx),
+            ast::InvariantStmt(stmt) => stmt::validate_invariant_stmt(stmt, ctx),
             _ => (),
         })
     }
