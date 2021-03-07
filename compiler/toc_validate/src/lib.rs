@@ -85,11 +85,15 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             });
 
             if let Some(after) = child_stmts.next() {
-                // ???: Should we report all stmts following unit declaration?
-                ctx.push_error(
-                    "found extra text after unit declaration",
-                    after.syntax().text_range(),
-                );
+                // Make report range covering all stmts following the unit declaration
+                let start_range = after.syntax().text_range();
+                let end_range = child_stmts
+                    .last()
+                    .map(|node| node.syntax().text_range())
+                    .unwrap_or(start_range);
+                let full_range = start_range.cover(end_range);
+
+                ctx.push_error("found extra text after unit declaration", full_range);
             }
         } else {
             ctx.push_error(

@@ -43,8 +43,10 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
         // Has init expr initializer, allowed here?
         if let Some(ty) = decl.type_spec() {
             // Yes type spec, only allowed for array, record, or union types
-            if !matches!(ty, ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_))
-            {
+            if !matches!(
+                ty,
+                ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_)
+            ) {
                 ctx.push_error(
                     "‘init’ initializer is not allowed here",
                     init_expr.syntax().text_range(),

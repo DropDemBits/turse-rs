@@ -32,12 +32,12 @@ fn report_unit_not_allowed_decl() {
 
 #[test]
 fn report_unit_not_allowed_decl_and_extra() {
-    // only reported for the first stmt after the decl
+    // reported for all text after the decl
     check(
         "unit begin end begin end begin end",
         expect![[r#"
-        error at 5..15: expected a module, class, or monitor declaration
-        error at 15..25: found extra text after unit declaration"#]],
+            error at 5..15: expected a module, class, or monitor declaration
+            error at 15..34: found extra text after unit declaration"#]],
     );
 }
 
