@@ -119,6 +119,23 @@ impl LiteralExpr {
     // TODO: literal
 }
 
+impl Reference {
+    pub fn as_expr(self) -> Expr {
+        match self {
+            Reference::NameExpr(expr) => Expr::NameExpr(expr),
+            Reference::SelfExpr(expr) => Expr::SelfExpr(expr),
+            Reference::FieldExpr(expr) => Expr::FieldExpr(expr),
+            Reference::DerefExpr(expr) => Expr::DerefExpr(expr),
+            Reference::CheatExpr(expr) => Expr::CheatExpr(expr),
+            Reference::NatCheatExpr(expr) => Expr::NatCheatExpr(expr),
+            Reference::ArrowExpr(expr) => Expr::ArrowExpr(expr),
+            Reference::IndirectExpr(expr) => Expr::IndirectExpr(expr),
+            Reference::BitsExpr(expr) => Expr::BitsExpr(expr),
+            Reference::CallExpr(expr) => Expr::CallExpr(expr),
+        }
+    }
+}
+
 impl IoCap {
     pub fn io_kind(&self) -> Option<IoKind> {
         match self.syntax().first_token()?.kind() {

@@ -888,6 +888,7 @@ impl AstNode for AssignStmt {
 }
 impl AssignStmt {
     pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn asn_op(&self) -> Option<AsnOp> { helper::node(&self.0) }
     pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]

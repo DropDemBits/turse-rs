@@ -303,7 +303,7 @@ MonitorDecl =
 
 AssignStmt =
   Reference
-  op:AsnOp
+  AsnOp
   Expr
 
 AsnOp = 
