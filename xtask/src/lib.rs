@@ -117,13 +117,29 @@ fn generate_nodes(lowered: &LoweredGrammar) -> Result<String> {
         // as a plain old struct
         let name = format_ident!("{}", node.name);
         let kind_variant = format_ident!("{}", node.name);
+        // for disambiguating between Reference and Expr
+        let mut reference_count: usize = 0;
+        let mut expr_count: usize = 0;
 
         let methods = node.children.iter().map(|child| {
             let (name, body, res) = match &child.kind {
                 ChildKind::Item(item) => match item {
                     lowering::NodeOrToken::Node(node) => {
                         let name = format_ident!("{}", thing_to_method_name(node).to_snake_case());
-                        let body = quote! { helper::node(&self.0) };
+                        let body = match node.as_str() {
+                            "Reference" => {
+                                let body = quote! { helper::nodes(&self.0).nth(#reference_count) };
+                                reference_count += 1;
+                                expr_count += 1;
+                                body
+                            }
+                            "Expr" => {
+                                let body = quote! { helper::nodes(&self.0).nth(#expr_count) };
+                                expr_count += 1;
+                                body
+                            }
+                            _ => quote! { helper::node(&self.0) },
+                        };
                         let res = format_ident!("{}", node);
                         let res = quote! { Option<#res> };
                         (name, body, res)
