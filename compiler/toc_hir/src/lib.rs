@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::ops;
 
 use la_arena::{Arena, Idx};
-use toc_reporting::TextRange;
+use toc_span::TextRange;
 
 use crate::expr::ExprIdx;
 use crate::stmt::StmtIdx;

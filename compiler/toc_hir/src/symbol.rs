@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use toc_reporting::TextRange;
+use toc_span::TextRange;
 
 /// Definition of an identifier within a unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

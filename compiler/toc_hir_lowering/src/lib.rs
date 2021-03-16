@@ -24,7 +24,8 @@ use std::convert::TryInto;
 use toc_hir::stmt::StmtIdx;
 use toc_hir::symbol;
 use toc_hir::{expr, stmt, ty, Database, Unit};
-use toc_reporting::{MessageKind, MessageSink, ReportMessage, TextRange, TextSize};
+use toc_reporting::{MessageKind, MessageSink, ReportMessage};
+use toc_span::{TextRange, TextSize};
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxNode,
@@ -104,7 +105,7 @@ impl LoweringCtx {
         stmts
     }
 
-    fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<(stmt::Stmt, toc_reporting::TextRange)> {
+    fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<(stmt::Stmt, TextRange)> {
         let span = stmt.syntax().text_range();
 
         match stmt {
@@ -225,7 +226,7 @@ impl LoweringCtx {
         }
     }
 
-    fn lower_type(&mut self, ty: ast::Type) -> Option<(ty::Type, toc_reporting::TextRange)> {
+    fn lower_type(&mut self, ty: ast::Type) -> Option<(ty::Type, TextRange)> {
         let _span = ty.syntax().text_range();
 
         match ty {
@@ -245,7 +246,7 @@ impl LoweringCtx {
         }
     }
 
-    fn lower_expr(&mut self, expr: ast::Expr) -> (expr::Expr, toc_reporting::TextRange) {
+    fn lower_expr(&mut self, expr: ast::Expr) -> (expr::Expr, TextRange) {
         let span = expr.syntax().text_range();
 
         let expr = match expr {

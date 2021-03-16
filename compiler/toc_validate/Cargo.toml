@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 toc_reporting = { path = "../toc_reporting" }
+toc_span = { path = "../toc_span" }
 toc_syntax = { path = "../toc_syntax" }
 
 [dev-dependencies]

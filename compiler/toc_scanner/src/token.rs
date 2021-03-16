@@ -1,13 +1,13 @@
 //! Token related items
 use super::ErrorFerry;
-pub use toc_reporting::TextRange as TokenRange;
+pub use toc_span::TextRange as TokenRange;
 
 use logos::Logos;
 use std::convert::TryFrom;
 use std::fmt;
 use std::iter::Peekable;
 use std::ops::Range;
-use toc_reporting::TextSize;
+use toc_span::TextSize;
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'src> {

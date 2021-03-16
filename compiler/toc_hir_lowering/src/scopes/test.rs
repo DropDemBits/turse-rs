@@ -1,6 +1,6 @@
 //! Scope testing
 use toc_hir::symbol::SymbolKind;
-use toc_reporting::TextRange;
+use toc_span::TextRange;
 
 use super::ScopeBuilder;
 

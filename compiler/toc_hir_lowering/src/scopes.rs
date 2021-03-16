@@ -5,7 +5,7 @@ mod test;
 use std::collections::HashMap;
 
 use toc_hir::symbol::{self, SymbolTable};
-use toc_reporting::TextRange;
+use toc_span::TextRange;
 
 #[derive(Debug)]
 pub(crate) struct Scope {

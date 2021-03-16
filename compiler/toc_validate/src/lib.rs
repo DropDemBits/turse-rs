@@ -6,7 +6,8 @@ mod stmt;
 #[cfg(test)]
 mod test;
 
-use toc_reporting::{MessageKind, MessageSink, ReportMessage, TextRange};
+use toc_reporting::{MessageKind, MessageSink, ReportMessage};
+use toc_span::TextRange;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxNode,

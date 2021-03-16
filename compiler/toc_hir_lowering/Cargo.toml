@@ -10,6 +10,7 @@ edition = "2018"
 toc_syntax = { path = "../toc_syntax" }
 toc_hir = { path = "../toc_hir" }
 toc_reporting = { path = "../toc_reporting" }
+toc_span = { path = "../toc_span" }
 
 [dev-dependencies]
 toc_parser = { path = "../toc_parser" }
