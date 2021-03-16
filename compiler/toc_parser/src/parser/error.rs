@@ -43,7 +43,11 @@ impl fmt::Display for ParseMessage {
                 }
 
                 if let Some(found) = found {
+                    // Found something else
                     write!(f, ", but found {}", found)?;
+                } else {
+                    // Say that it's after this location
+                    write!(f, " after here")?;
                 }
 
                 Ok(())
@@ -101,7 +105,7 @@ mod test {
                 expected_category: None,
                 found: None,
             },
-            expect![[r#"expected ‘..’"#]],
+            expect![[r#"expected ‘..’ after here"#]],
         );
     }
 
@@ -147,7 +151,7 @@ mod test {
                 expected_category: None,
                 found: None,
             },
-            expect![[r#"expected ‘+’, ‘-’, ‘not’ or ‘in’"#]],
+            expect![[r#"expected ‘+’, ‘-’, ‘not’ or ‘in’ after here"#]],
         );
     }
 

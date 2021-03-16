@@ -427,7 +427,7 @@ fn recover_missing_right_paren_in_sized_char_type() {
                     SeqLength@15..16
                       LiteralExpr@15..16
                         IntLiteral@15..16 "1"
-            error at 15..16: expected ‘)’"#]],
+            error at 15..16: expected ‘)’ after here"#]],
     );
 }
 
@@ -452,7 +452,7 @@ fn recover_missing_right_paren_in_sized_string_type() {
                     SeqLength@17..18
                       LiteralExpr@17..18
                         IntLiteral@17..18 "1"
-            error at 17..18: expected ‘)’"#]],
+            error at 17..18: expected ‘)’ after here"#]],
     );
 }
 
@@ -654,7 +654,7 @@ fn recover_range_type_missing_tail() {
                       IntLiteral@9..10 "1"
                       Whitespace@10..11 " "
                     Range@11..13 ".."
-            error at 11..13: expected expression"#]],
+            error at 11..13: expected expression after here"#]],
     );
 }
 
@@ -682,7 +682,7 @@ fn recover_range_type_not_an_expr() {
                     Error@14..21
                       PrimType@14..21
                         KwBoolean@14..21 "boolean"
-            error at 14..21: expected ‘@’"#]],
+            error at 14..21: expected ‘@’ after here"#]],
     );
 }
 
@@ -860,7 +860,7 @@ fn recover_pointer_type_just_unchecked() {
                   Whitespace@8..9 " "
                   PointerType@9..18
                     KwUnchecked@9..18 "unchecked"
-            error at 9..18: expected ‘^’ or ‘pointer’"#]],
+            error at 9..18: expected ‘^’ or ‘pointer’ after here"#]],
     );
 }
 
@@ -1052,7 +1052,7 @@ fn recover_enum_type_missing_name_and_right_paren() {
                       Name@18..19
                         Identifier@18..19 "b"
                       Comma@19..20 ","
-            error at 19..20: expected identifier"#]],
+            error at 19..20: expected identifier after here"#]],
     )
 }
 
@@ -1082,7 +1082,7 @@ fn recover_enum_type_missing_right_paren() {
                       Whitespace@17..18 " "
                       Name@18..19
                         Identifier@18..19 "b"
-            error at 18..19: expected ‘,’ or ‘)’"#]],
+            error at 18..19: expected ‘,’ or ‘)’ after here"#]],
     )
 }
 
@@ -1270,7 +1270,7 @@ fn recover_set_type_missing_ty() {
                     KwSet@9..12 "set"
                     Whitespace@12..13 " "
                     KwOf@13..15 "of"
-            error at 13..15: expected type specifier"#]],
+            error at 13..15: expected type specifier after here"#]],
     );
 }
 
@@ -1292,7 +1292,7 @@ fn recover_just_set() {
                   Whitespace@8..9 " "
                   SetType@9..12
                     KwSet@9..12 "set"
-            error at 9..12: expected ‘of’"#]],
+            error at 9..12: expected ‘of’ after here"#]],
     );
 }
 
@@ -1473,7 +1473,7 @@ fn recover_collection_type_no_ty() {
                     KwCollection@9..19 "collection"
                     Whitespace@19..20 " "
                     KwOf@20..22 "of"
-            error at 20..22: expected type specifier"#]],
+            error at 20..22: expected type specifier after here"#]],
     )
 }
 
@@ -1522,7 +1522,7 @@ fn recover_collection_type_no_forward_name() {
                     KwOf@20..22 "of"
                     Whitespace@22..23 " "
                     KwForward@23..30 "forward"
-            error at 23..30: expected identifier"#]],
+            error at 23..30: expected identifier after here"#]],
     )
 }
 
@@ -1543,7 +1543,7 @@ fn recover_just_collection() {
                   Whitespace@8..9 " "
                   CollectionType@9..19
                     KwCollection@9..19 "collection"
-            error at 9..19: expected ‘of’"#]],
+            error at 9..19: expected ‘of’ after here"#]],
     )
 }
 
@@ -1750,7 +1750,7 @@ fn recover_array_no_elem_ty() {
                           IntLiteral@20..21 "3"
                           Whitespace@21..22 " "
                     KwOf@22..24 "of"
-            error at 22..24: expected type specifier"#]],
+            error at 22..24: expected type specifier after here"#]],
     );
 }
 
@@ -1884,7 +1884,7 @@ fn recover_proc_type_with_result_ty() {
                   PrimType@37..40
                     KwInt@37..40 "int"
             error at 35..36: expected statement, but found ‘:’
-            error at 37..40: expected ‘@’"#]],
+            error at 37..40: expected ‘@’ after here"#]],
     );
 }
 
@@ -1925,7 +1925,7 @@ fn recover_fcn_type_without_result_ty() {
                         PrimType@29..32
                           KwInt@29..32 "int"
                       RightParen@32..33 ")"
-            error at 32..33: expected ‘:’"#]],
+            error at 32..33: expected ‘:’ after here"#]],
     );
 }
 
@@ -2565,7 +2565,7 @@ fn recover_just_record() {
                   RecordType@9..15
                     KwRecord@9..15 "record"
                     EndGroup@15..15
-            error at 9..15: expected ‘end’"#]],
+            error at 9..15: expected ‘end’ after here"#]],
     );
 }
 
@@ -2686,7 +2686,7 @@ fn recover_just_union() {
                   UnionType@9..14
                     KwUnion@9..14 "union"
                     EndGroup@14..14
-            error at 9..14: expected identifier or ‘:’"#]],
+            error at 9..14: expected identifier or ‘:’ after here"#]],
     );
 }
 
@@ -2715,7 +2715,7 @@ fn recover_just_union_head() {
                       Whitespace@24..25 " "
                     KwOf@25..27 "of"
                     EndGroup@27..27
-            error at 25..27: expected ‘label’ or ‘end’"#]],
+            error at 25..27: expected ‘label’ or ‘end’ after here"#]],
     );
 }
 
@@ -3119,20 +3119,20 @@ fn recover_just_packed() {
     check(
         "type _ : packed ",
         expect![[r#"
-        Source@0..16
-          StmtList@0..16
-            TypeDecl@0..16
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..7
-                Identifier@5..6 "_"
-                Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              Error@9..16
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-        error at 15..16: expected ‘record’ or ‘union’"#]],
+            Source@0..16
+              StmtList@0..16
+                TypeDecl@0..16
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..7
+                    Identifier@5..6 "_"
+                    Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  Error@9..16
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+            error at 15..16: expected ‘record’ or ‘union’ after here"#]],
     );
 }
 

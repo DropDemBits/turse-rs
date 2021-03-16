@@ -173,7 +173,7 @@ mod cond {
                             EndGroup@42..50
                               KwEnd@42..45 "end"
                               Whitespace@45..50 "\n    "
-                error at 45..50: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’"##]],
+                error at 45..50: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’ after here"##]],
         );
     }
 
@@ -577,7 +577,7 @@ mod cond {
                       PPIf@0..3
                         PPKwIf@0..3 "#if"
                         PPTokenBody@3..3
-                error at 0..3: expected preprocessor condition"##]],
+                error at 0..3: expected preprocessor condition after here"##]],
         );
     }
 
@@ -592,7 +592,7 @@ mod cond {
                       PPElseif@0..6
                         PPKwElsif@0..6 "#elsif"
                         PPTokenBody@6..6
-                error at 0..6: expected preprocessor condition"##]],
+                error at 0..6: expected preprocessor condition after here"##]],
         );
     }
 
@@ -608,7 +608,7 @@ mod cond {
                         PPKwElseif@0..7 "#elseif"
                         PPTokenBody@7..7
                 warn at 0..7: ‘#elseif’ found, assuming it to be ‘#elsif’
-                error at 0..7: expected preprocessor condition"##]],
+                error at 0..7: expected preprocessor condition after here"##]],
         );
     }
 
@@ -623,7 +623,7 @@ mod cond {
                       PPElse@0..5
                         PPKwElse@0..5 "#else"
                         PPTokenBody@5..5
-                error at 0..5: expected ‘#end’ or ‘#endif’"##]],
+                error at 0..5: expected ‘#end’ or ‘#endif’ after here"##]],
         );
     }
 
@@ -637,7 +637,7 @@ mod cond {
                     PreprocGlob@0..4
                       PPEndIf@0..4
                         PPKwEnd@0..4 "#end"
-                error at 0..4: expected ‘if’"##]],
+                error at 0..4: expected ‘if’ after here"##]],
         );
     }
 

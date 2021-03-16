@@ -111,7 +111,7 @@ fn recover_just_var() {
                 ConstVarDecl@0..3
                   KwVar@0..3 "var"
                   NameList@3..3
-            error at 0..3: expected identifier"#]],
+            error at 0..3: expected identifier after here"#]],
     )
 }
 
@@ -359,7 +359,7 @@ fn recover_const_decl_no_init() {
                   Whitespace@9..10 " "
                   PrimType@10..13
                     KwInt@10..13 "int"
-            error at 10..13: expected ‘:=’"#]],
+            error at 10..13: expected ‘:=’ after here"#]],
     )
 }
 
@@ -457,7 +457,7 @@ fn recover_bare_var_decl() {
                   NameList@4..5
                     Name@4..5
                       Identifier@4..5 "a"
-            error at 4..5: expected ‘,’, ‘:’ or ‘:=’"#]],
+            error at 4..5: expected ‘,’, ‘:’ or ‘:=’ after here"#]],
     )
 }
 
@@ -474,7 +474,7 @@ fn recover_bare_const_decl() {
                   NameList@6..7
                     Name@6..7
                       Identifier@6..7 "a"
-            error at 6..7: expected ‘,’, ‘:’ or ‘:=’"#]],
+            error at 6..7: expected ‘,’, ‘:’ or ‘:=’ after here"#]],
     )
 }
 
@@ -1450,7 +1450,7 @@ fn recover_type_decl_missing_type() {
                     Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-            error at 8..9: expected type specifier"#]],
+            error at 8..9: expected type specifier after here"#]],
     );
 }
 
@@ -1502,7 +1502,7 @@ fn recover_type_decl_missing_colon_and_type() {
                   Whitespace@4..5 " "
                   Name@5..6
                     Identifier@5..6 "a"
-            error at 5..6: expected ‘:’"#]],
+            error at 5..6: expected ‘:’ after here"#]],
     );
 }
 
@@ -1515,7 +1515,7 @@ fn recover_just_type() {
               StmtList@0..4
                 TypeDecl@0..4
                   KwType@0..4 "type"
-            error at 0..4: expected identifier"#]],
+            error at 0..4: expected identifier after here"#]],
     );
 }
 
@@ -1829,7 +1829,7 @@ fn recover_if_stmt_missing_end() {
                     KwThen@8..12 "then"
                     StmtList@12..12
                   EndGroup@12..12
-            error at 8..12: expected ‘else’, ‘elseif’, ‘elsif’, ‘elif’, ‘endif’ or ‘end’"#]],
+            error at 8..12: expected ‘else’, ‘elseif’, ‘elsif’, ‘elif’, ‘endif’ or ‘end’ after here"#]],
     );
 }
 
@@ -2040,7 +2040,7 @@ fn recover_if_stmt_multiple_elses() {
                             Whitespace@26..27 " "
                             KwIf@27..29 "if"
                   EndGroup@29..29
-            error at 27..29: expected ‘endif’ or ‘end’"#]],
+            error at 27..29: expected ‘endif’ or ‘end’ after here"#]],
     );
 }
 
@@ -2329,7 +2329,7 @@ fn recover_just_invariant() {
               StmtList@0..9
                 InvariantStmt@0..9
                   KwInvariant@0..9 "invariant"
-            error at 0..9: expected expression"#]],
+            error at 0..9: expected expression after here"#]],
     );
 }
 
@@ -2391,7 +2391,7 @@ fn recover_just_assert() {
               StmtList@0..6
                 AssertStmt@0..6
                   KwAssert@0..6 "assert"
-            error at 0..6: expected expression"#]],
+            error at 0..6: expected expression after here"#]],
     );
 }
 
@@ -2461,7 +2461,7 @@ fn recover_just_signal() {
               StmtList@0..6
                 SignalStmt@0..6
                   KwSignal@0..6 "signal"
-            error at 0..6: expected expression"#]],
+            error at 0..6: expected expression after here"#]],
     );
 }
 
@@ -2527,7 +2527,7 @@ fn recover_just_pause() {
               StmtList@0..5
                 PauseStmt@0..5
                   KwPause@0..5 "pause"
-            error at 0..5: expected expression"#]],
+            error at 0..5: expected expression after here"#]],
     );
 }
 
@@ -2580,7 +2580,7 @@ fn recover_just_result() {
               StmtList@0..6
                 ResultStmt@0..6
                   KwResult@0..6 "result"
-            error at 0..6: expected expression"#]],
+            error at 0..6: expected expression after here"#]],
     );
 }
 
@@ -2838,7 +2838,7 @@ fn recover_just_loop() {
                       EndGroup@11..14
                         KwEnd@11..14 "end"
                   EndGroup@14..14
-            error at 11..14: expected ‘endloop’ or ‘end’"#]],
+            error at 11..14: expected ‘endloop’ or ‘end’ after here"#]],
     );
 }
 
@@ -2910,7 +2910,7 @@ fn recover_exit_stmt_with_when_missing_expr() {
                   KwExit@0..4 "exit"
                   Whitespace@4..5 " "
                   KwWhen@5..9 "when"
-            error at 5..9: expected expression"#]],
+            error at 5..9: expected expression after here"#]],
     );
 }
 
@@ -3894,7 +3894,7 @@ fn recover_bind_decl_missing_binding() {
                       Identifier@5..6 "a"
                       Whitespace@6..7 " "
                     KwTo@7..9 "to"
-            error at 7..9: expected expression"#]],
+            error at 7..9: expected expression after here"#]],
     );
 }
 
@@ -3909,7 +3909,7 @@ fn recover_just_bind() {
                 BindDecl@0..4
                   KwBind@0..4 "bind"
                   BindItem@4..4
-            error at 0..4: expected identifier"#]],
+            error at 0..4: expected identifier after here"#]],
     );
 }
 
@@ -4165,7 +4165,7 @@ fn recover_proc_decl_missing_tail_name() {
                         Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
-            error at 42..45: expected identifier"#]],
+            error at 42..45: expected identifier after here"#]],
     );
 }
 
@@ -4611,7 +4611,7 @@ fn recover_fcn_decl_missing_tail_name() {
                         Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
-            error at 42..45: expected identifier"#]],
+            error at 42..45: expected identifier after here"#]],
     );
 }
 
@@ -4772,7 +4772,7 @@ fn recover_just_pre() {
               StmtList@0..3
                 PreStmt@0..3
                   KwPre@0..3 "pre"
-            error at 0..3: expected expression"#]],
+            error at 0..3: expected expression after here"#]],
     );
 }
 
@@ -4837,7 +4837,7 @@ fn recover_just_post() {
               StmtList@0..4
                 PostStmt@0..4
                   KwPost@0..4 "post"
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected expression after here"#]],
     );
 }
 
@@ -4986,7 +4986,7 @@ fn recover_init_stmt_missing_expr() {
                       Identifier@5..6 "a"
                       Whitespace@6..7 " "
                     Assign@7..9 ":="
-            error at 7..9: expected expression"#]],
+            error at 7..9: expected expression after here"#]],
     );
 }
 
@@ -5019,7 +5019,7 @@ fn recover_just_init() {
                 InitStmt@0..4
                   KwInit@0..4 "init"
                   InitVar@4..4
-            error at 0..4: expected identifier"#]],
+            error at 0..4: expected identifier after here"#]],
     );
 }
 
@@ -5198,7 +5198,7 @@ fn recover_handler_stmt_missing_tail() {
                       Whitespace@18..19 " "
                   EndGroup@19..22
                     KwEnd@19..22 "end"
-            error at 19..22: expected ‘handler’"#]],
+            error at 19..22: expected ‘handler’ after here"#]],
     );
 }
 
@@ -5213,7 +5213,7 @@ fn recover_just_handler() {
                   KwHandler@0..7 "handler"
                   StmtList@7..7
                   EndGroup@7..7
-            error at 0..7: expected ‘(’"#]],
+            error at 0..7: expected ‘(’ after here"#]],
     );
 }
 
@@ -5353,7 +5353,7 @@ fn recover_quit_stmt_missing_code_expr() {
                   Whitespace@4..5 " "
                   Colon@5..6 ":"
                   Whitespace@6..7 " "
-            error at 6..7: expected expression"#]],
+            error at 6..7: expected expression after here"#]],
     );
 }
 
@@ -5420,7 +5420,7 @@ fn recover_tag_stmt_missing_tag_val() {
                       Identifier@4..5 "a"
                   Comma@5..6 ","
                   Whitespace@6..7 " "
-            error at 6..7: expected expression"#]],
+            error at 6..7: expected expression after here"#]],
     );
 }
 
@@ -5471,7 +5471,7 @@ fn recover_just_tag() {
               StmtList@0..3
                 TagStmt@0..3
                   KwTag@0..3 "tag"
-            error at 0..3: expected expression"#]],
+            error at 0..3: expected expression after here"#]],
     );
 }
 
@@ -5684,7 +5684,7 @@ fn recover_fork_stmt_process_ref_missing_ref() {
                   Comma@17..18 ","
                   Whitespace@18..19 " "
                   ProcessDesc@19..19
-            error at 18..19: expected expression"#]],
+            error at 18..19: expected expression after here"#]],
     );
 }
 
@@ -5761,7 +5761,7 @@ fn recover_just_fork() {
               StmtList@0..4
                 ForkStmt@0..4
                   KwFork@0..4 "fork"
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected expression after here"#]],
     );
 }
 
@@ -5873,7 +5873,7 @@ fn recover_just_new() {
                 NewStmt@0..3
                   KwNew@0..3 "new"
                   ExprList@3..3
-            error at 0..3: expected expression"#]],
+            error at 0..3: expected expression after here"#]],
     );
 }
 
@@ -5987,7 +5987,7 @@ fn recover_just_free() {
                 FreeStmt@0..4
                   KwFree@0..4 "free"
                   ExprList@4..4
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected expression after here"#]],
     );
 }
 
@@ -6075,7 +6075,7 @@ fn recover_just_deferred() {
               StmtList@0..8
                 Error@0..8
                   KwDeferred@0..8 "deferred"
-            error at 0..8: expected ‘function’ or ‘procedure’"#]],
+            error at 0..8: expected ‘function’ or ‘procedure’ after here"#]],
     );
 }
 
@@ -6231,7 +6231,7 @@ fn recover_forward_decl_missing_import_name() {
                   ImportList@21..21
                     ImportItem@21..21
                       ExternalItem@21..21
-            error at 15..21: expected string literal or identifier"#]],
+            error at 15..21: expected string literal or identifier after here"#]],
     );
 }
 
@@ -6244,7 +6244,7 @@ fn recover_just_forward() {
               StmtList@0..7
                 Error@0..7
                   KwForward@0..7 "forward"
-            error at 0..7: expected ‘function’ or ‘procedure’"#]],
+            error at 0..7: expected ‘function’ or ‘procedure’ after here"#]],
     );
 }
 
@@ -6724,7 +6724,7 @@ fn recover_just_body() {
                   PlainHeader@4..4
                   StmtList@4..4
                   EndGroup@4..4
-            error at 0..4: expected ‘function’, ‘procedure’ or identifier"#]],
+            error at 0..4: expected ‘function’, ‘procedure’ or identifier after here"#]],
     );
 }
 
@@ -7179,7 +7179,7 @@ fn recover_module_decl_missing_tail_name() {
                   StmtList@9..9
                   EndGroup@9..12
                     KwEnd@9..12 "end"
-            error at 9..12: expected identifier"#]],
+            error at 9..12: expected identifier after here"#]],
     );
 }
 
@@ -7194,7 +7194,7 @@ fn recover_just_module() {
                   KwModule@0..6 "module"
                   StmtList@6..6
                   EndGroup@6..6
-            error at 0..6: expected identifier"#]],
+            error at 0..6: expected identifier after here"#]],
     );
 }
 
@@ -7337,7 +7337,7 @@ fn recover_class_decl_missing_tail_name() {
                   StmtList@8..8
                   EndGroup@8..11
                     KwEnd@8..11 "end"
-            error at 8..11: expected identifier"#]],
+            error at 8..11: expected identifier after here"#]],
     );
 }
 
@@ -7352,7 +7352,7 @@ fn recover_just_class() {
                   KwClass@0..5 "class"
                   StmtList@5..5
                   EndGroup@5..5
-            error at 0..5: expected identifier"#]],
+            error at 0..5: expected identifier after here"#]],
     );
 }
 
@@ -7525,7 +7525,7 @@ fn recover_monitor_decl_missing_tail_name() {
                   StmtList@10..10
                   EndGroup@10..13
                     KwEnd@10..13 "end"
-            error at 10..13: expected identifier"#]],
+            error at 10..13: expected identifier after here"#]],
     );
 }
 
@@ -7540,7 +7540,7 @@ fn recover_just_monitor() {
                   KwMonitor@0..7 "monitor"
                   StmtList@7..7
                   EndGroup@7..7
-            error at 0..7: expected identifier"#]],
+            error at 0..7: expected identifier after here"#]],
     );
 }
 
@@ -7907,7 +7907,7 @@ fn recover_process_decl_missing_tail_name() {
                   StmtList@19..19
                   EndGroup@19..22
                     KwEnd@19..22 "end"
-            error at 19..22: expected identifier"#]],
+            error at 19..22: expected identifier after here"#]],
     );
 }
 
@@ -7922,7 +7922,7 @@ fn recover_just_process() {
                   KwProcess@0..7 "process"
                   StmtList@7..7
                   EndGroup@7..7
-            error at 0..7: expected identifier"#]],
+            error at 0..7: expected identifier after here"#]],
     );
 }
 
@@ -8265,7 +8265,7 @@ fn recover_external_var_bare() {
                     Whitespace@22..23 " "
                     Name@23..24
                       Identifier@23..24 "a"
-            error at 23..24: expected ‘:’ or ‘:=’"#]],
+            error at 23..24: expected ‘:’ or ‘:=’ after here"#]],
     );
 }
 
@@ -8309,7 +8309,7 @@ fn recover_just_external() {
               StmtList@0..8
                 ExternalDecl@0..8
                   KwExternal@0..8 "external"
-            error at 0..8: expected ‘function’, ‘procedure’ or ‘var’"#]],
+            error at 0..8: expected ‘function’, ‘procedure’ or ‘var’ after here"#]],
     );
 }
 
@@ -8338,7 +8338,7 @@ fn recover_on_external() {
                     Name@23..24
                       Identifier@23..24 "i"
             error at 10..18: expected expression, but found ‘external’
-            error at 23..24: expected ‘:’ or ‘:=’"#]],
+            error at 23..24: expected ‘:’ or ‘:=’ after here"#]],
     );
 }
 
@@ -8424,7 +8424,7 @@ fn recover_inherit_stmt_missing_right_paren() {
                   ExternalItem@9..10
                     Name@9..10
                       Identifier@9..10 "p"
-            error at 9..10: expected ‘in’ or ‘)’"#]],
+            error at 9..10: expected ‘in’ or ‘)’ after here"#]],
     );
 }
 
@@ -8455,7 +8455,7 @@ fn recover_just_inherit() {
                 InheritStmt@0..7
                   KwInherit@0..7 "inherit"
                   ExternalItem@7..7
-            error at 0..7: expected ‘(’, string literal or identifier"#]],
+            error at 0..7: expected ‘(’, string literal or identifier after here"#]],
     );
 }
 
@@ -8603,7 +8603,7 @@ fn recover_just_implement() {
                 ImplementStmt@0..9
                   KwImplement@0..9 "implement"
                   ExternalItem@9..9
-            error at 0..9: expected ‘by’, ‘(’, string literal or identifier"#]],
+            error at 0..9: expected ‘by’, ‘(’, string literal or identifier after here"#]],
     );
 }
 
@@ -8794,7 +8794,7 @@ fn recover_import_stmt_missing_name_after_attr() {
                       KwVar@7..10 "var"
                     ExternalItem@10..10
               StmtList@10..10
-            error at 7..10: expected string literal or identifier"#]],
+            error at 7..10: expected string literal or identifier after here"#]],
     );
 }
 
@@ -8810,7 +8810,7 @@ fn recover_just_import() {
                   ImportItem@6..6
                     ExternalItem@6..6
               StmtList@6..6
-            error at 0..6: expected string literal or identifier"#]],
+            error at 0..6: expected string literal or identifier after here"#]],
     );
 }
 
@@ -9037,7 +9037,7 @@ fn recover_just_export() {
                 ExportStmt@0..6
                   KwExport@0..6 "export"
                   ExportItem@6..6
-            error at 0..6: expected ‘all’ or identifier"#]],
+            error at 0..6: expected ‘all’ or identifier after here"#]],
     );
 }
 
@@ -9093,7 +9093,7 @@ fn recover_just_include() {
                 PreprocGlob@0..7
                   PPInclude@0..7
                     KwInclude@0..7 "include"
-            error at 0..7: expected string literal"#]],
+            error at 0..7: expected string literal after here"#]],
     );
 }
 
@@ -9116,7 +9116,7 @@ fn recover_on_include() {
                         StringLiteral@12..24 "\"still_here\""
                   EndGroup@24..24
             error at 4..11: expected identifier or ‘:’, but found ‘include’
-            error at 12..24: expected ‘endfor’ or ‘end’"#]],
+            error at 12..24: expected ‘endfor’ or ‘end’ after here"#]],
     )
 }
 
@@ -9239,7 +9239,7 @@ fn recover_tell_stmt_missing_tell_dest() {
                         Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
-            error at 9..10: expected expression"#]],
+            error at 9..10: expected expression after here"#]],
     );
 }
 
@@ -9252,7 +9252,7 @@ fn recover_just_tell() {
               StmtList@0..4
                 TellStmt@0..4
                   KwTell@0..4 "tell"
-            error at 0..4: expected ‘:’"#]],
+            error at 0..4: expected ‘:’ after here"#]],
     );
 }
 
@@ -9382,7 +9382,7 @@ fn recover_seek_stmt_missing_to_expr() {
                         Identifier@7..8 "a"
                   Comma@8..9 ","
                   Whitespace@9..10 " "
-            error at 9..10: expected expression"#]],
+            error at 9..10: expected expression after here"#]],
     );
 }
 
@@ -9395,7 +9395,7 @@ fn recover_just_seek() {
               StmtList@0..4
                 SeekStmt@0..4
                   KwSeek@0..4 "seek"
-            error at 0..4: expected ‘:’"#]],
+            error at 0..4: expected ‘:’ after here"#]],
     );
 }
 
@@ -9818,7 +9818,7 @@ fn recover_just_read() {
                   KwRead@0..4 "read"
                   BinaryIO@4..4
                     BinaryItem@4..4
-            error at 0..4: expected ‘:’"#]],
+            error at 0..4: expected ‘:’ after here"#]],
     );
 }
 
@@ -10243,7 +10243,7 @@ fn recover_just_write() {
                   KwWrite@0..5 "write"
                   BinaryIO@5..5
                     BinaryItem@5..5
-            error at 0..5: expected ‘:’"#]],
+            error at 0..5: expected ‘:’ after here"#]],
     );
 }
 
@@ -10478,7 +10478,7 @@ fn recover_old_open_missing_right_paren() {
                     OpenMode@20..25
                       LiteralExpr@20..25
                         StringLiteral@20..25 "\"rw+\""
-            error at 20..25: expected ‘)’"#]],
+            error at 20..25: expected ‘)’ after here"#]],
     );
 }
 
@@ -10555,7 +10555,7 @@ fn recover_new_open_missing_mode() {
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
-            error at 20..21: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’"#]],
+            error at 20..21: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’ after here"#]],
     );
 }
 
@@ -10686,7 +10686,7 @@ fn recover_just_open() {
                 OpenStmt@0..4
                   KwOpen@0..4 "open"
                   NewOpen@4..4
-            error at 0..4: expected ‘(’ or ‘:’"#]],
+            error at 0..4: expected ‘(’ or ‘:’ after here"#]],
     );
 }
 
@@ -10770,7 +10770,7 @@ fn recover_old_close_missing_right_paren() {
                       Name@8..17
                         Identifier@8..16 "some_ref"
                         Whitespace@16..17 " "
-            error at 16..17: expected ‘)’"#]],
+            error at 16..17: expected ‘)’ after here"#]],
     );
 }
 
@@ -10846,7 +10846,7 @@ fn recover_new_close_missing_file_ref() {
                   NewClose@6..8
                     Colon@6..7 ":"
                     Whitespace@7..8 " "
-            error at 7..8: expected expression"#]],
+            error at 7..8: expected expression after here"#]],
     );
 }
 
@@ -10878,7 +10878,7 @@ fn recover_just_close() {
                 CloseStmt@0..5
                   KwClose@0..5 "close"
                   NewClose@5..5
-            error at 0..5: expected ‘(’ or ‘:’"#]],
+            error at 0..5: expected ‘(’ or ‘:’ after here"#]],
     );
 }
 
@@ -11280,7 +11280,7 @@ fn recover_just_put() {
                 PutStmt@0..3
                   KwPut@0..3 "put"
                   PutItem@3..3
-            error at 0..3: expected expression"#]],
+            error at 0..3: expected expression after here"#]],
     );
 }
 
@@ -11413,7 +11413,7 @@ fn recover_get_stmt_missing_width_expr() {
                     GetWidth@14..16
                       Colon@14..15 ":"
                       Whitespace@15..16 " "
-            error at 15..16: expected expression"#]],
+            error at 15..16: expected expression after here"#]],
     );
 }
 
@@ -11564,7 +11564,7 @@ fn recover_just_get() {
                 GetStmt@0..3
                   KwGet@0..3 "get"
                   GetItem@3..3
-            error at 0..3: expected expression"#]],
+            error at 0..3: expected expression after here"#]],
     );
 }
 
@@ -11702,7 +11702,7 @@ fn recover_wait_stmt_missing_opt_arg_expr() {
                       Identifier@5..6 "a"
                   Comma@6..7 ","
                   Whitespace@7..8 " "
-            error at 7..8: expected expression"#]],
+            error at 7..8: expected expression after here"#]],
     );
 }
 
@@ -11715,7 +11715,7 @@ fn recover_just_wait() {
               StmtList@0..4
                 WaitStmt@0..4
                   KwWait@0..4 "wait"
-            error at 0..4: expected expression"#]],
+            error at 0..4: expected expression after here"#]],
     );
 }
 

@@ -1577,7 +1577,7 @@ fn recover_infix_missing_rhs() {
                     Assign@1..3 ":="
                   UnaryExpr@3..6
                     KwNot@3..6 "not"
-            error at 3..6: expected expression"#]],
+            error at 3..6: expected expression after here"#]],
     );
 }
 
@@ -1714,7 +1714,7 @@ fn recover_missing_closing_paren() {
                     LeftParen@3..4 "("
                     LiteralExpr@4..5
                       IntLiteral@4..5 "1"
-            error at 4..5: expected ‘)’"#]],
+            error at 4..5: expected ‘)’ after here"#]],
     );
 }
 
@@ -1737,7 +1737,7 @@ fn recover_missing_closing_paren_and_rhs() {
                       LiteralExpr@4..5
                         IntLiteral@4..5 "1"
                       Plus@5..6 "+"
-            error at 5..6: expected expression"#]],
+            error at 5..6: expected expression after here"#]],
     );
 }
 
@@ -1758,7 +1758,7 @@ fn recover_missing_rhs() {
                     LiteralExpr@3..4
                       IntLiteral@3..4 "1"
                     Plus@4..5 "+"
-            error at 4..5: expected expression"#]],
+            error at 4..5: expected expression after here"#]],
     );
 }
 
@@ -1836,7 +1836,7 @@ fn recover_field_expr_missing_field() {
                       Name@3..4
                         Identifier@3..4 "a"
                     Dot@4..5 "."
-            error at 4..5: expected identifier"#]],
+            error at 4..5: expected identifier after here"#]],
     );
 }
 
@@ -1860,7 +1860,7 @@ fn recover_field_missing_closing_paren_and_field() {
                         Name@4..5
                           Identifier@4..5 "a"
                       Dot@5..6 "."
-            error at 5..6: expected identifier"#]],
+            error at 5..6: expected identifier after here"#]],
     );
 }
 
@@ -1938,7 +1938,7 @@ fn recover_arrow_expr_missing_field() {
                       Name@3..4
                         Identifier@3..4 "a"
                     Arrow@4..6 "->"
-            error at 4..6: expected identifier"#]],
+            error at 4..6: expected identifier after here"#]],
     );
 }
 
@@ -1962,7 +1962,7 @@ fn recover_arrow_missing_closing_paren_and_field() {
                         Name@4..5
                           Identifier@4..5 "a"
                       Arrow@5..7 "->"
-            error at 5..7: expected identifier"#]],
+            error at 5..7: expected identifier after here"#]],
     );
 }
 
@@ -2192,7 +2192,7 @@ fn recover_call_expr_missing_closing_paren() {
                       Param@5..6
                         LiteralExpr@5..6
                           IntLiteral@5..6 "1"
-            error at 5..6: expected ‘..’, ‘,’ or ‘)’"#]],
+            error at 5..6: expected ‘..’, ‘,’ or ‘)’ after here"#]],
     );
 }
 
@@ -2249,7 +2249,7 @@ fn recover_call_expr_missing_last_arg_and_closing_paren() {
                           IntLiteral@5..6 "1"
                         Comma@6..7 ","
                       Param@7..7
-            error at 6..7: expected expression"#]],
+            error at 6..7: expected expression after here"#]],
     );
 }
 
@@ -2545,7 +2545,7 @@ fn recover_deref_missing_rhs() {
                     Caret@3..4 "^"
                     DerefExpr@4..5
                       Caret@4..5 "^"
-            error at 4..5: expected expression"#]],
+            error at 4..5: expected expression after here"#]],
     );
 }
 
@@ -2717,7 +2717,7 @@ fn recover_init_expr_missing_right_paren() {
                       Whitespace@10..11 " "
                       LiteralExpr@11..12
                         IntLiteral@11..12 "2"
-            error at 11..12: expected ‘)’"#]],
+            error at 11..12: expected ‘)’ after here"#]],
     );
 }
 
@@ -2745,7 +2745,7 @@ fn recover_init_expr_missing_left_paren() {
                       LiteralExpr@11..12
                         IntLiteral@11..12 "2"
             error at 8..9: expected ‘(’, but found int literal
-            error at 11..12: expected ‘)’"#]],
+            error at 11..12: expected ‘)’ after here"#]],
     );
 }
 
@@ -3477,7 +3477,7 @@ fn recover_just_indirect_ty() {
                 Error@0..4
                   KwChar@0..4
                     KwChar@0..4 "char"
-            error at 0..4: expected ‘(’ or ‘@’"#]],
+            error at 0..4: expected ‘(’ or ‘@’ after here"#]],
     );
 }
 
@@ -3654,7 +3654,7 @@ fn recover_just_bits() {
                 CallStmt@0..4
                   BitsExpr@0..4
                     KwBits@0..4 "bits"
-            error at 0..4: expected ‘(’"#]],
+            error at 0..4: expected ‘(’ after here"#]],
     );
 }
 
@@ -3759,7 +3759,7 @@ fn recover_just_objclass() {
                 CallStmt@0..11
                   ObjClassExpr@0..11
                     KwObjectClass@0..11 "objectclass"
-            error at 0..11: expected ‘(’"#]],
+            error at 0..11: expected ‘(’ after here"#]],
     );
 }
 
@@ -3968,7 +3968,7 @@ fn recover_just_cheat() {
                     Assign@1..3 ":="
                   CheatExpr@3..8
                     KwCheat@3..8 "cheat"
-            error at 3..8: expected ‘(’"#]],
+            error at 3..8: expected ‘(’ after here"#]],
     );
 }
 
@@ -4559,7 +4559,7 @@ fn recover_nil_expr_missing_right_paren() {
                     NameExpr@8..9
                       Name@8..9
                         Identifier@8..9 "a"
-            error at 8..9: expected ‘)’"#]],
+            error at 8..9: expected ‘)’ after here"#]],
     );
 }
 
@@ -4861,7 +4861,7 @@ fn recover_sizeof_expr_missing_right_paren() {
                     NameExpr@10..11
                       Name@10..11
                         Identifier@10..11 "a"
-            error at 10..11: expected ‘)’"#]],
+            error at 10..11: expected ‘)’ after here"#]],
     );
 }
 

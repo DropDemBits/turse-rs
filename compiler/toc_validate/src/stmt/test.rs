@@ -62,7 +62,7 @@ fn only_missing_module_decl_name() {
 fn only_missing_module_end_name() {
     check(
         "monitor a end",
-        expect![[r#"error at 10..13: expected identifier"#]],
+        expect![[r#"error at 10..13: expected identifier after here"#]],
     );
 }
 

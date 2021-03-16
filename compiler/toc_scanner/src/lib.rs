@@ -1,6 +1,4 @@
 //! Scanner for lexing tokens
-// TODO: Report errors for invalid escape characters when lowering (reduces code duplication)
-// TODO: Scan & parse preproc statements
 pub mod token;
 
 use logos::Logos;
