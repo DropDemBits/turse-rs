@@ -386,21 +386,16 @@ fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
     // Continue to lex everything
     let mut bump_len = 0_usize;
     let mut comment_nesting = 1_usize;
-    let mut remainder: &str = lexer.remainder();
 
     // Track all the endings
-    // TODO: replace with `split_inclusive` once it gets stablilized (in Rust 1.51.0)
-    while !remainder.is_empty() {
-        let at = remainder
-            .find("*/")
-            .map_or_else(|| remainder.len(), |at| at.saturating_add(2));
-        let (in_between, new_remainder) = remainder.split_at(at);
-        remainder = new_remainder;
+    for in_between in lexer.remainder().split_inclusive("*/") {
+        // Check if the ending is actually present
+        let ending_count = if in_between.contains("*/") { 1 } else { 0 };
 
         // Adjust nesting
         comment_nesting = comment_nesting
             .saturating_add(in_between.matches("/*").count())
-            .saturating_sub(1);
+            .saturating_sub(ending_count);
         // Increase bump length (`*/` is included)
         bump_len = bump_len.saturating_add(in_between.len());
 

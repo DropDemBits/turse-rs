@@ -586,6 +586,10 @@ mod test {
 
     #[test]
     fn scan_block_comments() {
+        // Minimal block comment
+        expect("/**/", &TokenKind::Comment);
+        expect("/* */", &TokenKind::Comment);
+
         expect_seq(
             "/* /* abcd % * / \n\n\r\n */ */ asd",
             &[
@@ -598,14 +602,27 @@ mod test {
         // Sibling nodes
         expect("/* /* abcd */ /* ae */ */", &TokenKind::Comment);
 
-        // Missing terminating */
+        //// Missing terminating */ ////
+        // Bare minimum with missing */
+        expect_with_error(
+            "/* ",
+            &TokenKind::Comment,
+            expect![[r#"error at 0..3: block comment is missing terminating ’*/’"#]],
+        );
+
+        // Respecting nesting
         expect_with_error(
             "/* /* abcd */",
             &TokenKind::Comment,
             expect![[r#"error at 0..13: block comment is missing terminating ’*/’"#]],
         );
-        // FIXME: Why is this not reporting?
-        expect_with_error("/* /* abcd */ ", &TokenKind::Comment, expect![[]]);
+
+        // With trailing spaces
+        expect_with_error(
+            "/* /* abcd */ ",
+            &TokenKind::Comment,
+            expect![[r#"error at 0..14: block comment is missing terminating ’*/’"#]],
+        );
     }
 
     #[test]
