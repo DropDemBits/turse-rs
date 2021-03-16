@@ -17,4 +17,4 @@ num-traits = "0.2"
 drop_bomb = "0.1.5"
 
 [dev-dependencies]
-expect-test = "=1.0.1"
+expect-test = "1.1"

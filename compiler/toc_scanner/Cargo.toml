@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 toc_reporting = { path = "../toc_reporting" }
 toc_span = { path = "../toc_span" }
-logos = "^0.11"
+logos = "0.12"
 
 [dev-dependencies]
-expect-test = "=1.0.1"
+expect-test = "1.1"

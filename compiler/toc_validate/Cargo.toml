@@ -13,4 +13,4 @@ toc_syntax = { path = "../toc_syntax" }
 
 [dev-dependencies]
 toc_parser = { path = "../toc_parser" }
-expect-test = "=1.0.1"
+expect-test = "1.1"
