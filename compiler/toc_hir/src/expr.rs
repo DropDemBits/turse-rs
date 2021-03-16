@@ -1,6 +1,8 @@
 //! Expression nodes
 use la_arena::Idx;
 
+use crate::symbol;
+
 pub type ExprIdx = Idx<Expr>;
 
 /// Expressions
@@ -133,7 +135,7 @@ pub struct Paren {
 #[derive(Debug)]
 pub enum Name {
     /// Normal identifier reference
-    Name(String),
+    Name(symbol::UseId),
     /// Reference to `self`
     Self_,
 }

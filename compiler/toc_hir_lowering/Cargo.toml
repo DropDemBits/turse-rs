@@ -13,3 +13,4 @@ toc_reporting = { path = "../toc_reporting" }
 
 [dev-dependencies]
 toc_parser = { path = "../toc_parser" }
+if_chain = "1.0"

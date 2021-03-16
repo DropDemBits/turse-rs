@@ -17,6 +17,10 @@
 // FileDB should only care about giving unique file handes corresponding to text sources.
 // Other DBs will deal with what they map to (e.g. a separate DB managing all of the CSTs)
 
+mod scopes;
+
+use toc_hir::stmt::StmtIdx;
+use toc_hir::symbol;
 use toc_hir::{expr, stmt, ty, Database, Unit};
 use toc_reporting::{MessageSink, ReportMessage};
 use toc_syntax::{
@@ -43,10 +47,19 @@ pub fn lower_ast(root_node: SyntaxNode) -> HirLowerResult {
     let mut ctx = LoweringCtx::new();
     let root = ast::Source::cast(root_node).unwrap();
 
-    let unit = ctx.lower_root(root);
-
-    let LoweringCtx { database, messages } = ctx;
+    let stmts = ctx.lower_root(root);
+    let LoweringCtx {
+        database,
+        messages,
+        scopes,
+    } = ctx;
     let messages = messages.finish();
+
+    let unit = toc_hir::Unit {
+        stmts,
+        symbol_table: scopes.finish(),
+    };
+
     HirLowerResult {
         database,
         unit,
@@ -57,6 +70,7 @@ pub fn lower_ast(root_node: SyntaxNode) -> HirLowerResult {
 struct LoweringCtx {
     database: Database,
     messages: MessageSink,
+    scopes: scopes::ScopeBuilder,
 }
 
 impl LoweringCtx {
@@ -64,11 +78,12 @@ impl LoweringCtx {
         Self {
             database: Database::new(),
             messages: MessageSink::new(),
+            scopes: scopes::ScopeBuilder::new(),
         }
     }
 
-    fn lower_root(&mut self, root: ast::Source) -> toc_hir::Unit {
-        // TODO: deal with root import statement
+    fn lower_root(&mut self, root: ast::Source) -> Vec<StmtIdx> {
+        // TODO: deal with root import statement (i.e. build up import info)
         let _is_child_unit = root.unit_token().is_some();
 
         let stmts = if let Some(stmts) = root.stmt_list() {
@@ -83,7 +98,7 @@ impl LoweringCtx {
             vec![]
         };
 
-        toc_hir::Unit { stmts }
+        stmts
     }
 
     fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<(stmt::Stmt, toc_reporting::TextRange)> {
@@ -95,8 +110,7 @@ impl LoweringCtx {
                 let is_register = decl.register_attr().is_some();
                 let is_const = decl.const_token().is_some();
 
-                // ???: Should DefIds be used instead of raw names?
-                let names = Self::lower_name_list(decl.decl_list())?;
+                let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
 
                 let type_spec = decl
                     .type_spec()
@@ -160,7 +174,28 @@ impl LoweringCtx {
             ast::Stmt::ExitStmt(_) => todo!(),
             ast::Stmt::IfStmt(_) => todo!(),
             ast::Stmt::CaseStmt(_) => todo!(),
-            ast::Stmt::BlockStmt(_) => todo!(),
+            ast::Stmt::BlockStmt(stmt) => {
+                self.scopes.push_scope(false);
+
+                let stmts = if let Some(stmts) = stmt.stmt_list() {
+                    stmts
+                        .stmts()
+                        .filter_map(|stmt| {
+                            if let Some((node, span)) = self.lower_stmt(stmt) {
+                                Some(self.database.stmt_nodes.alloc_spanned(node, span))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                };
+
+                self.scopes.pop_scope();
+
+                Some((stmt::Stmt::Block { stmts }, span))
+            }
             ast::Stmt::InvariantStmt(_) => todo!(),
             ast::Stmt::AssertStmt(_) => todo!(),
             ast::Stmt::CallStmt(_) => todo!(),
@@ -221,7 +256,8 @@ impl LoweringCtx {
             ast::Expr::ParenExpr(_) => todo!(),
             ast::Expr::NameExpr(expr) => {
                 if let Some(name) = expr.name().and_then(|name| name.identifier_token()) {
-                    expr::Expr::Name(expr::Name::Name(name.text().to_string()))
+                    let use_id = self.scopes.use_sym(name.text(), name.text_range());
+                    expr::Expr::Name(expr::Name::Name(use_id))
                 } else {
                     expr::Expr::Missing
                 }
@@ -242,12 +278,22 @@ impl LoweringCtx {
 
     /// Lowers a name list, holding up the invariant that it always contains
     /// at least one identifier
-    fn lower_name_list(name_list: Option<ast::NameList>) -> Option<Vec<String>> {
+    fn lower_name_list(
+        &mut self,
+        name_list: Option<ast::NameList>,
+        is_pervasive: bool,
+    ) -> Option<Vec<symbol::DefId>> {
         let names = name_list?
             .names()
             .filter_map(|name| {
-                name.identifier_token()
-                    .map(|token| token.text().to_string())
+                name.identifier_token().map(|token| {
+                    self.scopes.def_sym(
+                        token.text(),
+                        token.text_range(),
+                        symbol::SymbolKind::Declared,
+                        is_pervasive,
+                    )
+                })
             })
             .collect::<Vec<_>>();
 

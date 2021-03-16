@@ -1,6 +1,7 @@
 //! Common message reporting for all compiler libraries
 use std::fmt;
 
+// TODO: Shove these two structs into a separate `toc_span` crate
 pub use text_size::{TextRange, TextSize};
 
 /// Type of message reported

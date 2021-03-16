@@ -1,7 +1,7 @@
 //! Statement nodes
 use la_arena::Idx;
 
-use crate::{expr, ty};
+use crate::{expr, symbol, ty};
 
 pub type StmtIdx = Idx<Stmt>;
 
@@ -13,10 +13,22 @@ pub enum Stmt {
         is_pervasive: bool,
         is_register: bool,
         is_const: bool,
-        names: Vec<String>,
+        names: Vec<symbol::DefId>,
         type_spec: Option<ty::TypeIdx>,
         init_expr: Option<expr::ExprIdx>,
     },
+    // Type { .. },
+    // Bind { .. },
+    // Proc { .. },
+    // Fcn { .. },
+    // Process { .. },
+    // External { .. },
+    // Forward { .. },
+    // Deferred { .. },
+    // Body { .. },
+    // Module { .. },
+    // Class { .. },
+    // Monitor { .. },
     /// Assignment statement
     /// (also includes compound assignments)
     Assign {
@@ -25,6 +37,45 @@ pub enum Stmt {
         op: AssignOp,
         rhs: expr::ExprIdx,
     },
+    // Open { .. },
+    // Close { .. },
+    // Put { .. },
+    // Get { .. },
+    // Read { .. },
+    // Write { .. },
+    // Seek { .. },
+    // Tell { .. },
+    // For { .. },
+    // Loop { .. },
+    // Exit { .. },
+    // If { .. },
+    // Case { .. },
+    /// Block statement (`begin ... end`)
+    Block { stmts: Vec<StmtIdx> },
+    // Invariant { .. }
+    // Assert { .. }
+    // Call { .. }
+    // Return { .. }
+    // Result { .. }
+    // New { .. }
+    // Free { .. }
+    // Tag { .. }
+    // Fork { .. }
+    // Signal { .. }
+    // Pause { .. }
+    // Quit { .. }
+    // Break { .. }
+    // Checkedness { .. }
+    // Pre { .. }
+    // Init { .. }
+    // Post { .. }
+    // Handler { .. }
+    // ???: Should the below be real stmts?
+    // Inherit { .. }
+    // Implement { .. }
+    // ImplementBy { .. }
+    // Import { .. }
+    // Export { .. }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

@@ -4,17 +4,27 @@
 //! `expr::Name` instead of importing the node directly
 
 use std::collections::HashMap;
+use std::ops;
 
 use la_arena::{Arena, Idx};
 use toc_reporting::TextRange;
+
+use crate::expr::ExprIdx;
+use crate::stmt::StmtIdx;
+use crate::symbol::SymbolTable;
+use crate::ty::TypeIdx;
 pub mod expr;
 pub mod stmt;
+pub mod symbol;
 pub mod ty;
 
 /// Code Unit
 #[derive(Debug)]
 pub struct Unit {
+    /// Top level statements in the unit
     pub stmts: Vec<stmt::StmtIdx>,
+    /// Unit-local symbol table
+    pub symbol_table: SymbolTable,
 }
 
 /// Aggregate HIR structure
@@ -32,6 +42,30 @@ impl Database {
             expr_nodes: SpannedArena::new(),
             type_nodes: SpannedArena::new(),
         }
+    }
+}
+
+impl ops::Index<StmtIdx> for Database {
+    type Output = stmt::Stmt;
+
+    fn index(&self, index: StmtIdx) -> &Self::Output {
+        &self.stmt_nodes.arena[index]
+    }
+}
+
+impl ops::Index<ExprIdx> for Database {
+    type Output = expr::Expr;
+
+    fn index(&self, index: ExprIdx) -> &Self::Output {
+        &self.expr_nodes.arena[index]
+    }
+}
+
+impl ops::Index<TypeIdx> for Database {
+    type Output = ty::Type;
+
+    fn index(&self, index: TypeIdx) -> &Self::Output {
+        &self.type_nodes.arena[index]
     }
 }
 
