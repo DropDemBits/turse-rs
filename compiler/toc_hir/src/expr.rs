@@ -10,7 +10,8 @@ pub type ExprIdx = Idx<Expr>;
 pub enum Expr {
     /// Error expression, only used to represent invalid code
     Missing,
-    //Literal(Literal),
+    /// Literal values
+    Literal(Literal),
     //ObjClass(ObjClass),
     //Init(Init),
     //Nil(Nil),
@@ -30,15 +31,11 @@ pub enum Expr {
     //Call(Call),
 }
 
-#[derive(Debug)]
-pub struct Literal {
-    value: LiteralKind,
-}
-
-#[derive(Debug)]
-pub enum LiteralKind {
+#[derive(Debug, Clone, PartialEq)]
+pub enum Literal {
     Int(i64),
     Nat(u64),
+    Integer(u64),
     Real(f64),
     CharSeq(String),
     String(String),

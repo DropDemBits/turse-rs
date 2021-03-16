@@ -1,7 +1,10 @@
 //! Extensions to the generated nodes
 use super::nodes::*;
 use crate::ast::{helper, AstNode};
-use crate::{AssignOp, BinaryOp, IoKind, SyntaxElement, SyntaxKind, SyntaxToken, UnaryOp};
+use crate::{
+    AssignOp, BinaryOp, IoKind, LiteralParseError, LiteralValue, SyntaxElement, SyntaxKind,
+    SyntaxToken, UnaryOp,
+};
 
 impl PPBinaryExpr {
     pub fn lhs(&self) -> Option<PPExpr> {
@@ -116,7 +119,112 @@ impl UnaryExpr {
 }
 
 impl LiteralExpr {
-    // TODO: literal
+    pub fn literal(&self) -> Option<(LiteralValue, Option<LiteralParseError>)> {
+        let literal = self.syntax().first_token()?;
+
+        match literal.kind() {
+            SyntaxKind::IntLiteral => {
+                // Basic integer, parsing with radix 10
+                let text = literal.text();
+                let value = lexical::parse::<u64, _>(text);
+
+                let value = match value {
+                    Ok(num) => (LiteralValue::Int(num), None),
+                    Err(err) => {
+                        let err = match err.code {
+                            lexical::ErrorCode::Overflow => LiteralParseError::IntTooLarge,
+                            _ => LiteralParseError::IntInvalid,
+                        };
+                        (LiteralValue::Int(0), Some(err))
+                    }
+                };
+
+                Some(value)
+            }
+            SyntaxKind::RadixLiteral => {
+                // Radix Integer parsing
+                let text = literal.text();
+                let (radix_slice, digits_slice) = text.split_at(text.find('#').unwrap());
+                let digits_slice = &digits_slice[1..]; // skip over #
+
+                let radix = lexical::parse::<u8, _>(radix_slice);
+                let radix = match radix {
+                    Ok(radix) if (2..=36).contains(&radix) => radix,
+                    _ => {
+                        // invalid radix value
+                        return Some((
+                            LiteralValue::Int(0),
+                            Some(LiteralParseError::IntInvalidBase),
+                        ));
+                    }
+                };
+
+                // valid radix
+                let value = lexical::parse_radix::<u64, _>(&digits_slice, radix);
+                let value = match value {
+                    Ok(num) => (LiteralValue::Int(num), None),
+                    Err(err) => {
+                        let err = match err.code {
+                            lexical::ErrorCode::Overflow => LiteralParseError::IntRadixTooLarge,
+                            lexical::ErrorCode::InvalidDigit => {
+                                // Get the exact span of the invalid digit
+                                // account for width of the radix & '#'
+                                let start_slice = radix_slice.len() + 1 + err.index;
+                                let end_slice = start_slice + 1;
+
+                                // Chars are guarranteed to be in the ascii range
+                                assert!(text.get(start_slice..end_slice).is_some());
+
+                                LiteralParseError::IntRadixInvalidDigit(start_slice, end_slice)
+                            }
+                            lexical::ErrorCode::Empty => LiteralParseError::IntMissingRadix,
+                            _ => LiteralParseError::IntInvalid,
+                        };
+                        (LiteralValue::Int(0), Some(err))
+                    }
+                };
+
+                Some(value)
+            }
+            SyntaxKind::RealLiteral => {
+                // Pretty simple real parsing
+                let text = literal.text();
+
+                // Check that the real literal is valid
+                let value = lexical::parse_lossy::<f64, _>(text);
+                let value = match value {
+                    Ok(num) if num.is_infinite() => (
+                        LiteralValue::Real(0.0),
+                        Some(LiteralParseError::RealTooLarge),
+                    ),
+                    Ok(num) if num.is_nan() => (
+                        LiteralValue::Real(0.0),
+                        Some(LiteralParseError::RealInvalid),
+                    ),
+                    Err(err) => {
+                        let err = match err.code {
+                            lexical::ErrorCode::Overflow => LiteralParseError::RealTooLarge,
+                            lexical::ErrorCode::Underflow => LiteralParseError::RealTooSmall,
+                            lexical::ErrorCode::EmptyExponent => {
+                                LiteralParseError::RealMissingExponent
+                            }
+                            // all other cases are protected by what is parsed, but still push out an error
+                            _ => LiteralParseError::RealInvalid,
+                        };
+                        (LiteralValue::Real(0.0), Some(err))
+                    }
+                    Ok(num) => (LiteralValue::Real(num), None),
+                };
+
+                Some(value)
+            }
+            SyntaxKind::CharLiteral => todo!(),
+            SyntaxKind::StringLiteral => todo!(),
+            SyntaxKind::KwTrue => Some((LiteralValue::Boolean(true), None)),
+            SyntaxKind::KwFalse => Some((LiteralValue::Boolean(false), None)),
+            _ => None,
+        }
+    }
 }
 
 impl Reference {
@@ -183,7 +291,7 @@ impl AsnOp {
     }
 
     pub fn asn_node(&self) -> Option<SyntaxElement> {
-        self.syntax().children_with_tokens().nth(1)
+        self.syntax().children_with_tokens().next()
     }
 }
 

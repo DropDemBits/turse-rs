@@ -53,9 +53,9 @@ fn parse_int_literal() {
                     IntLiteral@3..11 "01234560""#]],
     );
 
-    // TODO: Report invalid literals
+    // Invalid literals are reported during HIR lowering
 
-    // Overflow, should be detected (in the future)
+    // Overflow
     check(
         "_:=99999999999999999999",
         expect![[r#"
@@ -68,8 +68,7 @@ fn parse_int_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..23
-                    IntLiteral@3..23 "99999999999999999999"
-            error at 3..23: int literal is too large"#]],
+                    IntLiteral@3..23 "99999999999999999999""#]],
     );
 
     // Digit cutoff
@@ -140,12 +139,10 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..26
-                    RadixLiteral@3..26 "10#99999999999999999999"
-            error at 3..26: explicit int literal is too large"##]],
+                    RadixLiteral@3..26 "10#99999999999999999999""##]],
     );
 
-    // All errors below here should be reported here
-    // TODO: Report invalid literals
+    // Invalid literals are reported during HIR lowering
 
     // No digits
     check(
@@ -160,8 +157,7 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..6
-                    RadixLiteral@3..6 "30#"
-            error at 3..6: explicit int literal is missing radix digits"##]],
+                    RadixLiteral@3..6 "30#""##]],
     );
 
     // Out of range (> 36)
@@ -177,8 +173,7 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..10
-                    RadixLiteral@3..10 "37#asda"
-            error at 3..10: base for int literal is not between 2 - 36"##]],
+                    RadixLiteral@3..10 "37#asda""##]],
     );
 
     // Out of range (< 2)
@@ -194,8 +189,7 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..9
-                    RadixLiteral@3..9 "0#0000"
-            error at 3..9: base for int literal is not between 2 - 36"##]],
+                    RadixLiteral@3..9 "0#0000""##]],
     );
     check(
         "_:=1#0000",
@@ -209,8 +203,7 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..9
-                    RadixLiteral@3..9 "1#0000"
-            error at 3..9: base for int literal is not between 2 - 36"##]],
+                    RadixLiteral@3..9 "1#0000""##]],
     );
 
     // Out of range (= overflow)
@@ -226,8 +219,7 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..28
-                    RadixLiteral@3..28 "18446744073709551616# ..."
-            error at 3..28: base for int literal is not between 2 - 36"##]],
+                    RadixLiteral@3..28 "18446744073709551616# ...""##]],
     );
 
     // Invalid digit
@@ -243,8 +235,7 @@ fn parse_radix_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..13
-                    RadixLiteral@3..13 "10#999a999"
-            error at 9..10: invalid digit for the specified base"##]],
+                    RadixLiteral@3..13 "10#999a999""##]],
     );
 }
 
@@ -400,8 +391,7 @@ fn parse_real_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..6
-                    RealLiteral@3..6 "1e+"
-            error at 3..6: real literal is missing exponent digits"#]],
+                    RealLiteral@3..6 "1e+""#]],
     );
     check(
         "_:=1e-",
@@ -415,8 +405,7 @@ fn parse_real_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..6
-                    RealLiteral@3..6 "1e-"
-            error at 3..6: real literal is missing exponent digits"#]],
+                    RealLiteral@3..6 "1e-""#]],
     );
     check(
         "_:=1e",
@@ -430,8 +419,7 @@ fn parse_real_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..5
-                    RealLiteral@3..5 "1e"
-            error at 3..5: real literal is missing exponent digits"#]],
+                    RealLiteral@3..5 "1e""#]],
     );
 
     // Too big
@@ -447,8 +435,7 @@ fn parse_real_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..8
-                    RealLiteral@3..8 "1e600"
-            error at 3..8: real literal is too large"#]],
+                    RealLiteral@3..8 "1e600""#]],
     );
 }
 

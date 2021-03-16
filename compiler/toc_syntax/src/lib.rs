@@ -758,3 +758,39 @@ impl AssignOp {
         Some(op)
     }
 }
+
+// Possible literal values
+#[derive(Debug, Clone, PartialEq)]
+pub enum LiteralValue {
+    Int(u64),
+    Real(f64),
+    Char(String),
+    String(String),
+    Boolean(bool),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum LiteralParseError {
+    // Real Literals
+    #[error("real literal is too large")]
+    RealTooLarge,
+    #[error("real literal is too small")]
+    RealTooSmall,
+    #[error("invalid real literal")]
+    RealInvalid,
+    #[error("real literal is missing exponent digits")]
+    RealMissingExponent,
+    // Int Literals
+    #[error("int literal is too large")]
+    IntTooLarge,
+    #[error("explicit int literal is too large")]
+    IntRadixTooLarge,
+    #[error("invalid digit for the specified base")]
+    IntRadixInvalidDigit(usize, usize),
+    #[error("explicit int literal is missing radix digits")]
+    IntMissingRadix,
+    #[error("base for explicit int literal is not between 2 - 36")]
+    IntInvalidBase,
+    #[error("invalid int literal")]
+    IntInvalid,
+}

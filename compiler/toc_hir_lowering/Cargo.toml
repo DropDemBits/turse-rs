@@ -14,3 +14,5 @@ toc_reporting = { path = "../toc_reporting" }
 [dev-dependencies]
 toc_parser = { path = "../toc_parser" }
 if_chain = "1.0"
+expect-test = "=1.0.1"
+approx = "0.4"

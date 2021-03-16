@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 toc_reporting = { path = "../toc_reporting" }
 logos = "^0.11"
-lexical = { version = "^5.1", features = [ "radix" ] }
 
 [dev-dependencies]
 expect-test = "=1.0.1"

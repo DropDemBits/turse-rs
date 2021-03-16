@@ -129,7 +129,6 @@ mod test {
                   Assign@6..8 ":="
                   Whitespace@8..9 " "
                   LiteralExpr@9..11
-                    RealLiteral@9..11 "1e"
-            error at 9..11: real literal is missing exponent digits"#]]);
+                    RealLiteral@9..11 "1e""#]]);
     }
 }

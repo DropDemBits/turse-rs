@@ -13,3 +13,5 @@ toc_scanner = { path = "../toc_scanner" }
 rowan = "0.12.2"
 num-derive = "^0.3"
 num-traits = "0.2"
+lexical = { version = "^5.1", features = [ "radix" ] }
+thiserror = "1.0"

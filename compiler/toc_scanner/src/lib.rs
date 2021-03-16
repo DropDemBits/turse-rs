@@ -250,27 +250,13 @@ mod test {
         expect("100.00e+100", &TokenKind::RealLiteral);
         expect("1e100", &TokenKind::RealLiteral);
 
+        // No errors for invalid literals are reported here
+
         // Invalid format
-        expect_with_error(
-            "1e+",
-            &TokenKind::RealLiteral,
-            expect![["error at 0..3: real literal is missing exponent digits"]],
-        );
-        expect_with_error(
-            "1e-",
-            &TokenKind::RealLiteral,
-            expect![["error at 0..3: real literal is missing exponent digits"]],
-        );
-        expect_with_error(
-            "1e",
-            &TokenKind::RealLiteral,
-            expect![["error at 0..2: real literal is missing exponent digits"]],
-        );
-        expect_with_error(
-            "1.0e",
-            &TokenKind::RealLiteral,
-            expect![["error at 0..4: real literal is missing exponent digits"]],
-        );
+        expect("1e+", &TokenKind::RealLiteral);
+        expect("1e-", &TokenKind::RealLiteral);
+        expect("1e", &TokenKind::RealLiteral);
+        expect("1.0e", &TokenKind::RealLiteral);
 
         // Don't consume extra '+', '-' or decimal digits
         expect_seq(
@@ -291,16 +277,8 @@ mod test {
         );
 
         // Too big
-        expect_with_error(
-            "1e600",
-            &TokenKind::RealLiteral,
-            expect![["error at 0..5: real literal is too large"]],
-        );
-        expect_with_error(
-            "1.0e600",
-            &TokenKind::RealLiteral,
-            expect![["error at 0..7: real literal is too large"]],
-        );
+        expect("1e600", &TokenKind::RealLiteral);
+        expect("1.0e600", &TokenKind::RealLiteral);
 
         // Too small (should not produce an error)
         expect("1e-999999999", &TokenKind::RealLiteral);
@@ -342,65 +320,40 @@ mod test {
         expect("16#EABC", &TokenKind::RadixLiteral);
 
         // Errors
+        // No errors for invalid literals are reported here
 
         // Overflow
-        expect_with_error(
-            "10#99999999999999999999",
-            &TokenKind::RadixLiteral,
-            expect![[r#"error at 0..23: explicit int literal is too large"#]],
-        );
+        expect("10#99999999999999999999", &TokenKind::RadixLiteral);
 
         // No digits
-        expect_with_error(
-            "30#",
-            &TokenKind::RadixLiteral,
-            expect![[r#"error at 0..3: explicit int literal is missing radix digits"#]],
-        );
-        expect_seq_with_errors(
+        expect("30#", &TokenKind::RadixLiteral);
+        expect_seq(
             "30#\n",
             &[
                 (TokenKind::RadixLiteral, "30#"),
                 (TokenKind::Whitespace, "\n"),
             ],
-            expect![[r#"error at 0..3: explicit int literal is missing radix digits"#]],
         );
 
         // Out of range (> 36)
-        expect_with_error(
-            "37#asda",
-            &TokenKind::RadixLiteral,
-            expect![[r#"error at 0..7: base for int literal is not between 2 - 36"#]],
-        );
+        expect("37#asda", &TokenKind::RadixLiteral);
 
         // Out of range (= 0)
-        expect_with_error(
-            "0#0000",
-            &TokenKind::RadixLiteral,
-            expect![[r#"error at 0..6: base for int literal is not between 2 - 36"#]],
-        );
+        expect("0#0000", &TokenKind::RadixLiteral);
 
         // Out of range (= 1)
-        expect_with_error(
-            "1#0000",
-            &TokenKind::RadixLiteral,
-            expect![[r#"error at 0..6: base for int literal is not between 2 - 36"#]],
-        );
+        expect("1#0000", &TokenKind::RadixLiteral);
 
         // Out of range (= overflow)
-        expect_with_error(
-            "18446744073709551616#0000",
-            &TokenKind::RadixLiteral,
-            expect![[r#"error at 0..25: base for int literal is not between 2 - 36"#]],
-        );
+        expect("18446744073709551616#0000", &TokenKind::RadixLiteral);
 
         // Invalid digit
-        expect_seq_with_errors(
+        expect_seq(
             "    10#999a9a9",
             &[
                 (TokenKind::Whitespace, "    "),
                 (TokenKind::RadixLiteral, "10#999a9a9"),
             ],
-            expect![[r#"error at 10..11: invalid digit for the specified base"#]],
         );
     }
 
@@ -408,12 +361,8 @@ mod test {
     fn scan_basic_ints() {
         expect("01234560", &TokenKind::IntLiteral);
 
-        // Overflow
-        expect_with_error(
-            "99999999999999999999",
-            &TokenKind::IntLiteral,
-            expect![[r#"error at 0..20: int literal is too large"#]],
-        );
+        // Overflow (No errors for invalid literals are reported here)
+        expect("99999999999999999999", &TokenKind::IntLiteral);
 
         // Digit cutoff
         expect_seq(
@@ -435,13 +384,12 @@ mod test {
             "1..",
             &[(TokenKind::IntLiteral, "1"), (TokenKind::Range, "..")],
         );
-        expect_seq_with_errors(
+        expect_seq(
             "1eggy",
             &[
                 (TokenKind::RealLiteral, "1e"),
                 (TokenKind::Identifier, "ggy"),
             ],
-            expect![[r#"error at 0..2: real literal is missing exponent digits"#]],
         );
     }
 
@@ -656,6 +604,7 @@ mod test {
             &TokenKind::Comment,
             expect![[r#"error at 0..13: block comment is missing terminating ’*/’"#]],
         );
+        // FIXME: Why is this not reporting?
         expect_with_error("/* /* abcd */ ", &TokenKind::Comment, expect![[]]);
     }
 
@@ -814,9 +763,7 @@ mod test {
         expect_seq_with_errors(
             "2#پ",
             &[(TokenKind::RadixLiteral, "2#"), (TokenKind::Error, "پ")],
-            expect![[r#"
-                error at 0..2: explicit int literal is missing radix digits
-                error at 2..4: invalid character"#]],
+            expect![[r#"error at 2..4: invalid character"#]],
         );
     }
 }

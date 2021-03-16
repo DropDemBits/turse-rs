@@ -19,14 +19,17 @@
 
 mod scopes;
 
+use std::convert::TryInto;
+
 use toc_hir::stmt::StmtIdx;
 use toc_hir::symbol;
 use toc_hir::{expr, stmt, ty, Database, Unit};
-use toc_reporting::{MessageSink, ReportMessage};
+use toc_reporting::{MessageKind, MessageSink, ReportMessage, TextRange, TextSize};
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxNode,
 };
+use toc_syntax::{LiteralParseError, LiteralValue};
 
 #[cfg(test)]
 mod test;
@@ -246,7 +249,39 @@ impl LoweringCtx {
         let span = expr.syntax().text_range();
 
         let expr = match expr {
-            ast::Expr::LiteralExpr(_) => todo!(),
+            ast::Expr::LiteralExpr(expr) => {
+                if let Some((value, err)) = expr.literal() {
+                    if let Some(err) = err {
+                        // Report error
+                        let range = if let LiteralParseError::IntRadixInvalidDigit(start, end) = err
+                        {
+                            // Adjust to be at the the invalid character
+                            let (start, end): (TextSize, TextSize) = (
+                                start.try_into().unwrap_or_default(),
+                                end.try_into().unwrap_or_default(),
+                            );
+
+                            TextRange::new(span.start() + start, span.start() + end)
+                        } else {
+                            span
+                        };
+                        self.messages
+                            .report(MessageKind::Error, &err.to_string(), range);
+                    }
+
+                    let value = match value {
+                        LiteralValue::Int(v) => expr::Literal::Integer(v),
+                        LiteralValue::Real(v) => expr::Literal::Real(v),
+                        LiteralValue::Char(v) => expr::Literal::CharSeq(v),
+                        LiteralValue::String(v) => expr::Literal::String(v),
+                        LiteralValue::Boolean(v) => expr::Literal::Boolean(v),
+                    };
+
+                    expr::Expr::Literal(value)
+                } else {
+                    expr::Expr::Missing
+                }
+            }
             ast::Expr::ObjClassExpr(_) => todo!(),
             ast::Expr::InitExpr(_) => todo!(),
             ast::Expr::NilExpr(_) => todo!(),
