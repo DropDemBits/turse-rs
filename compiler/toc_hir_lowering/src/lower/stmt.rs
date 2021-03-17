@@ -68,10 +68,11 @@ impl super::LoweringCtx {
         let is_register = decl.register_attr().is_some();
         let is_const = decl.const_token().is_some();
 
-        let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
-
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.lower_expr(expr));
+
+        // Declare names after uses to prevent def-use cycles
+        let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
 
         Some(stmt::Stmt::ConstVar {
             is_pervasive,

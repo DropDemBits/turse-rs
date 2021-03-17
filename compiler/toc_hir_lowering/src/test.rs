@@ -38,6 +38,22 @@ fn lower_bare_var_def() {
 }
 
 #[test]
+fn lower_var_def_no_cycle() {
+    let lowered = lower_text("var a := a", expect![[]]);
+
+    let decl = &lowered.database.stmt_nodes.arena[lowered.unit.stmts[0]];
+    if_chain! {
+        if let stmt::Stmt::ConstVar { names, init_expr: Some(init_expr), .. } = decl;
+        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*init_expr];
+        then {
+            assert_ne!(names[0], use_id.as_def());
+        } else {
+            unreachable!()
+        }
+    };
+}
+
+#[test]
 fn lower_simple_assignment() {
     let lowered = lower_text("a := b", expect![[]]);
 
