@@ -3094,7 +3094,7 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..15
-                    KwString@3..10
+                    PrimType@3..10
                       KwString@3..9 "string"
                       Whitespace@9..10 " "
                     At@10..11 "@"
@@ -3116,7 +3116,7 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    KwChar@3..8
+                    PrimType@3..8
                       KwChar@3..7 "char"
                       Whitespace@7..8 " "
                     At@8..9 "@"
@@ -3138,22 +3138,23 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..22
-                    SizedStringType@3..17
-                      KwString@3..9 "string"
-                      LeftParen@9..10 "("
-                      SeqLength@10..15
-                        BinaryExpr@10..15
-                          BinaryExpr@10..13
-                            LiteralExpr@10..11
-                              IntLiteral@10..11 "1"
-                            Plus@11..12 "+"
-                            LiteralExpr@12..13
-                              IntLiteral@12..13 "2"
-                          Plus@13..14 "+"
-                          LiteralExpr@14..15
-                            IntLiteral@14..15 "3"
-                      RightParen@15..16 ")"
-                      Whitespace@16..17 " "
+                    PrimType@3..17
+                      SizedStringType@3..17
+                        KwString@3..9 "string"
+                        LeftParen@9..10 "("
+                        SeqLength@10..15
+                          BinaryExpr@10..15
+                            BinaryExpr@10..13
+                              LiteralExpr@10..11
+                                IntLiteral@10..11 "1"
+                              Plus@11..12 "+"
+                              LiteralExpr@12..13
+                                IntLiteral@12..13 "2"
+                            Plus@13..14 "+"
+                            LiteralExpr@14..15
+                              IntLiteral@14..15 "3"
+                        RightParen@15..16 ")"
+                        Whitespace@16..17 " "
                     At@17..18 "@"
                     Whitespace@18..19 " "
                     LeftParen@19..20 "("
@@ -3173,22 +3174,23 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..20
-                    SizedCharType@3..15
-                      KwChar@3..7 "char"
-                      LeftParen@7..8 "("
-                      SeqLength@8..13
-                        BinaryExpr@8..13
-                          BinaryExpr@8..11
-                            LiteralExpr@8..9
-                              IntLiteral@8..9 "3"
-                            Plus@9..10 "+"
-                            LiteralExpr@10..11
-                              IntLiteral@10..11 "4"
-                          Plus@11..12 "+"
-                          LiteralExpr@12..13
-                            IntLiteral@12..13 "5"
-                      RightParen@13..14 ")"
-                      Whitespace@14..15 " "
+                    PrimType@3..15
+                      SizedCharType@3..15
+                        KwChar@3..7 "char"
+                        LeftParen@7..8 "("
+                        SeqLength@8..13
+                          BinaryExpr@8..13
+                            BinaryExpr@8..11
+                              LiteralExpr@8..9
+                                IntLiteral@8..9 "3"
+                              Plus@9..10 "+"
+                              LiteralExpr@10..11
+                                IntLiteral@10..11 "4"
+                            Plus@11..12 "+"
+                            LiteralExpr@12..13
+                              IntLiteral@12..13 "5"
+                        RightParen@13..14 ")"
+                        Whitespace@14..15 " "
                     At@15..16 "@"
                     Whitespace@16..17 " "
                     LeftParen@17..18 "("
@@ -3208,13 +3210,14 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..18
-                    SizedStringType@3..13
-                      KwString@3..9 "string"
-                      LeftParen@9..10 "("
-                      SeqLength@10..11
-                        Star@10..11 "*"
-                      RightParen@11..12 ")"
-                      Whitespace@12..13 " "
+                    PrimType@3..13
+                      SizedStringType@3..13
+                        KwString@3..9 "string"
+                        LeftParen@9..10 "("
+                        SeqLength@10..11
+                          Star@10..11 "*"
+                        RightParen@11..12 ")"
+                        Whitespace@12..13 " "
                     At@13..14 "@"
                     Whitespace@14..15 " "
                     LeftParen@15..16 "("
@@ -3234,13 +3237,14 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..16
-                    SizedCharType@3..11
-                      KwChar@3..7 "char"
-                      LeftParen@7..8 "("
-                      SeqLength@8..9
-                        Star@8..9 "*"
-                      RightParen@9..10 ")"
-                      Whitespace@10..11 " "
+                    PrimType@3..11
+                      SizedCharType@3..11
+                        KwChar@3..7 "char"
+                        LeftParen@7..8 "("
+                        SeqLength@8..9
+                          Star@8..9 "*"
+                        RightParen@9..10 ")"
+                        Whitespace@10..11 " "
                     At@11..12 "@"
                     Whitespace@12..13 " "
                     LeftParen@13..14 "("
@@ -3449,7 +3453,7 @@ fn parse_indirect_expr_in_ref_pos() {
               StmtList@0..15
                 AssignStmt@0..15
                   IndirectExpr@0..11
-                    KwChar@0..5
+                    PrimType@0..5
                       KwChar@0..4 "char"
                       Whitespace@4..5 " "
                     At@5..6 "@"
@@ -3475,7 +3479,7 @@ fn recover_just_indirect_ty() {
             Source@0..4
               StmtList@0..4
                 Error@0..4
-                  KwChar@0..4
+                  PrimType@0..4
                     KwChar@0..4 "char"
             error at 0..4: expected ‘(’ or ‘@’ after here"#]],
     );
@@ -3781,13 +3785,14 @@ fn parse_cheat_expr() {
                   CheatExpr@5..23
                     KwCheat@5..10 "cheat"
                     LeftParen@10..11 "("
-                    SizedCharType@11..19
-                      KwChar@11..15 "char"
-                      LeftParen@15..16 "("
-                      SeqLength@16..18
-                        LiteralExpr@16..18
-                          IntLiteral@16..18 "80"
-                      RightParen@18..19 ")"
+                    PrimType@11..19
+                      SizedCharType@11..19
+                        KwChar@11..15 "char"
+                        LeftParen@15..16 "("
+                        SeqLength@16..18
+                          LiteralExpr@16..18
+                            IntLiteral@16..18 "80"
+                        RightParen@18..19 ")"
                     Comma@19..20 ","
                     Whitespace@20..21 " "
                     LiteralExpr@21..22
@@ -4776,13 +4781,14 @@ fn parse_sizeof_expr_ty_prim_sized() {
                   SizeOfExpr@3..18
                     KwSizeOf@3..9 "sizeof"
                     LeftParen@9..10 "("
-                    SizedCharType@10..17
-                      KwChar@10..14 "char"
-                      LeftParen@14..15 "("
-                      SeqLength@15..16
-                        LiteralExpr@15..16
-                          IntLiteral@15..16 "8"
-                      RightParen@16..17 ")"
+                    PrimType@10..17
+                      SizedCharType@10..17
+                        KwChar@10..14 "char"
+                        LeftParen@14..15 "("
+                        SeqLength@15..16
+                          LiteralExpr@15..16
+                            IntLiteral@15..16 "8"
+                        RightParen@16..17 ")"
                     RightParen@17..18 ")""#]],
     );
 }
@@ -4804,12 +4810,13 @@ fn parse_sizeof_expr_ty_prim_dyn_sized() {
                   SizeOfExpr@3..18
                     KwSizeOf@3..9 "sizeof"
                     LeftParen@9..10 "("
-                    SizedCharType@10..17
-                      KwChar@10..14 "char"
-                      LeftParen@14..15 "("
-                      SeqLength@15..16
-                        Star@15..16 "*"
-                      RightParen@16..17 ")"
+                    PrimType@10..17
+                      SizedCharType@10..17
+                        KwChar@10..14 "char"
+                        LeftParen@14..15 "("
+                        SeqLength@15..16
+                          Star@15..16 "*"
+                        RightParen@16..17 ")"
                     RightParen@17..18 ")""#]],
     );
 }

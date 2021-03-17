@@ -127,10 +127,12 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
 
         p.expect_punct(TokenKind::RightParen);
 
-        Some(m.complete(p, kind))
+        // Wrap it inside of a `PrimType`
+        let m = m.complete(p, kind).precede(p);
+        Some(m.complete(p, SyntaxKind::PrimType))
     } else {
         // basic unsized type
-        Some(m.complete(p, prim_kind.into()))
+        Some(m.complete(p, SyntaxKind::PrimType))
     }
 }
 
