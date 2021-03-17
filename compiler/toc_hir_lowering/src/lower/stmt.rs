@@ -58,6 +58,7 @@ impl super::LoweringCtx {
             ast::Stmt::ImplementByStmt(_) => todo!(),
             ast::Stmt::ImportStmt(_) => todo!(),
             ast::Stmt::ExportStmt(_) => todo!(),
+            ast::Stmt::PreprocGlob(_) => todo!(),
         }?;
 
         Some(self.database.stmt_nodes.alloc_spanned(stmt, span))

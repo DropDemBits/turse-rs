@@ -164,6 +164,7 @@ Stmt =
 | ImplementByStmt
 | ImportStmt
 | ExportStmt
+| PreprocGlob
 
 StmtList =
   stmts:Stmt*
@@ -764,6 +765,7 @@ Type =
 | CollectionType
 | ConditionType
 
+// TODO: 64-bit ints & nats
 PrimType =
   prim:(
     'int' | 'int1' | 'int2' | 'int4'

@@ -3984,6 +3984,7 @@ pub enum Stmt {
     ImplementByStmt(ImplementByStmt),
     ImportStmt(ImportStmt),
     ExportStmt(ExportStmt),
+    PreprocGlob(PreprocGlob),
 }
 impl AstNode for Stmt {
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -4039,6 +4040,7 @@ impl AstNode for Stmt {
             SyntaxKind::ImplementByStmt => Some(Self::ImplementByStmt(AstNode::cast(syntax)?)),
             SyntaxKind::ImportStmt => Some(Self::ImportStmt(AstNode::cast(syntax)?)),
             SyntaxKind::ExportStmt => Some(Self::ExportStmt(AstNode::cast(syntax)?)),
+            SyntaxKind::PreprocGlob => Some(Self::PreprocGlob(AstNode::cast(syntax)?)),
             _ => None,
         }
     }
@@ -4095,6 +4097,7 @@ impl AstNode for Stmt {
             SyntaxKind::ImplementByStmt => true,
             SyntaxKind::ImportStmt => true,
             SyntaxKind::ExportStmt => true,
+            SyntaxKind::PreprocGlob => true,
             _ => false,
         }
     }
@@ -4151,6 +4154,7 @@ impl AstNode for Stmt {
             Self::ImplementByStmt(node) => &node.syntax(),
             Self::ImportStmt(node) => &node.syntax(),
             Self::ExportStmt(node) => &node.syntax(),
+            Self::PreprocGlob(node) => &node.syntax(),
         }
     }
 }
