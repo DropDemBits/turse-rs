@@ -615,7 +615,15 @@ fn lower_nested_paren_expr() {
 fn lower_empty_paren_expr() {
     let lowered = lower_text("a := ()", expect![[]]);
 
-    assert!(matches!(&asn_rhs(&lowered), &expr::Expr::Missing));
+    if_chain! {
+        if let expr::Expr::Paren(expr::Paren{ expr }) = asn_rhs(&lowered);
+        then {
+            assert!(matches!(&lowered.database[*expr], expr::Expr::Missing));
+        }
+        else {
+            unreachable!()
+        }
+    }
 }
 
 #[test]
@@ -626,4 +634,76 @@ fn lower_self_expr() {
         &asn_rhs(&lowered),
         &expr::Expr::Name(expr::Name::Self_)
     ));
+}
+
+#[test]
+fn lower_binary_expr() {
+    let lowered = lower_text("a := a + a", expect![[]]);
+
+    if_chain! {
+        if let expr::Expr::Binary(expr::Binary{ lhs, op, rhs }) = asn_rhs(&lowered);
+        if let expr::Expr::Name(expr::Name::Name(lhs_id)) = &lowered.database[*lhs];
+        if let expr::Expr::Name(expr::Name::Name(rhs_id)) = &lowered.database[*rhs];
+        then {
+            // Different uses, but from the same def
+            assert_ne!(lhs_id, rhs_id);
+            assert_eq!(lhs_id.as_def(), rhs_id.as_def());
+            assert_eq!(*op, expr::BinaryOp::Add);
+        }
+        else {
+            unreachable!()
+        }
+    }
+}
+
+#[test]
+fn lower_binary_expr_missing_operands() {
+    // Should still be present
+    let lowered = lower_text("a := () + ", expect![[]]);
+
+    if_chain! {
+        if let expr::Expr::Binary(expr::Binary{ lhs, op, rhs }) = asn_rhs(&lowered);
+        if let expr::Expr::Paren(expr::Paren { expr: lhs } ) = &lowered.database[*lhs];
+        then {
+            assert!(matches!(&lowered.database[*lhs], expr::Expr::Missing));
+            assert!(matches!(&lowered.database[*rhs], expr::Expr::Missing));
+            assert_eq!(*op, expr::BinaryOp::Add);
+        }
+        else {
+            unreachable!()
+        }
+    }
+}
+
+#[test]
+fn lower_unary_expr() {
+    let lowered = lower_text("a := + a", expect![[]]);
+
+    if_chain! {
+        if let expr::Expr::Unary(expr::Unary{ op, rhs }) = asn_rhs(&lowered);
+        then {
+            assert!(matches!(&lowered.database[*rhs], expr::Expr::Name(_)));
+            assert_eq!(*op, expr::UnaryOp::Identity);
+        }
+        else {
+            unreachable!()
+        }
+    }
+}
+
+#[test]
+fn lower_unary_expr_missing_operand() {
+    // Should still be present
+    let lowered = lower_text("a := +", expect![[]]);
+
+    if_chain! {
+        if let expr::Expr::Unary(expr::Unary{ op, rhs }) = asn_rhs(&lowered);
+        then {
+            assert!(matches!(&lowered.database[*rhs], expr::Expr::Missing));
+            assert_eq!(*op, expr::UnaryOp::Identity);
+        }
+        else {
+            unreachable!()
+        }
+    }
 }
