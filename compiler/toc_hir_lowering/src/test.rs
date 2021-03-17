@@ -1,7 +1,7 @@
 //! Tests for lowering
 use expect_test::expect;
 use if_chain::if_chain;
-use toc_hir::{expr, stmt, symbol};
+use toc_hir::{expr, stmt, symbol, ty};
 
 use crate::HirLowerResult;
 
@@ -18,6 +18,46 @@ fn lower_text(src: &str, expected: expect_test::Expect) -> HirLowerResult {
     expected.assert_eq(s.trim_end());
 
     lowered
+}
+
+fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
+    if_chain! {
+        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        if let expr::Expr::Literal(value) = &lowered.database[*rhs];
+        then {
+            value
+        } else {
+            unreachable!();
+        }
+    }
+}
+
+fn asn_rhs(lowered: &HirLowerResult) -> &expr::Expr {
+    if_chain! {
+        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        then {
+            &lowered.database[*rhs]
+        } else {
+            unreachable!();
+        }
+    }
+}
+
+fn var_ty(lowered: &HirLowerResult) -> &ty::Type {
+    if_chain! {
+        let stmt = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::ConstVar { type_spec, .. } = stmt;
+        then {
+            match type_spec
+            {
+                Some(ty) => &lowered.database[*ty],
+                None => panic!("bad struct {:#?}", stmt),
+            }
+
+        } else {
+            unreachable!();
+        }
+    }
 }
 
 #[test]
@@ -47,6 +87,21 @@ fn lower_var_def_no_cycle() {
         if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*init_expr];
         then {
             assert_ne!(names[0], use_id.as_def());
+        } else {
+            unreachable!()
+        }
+    };
+}
+
+#[test]
+fn lower_var_def_type_spec() {
+    let lowered = lower_text("var a : int", expect![[]]);
+
+    let decl = &lowered.database.stmt_nodes.arena[lowered.unit.stmts[0]];
+    if_chain! {
+        if let stmt::Stmt::ConstVar { type_spec, .. } = decl;
+        then {
+            assert!(type_spec.is_some());
         } else {
             unreachable!()
         }
@@ -157,29 +212,6 @@ fn lower_scoping_outer_use_inner_use() {
     };
 
     assert_eq!(inner_use.as_def(), outer_use.as_def());
-}
-
-fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
-    if_chain! {
-        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
-        if let expr::Expr::Literal(value) = &lowered.database[*rhs];
-        then {
-            value
-        } else {
-            unreachable!();
-        }
-    }
-}
-
-fn asn_rhs(lowered: &HirLowerResult) -> &expr::Expr {
-    if_chain! {
-        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
-        then {
-            &lowered.database[*rhs]
-        } else {
-            unreachable!();
-        }
-    }
 }
 
 #[test]
@@ -703,6 +735,50 @@ fn lower_unary_expr_missing_operand() {
             assert_eq!(*op, expr::UnaryOp::Identity);
         }
         else {
+            unreachable!()
+        }
+    }
+}
+
+#[test]
+fn lower_prim_type() {
+    let tys = vec![
+        ("int", ty::Primitive::Int),
+        ("int1", ty::Primitive::Int1),
+        ("int2", ty::Primitive::Int2),
+        ("int4", ty::Primitive::Int4),
+        ("nat", ty::Primitive::Nat),
+        ("nat1", ty::Primitive::Nat1),
+        ("nat2", ty::Primitive::Nat2),
+        ("nat4", ty::Primitive::Nat4),
+        ("real", ty::Primitive::Real),
+        ("real4", ty::Primitive::Real4),
+        ("real8", ty::Primitive::Real8),
+        ("boolean", ty::Primitive::Boolean),
+        ("addressint", ty::Primitive::AddressInt),
+        ("char", ty::Primitive::Char),
+        ("string", ty::Primitive::String),
+    ];
+
+    for (ty_text, expected_kind) in tys {
+        eprintln!("Lowering \"{}\"", ty_text);
+        let lowered = lower_text(&format!("var _ : {}", ty_text), expect![[]]);
+
+        assert_eq!(var_ty(&lowered), &ty::Type::Primitive(expected_kind));
+    }
+}
+
+#[test]
+fn lower_prim_char_seq_type() {
+    let lowered = lower_text(&format!("var _ : char(1)"), expect![[]]);
+
+    if_chain! {
+        if let ty::Type::Primitive(ty::Primitive::SizedChar(seq_len)) = var_ty(&lowered);
+        if let ty::SeqLength::Expr(expr) = seq_len;
+        if let expr::Expr::Literal(literal) = &lowered.database[*expr];
+        then {
+            assert_eq!(literal, &expr::Literal::Integer(1));
+        } else {
             unreachable!()
         }
     }

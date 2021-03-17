@@ -4,8 +4,8 @@ use std::iter;
 use super::nodes::*;
 use crate::ast::{helper, AstNode};
 use crate::{
-    AssignOp, BinaryOp, CharSeqParseError, IoKind, LiteralParseError, LiteralValue, SyntaxElement,
-    SyntaxKind, SyntaxToken, UnaryOp,
+    AssignOp, BinaryOp, CharSeqParseError, IoKind, LiteralParseError, LiteralValue, PrimitiveKind,
+    SyntaxElement, SyntaxKind, SyntaxToken, UnaryOp,
 };
 
 impl PPBinaryExpr {
@@ -667,7 +667,41 @@ impl WaitStmt {
 }
 
 impl PrimType {
-    // TODO: prim
+    pub fn prim(&self) -> Option<PrimitiveKind> {
+        let prim_node = self.prim_node()?;
+        match prim_node.kind() {
+            SyntaxKind::KwInt => Some(PrimitiveKind::Int),
+            SyntaxKind::KwInt1 => Some(PrimitiveKind::Int1),
+            SyntaxKind::KwInt2 => Some(PrimitiveKind::Int2),
+            SyntaxKind::KwInt4 => Some(PrimitiveKind::Int4),
+            SyntaxKind::KwNat => Some(PrimitiveKind::Nat),
+            SyntaxKind::KwNat1 => Some(PrimitiveKind::Nat1),
+            SyntaxKind::KwNat2 => Some(PrimitiveKind::Nat2),
+            SyntaxKind::KwNat4 => Some(PrimitiveKind::Nat4),
+            SyntaxKind::KwReal => Some(PrimitiveKind::Real),
+            SyntaxKind::KwReal4 => Some(PrimitiveKind::Real4),
+            SyntaxKind::KwReal8 => Some(PrimitiveKind::Real8),
+            SyntaxKind::KwBoolean => Some(PrimitiveKind::Boolean),
+            SyntaxKind::KwAddressint => Some(PrimitiveKind::AddressInt),
+            SyntaxKind::KwChar => Some(PrimitiveKind::Char),
+            SyntaxKind::KwString => Some(PrimitiveKind::String),
+            _ => {
+                // Try casting
+                let node = prim_node.into_node()?;
+                crate::match_ast! {
+                    match node {
+                        ast::SizedCharType(node) => Some(PrimitiveKind::SizedChar(node.seq_length())),
+                        ast::SizedStringType(node) => Some(PrimitiveKind::SizedString(node.seq_length())),
+                        _ => None,
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn prim_node(&self) -> Option<SyntaxElement> {
+        self.syntax().children_with_tokens().next()
+    }
 }
 
 impl RangeType {

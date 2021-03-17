@@ -10,22 +10,8 @@ use toc_reporting::{MessageKind, MessageSink, ReportMessage};
 use toc_span::TextRange;
 use toc_syntax::{
     ast::{self, AstNode},
-    SyntaxNode,
+    match_ast, SyntaxNode,
 };
-
-// Taken from rust-analyzer's syntax crate
-#[macro_export]
-macro_rules! match_ast {
-    (match $node:ident { $($tt:tt)* }) => { match_ast!(match ($node) { $($tt)* }) };
-
-    (match ($node:expr) {
-        $( ast::$ast:ident($it:ident) => $res:expr, )*
-        _ => $catch_all:expr $(,)?
-    }) => {{
-        $( if let Some($it) = ast::$ast::cast($node.clone()) { $res } else )*
-        { $catch_all }
-    }};
-}
 
 pub struct ValidateResult {
     messages: Vec<ReportMessage>,

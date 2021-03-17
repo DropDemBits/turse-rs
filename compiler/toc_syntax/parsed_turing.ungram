@@ -772,6 +772,7 @@ PrimType =
   | 'nat' | 'nat1' | 'nat2' | 'nat4'
   | 'real' | 'real4' | 'real8'
   | 'boolean'
+  | 'addressint'
   | 'char' | 'string'
   | SizedCharType | SizedStringType
   )
