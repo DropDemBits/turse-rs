@@ -9,8 +9,10 @@ use toc_span::TextRange;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DefId(usize);
 
-#[cfg(test)]
 impl DefId {
+    /// Creates a new `DefId`
+    ///
+    /// Only to be used in testing
     pub fn new(id: usize) -> Self {
         Self(id)
     }
@@ -26,8 +28,10 @@ impl UseId {
     }
 }
 
-#[cfg(test)]
 impl UseId {
+    /// Creates a new `UseId`
+    ///
+    /// Only to be used in testing
     pub fn new(def: DefId, id: usize) -> Self {
         Self(def, id)
     }

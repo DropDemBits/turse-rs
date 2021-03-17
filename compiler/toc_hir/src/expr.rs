@@ -44,9 +44,9 @@ pub enum Literal {
 
 #[derive(Debug)]
 pub struct Binary {
-    lhs: ExprIdx,
-    op: BinaryOp,
-    rhs: ExprIdx,
+    pub lhs: ExprIdx,
+    pub op: BinaryOp,
+    pub rhs: ExprIdx,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -105,8 +105,8 @@ pub enum BinaryOp {
 
 #[derive(Debug)]
 pub struct Unary {
-    op: UnaryOp,
-    rhs: ExprIdx,
+    pub op: UnaryOp,
+    pub rhs: ExprIdx,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -125,7 +125,7 @@ pub enum UnaryOp {
 
 #[derive(Debug)]
 pub struct Paren {
-    expr: ExprIdx,
+    pub expr: ExprIdx,
 }
 
 /// Name expression

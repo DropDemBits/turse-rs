@@ -1,7 +1,7 @@
 //! Tests for lowering
 use expect_test::expect;
 use if_chain::if_chain;
-use toc_hir::{expr, stmt};
+use toc_hir::{expr, stmt, symbol};
 
 use crate::HirLowerResult;
 
@@ -149,6 +149,17 @@ fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
         if let expr::Expr::Literal(value) = &lowered.database[*rhs];
         then {
             value
+        } else {
+            unreachable!();
+        }
+    }
+}
+
+fn asn_rhs(lowered: &HirLowerResult) -> &expr::Expr {
+    if_chain! {
+        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        then {
+            &lowered.database[*rhs]
         } else {
             unreachable!();
         }
@@ -548,4 +559,55 @@ fn lower_multiple_invalid_char_seq_escapes() {
         )),
         &expr::Literal::CharSeq("\u{FFFD}\u{FFFD}!".to_string()),
     );
+}
+
+#[test]
+fn lower_paren_expr() {
+    let lowered = lower_text("a := (a)", expect![[]]);
+
+    if_chain! {
+        if let expr::Expr::Paren(expr::Paren{ expr }) = asn_rhs(&lowered);
+        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*expr];
+        then {
+            assert_eq!(use_id.as_def(), symbol::DefId::new(0));
+        }
+        else {
+            unreachable!()
+        }
+    }
+}
+
+#[test]
+fn lower_nested_paren_expr() {
+    let lowered = lower_text("a := (((a)))", expect![[]]);
+
+    if_chain! {
+        if let expr::Expr::Paren(expr::Paren{ expr }) = asn_rhs(&lowered);
+        if let expr::Expr::Paren(expr::Paren{ expr }) = &lowered.database[*expr];
+        if let expr::Expr::Paren(expr::Paren{ expr }) = &lowered.database[*expr];
+        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*expr];
+        then {
+            assert_eq!(use_id.as_def(), symbol::DefId::new(0));
+        }
+        else {
+            unreachable!()
+        }
+    }
+}
+
+#[test]
+fn lower_empty_paren_expr() {
+    let lowered = lower_text("a := ()", expect![[]]);
+
+    assert!(matches!(&asn_rhs(&lowered), &expr::Expr::Missing));
+}
+
+#[test]
+fn lower_self_expr() {
+    let lowered = lower_text("a := self", expect![[]]);
+
+    assert!(matches!(
+        &asn_rhs(&lowered),
+        &expr::Expr::Name(expr::Name::Self_)
+    ));
 }

@@ -6,7 +6,7 @@ use toc_syntax::ast::{self, AstNode};
 use toc_syntax::{CharSeqParseError, LiteralParseError, LiteralValue};
 
 impl super::LoweringCtx {
-    pub(super) fn lower_expr(&mut self, expr: ast::Expr) -> (expr::Expr, TextRange) {
+    pub(super) fn lower_expr(&mut self, expr: ast::Expr) -> expr::ExprIdx {
         let span = expr.syntax().text_range();
 
         let expr = match expr {
@@ -17,9 +17,9 @@ impl super::LoweringCtx {
             ast::Expr::SizeOfExpr(_) => todo!(),
             ast::Expr::BinaryExpr(_) => todo!(),
             ast::Expr::UnaryExpr(_) => todo!(),
-            ast::Expr::ParenExpr(_) => todo!(),
+            ast::Expr::ParenExpr(expr) => self.lower_paren_expr(expr),
             ast::Expr::NameExpr(expr) => self.lower_name_expr(expr),
-            ast::Expr::SelfExpr(_) => todo!(),
+            ast::Expr::SelfExpr(expr) => self.lower_self_expr(expr),
             ast::Expr::FieldExpr(_) => todo!(),
             ast::Expr::DerefExpr(_) => todo!(),
             ast::Expr::CheatExpr(_) => todo!(),
@@ -31,7 +31,7 @@ impl super::LoweringCtx {
         }
         .unwrap_or_else(|| expr::Expr::Missing);
 
-        (expr, span)
+        self.database.expr_nodes.alloc_spanned(expr, span)
     }
 
     /// Spreads out char sequence errors into individual messages
@@ -103,9 +103,18 @@ impl super::LoweringCtx {
         Some(expr::Expr::Literal(value))
     }
 
+    fn lower_paren_expr(&mut self, expr: ast::ParenExpr) -> Option<expr::Expr> {
+        let expr = self.lower_expr(expr.expr()?);
+        Some(expr::Expr::Paren(expr::Paren { expr }))
+    }
+
     fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::Expr> {
         let name = expr.name()?.identifier_token()?;
         let use_id = self.scopes.use_sym(name.text(), name.text_range());
         Some(expr::Expr::Name(expr::Name::Name(use_id)))
+    }
+
+    fn lower_self_expr(&mut self, _expr: ast::SelfExpr) -> Option<expr::Expr> {
+        Some(expr::Expr::Name(expr::Name::Self_))
     }
 }

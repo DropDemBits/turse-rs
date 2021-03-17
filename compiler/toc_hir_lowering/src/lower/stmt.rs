@@ -1,10 +1,9 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::{stmt, symbol};
-use toc_span::TextRange;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
-    pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<(stmt::Stmt, TextRange)> {
+    pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtIdx> {
         let span = stmt.syntax().text_range();
 
         let stmt = match stmt {
@@ -59,9 +58,9 @@ impl super::LoweringCtx {
             ast::Stmt::ImplementByStmt(_) => todo!(),
             ast::Stmt::ImportStmt(_) => todo!(),
             ast::Stmt::ExportStmt(_) => todo!(),
-        };
+        }?;
 
-        stmt.zip(Some(span))
+        Some(self.database.stmt_nodes.alloc_spanned(stmt, span))
     }
 
     fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<stmt::Stmt> {
@@ -71,14 +70,8 @@ impl super::LoweringCtx {
 
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
 
-        let type_spec = decl
-            .type_spec()
-            .and_then(|ty| self.lower_type(ty))
-            .map(|(node, span)| self.database.type_nodes.alloc_spanned(node, span));
-        let init_expr = decl
-            .init()
-            .map(|expr| self.lower_expr(expr))
-            .map(|(node, span)| self.database.expr_nodes.alloc_spanned(node, span));
+        let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
+        let init_expr = decl.init().map(|expr| self.lower_expr(expr));
 
         Some(stmt::Stmt::ConstVar {
             is_pervasive,
@@ -99,10 +92,7 @@ impl super::LoweringCtx {
             .unwrap_or(stmt::AssignOp::None);
 
         let lhs = self.lower_expr(stmt.reference()?.as_expr());
-        let lhs = self.database.expr_nodes.alloc_spanned(lhs.0, lhs.1);
-
         let rhs = self.lower_expr(stmt.expr()?);
-        let rhs = self.database.expr_nodes.alloc_spanned(rhs.0, rhs.1);
 
         Some(stmt::Stmt::Assign { lhs, op, rhs })
     }
@@ -113,13 +103,7 @@ impl super::LoweringCtx {
         let stmts = if let Some(stmts) = stmt.stmt_list() {
             stmts
                 .stmts()
-                .filter_map(|stmt| {
-                    if let Some((node, span)) = self.lower_stmt(stmt) {
-                        Some(self.database.stmt_nodes.alloc_spanned(node, span))
-                    } else {
-                        None
-                    }
-                })
+                .filter_map(|stmt| self.lower_stmt(stmt))
                 .collect()
         } else {
             vec![]

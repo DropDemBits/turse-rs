@@ -37,10 +37,7 @@ impl LoweringCtx {
         let stmts = if let Some(stmts) = root.stmt_list() {
             stmts
                 .stmts()
-                .filter_map(|stmt| {
-                    self.lower_stmt(stmt)
-                        .map(|(node, span)| self.database.stmt_nodes.alloc_spanned(node, span))
-                })
+                .filter_map(|stmt| self.lower_stmt(stmt))
                 .collect()
         } else {
             vec![]
