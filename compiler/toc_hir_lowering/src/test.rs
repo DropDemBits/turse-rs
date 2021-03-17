@@ -334,3 +334,218 @@ fn lower_complex_real_literal() {
         }
     }
 }
+
+#[test]
+fn lower_string_literal() {
+    assert_eq!(
+        literal_value(&lower_text(r#"a := "abcd💖""#, expect![[]])),
+        &expr::Literal::String("abcd💖".to_string())
+    );
+
+    // Should handle strings without an ending delimiter
+    assert_eq!(
+        literal_value(&lower_text(r#"a := "abcd "#, expect![[]])),
+        &expr::Literal::String("abcd ".to_string())
+    );
+    // ... or mismatched delimiter
+    assert_eq!(
+        literal_value(&lower_text(r#"a := "abcd'"#, expect![[]])),
+        &expr::Literal::String("abcd'".to_string())
+    );
+}
+
+#[test]
+fn lower_char_literal() {
+    assert_eq!(
+        literal_value(&lower_text(r#"a := 'abcd💖'"#, expect![[]])),
+        &expr::Literal::CharSeq("abcd💖".to_string())
+    );
+
+    // Should handle character strings without an ending delimiter
+    assert_eq!(
+        literal_value(&lower_text(r#"a := 'abcd "#, expect![[]])),
+        &expr::Literal::CharSeq("abcd ".to_string())
+    );
+    // ... or mismatched delimiter
+    assert_eq!(
+        literal_value(&lower_text(r#"a := 'abcd""#, expect![[]])),
+        &expr::Literal::CharSeq("abcd\"".to_string())
+    );
+}
+
+#[test]
+fn lower_char_seq_escapes() {
+    // All escapes:
+    let escapes = vec![
+        // Backslash escapes
+        ("'\\\\'", "\\", expect![[]]),
+        ("'\\\''", "\'", expect![[]]),
+        ("'\\\"'", "\"", expect![[]]),
+        ("'\\b'", "\x08", expect![[]]),
+        ("'\\d'", "\x7F", expect![[]]),
+        ("'\\e'", "\x1B", expect![[]]),
+        ("'\\f'", "\x0C", expect![[]]),
+        ("'\\r'", "\r", expect![[]]),
+        ("'\\n'", "\n", expect![[]]),
+        ("'\\t'", "\t", expect![[]]),
+        ("'\\^'", "^", expect![[]]),
+        ("'\\B'", "\x08", expect![[]]),
+        ("'\\D'", "\x7F", expect![[]]),
+        ("'\\E'", "\x1B", expect![[]]),
+        ("'\\F'", "\x0C", expect![[]]),
+        ("'\\T'", "\t", expect![[]]),
+        // Octal escapes
+        ("'\\0o'", "\0o", expect![[]]),
+        ("'\\43O'", "#O", expect![[]]),
+        ("'\\101'", "A", expect![[]]),
+        ("'\\377'", "\u{00FF}", expect![[]]), // Have to use unicode characters
+        ("'\\1011'", "A1", expect![[]]),
+        // Hex escapes (non-hex digits and extra hex digits are ignored)
+        ("'\\x0o'", "\0o", expect![[]]),
+        ("'\\x00'", "\0", expect![[]]),
+        ("'\\x00Ak'", "\0Ak", expect![[]]),
+        ("'\\x20'", " ", expect![[]]),
+        ("'\\x20Ar'", " Ar", expect![[]]),
+        ("'\\xfe'", "\u{00FE}", expect![[]]),
+        // Unicode escapes (non-hex digits and extra digits are ignored)
+        ("'\\u8o'", "\x08o", expect![[]]),
+        ("'\\uA7k'", "§k", expect![[]]),
+        ("'\\u394o'", "Δo", expect![[]]),
+        ("'\\u2764r'", "❤r", expect![[]]),
+        ("'\\u1f029t'", "🀩t", expect![[]]),
+        ("'\\u10f029s'", "\u{10F029}s", expect![[]]),
+        ("'\\u10F029i'", "\u{10F029}i", expect![[]]),
+        ("'\\U8O'", "\x08O", expect![[]]),
+        ("'\\Ua7l'", "§l", expect![[]]),
+        ("'\\U394w'", "Δw", expect![[]]),
+        ("'\\U2764X'", "❤X", expect![[]]),
+        ("'\\U1F029z'", "🀩z", expect![[]]),
+        ("'\\U10F029Y'", "\u{10F029}Y", expect![[]]),
+        ("'\\U10F029jY'", "\u{10F029}jY", expect![[]]),
+        // Caret escapes
+        ("'^J'", "\n", expect![[]]),
+        ("'^M'", "\r", expect![[]]),
+        ("'^?'", "\x7F", expect![[]]),
+        // Invalid Escapes //
+        // Without any following
+        (
+            "'\\",
+            "",
+            expect![[r#"error at 6..7: invalid char literal: unknown backslash escape"#]],
+        ),
+        (
+            "'^",
+            "",
+            expect![[r#"error at 6..7: invalid char literal: unknown caret escape"#]],
+        ),
+        // Greater than 255
+        (
+            "'\\777'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..10: invalid char literal: octal character value is greater than \377 (decimal 255)"#
+            ]],
+        ),
+        // Larger than U+10FFFF
+        (
+            "'\\u200000'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..14: invalid char literal: unicode codepoint value is greater than U+10FFFF"#
+            ]],
+        ),
+        (
+            "'\\u3ffffff'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..15: invalid char literal: unicode codepoint value is greater than U+10FFFF"#
+            ]],
+        ),
+        (
+            "'\\u3fffffff'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..16: invalid char literal: unicode codepoint value is greater than U+10FFFF"#
+            ]],
+        ),
+        // Surrogate characters
+        (
+            "'\\uD800'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
+            ]],
+        ),
+        (
+            "'\\UDFfF'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
+            ]],
+        ),
+        (
+            "'\\Ud900'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
+            ]],
+        ),
+        (
+            "'\\udab0'",
+            "\u{FFFD}",
+            expect![[
+                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
+            ]],
+        ),
+        // Incorrect start of escape sequence
+        (
+            "'\\8'",
+            "8",
+            expect![[r#"error at 6..8: invalid char literal: unknown backslash escape"#]],
+        ),
+        (
+            "'^~'",
+            "~",
+            expect![[r#"error at 6..8: invalid char literal: unknown caret escape"#]],
+        ),
+        (
+            "'\\x'",
+            "x",
+            expect![[r#"error at 6..8: invalid char literal: missing hex digits after here"#]],
+        ),
+        (
+            "'\\u'",
+            "u",
+            expect![[r#"error at 6..8: invalid char literal: missing hex digits after here"#]],
+        ),
+        (
+            "'\\U'",
+            "U",
+            expect![[r#"error at 6..8: invalid char literal: missing hex digits after here"#]],
+        ),
+    ];
+
+    for (text, expected_value, expected_errs) in escapes.into_iter() {
+        let stringified_test = format!("({:?}, {:?}, ..)", text, expected_value);
+        assert_eq!(
+            literal_value(&lower_text(&format!("a := {}", text), expected_errs)),
+            &expr::Literal::CharSeq(expected_value.to_string()),
+            "At \"{}\"",
+            stringified_test
+        );
+    }
+}
+
+#[test]
+fn lower_multiple_invalid_char_seq_escapes() {
+    assert_eq!(
+        literal_value(&lower_text(
+            r#"a := '\777\ud800\!'"#,
+            expect![[r#"
+                error at 6..10: invalid char literal: octal character value is greater than \377 (decimal 255)
+                error at 10..16: invalid char literal: surrogate chars are not allowed in char sequences
+                error at 16..18: invalid char literal: unknown backslash escape"#]]
+        )),
+        &expr::Literal::CharSeq("\u{FFFD}\u{FFFD}!".to_string()),
+    );
+}

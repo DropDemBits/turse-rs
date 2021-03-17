@@ -20,10 +20,10 @@ fn main() {
     let validate_res = toc_validate::validate_ast(parsed.syntax());
     let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
 
-    let msgs = parsed
+    // Note: parser messages are duplicated in the `debug_tree`, so start with validator messages
+    let msgs = validate_res
         .messages()
         .iter()
-        .chain(validate_res.messages().iter())
         .chain(hir_res.messages().iter());
 
     for msg in msgs {

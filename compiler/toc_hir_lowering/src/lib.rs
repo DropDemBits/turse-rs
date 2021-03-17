@@ -30,7 +30,7 @@ use toc_syntax::{
     ast::{self, AstNode},
     SyntaxNode,
 };
-use toc_syntax::{LiteralParseError, LiteralValue};
+use toc_syntax::{CharSeqParseError, LiteralParseError, LiteralValue};
 
 #[cfg(test)]
 mod test;
@@ -254,20 +254,36 @@ impl LoweringCtx {
                 if let Some((value, err)) = expr.literal() {
                     if let Some(err) = err {
                         // Report error
-                        let range = if let LiteralParseError::IntRadixInvalidDigit(start, end) = err
-                        {
-                            // Adjust to be at the the invalid character
-                            let (start, end): (TextSize, TextSize) = (
-                                start.try_into().unwrap_or_default(),
-                                end.try_into().unwrap_or_default(),
-                            );
-
-                            TextRange::new(span.start() + start, span.start() + end)
-                        } else {
-                            span
-                        };
-                        self.messages
-                            .report(MessageKind::Error, &err.to_string(), range);
+                        match err {
+                            LiteralParseError::IntRadixInvalidDigit(start, end) => {
+                                // Adjust to be at the the invalid character
+                                self.messages.report(
+                                    MessageKind::Error,
+                                    &err.to_string(),
+                                    offset_span(start, end, span),
+                                );
+                            }
+                            LiteralParseError::CharErrors(errors) => {
+                                Self::spread_char_seq_errors(
+                                    "invalid char literal",
+                                    &mut self.messages,
+                                    errors,
+                                    span,
+                                );
+                            }
+                            LiteralParseError::StringErrors(errors) => {
+                                Self::spread_char_seq_errors(
+                                    "invalid string literal",
+                                    &mut self.messages,
+                                    errors,
+                                    span,
+                                );
+                            }
+                            _ => {
+                                self.messages
+                                    .report(MessageKind::Error, &err.to_string(), span);
+                            }
+                        }
                     }
 
                     let value = match value {
@@ -336,6 +352,24 @@ impl LoweringCtx {
         // Invariant: Names list must contain at least one name
         Some(names).filter(|names| !names.is_empty())
     }
+
+    /// Spreads out char sequence errors into individual messages
+    fn spread_char_seq_errors(
+        context: &str,
+        messages: &mut MessageSink,
+        errors: Vec<(CharSeqParseError, usize, usize)>,
+        source_span: TextRange,
+    ) {
+        for (err, start, end) in errors {
+            // Adjust to be at the the invalid character
+            messages.report(
+                MessageKind::Error,
+                &format!("{}: {}", context, err.to_string()),
+                offset_span(start, end, source_span),
+            );
+            // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
+        }
+    }
 }
 
 fn syntax_to_hir_asn_op(op: toc_syntax::AssignOp) -> stmt::AssignOp {
@@ -356,4 +390,16 @@ fn syntax_to_hir_asn_op(op: toc_syntax::AssignOp) -> stmt::AssignOp {
         toc_syntax::AssignOp::Shr => stmt::AssignOp::Shr,
         toc_syntax::AssignOp::Imply => stmt::AssignOp::Imply,
     }
+}
+
+/// Offsets the given range pair by `source_span`
+fn offset_span(start: usize, end: usize, source_span: TextRange) -> TextRange {
+    let (start, end): (TextSize, TextSize) = (
+        start
+            .try_into()
+            .unwrap_or_else(|_| TextSize::from(u32::MAX)),
+        end.try_into().unwrap_or_else(|_| TextSize::from(u32::MAX)),
+    );
+
+    TextRange::new(source_span.start() + start, source_span.start() + end)
 }

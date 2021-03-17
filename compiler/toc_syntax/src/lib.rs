@@ -793,4 +793,25 @@ pub enum LiteralParseError {
     IntInvalidBase,
     #[error("invalid int literal")]
     IntInvalid,
+    // Char Sequences (should be expandned into separate errors)
+    #[error("string literal errors: {0:?}")]
+    StringErrors(Vec<(CharSeqParseError, usize, usize)>),
+    #[error("char literal errors: {0:?}")]
+    CharErrors(Vec<(CharSeqParseError, usize, usize)>),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CharSeqParseError {
+    #[error("octal character value is greater than \\377 (decimal 255)")]
+    InvalidOctalChar,
+    #[error("unicode codepoint value is greater than U+10FFFF")]
+    InvalidUnicodeChar,
+    #[error("surrogate chars are not allowed in char sequences")]
+    SurrogateChar,
+    #[error("missing hex digits after here")]
+    MissingHexDigits,
+    #[error("unknown backslash escape")]
+    InvalidSlashEscape,
+    #[error("unknown caret escape")]
+    InvalidCaretEscape,
 }
