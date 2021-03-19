@@ -1566,7 +1566,8 @@ fn external_item(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     // Just the file path
-    if p.eat(TokenKind::StringLiteral) {
+    if p.at(TokenKind::StringLiteral) {
+        external_path(p);
         return Some(m.complete(p, SyntaxKind::ExternalItem));
     }
 
@@ -1578,10 +1579,21 @@ fn external_item(p: &mut Parser) -> Option<CompletedMarker> {
     // external_path
     if p.at(TokenKind::In) {
         p.expect_punct(TokenKind::In);
-        p.expect(TokenKind::StringLiteral);
+        external_path(p);
     }
 
     Some(m.complete(p, SyntaxKind::ExternalItem))
+}
+
+fn external_path(p: &mut Parser) -> Option<CompletedMarker> {
+    if !p.at(TokenKind::StringLiteral) {
+        p.error_unexpected().report();
+        return None;
+    }
+
+    let m = p.start();
+    p.bump();
+    Some(m.complete(p, SyntaxKind::LiteralExpr))
 }
 
 /// Parses stmts until the first `end` is reached, or until any `TokenKind` in

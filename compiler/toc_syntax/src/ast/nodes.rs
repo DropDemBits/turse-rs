@@ -306,7 +306,7 @@ impl AstNode for PPInclude {
 }
 impl PPInclude {
     pub fn include_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwInclude) }
-    pub fn path(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::StringLiteral) }
+    pub fn path(&self) -> Option<LiteralExpr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -405,6 +405,25 @@ impl PPEndIf {
     pub fn if_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIf) }
     pub fn pp_endif_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::PPKwEndIf) }
 }
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct LiteralExpr(SyntaxNode);
+impl AstNode for LiteralExpr {
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::LiteralExpr => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(syntax: &SyntaxNode) -> bool {
+        match syntax.kind() {
+            SyntaxKind::LiteralExpr => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl LiteralExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PPTokenBody(SyntaxNode);
@@ -2730,7 +2749,7 @@ impl AstNode for ExternalItem {
 impl ExternalItem {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn in_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwIn) }
-    pub fn from(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::StringLiteral) }
+    pub fn path(&self) -> Option<LiteralExpr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2755,25 +2774,6 @@ impl ExportItem {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn all_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwAll) }
 }
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[repr(transparent)]
-pub struct LiteralExpr(SyntaxNode);
-impl AstNode for LiteralExpr {
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::LiteralExpr => Some(Self(syntax)),
-            _ => None,
-        }
-    }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
-            SyntaxKind::LiteralExpr => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode { &self.0 }
-}
-impl LiteralExpr {}
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ObjClassExpr(SyntaxNode);

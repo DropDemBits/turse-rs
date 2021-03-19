@@ -24,12 +24,21 @@ pub(super) fn stmt_preproc(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn include_preproc(p: &mut Parser) -> Option<CompletedMarker> {
-    // 'include' 'string_literal'
+    // 'include' LiteralExprz (only 'string_literal' is allowed)
     debug_assert!(p.at(TokenKind::Include));
 
     let m = p.start();
     p.bump();
-    p.expect(TokenKind::StringLiteral);
+
+    // Encapsulate path inside of a LiteralExpr (reuses string parsing code)
+    if p.at(TokenKind::StringLiteral) {
+        let m = p.start();
+        p.bump();
+        m.complete(p, SyntaxKind::LiteralExpr);
+    } else {
+        p.error_unexpected().report();
+    }
+
     Some(m.complete(p, SyntaxKind::PPInclude))
 }
 

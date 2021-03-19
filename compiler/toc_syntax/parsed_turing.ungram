@@ -60,7 +60,7 @@ PreprocKind =
 | PPEndIf
 
 PPInclude =
-  'include' path:'string_literal'
+  'include' path:LiteralExpr
 
 PPIf =
   '#if' condition:PPExpr 'then'
@@ -576,9 +576,13 @@ ImplementStmt =
 ImplementByStmt =
   'implement' 'by' '('? ExternalItem ')'?
 
+// LiteralExpr can only be a string literal
+// Valid forms are:
+// 'string_literal'
+// Name
+// Name in 'string_literal'
 ExternalItem =
-  ( Name ( 'in' from:'string_literal' )? )
-| 'string_literal'
+  Name? 'in'? path:LiteralExpr?
 
 //*************//
 // Expressions //
