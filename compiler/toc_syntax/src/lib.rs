@@ -793,11 +793,42 @@ pub enum LiteralParseError {
     IntInvalidBase,
     #[error("invalid int literal")]
     IntInvalid,
-    // Char Sequences (should be expandned into separate errors)
-    #[error("string literal errors: {0:?}")]
-    StringErrors(Vec<(CharSeqParseError, usize, usize)>),
-    #[error("char literal errors: {0:?}")]
-    CharErrors(Vec<(CharSeqParseError, usize, usize)>),
+    // Char Sequences
+    #[error("invalid string literal: {0:}")]
+    StringError(CharSeqParseError, usize, usize),
+    #[error("invalid char literal: {0:}")]
+    CharError(CharSeqParseError, usize, usize),
+}
+
+impl LiteralParseError {
+    pub fn message_at(&self, span: toc_span::TextRange) -> (toc_span::TextRange, &Self) {
+        use std::convert::TryInto;
+        use toc_span::{TextRange, TextSize};
+
+        /// Offsets the given range pair by `source_span`
+        fn offset_span(start: usize, end: usize, source_span: TextRange) -> TextRange {
+            let (start, end): (TextSize, TextSize) = (
+                start
+                    .try_into()
+                    .unwrap_or_else(|_| TextSize::from(u32::MAX)),
+                end.try_into().unwrap_or_else(|_| TextSize::from(u32::MAX)),
+            );
+
+            TextRange::new(source_span.start() + start, source_span.start() + end)
+        }
+
+        // Offset the text pair to the correct location
+        let report_span = match self {
+            LiteralParseError::StringError(_, start, end)
+            | LiteralParseError::CharError(_, start, end)
+            | LiteralParseError::IntRadixInvalidDigit(start, end) => {
+                offset_span(*start, *end, span)
+            }
+            _ => span,
+        };
+
+        (report_span, self)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

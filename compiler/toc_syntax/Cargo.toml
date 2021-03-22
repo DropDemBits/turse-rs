@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 # Local deps
 toc_scanner = { path = "../toc_scanner" }
+toc_span = { path = "../toc_span" }
 # External deps
 rowan = "0.12.2"
 num-derive = "^0.3"

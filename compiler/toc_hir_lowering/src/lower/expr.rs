@@ -1,9 +1,8 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::expr;
-use toc_reporting::{MessageKind, MessageSink};
-use toc_span::TextRange;
+use toc_reporting::MessageKind;
 use toc_syntax::ast::{self, AstNode};
-use toc_syntax::{CharSeqParseError, LiteralParseError, LiteralValue};
+use toc_syntax::LiteralValue;
 
 impl super::LoweringCtx {
     /// Lowers a required expr, but the input Expr may not be present
@@ -14,7 +13,7 @@ impl super::LoweringCtx {
             // Allocate a generice span
             self.database
                 .expr_nodes
-                .alloc_spanned(expr::Expr::Missing, TextRange::default())
+                .alloc_spanned(expr::Expr::Missing, Default::default())
         }
     }
 
@@ -23,7 +22,7 @@ impl super::LoweringCtx {
         let span = expr.syntax().text_range();
 
         let expr = match expr {
-            ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr, span),
+            ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr),
             ast::Expr::ObjClassExpr(_) => todo!(),
             ast::Expr::InitExpr(_) => todo!(),
             ast::Expr::NilExpr(_) => todo!(),
@@ -47,43 +46,17 @@ impl super::LoweringCtx {
         self.database.expr_nodes.alloc_spanned(expr, span)
     }
 
-    fn lower_literal_expr(
-        &mut self,
-        expr: ast::LiteralExpr,
-        span: TextRange,
-    ) -> Option<expr::Expr> {
-        let (value, err) = expr.literal()?;
-        if let Some(err) = err {
-            // Report error
-            match err {
-                LiteralParseError::IntRadixInvalidDigit(start, end) => {
-                    // Adjust to be at the the invalid character
-                    self.messages.report(
-                        MessageKind::Error,
-                        &err.to_string(),
-                        super::offset_span(start, end, span),
-                    );
-                }
-                LiteralParseError::CharErrors(errors) => {
-                    spread_char_seq_errors(
-                        "invalid char literal",
-                        &mut self.messages,
-                        errors,
-                        span,
-                    );
-                }
-                LiteralParseError::StringErrors(errors) => {
-                    spread_char_seq_errors(
-                        "invalid string literal",
-                        &mut self.messages,
-                        errors,
-                        span,
-                    );
-                }
-                _ => {
-                    self.messages
-                        .report(MessageKind::Error, &err.to_string(), span);
-                }
+    fn lower_literal_expr(&mut self, expr: ast::LiteralExpr) -> Option<expr::Expr> {
+        let (value, errs) = expr.literal()?;
+
+        if let Some(errs) = errs {
+            let span = expr.syntax().text_range();
+
+            // Report errors
+            // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
+            for (span, err) in errs.iter().map(|msg| msg.message_at(span)) {
+                self.messages
+                    .report(MessageKind::Error, &err.to_string(), span);
             }
         }
 
@@ -126,24 +99,6 @@ impl super::LoweringCtx {
 
     fn lower_self_expr(&mut self, _expr: ast::SelfExpr) -> Option<expr::Expr> {
         Some(expr::Expr::Name(expr::Name::Self_))
-    }
-}
-
-/// Spreads out char sequence errors into individual messages
-fn spread_char_seq_errors(
-    context: &str,
-    messages: &mut MessageSink,
-    errors: Vec<(CharSeqParseError, usize, usize)>,
-    source_span: TextRange,
-) {
-    for (err, start, end) in errors {
-        // Adjust to be at the the invalid character
-        messages.report(
-            MessageKind::Error,
-            &format!("{}: {}", context, err.to_string()),
-            super::offset_span(start, end, source_span),
-        );
-        // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
     }
 }
 

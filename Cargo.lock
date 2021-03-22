@@ -950,6 +950,7 @@ dependencies = [
  "toc_hir",
  "toc_hir_lowering",
  "toc_parser",
+ "toc_reporting",
  "toc_syntax",
  "toc_validate",
 ]
@@ -1046,6 +1047,7 @@ dependencies = [
  "rowan",
  "thiserror",
  "toc_scanner",
+ "toc_span",
 ]
 
 [[package]]

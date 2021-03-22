@@ -5,12 +5,9 @@ mod expr;
 mod stmt;
 mod ty;
 
-use std::convert::TryInto;
-
 use toc_hir::stmt::StmtIdx;
 use toc_hir::Database;
 use toc_reporting::MessageSink;
-use toc_span::{TextRange, TextSize};
 use toc_syntax::ast;
 
 use crate::scopes;
@@ -45,16 +42,4 @@ impl LoweringCtx {
 
         stmts
     }
-}
-
-/// Offsets the given range pair by `source_span`
-fn offset_span(start: usize, end: usize, source_span: TextRange) -> TextRange {
-    let (start, end): (TextSize, TextSize) = (
-        start
-            .try_into()
-            .unwrap_or_else(|_| TextSize::from(u32::MAX)),
-        end.try_into().unwrap_or_else(|_| TextSize::from(u32::MAX)),
-    );
-
-    TextRange::new(source_span.start() + start, source_span.start() + end)
 }

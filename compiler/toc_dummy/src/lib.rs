@@ -17,7 +17,7 @@ pub struct Dependency {
     pub relative_path: String,
 }
 
-pub fn gather_dependencies(syntax: SyntaxNode) -> Vec<Dependency> {
+pub fn gather_dependencies(syntax: SyntaxNode) -> (Vec<Dependency>, toc_reporting::MessageSink) {
     fn external_item<T: ast::AstNode>(node: Option<T>) -> Option<ast::ExternalItem> {
         let node = node?;
         let syntax = node.syntax();
@@ -32,6 +32,7 @@ pub fn gather_dependencies(syntax: SyntaxNode) -> Vec<Dependency> {
         }
     }
 
+    let mut messages = toc_reporting::MessageSink::new();
     let mut dependencies = vec![];
 
     let root = ast::Source::cast(syntax).unwrap();
@@ -83,7 +84,7 @@ pub fn gather_dependencies(syntax: SyntaxNode) -> Vec<Dependency> {
         .into_iter()
         .filter_map(|item| {
             if let Some(path) = item.path() {
-                let (value, _errors) = path.literal().unwrap();
+                let (value, errors) = path.literal().unwrap();
                 let relative_path = if let toc_syntax::LiteralValue::String(path) = value {
                     path
                 } else {
@@ -91,13 +92,19 @@ pub fn gather_dependencies(syntax: SyntaxNode) -> Vec<Dependency> {
                     unreachable!()
                 };
 
-                // TODO: report errors
-                // A way to reuse code between here and `toc_hir_lowering`:
-                // `LiteralParseError` provides a method passing in a span and producing
-                // an iterator of `(TextRange, LiteralParseError)`, with TextRange being
-                // the adjusted span of the message.
+                if let Some(errors) = errors {
+                    // Report errors
+                    let span = path.syntax().text_range();
 
-                Some(relative_path)
+                    for (span, err) in errors.iter().map(|msg| msg.message_at(span)) {
+                        messages.report(toc_reporting::MessageKind::Error, &err.to_string(), span);
+                    }
+
+                    None
+                } else {
+                    // Use the path
+                    Some(relative_path)
+                }
             } else {
                 item.name()
                     .and_then(|name| name.identifier_token())
@@ -122,9 +129,14 @@ pub fn gather_dependencies(syntax: SyntaxNode) -> Vec<Dependency> {
                     unreachable!()
                 };
 
-                // TODO: report errors
+                if let Some(errors) = errors {
+                    // Report errors
+                    let span = path.syntax().text_range();
 
-                if errors.is_none() {
+                    for (span, err) in errors.iter().map(|msg| msg.message_at(span)) {
+                        messages.report(toc_reporting::MessageKind::Error, &err.to_string(), span);
+                    }
+                } else {
                     // Add dependency
                     dependencies.push(Dependency {
                         kind: DependencyKind::Include,
@@ -135,13 +147,13 @@ pub fn gather_dependencies(syntax: SyntaxNode) -> Vec<Dependency> {
         }
     }
 
-    dependencies
+    (dependencies, messages)
 }
 
 #[test]
 fn gather_no_deps() {
     let parsed = toc_parser::parse(r#"moot"#);
-    let dependencies = gather_dependencies(parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(parsed.syntax());
     assert!(dependencies.is_empty());
 }
 
@@ -154,7 +166,7 @@ fn gather_includes() {
     include 'bad!' % Invalid include stmt
     "#,
     );
-    let dependencies = gather_dependencies(parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(parsed.syntax());
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -181,7 +193,7 @@ fn gather_main_imports() {
     import "a", name, and_ in "external_place"
     "#,
     );
-    let dependencies = gather_dependencies(parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(parsed.syntax());
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -211,7 +223,7 @@ fn gather_main_imports() {
 fn gather_no_deps_with_module() {
     // Module is not the root module
     let parsed = toc_parser::parse(r#"module b import c end b"#);
-    let dependencies = gather_dependencies(parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(parsed.syntax());
     assert!(dependencies.is_empty());
 }
 
@@ -228,7 +240,7 @@ fn gather_deps_child_class() {
         export e
     end b"#,
     );
-    let dependencies = gather_dependencies(parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(parsed.syntax());
 
     assert_eq!(
         dependencies[0],
@@ -269,7 +281,7 @@ fn gather_main_mixed_deps() {
     include "bob"
     "#,
     );
-    let dependencies = gather_dependencies(parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(parsed.syntax());
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -300,4 +312,19 @@ fn gather_main_mixed_deps() {
             relative_path: "bob".to_string()
         }
     );
+}
+
+#[test]
+fn gather_bad_paths() {
+    // ???: Where to report literals with escaped terminators?
+    let parsed = toc_parser::parse(
+        r#"
+    import "a^"
+    include "k\!"
+    "#,
+    );
+    let (dependencies, messages) = gather_dependencies(parsed.syntax());
+
+    assert!(dependencies.is_empty(), "{:?}", dependencies);
+    eprintln!("{:?}", messages.finish())
 }

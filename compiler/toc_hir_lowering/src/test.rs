@@ -497,6 +497,12 @@ fn lower_char_seq_escapes() {
             "",
             expect![[r#"error at 6..7: invalid char literal: unknown caret escape"#]],
         ),
+        // Caret Escaped literals
+        (
+            "'^'",
+            "'",
+            expect![[r#"error at 6..8: invalid char literal: unknown caret escape"#]],
+        ),
         // Greater than 255
         (
             "'\\777'",

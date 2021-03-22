@@ -121,7 +121,7 @@ impl UnaryExpr {
 }
 
 impl LiteralExpr {
-    pub fn literal(&self) -> Option<(LiteralValue, Option<LiteralParseError>)> {
+    pub fn literal(&self) -> Option<(LiteralValue, Option<Vec<LiteralParseError>>)> {
         let literal = self.syntax().first_token()?;
 
         match literal.kind() {
@@ -136,7 +136,7 @@ impl LiteralExpr {
         }
     }
 
-    fn parse_int_literal(text: &str) -> (LiteralValue, Option<LiteralParseError>) {
+    fn parse_int_literal(text: &str) -> (LiteralValue, Option<Vec<LiteralParseError>>) {
         // Basic integer, parsing with radix 10
         let value = lexical::parse::<u64, _>(text);
 
@@ -147,12 +147,12 @@ impl LiteralExpr {
                     lexical::ErrorCode::Overflow => LiteralParseError::IntTooLarge,
                     _ => LiteralParseError::IntInvalid,
                 };
-                (LiteralValue::Int(0), Some(err))
+                (LiteralValue::Int(0), Some(vec![err]))
             }
         }
     }
 
-    fn parse_radix_literal(text: &str) -> (LiteralValue, Option<LiteralParseError>) {
+    fn parse_radix_literal(text: &str) -> (LiteralValue, Option<Vec<LiteralParseError>>) {
         // Radix Integer parsing
         let (radix_slice, digits_slice) = text.split_at(text.find('#').unwrap());
         let digits_slice = &digits_slice[1..]; // skip over #
@@ -163,7 +163,7 @@ impl LiteralExpr {
                 // invalid radix value
                 return (
                     LiteralValue::Int(0),
-                    Some(LiteralParseError::IntInvalidBase),
+                    Some(vec![LiteralParseError::IntInvalidBase]),
                 );
             }
         };
@@ -188,21 +188,21 @@ impl LiteralExpr {
                     lexical::ErrorCode::Empty => LiteralParseError::IntMissingRadix,
                     _ => LiteralParseError::IntInvalid,
                 };
-                (LiteralValue::Int(0), Some(err))
+                (LiteralValue::Int(0), Some(vec![err]))
             }
         }
     }
 
-    fn parse_real_literal(text: &str) -> (LiteralValue, Option<LiteralParseError>) {
+    fn parse_real_literal(text: &str) -> (LiteralValue, Option<Vec<LiteralParseError>>) {
         // Pretty simple real parsing
         match lexical::parse_lossy::<f64, _>(text) {
             Ok(num) if num.is_infinite() => (
                 LiteralValue::Real(0.0),
-                Some(LiteralParseError::RealTooLarge),
+                Some(vec![LiteralParseError::RealTooLarge]),
             ),
             Ok(num) if num.is_nan() => (
                 LiteralValue::Real(0.0),
-                Some(LiteralParseError::RealInvalid),
+                Some(vec![LiteralParseError::RealInvalid]),
             ),
             Err(err) => {
                 let err = match err.code {
@@ -212,7 +212,7 @@ impl LiteralExpr {
                     // all other cases are protected by what is parsed, but still push out an error
                     _ => LiteralParseError::RealInvalid,
                 };
-                (LiteralValue::Real(0.0), Some(err))
+                (LiteralValue::Real(0.0), Some(vec![err]))
             }
             Ok(num) => (LiteralValue::Real(num), None),
         }
@@ -221,22 +221,16 @@ impl LiteralExpr {
     fn parse_char_seq_literal(
         text: &str,
         as_str_literal: bool,
-    ) -> (LiteralValue, Option<LiteralParseError>) {
+    ) -> (LiteralValue, Option<Vec<LiteralParseError>>) {
         let ending_delimiter = if as_str_literal { '"' } else { '\'' };
-        let (inner_text, error) = CharSeqExtractor::extract(text, ending_delimiter);
+        let (inner_text, errors) = CharSeqExtractor::extract(text, ending_delimiter);
 
         // Don't need to report a missing terminator, since that's already reported by the scanner
 
         if as_str_literal {
-            (
-                LiteralValue::String(inner_text),
-                error.map(|err| LiteralParseError::StringErrors(err)),
-            )
+            (LiteralValue::String(inner_text), errors)
         } else {
-            (
-                LiteralValue::Char(inner_text),
-                error.map(|err| LiteralParseError::CharErrors(err)),
-            )
+            (LiteralValue::Char(inner_text), errors)
         }
     }
 }
@@ -250,7 +244,7 @@ struct CharSeqExtractor<'a> {
     /// Extracted string
     extracted_text: String,
     /// Any errors encountered during processing
-    errors: Vec<(CharSeqParseError, usize, usize)>,
+    errors: Vec<LiteralParseError>,
     /// Ending delimiter to stop at
     ending_delimiter: char,
 
@@ -260,10 +254,7 @@ struct CharSeqExtractor<'a> {
 
 impl<'a> CharSeqExtractor<'a> {
     /// Extracts the char sequence's text, applying character escapes
-    fn extract(
-        text: &'a str,
-        ending_delimiter: char,
-    ) -> (String, Option<Vec<(CharSeqParseError, usize, usize)>>) {
+    fn extract(text: &'a str, ending_delimiter: char) -> (String, Option<Vec<LiteralParseError>>) {
         let mut char_indices = text.char_indices().peekable();
         // Skip over starting delimiter
         char_indices.next();
@@ -338,6 +329,19 @@ impl<'a> CharSeqExtractor<'a> {
         self.extracted_text.push(chr);
     }
 
+    /// Appends an error to the error list
+    fn push_error(&mut self, error: CharSeqParseError, start: usize, end: usize) {
+        let as_str_literal = self.ending_delimiter == '"';
+
+        if as_str_literal {
+            self.errors
+                .push(LiteralParseError::StringError(error, start, end))
+        } else {
+            self.errors
+                .push(LiteralParseError::CharError(error, start, end))
+        }
+    }
+
     /// Eats all variants of the slash escape
     fn eat_slash_escape(&mut self) {
         use std::char;
@@ -350,11 +354,11 @@ impl<'a> CharSeqExtractor<'a> {
         } else {
             // Missing escaped character
             let escape_end = self.peek_pos();
-            self.errors.push((
+            self.push_error(
                 CharSeqParseError::InvalidSlashEscape,
                 escape_start,
                 escape_end,
-            ));
+            );
 
             return;
         };
@@ -401,11 +405,11 @@ impl<'a> CharSeqExtractor<'a> {
                     self.push(chr as char);
                 } else {
                     // Out of range
-                    self.errors.push((
+                    self.push_error(
                         CharSeqParseError::InvalidOctalChar,
                         escape_start,
                         digits_end,
-                    ));
+                    );
 
                     self.push(char::REPLACEMENT_CHARACTER);
                 }
@@ -433,11 +437,11 @@ impl<'a> CharSeqExtractor<'a> {
 
                 if digits.len() == 0 {
                     // Missing hex digits after position
-                    self.errors.push((
+                    self.push_error(
                         CharSeqParseError::MissingHexDigits,
                         escape_start,
                         digits_end,
-                    ));
+                    );
 
                     // Push `escaped`
                     self.push(escaped);
@@ -474,11 +478,11 @@ impl<'a> CharSeqExtractor<'a> {
 
                 if digits.len() == 0 {
                     // Missing hex digits after position
-                    self.errors.push((
+                    self.push_error(
                         CharSeqParseError::MissingHexDigits,
                         escape_start,
                         digits_end,
-                    ));
+                    );
 
                     // Push `escaped`
                     self.push(escaped);
@@ -498,18 +502,14 @@ impl<'a> CharSeqExtractor<'a> {
                 } else {
                     if codepoint > 0x10FFFF {
                         // Invalid codepoint
-                        self.errors.push((
+                        self.push_error(
                             CharSeqParseError::InvalidUnicodeChar,
                             escape_start,
                             digits_end,
-                        ));
+                        );
                     } else if (0xD800..=0xDFFF).contains(&codepoint) {
                         // Surrogate character, not allowed
-                        self.errors.push((
-                            CharSeqParseError::SurrogateChar,
-                            escape_start,
-                            digits_end,
-                        ));
+                        self.push_error(CharSeqParseError::SurrogateChar, escape_start, digits_end);
                     }
 
                     // Push replacement character
@@ -520,11 +520,11 @@ impl<'a> CharSeqExtractor<'a> {
                 // Bad escape character
                 let escape_end = self.peek_pos();
 
-                self.errors.push((
+                self.push_error(
                     CharSeqParseError::InvalidSlashEscape,
                     escape_start,
                     escape_end,
-                ));
+                );
 
                 // Push character unmodified
                 self.push(escaped);
@@ -541,11 +541,11 @@ impl<'a> CharSeqExtractor<'a> {
         } else {
             // Missing escaped character
             let escape_end = self.peek_pos();
-            self.errors.push((
+            self.push_error(
                 CharSeqParseError::InvalidCaretEscape,
                 escape_start,
                 escape_end,
-            ));
+            );
 
             return;
         };
@@ -565,11 +565,11 @@ impl<'a> CharSeqExtractor<'a> {
                 // parsed as the beginning of a caret sequence
                 let escape_end = self.peek_pos();
 
-                self.errors.push((
+                self.push_error(
                     CharSeqParseError::InvalidCaretEscape,
                     escape_start,
                     escape_end,
-                ));
+                );
 
                 // Push escaped
                 self.push(escaped);
