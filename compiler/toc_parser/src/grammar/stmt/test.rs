@@ -8369,7 +8369,8 @@ fn parse_inherit_stmt_alt_path() {
                   KwInherit@0..7 "inherit"
                   Whitespace@7..8 " "
                   ExternalItem@8..11
-                    StringLiteral@8..11 "\"p\"""#]],
+                    LiteralExpr@8..11
+                      StringLiteral@8..11 "\"p\"""#]],
     );
 }
 
@@ -8651,7 +8652,8 @@ fn parse_import_stmt() {
                   Whitespace@9..10 " "
                   ImportItem@10..13
                     ExternalItem@10..13
-                      StringLiteral@10..13 "\"b\""
+                      LiteralExpr@10..13
+                        StringLiteral@10..13 "\"b\""
                   Comma@13..14 ","
                   Whitespace@14..15 " "
                   ImportItem@15..29
@@ -8661,7 +8663,8 @@ fn parse_import_stmt() {
                         Whitespace@16..17 " "
                       KwIn@17..19 "in"
                       Whitespace@19..20 " "
-                      StringLiteral@20..29 "\"not_cee\""
+                      LiteralExpr@20..29
+                        StringLiteral@20..29 "\"not_cee\""
               StmtList@29..29"#]],
     );
 }
@@ -9078,8 +9081,9 @@ fn parse_include_glob_stmt() {
                   PPInclude@0..22
                     KwInclude@0..7 "include"
                     Whitespace@7..8 " "
-                    StringLiteral@8..21 "\"oh_here_too\""
-                    Whitespace@21..22 " ""#]],
+                    LiteralExpr@8..22
+                      StringLiteral@8..21 "\"oh_here_too\""
+                      Whitespace@21..22 " ""#]],
     );
 }
 
@@ -9113,7 +9117,8 @@ fn recover_on_include() {
                       PPInclude@4..24
                         KwInclude@4..11 "include"
                         Whitespace@11..12 " "
-                        StringLiteral@12..24 "\"still_here\""
+                        LiteralExpr@12..24
+                          StringLiteral@12..24 "\"still_here\""
                   EndGroup@24..24
             error at 4..11: expected identifier or ‘:’, but found ‘include’
             error at 12..24: expected ‘endfor’ or ‘end’ after here"#]],

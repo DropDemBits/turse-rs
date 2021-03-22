@@ -4586,8 +4586,9 @@ fn recover_include_glob_expr() {
                   PPInclude@3..18
                     KwInclude@3..10 "include"
                     Whitespace@10..11 " "
-                    StringLiteral@11..17 "\"here\""
-                    Whitespace@17..18 " "
+                    LiteralExpr@11..18
+                      StringLiteral@11..17 "\"here\""
+                      Whitespace@17..18 " "
                 Error@18..20
                   Plus@18..19 "+"
                   Whitespace@19..20 " "
@@ -4611,8 +4612,9 @@ fn recover_include_glob_ref() {
                   PPInclude@0..15
                     KwInclude@0..7 "include"
                     Whitespace@7..8 " "
-                    StringLiteral@8..14 "\"here\""
-                    Whitespace@14..15 " "
+                    LiteralExpr@8..15
+                      StringLiteral@8..14 "\"here\""
+                      Whitespace@14..15 " "
                 Error@15..18
                   Arrow@15..17 "->"
                   Whitespace@17..18 " "

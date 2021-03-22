@@ -3167,8 +3167,9 @@ fn recover_include_glob_ty() {
                   PPInclude@9..41
                     KwInclude@9..16 "include"
                     Whitespace@16..17 " "
-                    StringLiteral@17..40 "\"some_foreign_location\""
-                    Whitespace@40..41 " "
+                    LiteralExpr@17..41
+                      StringLiteral@17..40 "\"some_foreign_location\""
+                      Whitespace@40..41 " "
             error at 9..16: expected type specifier, but found ‘include’"#]],
     )
 }
