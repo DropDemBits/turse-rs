@@ -845,6 +845,8 @@ pub enum CharSeqParseError {
     InvalidSlashEscape,
     #[error("unknown caret escape")]
     InvalidCaretEscape,
+    #[error("missing terminator character")]
+    UnterminatedLiteral,
 }
 
 #[derive(Debug)]

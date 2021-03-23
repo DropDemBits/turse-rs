@@ -417,85 +417,53 @@ fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
 }
 
 fn nom_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
-    let (bump_count, is_terminated, is_terminator_escaped) =
-        check_charseq_termination(lexer.remainder(), '\'');
+    let bump_count = check_charseq_termination(lexer.remainder(), '\'');
     lexer.bump(bump_count);
-
-    if !is_terminated {
-        // report error!
-        if is_terminator_escaped {
-            lexer.extras.push_error(
-                "char literal is missing terminator (terminator is escaped)",
-                lexer.span(),
-            );
-        } else {
-            lexer
-                .extras
-                .push_error("char literal is missing terminator", lexer.span());
-        }
-    }
 }
 
 fn nom_string_literal(lexer: &mut logos::Lexer<TokenKind>) {
-    let (bump_count, is_terminated, is_terminator_escaped) =
-        check_charseq_termination(lexer.remainder(), '"');
+    let bump_count = check_charseq_termination(lexer.remainder(), '"');
     lexer.bump(bump_count);
-
-    if !is_terminated {
-        // report error!
-        if is_terminator_escaped {
-            lexer.extras.push_error(
-                "string literal is missing terminator (terminator is escaped)",
-                lexer.span(),
-            );
-        } else {
-            lexer
-                .extras
-                .push_error("string literal is missing terminator", lexer.span());
-        }
-    }
 }
 
-fn check_charseq_termination(remainder: &str, terminator: char) -> (usize, bool, bool) {
+fn check_charseq_termination(remainder: &str, terminator: char) -> usize {
     let mut chars = remainder.char_indices().peekable();
-    let mut is_escaped = false;
 
     while let Some((bump_to, chr)) = chars.next() {
         match chr {
-            '\\' => {
+            escape @ '^' | escape @ '\\' => {
                 let mut slash_count = 1_usize;
 
-                while let Some((_, '\\')) = chars.peek() {
-                    slash_count += 1;
-                    chars.next();
+                while let Some((_, chr)) = chars.peek() {
+                    if *chr == escape {
+                        slash_count += 1;
+                        chars.next();
+                    } else {
+                        // End of the run
+                        break;
+                    }
                 }
 
                 if slash_count % 2 == 1 {
-                    // possibly escaped terminator
-                    if let Some((_, c)) = chars.peek() {
-                        if *c == terminator {
-                            // is escaped, nom on it
-                            is_escaped = true;
-                            chars.next();
-                        }
-                    }
+                    // odd number of escape characters, nom on the next one
+                    chars.next();
                 }
             }
             '\r' | '\n' => {
                 // also a terminating char, but not the right one
-                return (bump_to, false, is_escaped);
+                return bump_to;
             }
             c if c == terminator => {
                 // is terminated (include terminator)
                 // safe to add by 1 since '\n' is always a 1 byte char in utf-8
-                return (bump_to + 1, true, false);
+                return bump_to + 1;
             }
             _ => {}
         }
     }
 
     // bump it all, not terminated, maybe escaped
-    (remainder.len(), false, is_escaped)
+    remainder.len()
 }
 
 fn nom_number_literal(lexer: &mut logos::Lexer<TokenKind>) -> NumberKind {

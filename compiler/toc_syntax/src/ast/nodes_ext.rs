@@ -268,7 +268,7 @@ impl<'a> CharSeqExtractor<'a> {
             current: None,
         };
 
-        // Do the extraction it
+        // Do the extraction
         extractor.do_extraction();
 
         let Self {
@@ -290,7 +290,7 @@ impl<'a> CharSeqExtractor<'a> {
                 _ => {
                     if current == self.ending_delimiter {
                         // At the ending delimiter, stop
-                        break;
+                        return;
                     } else {
                         // Append character
                         self.push(current);
@@ -298,6 +298,9 @@ impl<'a> CharSeqExtractor<'a> {
                 }
             }
         }
+
+        // Reached the end of the inner text, but no terminator was encountered
+        self.push_error(CharSeqParseError::UnterminatedLiteral, 0, self.text.len());
     }
 
     /// Advances the char cursor by one, returning the current char

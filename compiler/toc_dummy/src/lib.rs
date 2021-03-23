@@ -316,7 +316,6 @@ fn gather_main_mixed_deps() {
 
 #[test]
 fn gather_bad_paths() {
-    // ???: Where to report literals with escaped terminators?
     let parsed = toc_parser::parse(
         r#"
     import "a^"

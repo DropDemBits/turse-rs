@@ -636,57 +636,42 @@ mod test {
 
         // not an escaped terminator
         expect(r#""abcd\\""#, &TokenKind::StringLiteral);
+        expect(r#""abcd\\\k""#, &TokenKind::StringLiteral);
+        expect(r#""abcd^^""#, &TokenKind::StringLiteral);
+        expect(r#""abcd^^a""#, &TokenKind::StringLiteral);
 
-        // Invalid scanning should make a literal from the successfully parsed character
+        // Invalid scanning should allow a literal from the successfully parsed characters
+        // Unterminated literals are not reported here, and is deferred to HIR lowering
 
         // Ends at the end of line
-        expect_seq_with_errors(
+        expect_seq(
             "\"abcd\n",
             &[
                 (TokenKind::StringLiteral, "\"abcd"),
                 (TokenKind::Whitespace, "\n"),
             ],
-            expect![[r#"error at 0..5: string literal is missing terminator"#]],
         );
 
-        expect_seq_with_errors(
+        expect_seq(
             "\"abcd\r\n",
             &[
                 (TokenKind::StringLiteral, "\"abcd"),
                 (TokenKind::Whitespace, "\r\n"),
             ],
-            expect![[r#"error at 0..5: string literal is missing terminator"#]],
         );
 
         // Ends at the end of file
-        expect_with_error(
-            "\"abcd",
-            &TokenKind::StringLiteral,
-            expect![[r#"error at 0..5: string literal is missing terminator"#]],
-        );
+        expect("\"abcd", &TokenKind::StringLiteral);
 
         // Escaped terminator
-        expect_with_error(
-            r#""abcd\""#,
-            &TokenKind::StringLiteral,
-            expect![[
-                r#"error at 0..7: string literal is missing terminator (terminator is escaped)"#
-            ]],
-        );
+        expect(r#""abcd\""#, &TokenKind::StringLiteral);
+        expect(r#""abcd^""#, &TokenKind::StringLiteral);
 
         // Mismatched delimiter
-        expect_with_error(
-            "\"abcd'",
-            &TokenKind::StringLiteral,
-            expect![[r#"error at 0..6: string literal is missing terminator"#]],
-        );
+        expect("\"abcd'", &TokenKind::StringLiteral);
 
         // Empty
-        expect_with_error(
-            r#"""#,
-            &TokenKind::StringLiteral,
-            expect![[r#"error at 0..1: string literal is missing terminator"#]],
-        );
+        expect(r#"""#, &TokenKind::StringLiteral);
     }
 
     #[test]
@@ -703,56 +688,37 @@ mod test {
         // not an escaped terminator
         expect(r#"'abcd\\'"#, &TokenKind::CharLiteral);
 
-        // Invalid scanning should make a literal from the successfully parsed characters
+        // Invalid scanning should allow a literal from the successfully parsed characters
+        // Unterminated literals are not reported here, and is deferred to HIR lowering
 
         // Ends at the end of line
-        expect_seq_with_errors(
+        expect_seq(
             "'abcd\n",
             &[
                 (TokenKind::CharLiteral, "'abcd"),
                 (TokenKind::Whitespace, "\n"),
             ],
-            expect![[r#"error at 0..5: char literal is missing terminator"#]],
         );
 
-        expect_seq_with_errors(
+        expect_seq(
             "'abcd\r\n",
             &[
                 (TokenKind::CharLiteral, "'abcd"),
                 (TokenKind::Whitespace, "\r\n"),
             ],
-            expect![[r#"error at 0..5: char literal is missing terminator"#]],
         );
 
         // Ends at the end of file
-        expect_with_error(
-            "'abcd",
-            &TokenKind::CharLiteral,
-            expect![[r#"error at 0..5: char literal is missing terminator"#]],
-        );
+        expect("'abcd", &TokenKind::CharLiteral);
 
         // Escaped terminator
-        expect_with_error(
-            r#"'abcd\'"#,
-            &TokenKind::CharLiteral,
-            expect![[
-                r#"error at 0..7: char literal is missing terminator (terminator is escaped)"#
-            ]],
-        );
+        expect(r#"'abcd\'"#, &TokenKind::CharLiteral);
 
         // Mismatched delimiter
-        expect_with_error(
-            "'abcd\"",
-            &TokenKind::CharLiteral,
-            expect![[r#"error at 0..6: char literal is missing terminator"#]],
-        );
+        expect("'abcd\"", &TokenKind::CharLiteral);
 
         // Empty
-        expect_with_error(
-            r#"'"#,
-            &TokenKind::CharLiteral,
-            expect![[r#"error at 0..1: char literal is missing terminator"#]],
-        );
+        expect(r#"'"#, &TokenKind::CharLiteral);
     }
 
     #[test]

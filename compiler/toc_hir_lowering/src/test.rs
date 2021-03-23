@@ -403,12 +403,18 @@ fn lower_string_literal() {
 
     // Should handle strings without an ending delimiter
     assert_eq!(
-        literal_value(&lower_text(r#"a := "abcd "#, expect![[]])),
+        literal_value(&lower_text(
+            r#"a := "abcd "#,
+            expect![[r#"error at 5..11: invalid string literal: missing terminator character"#]]
+        )),
         &expr::Literal::String("abcd ".to_string())
     );
     // ... or mismatched delimiter
     assert_eq!(
-        literal_value(&lower_text(r#"a := "abcd'"#, expect![[]])),
+        literal_value(&lower_text(
+            r#"a := "abcd'"#,
+            expect![[r#"error at 5..11: invalid string literal: missing terminator character"#]]
+        )),
         &expr::Literal::String("abcd'".to_string())
     );
 }
@@ -422,12 +428,18 @@ fn lower_char_literal() {
 
     // Should handle character strings without an ending delimiter
     assert_eq!(
-        literal_value(&lower_text(r#"a := 'abcd "#, expect![[]])),
+        literal_value(&lower_text(
+            r#"a := 'abcd "#,
+            expect![[r#"error at 5..11: invalid char literal: missing terminator character"#]]
+        )),
         &expr::Literal::CharSeq("abcd ".to_string())
     );
     // ... or mismatched delimiter
     assert_eq!(
-        literal_value(&lower_text(r#"a := 'abcd""#, expect![[]])),
+        literal_value(&lower_text(
+            r#"a := 'abcd""#,
+            expect![[r#"error at 5..11: invalid char literal: missing terminator character"#]]
+        )),
         &expr::Literal::CharSeq("abcd\"".to_string())
     );
 }
@@ -485,23 +497,35 @@ fn lower_char_seq_escapes() {
         ("'^J'", "\n", expect![[]]),
         ("'^M'", "\r", expect![[]]),
         ("'^?'", "\x7F", expect![[]]),
+        // Unterminated literal
+        (
+            "'",
+            "",
+            expect![[r#"error at 5..6: invalid char literal: missing terminator character"#]],
+        ),
         // Invalid Escapes //
         // Without any following
         (
             "'\\",
             "",
-            expect![[r#"error at 6..7: invalid char literal: unknown backslash escape"#]],
+            expect![[r#"
+                error at 6..7: invalid char literal: unknown backslash escape
+                error at 5..7: invalid char literal: missing terminator character"#]],
         ),
         (
             "'^",
             "",
-            expect![[r#"error at 6..7: invalid char literal: unknown caret escape"#]],
+            expect![[r#"
+                error at 6..7: invalid char literal: unknown caret escape
+                error at 5..7: invalid char literal: missing terminator character"#]],
         ),
         // Caret Escaped literals
         (
             "'^'",
             "'",
-            expect![[r#"error at 6..8: invalid char literal: unknown caret escape"#]],
+            expect![[r#"
+                error at 6..8: invalid char literal: unknown caret escape
+                error at 5..8: invalid char literal: missing terminator character"#]],
         ),
         // Greater than 255
         (
