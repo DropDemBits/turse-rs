@@ -76,7 +76,6 @@ impl super::LoweringCtx {
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
 
         Some(stmt::Stmt::ConstVar {
-            is_pervasive,
             is_register,
             is_const,
 

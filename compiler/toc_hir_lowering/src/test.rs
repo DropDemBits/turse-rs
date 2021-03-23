@@ -68,7 +68,6 @@ fn lower_bare_var_def() {
     assert!(matches!(
         decl,
         stmt::Stmt::ConstVar {
-            is_pervasive: false,
             is_register: false,
             is_const: false,
             type_spec: None,

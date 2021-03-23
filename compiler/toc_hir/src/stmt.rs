@@ -10,7 +10,6 @@ pub enum Stmt {
     /// Combined representation for `const` and `var` declarations
     /// (disambiguated by `is_const`)
     ConstVar {
-        is_pervasive: bool,
         is_register: bool,
         is_const: bool,
         names: Vec<symbol::DefId>,
