@@ -21,7 +21,7 @@ fn main() {
 
     println!("Parsed output: {}", parsed.debug_tree());
     let validate_res = toc_validate::validate_ast(parsed.syntax());
-    //let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
+    let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
     println!("Dependencies: {:#?}", dependencies);
 
     // Note: parser messages are duplicated in the `debug_tree`, so start with validator messages
@@ -31,7 +31,7 @@ fn main() {
         println!("{}", msg);
     }
 
-    //println!("{:#?}", hir_res.database);
+    println!("{:#?}", hir_res.database);
 
     std::process::exit(if parsed.has_errors() { -1 } else { 0 });
 }

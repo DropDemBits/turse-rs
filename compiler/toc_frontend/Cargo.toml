@@ -10,7 +10,7 @@ edition = "2018"
 toc_ast = { path = "../toc_ast" }
 toc_core = { path = "../toc_core" }
 
-unicode-segmentation = "^0.1"
+unicode-segmentation = "^1.0"
 strtod = "0.0"
 lazy_static = "1.4.0"
 
