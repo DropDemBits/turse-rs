@@ -953,6 +953,7 @@ dependencies = [
  "toc_reporting",
  "toc_syntax",
  "toc_validate",
+ "toc_vfs",
 ]
 
 [[package]]
@@ -1059,6 +1060,10 @@ dependencies = [
  "toc_span",
  "toc_syntax",
 ]
+
+[[package]]
+name = "toc_vfs"
+version = "0.1.0"
 
 [[package]]
 name = "ucd-trie"

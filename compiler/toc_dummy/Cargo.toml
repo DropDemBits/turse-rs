@@ -13,3 +13,4 @@ toc_validate = { path = "../toc_validate" }
 toc_syntax = { path = "../toc_syntax" }
 toc_hir = { path = "../toc_hir" }
 toc_hir_lowering = { path = "../toc_hir_lowering" }
+toc_vfs = { path = "../toc_vfs" }
