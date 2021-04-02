@@ -23,8 +23,8 @@ impl super::LoweringCtx {
             ast::Stmt::AssignStmt(stmt) => self.lower_assign_stmt(stmt),
             ast::Stmt::OpenStmt(_) => todo!(),
             ast::Stmt::CloseStmt(_) => todo!(),
-            ast::Stmt::PutStmt(_) => todo!(),
-            ast::Stmt::GetStmt(_) => todo!(),
+            ast::Stmt::PutStmt(stmt) => self.lower_put_stmt(stmt),
+            ast::Stmt::GetStmt(stmt) => self.lower_get_stmt(stmt),
             ast::Stmt::ReadStmt(_) => todo!(),
             ast::Stmt::WriteStmt(_) => todo!(),
             ast::Stmt::SeekStmt(_) => todo!(),
@@ -92,10 +92,95 @@ impl super::LoweringCtx {
             .map(|op| syntax_to_hir_asn_op(op))
             .unwrap_or(stmt::AssignOp::None);
 
-        let lhs = self.lower_expr(stmt.reference()?.as_expr());
-        let rhs = self.lower_expr(stmt.expr()?);
+        let lhs = self.lower_expr(stmt.lhs()?.as_expr());
+        let rhs = self.lower_expr(stmt.rhs()?);
 
         Some(stmt::Stmt::Assign { lhs, op, rhs })
+    }
+
+    fn lower_put_stmt(&mut self, stmt: ast::PutStmt) -> Option<stmt::Stmt> {
+        let stream_num = self.try_lower_expr(stmt.stream_num().and_then(|s| s.expr()));
+        let items = stmt
+            .items()
+            .filter_map(|item| {
+                if item.skip_token().is_some() {
+                    Some(stmt::Skippable::Skip)
+                } else if let Some(expr) = item.expr() {
+                    let expr = self.lower_expr(expr);
+                    let width = self.try_lower_expr(item.width().and_then(|o| o.expr()));
+                    let precision = self.try_lower_expr(item.fraction().and_then(|o| o.expr()));
+                    let exponent_width =
+                        self.try_lower_expr(item.exp_width().and_then(|o| o.expr()));
+
+                    let item = match (width, precision, exponent_width) {
+                        (Some(width), Some(precision), Some(exponent_width)) => {
+                            stmt::PutItem::with_exponent_width(
+                                expr,
+                                width,
+                                precision,
+                                exponent_width,
+                            )
+                        }
+                        (Some(width), Some(precision), None) => {
+                            stmt::PutItem::with_precision(expr, width, precision)
+                        }
+                        (Some(width), None, None) => stmt::PutItem::with_width(expr, width),
+                        (None, None, None) => stmt::PutItem::new(expr),
+                        _ => unreachable!(), // Invariants are being broken
+                    };
+
+                    Some(stmt::Skippable::Item(item))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        // Presence means newline should be omitted
+        let append_newline = !stmt.range_token().is_some();
+
+        if items.is_empty() {
+            // there must be at least one item present
+            None
+        } else {
+            Some(stmt::Stmt::Put {
+                stream_num,
+                items,
+                append_newline,
+            })
+        }
+    }
+
+    fn lower_get_stmt(&mut self, stmt: ast::GetStmt) -> Option<stmt::Stmt> {
+        let stream_num = self.try_lower_expr(stmt.stream_num().and_then(|s| s.expr()));
+        let items = stmt
+            .items()
+            .filter_map(|item| {
+                if item.skip_token().is_some() {
+                    Some(stmt::Skippable::Skip)
+                } else if let Some(ref_expr) = item.reference() {
+                    let expr = self.lower_expr(ref_expr.as_expr());
+                    let width = match item.get_width() {
+                        None => stmt::GetWidth::Token,
+                        Some(width) if width.star_token().is_some() => stmt::GetWidth::Line,
+                        Some(width) => {
+                            // Should be an expr for the count
+                            stmt::GetWidth::Chars(self.lower_required_expr(width.expr()))
+                        }
+                    };
+
+                    Some(stmt::Skippable::Item(stmt::GetItem { expr, width }))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        if items.is_empty() {
+            // there must be at least one item present
+            None
+        } else {
+            Some(stmt::Stmt::Get { stream_num, items })
+        }
     }
 
     fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> Option<stmt::Stmt> {

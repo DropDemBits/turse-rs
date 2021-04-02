@@ -3,8 +3,6 @@ use toc_hir::ty;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
-    #[allow(unreachable_code)] // No types parsed for now
-    #[allow(unused_variables)]
     pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeIdx> {
         let span = ty.syntax().text_range();
 
@@ -61,11 +59,11 @@ impl super::LoweringCtx {
                 ty::SeqLength::Dynamic
             } else {
                 // Lower expr (if not present, then a none)
-                ty::SeqLength::Expr(self.maybe_lower_expr(node.expr()))
+                ty::SeqLength::Expr(self.lower_required_expr(node.expr()))
             }
         } else {
             // Missing expression
-            ty::SeqLength::Expr(self.maybe_lower_expr(None))
+            ty::SeqLength::Expr(self.lower_required_expr(None))
         }
     }
 }

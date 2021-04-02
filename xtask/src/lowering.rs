@@ -310,6 +310,9 @@ fn visit_terminal_rule(rule: &Rule, g: &Grammar, children: &mut Vec<Child>) -> O
                 "prim",
                 "begin",
                 "end",
+                "width",
+                "fraction",
+                "exp_width",
             ];
 
             if manual_impl.contains(&label.as_str()) {

@@ -5,8 +5,8 @@ use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
 impl super::LoweringCtx {
-    /// Lowers a required expr, but the input Expr may not be present
-    pub(super) fn maybe_lower_expr(&mut self, expr: Option<ast::Expr>) -> expr::ExprIdx {
+    /// Lowers a required expr. If not present, constructs a `Expr::Missing` node in-place
+    pub(super) fn lower_required_expr(&mut self, expr: Option<ast::Expr>) -> expr::ExprIdx {
         if let Some(expr) = expr {
             self.lower_expr(expr)
         } else {
@@ -15,6 +15,12 @@ impl super::LoweringCtx {
                 .expr_nodes
                 .alloc_spanned(expr::Expr::Missing, Default::default())
         }
+    }
+
+    /// Lowers an optional expr.
+    /// Effectively a mapping function
+    pub(super) fn try_lower_expr(&mut self, expr: Option<ast::Expr>) -> Option<expr::ExprIdx> {
+        expr.map(|expr| self.lower_expr(expr))
     }
 
     /// Lowers an expr
@@ -73,21 +79,21 @@ impl super::LoweringCtx {
 
     fn lower_binary_expr(&mut self, expr: ast::BinaryExpr) -> Option<expr::Expr> {
         let op = syntax_to_hir_binary_op(expr.op_kind()?);
-        let lhs = self.maybe_lower_expr(expr.lhs());
-        let rhs = self.maybe_lower_expr(expr.rhs());
+        let lhs = self.lower_required_expr(expr.lhs());
+        let rhs = self.lower_required_expr(expr.rhs());
 
         Some(expr::Expr::Binary(expr::Binary { lhs, op, rhs }))
     }
 
     fn lower_unary_expr(&mut self, expr: ast::UnaryExpr) -> Option<expr::Expr> {
         let op = syntax_to_hir_unary_op(expr.op_kind()?);
-        let rhs = self.maybe_lower_expr(expr.rhs());
+        let rhs = self.lower_required_expr(expr.rhs());
 
         Some(expr::Expr::Unary(expr::Unary { op, rhs }))
     }
 
     fn lower_paren_expr(&mut self, expr: ast::ParenExpr) -> Option<expr::Expr> {
-        let expr = self.maybe_lower_expr(expr.expr());
+        let expr = self.lower_required_expr(expr.expr());
         Some(expr::Expr::Paren(expr::Paren { expr }))
     }
 

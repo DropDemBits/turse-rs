@@ -649,6 +649,30 @@ impl AsnOp {
     }
 }
 
+impl AssignStmt {
+    pub fn lhs(&self) -> Option<Reference> {
+        helper::nodes(self.syntax()).next()
+    }
+
+    pub fn rhs(&self) -> Option<Expr> {
+        helper::nodes(self.syntax()).nth(1)
+    }
+}
+
+impl PutItem {
+    pub fn width(&self) -> Option<PutOpt> {
+        helper::nodes(self.syntax()).next()
+    }
+
+    pub fn fraction(&self) -> Option<PutOpt> {
+        helper::nodes(self.syntax()).nth(1)
+    }
+
+    pub fn exp_width(&self) -> Option<PutOpt> {
+        helper::nodes(self.syntax()).nth(2)
+    }
+}
+
 impl TagStmt {
     pub fn tag_ref(&self) -> Option<Reference> {
         helper::nodes(self.syntax()).next()

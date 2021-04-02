@@ -108,6 +108,13 @@ fn lower_var_def_type_spec() {
 }
 
 #[test]
+fn lower_var_stmt_nothing() {
+    // No stmts to be produced
+    let lowered = lower_text("var", expect![[]]);
+    assert!(lowered.unit.stmts.is_empty());
+}
+
+#[test]
 fn lower_simple_assignment() {
     let lowered = lower_text("a := b", expect![[]]);
 
@@ -811,4 +818,161 @@ fn lower_prim_char_seq_type() {
             unreachable!()
         }
     }
+}
+
+#[test]
+fn lower_put_stmt_single_item() {
+    let lowered = lower_text("put a", expect![[]]);
+
+    if_chain! {
+        if let stmt::Stmt::Put { stream_num: None, items, append_newline: true } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Skippable::Item(item) = &items[0];
+        if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+        then {
+            assert_eq!(id.as_def(), symbol::DefId::new(0));
+        }
+        else {
+            unreachable!();
+        }
+    }
+}
+
+#[test]
+fn lower_put_stmt_many_items() {
+    let lowered = lower_text("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6", expect![[]]);
+
+    if_chain! {
+        if let stmt::Stmt::Put { stream_num: None, items, append_newline: true } = &lowered.database[lowered.unit.stmts[0]];
+        then {
+            assert!(matches!(&items[0], stmt::Skippable::Skip));
+
+            if_chain! {
+                if let stmt::Skippable::Item(item) = &items[1];
+                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+                then {
+                    assert_eq!(id.as_def(), symbol::DefId::new(0));
+                    assert!(item.width.is_some());
+                    assert!(item.precision.is_none());
+                    assert!(item.exponent_width.is_none());
+                }
+                else {
+                    unreachable!();
+                }
+            }
+
+            if_chain! {
+                if let stmt::Skippable::Item(item) = &items[2];
+                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+                then {
+                    assert_eq!(id.as_def(), symbol::DefId::new(1));
+                    assert!(item.width.is_some());
+                    assert!(item.precision.is_some());
+                    assert!(item.exponent_width.is_none());
+                }
+                else {
+                    unreachable!();
+                }
+            }
+
+            if_chain! {
+                if let stmt::Skippable::Item(item) = &items[3];
+                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+                then {
+                    assert_eq!(id.as_def(), symbol::DefId::new(2));
+                    assert!(item.width.is_some());
+                    assert!(item.precision.is_some());
+                    assert!(item.exponent_width.is_some());
+                }
+                else {
+                    unreachable!();
+                }
+            }
+        }
+        else {
+            unreachable!();
+        }
+    }
+}
+
+#[test]
+fn lower_gett_stmt_many_items() {
+    let lowered = lower_text("get skip, a, b : 1, c : *", expect![[]]);
+
+    if_chain! {
+        if let stmt::Stmt::Get { stream_num: None, items } = &lowered.database[lowered.unit.stmts[0]];
+        then {
+            assert!(matches!(&items[0], stmt::Skippable::Skip));
+
+            if_chain! {
+                if let stmt::Skippable::Item(item) = &items[1];
+                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+                then {
+                    assert_eq!(id.as_def(), symbol::DefId::new(0));
+                    assert!(matches!(item.width, stmt::GetWidth::Token));
+                }
+                else {
+                    unreachable!();
+                }
+            }
+
+            if_chain! {
+                if let stmt::Skippable::Item(item) = &items[2];
+                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+                then {
+                    assert_eq!(id.as_def(), symbol::DefId::new(1));
+                    assert!(matches!(item.width, stmt::GetWidth::Chars(_)));
+                }
+                else {
+                    unreachable!();
+                }
+            }
+
+            if_chain! {
+                if let stmt::Skippable::Item(item) = &items[3];
+                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+                then {
+                    assert_eq!(id.as_def(), symbol::DefId::new(2));
+                    assert!(matches!(item.width, stmt::GetWidth::Line));
+                }
+                else {
+                    unreachable!();
+                }
+            }
+
+        }
+        else {
+            unreachable!();
+        }
+    }
+}
+
+#[test]
+fn lower_put_stmt_no_item() {
+    // No stmts to be produced
+    let lowered = lower_text("put", expect![[]]);
+    assert!(lowered.unit.stmts.is_empty());
+}
+
+#[test]
+fn lower_get_stmt_single_item() {
+    let lowered = lower_text("get a", expect![[]]);
+
+    if_chain! {
+        if let stmt::Stmt::Get { stream_num: None, items } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Skippable::Item(item) = &items[0];
+        if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
+        then {
+            assert_eq!(id.as_def(), symbol::DefId::new(0));
+        }
+        else {
+            unreachable!();
+        }
+    }
+}
+
+#[test]
+fn lower_get_stmt_no_item() {
+    // No stmts to be produced
+    let lowered = lower_text("get", expect![[]]);
+    assert!(lowered.unit.stmts.is_empty());
 }

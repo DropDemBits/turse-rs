@@ -303,9 +303,9 @@ MonitorDecl =
   EndGroup
 
 AssignStmt =
-  Reference
+  lhs:Reference
   AsnOp
-  Expr
+  rhs:Expr
 
 AsnOp = 
   asn_kind:(
