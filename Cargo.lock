@@ -944,7 +944,7 @@ name = "toc_core"
 version = "0.1.0"
 
 [[package]]
-name = "toc_dummy"
+name = "toc_driver"
 version = "0.1.0"
 dependencies = [
  "toc_hir",

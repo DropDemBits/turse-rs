@@ -14,7 +14,7 @@ fn main() {
 
     // Parse root CST
     let parsed = toc_parser::parse(&contents);
-    let dependencies = toc_dummy::gather_dependencies(parsed.syntax());
+    let dependencies = toc_driver::gather_dependencies(parsed.syntax());
     // TODO: Gather dependencies from root CST, and parse them
     // Requires a FileDB to keep track of files, as well as some variation of a VFS
     // to resolve (relative) paths to files

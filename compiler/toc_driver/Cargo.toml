@@ -1,5 +1,5 @@
 [package]
-name = "toc_dummy"
+name = "toc_driver"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2018"
