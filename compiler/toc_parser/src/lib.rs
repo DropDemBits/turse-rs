@@ -46,14 +46,22 @@ impl ParseResult {
         &self.messages
     }
 
-    pub fn debug_tree(&self) -> String {
+    pub fn dump_tree(&self) -> String {
         let mut s = String::new();
 
         let syntax_node = SyntaxNode::new_root(self.node.clone());
         let tree = format!("{:#?}", syntax_node);
 
+        s.push_str(&tree);
+
+        s
+    }
+
+    pub fn debug_tree(&self) -> String {
+        let mut s = self.dump_tree();
+
         // trim trailing newline
-        s.push_str(&tree[0..tree.len() - 1]);
+        s.pop();
 
         for err in &self.messages {
             s.push_str(&format!("\n{}", err));

@@ -19,19 +19,23 @@ fn main() {
     // Requires a FileDB to keep track of files, as well as some variation of a VFS
     // to resolve (relative) paths to files
 
-    println!("Parsed output: {}", parsed.debug_tree());
+    println!("Parsed output: {}", parsed.dump_tree());
     let validate_res = toc_validate::validate_ast(parsed.syntax());
     let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
     println!("Dependencies: {:#?}", dependencies);
 
-    // Note: parser messages are duplicated in the `debug_tree`, so start with validator messages
-    let msgs = validate_res.messages().iter(); //.chain(hir_res.messages().iter());
+    let msgs = validate_res
+        .messages()
+        .iter()
+        .chain(hir_res.messages().iter());
 
+    let mut has_errors = false;
     for msg in msgs {
+        has_errors |= matches!(msg.kind(), toc_reporting::MessageKind::Error);
         println!("{}", msg);
     }
 
     println!("{:#?}", hir_res.database);
 
-    std::process::exit(if parsed.has_errors() { -1 } else { 0 });
+    std::process::exit(if has_errors { -1 } else { 0 });
 }
