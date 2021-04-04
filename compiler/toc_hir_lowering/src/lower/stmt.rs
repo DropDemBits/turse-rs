@@ -1,4 +1,5 @@
 //! Lowering into `Stmt` HIR nodes
+use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
 use toc_syntax::ast::{self, AstNode};
 
@@ -75,14 +76,14 @@ impl super::LoweringCtx {
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
 
-        Some(stmt::Stmt::ConstVar {
+        Some(stmt::Stmt::ConstVar(ConstVar {
             is_register,
             is_const,
 
             names,
             type_spec,
             init_expr,
-        })
+        }))
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::Stmt> {
@@ -95,7 +96,7 @@ impl super::LoweringCtx {
         let lhs = self.lower_expr(stmt.lhs()?.as_expr());
         let rhs = self.lower_expr(stmt.rhs()?);
 
-        Some(stmt::Stmt::Assign { lhs, op, rhs })
+        Some(stmt::Stmt::Assign(Assign { lhs, op, rhs }))
     }
 
     fn lower_put_stmt(&mut self, stmt: ast::PutStmt) -> Option<stmt::Stmt> {
@@ -142,11 +143,11 @@ impl super::LoweringCtx {
             // there must be at least one item present
             None
         } else {
-            Some(stmt::Stmt::Put {
+            Some(stmt::Stmt::Put(stmt::Put {
                 stream_num,
                 items,
                 append_newline,
-            })
+            }))
         }
     }
 
@@ -179,7 +180,7 @@ impl super::LoweringCtx {
             // there must be at least one item present
             None
         } else {
-            Some(stmt::Stmt::Get { stream_num, items })
+            Some(stmt::Stmt::Get(stmt::Get { stream_num, items }))
         }
     }
 
@@ -197,7 +198,7 @@ impl super::LoweringCtx {
 
         self.scopes.pop_scope();
 
-        Some(stmt::Stmt::Block { stmts })
+        Some(stmt::Stmt::Block(stmt::Block { stmts }))
     }
 
     /// Lowers a name list, holding up the invariant that it always contains

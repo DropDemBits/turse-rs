@@ -22,7 +22,7 @@ fn lower_text(src: &str, expected: expect_test::Expect) -> HirLowerResult {
 
 fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
     if_chain! {
-        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = &lowered.database[lowered.unit.stmts[0]];
         if let expr::Expr::Literal(value) = &lowered.database[*rhs];
         then {
             value
@@ -34,7 +34,7 @@ fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
 
 fn asn_rhs(lowered: &HirLowerResult) -> &expr::Expr {
     if_chain! {
-        if let stmt::Stmt::Assign { rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = &lowered.database[lowered.unit.stmts[0]];
         then {
             &lowered.database[*rhs]
         } else {
@@ -46,7 +46,7 @@ fn asn_rhs(lowered: &HirLowerResult) -> &expr::Expr {
 fn var_ty(lowered: &HirLowerResult) -> &ty::Type {
     if_chain! {
         let stmt = &lowered.database[lowered.unit.stmts[0]];
-        if let stmt::Stmt::ConstVar { type_spec, .. } = stmt;
+        if let stmt::Stmt::ConstVar(stmt::ConstVar { type_spec, .. }) = stmt;
         then {
             match type_spec
             {
@@ -67,12 +67,12 @@ fn lower_bare_var_def() {
     let decl = &lowered.database.stmt_nodes.arena[lowered.unit.stmts[0]];
     assert!(matches!(
         decl,
-        stmt::Stmt::ConstVar {
+        stmt::Stmt::ConstVar(stmt::ConstVar {
             is_register: false,
             is_const: false,
             type_spec: None,
             ..
-        }
+        })
     ))
 }
 
@@ -82,7 +82,7 @@ fn lower_var_def_no_cycle() {
 
     let decl = &lowered.database.stmt_nodes.arena[lowered.unit.stmts[0]];
     if_chain! {
-        if let stmt::Stmt::ConstVar { names, init_expr: Some(init_expr), .. } = decl;
+        if let stmt::Stmt::ConstVar(stmt::ConstVar { names, init_expr: Some(init_expr), .. }) = decl;
         if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*init_expr];
         then {
             assert_ne!(names[0], use_id.as_def());
@@ -98,7 +98,7 @@ fn lower_var_def_type_spec() {
 
     let decl = &lowered.database.stmt_nodes.arena[lowered.unit.stmts[0]];
     if_chain! {
-        if let stmt::Stmt::ConstVar { type_spec, .. } = decl;
+        if let stmt::Stmt::ConstVar (stmt::ConstVar{ type_spec, .. }) = decl;
         then {
             assert!(type_spec.is_some());
         } else {
@@ -121,15 +121,15 @@ fn lower_simple_assignment() {
     let decl = &lowered.database.stmt_nodes.arena[lowered.unit.stmts[0]];
     assert!(matches!(
         decl,
-        stmt::Stmt::Assign {
+        stmt::Stmt::Assign(stmt::Assign {
             op: stmt::AssignOp::None,
             ..
-        }
+        })
     ));
 
     // Defs should be unique
     let (a_def, b_def) = if_chain! {
-        if let stmt::Stmt::Assign { lhs, rhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Assign(stmt::Assign { lhs, rhs, .. }) = &lowered.database[lowered.unit.stmts[0]];
         if let (expr::Expr::Name(expr::Name::Name(a_id)), expr::Expr::Name(expr::Name::Name(b_id))) = (&lowered.database[*lhs], &lowered.database[*rhs]);
         then {
             (a_id.as_def(), b_id.as_def())
@@ -149,10 +149,10 @@ fn lower_compound_add_assignment() {
     assert!(
         matches!(
             decl,
-            stmt::Stmt::Assign {
+            stmt::Stmt::Assign(stmt::Assign {
                 op: stmt::AssignOp::Add,
                 ..
-            }
+            })
         ),
         "was {:?}",
         decl
@@ -165,8 +165,8 @@ fn lower_scoping_inner_use_outer_use() {
 
     // Grab use_id from inner scope
     let inner_use = if_chain! {
-        if let stmt::Stmt::Block { stmts } = &lowered.database[lowered.unit.stmts[0]];
-        if let stmt::Stmt::Assign { lhs, .. } = &lowered.database[stmts[0]];
+        if let stmt::Stmt::Block(stmt::Block { stmts }) = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.database[stmts[0]];
         if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*lhs];
         then {
             *use_id
@@ -177,7 +177,7 @@ fn lower_scoping_inner_use_outer_use() {
 
     // Grab use_id from outer scope
     let outer_use = if_chain! {
-        if let stmt::Stmt::Assign { lhs, .. } = &lowered.database[lowered.unit.stmts[1]];
+        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.database[lowered.unit.stmts[1]];
         if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*lhs];
         then {
             *use_id
@@ -196,8 +196,8 @@ fn lower_scoping_outer_use_inner_use() {
 
     // Grab use_id from inner scope
     let inner_use = if_chain! {
-        if let stmt::Stmt::Block { stmts } = &lowered.database[lowered.unit.stmts[1]];
-        if let stmt::Stmt::Assign { lhs, .. } = &lowered.database[stmts[0]];
+        if let stmt::Stmt::Block (stmt::Block{ stmts }) = &lowered.database[lowered.unit.stmts[1]];
+        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.database[stmts[0]];
         if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*lhs];
         then {
             *use_id
@@ -208,7 +208,7 @@ fn lower_scoping_outer_use_inner_use() {
 
     // Grab use_id from outer scope
     let outer_use = if_chain! {
-        if let stmt::Stmt::Assign { lhs, .. } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.database[lowered.unit.stmts[0]];
         if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.database[*lhs];
         then {
             *use_id
@@ -825,7 +825,7 @@ fn lower_put_stmt_single_item() {
     let lowered = lower_text("put a", expect![[]]);
 
     if_chain! {
-        if let stmt::Stmt::Put { stream_num: None, items, append_newline: true } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Put (stmt::Put { stream_num: None, items, append_newline: true }) = &lowered.database[lowered.unit.stmts[0]];
         if let stmt::Skippable::Item(item) = &items[0];
         if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
         then {
@@ -842,7 +842,7 @@ fn lower_put_stmt_many_items() {
     let lowered = lower_text("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6", expect![[]]);
 
     if_chain! {
-        if let stmt::Stmt::Put { stream_num: None, items, append_newline: true } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Put (stmt::Put{ stream_num: None, items, append_newline: true }) = &lowered.database[lowered.unit.stmts[0]];
         then {
             assert!(matches!(&items[0], stmt::Skippable::Skip));
 
@@ -899,7 +899,7 @@ fn lower_gett_stmt_many_items() {
     let lowered = lower_text("get skip, a, b : 1, c : *", expect![[]]);
 
     if_chain! {
-        if let stmt::Stmt::Get { stream_num: None, items } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Get (stmt::Get{ stream_num: None, items }) = &lowered.database[lowered.unit.stmts[0]];
         then {
             assert!(matches!(&items[0], stmt::Skippable::Skip));
 
@@ -958,7 +958,7 @@ fn lower_get_stmt_single_item() {
     let lowered = lower_text("get a", expect![[]]);
 
     if_chain! {
-        if let stmt::Stmt::Get { stream_num: None, items } = &lowered.database[lowered.unit.stmts[0]];
+        if let stmt::Stmt::Get (stmt::Get{ stream_num: None, items }) = &lowered.database[lowered.unit.stmts[0]];
         if let stmt::Skippable::Item(item) = &items[0];
         if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.database[item.expr];
         then {

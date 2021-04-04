@@ -9,13 +9,7 @@ pub type StmtIdx = Idx<Stmt>;
 pub enum Stmt {
     /// Combined representation for `const` and `var` declarations
     /// (disambiguated by `is_const`)
-    ConstVar {
-        is_register: bool,
-        is_const: bool,
-        names: Vec<symbol::DefId>,
-        type_spec: Option<ty::TypeIdx>,
-        init_expr: Option<expr::ExprIdx>,
-    },
+    ConstVar(ConstVar),
     // Type { .. },
     // Bind { .. },
     // Proc { .. },
@@ -30,34 +24,13 @@ pub enum Stmt {
     // Monitor { .. },
     /// Assignment statement
     /// (also includes compound assignments)
-    Assign {
-        /// Left hand side of an assignment expression
-        lhs: expr::ExprIdx,
-        /// Operation performed between the arguments before assignment
-        op: AssignOp,
-        /// Right hand side of an assignment expression
-        rhs: expr::ExprIdx,
-    },
+    Assign(Assign),
     // Open { .. },
     // Close { .. },
     /// Put Statement
-    Put {
-        /// Stream handle to put the text on.
-        /// If absent, should be put on the `stdout` stream.
-        stream_num: Option<expr::ExprIdx>,
-        /// The items to put out on the stream.
-        items: Vec<Skippable<PutItem>>,
-        /// If a newline is appended after the all of the put items
-        append_newline: bool,
-    },
+    Put(Put),
     /// Get Statement
-    Get {
-        /// Stream handle to get text from.
-        /// If absent, should be fetched from the `stdin` stream.
-        stream_num: Option<expr::ExprIdx>,
-        /// The items to get from the stream.
-        items: Vec<Skippable<GetItem>>,
-    },
+    Get(Get),
     // Read { .. },
     // Write { .. },
     // Seek { .. },
@@ -68,7 +41,7 @@ pub enum Stmt {
     // If { .. },
     // Case { .. },
     /// Block statement (`begin ... end`)
-    Block { stmts: Vec<StmtIdx> },
+    Block(Block),
     // Invariant { .. }
     // Assert { .. }
     // Call { .. }
@@ -93,6 +66,50 @@ pub enum Stmt {
     // ImplementBy { .. }
     // Import { .. }
     // Export { .. }
+}
+
+#[derive(Debug)]
+pub struct ConstVar {
+    pub is_register: bool,
+    pub is_const: bool,
+    pub names: Vec<symbol::DefId>,
+    pub type_spec: Option<ty::TypeIdx>,
+    pub init_expr: Option<expr::ExprIdx>,
+}
+
+#[derive(Debug)]
+pub struct Assign {
+    /// Left hand side of an assignment expression
+    pub lhs: expr::ExprIdx,
+    /// Operation performed between the arguments before assignment
+    pub op: AssignOp,
+    /// Right hand side of an assignment expression
+    pub rhs: expr::ExprIdx,
+}
+
+#[derive(Debug)]
+pub struct Put {
+    /// Stream handle to put the text on.
+    /// If absent, should be put on the `stdout` stream.
+    pub stream_num: Option<expr::ExprIdx>,
+    /// The items to put out on the stream.
+    pub items: Vec<Skippable<PutItem>>,
+    /// If a newline is appended after the all of the put items
+    pub append_newline: bool,
+}
+
+#[derive(Debug)]
+pub struct Get {
+    /// Stream handle to get text from.
+    /// If absent, should be fetched from the `stdin` stream.
+    pub stream_num: Option<expr::ExprIdx>,
+    /// The items to get from the stream.
+    pub items: Vec<Skippable<GetItem>>,
+}
+
+#[derive(Debug)]
+pub struct Block {
+    pub stmts: Vec<StmtIdx>,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
