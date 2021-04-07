@@ -134,5 +134,6 @@ pub enum Name {
     /// Normal identifier reference
     Name(symbol::UseId),
     /// Reference to `self`
+    // TODO: Link a use-id to the appropriate class DefId
     Self_,
 }

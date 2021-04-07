@@ -20,7 +20,7 @@
 mod lower;
 mod scopes;
 
-use toc_hir::{Database, Unit};
+use toc_hir::Unit;
 use toc_reporting::ReportMessage;
 use toc_syntax::{
     ast::{self, AstNode},
@@ -33,7 +33,6 @@ use crate::lower::LoweringCtx;
 mod test;
 
 pub struct HirLowerResult {
-    pub database: Database,
     pub unit: Unit,
     messages: Vec<ReportMessage>,
 }
@@ -57,13 +56,10 @@ pub fn lower_ast(root_node: SyntaxNode) -> HirLowerResult {
     let messages = messages.finish();
 
     let unit = toc_hir::Unit {
+        database,
         stmts,
         symbol_table: scopes.finish(),
     };
 
-    HirLowerResult {
-        database,
-        unit,
-        messages,
-    }
+    HirLowerResult { unit, messages }
 }

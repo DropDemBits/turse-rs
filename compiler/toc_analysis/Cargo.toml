@@ -1,5 +1,5 @@
 [package]
-name = "toc_driver"
+name = "toc_analysis"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2018"
@@ -8,10 +8,14 @@ edition = "2018"
 
 [dependencies]
 toc_reporting = { path = "../toc_reporting" }
+toc_span = { path = "../toc_span" }
+toc_hir = { path = "../toc_hir" }
+
+internment = "0.4"
+
+[dev-dependencies]
 toc_parser = { path = "../toc_parser" }
 toc_validate = { path = "../toc_validate" }
-toc_syntax = { path = "../toc_syntax" }
-toc_hir = { path = "../toc_hir" }
 toc_hir_lowering = { path = "../toc_hir_lowering" }
-toc_vfs = { path = "../toc_vfs" }
-toc_analysis = { path = "../toc_analysis" }
+
+expect-test = "1.1"

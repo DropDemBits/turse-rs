@@ -24,9 +24,10 @@ fn main() {
     let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
     println!("Dependencies: {:#?}", dependencies);
 
-    let msgs = validate_res
+    let msgs = parsed
         .messages()
         .iter()
+        .chain(validate_res.messages().iter())
         .chain(hir_res.messages().iter());
 
     let mut has_errors = false;
@@ -35,7 +36,19 @@ fn main() {
         println!("{}", msg);
     }
 
-    println!("{:#?}", hir_res.database);
+    println!("{:#?}", hir_res.unit);
+
+    if has_errors {
+        std::process::exit(-1);
+    }
+
+    let analyze_res = toc_analysis::analyze_unit(&hir_res.unit);
+
+    let mut has_errors = false;
+    for msg in analyze_res.messages().iter() {
+        has_errors |= matches!(msg.kind(), toc_reporting::MessageKind::Error);
+        println!("{}", msg);
+    }
 
     std::process::exit(if has_errors { -1 } else { 0 });
 }
