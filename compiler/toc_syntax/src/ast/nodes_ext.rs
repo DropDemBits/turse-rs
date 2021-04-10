@@ -311,7 +311,9 @@ impl<'a> CharSeqExtractor<'a> {
 
     /// Gets the offset of the current char, relative to the start of the source string
     fn current_pos(&self) -> usize {
-        self.current.map(|(pos, _)| pos).unwrap_or(self.text.len())
+        self.current
+            .map(|(pos, _)| pos)
+            .unwrap_or_else(|| self.text.len())
     }
 
     /// Gets the offset of the next char, relative to the start of the source string
@@ -319,12 +321,12 @@ impl<'a> CharSeqExtractor<'a> {
         self.char_indices
             .peek()
             .map(|(pos, _)| *pos)
-            .unwrap_or(self.text.len())
+            .unwrap_or_else(|| self.text.len())
     }
 
     /// Peeks at the next char after the cursor
     fn peek(&mut self) -> Option<char> {
-        Some(self.char_indices.peek().map(|(_, c)| *c)?)
+        self.char_indices.peek().map(|(_, c)| *c)
     }
 
     /// Appends a character to the extracted string
@@ -438,7 +440,7 @@ impl<'a> CharSeqExtractor<'a> {
                 let digits_end = self.peek_pos();
                 let digits = &self.text[digits_start..digits_end];
 
-                if digits.len() == 0 {
+                if digits.is_empty() {
                     // Missing hex digits after position
                     self.push_error(
                         CharSeqParseError::MissingHexDigits,
@@ -479,7 +481,7 @@ impl<'a> CharSeqExtractor<'a> {
                 let digits_end = self.peek_pos();
                 let digits = &self.text[digits_start..digits_end];
 
-                if digits.len() == 0 {
+                if digits.is_empty() {
                     // Missing hex digits after position
                     self.push_error(
                         CharSeqParseError::MissingHexDigits,
@@ -582,7 +584,7 @@ impl<'a> CharSeqExtractor<'a> {
 }
 
 impl Reference {
-    pub fn as_expr(self) -> Expr {
+    pub fn into_expr(self) -> Expr {
         match self {
             Reference::NameExpr(expr) => Expr::NameExpr(expr),
             Reference::SelfExpr(expr) => Expr::SelfExpr(expr),

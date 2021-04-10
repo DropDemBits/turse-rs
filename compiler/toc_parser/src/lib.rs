@@ -1,5 +1,6 @@
 //! Parser for building the initial Concrete Syntax Tree
 mod event;
+#[allow(clippy::unnecessary_wraps)] // Simplifies top level grammar entry points
 mod grammar;
 mod parser;
 mod sink;

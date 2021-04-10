@@ -48,7 +48,7 @@ impl super::LoweringCtx {
             ast::Expr::BitsExpr(_) => todo!(),
             ast::Expr::CallExpr(_) => todo!(),
         }
-        .unwrap_or_else(|| expr::Expr::Missing);
+        .unwrap_or(expr::Expr::Missing);
 
         self.database.expr_nodes.alloc_spanned(expr, span)
     }

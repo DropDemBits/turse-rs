@@ -69,6 +69,12 @@ impl TyCtx {
     }
 }
 
+impl Default for TyCtx {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub(crate) fn pretty_dump_typectx(ty_ctx: &TyCtx) -> String {
     let mut s = String::new();
 

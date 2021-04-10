@@ -185,6 +185,7 @@ pub enum Skippable<T> {
 /// If any later optional field is a `Some`, then the earlier fields are
 /// guaranteed to also be a `Some` (e.g. if `precision` was `Some`, then
 /// `width` is also guaranteed to be `Some`, but not `exponent_width`).
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct PutItem {
     /// The expression to be put.
@@ -195,8 +196,6 @@ pub struct PutItem {
     pub precision: Option<expr::ExprIdx>,
     /// The minimum printing width for exponents of `real*` types.
     pub exponent_width: Option<expr::ExprIdx>,
-    // to maintain doc variant
-    _priv: (),
 }
 
 impl PutItem {
@@ -207,7 +206,6 @@ impl PutItem {
             width: None,
             precision: None,
             exponent_width: None,
-            _priv: (),
         }
     }
 
@@ -218,7 +216,6 @@ impl PutItem {
             width: Some(width),
             precision: None,
             exponent_width: None,
-            _priv: (),
         }
     }
 
@@ -233,7 +230,6 @@ impl PutItem {
             width: Some(width),
             precision: Some(precision),
             exponent_width: None,
-            _priv: (),
         }
     }
 
@@ -249,7 +245,6 @@ impl PutItem {
             width: Some(width),
             precision: Some(precision),
             exponent_width: Some(exponent_width),
-            _priv: (),
         }
     }
 }

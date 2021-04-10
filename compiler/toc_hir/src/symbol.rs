@@ -153,3 +153,9 @@ impl SymbolTable {
         def_id
     }
 }
+
+impl Default for SymbolTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}

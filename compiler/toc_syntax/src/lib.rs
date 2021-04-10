@@ -1,5 +1,6 @@
 //! Concrete Syntax Tree for the Turing language
 #[allow(clippy::match_like_matches_macro)]
+#[allow(clippy::upper_case_acronyms)] // Names are pulled from the grammar file exactly
 pub mod ast;
 
 use num_traits::{FromPrimitive, ToPrimitive};
@@ -9,6 +10,7 @@ use rowan::Language;
 extern crate num_derive;
 
 /// Syntax tokens present
+#[allow(clippy::upper_case_acronyms)] // Names must match the grammar file exactly
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, FromPrimitive, ToPrimitive)]
 pub enum SyntaxKind {
     // Character Tokens

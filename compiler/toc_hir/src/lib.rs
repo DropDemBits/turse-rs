@@ -58,6 +58,12 @@ impl Database {
     }
 }
 
+impl Default for Database {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ops::Index<StmtIdx> for Database {
     type Output = stmt::Stmt;
 
@@ -100,6 +106,12 @@ impl<T> SpannedArena<T> {
         let idx = self.arena.alloc(value);
         self.spans.insert(idx, span);
         idx
+    }
+}
+
+impl<T> Default for SpannedArena<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

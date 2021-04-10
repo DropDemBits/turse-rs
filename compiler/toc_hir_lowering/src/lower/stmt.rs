@@ -3,6 +3,7 @@ use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
 use toc_syntax::ast::{self, AstNode};
 
+#[allow(clippy::unnecessary_wraps)]
 impl super::LoweringCtx {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtIdx> {
         let span = stmt.syntax().text_range();
@@ -90,10 +91,10 @@ impl super::LoweringCtx {
         let op = stmt
             .asn_op()
             .and_then(|op| op.asn_kind())
-            .map(|op| syntax_to_hir_asn_op(op))
+            .map(syntax_to_hir_asn_op)
             .unwrap_or(stmt::AssignOp::None);
 
-        let lhs = self.lower_expr(stmt.lhs()?.as_expr());
+        let lhs = self.lower_expr(stmt.lhs()?.into_expr());
         let rhs = self.lower_expr(stmt.rhs()?);
 
         Some(stmt::Stmt::Assign(Assign { lhs, op, rhs }))
@@ -137,7 +138,7 @@ impl super::LoweringCtx {
             })
             .collect::<Vec<_>>();
         // Presence means newline should be omitted
-        let append_newline = !stmt.range_token().is_some();
+        let append_newline = stmt.range_token().is_none();
 
         if items.is_empty() {
             // there must be at least one item present
@@ -159,7 +160,7 @@ impl super::LoweringCtx {
                 if item.skip_token().is_some() {
                     Some(stmt::Skippable::Skip)
                 } else if let Some(ref_expr) = item.reference() {
-                    let expr = self.lower_expr(ref_expr.as_expr());
+                    let expr = self.lower_expr(ref_expr.into_expr());
                     let width = match item.get_width() {
                         None => stmt::GetWidth::Token,
                         Some(width) if width.star_token().is_some() => stmt::GetWidth::Line,
