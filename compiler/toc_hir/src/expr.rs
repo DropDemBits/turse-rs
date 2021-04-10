@@ -1,5 +1,6 @@
 //! Expression nodes
 use la_arena::Idx;
+use toc_span::Spanned;
 
 use crate::symbol;
 
@@ -45,7 +46,7 @@ pub enum Literal {
 #[derive(Debug)]
 pub struct Binary {
     pub lhs: ExprIdx,
-    pub op: BinaryOp,
+    pub op: Spanned<BinaryOp>,
     pub rhs: ExprIdx,
 }
 
@@ -105,7 +106,7 @@ pub enum BinaryOp {
 
 #[derive(Debug)]
 pub struct Unary {
-    pub op: UnaryOp,
+    pub op: Spanned<UnaryOp>,
     pub rhs: ExprIdx,
 }
 

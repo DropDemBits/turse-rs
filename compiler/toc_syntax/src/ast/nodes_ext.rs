@@ -101,7 +101,7 @@ impl BinaryExpr {
 
 impl UnaryExpr {
     pub fn op_kind(&self) -> Option<UnaryOp> {
-        let op = self.op_token()?;
+        let op = self.op_node()?;
 
         match op.kind() {
             SyntaxKind::KwNot | SyntaxKind::Tilde => Some(UnaryOp::Not),
@@ -111,7 +111,7 @@ impl UnaryExpr {
         }
     }
 
-    pub fn op_token(&self) -> Option<SyntaxToken> {
+    pub fn op_node(&self) -> Option<SyntaxToken> {
         self.syntax().children_with_tokens().next()?.into_token()
     }
 

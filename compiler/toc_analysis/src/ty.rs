@@ -1,11 +1,20 @@
 //! Representation of Turing types
 
-use std::collections::HashMap;
+use std::fmt::{self, Debug};
 use std::ops::Deref;
 
+use indexmap::IndexMap;
+
 /// A type reference, for each unique type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TyRef(internment::Intern<Type>);
+
+impl fmt::Debug for TyRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Bypass internment node
+        f.write_fmt(format_args!("TyRef({:?})", self.0.deref()))
+    }
+}
 
 impl Deref for TyRef {
     type Target = Type;
@@ -26,16 +35,16 @@ pub enum DefKind {
 /// Typing context for a given unit
 #[derive(Debug)]
 pub struct TyCtx {
-    ty_table: HashMap<toc_hir::ty::TypeIdx, TyRef>,
+    ty_table: IndexMap<toc_hir::ty::TypeIdx, TyRef>,
     // Store def id type here since it'll be needed for bytecode gen
-    def_type: HashMap<toc_hir::symbol::DefId, DefKind>,
+    def_type: IndexMap<toc_hir::symbol::DefId, DefKind>,
 }
 
 impl TyCtx {
     pub fn new() -> Self {
         Self {
-            ty_table: HashMap::new(),
-            def_type: HashMap::new(),
+            ty_table: IndexMap::new(),
+            def_type: IndexMap::new(),
         }
     }
 

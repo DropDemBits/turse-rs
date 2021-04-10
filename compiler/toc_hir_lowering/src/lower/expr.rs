@@ -1,6 +1,7 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::expr;
 use toc_reporting::MessageKind;
+use toc_span::Spanned;
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
@@ -79,6 +80,7 @@ impl super::LoweringCtx {
 
     fn lower_binary_expr(&mut self, expr: ast::BinaryExpr) -> Option<expr::Expr> {
         let op = syntax_to_hir_binary_op(expr.op_kind()?);
+        let op = Spanned::new(op, expr.op_node()?.text_range());
         let lhs = self.lower_required_expr(expr.lhs());
         let rhs = self.lower_required_expr(expr.rhs());
 
@@ -87,6 +89,7 @@ impl super::LoweringCtx {
 
     fn lower_unary_expr(&mut self, expr: ast::UnaryExpr) -> Option<expr::Expr> {
         let op = syntax_to_hir_unary_op(expr.op_kind()?);
+        let op = Spanned::new(op, expr.op_node()?.text_range());
         let rhs = self.lower_required_expr(expr.rhs());
 
         Some(expr::Expr::Unary(expr::Unary { op, rhs }))

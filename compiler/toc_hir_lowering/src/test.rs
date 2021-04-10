@@ -716,7 +716,7 @@ fn lower_binary_expr() {
             // Different uses, but from the same def
             assert_ne!(lhs_id, rhs_id);
             assert_eq!(lhs_id.as_def(), rhs_id.as_def());
-            assert_eq!(*op, expr::BinaryOp::Add);
+            assert_eq!(*op.item(), expr::BinaryOp::Add);
         }
         else {
             unreachable!()
@@ -735,7 +735,7 @@ fn lower_binary_expr_missing_operands() {
         then {
             assert!(matches!(&lowered.unit.database[*lhs], expr::Expr::Missing));
             assert!(matches!(&lowered.unit.database[*rhs], expr::Expr::Missing));
-            assert_eq!(*op, expr::BinaryOp::Add);
+            assert_eq!(*op.item(), expr::BinaryOp::Add);
         }
         else {
             unreachable!()
@@ -751,7 +751,7 @@ fn lower_unary_expr() {
         if let expr::Expr::Unary(expr::Unary{ op, rhs }) = asn_rhs(&lowered);
         then {
             assert!(matches!(&lowered.unit.database[*rhs], expr::Expr::Name(_)));
-            assert_eq!(*op, expr::UnaryOp::Identity);
+            assert_eq!(*op.item(), expr::UnaryOp::Identity);
         }
         else {
             unreachable!()
@@ -768,7 +768,7 @@ fn lower_unary_expr_missing_operand() {
         if let expr::Expr::Unary(expr::Unary{ op, rhs }) = asn_rhs(&lowered);
         then {
             assert!(matches!(&lowered.unit.database[*rhs], expr::Expr::Missing));
-            assert_eq!(*op, expr::UnaryOp::Identity);
+            assert_eq!(*op.item(), expr::UnaryOp::Identity);
         }
         else {
             unreachable!()

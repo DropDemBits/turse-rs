@@ -101,10 +101,6 @@ impl<T> SpannedArena<T> {
         self.spans.insert(idx, span);
         idx
     }
-
-    pub fn alloc(&mut self, value: T) -> Idx<T> {
-        self.arena.alloc(value)
-    }
 }
 
 /// Walker for traversing the HIR tree, in postfix order

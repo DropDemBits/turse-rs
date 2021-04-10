@@ -11,6 +11,7 @@ toc_reporting = { path = "../toc_reporting" }
 toc_span = { path = "../toc_span" }
 toc_hir = { path = "../toc_hir" }
 
+indexmap = "1.6"
 internment = "0.4"
 
 [dev-dependencies]
