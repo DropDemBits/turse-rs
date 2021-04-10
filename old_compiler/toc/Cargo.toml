@@ -13,8 +13,8 @@ toc_core = { path = "../toc_core" }
 toc_frontend = { path = "../toc_frontend" }
 toc_ir = { path = "../toc_ir" }
 
-toc_scanner = { path = "../toc_scanner" }
-toc_parser = { path = "../toc_parser" }
+toc_scanner = { path = "../../compiler/toc_scanner" }
+toc_parser = { path = "../../compiler/toc_parser" }
 
 getopts = "^0.2"
 

@@ -1,6 +1,6 @@
 /target
 # Benchmark output
-compiler/toc/target/criterion
+old_compiler/toc/target/criterion
 # Test Turing files
 scratch_files/*
 test.t
