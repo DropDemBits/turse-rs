@@ -30,7 +30,9 @@ fn report_monitor_class_with_dev_spec() {
 fn report_mismatched_module_names() {
     check(
         "module a end b",
-        expect![[r#"error at 13..14: end identifier ‘b’ does not match ‘a’"#]],
+        expect![[r#"
+            error at 13..14: end identifier ‘b’ does not match ‘a’
+            | note for 7..8: defined here"#]],
     );
 }
 
@@ -38,7 +40,9 @@ fn report_mismatched_module_names() {
 fn report_mismatched_class_names() {
     check(
         "class a end b",
-        expect![[r#"error at 12..13: end identifier ‘b’ does not match ‘a’"#]],
+        expect![[r#"
+            error at 12..13: end identifier ‘b’ does not match ‘a’
+            | note for 6..7: defined here"#]],
     );
 }
 
@@ -46,7 +50,9 @@ fn report_mismatched_class_names() {
 fn report_mismatched_monitor_names() {
     check(
         "monitor a end b",
-        expect![[r#"error at 14..15: end identifier ‘b’ does not match ‘a’"#]],
+        expect![[r#"
+            error at 14..15: end identifier ‘b’ does not match ‘a’
+            | note for 8..9: defined here"#]],
     );
 }
 
@@ -280,7 +286,9 @@ fn bind_decl_in_inner_blocks() {
 fn report_init_expr_with_int_ty() {
     check(
         "var a : int := init(1)",
-        expect![[r#"error at 15..22: ‘init’ initializer is not allowed here"#]],
+        expect![[r#"
+            error at 15..22: ‘init’ initializer is not allowed here
+            | info for 8..12: ‘init’ initializer can only be used with array, record, or union types"#]],
     );
 }
 
@@ -314,7 +322,10 @@ fn init_expr_with_union_ty() {
 fn report_not_init_expr_with_unbounded_array() {
     check(
         "var a : array 1 .. * of int := 2",
-        expect![[r#"error at 31..32: ‘init’ initializer is required here"#]],
+        expect![[r#"
+            error at 31..32: ‘init’ initializer is required here
+            | note for 8..28: this is an unbounded array type
+            | info: unbounded arrays have their upper bounds specified by ‘init’ initializers"#]],
     );
 }
 
@@ -322,7 +333,10 @@ fn report_not_init_expr_with_unbounded_array() {
 fn report_no_initializer_with_unbounded_array() {
     check(
         "var a : array 1 .. * of int",
-        expect![[r#"error at 8..27: ‘init’ initializer is required after here"#]],
+        expect![[r#"
+            error at 8..27: ‘init’ initializer is required after here
+            | note for 8..27: this is an unbounded array type
+            | info: unbounded arrays have their upper bounds specified by ‘init’ initializers"#]],
     );
 }
 
@@ -582,7 +596,9 @@ fn new_open_binary_caps() {
 fn report_new_open_conflicting_read_caps() {
     check(
         "open : _, _, get, read",
-        expect![[r#"error at 5..22: Cannot use ‘get’/‘put’ with ‘read’/‘write’"#]],
+        expect![[r#"
+            error at 13..16: cannot use ‘get’/‘put’ with ‘read’/‘write’
+            | note for 18..22: first conflicting binary capability"#]],
     );
 }
 
@@ -590,7 +606,19 @@ fn report_new_open_conflicting_read_caps() {
 fn report_new_open_conflicting_write_caps() {
     check(
         "open : _, _, put, write",
-        expect![[r#"error at 5..23: Cannot use ‘get’/‘put’ with ‘read’/‘write’"#]],
+        expect![[r#"
+            error at 13..16: cannot use ‘get’/‘put’ with ‘read’/‘write’
+            | note for 18..23: first conflicting binary capability"#]],
+    );
+}
+
+#[test]
+fn report_new_open_conflicting_reversed_caps() {
+    check(
+        "open : _, _, read, put",
+        expect![[r#"
+            error at 19..22: cannot use ‘get’/‘put’ with ‘read’/‘write’
+            | note for 13..17: first conflicting binary capability"#]],
     );
 }
 
@@ -598,7 +626,9 @@ fn report_new_open_conflicting_write_caps() {
 fn report_new_open_conflicting_mixed_caps() {
     check(
         "open : _, _, get, write",
-        expect![[r#"error at 5..23: Cannot use ‘get’/‘put’ with ‘read’/‘write’"#]],
+        expect![[r#"
+            error at 13..16: cannot use ‘get’/‘put’ with ‘read’/‘write’
+            | note for 18..23: first conflicting binary capability"#]],
     );
 }
 
@@ -614,18 +644,27 @@ fn for_stmt_full_decreasing() {
 
 #[test]
 fn report_for_stmt_partial_decreasing() {
-    check("for decreasing : a end for", expect![[r#"error at 17..19: decreasing for-loop requires explicit end bound"#]]);
+    check(
+        "for decreasing : a end for",
+        expect![[r#"error at 17..19: decreasing for-loop requires explicit end bound"#]],
+    );
 }
 
 #[test]
 fn for_stmt_partial_decreasing_no_bounds() {
     // Don't duplicate errors
-    check("for decreasing : end for", expect![[r#"error at 17..20: expected expression, but found ‘end’"#]]);
+    check(
+        "for decreasing : end for",
+        expect![[r#"error at 17..20: expected expression, but found ‘end’"#]],
+    );
 }
 
 #[test]
 fn report_case_stmt_missing_arms() {
-    check("case a of end case", expect![[r#"error at 0..18: Missing ‘label’ arms for ‘case’ statement"#]]);
+    check(
+        "case a of end case",
+        expect![[r#"error at 0..18: Missing ‘label’ arms for ‘case’ statement"#]],
+    );
 }
 
 #[test]
@@ -635,7 +674,12 @@ fn case_stmt_one_arm() {
 
 #[test]
 fn report_case_stmt_one_arm_default() {
-    check("case a of label : end case", expect![[r#"error at 10..18: First ‘label’ arm must have at least one selector expression"#]]);
+    check(
+        "case a of label : end case",
+        expect![[
+            r#"error at 10..18: First ‘label’ arm must have at least one selector expression"#
+        ]],
+    );
 }
 
 #[test]
@@ -650,7 +694,10 @@ fn case_stmt_many_arms() {
 
 #[test]
 fn report_case_stmt_many_arms_many_defaults() {
-    check("case a of label 1: label : label : end case", expect![[r#"error at 27..35: Extra ‘label’ arm found after default arm"#]]);
+    check(
+        "case a of label 1: label : label : end case",
+        expect![[r#"error at 27..35: Extra ‘label’ arm found after default arm"#]],
+    );
 }
 
 #[test]
@@ -718,10 +765,20 @@ fn invariant_stmt_in_monitor_class() {
 
 #[test]
 fn report_invariant_stmt_in_main() {
-    check("invariant false", expect![[r#"error at 0..15: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#]]);
+    check(
+        "invariant false",
+        expect![[
+            r#"error at 0..15: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#
+        ]],
+    );
 }
 
 #[test]
 fn report_invariant_stmt_in_inner() {
-    check("begin invariant false end", expect![[r#"error at 6..22: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#]]);
+    check(
+        "begin invariant false end",
+        expect![[
+            r#"error at 6..22: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#
+        ]],
+    );
 }

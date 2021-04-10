@@ -117,7 +117,8 @@ fn add_op_typecheck() {
                 DefId(0) Var(TyRef(Int(Int)))
                 DefId(1) Var(TyRef(String))
                 DefId(2) Var(TyRef(Error))
-            error at 38..39: Incompatible types for addition"#]],
+            error at 38..39: incompatible types for addition
+            | info: operands must both be numbers, strings, or sets"#]],
     );
 }
 
@@ -303,7 +304,8 @@ fn typecheck_error_prop() {
                 DefId(1) Var(TyRef(String))
                 DefId(2) Var(TyRef(Error))
                 DefId(3) Var(TyRef(Error))
-            error at 38..39: Incompatible types for addition"#]],
+            error at 38..39: incompatible types for addition
+            | info: operands must both be numbers, strings, or sets"#]],
     );
 }
 

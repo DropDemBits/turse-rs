@@ -1156,6 +1156,7 @@ dependencies = [
 name = "toc_reporting"
 version = "0.1.0"
 dependencies = [
+ "drop_bomb",
  "toc_span",
 ]
 

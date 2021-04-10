@@ -47,11 +47,15 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 ty,
                 ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_)
             ) {
-                ctx.push_error(
+                ctx.push_detailed_error(
                     "‘init’ initializer is not allowed here",
                     init_expr.syntax().text_range(),
-                );
-                // TODO: add additional diagnostic referring to the type spec not being an array, record, or union type
+                )
+                .with_info(
+                    "‘init’ initializer can only be used with array, record, or union types",
+                    ty.syntax().text_range(),
+                )
+                .finish();
             }
         } else {
             // No type spec, never allowed
@@ -90,15 +94,22 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 // init expr is required
                 if !matches!(decl.init(), Some(ast::Expr::InitExpr(_))) {
                     // Report at either the initializer expr, or the array type spec
-                    if let Some(init) = decl.init() {
+                    let builder = if let Some(init) = decl.init() {
                         let report_here = init.syntax().text_range();
-                        ctx.push_error("‘init’ initializer is required here", report_here);
+                        ctx.push_detailed_error("‘init’ initializer is required here", report_here)
                     } else {
                         let report_after = array_ty.syntax().text_range();
-                        ctx.push_error("‘init’ initializer is required after here", report_after);
-                    }
+                        ctx.push_detailed_error(
+                            "‘init’ initializer is required after here",
+                            report_after,
+                        )
+                    };
+
+                    builder
+                        .with_note("this is an unbounded array type", array_ty.syntax().text_range())
+                        .with_info("unbounded arrays have their upper bounds specified by ‘init’ initializers", None)
+                        .finish();
                 }
-                // TODO: add additional diagnostic referring to the type spec saying that it's because it's an unbounded array
             }
         }
     }
@@ -271,22 +282,23 @@ pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
         if let Some(kind) = cap.io_kind() {
             if !used_caps.iter().any(|(k, _)| *k == kind) {
                 // don't insert duplicates
-                used_caps.push((kind, open.syntax().text_range()));
+                used_caps.push((kind, cap.syntax().text_range()));
             }
         }
     }
 
     // Conflicting caps:
     // - Any text cap with a binary cap present (and the other way too)
-    let find_cap_pair = |a, b| used_caps.iter().find(|cap| cap.0 == a || cap.0 == b);
+    let find_cap_pair: _ = |a, b| used_caps.iter().find(|cap| cap.0 == a || cap.0 == b);
 
     let text_cap = find_cap_pair(IoKind::Get, IoKind::Put);
     let binary_cap = find_cap_pair(IoKind::Read, IoKind::Write);
 
-    if let Some((text_cap, _)) = text_cap.zip(binary_cap) {
+    if let Some((text_cap, binary_cap)) = text_cap.zip(binary_cap) {
         // Conflicting io pair
-        ctx.push_error("Cannot use ‘get’/‘put’ with ‘read’/‘write’", text_cap.1);
-        // TODO: add additional diagnostic referring to the first binary cap
+        ctx.push_detailed_error("cannot use ‘get’/‘put’ with ‘read’/‘write’", text_cap.1)
+            .with_note("first conflicting binary capability", binary_cap.1)
+            .finish();
     }
 }
 
@@ -422,7 +434,7 @@ fn check_matching_names(
     if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
         if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
             if end_name.text() != decl_name.text() {
-                ctx.push_error(
+                ctx.push_detailed_error(
                     &format!(
                         "end identifier ‘{}’ does not match ‘{}’",
                         end_name.text(),
@@ -430,7 +442,8 @@ fn check_matching_names(
                     ),
                     end_name.text_range(),
                 )
-                // TODO: add additional diagnostic referring to the declared identifier
+                .with_note("defined here", decl_name.text_range())
+                .finish();
             }
         }
     }

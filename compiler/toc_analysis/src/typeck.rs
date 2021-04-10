@@ -130,7 +130,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
     }
 
     fn visit_binary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Binary) {
-        // TODO: do proper binexpr typechecks
+        // TODO: do full binexpr typechecks
         let ty = self.type_check_binary_op(expr.lhs, expr.op, expr.rhs);
 
         // Post binexpr type
@@ -139,7 +139,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
     }
 
     fn visit_unary(&mut self, id: toc_hir::expr::ExprIdx, _expr: &toc_hir::expr::Unary) {
-        // TODO: do proper unexpr typechecks
+        // TODO: do full unexpr typechecks
         let ty = ty::Type::Error;
 
         // Post unexpr type
@@ -305,12 +305,14 @@ impl TypeCheck<'_> {
                     result_ty
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for addition",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers, strings, or sets
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for addition",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers, strings, or sets", None)
+                        .finish();
                     Type::Error
                 }
             }
@@ -324,12 +326,14 @@ impl TypeCheck<'_> {
                     result_ty
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for subtraction",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers or sets
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for subtraction",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers or sets", None)
+                        .finish();
                     Type::Error
                 }
             }
@@ -343,12 +347,14 @@ impl TypeCheck<'_> {
                     result_ty
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for multiplication",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers or sets
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for multiplication",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers or sets", None)
+                        .finish();
                     Type::Error
                 }
             }
@@ -365,12 +371,14 @@ impl TypeCheck<'_> {
                     (lhs, rhs) if is_number(lhs) && is_number(rhs) => Type::Int(IntSize::Int),
                     _ => {
                         // Type error
-                        self.reporter.report(
-                            MessageKind::Error,
-                            "Incompatible types for integer division",
-                            op.span(),
-                        );
-                        // TODO: Add note that operands must both be numbers
+                        self.reporter
+                            .report_detailed(
+                                MessageKind::Error,
+                                "incompatible types for integer division",
+                                op.span(),
+                            )
+                            .with_info("operands must both be numbers", None)
+                            .finish();
                         Type::Error
                     }
                 }
@@ -383,12 +391,14 @@ impl TypeCheck<'_> {
                     Type::Real(RealSize::Real)
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for division",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for division",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers", None)
+                        .finish();
                     Type::Error
                 }
             }
@@ -401,12 +411,14 @@ impl TypeCheck<'_> {
                     result_ty
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for modulo",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for modulo",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers", op.span())
+                        .finish();
                     Type::Error
                 }
             }
@@ -419,12 +431,14 @@ impl TypeCheck<'_> {
                     result_ty
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for remainder",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for remainder",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers", None)
+                        .finish();
                     Type::Error
                 }
             }
@@ -437,12 +451,14 @@ impl TypeCheck<'_> {
                     result_ty
                 } else {
                     // Type error
-                    self.reporter.report(
-                        MessageKind::Error,
-                        "Incompatible types for exponentiation",
-                        op.span(),
-                    );
-                    // TODO: Add note that operands must both be numbers
+                    self.reporter
+                        .report_detailed(
+                            MessageKind::Error,
+                            "incompatible types for exponentiation",
+                            op.span(),
+                        )
+                        .with_info("operands must both be numbers", None)
+                        .finish();
                     Type::Error
                 }
             }
