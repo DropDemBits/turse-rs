@@ -1,0 +1,5 @@
+* text=auto eol=lf
+# Force following file extensions to be recognized as Turing files
+*.t linguist-language=Turing
+*.tu linguist-language=Turing
+

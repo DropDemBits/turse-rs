@@ -5,4 +5,7 @@ old_compiler/toc/target/criterion
 scratch_files/*
 test.t
 compile_output.txt
+# Vim swap files
+*.swp
+# Other
 notes/*
