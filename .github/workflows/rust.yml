@@ -12,6 +12,7 @@ env:
 jobs:
   build:
 
+    # TODO: Put on a matrix for testing on Windows
     runs-on: ubuntu-latest
 
     steps:
@@ -26,6 +27,7 @@ jobs:
     - name: Setup cache
       uses: Swatinem/rust-cache@v1.2.0
 
+    # Doing the actual work
     - name: Build
       run: cargo build --verbose
     - name: Run tests
