@@ -1,4 +1,6 @@
 // This is a generated file, do not touch
+#![allow(unused_attributes)] // this attribute is actually used
+#![rustfmt::skip]
 use crate::{
     ast::{helper, AstNode},
     SyntaxKind, SyntaxNode, SyntaxToken,
