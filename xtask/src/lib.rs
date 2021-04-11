@@ -43,7 +43,24 @@ pub fn do_codegen() -> Result<()> {
         .output()?
         .stdout;
 
-    fs::write(generated_nodes.as_path(), formatted)?;
+    let header = unindent::unindent_bytes(
+        "
+    // This is a generated file, do not touch
+    #![allow(unused_attributes)] // this attribute is actually used below
+    #![rustfmt::skip]
+    "
+        .as_bytes(),
+    );
+
+    // Append header to the rest of the file
+    let aggregate = {
+        let mut formatted = formatted;
+        let mut aggregate = header;
+        aggregate.append(&mut formatted);
+        aggregate
+    };
+
+    fs::write(generated_nodes.as_path(), aggregate)?;
 
     Ok(())
 }
@@ -203,12 +220,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> Result<String> {
         #(#lowered_groups)*
     };
 
-    let everything = format!(
-        "// This is a generated file, do not touch\n{}",
-        everything.to_string()
-    );
-
-    Ok(everything)
+    Ok(everything.to_string())
 }
 
 fn token_to_syntax_name(token: &str) -> &str {
