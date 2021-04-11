@@ -16,8 +16,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install rustfmt
-      run: rustup component add rustfmt
+
+    - name: Install minimal stable toolchain with rustfmt
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        components: rustfmt
+    - name: Setup cache
+      uses: Swatinem/rust-cache@v1.2.0
+
     - name: Build
       run: cargo build --verbose
     - name: Run tests
