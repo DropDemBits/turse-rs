@@ -1,5 +1,5 @@
 //! Concrete Syntax Tree for the Turing language
-#[allow(clippy::match_like_matches_macro)]
+#[allow(clippy::match_like_matches_macro)] // Code generation generates them like this
 #[allow(clippy::upper_case_acronyms)] // Names are pulled from the grammar file exactly
 pub mod ast;
 

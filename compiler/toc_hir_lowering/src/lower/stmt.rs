@@ -3,7 +3,6 @@ use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
 use toc_syntax::ast::{self, AstNode};
 
-#[allow(clippy::unnecessary_wraps)]
 impl super::LoweringCtx {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtIdx> {
         let span = stmt.syntax().text_range();

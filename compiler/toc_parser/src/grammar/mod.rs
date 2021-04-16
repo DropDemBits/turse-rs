@@ -1,4 +1,5 @@
 //! Grammar parsing
+#![allow(clippy::unnecessary_wraps)] // Simplifies top level grammar entry points
 
 // All parsed items
 

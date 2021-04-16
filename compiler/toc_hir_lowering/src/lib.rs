@@ -17,7 +17,6 @@
 // FileDB should only care about giving unique file handes corresponding to text sources.
 // Other DBs will deal with what they map to (e.g. a separate DB managing all of the CSTs)
 
-#[allow(clippy::unnecessary_wraps)] // Top level lowering points also return Option
 mod lower;
 mod scopes;
 
