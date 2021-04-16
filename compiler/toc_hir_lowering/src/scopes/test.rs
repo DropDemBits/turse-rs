@@ -91,16 +91,14 @@ fn test_use_shared_undefined() {
     // Don't contaminate root scope
     let inner_id = scopes.with_scope(true, |scopes| {
         let inner_id = {
-            let inner_id = scopes.with_scope(false, |scopes| {
+            scopes.with_scope(false, |scopes| {
                 scopes.with_scope(false, |scopes| {
                     scopes.with_scope(false, |scopes| {
                         // Hoist through nested inner blocks, functions, and procedures
                         scopes.use_sym("undef", Default::default())
                     })
                 })
-            });
-
-            inner_id
+            })
         };
 
         // Declaration should have been hoisted to module level

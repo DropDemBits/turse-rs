@@ -805,12 +805,13 @@ fn lower_prim_type() {
 }
 
 #[test]
+#[allow(clippy::collapsible_match)] // I think it's more readable to have that second "if let" in this situation
 fn lower_prim_char_seq_type() {
-    let lowered = lower_text(&format!("var _ : char(1)"), expect![[]]);
+    let lowered = lower_text("var _ : char(1)", expect![[]]);
 
     if_chain! {
-        if let ty::Type::Primitive(ty::Primitive::SizedChar(seq_len)) = var_ty(&lowered);
-        if let ty::SeqLength::Expr(expr) = seq_len;
+        if let ty::Type::Primitive(ty::Primitive::SizedChar(seq_length)) = var_ty(&lowered);
+        if let ty::SeqLength::Expr(expr) = seq_length;
         if let expr::Expr::Literal(literal) = &lowered.unit.database[*expr];
         then {
             assert_eq!(literal, &expr::Literal::Integer(1));

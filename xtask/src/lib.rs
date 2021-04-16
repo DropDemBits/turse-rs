@@ -30,7 +30,7 @@ pub fn do_codegen() -> Result<()> {
     let lowered = lowering::lower_grammar(&grammar);
 
     let generated_nodes = out_dir.join("ast/nodes.rs");
-    let contents = generate_nodes(&lowered)?;
+    let contents = generate_nodes(&lowered);
 
     // check for rustfmt
     cmd!("rustfmt --version")
@@ -65,7 +65,7 @@ pub fn do_codegen() -> Result<()> {
     Ok(())
 }
 
-fn generate_nodes(lowered: &LoweredGrammar) -> Result<String> {
+fn generate_nodes(lowered: &LoweredGrammar) -> String {
     let lowered_groups = lowered.groups.iter().map(|group| {
         // as an enum
         let name = format_ident!("{}", group.name);
@@ -220,7 +220,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> Result<String> {
         #(#lowered_groups)*
     };
 
-    Ok(everything.to_string())
+    everything.to_string()
 }
 
 fn token_to_syntax_name(token: &str) -> &str {

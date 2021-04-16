@@ -144,7 +144,7 @@ impl LowerCtx {
     }
 }
 
-fn visit_node<'g>(node: ungrammar::Node, g: &'g Grammar, ctx: &mut LowerCtx) {
+fn visit_node(node: ungrammar::Node, g: &Grammar, ctx: &mut LowerCtx) {
     let data = &g[node];
 
     if let Some(variants) = try_as_group(&data.rule, g) {
@@ -160,7 +160,7 @@ fn visit_node<'g>(node: ungrammar::Node, g: &'g Grammar, ctx: &mut LowerCtx) {
         let mut i = 0;
         'next: while i < children.len() {
             for j in 0..i {
-                if &children[i].kind == &children[j].kind {
+                if children[i].kind == children[j].kind {
                     children.remove(i);
                     continue 'next;
                 }

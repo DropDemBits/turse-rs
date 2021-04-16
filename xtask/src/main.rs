@@ -4,9 +4,12 @@ fn main() {
     let mut args = env::args();
     let task = args.nth(1);
 
-    let res = match task.as_ref().map(|s| s.as_str()) {
+    let res = match task.as_deref() {
         Some("codegen") => xtask::do_codegen(),
-        _ => show_help(),
+        _ => {
+            show_help();
+            Ok(())
+        }
     };
 
     if let Err(e) = res {
@@ -15,12 +18,10 @@ fn main() {
     }
 }
 
-fn show_help() -> anyhow::Result<()> {
+fn show_help() {
     println!(
         r#"Available tasks:
 
 codegen         Performs necessary code generation"#
     );
-
-    Ok(())
 }
