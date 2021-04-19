@@ -3,11 +3,8 @@
 // rust-analyzer, resulting in errors outside of this repo
 #[cfg(target_os = "linux")]
 mod inner {
-    #[macro_use]
-    extern crate afl;
-
     pub(crate) fn do_fuzz() {
-        fuzz!(|data: &[u8]| {
+        afl::fuzz!(|data: &[u8]| {
             if let Ok(s) = std::str::from_utf8(data) {
                 let _ = toc_parser::parse(s);
             }
