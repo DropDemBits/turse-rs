@@ -32,6 +32,7 @@ use crate::lower::LoweringCtx;
 #[cfg(test)]
 mod test;
 
+#[derive(Debug)]
 pub struct HirLowerResult {
     pub unit: Unit,
     messages: Vec<ReportMessage>,

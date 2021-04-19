@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: put
+
+---
+database:
+stmt:
+
+expr:
+
+ty:
+
+root stmts:
+[]
+symtab:
+

@@ -1,0 +1,21 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: "a := '\\u394o'"
+
+---
+database:
+stmt:
+Idx::<Stmt>(0) (0..13): Assign(Assign { lhs: Idx::<Expr>(0), op: None, rhs: Idx::<Expr>(1) })
+
+expr:
+Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (5..13): Literal(CharSeq("Δo"))
+
+ty:
+
+root stmts:
+[Idx::<Stmt>(0)]
+symtab:
+DefId(0): (0..1, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+UseId(DefId(0), 0): 0..1
+

@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: get a*
+
+---
+database:
+stmt:
+
+expr:
+
+ty:
+
+root stmts:
+[]
+symtab:
+

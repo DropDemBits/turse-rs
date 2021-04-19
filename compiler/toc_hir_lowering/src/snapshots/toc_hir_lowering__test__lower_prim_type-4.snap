@@ -1,0 +1,19 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: "var _ : int4"
+
+---
+database:
+stmt:
+Idx::<Stmt>(0) (0..12): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], type_spec: Some(Idx::<Type>(0)), init_expr: None })
+
+expr:
+
+ty:
+Idx::<Type>(0) (8..12): Primitive(Int4)
+
+root stmts:
+[Idx::<Stmt>(0)]
+symtab:
+DefId(0): (4..5, Symbol { name: "_", kind: Declared, is_pervasive: false, def_id: DefId(0), next_use: 0 })
+

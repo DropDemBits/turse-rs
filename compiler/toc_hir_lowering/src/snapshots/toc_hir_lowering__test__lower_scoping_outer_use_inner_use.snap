@@ -1,0 +1,30 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: "q := j begin q := k end"
+
+---
+database:
+stmt:
+Idx::<Stmt>(0) (0..7): Assign(Assign { lhs: Idx::<Expr>(0), op: None, rhs: Idx::<Expr>(1) })
+Idx::<Stmt>(1) (13..20): Assign(Assign { lhs: Idx::<Expr>(2), op: None, rhs: Idx::<Expr>(3) })
+Idx::<Stmt>(2) (7..23): Block(Block { stmts: [Idx::<Stmt>(1)] })
+
+expr:
+Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (5..7): Name(Name(UseId(DefId(1), 0)))
+Idx::<Expr>(2) (13..15): Name(Name(UseId(DefId(0), 1)))
+Idx::<Expr>(3) (18..20): Name(Name(UseId(DefId(2), 0)))
+
+ty:
+
+root stmts:
+[Idx::<Stmt>(0), Idx::<Stmt>(2)]
+symtab:
+DefId(0): (0..1, Symbol { name: "q", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 2 })
+DefId(1): (5..6, Symbol { name: "j", kind: Undeclared, is_pervasive: false, def_id: DefId(1), next_use: 1 })
+DefId(2): (18..19, Symbol { name: "k", kind: Undeclared, is_pervasive: false, def_id: DefId(2), next_use: 1 })
+UseId(DefId(0), 0): 0..1
+UseId(DefId(0), 1): 13..14
+UseId(DefId(1), 0): 5..6
+UseId(DefId(2), 0): 18..19
+

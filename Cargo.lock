@@ -790,13 +790,15 @@ name = "toc_hir_lowering"
 version = "0.1.0"
 dependencies = [
  "approx",
- "expect-test",
  "if_chain",
+ "insta",
+ "paste",
  "toc_hir",
  "toc_parser",
  "toc_reporting",
  "toc_span",
  "toc_syntax",
+ "unindent",
 ]
 
 [[package]]

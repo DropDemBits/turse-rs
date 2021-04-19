@@ -1,21 +1,60 @@
 //! Tests for lowering
-use expect_test::expect;
 use if_chain::if_chain;
-use toc_hir::{expr, stmt, symbol, ty};
+use toc_hir::{expr, stmt};
 
 use crate::HirLowerResult;
 
-fn lower_text(src: &str, expected: expect_test::Expect) -> HirLowerResult {
+fn stringify_unit(unit: &toc_hir::Unit) -> String {
+    let mut s = String::new();
+
+    fn dump_spanned_arena<T>(s: &mut String, name: &str, arena: &toc_hir::SpannedArena<T>)
+    where
+        T: std::fmt::Debug,
+    {
+        s.push_str(&format!("{}:\n", name));
+        for (id, node) in arena.arena.iter() {
+            let span = arena.spans.get(&id).unwrap();
+            s.push_str(&format!("{:?} ({:?}): {:?}\n", id, span, node));
+        }
+        s.push('\n');
+    }
+
+    // Dump node database
+    s.push_str("database:\n");
+    dump_spanned_arena(&mut s, "stmt", &unit.database.stmt_nodes);
+    dump_spanned_arena(&mut s, "expr", &unit.database.expr_nodes);
+    dump_spanned_arena(&mut s, "ty", &unit.database.type_nodes);
+
+    // List
+    s.push_str("root stmts:\n");
+    s.push_str(&format!("{:?}\n", unit.stmts));
+    // Show
+    s.push_str("symtab:\n");
+    let mut defs = unit.symbol_table.iter_defs().collect::<Vec<_>>();
+    defs.sort_by_key(|(id, _, _)| *id);
+    for (id, span, sym) in defs {
+        s.push_str(&format!("{:?}: ({:?}, {:?})\n", id, span, sym));
+    }
+
+    let mut uses = unit.symbol_table.iter_uses().collect::<Vec<_>>();
+    uses.sort_by_key(|(id, _)| *id);
+    for (id, span) in uses {
+        s.push_str(&format!("{:?}: {:?}\n", id, span));
+    }
+
+    s
+}
+
+fn assert_lower(src: &str) -> HirLowerResult {
     let parse = toc_parser::parse(src);
     let lowered = crate::lower_ast(parse.syntax());
 
-    // Check error output
-    let mut s = String::new();
+    let mut s = stringify_unit(&lowered.unit);
     for err in &lowered.messages {
         s.push_str(&format!("{}\n", err));
     }
-    // Trim trailing newline
-    expected.assert_eq(s.trim_end());
+
+    insta::assert_snapshot!(insta::internals::AutoName, s, src);
 
     lowered
 }
@@ -32,263 +71,72 @@ fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
     }
 }
 
-fn asn_rhs(lowered: &HirLowerResult) -> &expr::Expr {
-    if_chain! {
-        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        then {
-            &lowered.unit.database[*rhs]
-        } else {
-            unreachable!();
-        }
-    }
-}
-
-fn var_ty(lowered: &HirLowerResult) -> &ty::Type {
-    if_chain! {
-        let stmt = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let stmt::Stmt::ConstVar(stmt::ConstVar { type_spec, .. }) = stmt;
-        then {
-            match type_spec
-            {
-                Some(ty) => &lowered.unit.database[*ty],
-                None => panic!("bad struct {:#?}", stmt),
-            }
-
-        } else {
-            unreachable!();
-        }
-    }
-}
-
 #[test]
-fn lower_bare_var_def() {
-    let lowered = lower_text("var a := b", expect![[]]);
-
-    let decl = &lowered.unit.database.stmt_nodes.arena[lowered.unit.stmts[0]];
-    assert!(matches!(
-        decl,
-        stmt::Stmt::ConstVar(stmt::ConstVar {
-            is_register: false,
-            is_const: false,
-            type_spec: None,
-            ..
-        })
-    ))
-}
-
-#[test]
-fn lower_var_def_no_cycle() {
-    let lowered = lower_text("var a := a", expect![[]]);
-
-    let decl = &lowered.unit.database.stmt_nodes.arena[lowered.unit.stmts[0]];
-    if_chain! {
-        if let stmt::Stmt::ConstVar(stmt::ConstVar { names, init_expr: Some(init_expr), .. }) = decl;
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*init_expr];
-        then {
-            assert_ne!(names[0], use_id.as_def());
-        } else {
-            unreachable!()
-        }
-    };
-}
-
-#[test]
-fn lower_var_def_type_spec() {
-    let lowered = lower_text("var a : int", expect![[]]);
-
-    let decl = &lowered.unit.database.stmt_nodes.arena[lowered.unit.stmts[0]];
-    if_chain! {
-        if let stmt::Stmt::ConstVar (stmt::ConstVar{ type_spec, .. }) = decl;
-        then {
-            assert!(type_spec.is_some());
-        } else {
-            unreachable!()
-        }
-    };
-}
-
-#[test]
-fn lower_var_stmt_nothing() {
-    // No stmts to be produced
-    let lowered = lower_text("var", expect![[]]);
-    assert!(lowered.unit.stmts.is_empty());
+fn lower_var_def() {
+    // bare var def
+    assert_lower("var a := b");
+    // with type spec
+    assert_lower("var a : int");
+    // just var
+    assert_lower("var");
+    // check that no def-use cycles are created
+    assert_lower("var a := a");
 }
 
 #[test]
 fn lower_simple_assignment() {
-    let lowered = lower_text("a := b", expect![[]]);
-
-    let decl = &lowered.unit.database.stmt_nodes.arena[lowered.unit.stmts[0]];
-    assert!(matches!(
-        decl,
-        stmt::Stmt::Assign(stmt::Assign {
-            op: stmt::AssignOp::None,
-            ..
-        })
-    ));
-
-    // Defs should be unique
-    let (a_def, b_def) = if_chain! {
-        if let stmt::Stmt::Assign(stmt::Assign { lhs, rhs, .. }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let (expr::Expr::Name(expr::Name::Name(a_id)), expr::Expr::Name(expr::Name::Name(b_id))) = (&lowered.unit.database[*lhs], &lowered.unit.database[*rhs]);
-        then {
-            (a_id.as_def(), b_id.as_def())
-        } else {
-            unreachable!();
-        }
-    };
-
-    assert_ne!(a_def, b_def);
+    assert_lower("a := b");
 }
 
 #[test]
 fn lower_compound_add_assignment() {
-    let lowered = lower_text("a += b", expect![[]]);
-
-    let decl = &lowered.unit.database.stmt_nodes.arena[lowered.unit.stmts[0]];
-    assert!(
-        matches!(
-            decl,
-            stmt::Stmt::Assign(stmt::Assign {
-                op: stmt::AssignOp::Add,
-                ..
-            })
-        ),
-        "was {:?}",
-        decl
-    )
+    assert_lower("a += b");
 }
 
 #[test]
 fn lower_scoping_inner_use_outer_use() {
-    let lowered = lower_text("begin a := b end a := b", expect![[]]);
-
-    // Grab use_id from inner scope
-    let inner_use = if_chain! {
-        if let stmt::Stmt::Block(stmt::Block { stmts }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.unit.database[stmts[0]];
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*lhs];
-        then {
-            *use_id
-        } else {
-            unreachable!();
-        }
-    };
-
-    // Grab use_id from outer scope
-    let outer_use = if_chain! {
-        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.unit.database[lowered.unit.stmts[1]];
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*lhs];
-        then {
-            *use_id
-        } else {
-            unreachable!();
-        }
-    };
-
-    // Should be the same due to import boundary hoisting
-    assert_eq!(outer_use.as_def(), inner_use.as_def());
+    // inner & outer uses of `a` and `b` should use the same DefId due to import boundary hoisting
+    assert_lower("begin a := b end a := b");
 }
 
 #[test]
 fn lower_scoping_outer_use_inner_use() {
-    let lowered = lower_text("q := j begin q := k end", expect![[]]);
-
-    // Grab use_id from inner scope
-    let inner_use = if_chain! {
-        if let stmt::Stmt::Block (stmt::Block{ stmts }) = &lowered.unit.database[lowered.unit.stmts[1]];
-        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.unit.database[stmts[0]];
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*lhs];
-        then {
-            *use_id
-        } else {
-            unreachable!();
-        }
-    };
-
-    // Grab use_id from outer scope
-    let outer_use = if_chain! {
-        if let stmt::Stmt::Assign (stmt::Assign{ lhs, .. }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*lhs];
-        then {
-            *use_id
-        } else {
-            unreachable!();
-        }
-    };
-
-    assert_eq!(inner_use.as_def(), outer_use.as_def());
+    // inner & outer uses of `a` and `b` should use the same DefId due to import boundary hoisting
+    assert_lower("q := j begin q := k end");
 }
 
 #[test]
 fn lower_int_literal() {
-    assert_eq!(
-        literal_value(&lower_text("a := 01234560", expect![[]])),
-        &expr::Literal::Integer(1234560)
-    );
-
+    assert_lower("a := 01234560");
     // Overflow
-    assert_eq!(
-        literal_value(&lower_text(
-            "a := 99999999999999999999",
-            expect![[r#"error at 5..25: int literal is too large"#]]
-        )),
-        &expr::Literal::Integer(0)
-    );
+    assert_lower("a := 99999999999999999999");
 }
 
 #[test]
 fn lower_int_radix_literal() {
-    assert_eq!(
-        literal_value(&lower_text("a := 16#EABC", expect![[]])),
-        &expr::Literal::Integer(0xEABC)
-    );
+    assert_lower("a := 16#EABC");
 
     let failing_tests = vec![
         // Overflow
-        (
-            "10#99999999999999999999",
-            expect![[r#"error at 5..28: explicit int literal is too large"#]],
-        ),
+        "10#99999999999999999999",
         // No tail digits
-        (
-            "30#",
-            expect![[r#"error at 5..8: explicit int literal is missing radix digits"#]],
-        ),
-        (
-            "30#\n",
-            expect![[r#"error at 5..9: explicit int literal is missing radix digits"#]],
-        ),
+        "30#",
+        "30#\n",
         // Out of range (> 36)
-        (
-            "37#asda",
-            expect![[r#"error at 5..12: base for explicit int literal is not between 2 - 36"#]],
-        ),
+        "37#asda",
         // Out of range (= 0)
-        (
-            "0#0000",
-            expect![[r#"error at 5..11: base for explicit int literal is not between 2 - 36"#]],
-        ),
+        "0#0000",
         // Out of range (= 1)
-        (
-            "1#0000",
-            expect![[r#"error at 5..11: base for explicit int literal is not between 2 - 36"#]],
-        ),
+        "1#0000",
         // Out of range (= overflow)
-        (
-            "18446744073709551616#0000",
-            expect![[r#"error at 5..30: base for explicit int literal is not between 2 - 36"#]],
-        ),
+        "18446744073709551616#0000",
         // Invalid digit
-        (
-            "10#999a9a9",
-            expect![[r#"error at 11..12: invalid digit for the specified base"#]],
-        ),
+        "10#999a9a9",
     ];
 
-    for (num, (text, expected)) in failing_tests.into_iter().enumerate() {
+    for (num, text) in failing_tests.into_iter().enumerate() {
         eprintln!("On failing test #{}", num + 1);
-        let lowered = lower_text(&format!("a := {}", text), expected);
+        let lowered = assert_lower(&format!("a := {}", text));
         let actual_value = literal_value(&lowered);
 
         // All error literal should produce 0
@@ -304,52 +152,28 @@ fn lower_int_radix_literal() {
 fn lower_real_literal() {
     let tests = vec![
         // Leading dot
-        (".12345", 0.12345, expect![[]]),
+        (".12345", 0.12345),
         // Varying tails
-        ("1.", 1.0, expect![[]]),
-        ("100.00", 100.00, expect![[]]),
-        ("100.00e10", 100.00e10, expect![[]]),
-        ("100.00e100", 100.00e100, expect![[]]),
+        ("1.", 1.0),
+        ("100.00", 100.00),
+        ("100.00e10", 100.00e10),
+        ("100.00e100", 100.00e100),
         // Invalid format
-        (
-            "1e+",
-            0.0,
-            expect![[r#"error at 5..8: real literal is missing exponent digits"#]],
-        ),
-        (
-            "1e-",
-            0.0,
-            expect![[r#"error at 5..8: real literal is missing exponent digits"#]],
-        ),
-        (
-            "1e",
-            0.0,
-            expect![[r#"error at 5..7: real literal is missing exponent digits"#]],
-        ),
-        (
-            "1.0e",
-            0.0,
-            expect![[r#"error at 5..9: real literal is missing exponent digits"#]],
-        ),
+        ("1e+", 0.0),
+        ("1e-", 0.0),
+        ("1e", 0.0),
+        ("1.0e", 0.0),
         // Too big
-        (
-            "1e600",
-            0.0,
-            expect![[r#"error at 5..10: real literal is too large"#]],
-        ),
-        (
-            "1.0e600",
-            0.0,
-            expect![[r#"error at 5..12: real literal is too large"#]],
-        ),
+        ("1e600", 0.0),
+        ("1.0e600", 0.0),
         // Too small (should not produce an error)
-        ("1e-999999999", 1e-999999999, expect![[]]),
-        ("1.0e-999999999", 1.0e-999999999, expect![[]]),
+        ("1e-999999999", 1e-999999999),
+        ("1.0e-999999999", 1.0e-999999999),
     ];
 
-    for (num, (text, value, expected)) in tests.into_iter().enumerate() {
+    for (num, (text, value)) in tests.into_iter().enumerate() {
         eprintln!("On test #{}", num + 1);
-        let lowered = lower_text(&format!("a := {}", text), expected);
+        let lowered = assert_lower(&format!("a := {}", text));
         let actual_value = literal_value(&lowered);
 
         if let expr::Literal::Real(actual_value) = actual_value {
@@ -388,7 +212,7 @@ fn lower_complex_real_literal() {
 
     for (name, hex_value, text) in tests.into_iter() {
         eprintln!("On test {}", name);
-        let lowered = lower_text(&format!("a := {}", text), expect![[]]);
+        let lowered = assert_lower(&format!("a := {}", text));
         let actual_value = literal_value(&lowered);
         let value = f64::from_ne_bytes(hex_value.to_ne_bytes());
 
@@ -402,52 +226,22 @@ fn lower_complex_real_literal() {
 
 #[test]
 fn lower_string_literal() {
-    assert_eq!(
-        literal_value(&lower_text(r#"a := "abcd💖""#, expect![[]])),
-        &expr::Literal::String("abcd💖".to_string())
-    );
+    assert_lower(r#"a := "abcd💖""#);
 
     // Should handle strings without an ending delimiter
-    assert_eq!(
-        literal_value(&lower_text(
-            r#"a := "abcd "#,
-            expect![[r#"error at 5..11: invalid string literal: missing terminator character"#]]
-        )),
-        &expr::Literal::String("abcd ".to_string())
-    );
+    assert_lower(r#"a := "abcd "#);
     // ... or mismatched delimiter
-    assert_eq!(
-        literal_value(&lower_text(
-            r#"a := "abcd'"#,
-            expect![[r#"error at 5..11: invalid string literal: missing terminator character"#]]
-        )),
-        &expr::Literal::String("abcd'".to_string())
-    );
+    assert_lower(r#"a := "abcd'"#);
 }
 
 #[test]
 fn lower_char_literal() {
-    assert_eq!(
-        literal_value(&lower_text(r#"a := 'abcd💖'"#, expect![[]])),
-        &expr::Literal::CharSeq("abcd💖".to_string())
-    );
+    assert_lower(r#"a := 'abcd💖'"#);
 
     // Should handle character strings without an ending delimiter
-    assert_eq!(
-        literal_value(&lower_text(
-            r#"a := 'abcd "#,
-            expect![[r#"error at 5..11: invalid char literal: missing terminator character"#]]
-        )),
-        &expr::Literal::CharSeq("abcd ".to_string())
-    );
+    assert_lower(r#"a := 'abcd "#);
     // ... or mismatched delimiter
-    assert_eq!(
-        literal_value(&lower_text(
-            r#"a := 'abcd""#,
-            expect![[r#"error at 5..11: invalid char literal: missing terminator character"#]]
-        )),
-        &expr::Literal::CharSeq("abcd\"".to_string())
-    );
+    assert_lower(r#"a := 'abcd""#);
 }
 
 #[test]
@@ -455,175 +249,86 @@ fn lower_char_seq_escapes() {
     // All escapes:
     let escapes = vec![
         // Backslash escapes
-        ("'\\\\'", "\\", expect![[]]),
-        ("'\\\''", "\'", expect![[]]),
-        ("'\\\"'", "\"", expect![[]]),
-        ("'\\b'", "\x08", expect![[]]),
-        ("'\\d'", "\x7F", expect![[]]),
-        ("'\\e'", "\x1B", expect![[]]),
-        ("'\\f'", "\x0C", expect![[]]),
-        ("'\\r'", "\r", expect![[]]),
-        ("'\\n'", "\n", expect![[]]),
-        ("'\\t'", "\t", expect![[]]),
-        ("'\\^'", "^", expect![[]]),
-        ("'\\B'", "\x08", expect![[]]),
-        ("'\\D'", "\x7F", expect![[]]),
-        ("'\\E'", "\x1B", expect![[]]),
-        ("'\\F'", "\x0C", expect![[]]),
-        ("'\\T'", "\t", expect![[]]),
+        ("'\\\\'", "\\"),
+        ("'\\\''", "\'"),
+        ("'\\\"'", "\""),
+        ("'\\b'", "\x08"),
+        ("'\\d'", "\x7F"),
+        ("'\\e'", "\x1B"),
+        ("'\\f'", "\x0C"),
+        ("'\\r'", "\r"),
+        ("'\\n'", "\n"),
+        ("'\\t'", "\t"),
+        ("'\\^'", "^"),
+        ("'\\B'", "\x08"),
+        ("'\\D'", "\x7F"),
+        ("'\\E'", "\x1B"),
+        ("'\\F'", "\x0C"),
+        ("'\\T'", "\t"),
         // Octal escapes
-        ("'\\0o'", "\0o", expect![[]]),
-        ("'\\43O'", "#O", expect![[]]),
-        ("'\\101'", "A", expect![[]]),
-        ("'\\377'", "\u{00FF}", expect![[]]), // Have to use unicode characters
-        ("'\\1011'", "A1", expect![[]]),
+        ("'\\0o'", "\0o"),
+        ("'\\43O'", "#O"),
+        ("'\\101'", "A"),
+        ("'\\377'", "\u{00FF}"), // Have to use unicode characters
+        ("'\\1011'", "A1"),
         // Hex escapes (non-hex digits and extra hex digits are ignored)
-        ("'\\x0o'", "\0o", expect![[]]),
-        ("'\\x00'", "\0", expect![[]]),
-        ("'\\x00Ak'", "\0Ak", expect![[]]),
-        ("'\\x20'", " ", expect![[]]),
-        ("'\\x20Ar'", " Ar", expect![[]]),
-        ("'\\xfe'", "\u{00FE}", expect![[]]),
+        ("'\\x0o'", "\0o"),
+        ("'\\x00'", "\0"),
+        ("'\\x00Ak'", "\0Ak"),
+        ("'\\x20'", " "),
+        ("'\\x20Ar'", " Ar"),
+        ("'\\xfe'", "\u{00FE}"),
         // Unicode escapes (non-hex digits and extra digits are ignored)
-        ("'\\u8o'", "\x08o", expect![[]]),
-        ("'\\uA7k'", "§k", expect![[]]),
-        ("'\\u394o'", "Δo", expect![[]]),
-        ("'\\u2764r'", "❤r", expect![[]]),
-        ("'\\u1f029t'", "🀩t", expect![[]]),
-        ("'\\u10f029s'", "\u{10F029}s", expect![[]]),
-        ("'\\u10F029i'", "\u{10F029}i", expect![[]]),
-        ("'\\U8O'", "\x08O", expect![[]]),
-        ("'\\Ua7l'", "§l", expect![[]]),
-        ("'\\U394w'", "Δw", expect![[]]),
-        ("'\\U2764X'", "❤X", expect![[]]),
-        ("'\\U1F029z'", "🀩z", expect![[]]),
-        ("'\\U10F029Y'", "\u{10F029}Y", expect![[]]),
-        ("'\\U10F029jY'", "\u{10F029}jY", expect![[]]),
+        ("'\\u8o'", "\x08o"),
+        ("'\\uA7k'", "§k"),
+        ("'\\u394o'", "Δo"),
+        ("'\\u2764r'", "❤r"),
+        ("'\\u1f029t'", "🀩t"),
+        ("'\\u10f029s'", "\u{10F029}s"),
+        ("'\\u10F029i'", "\u{10F029}i"),
+        ("'\\U8O'", "\x08O"),
+        ("'\\Ua7l'", "§l"),
+        ("'\\U394w'", "Δw"),
+        ("'\\U2764X'", "❤X"),
+        ("'\\U1F029z'", "🀩z"),
+        ("'\\U10F029Y'", "\u{10F029}Y"),
+        ("'\\U10F029jY'", "\u{10F029}jY"),
         // Caret escapes
-        ("'^J'", "\n", expect![[]]),
-        ("'^M'", "\r", expect![[]]),
-        ("'^?'", "\x7F", expect![[]]),
+        ("'^J'", "\n"),
+        ("'^M'", "\r"),
+        ("'^?'", "\x7F"),
         // Unterminated literal
-        (
-            "'",
-            "",
-            expect![[r#"error at 5..6: invalid char literal: missing terminator character"#]],
-        ),
+        ("'", ""),
         // Invalid Escapes //
         // Without any following
-        (
-            "'\\",
-            "",
-            expect![[r#"
-                error at 6..7: invalid char literal: unknown backslash escape
-                error at 5..7: invalid char literal: missing terminator character"#]],
-        ),
-        (
-            "'^",
-            "",
-            expect![[r#"
-                error at 6..7: invalid char literal: unknown caret escape
-                error at 5..7: invalid char literal: missing terminator character"#]],
-        ),
+        ("'\\", ""),
+        ("'^", ""),
         // Caret Escaped literals
-        (
-            "'^'",
-            "'",
-            expect![[r#"
-                error at 6..8: invalid char literal: unknown caret escape
-                error at 5..8: invalid char literal: missing terminator character"#]],
-        ),
+        ("'^'", "'"),
         // Greater than 255
-        (
-            "'\\777'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..10: invalid char literal: octal character value is greater than \377 (decimal 255)"#
-            ]],
-        ),
+        ("'\\777'", "\u{FFFD}"),
         // Larger than U+10FFFF
-        (
-            "'\\u200000'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..14: invalid char literal: unicode codepoint value is greater than U+10FFFF"#
-            ]],
-        ),
-        (
-            "'\\u3ffffff'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..15: invalid char literal: unicode codepoint value is greater than U+10FFFF"#
-            ]],
-        ),
-        (
-            "'\\u3fffffff'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..16: invalid char literal: unicode codepoint value is greater than U+10FFFF"#
-            ]],
-        ),
+        ("'\\u200000'", "\u{FFFD}"),
+        ("'\\u3ffffff'", "\u{FFFD}"),
+        ("'\\u3fffffff'", "\u{FFFD}"),
         // Surrogate characters
-        (
-            "'\\uD800'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
-            ]],
-        ),
-        (
-            "'\\UDFfF'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
-            ]],
-        ),
-        (
-            "'\\Ud900'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
-            ]],
-        ),
-        (
-            "'\\udab0'",
-            "\u{FFFD}",
-            expect![[
-                r#"error at 6..12: invalid char literal: surrogate chars are not allowed in char sequences"#
-            ]],
-        ),
+        ("'\\uD800'", "\u{FFFD}"),
+        ("'\\UDFfF'", "\u{FFFD}"),
+        ("'\\Ud900'", "\u{FFFD}"),
+        ("'\\udab0'", "\u{FFFD}"),
         // Incorrect start of escape sequence
-        (
-            "'\\8'",
-            "8",
-            expect![[r#"error at 6..8: invalid char literal: unknown backslash escape"#]],
-        ),
-        (
-            "'^~'",
-            "~",
-            expect![[r#"error at 6..8: invalid char literal: unknown caret escape"#]],
-        ),
-        (
-            "'\\x'",
-            "x",
-            expect![[r#"error at 6..8: invalid char literal: missing hex digits after here"#]],
-        ),
-        (
-            "'\\u'",
-            "u",
-            expect![[r#"error at 6..8: invalid char literal: missing hex digits after here"#]],
-        ),
-        (
-            "'\\U'",
-            "U",
-            expect![[r#"error at 6..8: invalid char literal: missing hex digits after here"#]],
-        ),
+        ("'\\8'", "8"),
+        ("'^~'", "~"),
+        ("'\\x'", "x"),
+        ("'\\u'", "u"),
+        ("'\\U'", "U"),
     ];
 
-    for (text, expected_value, expected_errs) in escapes.into_iter() {
+    for (text, expected_value) in escapes.into_iter() {
         let stringified_test = format!("({:?}, {:?}, ..)", text, expected_value);
+        let lowered = assert_lower(&format!("a := {}", text));
         assert_eq!(
-            literal_value(&lower_text(&format!("a := {}", text), expected_errs)),
+            literal_value(&lowered),
             &expr::Literal::CharSeq(expected_value.to_string()),
             "At \"{}\"",
             stringified_test
@@ -634,346 +339,85 @@ fn lower_char_seq_escapes() {
 #[test]
 fn lower_multiple_invalid_char_seq_escapes() {
     assert_eq!(
-        literal_value(&lower_text(
-            r#"a := '\777\ud800\!'"#,
-            expect![[r#"
-                error at 6..10: invalid char literal: octal character value is greater than \377 (decimal 255)
-                error at 10..16: invalid char literal: surrogate chars are not allowed in char sequences
-                error at 16..18: invalid char literal: unknown backslash escape"#]]
-        )),
+        literal_value(&assert_lower(r#"a := '\777\ud800\!'"#)),
         &expr::Literal::CharSeq("\u{FFFD}\u{FFFD}!".to_string()),
     );
 }
 
 #[test]
 fn lower_paren_expr() {
-    let lowered = lower_text("a := (a)", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Paren(expr::Paren{ expr }) = asn_rhs(&lowered);
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*expr];
-        then {
-            assert_eq!(use_id.as_def(), symbol::DefId::new(0));
-        }
-        else {
-            unreachable!()
-        }
-    }
-}
-
-#[test]
-fn lower_nested_paren_expr() {
-    let lowered = lower_text("a := (((a)))", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Paren(expr::Paren{ expr }) = asn_rhs(&lowered);
-        if let expr::Expr::Paren(expr::Paren{ expr }) = &lowered.unit.database[*expr];
-        if let expr::Expr::Paren(expr::Paren{ expr }) = &lowered.unit.database[*expr];
-        if let expr::Expr::Name(expr::Name::Name(use_id)) = &lowered.unit.database[*expr];
-        then {
-            assert_eq!(use_id.as_def(), symbol::DefId::new(0));
-        }
-        else {
-            unreachable!()
-        }
-    }
-}
-
-#[test]
-fn lower_empty_paren_expr() {
-    let lowered = lower_text("a := ()", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Paren(expr::Paren{ expr }) = asn_rhs(&lowered);
-        then {
-            assert!(matches!(&lowered.unit.database[*expr], expr::Expr::Missing));
-        }
-        else {
-            unreachable!()
-        }
-    }
+    assert_lower("a := (a)");
+    // nested
+    assert_lower("a := (((a)))");
+    // empty
+    assert_lower("a := ()");
 }
 
 #[test]
 fn lower_self_expr() {
-    let lowered = lower_text("a := self", expect![[]]);
-
-    assert!(matches!(
-        &asn_rhs(&lowered),
-        &expr::Expr::Name(expr::Name::Self_)
-    ));
+    assert_lower("a := self");
 }
 
 #[test]
 fn lower_binary_expr() {
-    let lowered = lower_text("a := a + a", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Binary(expr::Binary{ lhs, op, rhs }) = asn_rhs(&lowered);
-        if let expr::Expr::Name(expr::Name::Name(lhs_id)) = &lowered.unit.database[*lhs];
-        if let expr::Expr::Name(expr::Name::Name(rhs_id)) = &lowered.unit.database[*rhs];
-        then {
-            // Different uses, but from the same def
-            assert_ne!(lhs_id, rhs_id);
-            assert_eq!(lhs_id.as_def(), rhs_id.as_def());
-            assert_eq!(*op.item(), expr::BinaryOp::Add);
-        }
-        else {
-            unreachable!()
-        }
-    }
-}
-
-#[test]
-fn lower_binary_expr_missing_operands() {
-    // Should still be present
-    let lowered = lower_text("a := () + ", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Binary(expr::Binary{ lhs, op, rhs }) = asn_rhs(&lowered);
-        if let expr::Expr::Paren(expr::Paren { expr: lhs } ) = &lowered.unit.database[*lhs];
-        then {
-            assert!(matches!(&lowered.unit.database[*lhs], expr::Expr::Missing));
-            assert!(matches!(&lowered.unit.database[*rhs], expr::Expr::Missing));
-            assert_eq!(*op.item(), expr::BinaryOp::Add);
-        }
-        else {
-            unreachable!()
-        }
-    }
+    assert_lower("a := a + a");
+    // missing operand, should still be present
+    assert_lower("a := () + ");
 }
 
 #[test]
 fn lower_unary_expr() {
-    let lowered = lower_text("a := + a", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Unary(expr::Unary{ op, rhs }) = asn_rhs(&lowered);
-        then {
-            assert!(matches!(&lowered.unit.database[*rhs], expr::Expr::Name(_)));
-            assert_eq!(*op.item(), expr::UnaryOp::Identity);
-        }
-        else {
-            unreachable!()
-        }
-    }
-}
-
-#[test]
-fn lower_unary_expr_missing_operand() {
-    // Should still be present
-    let lowered = lower_text("a := +", expect![[]]);
-
-    if_chain! {
-        if let expr::Expr::Unary(expr::Unary{ op, rhs }) = asn_rhs(&lowered);
-        then {
-            assert!(matches!(&lowered.unit.database[*rhs], expr::Expr::Missing));
-            assert_eq!(*op.item(), expr::UnaryOp::Identity);
-        }
-        else {
-            unreachable!()
-        }
-    }
+    assert_lower("a := + a");
+    // missing operand, should still be present
+    assert_lower("a := +");
 }
 
 #[test]
 fn lower_prim_type() {
     let tys = vec![
-        ("int", ty::Primitive::Int),
-        ("int1", ty::Primitive::Int1),
-        ("int2", ty::Primitive::Int2),
-        ("int4", ty::Primitive::Int4),
-        ("nat", ty::Primitive::Nat),
-        ("nat1", ty::Primitive::Nat1),
-        ("nat2", ty::Primitive::Nat2),
-        ("nat4", ty::Primitive::Nat4),
-        ("real", ty::Primitive::Real),
-        ("real4", ty::Primitive::Real4),
-        ("real8", ty::Primitive::Real8),
-        ("boolean", ty::Primitive::Boolean),
-        ("addressint", ty::Primitive::AddressInt),
-        ("char", ty::Primitive::Char),
-        ("string", ty::Primitive::String),
+        "int",
+        "int1",
+        "int2",
+        "int4",
+        "nat",
+        "nat1",
+        "nat2",
+        "nat4",
+        "real",
+        "real4",
+        "real8",
+        "boolean",
+        "addressint",
+        "char",
+        "string",
     ];
 
-    for (ty_text, expected_kind) in tys {
-        eprintln!("Lowering \"{}\"", ty_text);
-        let lowered = lower_text(&format!("var _ : {}", ty_text), expect![[]]);
-
-        assert_eq!(var_ty(&lowered), &ty::Type::Primitive(expected_kind));
+    for ty_text in tys {
+        assert_lower(&format!("var _ : {}", ty_text));
     }
 }
 
 #[test]
-#[allow(clippy::collapsible_match)] // I think it's more readable to have that second "if let" in this situation
 fn lower_prim_char_seq_type() {
-    let lowered = lower_text("var _ : char(1)", expect![[]]);
-
-    if_chain! {
-        if let ty::Type::Primitive(ty::Primitive::SizedChar(seq_length)) = var_ty(&lowered);
-        if let ty::SeqLength::Expr(expr) = seq_length;
-        if let expr::Expr::Literal(literal) = &lowered.unit.database[*expr];
-        then {
-            assert_eq!(literal, &expr::Literal::Integer(1));
-        } else {
-            unreachable!()
-        }
-    }
+    assert_lower("var _ : char(1)");
 }
 
 #[test]
-fn lower_put_stmt_single_item() {
-    let lowered = lower_text("put a", expect![[]]);
-
-    if_chain! {
-        if let stmt::Stmt::Put (stmt::Put { stream_num: None, items, append_newline: true }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let stmt::Skippable::Item(item) = &items[0];
-        if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-        then {
-            assert_eq!(id.as_def(), symbol::DefId::new(0));
-        }
-        else {
-            unreachable!();
-        }
-    }
+fn lower_put_stmt() {
+    // single item
+    assert_lower("put a");
+    // many items
+    assert_lower("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6");
+    // no item
+    assert_lower("put");
 }
 
 #[test]
-fn lower_put_stmt_many_items() {
-    let lowered = lower_text("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6", expect![[]]);
-
-    if_chain! {
-        if let stmt::Stmt::Put (stmt::Put{ stream_num: None, items, append_newline: true }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        then {
-            assert!(matches!(&items[0], stmt::Skippable::Skip));
-
-            if_chain! {
-                if let stmt::Skippable::Item(item) = &items[1];
-                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-                then {
-                    assert_eq!(id.as_def(), symbol::DefId::new(0));
-                    assert!(item.width.is_some());
-                    assert!(item.precision.is_none());
-                    assert!(item.exponent_width.is_none());
-                }
-                else {
-                    unreachable!();
-                }
-            }
-
-            if_chain! {
-                if let stmt::Skippable::Item(item) = &items[2];
-                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-                then {
-                    assert_eq!(id.as_def(), symbol::DefId::new(1));
-                    assert!(item.width.is_some());
-                    assert!(item.precision.is_some());
-                    assert!(item.exponent_width.is_none());
-                }
-                else {
-                    unreachable!();
-                }
-            }
-
-            if_chain! {
-                if let stmt::Skippable::Item(item) = &items[3];
-                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-                then {
-                    assert_eq!(id.as_def(), symbol::DefId::new(2));
-                    assert!(item.width.is_some());
-                    assert!(item.precision.is_some());
-                    assert!(item.exponent_width.is_some());
-                }
-                else {
-                    unreachable!();
-                }
-            }
-        }
-        else {
-            unreachable!();
-        }
-    }
-}
-
-#[test]
-fn lower_gett_stmt_many_items() {
-    let lowered = lower_text("get skip, a, b : 1, c : *", expect![[]]);
-
-    if_chain! {
-        if let stmt::Stmt::Get (stmt::Get{ stream_num: None, items }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        then {
-            assert!(matches!(&items[0], stmt::Skippable::Skip));
-
-            if_chain! {
-                if let stmt::Skippable::Item(item) = &items[1];
-                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-                then {
-                    assert_eq!(id.as_def(), symbol::DefId::new(0));
-                    assert!(matches!(item.width, stmt::GetWidth::Token));
-                }
-                else {
-                    unreachable!();
-                }
-            }
-
-            if_chain! {
-                if let stmt::Skippable::Item(item) = &items[2];
-                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-                then {
-                    assert_eq!(id.as_def(), symbol::DefId::new(1));
-                    assert!(matches!(item.width, stmt::GetWidth::Chars(_)));
-                }
-                else {
-                    unreachable!();
-                }
-            }
-
-            if_chain! {
-                if let stmt::Skippable::Item(item) = &items[3];
-                if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-                then {
-                    assert_eq!(id.as_def(), symbol::DefId::new(2));
-                    assert!(matches!(item.width, stmt::GetWidth::Line));
-                }
-                else {
-                    unreachable!();
-                }
-            }
-
-        }
-        else {
-            unreachable!();
-        }
-    }
-}
-
-#[test]
-fn lower_put_stmt_no_item() {
-    // No stmts to be produced
-    let lowered = lower_text("put", expect![[]]);
-    assert!(lowered.unit.stmts.is_empty());
-}
-
-#[test]
-fn lower_get_stmt_single_item() {
-    let lowered = lower_text("get a", expect![[]]);
-
-    if_chain! {
-        if let stmt::Stmt::Get (stmt::Get{ stream_num: None, items }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let stmt::Skippable::Item(item) = &items[0];
-        if let expr::Expr::Name(expr::Name::Name(id)) = &lowered.unit.database[item.expr];
-        then {
-            assert_eq!(id.as_def(), symbol::DefId::new(0));
-        }
-        else {
-            unreachable!();
-        }
-    }
-}
-
-#[test]
-fn lower_get_stmt_no_item() {
-    // No stmts to be produced
-    let lowered = lower_text("get", expect![[]]);
-    assert!(lowered.unit.stmts.is_empty());
+fn lower_get_stmt() {
+    // single item
+    assert_lower("get a*");
+    // many items
+    assert_lower("get skip, a, b : 1, c : *");
+    // no items
+    assert_lower("get");
 }
