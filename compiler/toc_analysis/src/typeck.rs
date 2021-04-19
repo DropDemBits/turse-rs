@@ -470,6 +470,8 @@ impl TypeCheck<'_> {
             // Pure bitwise operators
             expr::BinaryOp::Shl => todo!(),
             expr::BinaryOp::Shr => todo!(),
+            // Pure logical operator
+            expr::BinaryOp::Imply => todo!(),
             // Comparison (a, b => boolean where a, b: Comparable)
             expr::BinaryOp::Less => todo!(),
             expr::BinaryOp::LessEq => todo!(),
@@ -480,8 +482,6 @@ impl TypeCheck<'_> {
             // Set membership tests (set(a), a => boolean)
             expr::BinaryOp::In => todo!(),
             expr::BinaryOp::NotIn => todo!(),
-            // Short circuiting boolean operator
-            expr::BinaryOp::Imply => todo!(),
             // Field access (a, b => c)
             expr::BinaryOp::Arrow => todo!(),
             expr::BinaryOp::Dot => todo!(),

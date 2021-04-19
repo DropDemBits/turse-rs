@@ -1,0 +1,20 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    % Inferred integer types should pass\n    % Decl should be a concrete type\n    var a := 1 ** 1\n    % Types of operands should make the type concrete\n    var r : real\n    var i : int\n    var n : nat\n    var _r0 := 1 ** r\n    var _r1 := r ** 1\n    var _i0 := 1 ** i\n    var _i1 := i ** 1\n    var _n0 := 1 ** n\n    var _n1 := n ** 1\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Real(Real))
+    Idx::<Type>(1) TyRef(Int(Int))
+    Idx::<Type>(2) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Real(Real)))
+    DefId(2) Var(TyRef(Int(Int)))
+    DefId(3) Var(TyRef(Nat(Nat)))
+    DefId(4) Var(TyRef(Real(Real)))
+    DefId(5) Var(TyRef(Real(Real)))
+    DefId(6) Var(TyRef(Int(Int)))
+    DefId(7) Var(TyRef(Int(Int)))
+    DefId(8) Var(TyRef(Nat(Nat)))
+    DefId(9) Var(TyRef(Nat(Nat)))

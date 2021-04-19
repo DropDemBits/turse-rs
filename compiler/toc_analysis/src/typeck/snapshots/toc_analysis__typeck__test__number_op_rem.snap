@@ -1,0 +1,22 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    % Compatiblitly with all variant of numbers\n    var r : real\n    var i : int\n    var n : nat\n    var _rr := r rem r\n    var _ri := r rem i\n    var _ir := i rem r\n    var _rn := r rem n\n    var _nr := n rem r\n    var _ii := i rem i\n    var _in := i rem n\n    var _ni := n rem i\n    var _nn := n rem n\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Real(Real))
+    Idx::<Type>(1) TyRef(Int(Int))
+    Idx::<Type>(2) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Real(Real)))
+    DefId(1) Var(TyRef(Int(Int)))
+    DefId(2) Var(TyRef(Nat(Nat)))
+    DefId(3) Var(TyRef(Real(Real)))
+    DefId(4) Var(TyRef(Real(Real)))
+    DefId(5) Var(TyRef(Real(Real)))
+    DefId(6) Var(TyRef(Real(Real)))
+    DefId(7) Var(TyRef(Real(Real)))
+    DefId(8) Var(TyRef(Int(Int)))
+    DefId(9) Var(TyRef(Int(Int)))
+    DefId(10) Var(TyRef(Int(Int)))
+    DefId(11) Var(TyRef(Nat(Nat)))

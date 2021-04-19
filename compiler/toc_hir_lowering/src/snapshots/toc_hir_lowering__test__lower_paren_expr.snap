@@ -1,0 +1,23 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: "a := (a)"
+
+---
+database:
+stmt:
+Idx::<Stmt>(0) (0..8): Assign(Assign { lhs: Idx::<Expr>(0), op: None, rhs: Idx::<Expr>(2) })
+
+expr:
+Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (6..7): Name(Name(UseId(DefId(0), 1)))
+Idx::<Expr>(2) (5..8): Paren(Paren { expr: Idx::<Expr>(1) })
+
+ty:
+
+root stmts:
+[Idx::<Stmt>(0)]
+symtab:
+DefId(0): (0..1, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 2 })
+UseId(DefId(0), 0): 0..1
+UseId(DefId(0), 1): 6..7
+

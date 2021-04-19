@@ -1,0 +1,21 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: "var a := a"
+
+---
+database:
+stmt:
+Idx::<Stmt>(0) (0..10): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], type_spec: None, init_expr: Some(Idx::<Expr>(0)) })
+
+expr:
+Idx::<Expr>(0) (9..10): Name(Name(UseId(DefId(0), 0)))
+
+ty:
+
+root stmts:
+[Idx::<Stmt>(0)]
+symtab:
+DefId(0): (9..10, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+DefId(1): (4..5, Symbol { name: "a", kind: Declared, is_pervasive: false, def_id: DefId(1), next_use: 0 })
+UseId(DefId(0), 0): 9..10
+

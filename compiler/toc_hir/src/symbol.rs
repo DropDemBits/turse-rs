@@ -152,6 +152,17 @@ impl SymbolTable {
         self.next_def += 1;
         def_id
     }
+
+    pub fn iter_defs(&self) -> impl Iterator<Item = (DefId, TextRange, &Symbol)> {
+        self.defs.iter().map(move |(k, v)| {
+            let span = self.def_spans.get(k).unwrap();
+            (*k, *span, v)
+        })
+    }
+
+    pub fn iter_uses(&self) -> impl Iterator<Item = (UseId, TextRange)> + '_ {
+        self.use_spans.iter().map(|(k, v)| (*k, *v))
+    }
 }
 
 impl Default for SymbolTable {

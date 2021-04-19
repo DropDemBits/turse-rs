@@ -1,0 +1,15 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+    Idx::<Type>(1) TyRef(String)
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(String))
+    DefId(2) Var(TyRef(Error))
+    DefId(3) Var(TyRef(Error))
+error at 38..39: incompatible types for addition
+| info: operands must both be numbers, strings, or sets
