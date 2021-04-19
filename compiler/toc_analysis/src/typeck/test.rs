@@ -1,16 +1,34 @@
 //! Type check tests
-use expect_test::expect;
 use toc_reporting::ReportMessage;
+use unindent::unindent;
 
 use crate::ty::TyCtx;
 
-fn check_typecheck(source: &str, expect: expect_test::Expect) {
+macro_rules! test_for_each_op {
+    ($top_level_name:ident, [$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal) => {
+        ::paste::paste! {
+                $(
+                #[test]
+                fn [<$top_level_name _ $sub_name>]() {
+                    let source = format!($source, $op);
+                    assert_typecheck(&source);
+                }
+            )+
+        }
+    };
+}
+
+#[track_caller]
+fn assert_typecheck(source: &str) {
+    insta::assert_snapshot!(insta::internals::AutoName, do_typecheck(source), source);
+}
+
+fn do_typecheck(source: &str) -> String {
     let parsed = toc_parser::parse(&source);
     let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
     let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(&hir_res.unit);
 
-    let s = stringify_typeck_results(&ty_ctx, &typeck_messages);
-    expect.assert_eq(&s);
+    stringify_typeck_results(&ty_ctx, &typeck_messages)
 }
 
 fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> String {
@@ -31,289 +49,99 @@ fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> Strin
 
 #[test]
 fn var_decl_type_spec() {
-    check_typecheck(
-        r#"var k : string"#,
-        expect![[r#"
-            ty_nodes:
-                Idx::<Type>(0) TyRef(String)
-            def_kinds:
-                DefId(0) Var(TyRef(String))"#]],
-    );
+    assert_typecheck(r#"var k : string"#);
 }
 
 #[test]
 fn var_decl_inference() {
-    check_typecheck(
-        r#"var k := "oeuf""#,
-        expect![[r#"
-            ty_nodes:
-            def_kinds:
-                DefId(0) Var(TyRef(String))"#]],
-    );
+    assert_typecheck(r#"var k := "oeuf""#);
 }
 
 #[test]
 fn var_decl_init_typecheck() {
-    check_typecheck(
-        r#"var k : string := "oeuf""#,
-        expect![[r#"
-            ty_nodes:
-                Idx::<Type>(0) TyRef(String)
-            def_kinds:
-                DefId(0) Var(TyRef(String))"#]],
-    );
+    assert_typecheck(r#"var k : string := "oeuf""#);
 }
 
 #[test]
 #[should_panic(expected = "Encountered bare ConstVar decl")]
 fn bare_var_decl() {
     // Invariant, to be covered by the parser stage
-    check_typecheck("var k", expect![[]]);
+    let _ = do_typecheck("var k");
 }
 
 #[test]
 fn undeclared_symbol() {
-    check_typecheck(
-        "var a := b",
-        expect![[r#"
-        ty_nodes:
-        def_kinds:
-            DefId(0) Error(TyRef(Error))
-            DefId(1) Var(TyRef(Error))
-        error at 9..10: `b` is not declared"#]],
-    );
+    assert_typecheck("var a := b");
     // No cyclic deps
-    check_typecheck(
-        "var a := a",
-        expect![[r#"
-        ty_nodes:
-        def_kinds:
-            DefId(0) Error(TyRef(Error))
-            DefId(1) Var(TyRef(Error))
-        error at 9..10: `a` is not declared"#]],
-    );
+    assert_typecheck("var a := a");
 }
 
-#[test]
-fn add_op_typecheck() {
-    check_typecheck(
-        "var a : int\nvar b : int\nvar c := a + b",
-        expect![[r#"
-        ty_nodes:
-            Idx::<Type>(0) TyRef(Int(Int))
-            Idx::<Type>(1) TyRef(Int(Int))
-        def_kinds:
-            DefId(0) Var(TyRef(Int(Int)))
-            DefId(1) Var(TyRef(Int(Int)))
-            DefId(2) Var(TyRef(Int(Int)))"#]],
-    );
-    check_typecheck(
-        "var a : int\nvar b : string\nvar c := a + b",
-        expect![[r#"
-            ty_nodes:
-                Idx::<Type>(0) TyRef(Int(Int))
-                Idx::<Type>(1) TyRef(String)
-            def_kinds:
-                DefId(0) Var(TyRef(Int(Int)))
-                DefId(1) Var(TyRef(String))
-                DefId(2) Var(TyRef(Error))
-            error at 38..39: incompatible types for addition
-            | info: operands must both be numbers, strings, or sets"#]],
-    );
+// Typecheck numerical ops
+test_for_each_op! {
+    number_op,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+        ("div", idiv),
+        ("/", rdiv),
+        ("mod", r#mod),
+        ("rem", rem),
+        ("**", exp),
+    ] => r#"
+    % Compatiblitly with all variant of numbers
+    var r : real
+    var i : int
+    var n : nat
+    var _rr := r {0} r
+    var _ri := r {0} i
+    var _ir := i {0} r
+    var _rn := r {0} n
+    var _nr := n {0} r
+    var _ii := i {0} i
+    var _in := i {0} n
+    var _ni := n {0} i
+    var _nn := n {0} n
+"#
 }
 
-#[test]
-fn integer_inferrence() {
-    // Should be the same for all arithmetic operators
-    let operators = vec![
-        (
-            "+",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-        (
-            "-",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-        (
-            "*",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-        (
-            "div",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-        (
-            "/",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Real(Real)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Real(Real)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Real(Real)))"#]],
-        ),
-        (
-            "mod",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-        (
-            "rem",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-        (
-            "**",
-            expect![[r#"
-                ty_nodes:
-                def_kinds:
-                    DefId(0) Var(TyRef(Int(Int)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-            expect![[r#"
-                ty_nodes:
-                    Idx::<Type>(0) TyRef(Nat(Nat))
-                def_kinds:
-                    DefId(0) Var(TyRef(Nat(Nat)))
-                    DefId(1) Var(TyRef(Nat(Nat)))"#]],
-        ),
-    ];
-
-    for (op, a, b, c) in operators.into_iter() {
-        // Inferred integer types should pass
-        // Decl should be a concrete type
-        check_typecheck(&format!("var a := 1 {} 1", op), a);
-        // Types of operands should make the type concrete
-        check_typecheck(&format!("var k : nat\nvar a := 1 {} k", op), b);
-        check_typecheck(&format!("var k : nat\nvar a := k {} 1", op), c);
-    }
-}
+// Test integer inference for all compatible operators
+test_for_each_op!(
+    integer_inferrence,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+        ("div", idiv),
+        ("/", rdiv),
+        ("mod", r#mod),
+        ("rem", rem),
+        ("**", exp),
+    ] => r#"
+    % Inferred integer types should pass
+    % Decl should be a concrete type
+    var a := 1 {0} 1
+    % Types of operands should make the type concrete
+    var r : real
+    var i : int
+    var n : nat
+    var _r0 := 1 {0} r
+    var _r1 := r {0} 1
+    var _i0 := 1 {0} i
+    var _i1 := i {0} 1
+    var _n0 := 1 {0} n
+    var _n1 := n {0} 1
+"#);
 
 #[test]
 fn typecheck_error_prop() {
     // Only one error should be reported, propogated error supresses the rest
-    check_typecheck(
-        "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a",
-        expect![[r#"
-            ty_nodes:
-                Idx::<Type>(0) TyRef(Int(Int))
-                Idx::<Type>(1) TyRef(String)
-            def_kinds:
-                DefId(0) Var(TyRef(Int(Int)))
-                DefId(1) Var(TyRef(String))
-                DefId(2) Var(TyRef(Error))
-                DefId(3) Var(TyRef(Error))
-            error at 38..39: incompatible types for addition
-            | info: operands must both be numbers, strings, or sets"#]],
-    );
+    assert_typecheck(&unindent(
+        r#"
+    var a : int
+    var b : string
+    var c := a + b
+    var j := c + a
+    "#,
+    ));
 }
-
-// TODO: Add missing typecheck tests for the following binary operations
-// - Sub
-// - Mul
-// - IntDiv
-// - RealDiv
-// - Mod
-// - Rem
-// - Exp

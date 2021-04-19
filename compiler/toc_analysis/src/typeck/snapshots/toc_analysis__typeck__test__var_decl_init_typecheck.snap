@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var k : string := \"oeuf\""
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(String)
+def_kinds:
+    DefId(0) Var(TyRef(String))

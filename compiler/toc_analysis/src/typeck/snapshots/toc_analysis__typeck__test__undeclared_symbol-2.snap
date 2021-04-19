@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var a := a"
+
+---
+ty_nodes:
+def_kinds:
+    DefId(0) Error(TyRef(Error))
+    DefId(1) Var(TyRef(Error))
+error at 9..10: `a` is not declared
