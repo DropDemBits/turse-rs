@@ -73,8 +73,35 @@ pub struct ConstVar {
     pub is_register: bool,
     pub is_const: bool,
     pub names: Vec<symbol::DefId>,
-    pub type_spec: Option<ty::TypeIdx>,
-    pub init_expr: Option<expr::ExprIdx>,
+    pub tail: ConstVarTail,
+}
+
+#[derive(Debug)]
+pub enum ConstVarTail {
+    /// Only the type spec is specified
+    TypeSpec(ty::TypeIdx),
+    /// Only the init expr is specified
+    InitExpr(expr::ExprIdx),
+    /// Both the type spec and init expr are specified
+    Both(ty::TypeIdx, expr::ExprIdx),
+}
+
+impl ConstVarTail {
+    pub fn type_spec(&self) -> Option<ty::TypeIdx> {
+        match self {
+            ConstVarTail::TypeSpec(ty_spec) => Some(*ty_spec),
+            ConstVarTail::InitExpr(_) => None,
+            ConstVarTail::Both(ty_spec, _) => Some(*ty_spec),
+        }
+    }
+
+    pub fn init_expr(&self) -> Option<expr::ExprIdx> {
+        match self {
+            ConstVarTail::TypeSpec(_) => None,
+            ConstVarTail::InitExpr(init_expr) => Some(*init_expr),
+            ConstVarTail::Both(_, init_expr) => Some(*init_expr),
+        }
+    }
 }
 
 #[derive(Debug)]

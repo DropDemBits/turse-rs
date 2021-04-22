@@ -63,10 +63,10 @@ fn var_decl_init_typecheck() {
 }
 
 #[test]
-#[should_panic(expected = "Encountered bare ConstVar decl")]
 fn bare_var_decl() {
     // Invariant, to be covered by the parser stage
-    let _ = do_typecheck("var k");
+    // Should not amount to anything
+    assert_typecheck("var k");
 }
 
 #[test]

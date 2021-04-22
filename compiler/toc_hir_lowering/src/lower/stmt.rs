@@ -72,6 +72,13 @@ impl super::LoweringCtx {
 
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.lower_expr(expr));
+        let tail = match (type_spec, init_expr) {
+            (Some(type_spec), None) => stmt::ConstVarTail::TypeSpec(type_spec),
+            (None, Some(init_expr)) => stmt::ConstVarTail::InitExpr(init_expr),
+            (Some(type_spec), Some(init_expr)) => stmt::ConstVarTail::Both(type_spec, init_expr),
+            // Captured by the parser, no error needs to be reported
+            (None, None) => return None,
+        };
 
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
@@ -81,8 +88,7 @@ impl super::LoweringCtx {
             is_const,
 
             names,
-            type_spec,
-            init_expr,
+            tail,
         }))
     }
 

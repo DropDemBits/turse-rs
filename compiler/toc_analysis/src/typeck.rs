@@ -73,19 +73,16 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
     fn visit_unit(&mut self, _unit: &toc_hir::Unit) {}
 
     fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
-        let ty_ref = if let Some(type_spec) = decl.type_spec {
-            // From type_spec
-            self.ty_ctx.get_type(type_spec).unwrap()
-        } else if let Some(expr) = decl.init_expr {
-            // From inferred init expr
-            let eval_kind = *self.eval_kinds.get(&expr).unwrap();
-            self.require_expr_ty(eval_kind)
-        } else {
-            // Bare var decl, checked in parser
-            debug_assert!(false, "Encountered bare ConstVar decl");
-
-            // Still produce an error type for release mode
-            self.ty_ctx.add_type(ty::Type::Error)
+        let ty_ref = match &decl.tail {
+            stmt::ConstVarTail::Both(ty_spec, _) | stmt::ConstVarTail::TypeSpec(ty_spec) => {
+                // From type_spec
+                self.ty_ctx.get_type(*ty_spec).unwrap()
+            }
+            stmt::ConstVarTail::InitExpr(expr) => {
+                // From inferred init expr
+                let eval_kind = *self.eval_kinds.get(expr).unwrap();
+                self.require_expr_ty(eval_kind)
+            }
         };
 
         // Make the type concrete

@@ -5,7 +5,7 @@ expression: "var _ : char"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..12): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], type_spec: Some(Idx::<Type>(0)), init_expr: None })
+Idx::<Stmt>(0) (0..12): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], tail: TypeSpec(Idx::<Type>(0)) })
 
 expr:
 

@@ -143,11 +143,11 @@ impl Walker<'_> {
     }
 
     fn walk_constvar(&mut self, id: stmt::StmtIdx, node: &stmt::ConstVar) {
-        if let Some(ty) = &node.type_spec {
+        if let Some(ty) = &node.tail.type_spec() {
             self.walk_type(*ty);
         }
 
-        if let Some(expr) = &node.init_expr {
+        if let Some(expr) = &node.tail.init_expr() {
             self.walk_expr(*expr);
         }
 

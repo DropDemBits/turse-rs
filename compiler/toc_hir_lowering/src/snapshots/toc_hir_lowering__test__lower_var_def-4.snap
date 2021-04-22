@@ -5,7 +5,7 @@ expression: "var a := a"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..10): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], type_spec: None, init_expr: Some(Idx::<Expr>(0)) })
+Idx::<Stmt>(0) (0..10): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], tail: InitExpr(Idx::<Expr>(0)) })
 
 expr:
 Idx::<Expr>(0) (9..10): Name(Name(UseId(DefId(0), 0)))
