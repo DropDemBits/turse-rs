@@ -21,8 +21,10 @@ fn main() {
 
     println!("Parsed output: {}", parsed.dump_tree());
     let validate_res = toc_validate::validate_ast(parsed.syntax());
-    let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
     println!("Dependencies: {:#?}", dependencies);
+
+    let mut unit_map = toc_hir::UnitMapBuilder::new();
+    let hir_res = toc_hir_lowering::lower_ast(parsed.syntax(), &mut unit_map);
 
     let msgs = parsed
         .messages()
@@ -36,13 +38,15 @@ fn main() {
         println!("{}", msg);
     }
 
-    println!("{:#?}", hir_res.unit);
+    let unit_map = unit_map.finish();
+    let root_unit = unit_map.get_unit(hir_res.id);
+    println!("{:#?}", root_unit);
 
     if has_errors {
         std::process::exit(-1);
     }
 
-    let analyze_res = toc_analysis::analyze_unit(&hir_res.unit);
+    let analyze_res = toc_analysis::analyze_unit(root_unit);
 
     let mut has_errors = false;
     for msg in analyze_res.messages().iter() {

@@ -20,7 +20,7 @@
 mod lower;
 mod scopes;
 
-use toc_hir::Unit;
+use toc_hir::{UnitId, UnitMapBuilder};
 use toc_reporting::ReportMessage;
 use toc_syntax::{
     ast::{self, AstNode},
@@ -34,7 +34,8 @@ mod test;
 
 #[derive(Debug)]
 pub struct HirLowerResult {
-    pub unit: Unit,
+    /// Id of the newly lowered unit
+    pub id: UnitId,
     messages: Vec<ReportMessage>,
 }
 
@@ -44,7 +45,7 @@ impl HirLowerResult {
     }
 }
 
-pub fn lower_ast(root_node: SyntaxNode) -> HirLowerResult {
+pub fn lower_ast(root_node: SyntaxNode, unit_map: &mut UnitMapBuilder) -> HirLowerResult {
     let mut ctx = LoweringCtx::new();
     let root = ast::Source::cast(root_node).unwrap();
 
@@ -56,11 +57,7 @@ pub fn lower_ast(root_node: SyntaxNode) -> HirLowerResult {
     } = ctx;
     let messages = messages.finish();
 
-    let unit = toc_hir::Unit {
-        database,
-        stmts,
-        symbol_table: scopes.finish(),
-    };
+    let unit = unit_map.add_unit(database, stmts, scopes.finish());
 
-    HirLowerResult { unit, messages }
+    HirLowerResult { id: unit, messages }
 }

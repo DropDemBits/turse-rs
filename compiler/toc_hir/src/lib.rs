@@ -1,7 +1,7 @@
 //! Crate containing all of the HIR node representations
 //!
-//! Note: All `expr` & `stmt` nodes are to be used with the module's prefix, e.g.
-//! `expr::Name` instead of importing the node directly
+//! Note: All `expr`, `stmt`, and `ty` nodes are to be used with the module's
+//! prefix, e.g. `expr::Name` instead of importing the node directly
 
 use std::collections::HashMap;
 use std::ops;
@@ -17,10 +17,15 @@ pub mod expr;
 pub mod stmt;
 pub mod symbol;
 pub mod ty;
+mod unit_map;
+
+pub use unit_map::{UnitId, UnitMap, UnitMapBuilder};
 
 /// Code Unit
 #[derive(Debug)]
 pub struct Unit {
+    /// Id in the `UnitMap`
+    pub id: UnitId,
     /// All nodes associated with the unit
     pub database: Database,
     /// Top level statements in the unit

@@ -1,6 +1,6 @@
 //! Tests for lowering
 use if_chain::if_chain;
-use toc_hir::{expr, stmt};
+use toc_hir::{expr, stmt, UnitMap};
 
 use crate::HirLowerResult;
 
@@ -45,24 +45,27 @@ fn stringify_unit(unit: &toc_hir::Unit) -> String {
     s
 }
 
-fn assert_lower(src: &str) -> HirLowerResult {
+fn assert_lower(src: &str) -> (HirLowerResult, UnitMap) {
+    let mut unit_map = toc_hir::UnitMapBuilder::new();
     let parse = toc_parser::parse(src);
-    let lowered = crate::lower_ast(parse.syntax());
+    let lowered = crate::lower_ast(parse.syntax(), &mut unit_map);
+    let unit_map = unit_map.finish();
 
-    let mut s = stringify_unit(&lowered.unit);
+    let mut s = stringify_unit(&unit_map.get_unit(lowered.id));
     for err in &lowered.messages {
         s.push_str(&format!("{}\n", err));
     }
 
     insta::assert_snapshot!(insta::internals::AutoName, s, src);
 
-    lowered
+    (lowered, unit_map)
 }
 
-fn literal_value(lowered: &HirLowerResult) -> &expr::Literal {
+fn literal_value((lowered, units): &(HirLowerResult, UnitMap)) -> &expr::Literal {
     if_chain! {
-        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = &lowered.unit.database[lowered.unit.stmts[0]];
-        if let expr::Expr::Literal(value) = &lowered.unit.database[*rhs];
+        let unit = &units[lowered.id];
+        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = &unit.database[unit.stmts[0]];
+        if let expr::Expr::Literal(value) = &unit.database[*rhs];
         then {
             value
         } else {

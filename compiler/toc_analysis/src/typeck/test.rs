@@ -1,7 +1,10 @@
 //! Type check tests
+use std::sync::Arc;
+
 use toc_reporting::ReportMessage;
 use unindent::unindent;
 
+use crate::const_eval::ConstEvalCtx;
 use crate::ty::TyCtx;
 
 macro_rules! test_for_each_op {
@@ -25,8 +28,13 @@ fn assert_typecheck(source: &str) {
 
 fn do_typecheck(source: &str) -> String {
     let parsed = toc_parser::parse(&source);
-    let hir_res = toc_hir_lowering::lower_ast(parsed.syntax());
-    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(&hir_res.unit);
+    let mut unit_map = toc_hir::UnitMapBuilder::new();
+    let hir_res = toc_hir_lowering::lower_ast(parsed.syntax(), &mut unit_map);
+    let unit_map = unit_map.finish();
+
+    let unit = unit_map.get_unit(hir_res.id);
+    let const_eval_ctx = Arc::new(ConstEvalCtx::new());
+    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit, const_eval_ctx);
 
     stringify_typeck_results(&ty_ctx, &typeck_messages)
 }

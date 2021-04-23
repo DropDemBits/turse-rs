@@ -5,11 +5,17 @@ use std::collections::HashMap;
 
 use toc_span::TextRange;
 
+use crate::UnitId;
+
 /// Definition of an identifier within a unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DefId(usize);
 
 impl DefId {
+    pub fn into_global(self, unit: UnitId) -> GlobalDefId {
+        GlobalDefId(unit, self)
+    }
+
     /// Creates a new `DefId`
     ///
     /// Only to be used in testing
@@ -26,14 +32,36 @@ impl UseId {
     pub fn as_def(self) -> DefId {
         self.0
     }
-}
 
-impl UseId {
+    pub fn into_global(self, unit: UnitId) -> GlobalUseId {
+        GlobalUseId(unit, self)
+    }
+
     /// Creates a new `UseId`
     ///
     /// Only to be used in testing
     pub fn new(def: DefId, id: usize) -> Self {
         Self(def, id)
+    }
+}
+
+/// Definition of an identifier in a specific unit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GlobalDefId(UnitId, DefId);
+
+impl GlobalDefId {
+    pub fn as_local(self) -> DefId {
+        self.1
+    }
+}
+
+/// Use of an identifier in a specific unit
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GlobalUseId(UnitId, UseId);
+
+impl GlobalUseId {
+    pub fn as_local(self) -> UseId {
+        self.1
     }
 }
 
