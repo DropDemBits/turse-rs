@@ -260,10 +260,10 @@ impl<'t, 'src> Parser<'t, 'src> {
         Marker::new(pos)
     }
 
-    /// Resets the expected token list
+    /// Resets the expected token list, which is only used during reporting.
     ///
     /// Used when there are leftover tokens from previous calls to `at`,
-    /// but the tokens are not required
+    /// but the tokens are not required.
     pub(crate) fn reset_expected_tokens(&mut self) {
         self.expected_kinds.clear();
     }

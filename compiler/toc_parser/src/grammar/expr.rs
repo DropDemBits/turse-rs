@@ -213,12 +213,16 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             TokenKind::Cheat => { cheat_expr(p) }
             TokenKind::SizeOf => { sizeof_expr(p) }
             _ => {
+                // Try parsing an indirect expr primitive,
+                // or otherwise a primary expression
                 p.with_extra_recovery(&[TokenKind::At], |p| {
                     ty::ty_primitive(p)
                 }).and_then(|cm| {
+                    // Found a primitive, check if it's part of an indirect expression
                     if p.at(TokenKind::At) {
-                        // Remove '@' from expected list
-                        p.reset_expected_tokens();
+                        // `@` will be eaten in the infix parsing loop
+                        // don't need to worry about removing it from the
+                        // expected tokens list
 
                         // Give the original ty node
                         Some(cm)
@@ -494,7 +498,6 @@ fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<UnaryOp> {
             TokenKind::Not => { UnaryOp::Not }
             TokenKind::Plus => { UnaryOp::Identity }
             TokenKind::Minus => { UnaryOp::Negate }
-            TokenKind::Pound => { UnaryOp::NatCheat }
             _ => return None,
         }))
     })
@@ -556,7 +559,7 @@ pub(super) fn maybe_composite_not_op(p: &mut Parser, min_infix_power: u8) -> Opt
     debug_assert!(p.at(TokenKind::Not) || p.at(TokenKind::Tilde));
 
     if BinaryOp::NotIn.binding_power().0 < min_infix_power {
-        // can't parse it anyways yet, leave it for later
+        // can't parse it right now, leave it for later
         return None;
     }
 

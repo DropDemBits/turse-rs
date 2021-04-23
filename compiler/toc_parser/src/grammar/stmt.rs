@@ -1715,7 +1715,6 @@ fn at_stmt_block_end(p: &mut Parser) -> bool {
         TokenKind::EndCase,
         TokenKind::EndFor,
         TokenKind::EndLoop => {
-
             true
         }
         _ => {
