@@ -96,12 +96,6 @@ pub enum BinaryOp {
     NotIn,
     /// Material Implication (`=>`)
     Imply,
-    /// Arrow (`->`)
-    Arrow,
-    /// Dot (`.`)
-    Dot,
-    /// Call (`(`)
-    Call,
 }
 
 #[derive(Debug)]
@@ -118,10 +112,6 @@ pub enum UnaryOp {
     Identity,
     /// Integer negation (`-`)
     Negate,
-    /// Nat cheat (`#`)
-    NatCheat,
-    /// Pointer dereferencing operator (`^`)
-    Deref,
 }
 
 #[derive(Debug)]

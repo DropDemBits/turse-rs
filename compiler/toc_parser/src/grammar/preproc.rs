@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod test;
 
-use toc_syntax::{BinaryOp, UnaryOp};
+use toc_syntax::{InfixOp, PrefixOp};
 
 use super::*;
 
@@ -229,20 +229,20 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::PPUnaryExpr))
 }
 
-fn prefix_op(p: &mut Parser) -> Option<UnaryOp> {
+fn prefix_op(p: &mut Parser) -> Option<PrefixOp> {
     Some(match_token!(|p| match {
         TokenKind::Not,
-        TokenKind::Tilde => { UnaryOp::Not }
+        TokenKind::Tilde => { PrefixOp::Not }
         _ => return None
     }))
 }
 
-fn infix_op(p: &mut Parser) -> Option<BinaryOp> {
+fn infix_op(p: &mut Parser) -> Option<InfixOp> {
     Some(match_token!(|p| match {
         TokenKind::And,
-        TokenKind::Ampersand => { BinaryOp::And }
+        TokenKind::Ampersand => { InfixOp::And }
         TokenKind::Or,
-        TokenKind::Pipe => { BinaryOp::Or }
+        TokenKind::Pipe => { InfixOp::Or }
         _ => return None
     }))
 }

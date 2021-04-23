@@ -1,10 +1,7 @@
 //! Type check tests
-use std::sync::Arc;
-
 use toc_reporting::ReportMessage;
 use unindent::unindent;
 
-use crate::const_eval::ConstEvalCtx;
 use crate::ty::TyCtx;
 
 macro_rules! test_for_each_op {
@@ -33,8 +30,7 @@ fn do_typecheck(source: &str) -> String {
     let unit_map = unit_map.finish();
 
     let unit = unit_map.get_unit(hir_res.id);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new());
-    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit, const_eval_ctx);
+    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit);
 
     stringify_typeck_results(&ty_ctx, &typeck_messages)
 }

@@ -405,7 +405,7 @@ pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
 pub const MIN_REF_BINDING_POWER: u8 = 19;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum BinaryOp {
+pub enum InfixOp {
     /// Addition / Set Union / String Concatenation (`+`)
     Add,
     /// Subtraction / Set Subtraction (`-`)
@@ -458,7 +458,7 @@ pub enum BinaryOp {
     Call,
 }
 
-impl BinaryOp {
+impl InfixOp {
     pub fn binding_power(&self) -> (u8, u8) {
         match self {
             Self::Imply => (1, 2),
@@ -491,7 +491,7 @@ impl BinaryOp {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum UnaryOp {
+pub enum PrefixOp {
     /// Binary/boolean negation operator (`not`)
     Not,
     /// Integer identity (`+`)
@@ -504,7 +504,7 @@ pub enum UnaryOp {
     Deref,
 }
 
-impl UnaryOp {
+impl PrefixOp {
     pub fn binding_power(&self) -> ((), u8) {
         match self {
             Self::Not => ((), 8),
@@ -566,22 +566,22 @@ pub enum AssignOp {
 }
 
 impl AssignOp {
-    pub fn as_binary_op(self) -> Option<BinaryOp> {
+    pub fn as_binary_op(self) -> Option<InfixOp> {
         let op = match self {
-            AssignOp::Add => BinaryOp::Add,
-            AssignOp::Sub => BinaryOp::Sub,
-            AssignOp::Mul => BinaryOp::Mul,
-            AssignOp::Div => BinaryOp::Div,
-            AssignOp::RealDiv => BinaryOp::RealDiv,
-            AssignOp::Mod => BinaryOp::Mod,
-            AssignOp::Rem => BinaryOp::Rem,
-            AssignOp::Exp => BinaryOp::Exp,
-            AssignOp::And => BinaryOp::And,
-            AssignOp::Or => BinaryOp::Or,
-            AssignOp::Xor => BinaryOp::Xor,
-            AssignOp::Shl => BinaryOp::Shl,
-            AssignOp::Shr => BinaryOp::Shr,
-            AssignOp::Imply => BinaryOp::Imply,
+            AssignOp::Add => InfixOp::Add,
+            AssignOp::Sub => InfixOp::Sub,
+            AssignOp::Mul => InfixOp::Mul,
+            AssignOp::Div => InfixOp::Div,
+            AssignOp::RealDiv => InfixOp::RealDiv,
+            AssignOp::Mod => InfixOp::Mod,
+            AssignOp::Rem => InfixOp::Rem,
+            AssignOp::Exp => InfixOp::Exp,
+            AssignOp::And => InfixOp::And,
+            AssignOp::Or => InfixOp::Or,
+            AssignOp::Xor => InfixOp::Xor,
+            AssignOp::Shl => InfixOp::Shl,
+            AssignOp::Shr => InfixOp::Shr,
+            AssignOp::Imply => InfixOp::Imply,
             _ => return None,
         };
 

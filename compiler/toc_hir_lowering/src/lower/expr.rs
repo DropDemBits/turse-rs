@@ -111,42 +111,39 @@ impl super::LoweringCtx {
     }
 }
 
-fn syntax_to_hir_binary_op(op: toc_syntax::BinaryOp) -> expr::BinaryOp {
+fn syntax_to_hir_binary_op(op: toc_syntax::InfixOp) -> expr::BinaryOp {
     match op {
-        toc_syntax::BinaryOp::Add => expr::BinaryOp::Add,
-        toc_syntax::BinaryOp::Sub => expr::BinaryOp::Sub,
-        toc_syntax::BinaryOp::Mul => expr::BinaryOp::Mul,
-        toc_syntax::BinaryOp::Div => expr::BinaryOp::Div,
-        toc_syntax::BinaryOp::RealDiv => expr::BinaryOp::RealDiv,
-        toc_syntax::BinaryOp::Mod => expr::BinaryOp::Mod,
-        toc_syntax::BinaryOp::Rem => expr::BinaryOp::Rem,
-        toc_syntax::BinaryOp::Exp => expr::BinaryOp::Exp,
-        toc_syntax::BinaryOp::And => expr::BinaryOp::And,
-        toc_syntax::BinaryOp::Or => expr::BinaryOp::Or,
-        toc_syntax::BinaryOp::Xor => expr::BinaryOp::Xor,
-        toc_syntax::BinaryOp::Shl => expr::BinaryOp::Shl,
-        toc_syntax::BinaryOp::Shr => expr::BinaryOp::Shr,
-        toc_syntax::BinaryOp::Less => expr::BinaryOp::Less,
-        toc_syntax::BinaryOp::LessEq => expr::BinaryOp::LessEq,
-        toc_syntax::BinaryOp::Greater => expr::BinaryOp::Greater,
-        toc_syntax::BinaryOp::GreaterEq => expr::BinaryOp::GreaterEq,
-        toc_syntax::BinaryOp::Equal => expr::BinaryOp::Equal,
-        toc_syntax::BinaryOp::NotEqual => expr::BinaryOp::NotEqual,
-        toc_syntax::BinaryOp::In => expr::BinaryOp::In,
-        toc_syntax::BinaryOp::NotIn => expr::BinaryOp::NotIn,
-        toc_syntax::BinaryOp::Imply => expr::BinaryOp::Imply,
-        toc_syntax::BinaryOp::Arrow => expr::BinaryOp::Arrow,
-        toc_syntax::BinaryOp::Dot => expr::BinaryOp::Dot,
-        toc_syntax::BinaryOp::Call => expr::BinaryOp::Call,
+        toc_syntax::InfixOp::Add => expr::BinaryOp::Add,
+        toc_syntax::InfixOp::Sub => expr::BinaryOp::Sub,
+        toc_syntax::InfixOp::Mul => expr::BinaryOp::Mul,
+        toc_syntax::InfixOp::Div => expr::BinaryOp::Div,
+        toc_syntax::InfixOp::RealDiv => expr::BinaryOp::RealDiv,
+        toc_syntax::InfixOp::Mod => expr::BinaryOp::Mod,
+        toc_syntax::InfixOp::Rem => expr::BinaryOp::Rem,
+        toc_syntax::InfixOp::Exp => expr::BinaryOp::Exp,
+        toc_syntax::InfixOp::And => expr::BinaryOp::And,
+        toc_syntax::InfixOp::Or => expr::BinaryOp::Or,
+        toc_syntax::InfixOp::Xor => expr::BinaryOp::Xor,
+        toc_syntax::InfixOp::Shl => expr::BinaryOp::Shl,
+        toc_syntax::InfixOp::Shr => expr::BinaryOp::Shr,
+        toc_syntax::InfixOp::Less => expr::BinaryOp::Less,
+        toc_syntax::InfixOp::LessEq => expr::BinaryOp::LessEq,
+        toc_syntax::InfixOp::Greater => expr::BinaryOp::Greater,
+        toc_syntax::InfixOp::GreaterEq => expr::BinaryOp::GreaterEq,
+        toc_syntax::InfixOp::Equal => expr::BinaryOp::Equal,
+        toc_syntax::InfixOp::NotEqual => expr::BinaryOp::NotEqual,
+        toc_syntax::InfixOp::In => expr::BinaryOp::In,
+        toc_syntax::InfixOp::NotIn => expr::BinaryOp::NotIn,
+        toc_syntax::InfixOp::Imply => expr::BinaryOp::Imply,
+        _ => unreachable!(),
     }
 }
 
-fn syntax_to_hir_unary_op(op: toc_syntax::UnaryOp) -> expr::UnaryOp {
+fn syntax_to_hir_unary_op(op: toc_syntax::PrefixOp) -> expr::UnaryOp {
     match op {
-        toc_syntax::UnaryOp::Not => expr::UnaryOp::Not,
-        toc_syntax::UnaryOp::Identity => expr::UnaryOp::Identity,
-        toc_syntax::UnaryOp::Negate => expr::UnaryOp::Negate,
-        toc_syntax::UnaryOp::NatCheat => expr::UnaryOp::NatCheat,
-        toc_syntax::UnaryOp::Deref => expr::UnaryOp::Deref,
+        toc_syntax::PrefixOp::Not => expr::UnaryOp::Not,
+        toc_syntax::PrefixOp::Identity => expr::UnaryOp::Identity,
+        toc_syntax::PrefixOp::Negate => expr::UnaryOp::Negate,
+        _ => unreachable!(),
     }
 }

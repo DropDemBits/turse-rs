@@ -4,8 +4,8 @@ use std::iter;
 use super::nodes::*;
 use crate::ast::{helper, AstNode};
 use crate::{
-    AssignOp, BinaryOp, CharSeqParseError, IoKind, LiteralParseError, LiteralValue, PrimitiveKind,
-    SyntaxElement, SyntaxKind, SyntaxToken, UnaryOp,
+    AssignOp, CharSeqParseError, InfixOp, IoKind, LiteralParseError, LiteralValue, PrefixOp,
+    PrimitiveKind, SyntaxElement, SyntaxKind, SyntaxToken,
 };
 
 impl PPBinaryExpr {
@@ -13,14 +13,14 @@ impl PPBinaryExpr {
         helper::nodes(self.syntax()).next()
     }
 
-    pub fn op_kind(&self) -> Option<BinaryOp> {
+    pub fn op_kind(&self) -> Option<InfixOp> {
         let op = self.op_node()?;
 
         match op.kind() {
-            SyntaxKind::KwOr => Some(BinaryOp::Or),
-            SyntaxKind::Pipe => Some(BinaryOp::Or),
-            SyntaxKind::KwAnd => Some(BinaryOp::And),
-            SyntaxKind::Ampersand => Some(BinaryOp::And),
+            SyntaxKind::KwOr => Some(InfixOp::Or),
+            SyntaxKind::Pipe => Some(InfixOp::Or),
+            SyntaxKind::KwAnd => Some(InfixOp::And),
+            SyntaxKind::Ampersand => Some(InfixOp::And),
             _ => None,
         }
     }
@@ -35,11 +35,11 @@ impl PPBinaryExpr {
 }
 
 impl PPUnaryExpr {
-    pub fn op_kind(&self) -> Option<UnaryOp> {
+    pub fn op_kind(&self) -> Option<PrefixOp> {
         let op = self.op_token()?;
 
         match op.kind() {
-            SyntaxKind::KwNot | SyntaxKind::Tilde => Some(UnaryOp::Not),
+            SyntaxKind::KwNot | SyntaxKind::Tilde => Some(PrefixOp::Not),
             _ => None,
         }
     }
@@ -58,34 +58,34 @@ impl BinaryExpr {
         helper::nodes(self.syntax()).next()
     }
 
-    pub fn op_kind(&self) -> Option<BinaryOp> {
+    pub fn op_kind(&self) -> Option<InfixOp> {
         let op = self.op_node()?;
 
         match op.kind() {
-            SyntaxKind::Imply => Some(BinaryOp::Imply),
-            SyntaxKind::KwOr => Some(BinaryOp::Or),
-            SyntaxKind::Pipe => Some(BinaryOp::Or),
-            SyntaxKind::KwAnd => Some(BinaryOp::And),
-            SyntaxKind::Ampersand => Some(BinaryOp::And),
-            SyntaxKind::Less => Some(BinaryOp::Less),
-            SyntaxKind::Greater => Some(BinaryOp::Greater),
-            SyntaxKind::LessEqu => Some(BinaryOp::LessEq),
-            SyntaxKind::GreaterEqu => Some(BinaryOp::GreaterEq),
-            SyntaxKind::Equ => Some(BinaryOp::Equal),
-            SyntaxKind::NotEq => Some(BinaryOp::NotEqual),
-            SyntaxKind::KwIn => Some(BinaryOp::In),
-            SyntaxKind::NotIn => Some(BinaryOp::NotIn),
-            SyntaxKind::Plus => Some(BinaryOp::Add),
-            SyntaxKind::Minus => Some(BinaryOp::Sub),
-            SyntaxKind::KwXor => Some(BinaryOp::Xor),
-            SyntaxKind::Star => Some(BinaryOp::Mul),
-            SyntaxKind::Slash => Some(BinaryOp::RealDiv),
-            SyntaxKind::KwDiv => Some(BinaryOp::Div),
-            SyntaxKind::KwMod => Some(BinaryOp::Mod),
-            SyntaxKind::KwRem => Some(BinaryOp::Rem),
-            SyntaxKind::KwShl => Some(BinaryOp::Shl),
-            SyntaxKind::KwShr => Some(BinaryOp::Shr),
-            SyntaxKind::Exp => Some(BinaryOp::Exp),
+            SyntaxKind::Imply => Some(InfixOp::Imply),
+            SyntaxKind::KwOr => Some(InfixOp::Or),
+            SyntaxKind::Pipe => Some(InfixOp::Or),
+            SyntaxKind::KwAnd => Some(InfixOp::And),
+            SyntaxKind::Ampersand => Some(InfixOp::And),
+            SyntaxKind::Less => Some(InfixOp::Less),
+            SyntaxKind::Greater => Some(InfixOp::Greater),
+            SyntaxKind::LessEqu => Some(InfixOp::LessEq),
+            SyntaxKind::GreaterEqu => Some(InfixOp::GreaterEq),
+            SyntaxKind::Equ => Some(InfixOp::Equal),
+            SyntaxKind::NotEq => Some(InfixOp::NotEqual),
+            SyntaxKind::KwIn => Some(InfixOp::In),
+            SyntaxKind::NotIn => Some(InfixOp::NotIn),
+            SyntaxKind::Plus => Some(InfixOp::Add),
+            SyntaxKind::Minus => Some(InfixOp::Sub),
+            SyntaxKind::KwXor => Some(InfixOp::Xor),
+            SyntaxKind::Star => Some(InfixOp::Mul),
+            SyntaxKind::Slash => Some(InfixOp::RealDiv),
+            SyntaxKind::KwDiv => Some(InfixOp::Div),
+            SyntaxKind::KwMod => Some(InfixOp::Mod),
+            SyntaxKind::KwRem => Some(InfixOp::Rem),
+            SyntaxKind::KwShl => Some(InfixOp::Shl),
+            SyntaxKind::KwShr => Some(InfixOp::Shr),
+            SyntaxKind::Exp => Some(InfixOp::Exp),
             _ => None,
         }
     }
@@ -100,13 +100,13 @@ impl BinaryExpr {
 }
 
 impl UnaryExpr {
-    pub fn op_kind(&self) -> Option<UnaryOp> {
+    pub fn op_kind(&self) -> Option<PrefixOp> {
         let op = self.op_node()?;
 
         match op.kind() {
-            SyntaxKind::KwNot | SyntaxKind::Tilde => Some(UnaryOp::Not),
-            SyntaxKind::Plus => Some(UnaryOp::Identity),
-            SyntaxKind::Minus => Some(UnaryOp::Negate),
+            SyntaxKind::KwNot | SyntaxKind::Tilde => Some(PrefixOp::Not),
+            SyntaxKind::Plus => Some(PrefixOp::Identity),
+            SyntaxKind::Minus => Some(PrefixOp::Negate),
             _ => None,
         }
     }

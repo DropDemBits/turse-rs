@@ -479,11 +479,6 @@ impl TypeCheck<'_> {
             // Set membership tests (set(a), a => boolean)
             expr::BinaryOp::In => todo!(),
             expr::BinaryOp::NotIn => todo!(),
-            // Field access (a, b => c)
-            expr::BinaryOp::Arrow => todo!(),
-            expr::BinaryOp::Dot => todo!(),
-            // Call expression (f (a, ...) => r)
-            expr::BinaryOp::Call => todo!(),
         }
     }
 }
