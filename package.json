@@ -1,0 +1,42 @@
+{
+    "name": "vscode-turing",
+    "author": {
+        "name": "DropDemBits"
+    },
+    "displayName": "Turing Language",
+    "description": "Syntax higlighting & (future) LSP provider for HoltSoft's Turing language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.46.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "turing",
+                "aliases": [
+                    "Turing",
+                    "turing"
+                ],
+                "extensions": [
+                    ".t",
+                    ".tu"
+                ],
+                "configuration": "./compiled/language-config.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "turing",
+                "scopeName": "source.turing",
+                "path": "./compiled/turing.tmLanguage.json"
+            }
+        ]
+    },
+    "devDependencies": {
+        "grunt": "^1.4.0",
+        "grunt-cson": "^0.17.0"
+    }
+}
