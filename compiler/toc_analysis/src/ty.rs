@@ -5,6 +5,8 @@ use std::ops::Deref;
 
 use indexmap::IndexMap;
 
+use crate::const_eval::ConstExpr;
+
 /// A type reference, for each unique type
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TyRef(internment::Intern<Type>);
@@ -115,6 +117,10 @@ pub enum Type {
     Char,
     /// Simple string type
     String,
+    /// Fixed-size character type
+    CharN(SeqLength),
+    /// Fixed-size string type
+    StringN(SeqLength),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -143,4 +149,12 @@ pub enum RealSize {
     Real8,
     /// Initialization checked version of `Real8`
     Real,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum SeqLength {
+    /// Runtime sized (only accepted for parameters)
+    Dynamic,
+    /// Expression
+    Expr(ConstExpr),
 }

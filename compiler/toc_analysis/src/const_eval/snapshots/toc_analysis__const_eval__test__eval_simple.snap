@@ -1,0 +1,15 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: "var _ : char(1 + 1)"
+
+---
+ConstEvalCtx {
+    inner: RwLock {
+        data: InnerCtx {
+            eval_state: [
+                Value(Int(2)),
+            ],
+            var_to_expr: {},
+        },
+    },
+}
