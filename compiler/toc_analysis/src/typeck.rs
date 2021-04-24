@@ -3,11 +3,13 @@
 mod test;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use toc_hir::{expr, stmt, ty as hir_ty};
 use toc_reporting::{MessageKind, ReportMessage};
 use toc_span::Spanned;
 
+use crate::const_eval::ConstEvalCtx;
 use crate::ty::{self, DefKind, TyCtx, TyRef};
 
 // ???: Can we build up a type ctx without doing type propogation?
@@ -27,23 +29,31 @@ use crate::ty::{self, DefKind, TyCtx, TyRef};
 // - Mutability in general falls under responsibility of assignability
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
-pub fn typecheck_unit(unit: &toc_hir::Unit) -> (TyCtx, Vec<ReportMessage>) {
-    TypeCheck::check_unit(unit)
+pub fn typecheck_unit(
+    unit: &toc_hir::Unit,
+    const_eval: Arc<ConstEvalCtx>,
+) -> (TyCtx, Vec<ReportMessage>) {
+    TypeCheck::check_unit(unit, const_eval)
 }
 
 struct TypeCheck<'a> {
     unit: &'a toc_hir::Unit,
     ty_ctx: TyCtx,
     eval_kinds: HashMap<expr::ExprIdx, EvalKind>,
+    const_eval: Arc<ConstEvalCtx>,
     reporter: toc_reporting::MessageSink,
 }
 
 impl<'a> TypeCheck<'a> {
-    fn check_unit(unit: &'a toc_hir::Unit) -> (TyCtx, Vec<ReportMessage>) {
+    fn check_unit(
+        unit: &'a toc_hir::Unit,
+        const_eval: Arc<ConstEvalCtx>,
+    ) -> (TyCtx, Vec<ReportMessage>) {
         let mut typeck = Self {
             unit,
             ty_ctx: TyCtx::new(),
             eval_kinds: HashMap::new(),
+            const_eval,
             reporter: toc_reporting::MessageSink::new(),
         };
 
@@ -100,8 +110,24 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             DefKind::Var(ty_ref)
         };
 
+        // TODO: type check inititaliation if both ty_spec & init_expr are present
+
+        // If it's a const decl, add a const expr
+        let const_init_expr = decl
+            .tail
+            .init_expr()
+            .map(|expr| self.const_eval.defer_expr(self.unit.id, expr));
+
         for def in &decl.names {
             self.ty_ctx.map_def_id(*def, def_kind);
+
+            if decl.is_const {
+                if let Some(const_init_expr) = const_init_expr {
+                    // Add to the const eval var list
+                    self.const_eval
+                        .add_var(def.into_global(self.unit.id), const_init_expr);
+                }
+            }
         }
     }
 
@@ -152,7 +178,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 
     fn visit_name(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Name) {
         // If def-id, fetch type from def id map
-        // If self, then fetch type from ???
+        // If self, then fetch type from provided class def id?
         let (use_id, ty_ref) = match expr {
             toc_hir::expr::Name::Name(use_id) => {
                 (use_id, self.ty_ctx.get_def_id_kind(use_id.as_def()))
@@ -187,6 +213,24 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
     }
 
     fn visit_primitive(&mut self, id: hir_ty::TypeIdx, ty: &hir_ty::Primitive) {
+        fn into_ty_seq_len(
+            seq_len: toc_hir::ty::SeqLength,
+            unit_id: toc_hir::UnitId,
+            const_eval: &ConstEvalCtx,
+        ) -> ty::SeqLength {
+            match seq_len {
+                hir_ty::SeqLength::Dynamic => ty::SeqLength::Dynamic,
+                hir_ty::SeqLength::Expr(expr) => {
+                    let const_expr = const_eval.defer_expr(unit_id, expr);
+                    // Always eagerly evaluate const exprs for types
+                    // TODO: report any const eval errors
+                    let _ = const_eval.eval_expr(const_expr);
+
+                    ty::SeqLength::Expr(const_expr)
+                }
+            }
+        }
+
         // Create the correct type based off of the base primitive type
         let ty = match ty {
             hir_ty::Primitive::Int => ty::Type::Int(ty::IntSize::Int),
@@ -204,9 +248,12 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             hir_ty::Primitive::AddressInt => ty::Type::Nat(ty::NatSize::AddressInt),
             hir_ty::Primitive::Char => ty::Type::Char,
             hir_ty::Primitive::String => ty::Type::String,
-            // TODO: Produce sized charseq types
-            hir_ty::Primitive::SizedChar(_) => todo!(),
-            hir_ty::Primitive::SizedString(_) => todo!(),
+            hir_ty::Primitive::SizedChar(len) => {
+                ty::Type::CharN(into_ty_seq_len(*len, self.unit.id, &self.const_eval))
+            }
+            hir_ty::Primitive::SizedString(len) => {
+                ty::Type::StringN(into_ty_seq_len(*len, self.unit.id, &self.const_eval))
+            }
         };
 
         // Maps the type id to the current type node

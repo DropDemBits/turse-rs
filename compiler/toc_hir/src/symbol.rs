@@ -2,6 +2,7 @@
 //! `SymbolTable` construction with respect to scoping rules occurs in `toc_hir_lowering`.
 
 use std::collections::HashMap;
+use std::fmt;
 
 use toc_span::TextRange;
 
@@ -46,7 +47,7 @@ impl UseId {
 }
 
 /// Definition of an identifier in a specific unit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GlobalDefId(UnitId, DefId);
 
 impl GlobalDefId {
@@ -55,13 +56,25 @@ impl GlobalDefId {
     }
 }
 
+impl fmt::Debug for GlobalDefId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("GlobalDefId({:?}, {:?})", self.0, self.1))
+    }
+}
+
 /// Use of an identifier in a specific unit
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GlobalUseId(UnitId, UseId);
 
 impl GlobalUseId {
     pub fn as_local(self) -> UseId {
         self.1
+    }
+}
+
+impl fmt::Debug for GlobalUseId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("GlobalUseId({:?}, {:?})", self.0, self.1))
     }
 }
 

@@ -1,6 +1,6 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::{env, fs, io};
+use std::{env, fs, io, sync::Arc};
 
 fn load_contents(path: &str) -> io::Result<String> {
     let contents = fs::read(path)?;
@@ -38,7 +38,7 @@ fn main() {
         println!("{}", msg);
     }
 
-    let unit_map = unit_map.finish();
+    let unit_map = Arc::new(unit_map.finish());
     let root_unit = unit_map.get_unit(hir_res.id);
     println!("{:#?}", root_unit);
 
@@ -46,7 +46,7 @@ fn main() {
         std::process::exit(-1);
     }
 
-    let analyze_res = toc_analysis::analyze_unit(root_unit);
+    let analyze_res = toc_analysis::analyze_unit(hir_res.id, unit_map);
 
     let mut has_errors = false;
     for msg in analyze_res.messages().iter() {
