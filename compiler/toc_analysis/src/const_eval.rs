@@ -24,18 +24,12 @@ use toc_span::Spanned;
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConstExpr {
     id: usize,
-    // TODO: Migrate unit id into `EvalState`
-    // Only needed for unevaluated expressions, so don't burden the ConstExpr type unnecessarily
-    unit: UnitId,
 }
 // Maps `ConstExpr` to unit local `toc_hir::expr::ExprIdx`
 
 impl fmt::Debug for ConstExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!(
-            "ConstExpr {{ id: {:?}, unit: {:?} }}",
-            self.id, self.unit
-        ))
+        f.write_fmt(format_args!("ConstExpr {{ id: {:?} }}", self.id))
     }
 }
 
@@ -175,9 +169,8 @@ impl InnerCtx {
     fn defer_expr(&mut self, unit_id: UnitId, expr: expr::ExprIdx) -> ConstExpr {
         let v = ConstExpr {
             id: self.eval_state.len(),
-            unit: unit_id,
         };
-        self.eval_state.push(EvalState::Unevaluated(expr));
+        self.eval_state.push(EvalState::Unevaluated(unit_id, expr));
         v
     }
 
@@ -188,7 +181,7 @@ impl InnerCtx {
 
     fn eval_expr(&mut self, expr: ConstExpr) -> Result<ConstValue, ConstError> {
         // Lookup the initial state of the expression
-        let root_expr = match &self.eval_state[expr.id] {
+        let (unit_id, root_expr) = match &self.eval_state[expr.id] {
             // Give cached value
             EvalState::Value(v) => return Ok(v.clone()),
             EvalState::Error(v) => return Err(v.clone()),
@@ -197,10 +190,10 @@ impl InnerCtx {
                 self.eval_state[expr.id] = EvalState::Error(ConstError::EvalCycle);
                 return Err(ConstError::EvalCycle);
             }
-            EvalState::Unevaluated(root_expr) => *root_expr,
+            EvalState::Unevaluated(unit_id, root_expr) => (*unit_id, *root_expr),
         };
 
-        let result = self.do_eval_expr(root_expr, expr);
+        let result = self.do_eval_expr(unit_id, root_expr, expr);
 
         if let Err(err) = &result {
             // Update the eval state with the corresponding error
@@ -218,6 +211,7 @@ impl InnerCtx {
 
     fn do_eval_expr(
         &mut self,
+        unit_id: UnitId,
         root_expr: expr::ExprIdx,
         const_expr: ConstExpr,
     ) -> Result<ConstValue, ConstError> {
@@ -234,7 +228,7 @@ impl InnerCtx {
         // Do the actual evaluation, as a stack maching
         let mut eval_stack = vec![Eval::Expr(root_expr)];
         let mut operand_stack = vec![];
-        let unit = &self.unit_map[const_expr.unit];
+        let unit = &self.unit_map[unit_id];
 
         loop {
             eprintln!("> {:?}", eval_stack);
@@ -327,7 +321,7 @@ impl fmt::Debug for InnerCtx {
 /// Evaluation state of a constant expression
 enum EvalState {
     /// The expression has not been evaluated yet
-    Unevaluated(expr::ExprIdx),
+    Unevaluated(UnitId, expr::ExprIdx),
     /// The expression is in the process of being evaluated
     Evaluating,
     /// The expression has been evaluated to a valid value
@@ -339,7 +333,9 @@ enum EvalState {
 impl fmt::Debug for EvalState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            EvalState::Unevaluated(v) => f.write_fmt(format_args!("Unevaluated({:?})", v)),
+            EvalState::Unevaluated(u, v) => {
+                f.write_fmt(format_args!("Unevaluated({:?}, {:?})", u, v))
+            }
             EvalState::Evaluating => f.write_fmt(format_args!("Evaluating")),
             EvalState::Value(v) => f.write_fmt(format_args!("Value({:?})", v)),
             EvalState::Error(v) => f.write_fmt(format_args!("Error({:?})", v)),

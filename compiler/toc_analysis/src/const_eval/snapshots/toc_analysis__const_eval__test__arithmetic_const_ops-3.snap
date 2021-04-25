@@ -10,7 +10,7 @@ ConstEvalCtx {
                 Value(Int(10)),
             ],
             var_to_expr: {
-                GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0, unit: UnitId(0) },
+                GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
             },
         },
     },
