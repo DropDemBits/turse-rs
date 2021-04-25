@@ -9,6 +9,7 @@ use std::{
 };
 
 use indexmap::IndexMap;
+use toc_hir::Unit;
 use toc_hir::{expr, symbol::GlobalDefId, UnitId, UnitMap};
 use toc_span::Spanned;
 
@@ -23,6 +24,8 @@ use toc_span::Spanned;
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConstExpr {
     id: usize,
+    // TODO: Migrate unit id into `EvalState`
+    // Only needed for unevaluated expressions, so don't burden the ConstExpr type unnecessarily
     unit: UnitId,
 }
 // Maps `ConstExpr` to unit local `toc_hir::expr::ExprIdx`
@@ -117,6 +120,40 @@ impl ConstEvalCtx {
     }
 }
 
+/// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
+pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
+    use toc_hir::{stmt, HirVisitor};
+
+    struct Visitor {
+        unit_id: UnitId,
+        const_eval: Arc<ConstEvalCtx>,
+    }
+
+    impl HirVisitor for Visitor {
+        fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
+            if decl.is_const {
+                if let Some(init_expr) = decl.tail.init_expr() {
+                    let const_expr = self.const_eval.defer_expr(self.unit_id, init_expr);
+                    // Add mappings
+                    for def in &decl.names {
+                        self.const_eval
+                            .add_var(def.into_global(self.unit_id), const_expr);
+                    }
+                }
+            };
+        }
+
+        // TODO: Visit type stmt for enum constvar & constvalue
+    }
+
+    let mut visitor = Visitor {
+        unit_id: unit.id,
+        const_eval,
+    };
+
+    unit.walk_nodes(&mut visitor);
+}
+
 struct InnerCtx {
     /// Mapping for all of the units
     unit_map: Arc<UnitMap>,
@@ -174,6 +211,7 @@ impl InnerCtx {
     }
 
     fn eval_var(&mut self, var: GlobalDefId) -> Result<ConstValue, ConstError> {
+        // TODO: Handle evaluation restrictions
         let const_expr = *self.var_to_expr.get(&var).ok_or(ConstError::NoConstExpr)?;
         self.eval_expr(const_expr)
     }
@@ -444,20 +482,3 @@ impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
         }
     }
 }
-
-// Associate `ConstVar` with `ConstExpr` to fetch other constant values
-// E.g. in the following code:
-// ```ignore
-// const a := 1 + 1
-// ```
-//
-// ConstVar('a') -> ConstExpr(Expr(0))
-// ConstExpr(0) -> Binary(+, Expr(1), Expr(2))
-// Expr(1) -> Literal(Integer(1))
-// Expr(2) -> Literal(Integer(1))
-//
-// try_eval_var(const_var) -> Result<ConstValue, ConstError>
-// ConstVar's are the only ways for anything to escape the local unit
-//
-// try_eval_expr(const_expr) -> Result<ConstValue, ConstError>
-// Expr node tree is always local to the unit

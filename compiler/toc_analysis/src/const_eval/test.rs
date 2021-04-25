@@ -1,12 +1,23 @@
 use std::sync::Arc;
 
-use toc_reporting::ReportMessage;
-
 use crate::const_eval::ConstEvalCtx;
 
 #[track_caller]
 fn assert_const_eval(source: &str) {
     insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(source), source);
+}
+
+/// Expr version
+#[track_caller]
+fn assert_const_eval_expr(expr: &str) {
+    let source = format!("const _ := {}", expr);
+    insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(&source), &expr);
+}
+
+macro_rules! for_all_const_exprs {
+    ($($src:literal)+) => {
+        $(assert_const_eval_expr($src);)+
+    };
 }
 
 fn do_const_eval(source: &str) -> String {
@@ -17,28 +28,55 @@ fn do_const_eval(source: &str) -> String {
 
     let unit = unit_map.get_unit(hir_res.id);
     let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
-    // TODO: Use prepass to build GlobalDefId -> ConstExpr mappings
-    // - Wouldn't have to dep on typeck anymore
-    let (_ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit, const_eval_ctx.clone());
+    super::collect_const_vars(unit, const_eval_ctx.clone());
 
-    stringify_const_eval_results(&const_eval_ctx, &typeck_messages)
-}
+    // Need access to the inner state of the ConstEvalCtx, which is behind a lock
+    {
+        // Eagerly evaluate all of the available const vars
+        let mut inner = const_eval_ctx.inner.write().unwrap();
+        let const_exprs = inner.var_to_expr.values().copied().collect::<Vec<_>>();
 
-fn stringify_const_eval_results(const_eval: &ConstEvalCtx, messages: &[ReportMessage]) -> String {
-    let mut s = String::new();
-    // Pretty print const eval ctx
-    s.push_str(&format!("{:#?}", const_eval));
-
-    // Pretty print the messages
-    for err in messages.iter() {
-        s.push_str(&format!("\n{}", err));
+        for expr in const_exprs {
+            let _ = inner.eval_expr(expr);
+        }
     }
 
-    s
+    // Errors are bundled into the const error context
+    stringify_const_eval_results(&const_eval_ctx)
+}
+
+fn stringify_const_eval_results(const_eval: &ConstEvalCtx) -> String {
+    // Pretty print const eval ctx
+    format!("{:#?}", const_eval)
 }
 
 #[test]
-fn eval_simple() {
+fn complex_arithmetic_expr() {
+    assert_const_eval_expr("1 + 2 * 3 div 3 - 4 + 5");
+}
+
+#[test]
+fn arithmetic_const_ops() {
     // All operations should be evaluated
-    assert_const_eval("var _ : char(1 + 1)");
+    for_all_const_exprs![
+        "1 + 1"
+        "10 - 2"
+        "2 * 5"
+        "3 div 2"
+    ];
+}
+
+#[test]
+fn error_div_by_zero() {
+    // TODO: Add tests cases for real div, mod & rem
+    for_all_const_exprs!["1 div 0"];
+}
+
+#[test]
+fn error_int_overflow() {
+    // `mul` is the only operation that can overflow right now, since
+    // even when using u64::MAX with add & sub, it still fits within an i128
+    //
+    // Requires testing with eval restrictions
+    for_all_const_exprs!["16#FFFFFFFFFFFFFFFF * (16#8000000000000000 + 1)"];
 }
