@@ -12,7 +12,7 @@ toc_span = { path = "../toc_span" }
 toc_hir = { path = "../toc_hir" }
 
 indexmap = "1.6"
-internment = "0.4"
+internment = "0.5.0"
 
 [dev-dependencies]
 toc_parser = { path = "../toc_parser" }
