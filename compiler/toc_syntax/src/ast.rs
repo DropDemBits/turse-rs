@@ -14,6 +14,7 @@ macro_rules! match_ast {
     }};
 }
 
+#[rustfmt::skip] // formatted during codegen
 mod nodes;
 mod nodes_ext;
 

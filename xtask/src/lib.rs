@@ -46,8 +46,6 @@ pub fn do_codegen() -> Result<()> {
     let header = unindent::unindent_bytes(
         "
     // This is a generated file, do not touch
-    #![allow(unused_attributes)] // this attribute is actually used below
-    #![rustfmt::skip]
     "
         .as_bytes(),
     );
