@@ -63,6 +63,7 @@ fn arithmetic_const_ops() {
         "10 - 2"
         "2 * 5"
         "3 div 2"
+        "+(1-2)"
     ];
 }
 

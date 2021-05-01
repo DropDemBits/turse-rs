@@ -36,13 +36,13 @@ impl fmt::Debug for ConstExpr {
 #[derive(Debug, Clone)]
 pub enum ConstValue {
     /// Untyped integer value
-    Int(i128),
+    Integer(i128),
 }
 
 impl ConstValue {
     pub fn into_integer(self) -> Result<i128, ConstError> {
         match self {
-            ConstValue::Int(v) => Ok(v),
+            ConstValue::Integer(v) => Ok(v),
         }
     }
 }
@@ -260,9 +260,7 @@ impl InnerCtx {
 
                     // Convert into a Constvalue
                     let operand = match expr {
-                        expr::Literal::Int(_v) => todo!(),
-                        expr::Literal::Nat(_v) => todo!(),
-                        expr::Literal::Integer(v) => ConstValue::Int(*v as i128),
+                        expr::Literal::Integer(v) => ConstValue::Integer(*v as i128),
                         expr::Literal::Real(_v) => todo!(),
                         expr::Literal::CharSeq(_str) => todo!(),
                         expr::Literal::String(_str) => todo!(),
@@ -382,7 +380,7 @@ impl ConstOp {
                 let lhs = lhs.into_integer()?;
                 let rhs = rhs.into_integer()?;
                 let res = lhs.checked_add(rhs).ok_or(ConstError::IntOverflow)?;
-                Ok(ConstValue::Int(res))
+                Ok(ConstValue::Integer(res))
             }
             ConstOp::Sub => {
                 let rhs = operand_stack.pop().unwrap();
@@ -391,7 +389,7 @@ impl ConstOp {
                 let lhs = lhs.into_integer()?;
                 let rhs = rhs.into_integer()?;
                 let res = lhs.checked_sub(rhs).ok_or(ConstError::IntOverflow)?;
-                Ok(ConstValue::Int(res))
+                Ok(ConstValue::Integer(res))
             }
             ConstOp::Mul => {
                 let rhs = operand_stack.pop().unwrap();
@@ -400,7 +398,7 @@ impl ConstOp {
                 let lhs = lhs.into_integer()?;
                 let rhs = rhs.into_integer()?;
                 let res = lhs.checked_mul(rhs).ok_or(ConstError::IntOverflow)?;
-                Ok(ConstValue::Int(res))
+                Ok(ConstValue::Integer(res))
             }
             ConstOp::Div => {
                 let rhs = operand_stack.pop().unwrap();
@@ -409,7 +407,7 @@ impl ConstOp {
                 let lhs = lhs.into_integer()?;
                 let rhs = rhs.into_integer()?;
                 let res = lhs.checked_div(rhs).ok_or(ConstError::DivByZero)?;
-                Ok(ConstValue::Int(res))
+                Ok(ConstValue::Integer(res))
             }
             ConstOp::RealDiv => todo!(),
             ConstOp::Mod => todo!(),

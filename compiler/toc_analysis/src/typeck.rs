@@ -132,8 +132,6 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 
     fn visit_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
         let ty = match expr {
-            toc_hir::expr::Literal::Int(_) => ty::Type::Int(ty::IntSize::Int),
-            toc_hir::expr::Literal::Nat(_) => ty::Type::Nat(ty::NatSize::Nat),
             toc_hir::expr::Literal::Integer(_) => ty::Type::Integer,
             toc_hir::expr::Literal::Real(_) => ty::Type::Real(ty::RealSize::Real),
             // TODO: Use sized char type for default string type
