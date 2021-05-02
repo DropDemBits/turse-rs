@@ -74,10 +74,29 @@ fn error_div_by_zero() {
 }
 
 #[test]
-fn error_int_overflow() {
-    // `mul` is the only operation that can overflow right now, since
-    // even when using u64::MAX with add & sub, it still fits within an i128
-    //
-    // Requires testing with eval restrictions
-    for_all_const_exprs!["16#FFFFFFFFFFFFFFFF * (16#8000000000000000 + 1)"];
+fn error_int_overflow_32bit() {
+    // TODO: Test operations on 64-bit values
+
+    for_all_const_exprs![
+        // 64-bit literals should overflow right away
+        "16#100000000"
+        // Unsigned 32-bit literals shouldn't
+        "16#80000000 % no overflow"
+        "16#FFFFFFFF % no overflow"
+        // Over add
+        "16#ffffffff + 1"
+        "(0 - 16#80000000) + (1 - 2)"
+        // Over sub
+        "16#ffffffff - (1 - 2)"
+        "(0 - 16#80000000) - 1"
+        // Over mul (positive result)
+        "16#80000000 * 2"
+        "(0 - 16#80000000) * (1 - 2) % no overflow"
+        // Over mul (negative result)
+        "16#80000001 * (1 - 2)"
+        "(0 - 16#80000000) * 2"
+        // Over div (negative result)
+        "16#FFFFFFFF div (1 - 2)"
+        "16#80000001 div (1 - 2)"
+    ];
 }

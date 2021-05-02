@@ -35,14 +35,15 @@ impl fmt::Debug for ConstExpr {
 
 #[derive(Debug, Clone)]
 pub enum ConstValue {
-    /// Untyped integer value
-    Integer(i128),
+    /// General integer value
+    Integer(ConstInt),
 }
 
 impl ConstValue {
-    pub fn into_integer(self) -> Result<i128, ConstError> {
+    pub fn cast_into_int(self) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
+            _ => Err(ConstError::WrongType),
         }
     }
 }
@@ -260,7 +261,10 @@ impl InnerCtx {
 
                     // Convert into a Constvalue
                     let operand = match expr {
-                        expr::Literal::Integer(v) => ConstValue::Integer(*v as i128),
+                        expr::Literal::Integer(v) => {
+                            let v = ConstInt::from_unsigned(*v, false)?;
+                            ConstValue::Integer(v)
+                        }
                         expr::Literal::Real(_v) => todo!(),
                         expr::Literal::CharSeq(_str) => todo!(),
                         expr::Literal::String(_str) => todo!(),
@@ -377,37 +381,29 @@ impl ConstOp {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let lhs = lhs.into_integer()?;
-                let rhs = rhs.into_integer()?;
-                let res = lhs.checked_add(rhs).ok_or(ConstError::IntOverflow)?;
-                Ok(ConstValue::Integer(res))
+                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                lhs.checked_add(rhs).map(|v| ConstValue::Integer(v))
             }
             ConstOp::Sub => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let lhs = lhs.into_integer()?;
-                let rhs = rhs.into_integer()?;
-                let res = lhs.checked_sub(rhs).ok_or(ConstError::IntOverflow)?;
-                Ok(ConstValue::Integer(res))
+                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                lhs.checked_sub(rhs).map(|v| ConstValue::Integer(v))
             }
             ConstOp::Mul => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let lhs = lhs.into_integer()?;
-                let rhs = rhs.into_integer()?;
-                let res = lhs.checked_mul(rhs).ok_or(ConstError::IntOverflow)?;
-                Ok(ConstValue::Integer(res))
+                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                lhs.checked_mul(rhs).map(|v| ConstValue::Integer(v))
             }
             ConstOp::Div => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let lhs = lhs.into_integer()?;
-                let rhs = rhs.into_integer()?;
-                let res = lhs.checked_div(rhs).ok_or(ConstError::DivByZero)?;
-                Ok(ConstValue::Integer(res))
+                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                lhs.checked_div(rhs).map(|v| ConstValue::Integer(v))
             }
             ConstOp::RealDiv => todo!(),
             ConstOp::Mod => todo!(),
@@ -427,6 +423,7 @@ impl ConstOp {
             ConstOp::Imply => todo!(),
             ConstOp::Not => todo!(),
             ConstOp::Identity => {
+                // Rhs must be a number
                 let rhs = operand_stack.pop().unwrap();
                 Ok(rhs)
             }
@@ -474,5 +471,236 @@ impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
             expr::UnaryOp::Identity => Ok(Self::Identity),
             expr::UnaryOp::Negate => Ok(Self::Negate),
         }
+    }
+}
+
+/// Constant Integer representation
+#[derive(Debug, Clone, Copy)]
+pub struct ConstInt {
+    magnitude: u64,
+    sign: IntSign,
+    width: IntWidth,
+}
+
+impl ConstInt {
+    /// Constructs a new integer constant from an unsigned value
+    ///
+    /// ## Parameters
+    /// - `value`: The unsigned value of the corresponding integer constant
+    /// - `allow_64bit_values`: If 64-bit values can be constructed from applying
+    ///   operations to this integer constant
+    pub fn from_unsigned(value: u64, allow_64bit_ops: bool) -> Result<Self, ConstError> {
+        let width = if allow_64bit_ops {
+            // Allow 64-bit operations, any value is allowed
+            IntWidth::As64
+        } else {
+            // Apply only as 32-bit operations
+            if value > u32::MAX as u64 {
+                // Already overflowing
+                return Err(ConstError::IntOverflow);
+            }
+
+            IntWidth::As32
+        };
+
+        Ok(Self {
+            sign: IntSign::Positive,
+            magnitude: value,
+            width,
+        })
+    }
+
+    /// Checked integer addition.
+    /// Computes `self + rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
+    pub fn checked_add(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        // Potential signs:
+        // lhs rhs    magnitude op
+        // +   +   => +
+        // -   +   => -
+        // +   -   => -
+        // -   -   => +
+        let (value, new_sign) = if self.sign == rhs.sign {
+            // Sign is the same as the original
+            (self.magnitude.checked_add(rhs.magnitude), self.sign)
+        } else {
+            // Sign can change
+            let (magnitude, sign) = {
+                let (magnitude, wrapped) = self.magnitude.overflowing_sub(rhs.magnitude);
+
+                if wrapped {
+                    // Undo two's compliment
+                    // Flip the sign
+                    (!magnitude + 1, self.sign.negate())
+                } else {
+                    (magnitude, self.sign)
+                }
+            };
+
+            (Some(magnitude), sign)
+        };
+
+        Self::check_overflow(value, new_sign, effective_width)
+    }
+
+    /// Checked integer subtraction.
+    /// Computes `self - rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
+    pub fn checked_sub(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        // Reuse addition code
+        self.checked_add(rhs.negate())
+    }
+
+    /// Checked integer multiplication.
+    /// Computes `self * rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
+    pub fn checked_mul(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        // Potential signs:
+        // lhs rhs    final sign
+        // +   +   => +
+        // -   +   => -
+        // +   -   => -
+        // -   -   => +
+
+        // Magnitude is unaffected by the initial signs
+        let value = self.magnitude.checked_mul(rhs.magnitude);
+
+        let new_sign = if self.sign == rhs.sign {
+            // Will always be positive
+            IntSign::Positive
+        } else {
+            // Will always be negative
+            IntSign::Negative
+        };
+
+        Self::check_overflow(value, new_sign, effective_width)
+    }
+
+    /// Checked integer division.
+    /// Computes `self div rhs`, returning `Err(ConstError::DivByZero)` if `rhs == 0`.
+    pub fn checked_div(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        // Potential signs:
+        // lhs rhs    final sign
+        // +   +   => +
+        // -   +   => -
+        // +   -   => -
+        // -   -   => +
+
+        // Magnitude is unaffected by the initial signs
+        let value = self
+            .magnitude
+            .checked_div(rhs.magnitude)
+            .ok_or(ConstError::DivByZero)?;
+
+        let new_sign = if self.sign == rhs.sign {
+            // Will always be positive
+            IntSign::Positive
+        } else {
+            // Will always be negative
+            IntSign::Negative
+        };
+
+        Self::check_overflow(Some(value), new_sign, effective_width)
+    }
+
+    /// Negates the sign of the integer.
+    /// Does nothing for a magnitude of 0.
+    pub fn negate(mut self) -> Self {
+        if self.magnitude > 0 {
+            self.sign = self.sign.negate();
+        }
+
+        self
+    }
+
+    fn effective_width(lhs: IntWidth, rhs: IntWidth) -> IntWidth {
+        // Potential widths
+        // lhs rhs    effective width
+        // 32  32  => 32
+        // 64  32  => 32
+        // 32  64  => 32
+        // 64  64  => 64
+
+        if lhs == IntWidth::As64 && lhs == rhs {
+            IntWidth::As64
+        } else {
+            IntWidth::As32
+        }
+    }
+
+    fn check_overflow(
+        value: Option<u64>,
+        new_sign: IntSign,
+        effective_width: IntWidth,
+    ) -> Result<ConstInt, ConstError> {
+        let (magnitude, sign) = {
+            let effective_magnitude = value.ok_or(ConstError::IntOverflow)?;
+
+            if effective_magnitude == 0 {
+                // `0` is always a "positive" number
+                (0, IntSign::Positive)
+            } else {
+                // Keep the same magnitude
+                (effective_magnitude, new_sign)
+            }
+        };
+
+        // Check for overflow
+        let overflowed = match effective_width {
+            // [0, 0xFFFF_FFFF]
+            IntWidth::As32 if sign.is_positive() => magnitude > u32::MAX as u64,
+            // [0, 0x8000_0000]
+            IntWidth::As32 if sign.is_negative() => magnitude > i32::MIN.unsigned_abs() as u64,
+            // [0, 0xFFFFFFFF_FFFFFFFF] or all values of u64
+            IntWidth::As64 if sign.is_positive() => false,
+            // [0, 0x80000000_00000000] or all values of u64
+            IntWidth::As64 if sign.is_negative() => magnitude > i64::MIN.unsigned_abs() as u64,
+            // All cases already covered
+            _ => unreachable!(),
+        };
+
+        if !overflowed {
+            Ok(Self {
+                magnitude,
+                sign,
+                width: effective_width,
+            })
+        } else {
+            Err(ConstError::IntOverflow)
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IntWidth {
+    As32,
+    As64,
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IntSign {
+    Positive,
+    Negative,
+}
+
+impl IntSign {
+    fn negate(self) -> Self {
+        match self {
+            IntSign::Positive => IntSign::Negative,
+            IntSign::Negative => IntSign::Positive,
+        }
+    }
+
+    fn is_positive(self) -> bool {
+        matches!(self, IntSign::Positive)
+    }
+
+    fn is_negative(self) -> bool {
+        matches!(self, IntSign::Negative)
     }
 }
