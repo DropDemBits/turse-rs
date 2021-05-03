@@ -64,6 +64,33 @@ fn arithmetic_const_ops() {
         "2 * 5"
         "3 div 2"
         "+(1-2)"
+
+        "1 + 1.0"
+        "10 - 2.0"
+        "2 * 5.0"
+        "3 div 2.0"
+        "+(1-2.0)"
+    ];
+}
+
+#[test]
+fn real_promotion() {
+    for_all_const_exprs![
+        "1.0 + 1"
+        "  1 + 1.0"
+        "1.0 + 1.0"
+
+        "1.0 - 1"
+        "  1 - 1.0"
+        "1.0 - 1.0"
+
+        "1.0 * 1"
+        "  1 * 1.0"
+        "1.0 * 1.0"
+
+        "1.0 div 1"
+        "  1 div 1.0"
+        "1.0 div 1.0"
     ];
 }
 
@@ -71,6 +98,9 @@ fn arithmetic_const_ops() {
 fn error_div_by_zero() {
     // TODO: Add tests cases for real div, mod & rem
     for_all_const_exprs!["1 div 0"];
+    for_all_const_exprs!["1 div 0.0"];
+    for_all_const_exprs!["1.0 div 0"];
+    for_all_const_exprs!["1.0 div 0.0"];
 }
 
 #[test]
@@ -89,14 +119,34 @@ fn error_int_overflow_32bit() {
         // Over sub
         "16#ffffffff - (1 - 2)"
         "(0 - 16#80000000) - 1"
+        "16#ffffffff - 16#ffffffff % no overflow"
         // Over mul (positive result)
         "16#80000000 * 2"
         "(0 - 16#80000000) * (1 - 2) % no overflow"
         // Over mul (negative result)
         "16#80000001 * (1 - 2)"
         "(0 - 16#80000000) * 2"
-        // Over div (negative result)
+        // Over idiv (positive result)
+        "1e100 div 1"
+        "1e100 div 1.0"
+        // Over idiv (negative result)
         "16#FFFFFFFF div (1 - 2)"
         "16#80000001 div (1 - 2)"
+    ];
+}
+
+#[test]
+fn error_real_overflow() {
+    for_all_const_exprs![
+        // Over add
+        "1e308 + 1e308"
+        "(0 - 1e308) + (0 - 1e308)"
+        // Over sub
+        "1e308 - (0 - 1e308)"
+        "(0 - 1e308) - 1e308"
+        // Over mul
+        "1e308 * 10"
+        "(0 - 1e308) * 10"
+        // Over idiv (checked in `error_int_overflow_{32,64}_bit`)
     ];
 }

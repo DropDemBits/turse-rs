@@ -37,12 +37,22 @@ impl fmt::Debug for ConstExpr {
 pub enum ConstValue {
     /// General integer value
     Integer(ConstInt),
+    /// Floating point value
+    Real(f64),
 }
 
 impl ConstValue {
     pub fn cast_into_int(self) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
+            _ => Err(ConstError::WrongType),
+        }
+    }
+
+    pub fn cast_into_real(self) -> Result<f64, ConstError> {
+        match self {
+            ConstValue::Integer(v) => Ok(v.into_f64()),
+            ConstValue::Real(v) => Ok(v),
             _ => Err(ConstError::WrongType),
         }
     }
@@ -65,6 +75,8 @@ pub enum ConstError {
     WrongType,
     /// Integer overflow
     IntOverflow,
+    /// Floating point overflow
+    RealOverflow,
     /// Division by zero
     DivByZero,
 }
@@ -226,6 +238,9 @@ impl InnerCtx {
         // Update the evaluation state to catch any evaluation cycles
         self.eval_state[const_expr.id] = EvalState::Evaluating;
 
+        // TODO: Feed in restrictions from somewhere
+        let allow_64bit_ops = false;
+
         // Do the actual evaluation, as a stack maching
         let mut eval_stack = vec![Eval::Expr(root_expr)];
         let mut operand_stack = vec![];
@@ -239,7 +254,7 @@ impl InnerCtx {
                 Some(Eval::Expr(expr)) => expr,
                 Some(Eval::Op(op)) => {
                     // Perform operation
-                    let result = op.evaluate(&mut operand_stack)?;
+                    let result = op.evaluate(&mut operand_stack, allow_64bit_ops)?;
                     operand_stack.push(result);
                     continue;
                 }
@@ -262,10 +277,10 @@ impl InnerCtx {
                     // Convert into a Constvalue
                     let operand = match expr {
                         expr::Literal::Integer(v) => {
-                            let v = ConstInt::from_unsigned(*v, false)?;
+                            let v = ConstInt::from_unsigned(*v, allow_64bit_ops)?;
                             ConstValue::Integer(v)
                         }
-                        expr::Literal::Real(_v) => todo!(),
+                        expr::Literal::Real(v) => ConstValue::Real(*v),
                         expr::Literal::CharSeq(_str) => todo!(),
                         expr::Literal::String(_str) => todo!(),
                         expr::Literal::Boolean(_v) => todo!(),
@@ -375,35 +390,89 @@ enum ConstOp {
 }
 
 impl ConstOp {
-    fn evaluate(&self, operand_stack: &mut Vec<ConstValue>) -> Result<ConstValue, ConstError> {
+    fn evaluate(
+        &self,
+        operand_stack: &mut Vec<ConstValue>,
+        allow_64bit_ops: bool,
+    ) -> Result<ConstValue, ConstError> {
         match self {
             ConstOp::Add => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                lhs.checked_add(rhs).map(|v| ConstValue::Integer(v))
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        match lhs + rhs {
+                            v if v.is_infinite() => Err(ConstError::RealOverflow),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_add(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                }
             }
             ConstOp::Sub => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                lhs.checked_sub(rhs).map(|v| ConstValue::Integer(v))
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        match lhs - rhs {
+                            v if v.is_infinite() => Err(ConstError::RealOverflow),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_sub(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                }
             }
             ConstOp::Mul => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                lhs.checked_mul(rhs).map(|v| ConstValue::Integer(v))
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        match lhs * rhs {
+                            v if v.is_infinite() => Err(ConstError::RealOverflow),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_mul(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                }
             }
             ConstOp::Div => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
 
-                let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                lhs.checked_div(rhs).map(|v| ConstValue::Integer(v))
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        // Divide & truncate, then convert to an integer
+                        match (lhs / rhs).trunc() {
+                            _ if rhs == 0.0 => Err(ConstError::DivByZero),
+                            v => ConstInt::from_signed_real(v, allow_64bit_ops)
+                                .map(|v| ConstValue::Integer(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_div(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                }
             }
             ConstOp::RealDiv => todo!(),
             ConstOp::Mod => todo!(),
@@ -494,7 +563,7 @@ impl ConstInt {
             // Allow 64-bit operations, any value is allowed
             IntWidth::As64
         } else {
-            // Apply only as 32-bit operations
+            // Apply only 32-bit operations
             if value > u32::MAX as u64 {
                 // Already overflowing
                 return Err(ConstError::IntOverflow);
@@ -508,6 +577,66 @@ impl ConstInt {
             magnitude: value,
             width,
         })
+    }
+
+    /// Constructs a new integer constant from a signed floating point value
+    ///
+    /// ## Parameters
+    /// - `value`: The signed floating point value of the corresponding integer constant
+    /// - `allow_64bit_values`: If 64-bit values can be constructed from applying
+    ///   operations to this integer constant
+    pub fn from_signed_real(value: f64, allow_64bit_ops: bool) -> Result<Self, ConstError> {
+        let width = if allow_64bit_ops {
+            // Allow 64-bit operations, check against u64 bounds
+            if (value.is_sign_negative() && value < i64::MIN as f64)
+                || (value.is_sign_positive() && value > u64::MAX as f64)
+            {
+                // Already overflowing
+                return Err(ConstError::IntOverflow);
+            }
+
+            IntWidth::As64
+        } else {
+            // Apply only 32-bit operations
+            if (value.is_sign_negative() && value < i32::MIN as f64)
+                || (value.is_sign_positive() && value > u32::MAX as f64)
+            {
+                // Already overflowing
+                return Err(ConstError::IntOverflow);
+            }
+
+            IntWidth::As32
+        };
+
+        let (magnitude, sign) = {
+            let magnitude = value.abs().trunc() as u64;
+
+            if magnitude == 0 {
+                // Always +0
+                (0, IntSign::Positive)
+            } else {
+                let sign = if value.is_sign_negative() {
+                    IntSign::Negative
+                } else {
+                    IntSign::Positive
+                };
+
+                (magnitude, sign)
+            }
+        };
+
+        Ok(Self {
+            sign,
+            magnitude,
+            width,
+        })
+    }
+
+    pub fn into_f64(self) -> f64 {
+        match self.sign {
+            IntSign::Positive => self.magnitude as f64,
+            IntSign::Negative => -(self.magnitude as f64),
+        }
     }
 
     /// Checked integer addition.
@@ -548,7 +677,7 @@ impl ConstInt {
     /// Computes `self - rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
     pub fn checked_sub(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
         // Reuse addition code
-        self.checked_add(rhs.negate())
+        self.checked_add(rhs.unchecked_negate())
     }
 
     /// Checked integer multiplication.
@@ -608,9 +737,19 @@ impl ConstInt {
 
     /// Negates the sign of the integer.
     /// Does nothing for a magnitude of 0.
-    pub fn negate(mut self) -> Self {
+    pub fn negate(self) -> Result<ConstInt, ConstError> {
+        Self::check_overflow(Some(self.magnitude), self.sign.negate(), self.width)
+    }
+
+    /// Negates the sign of the integer.
+    /// Does nothing for a magnitude of 0.
+    ///
+    /// Note: This can break the invariant that for a width of `As32` and sign of `Negative`,
+    /// magnitude must be in the range `[0, 0x7FFFFFFF]`.
+    /// The only allowed usage of this function is for negating the `rhs` in `checked_sub`
+    fn unchecked_negate(mut self) -> Self {
         if self.magnitude > 0 {
-            self.sign = self.sign.negate();
+            self.sign = self.sign.negate()
         }
 
         self
