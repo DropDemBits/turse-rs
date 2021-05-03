@@ -494,9 +494,20 @@ impl ConstOp {
             ConstOp::Identity => {
                 // Rhs must be a number
                 let rhs = operand_stack.pop().unwrap();
-                Ok(rhs)
+
+                match rhs {
+                    rhs @ ConstValue::Integer(_) => Ok(rhs),
+                    rhs @ ConstValue::Real(_) => Ok(rhs),
+                }
             }
-            ConstOp::Negate => todo!(),
+            ConstOp::Negate => {
+                let rhs = operand_stack.pop().unwrap();
+
+                match rhs {
+                    ConstValue::Integer(v) => v.negate().map(|v| ConstValue::Integer(v)),
+                    ConstValue::Real(v) => Ok(ConstValue::Real(-v)),
+                }
+            }
         }
     }
 }

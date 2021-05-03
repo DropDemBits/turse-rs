@@ -1,13 +1,13 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
-expression: 2 * 5.0
+expression: 10 - 2.0
 
 ---
 ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_state: [
-                Value(Real(10.0)),
+                Value(Real(8.0)),
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },

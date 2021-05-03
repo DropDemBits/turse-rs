@@ -1,13 +1,13 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
-expression: +-1
+expression: "-16#FFFFFFFF"
 
 ---
 ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_state: [
-                Value(Integer(ConstInt { magnitude: 1, sign: Negative, width: As32 })),
+                Error(IntOverflow),
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
