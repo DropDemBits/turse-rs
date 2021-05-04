@@ -51,6 +51,10 @@ impl UseId {
 pub struct GlobalDefId(UnitId, DefId);
 
 impl GlobalDefId {
+    pub fn unit_id(self) -> UnitId {
+        self.0
+    }
+
     pub fn as_local(self) -> DefId {
         self.1
     }
@@ -67,6 +71,10 @@ impl fmt::Debug for GlobalDefId {
 pub struct GlobalUseId(UnitId, UseId);
 
 impl GlobalUseId {
+    pub fn unit_id(self) -> UnitId {
+        self.0
+    }
+
     pub fn as_local(self) -> UseId {
         self.1
     }
@@ -186,6 +194,14 @@ impl SymbolTable {
 
     pub fn get_symbol(&self, def: DefId) -> &Symbol {
         self.defs.get(&def).unwrap()
+    }
+
+    pub fn get_def_span(&self, def_id: DefId) -> TextRange {
+        *self.def_spans.get(&def_id).unwrap()
+    }
+
+    pub fn get_use_span(&self, use_id: UseId) -> TextRange {
+        *self.use_spans.get(&use_id).unwrap()
     }
 
     fn new_def(&mut self) -> DefId {

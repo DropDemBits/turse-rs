@@ -1,13 +1,13 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
-expression: "16#80000001 div (1 - 2)"
+expression: 1e100 div 1
 
 ---
 ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_state: [
-                Error(IntOverflow),
+                Error(Spanned(IntOverflow, 17..20)),
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },

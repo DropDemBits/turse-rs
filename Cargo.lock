@@ -568,6 +568,7 @@ dependencies = [
  "insta",
  "internment",
  "paste",
+ "thiserror",
  "toc_hir",
  "toc_hir_lowering",
  "toc_parser",

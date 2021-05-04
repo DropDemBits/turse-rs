@@ -155,6 +155,6 @@ pub enum RealSize {
 pub enum SeqLength {
     /// Runtime sized (only accepted for parameters)
     Dynamic,
-    /// Expression
-    Expr(ConstExpr),
+    /// Fixed, compile-time size
+    Fixed(u32),
 }

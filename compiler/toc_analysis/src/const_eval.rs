@@ -42,14 +42,37 @@ pub enum ConstValue {
 }
 
 impl ConstValue {
-    pub fn cast_into_int(self) -> Result<ConstInt, ConstError> {
+    /// Unwraps a `ConstValue` as `ConstInt`
+    ///
+    /// ## Returns
+    /// If `self` is a `ConstValue::Integer`, returns the corresponding ConstInt value.
+    /// Otherwise, returns `None`.
+    pub fn as_int(&self) -> Option<ConstInt> {
+        match self {
+            ConstValue::Integer(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    /// Converts a `ConstValue` into a `ConstInt`.
+    ///
+    /// The only value types that are allowed to be cast into `ConstInt` are:
+    ///
+    /// - `Integer`
+    fn cast_into_int(self) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
             _ => Err(ConstError::WrongType),
         }
     }
 
-    pub fn cast_into_real(self) -> Result<f64, ConstError> {
+    /// Converts a `ConstValue` into a `f64`.
+    ///
+    /// The only value types that are allowed to be cast into a `f64` are:
+    ///
+    /// - `Integer`
+    /// - `Real`
+    fn cast_into_real(self) -> Result<f64, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v.into_f64()),
             ConstValue::Real(v) => Ok(v),
@@ -58,28 +81,38 @@ impl ConstValue {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum ConstError {
     // Traversal errors
     /// Encountered an evaluation cycle
+    #[error("detected a compile-time evaluation cycle")]
     EvalCycle,
     /// Missing expression operand
+    #[error("operand is an invalid expression")]
     MissingExpr,
     /// Not a valid const eval operation
-    NotConstOp(toc_span::TextRange),
+    #[error("operation cannot be computed at compile-time")]
+    NotConstOp,
     /// No const expr is associated with this identifer
+    #[error("reference cannot be computed at compile-time")]
     NoConstExpr,
 
     // Computation errors
     /// Wrong operand type in eval expression
+    #[error("wrong type for compile-time expression")]
     WrongType,
     /// Integer overflow
+    #[error("integer overflow in compile-time expression")]
     IntOverflow,
     /// Floating point overflow
+    #[error("real overflow in compile-time expression")]
     RealOverflow,
     /// Division by zero
+    #[error("division by zero in compile-time expression")]
     DivByZero,
 }
+
+pub type ConstResult<T> = Result<T, Spanned<ConstError>>;
 
 /// Constant evaluation context
 #[derive(Debug)]
@@ -111,7 +144,7 @@ impl ConstEvalCtx {
     }
 
     /// Evaluates the value of an expression
-    pub fn eval_expr(&self, expr: ConstExpr) -> Result<ConstValue, ConstError> {
+    pub fn eval_expr(&self, expr: ConstExpr) -> ConstResult<ConstValue> {
         // TODO: Try to look for a cached result before entering the actual computation
 
         let mut inner = self.inner.write().unwrap();
@@ -119,7 +152,7 @@ impl ConstEvalCtx {
     }
 
     /// Evaluates the value of a constant variable
-    pub fn eval_var(&self, var: GlobalDefId) -> Result<ConstValue, ConstError> {
+    pub fn eval_var(&self, var: GlobalDefId) -> ConstResult<ConstValue> {
         // TODO: Try to look for a cached result before entering the actual computation
 
         let mut inner = self.inner.write().unwrap();
@@ -192,16 +225,19 @@ impl InnerCtx {
         self.var_to_expr.insert(def_id, init_expr);
     }
 
-    fn eval_expr(&mut self, expr: ConstExpr) -> Result<ConstValue, ConstError> {
+    fn eval_expr(&mut self, expr: ConstExpr) -> ConstResult<ConstValue> {
         // Lookup the initial state of the expression
         let (unit_id, root_expr) = match &self.eval_state[expr.id] {
             // Give cached value
             EvalState::Value(v) => return Ok(v.clone()),
             EvalState::Error(v) => return Err(v.clone()),
-            EvalState::Evaluating => {
+            EvalState::Evaluating(unit_id, root_expr) => {
                 // Encountered an evaluation cycle, update the evaluation state
-                self.eval_state[expr.id] = EvalState::Error(ConstError::EvalCycle);
-                return Err(ConstError::EvalCycle);
+                let span = self.unit_map.get_unit(*unit_id).database.expr_nodes.spans[&root_expr];
+                let err = Spanned::new(ConstError::EvalCycle, span);
+
+                self.eval_state[expr.id] = EvalState::Error(err.clone());
+                return Err(err);
             }
             EvalState::Unevaluated(unit_id, root_expr) => (*unit_id, *root_expr),
         };
@@ -216,9 +252,20 @@ impl InnerCtx {
         result
     }
 
-    fn eval_var(&mut self, var: GlobalDefId) -> Result<ConstValue, ConstError> {
+    fn eval_var(&mut self, var: GlobalDefId) -> ConstResult<ConstValue> {
         // TODO: Handle evaluation restrictions
-        let const_expr = *self.var_to_expr.get(&var).ok_or(ConstError::NoConstExpr)?;
+        let const_expr = *self.var_to_expr.get(&var).ok_or_else(|| {
+            // Fetch the span of the declaration
+            let (unit_id, def_id) = (var.unit_id(), var.as_local());
+
+            let span = self
+                .unit_map
+                .get_unit(unit_id)
+                .symbol_table
+                .get_def_span(def_id);
+
+            Spanned::new(ConstError::NoConstExpr, span)
+        })?;
         self.eval_expr(const_expr)
     }
 
@@ -227,16 +274,16 @@ impl InnerCtx {
         unit_id: UnitId,
         root_expr: expr::ExprIdx,
         const_expr: ConstExpr,
-    ) -> Result<ConstValue, ConstError> {
+    ) -> ConstResult<ConstValue> {
         #[derive(Debug)]
         enum Eval {
             Expr(expr::ExprIdx),
-            Op(ConstOp),
+            Op(ConstOp, toc_span::TextRange),
         }
 
         // Unevaluated, evaluate the expression
         // Update the evaluation state to catch any evaluation cycles
-        self.eval_state[const_expr.id] = EvalState::Evaluating;
+        self.eval_state[const_expr.id] = EvalState::Evaluating(unit_id, root_expr);
 
         // TODO: Feed in restrictions from somewhere
         let allow_64bit_ops = false;
@@ -252,14 +299,18 @@ impl InnerCtx {
 
             let local_expr = match eval_stack.pop() {
                 Some(Eval::Expr(expr)) => expr,
-                Some(Eval::Op(op)) => {
+                Some(Eval::Op(op, span)) => {
                     // Perform operation
-                    let result = op.evaluate(&mut operand_stack, allow_64bit_ops)?;
+                    let result = op
+                        .evaluate(&mut operand_stack, allow_64bit_ops)
+                        .map_err(|err| Spanned::new(err, span))?;
                     operand_stack.push(result);
                     continue;
                 }
                 None => break,
             };
+
+            let expr_span = unit.database.expr_nodes.spans[&local_expr];
 
             // ???: How to deal with enum field accesses?
             // We don't have access to a TyCtx
@@ -267,7 +318,7 @@ impl InnerCtx {
             match &unit.database[local_expr] {
                 expr::Expr::Missing => {
                     // Bail out
-                    return Err(ConstError::MissingExpr);
+                    return Err(Spanned::new(ConstError::MissingExpr, expr_span));
                 }
                 expr::Expr::Literal(expr) => {
                     // ???: How to deal with 32-bit vs 64-bit integers?
@@ -277,7 +328,8 @@ impl InnerCtx {
                     // Convert into a Constvalue
                     let operand = match expr {
                         expr::Literal::Integer(v) => {
-                            let v = ConstInt::from_unsigned(*v, allow_64bit_ops)?;
+                            let v = ConstInt::from_unsigned(*v, allow_64bit_ops)
+                                .map_err(|err| Spanned::new(err, expr_span))?;
                             ConstValue::Integer(v)
                         }
                         expr::Literal::Real(v) => ConstValue::Real(*v),
@@ -290,13 +342,15 @@ impl InnerCtx {
                 }
                 expr::Expr::Binary(expr) => {
                     // Push both expression operands and the operation
-                    eval_stack.push(Eval::Op(expr.op.try_into()?));
+                    let (op, span) = (expr.op.try_into()?, expr.op.span());
+                    eval_stack.push(Eval::Op(op, span));
                     eval_stack.push(Eval::Expr(expr.rhs));
                     eval_stack.push(Eval::Expr(expr.lhs));
                 }
                 expr::Expr::Unary(expr) => {
                     // Push expr operand & operator
-                    eval_stack.push(Eval::Op(expr.op.try_into()?));
+                    let (op, span) = (expr.op.try_into()?, expr.op.span());
+                    eval_stack.push(Eval::Op(op, span));
                     eval_stack.push(Eval::Expr(expr.rhs));
                 }
                 expr::Expr::Paren(expr) => {
@@ -340,11 +394,11 @@ enum EvalState {
     /// The expression has not been evaluated yet
     Unevaluated(UnitId, expr::ExprIdx),
     /// The expression is in the process of being evaluated
-    Evaluating,
+    Evaluating(UnitId, expr::ExprIdx),
     /// The expression has been evaluated to a valid value
     Value(ConstValue),
     /// The expression has been evaluated, but not to a valid value
-    Error(ConstError),
+    Error(Spanned<ConstError>),
 }
 
 impl fmt::Debug for EvalState {
@@ -353,7 +407,9 @@ impl fmt::Debug for EvalState {
             EvalState::Unevaluated(u, v) => {
                 f.write_fmt(format_args!("Unevaluated({:?}, {:?})", u, v))
             }
-            EvalState::Evaluating => f.write_fmt(format_args!("Evaluating")),
+            EvalState::Evaluating(u, v) => {
+                f.write_fmt(format_args!("Evaluating({:?}, {:?})", u, v))
+            }
             EvalState::Value(v) => f.write_fmt(format_args!("Value({:?})", v)),
             EvalState::Error(v) => f.write_fmt(format_args!("Error({:?})", v)),
         }
@@ -513,7 +569,7 @@ impl ConstOp {
 }
 
 impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
-    type Error = ConstError;
+    type Error = Spanned<ConstError>;
 
     fn try_from(op: Spanned<expr::BinaryOp>) -> Result<Self, Self::Error> {
         Ok(match op.item() {
@@ -537,13 +593,14 @@ impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
             expr::BinaryOp::Equal => Self::Equal,
             expr::BinaryOp::NotEqual => Self::NotEqual,
             expr::BinaryOp::Imply => Self::Imply,
-            _ => return Err(ConstError::NotConstOp(op.span())),
+            // Not a compile-time operation
+            _ => return Err(Spanned::new(ConstError::NotConstOp, op.span())),
         })
     }
 }
 
 impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
-    type Error = ConstError;
+    type Error = Spanned<ConstError>;
 
     fn try_from(op: Spanned<expr::UnaryOp>) -> Result<Self, Self::Error> {
         match op.item() {
@@ -557,6 +614,7 @@ impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
 /// Constant Integer representation
 #[derive(Debug, Clone, Copy)]
 pub struct ConstInt {
+    /// invariant: must be representable with the given `sign` and `magnitude`
     magnitude: u64,
     sign: IntSign,
     width: IntWidth,
@@ -643,6 +701,31 @@ impl ConstInt {
         })
     }
 
+    /// Converts the `ConstInt` into the corresponding `u32` value.
+    ///
+    /// ## Returns
+    /// Returns `Some(u32)` if the `ConstInt` is a positive integer (including zero)
+    /// and is actually representable as a u32, or `None` otherwise.
+    pub fn into_u32(self) -> Option<u32> {
+        match self.sign {
+            IntSign::Positive => self.magnitude.try_into().ok(),
+            IntSign::Negative => None,
+        }
+    }
+
+    /// Converts the `ConstInt` into the corresponding `u64` value.
+    ///
+    /// ## Returns
+    /// Returns `Some(u64)` if the `ConstInt` is a positive integer (including zero),
+    /// or `None` otherwise.
+    pub fn into_u64(self) -> Option<u64> {
+        match self.sign {
+            IntSign::Positive => Some(self.magnitude),
+            IntSign::Negative => None,
+        }
+    }
+
+    /// Converts the `ConstInt` into the corresponding `f64` value.
     pub fn into_f64(self) -> f64 {
         match self.sign {
             IntSign::Positive => self.magnitude as f64,
@@ -821,6 +904,25 @@ impl ConstInt {
         } else {
             Err(ConstError::IntOverflow)
         }
+    }
+}
+
+impl fmt::Display for ConstInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let magnitude = if f.alternate() {
+            // Show the width
+            let width = match self.width {
+                IntWidth::As32 => "i32",
+                IntWidth::As64 => "i64",
+            };
+
+            format!("{}{}", self.magnitude, width)
+        } else {
+            // Just the magnitude
+            format!("{}", self.magnitude)
+        };
+
+        f.pad_integral(matches!(self.sign, IntSign::Positive), "", &magnitude)
     }
 }
 

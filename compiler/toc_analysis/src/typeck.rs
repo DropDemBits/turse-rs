@@ -5,11 +5,11 @@ mod test;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use toc_hir::{expr, stmt, ty as hir_ty};
+use toc_hir::{expr, stmt, ty as hir_ty, UnitMap};
 use toc_reporting::{MessageKind, ReportMessage};
 use toc_span::Spanned;
 
-use crate::const_eval::ConstEvalCtx;
+use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, ConstValue};
 use crate::ty::{self, DefKind, TyCtx, TyRef};
 
 // ???: Can we build up a type ctx without doing type propogation?
@@ -206,20 +206,44 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
     }
 
     fn visit_primitive(&mut self, id: hir_ty::TypeIdx, ty: &hir_ty::Primitive) {
+        enum SeqLenError {
+            ConstEval(Spanned<ConstError>),
+            WrongType(Spanned<ConstValue>),
+            WrongSize(Spanned<ConstInt>),
+        }
+
         fn into_ty_seq_len(
             seq_len: toc_hir::ty::SeqLength,
             unit_id: toc_hir::UnitId,
             const_eval: &ConstEvalCtx,
-        ) -> ty::SeqLength {
+            unit: &toc_hir::Unit,
+        ) -> Result<ty::SeqLength, SeqLenError> {
             match seq_len {
-                hir_ty::SeqLength::Dynamic => ty::SeqLength::Dynamic,
+                hir_ty::SeqLength::Dynamic => Ok(ty::SeqLength::Dynamic),
                 hir_ty::SeqLength::Expr(expr) => {
                     let const_expr = const_eval.defer_expr(unit_id, expr);
-                    // Always eagerly evaluate const exprs for types
-                    // TODO: report any const eval errors
-                    let _ = const_eval.eval_expr(const_expr);
 
-                    ty::SeqLength::Expr(const_expr)
+                    // Always eagerly evaluate the expr
+                    let value = const_eval
+                        .eval_expr(const_expr)
+                        .map_err(|err| SeqLenError::ConstEval(err))?;
+
+                    let span = unit.database.expr_nodes.spans[&expr];
+
+                    // Check that the value is actually the correct type, and in the correct value range.
+                    // Size can only be in (0, 32768)
+                    let int = value
+                        .as_int()
+                        .ok_or_else(|| SeqLenError::WrongType(Spanned::new(value, span)))?;
+
+                    // Note: 32768 is the minimum defined limit for the length on `n`
+                    // ???: Do we want to add a config/feature option to change this?
+                    let size = int
+                        .into_u32()
+                        .filter(|size| (1..32768).contains(size))
+                        .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span)))?;
+
+                    Ok(ty::SeqLength::Fixed(size))
                 }
             }
         }
@@ -241,11 +265,65 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             hir_ty::Primitive::AddressInt => ty::Type::Nat(ty::NatSize::AddressInt),
             hir_ty::Primitive::Char => ty::Type::Char,
             hir_ty::Primitive::String => ty::Type::String,
-            hir_ty::Primitive::SizedChar(len) => {
-                ty::Type::CharN(into_ty_seq_len(*len, self.unit.id, &self.const_eval))
-            }
-            hir_ty::Primitive::SizedString(len) => {
-                ty::Type::StringN(into_ty_seq_len(*len, self.unit.id, &self.const_eval))
+            hir_ty::Primitive::SizedChar(len) | hir_ty::Primitive::SizedString(len) => {
+                match into_ty_seq_len(*len, self.unit.id, &self.const_eval, &self.unit) {
+                    Ok(len) => {
+                        if matches!(ty, hir_ty::Primitive::SizedChar(_)) {
+                            ty::Type::CharN(len)
+                        } else {
+                            ty::Type::StringN(len)
+                        }
+                    }
+                    Err(err) => {
+                        match err {
+                            SeqLenError::ConstEval(err) => {
+                                // TODO: Provide more detailed const eval errors
+                                self.reporter.report(
+                                    MessageKind::Error,
+                                    &format!("{}", err.item()),
+                                    err.span(),
+                                );
+                            }
+                            SeqLenError::WrongType(value) => {
+                                let stringified_ty = match value.item() {
+                                    ConstValue::Integer(_) => unreachable!(),
+                                    ConstValue::Real(_) => "real value",
+                                };
+
+                                self.reporter
+                                    .report_detailed(
+                                        MessageKind::Error,
+                                        "wrong type for character count",
+                                        value.span(),
+                                    )
+                                    .with_note(
+                                        &format!(
+                                            "expected integer value, found {}",
+                                            stringified_ty
+                                        ),
+                                        value.span(),
+                                    )
+                                    .finish();
+                            }
+                            SeqLenError::WrongSize(int) => {
+                                self.reporter
+                                    .report_detailed(
+                                        MessageKind::Error,
+                                        "invalid character count size",
+                                        int.span(),
+                                    )
+                                    .with_info("valid sizes are between 1 to 32767", int.span())
+                                    .with_note(
+                                        &format!("computed count is {}", int.item()),
+                                        int.span(),
+                                    )
+                                    .finish();
+                            }
+                        }
+
+                        ty::Type::Error
+                    }
+                }
             }
         };
 

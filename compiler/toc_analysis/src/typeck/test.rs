@@ -25,6 +25,11 @@ fn assert_typecheck(source: &str) {
     insta::assert_snapshot!(insta::internals::AutoName, do_typecheck(source), source);
 }
 
+#[track_caller]
+fn assert_named_typecheck(name: &str, source: &str) {
+    insta::assert_snapshot!(name, do_typecheck(source), source);
+}
+
 fn do_typecheck(source: &str) -> String {
     let parsed = toc_parser::parse(&source);
     let mut unit_map = toc_hir::UnitMapBuilder::new();
@@ -151,4 +156,26 @@ fn typecheck_error_prop() {
     var j := c + a
     "#,
     ));
+}
+
+#[test]
+fn typecheck_sized_char() {
+    assert_named_typecheck("literal", r#"var _ : char(1)"#);
+    // trip through negatives shouldn't affect anything
+    assert_named_typecheck("simple_expr", r#"var _ : char(1 - 1 * 1 + 2)"#);
+    assert_named_typecheck("zero_sized", r#"var _ : char(0)"#);
+    assert_named_typecheck("max_sized", r#"var _ : char(32768)"#);
+    assert_named_typecheck("wrong_type", r#"var _ : char(1.0)"#);
+    assert_named_typecheck("const_err", r#"var _ : char(1.0 div 0.0)"#);
+}
+
+#[test]
+fn typecheck_sized_string() {
+    assert_named_typecheck("literal", r#"var _ : string(1)"#);
+    // trip through negatives shouldn't affect anything
+    assert_named_typecheck("simple_expr", r#"var _ : string(1 - 1 * 1 + 2)"#);
+    assert_named_typecheck("zero_sized", r#"var _ : string(0)"#);
+    assert_named_typecheck("max_sized", r#"var _ : string(32768)"#);
+    assert_named_typecheck("wrong_type", r#"var _ : string(1.0)"#);
+    assert_named_typecheck("const_err", r#"var _ : string(1.0 div 0.0)"#);
 }
