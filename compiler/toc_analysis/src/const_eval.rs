@@ -1,4 +1,6 @@
 //! Constant evaluation stuff
+mod integer;
+mod ops;
 #[cfg(test)]
 mod test;
 
@@ -13,6 +15,9 @@ use toc_hir::Unit;
 use toc_hir::{expr, symbol::GlobalDefId, UnitId, UnitMap};
 use toc_span::Spanned;
 
+pub use integer::ConstInt;
+use ops::ConstOp;
+
 // Evaluation process:
 // Starting at const expr
 // Unfold expr tree in post order traversal
@@ -20,17 +25,38 @@ use toc_span::Spanned;
 // TODO: Deal with const vars with type errors
 // Only need to map the var to an error const expr
 
-/// Reference to an expression to be evaluated
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConstExpr {
-    id: usize,
-}
-// Maps `ConstExpr` to unit local `toc_hir::expr::ExprIdx`
+/// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
+pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
+    use toc_hir::{stmt, HirVisitor};
 
-impl fmt::Debug for ConstExpr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("ConstExpr {{ id: {:?} }}", self.id))
+    struct Visitor {
+        unit_id: UnitId,
+        const_eval: Arc<ConstEvalCtx>,
     }
+
+    impl HirVisitor for Visitor {
+        fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
+            if decl.is_const {
+                if let Some(init_expr) = decl.tail.init_expr() {
+                    let const_expr = self.const_eval.defer_expr(self.unit_id, init_expr);
+                    // Add mappings
+                    for def in &decl.names {
+                        self.const_eval
+                            .add_var(def.into_global(self.unit_id), const_expr);
+                    }
+                }
+            };
+        }
+
+        // TODO: Visit type stmt for enum constvar & constvalue
+    }
+
+    let mut visitor = Visitor {
+        unit_id: unit.id,
+        const_eval,
+    };
+
+    unit.walk_nodes(&mut visitor);
 }
 
 #[derive(Debug, Clone)]
@@ -160,38 +186,17 @@ impl ConstEvalCtx {
     }
 }
 
-/// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
-pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
-    use toc_hir::{stmt, HirVisitor};
+/// Reference to an expression to be evaluated
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ConstExpr {
+    id: usize,
+}
+// Maps `ConstExpr` to unit local `toc_hir::expr::ExprIdx`
 
-    struct Visitor {
-        unit_id: UnitId,
-        const_eval: Arc<ConstEvalCtx>,
+impl fmt::Debug for ConstExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("ConstExpr {{ id: {:?} }}", self.id))
     }
-
-    impl HirVisitor for Visitor {
-        fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
-            if decl.is_const {
-                if let Some(init_expr) = decl.tail.init_expr() {
-                    let const_expr = self.const_eval.defer_expr(self.unit_id, init_expr);
-                    // Add mappings
-                    for def in &decl.names {
-                        self.const_eval
-                            .add_var(def.into_global(self.unit_id), const_expr);
-                    }
-                }
-            };
-        }
-
-        // TODO: Visit type stmt for enum constvar & constvalue
-    }
-
-    let mut visitor = Visitor {
-        unit_id: unit.id,
-        const_eval,
-    };
-
-    unit.walk_nodes(&mut visitor);
 }
 
 struct InnerCtx {
@@ -416,158 +421,6 @@ impl fmt::Debug for EvalState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum ConstOp {
-    // Binary operations
-    Add,
-    Sub,
-    Mul,
-    Div,
-    RealDiv,
-    Mod,
-    Rem,
-    Exp,
-    And,
-    Or,
-    Xor,
-    Shl,
-    Shr,
-    Less,
-    LessEq,
-    Greater,
-    GreaterEq,
-    Equal,
-    NotEqual,
-    Imply,
-    // Unary operations
-    Not,
-    Identity,
-    Negate,
-}
-
-impl ConstOp {
-    fn evaluate(
-        &self,
-        operand_stack: &mut Vec<ConstValue>,
-        allow_64bit_ops: bool,
-    ) -> Result<ConstValue, ConstError> {
-        match self {
-            ConstOp::Add => {
-                let rhs = operand_stack.pop().unwrap();
-                let lhs = operand_stack.pop().unwrap();
-
-                match (lhs, rhs) {
-                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
-
-                        match lhs + rhs {
-                            v if v.is_infinite() => Err(ConstError::RealOverflow),
-                            v => Ok(ConstValue::Real(v)),
-                        }
-                    }
-                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_add(rhs).map(|v| ConstValue::Integer(v))
-                    }
-                }
-            }
-            ConstOp::Sub => {
-                let rhs = operand_stack.pop().unwrap();
-                let lhs = operand_stack.pop().unwrap();
-
-                match (lhs, rhs) {
-                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
-
-                        match lhs - rhs {
-                            v if v.is_infinite() => Err(ConstError::RealOverflow),
-                            v => Ok(ConstValue::Real(v)),
-                        }
-                    }
-                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_sub(rhs).map(|v| ConstValue::Integer(v))
-                    }
-                }
-            }
-            ConstOp::Mul => {
-                let rhs = operand_stack.pop().unwrap();
-                let lhs = operand_stack.pop().unwrap();
-
-                match (lhs, rhs) {
-                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
-
-                        match lhs * rhs {
-                            v if v.is_infinite() => Err(ConstError::RealOverflow),
-                            v => Ok(ConstValue::Real(v)),
-                        }
-                    }
-                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_mul(rhs).map(|v| ConstValue::Integer(v))
-                    }
-                }
-            }
-            ConstOp::Div => {
-                let rhs = operand_stack.pop().unwrap();
-                let lhs = operand_stack.pop().unwrap();
-
-                match (lhs, rhs) {
-                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
-
-                        // Divide & truncate, then convert to an integer
-                        match (lhs / rhs).trunc() {
-                            _ if rhs == 0.0 => Err(ConstError::DivByZero),
-                            v => ConstInt::from_signed_real(v, allow_64bit_ops)
-                                .map(|v| ConstValue::Integer(v)),
-                        }
-                    }
-                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
-                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_div(rhs).map(|v| ConstValue::Integer(v))
-                    }
-                }
-            }
-            ConstOp::RealDiv => todo!(),
-            ConstOp::Mod => todo!(),
-            ConstOp::Rem => todo!(),
-            ConstOp::Exp => todo!(),
-            ConstOp::And => todo!(),
-            ConstOp::Or => todo!(),
-            ConstOp::Xor => todo!(),
-            ConstOp::Shl => todo!(),
-            ConstOp::Shr => todo!(),
-            ConstOp::Less => todo!(),
-            ConstOp::LessEq => todo!(),
-            ConstOp::Greater => todo!(),
-            ConstOp::GreaterEq => todo!(),
-            ConstOp::Equal => todo!(),
-            ConstOp::NotEqual => todo!(),
-            ConstOp::Imply => todo!(),
-            ConstOp::Not => todo!(),
-            ConstOp::Identity => {
-                // Rhs must be a number
-                let rhs = operand_stack.pop().unwrap();
-
-                match rhs {
-                    rhs @ ConstValue::Integer(_) => Ok(rhs),
-                    rhs @ ConstValue::Real(_) => Ok(rhs),
-                }
-            }
-            ConstOp::Negate => {
-                let rhs = operand_stack.pop().unwrap();
-
-                match rhs {
-                    ConstValue::Integer(v) => v.negate().map(|v| ConstValue::Integer(v)),
-                    ConstValue::Real(v) => Ok(ConstValue::Real(-v)),
-                }
-            }
-        }
-    }
-}
-
 impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
     type Error = Spanned<ConstError>;
 
@@ -608,351 +461,5 @@ impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
             expr::UnaryOp::Identity => Ok(Self::Identity),
             expr::UnaryOp::Negate => Ok(Self::Negate),
         }
-    }
-}
-
-/// Constant Integer representation
-#[derive(Debug, Clone, Copy)]
-pub struct ConstInt {
-    /// invariant: must be representable with the given `sign` and `magnitude`
-    magnitude: u64,
-    sign: IntSign,
-    width: IntWidth,
-}
-
-impl ConstInt {
-    /// Constructs a new integer constant from an unsigned value
-    ///
-    /// ## Parameters
-    /// - `value`: The unsigned value of the corresponding integer constant
-    /// - `allow_64bit_values`: If 64-bit values can be constructed from applying
-    ///   operations to this integer constant
-    pub fn from_unsigned(value: u64, allow_64bit_ops: bool) -> Result<Self, ConstError> {
-        let width = if allow_64bit_ops {
-            // Allow 64-bit operations, any value is allowed
-            IntWidth::As64
-        } else {
-            // Apply only 32-bit operations
-            if value > u32::MAX as u64 {
-                // Already overflowing
-                return Err(ConstError::IntOverflow);
-            }
-
-            IntWidth::As32
-        };
-
-        Ok(Self {
-            sign: IntSign::Positive,
-            magnitude: value,
-            width,
-        })
-    }
-
-    /// Constructs a new integer constant from a signed floating point value
-    ///
-    /// ## Parameters
-    /// - `value`: The signed floating point value of the corresponding integer constant
-    /// - `allow_64bit_values`: If 64-bit values can be constructed from applying
-    ///   operations to this integer constant
-    pub fn from_signed_real(value: f64, allow_64bit_ops: bool) -> Result<Self, ConstError> {
-        let width = if allow_64bit_ops {
-            // Allow 64-bit operations, check against u64 bounds
-            if (value.is_sign_negative() && value < i64::MIN as f64)
-                || (value.is_sign_positive() && value > u64::MAX as f64)
-            {
-                // Already overflowing
-                return Err(ConstError::IntOverflow);
-            }
-
-            IntWidth::As64
-        } else {
-            // Apply only 32-bit operations
-            if (value.is_sign_negative() && value < i32::MIN as f64)
-                || (value.is_sign_positive() && value > u32::MAX as f64)
-            {
-                // Already overflowing
-                return Err(ConstError::IntOverflow);
-            }
-
-            IntWidth::As32
-        };
-
-        let (magnitude, sign) = {
-            let magnitude = value.abs().trunc() as u64;
-
-            if magnitude == 0 {
-                // Always +0
-                (0, IntSign::Positive)
-            } else {
-                let sign = if value.is_sign_negative() {
-                    IntSign::Negative
-                } else {
-                    IntSign::Positive
-                };
-
-                (magnitude, sign)
-            }
-        };
-
-        Ok(Self {
-            sign,
-            magnitude,
-            width,
-        })
-    }
-
-    /// Converts the `ConstInt` into the corresponding `u32` value.
-    ///
-    /// ## Returns
-    /// Returns `Some(u32)` if the `ConstInt` is a positive integer (including zero)
-    /// and is actually representable as a u32, or `None` otherwise.
-    pub fn into_u32(self) -> Option<u32> {
-        match self.sign {
-            IntSign::Positive => self.magnitude.try_into().ok(),
-            IntSign::Negative => None,
-        }
-    }
-
-    /// Converts the `ConstInt` into the corresponding `u64` value.
-    ///
-    /// ## Returns
-    /// Returns `Some(u64)` if the `ConstInt` is a positive integer (including zero),
-    /// or `None` otherwise.
-    pub fn into_u64(self) -> Option<u64> {
-        match self.sign {
-            IntSign::Positive => Some(self.magnitude),
-            IntSign::Negative => None,
-        }
-    }
-
-    /// Converts the `ConstInt` into the corresponding `f64` value.
-    pub fn into_f64(self) -> f64 {
-        match self.sign {
-            IntSign::Positive => self.magnitude as f64,
-            IntSign::Negative => -(self.magnitude as f64),
-        }
-    }
-
-    /// Checked integer addition.
-    /// Computes `self + rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
-    pub fn checked_add(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
-        let effective_width = Self::effective_width(self.width, rhs.width);
-
-        // Potential signs:
-        // lhs rhs    magnitude op
-        // +   +   => +
-        // -   +   => -
-        // +   -   => -
-        // -   -   => +
-        let (value, new_sign) = if self.sign == rhs.sign {
-            // Sign is the same as the original
-            (self.magnitude.checked_add(rhs.magnitude), self.sign)
-        } else {
-            // Sign can change
-            let (magnitude, sign) = {
-                let (magnitude, wrapped) = self.magnitude.overflowing_sub(rhs.magnitude);
-
-                if wrapped {
-                    // Undo two's compliment
-                    // Flip the sign
-                    (!magnitude + 1, self.sign.negate())
-                } else {
-                    (magnitude, self.sign)
-                }
-            };
-
-            (Some(magnitude), sign)
-        };
-
-        Self::check_overflow(value, new_sign, effective_width)
-    }
-
-    /// Checked integer subtraction.
-    /// Computes `self - rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
-    pub fn checked_sub(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
-        // Reuse addition code
-        self.checked_add(rhs.unchecked_negate())
-    }
-
-    /// Checked integer multiplication.
-    /// Computes `self * rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
-    pub fn checked_mul(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
-        let effective_width = Self::effective_width(self.width, rhs.width);
-
-        // Potential signs:
-        // lhs rhs    final sign
-        // +   +   => +
-        // -   +   => -
-        // +   -   => -
-        // -   -   => +
-
-        // Magnitude is unaffected by the initial signs
-        let value = self.magnitude.checked_mul(rhs.magnitude);
-
-        let new_sign = if self.sign == rhs.sign {
-            // Will always be positive
-            IntSign::Positive
-        } else {
-            // Will always be negative
-            IntSign::Negative
-        };
-
-        Self::check_overflow(value, new_sign, effective_width)
-    }
-
-    /// Checked integer division.
-    /// Computes `self div rhs`, returning `Err(ConstError::DivByZero)` if `rhs == 0`.
-    pub fn checked_div(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
-        let effective_width = Self::effective_width(self.width, rhs.width);
-
-        // Potential signs:
-        // lhs rhs    final sign
-        // +   +   => +
-        // -   +   => -
-        // +   -   => -
-        // -   -   => +
-
-        // Magnitude is unaffected by the initial signs
-        let value = self
-            .magnitude
-            .checked_div(rhs.magnitude)
-            .ok_or(ConstError::DivByZero)?;
-
-        let new_sign = if self.sign == rhs.sign {
-            // Will always be positive
-            IntSign::Positive
-        } else {
-            // Will always be negative
-            IntSign::Negative
-        };
-
-        Self::check_overflow(Some(value), new_sign, effective_width)
-    }
-
-    /// Negates the sign of the integer.
-    /// Does nothing for a magnitude of 0.
-    pub fn negate(self) -> Result<ConstInt, ConstError> {
-        Self::check_overflow(Some(self.magnitude), self.sign.negate(), self.width)
-    }
-
-    /// Negates the sign of the integer.
-    /// Does nothing for a magnitude of 0.
-    ///
-    /// Note: This can break the invariant that for a width of `As32` and sign of `Negative`,
-    /// magnitude must be in the range `[0, 0x7FFFFFFF]`.
-    /// The only allowed usage of this function is for negating the `rhs` in `checked_sub`
-    fn unchecked_negate(mut self) -> Self {
-        if self.magnitude > 0 {
-            self.sign = self.sign.negate()
-        }
-
-        self
-    }
-
-    fn effective_width(lhs: IntWidth, rhs: IntWidth) -> IntWidth {
-        // Potential widths
-        // lhs rhs    effective width
-        // 32  32  => 32
-        // 64  32  => 32
-        // 32  64  => 32
-        // 64  64  => 64
-
-        if lhs == IntWidth::As64 && lhs == rhs {
-            IntWidth::As64
-        } else {
-            IntWidth::As32
-        }
-    }
-
-    fn check_overflow(
-        value: Option<u64>,
-        new_sign: IntSign,
-        effective_width: IntWidth,
-    ) -> Result<ConstInt, ConstError> {
-        let (magnitude, sign) = {
-            let effective_magnitude = value.ok_or(ConstError::IntOverflow)?;
-
-            if effective_magnitude == 0 {
-                // `0` is always a "positive" number
-                (0, IntSign::Positive)
-            } else {
-                // Keep the same magnitude
-                (effective_magnitude, new_sign)
-            }
-        };
-
-        // Check for overflow
-        let overflowed = match effective_width {
-            // [0, 0xFFFF_FFFF]
-            IntWidth::As32 if sign.is_positive() => magnitude > u32::MAX as u64,
-            // [0, 0x8000_0000]
-            IntWidth::As32 if sign.is_negative() => magnitude > i32::MIN.unsigned_abs() as u64,
-            // [0, 0xFFFFFFFF_FFFFFFFF] or all values of u64
-            IntWidth::As64 if sign.is_positive() => false,
-            // [0, 0x80000000_00000000] or all values of u64
-            IntWidth::As64 if sign.is_negative() => magnitude > i64::MIN.unsigned_abs() as u64,
-            // All cases already covered
-            _ => unreachable!(),
-        };
-
-        if !overflowed {
-            Ok(Self {
-                magnitude,
-                sign,
-                width: effective_width,
-            })
-        } else {
-            Err(ConstError::IntOverflow)
-        }
-    }
-}
-
-impl fmt::Display for ConstInt {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let magnitude = if f.alternate() {
-            // Show the width
-            let width = match self.width {
-                IntWidth::As32 => "i32",
-                IntWidth::As64 => "i64",
-            };
-
-            format!("{}{}", self.magnitude, width)
-        } else {
-            // Just the magnitude
-            format!("{}", self.magnitude)
-        };
-
-        f.pad_integral(matches!(self.sign, IntSign::Positive), "", &magnitude)
-    }
-}
-
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum IntWidth {
-    As32,
-    As64,
-}
-
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum IntSign {
-    Positive,
-    Negative,
-}
-
-impl IntSign {
-    fn negate(self) -> Self {
-        match self {
-            IntSign::Positive => IntSign::Negative,
-            IntSign::Negative => IntSign::Positive,
-        }
-    }
-
-    fn is_positive(self) -> bool {
-        matches!(self, IntSign::Positive)
-    }
-
-    fn is_negative(self) -> bool {
-        matches!(self, IntSign::Negative)
     }
 }
