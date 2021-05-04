@@ -160,22 +160,25 @@ fn typecheck_error_prop() {
 
 #[test]
 fn typecheck_sized_char() {
-    assert_named_typecheck("literal", r#"var _ : char(1)"#);
+    assert_named_typecheck("sized_char_literal", r#"var _ : char(1)"#);
     // trip through negatives shouldn't affect anything
-    assert_named_typecheck("simple_expr", r#"var _ : char(1 - 1 * 1 + 2)"#);
-    assert_named_typecheck("zero_sized", r#"var _ : char(0)"#);
-    assert_named_typecheck("max_sized", r#"var _ : char(32768)"#);
-    assert_named_typecheck("wrong_type", r#"var _ : char(1.0)"#);
-    assert_named_typecheck("const_err", r#"var _ : char(1.0 div 0.0)"#);
+    assert_named_typecheck("sized_char_simple_expr", r#"var _ : char(1 - 1 * 1 + 2)"#);
+    assert_named_typecheck("sized_char_zero_sized", r#"var _ : char(0)"#);
+    assert_named_typecheck("sized_char_max_sized", r#"var _ : char(32768)"#);
+    assert_named_typecheck("sized_char_wrong_type", r#"var _ : char(1.0)"#);
+    assert_named_typecheck("sized_char_const_err", r#"var _ : char(1.0 div 0.0)"#);
 }
 
 #[test]
 fn typecheck_sized_string() {
-    assert_named_typecheck("literal", r#"var _ : string(1)"#);
+    assert_named_typecheck("sized_string_literal", r#"var _ : string(1)"#);
     // trip through negatives shouldn't affect anything
-    assert_named_typecheck("simple_expr", r#"var _ : string(1 - 1 * 1 + 2)"#);
-    assert_named_typecheck("zero_sized", r#"var _ : string(0)"#);
-    assert_named_typecheck("max_sized", r#"var _ : string(32768)"#);
-    assert_named_typecheck("wrong_type", r#"var _ : string(1.0)"#);
-    assert_named_typecheck("const_err", r#"var _ : string(1.0 div 0.0)"#);
+    assert_named_typecheck(
+        "sized_string_simple_expr",
+        r#"var _ : string(1 - 1 * 1 + 2)"#,
+    );
+    assert_named_typecheck("sized_string_zero_sized", r#"var _ : string(0)"#);
+    assert_named_typecheck("sized_string_max_sized", r#"var _ : string(32768)"#);
+    assert_named_typecheck("sized_string_wrong_type", r#"var _ : string(1.0)"#);
+    assert_named_typecheck("sized_string_const_err", r#"var _ : string(1.0 div 0.0)"#);
 }

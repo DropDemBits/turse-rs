@@ -95,18 +95,159 @@
       - [ ] Gather include files
 - [ ] Import & dependency resolution
 - [ ] Typeck
+  - [ ] Stmt
+    - [ ] ConstVar
+    - [ ] Type
+    - [ ] Bind
+    - [ ] Proc
+    - [ ] Fcn
+    - [ ] Process
+    - [ ] External
+    - [ ] Forward
+    - [ ] Deferred
+    - [ ] Body
+    - [ ] Module
+    - [ ] Class
+    - [ ] Monitor
+    - [ ] Assign
+    - [ ] Open
+    - [ ] Close
+    - [ ] Put
+    - [ ] Get
+    - [ ] Read
+    - [ ] Write
+    - [ ] Seek
+    - [ ] Tell
+    - [ ] For
+    - [ ] Loop
+    - [ ] Exit
+    - [ ] If
+    - [ ] Case
+    - [ ] Block
+    - [ ] Invariant
+    - [ ] Assert
+    - [ ] Call
+    - [ ] Return
+    - [ ] Result
+    - [ ] New
+    - [ ] Free
+    - [ ] Tag
+    - [ ] Fork
+    - [ ] Signal
+    - [ ] Pause
+    - [ ] Quit
+    - [ ] Break
+    - [ ] Checkedness
+    - [ ] Pre
+    - [ ] Init
+    - [ ] Post
+    - [ ] Handler
+  - [ ] Expr
+    - [x] Literal
+    - [ ] ObjClass
+    - [ ] Init
+    - [ ] Nil
+    - [ ] SizeOf
+    - [ ] Binary
+    - [ ] Unary
+    - [ ] Paren
+    - [ ] Name
+    - [ ] Self
+    - [ ] Field
+    - [ ] Deref
+    - [ ] Cheat
+    - [ ] NatCheat
+    - [ ] Arrow
+    - [ ] Indirect
+    - [ ] Bits
+    - [ ] Call
+  - [ ] Type
+    - [ ] Prim (SeqLength)
+    - [ ] Name
+    - [ ] Range
+    - [ ] Enum
+    - [ ] Array
+    - [ ] Set
+    - [ ] Record
+    - [ ] Union
+    - [ ] Pointer
+    - [ ] Fcn
+    - [ ] Proc
+    - [ ] Collection
+    - [ ] Condition
 - [ ] Const Eval (in `toc_analysis`)
-  - [ ] Cache evals of `const` vars
-  - [ ] Lazy eval of constants
+  - [x] Cache evals of `ConstExpr`s
+  - [ ] Deferred eval of `const` vars
+  - [ ] Evaluate all valid const ops
   - [ ] SizeOf structure size computation
 - [ ] HIR Codegen
+  - [ ] External functions support
 - [ ] FileDb & FileId maps
 - [x] Additional `ReportMessage` notes
   - [ ] Integration with `annotate-snippets`
 
+### Potential
+
 - [ ] MIR Lowering
 - [ ] MIR Optimization
 - [ ] MIR Codegen
+
+### Const Operations
+
+#### Arithmetic
+
+- [ ] Add
+  - [ ] Over numbers
+  - [ ] Over sets
+  - [ ] Over char seqs
+- [ ] Sub
+  - [ ] Over numbers
+  - [ ] Over sets
+- [ ] Mul
+  - [ ] Over numbers
+  - [ ] Over sets
+- [ ] Div
+- [ ] RealDiv
+- [ ] Mod
+- [ ] Rem
+- [ ] Exp
+- [ ] And
+- [ ] Or
+- [ ] Xor
+- [ ] Shl
+- [ ] Shr
+- [ ] Less
+- [ ] LessEq
+- [ ] Greater
+- [ ] GreaterEq
+- [ ] Equal
+- [ ] NotEqual
+- [ ] Imply
+- [ ] Not
+- [ ] Identity
+- [ ] Negate
+
+#### Type Conversion
+
+- [ ] ord
+- [ ] chr
+- [ ] intreal
+- [ ] natreal
+- [ ] ceil
+- [ ] round
+- [ ] floor
+
+#### Other
+
+- [ ] pred
+- [ ] succ
+- [ ] lower
+- [ ] upper (?)
+- [ ] bits
+- [ ] abs
+- [ ] max
+- [ ] min
+- [ ] sign
 
 ## LSP Client/Server
 
