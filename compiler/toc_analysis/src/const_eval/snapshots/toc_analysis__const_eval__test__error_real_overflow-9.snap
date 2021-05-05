@@ -1,0 +1,19 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: 10.0 ** 309
+
+---
+ConstEvalCtx {
+    inner: RwLock {
+        data: InnerCtx {
+            eval_infos: [
+                EvalInfo { unit_id: UnitId(0), span: 11..22, state: Error(RealOverflow) },
+            ],
+            var_to_expr: {
+                GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
+            },
+        },
+    },
+}
+ConstExpr { id: 0 } -> Spanned(RealOverflow, 16..18)
+

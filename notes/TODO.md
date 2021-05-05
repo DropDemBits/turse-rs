@@ -207,25 +207,46 @@
   - [x] Over numbers
   - [ ] Over sets
 - [x] Div
-- [ ] RealDiv
-- [ ] Mod
-- [ ] Rem
-- [ ] Exp
+- [x] RealDiv
+- [x] Mod
+- [x] Rem
+- [x] Exp
+- [x] Identity
+- [x] Negate
+
+#### Bitwise & Logic
+
 - [x] And
 - [x] Or
 - [x] Xor
 - [ ] Shl
 - [ ] Shr
-- [ ] Less
-- [ ] LessEq
-- [ ] Greater
-- [ ] GreaterEq
-- [ ] Equal
-- [ ] NotEqual
 - [x] Imply
 - [x] Not
-- [x] Identity
-- [x] Negate
+
+#### Comparison
+
+- [ ] Over numbers
+  - [ ] Less
+  - [ ] LessEq
+  - [ ] Greater
+  - [ ] GreaterEq
+  - [ ] Equal
+  - [ ] NotEqual
+- [ ] Over sets
+  - [ ] Less
+  - [ ] LessEq
+  - [ ] Greater
+  - [ ] GreaterEq
+  - [ ] Equal
+  - [ ] NotEqual
+- [ ] Over char seqs
+  - [ ] Less
+  - [ ] LessEq
+  - [ ] Greater
+  - [ ] GreaterEq
+  - [ ] Equal
+  - [ ] NotEqual
 
 #### Type Conversion
 

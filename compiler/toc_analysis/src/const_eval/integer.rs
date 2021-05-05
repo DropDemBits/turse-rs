@@ -127,6 +127,18 @@ impl ConstInt {
         }
     }
 
+    /// Returns `true` if the integer has a negative sign, or
+    /// `false` if the integer has a positive sign or is zero.
+    pub fn is_negative(self) -> bool {
+        matches!(self.sign, IntSign::Negative)
+    }
+
+    /// Returns `true` if the integer has a positive sign or is zero, or
+    /// `false` if the integer has a negative sign.
+    pub fn is_positive(self) -> bool {
+        matches!(self.sign, IntSign::Positive)
+    }
+
     /// Checked integer addition.
     /// Computes `self + rhs`, returning `Err(ConstError::IntOverflow)` if overflow occurred.
     pub fn checked_add(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
@@ -219,6 +231,87 @@ impl ConstInt {
             // Will always be negative
             IntSign::Negative
         };
+
+        Self::check_overflow(Some(value), new_sign, effective_width)
+    }
+
+    /// Checked integer modulus (modulus with floored division).
+    /// Computes `self mod rhs`, returning `Err(ConstError::DivByZero)` if `rhs == 0`.
+    pub fn checked_mod(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        // This is close to a rem_euclid, but the resultant takes the sign of the rhs
+        let remainder = self
+            .magnitude
+            .checked_rem(rhs.magnitude)
+            .ok_or_else(|| ConstError::DivByZero)?;
+
+        // Adjust into the correct signage
+        let (modulus, new_sign) = if remainder == 0 {
+            // Always +0
+            (0, IntSign::Positive)
+        } else {
+            // Adjust into the right quadrant
+            let modulus = if self.sign == rhs.sign {
+                // Stays the same
+                remainder
+            } else {
+                // Opposite way!
+                rhs.magnitude - remainder
+            };
+
+            // Takes the sign of the 2nd operand
+            (modulus, rhs.sign)
+        };
+
+        Self::check_overflow(Some(modulus), new_sign, effective_width)
+    }
+
+    /// Checked integer remainder.
+    /// Computes `self rem rhs`, returning `Err(ConstError::DivByZero)` if `rhs == 0`.
+    pub fn checked_rem(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        let remainder = self
+            .magnitude
+            .checked_rem(rhs.magnitude)
+            .ok_or_else(|| ConstError::DivByZero)?;
+
+        // Adjust into the correct signage
+        let (remainder, new_sign) = if remainder == 0 {
+            // Always +0
+            (0, IntSign::Positive)
+        } else {
+            // Takes the sign of the 1st operand
+            (remainder, self.sign)
+        };
+
+        Self::check_overflow(Some(remainder), new_sign, effective_width)
+    }
+
+    /// Checked integer exponentiation.
+    /// Computes `self ** rhs`,
+    /// returning `Err(ConstError::NegativeIntExp)` if `rhs` is negative.
+    /// or returning `Err(ConstError::IntOverflow)` if overflow occurred.
+    pub fn checked_pow(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        if rhs.is_negative() {
+            return Err(ConstError::NegativeIntExp);
+        }
+
+        let exp = rhs
+            .magnitude
+            .try_into()
+            .map_err(|_| ConstError::IntOverflow)?;
+
+        let value = self
+            .magnitude
+            .checked_pow(exp)
+            .ok_or_else(|| ConstError::IntOverflow)?;
+
+        // Adopts the sign of the base
+        let new_sign = self.sign;
 
         Self::check_overflow(Some(value), new_sign, effective_width)
     }

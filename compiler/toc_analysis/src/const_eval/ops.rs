@@ -120,10 +120,90 @@ impl ConstOp {
                     _ => Err(ConstError::WrongType),
                 }
             }
-            ConstOp::RealDiv => todo!(),
-            ConstOp::Mod => todo!(),
-            ConstOp::Rem => todo!(),
-            ConstOp::Exp => todo!(),
+            ConstOp::RealDiv => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Integer(_), rhs)
+                    | (lhs @ ConstValue::Real(_), rhs)
+                    | (lhs, rhs @ ConstValue::Integer(_))
+                    | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        match lhs / rhs {
+                            _ if rhs == 0.0 => Err(ConstError::DivByZero),
+                            v if v.is_infinite() => Err(ConstError::RealOverflow),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Mod => {
+                // modulus with floored division
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+                        let floored_mod = lhs - rhs * (lhs / rhs).floor();
+
+                        match floored_mod {
+                            _ if rhs == 0.0 => Err(ConstError::DivByZero),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_mod(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Rem => {
+                // checked_rem
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        match lhs % lhs {
+                            _ if rhs == 0.0 => Err(ConstError::DivByZero),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_rem(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Exp => {
+                // checked_pow
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+
+                        match lhs.powf(rhs) {
+                            v if v.is_infinite() => Err(ConstError::RealOverflow),
+                            v => Ok(ConstValue::Real(v)),
+                        }
+                    }
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_pow(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
             ConstOp::And => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();

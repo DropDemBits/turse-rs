@@ -81,6 +81,54 @@ fn arithmetic_const_ops() {
         "3 div 2.0"
         "-1.0"
         "+-1.0"
+
+        // RealDiv
+        "1.0 / 2.0"
+        "1 / 2"
+        "1.0 / -2"
+
+        // Mod
+        " 3 mod 10"
+        "-3 mod 10"
+        " 3 mod -10"
+        "-3 mod -10"
+
+        " 3.0 mod 10.0"
+        "-3.0 mod 10.0"
+        " 3.0 mod -10.0"
+        "-3.0 mod -10.0"
+
+        " 3.5 mod 10.0   % 3.5"
+        "-3.5 mod 10.0   % 6.5"
+        " 3.5 mod -10.0   % -6.5"
+        "-3.5 mod -10.0   % -3.5"
+
+        " 3.0 mod 10.5   % 3"
+        "-3.0 mod 10.5   % 7.5"
+        " 3.0 mod -10.5   % -7.5"
+        "-3.0 mod -10.5   % -3"
+
+        // Rem
+        " 3 mod 10"
+        "-3 mod 10"
+        " 3 mod -10"
+        "-3 mod -10"
+
+        " 3.0 mod 10.0"
+        "-3.0 mod 10.0"
+        " 3.0 mod -10.0"
+        "-3.0 mod -10.0"
+
+        // Exp
+        "2 ** 4"
+        "2 ** 0"
+        "-2 ** 4"
+        "-2 ** 0"
+
+        "2.0 ** 4"
+        "2.0 ** 0"
+        "-2.0 ** -4"
+        "-2.0 ** -2"
     ];
 }
 
@@ -188,11 +236,37 @@ fn const_local_var_lookup() {
 
 #[test]
 fn error_div_by_zero() {
-    // TODO: Add tests cases for real div, mod & rem
-    for_all_const_exprs!["1 div 0"];
-    for_all_const_exprs!["1 div 0.0"];
-    for_all_const_exprs!["1.0 div 0"];
-    for_all_const_exprs!["1.0 div 0.0"];
+    // integer div
+    for_all_const_exprs![
+        "1 div 0"
+        "1 div 0.0"
+        "1.0 div 0"
+        "1.0 div 0.0"
+    ];
+
+    // real div
+    for_all_const_exprs![
+        "1 / 0"
+        "1 / 0.0"
+        "1.0 / 0"
+        "1.0 / 0.0"
+    ];
+
+    // modulus
+    for_all_const_exprs![
+        "1 mod 0"
+        "1 mod 0.0"
+        "1.0 mod 0"
+        "1.0 mod 0.0"
+    ];
+
+    // remainder
+    for_all_const_exprs![
+        "1 rem 0"
+        "1 rem 0.0"
+        "1.0 rem 0"
+        "1.0 rem 0.0"
+    ];
 }
 
 #[test]
@@ -230,6 +304,14 @@ fn error_int_overflow_32bit() {
         // Over identity (no overflow)
         "+16#FFFFFFFF % no overflow"
         "+-16#80000000 % no overflow"
+
+        // modulo is safe except for large inputs (overflow before then)
+        // rem is safe except for large inputs (overflow before then)
+
+        // Over Exp
+        "2 ** 33"
+        "2 ** 32"
+        "(-2) ** 33"
     ];
 }
 
@@ -246,6 +328,14 @@ fn error_real_overflow() {
         "1e308 * 10"
         "-1e308 * 10"
         // Over idiv (checked in `error_int_overflow_{32,64}_bit`)
+        // Over rdiv
+        "1e308 / 0.1"
+        "-1e308 / 0.1"
+        // modulo is safe except for large inputs (overflow before then)
+        // rem is safe except for large inputs (overflow before then)
+        // Over exp
+        "10.0 ** 309"
+        "(-10.0) ** 309"
     ];
 }
 
@@ -272,6 +362,15 @@ fn error_arithmetic_wrong_types() {
 
         "-false"
         "+true"
+
+        "1 / true"
+        "1 mod true"
+        "1 rem true"
+        "1 ** true"
+        "1.0 / true"
+        "1.0 mod true"
+        "1.0 rem true"
+        "1.0 ** true"
     ];
 }
 
@@ -328,4 +427,9 @@ fn error_propogation() {
     const b := a
     "#,
     ));
+}
+
+#[test]
+fn error_negative_int_exp() {
+    assert_const_eval_expr("2 ** -1");
 }

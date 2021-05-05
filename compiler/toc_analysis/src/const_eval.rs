@@ -163,6 +163,9 @@ pub enum ConstError {
     /// Division by zero
     #[error("division by zero in compile-time expression")]
     DivByZero,
+    /// Negative int exponent provided during power raising
+    #[error("raising integer to a negative exponent")]
+    NegativeIntExp,
 }
 
 pub type ConstResult<T> = Result<T, Spanned<ConstError>>;
