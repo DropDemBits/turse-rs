@@ -1,4 +1,4 @@
-//! Constant evaluation stuff
+//! Compile-time constant evaluation
 mod integer;
 mod ops;
 #[cfg(test)]
@@ -18,10 +18,6 @@ use toc_span::Spanned;
 pub use integer::ConstInt;
 use ops::ConstOp;
 
-// Evaluation process:
-// Starting at const expr
-// Unfold expr tree in post order traversal
-
 // TODO: Deal with const vars with type errors
 // Only need to map the var to an error const expr
 
@@ -38,7 +34,20 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
         fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
             if decl.is_const {
                 if let Some(init_expr) = decl.tail.init_expr() {
-                    let const_expr = self.const_eval.defer_expr(self.unit_id, init_expr);
+                    // TODO: Associate assignment & evaluation restrictions with GlobalDefId's
+                    // - Look at type spec and infer the following:
+                    //   - `allow_64bit_ops`: check if the type is a 64-bit integer type (`int8`, `long int`, `nat8`, `long nat`)
+                    //   - `min_value` and `max_value`: if it's a range type, associate ConstExpr's with the bounds
+                    //
+                    // - If no type spec is specified, then can infer the following defaults
+                    //   - `allow_64bit_ops`: false (all operations are 32-bit by default)
+                    //   - `min_value` and `max_value`: None (no restrictions in the value assignment)
+                    let allow_64bit_ops = false;
+
+                    let const_expr =
+                        self.const_eval
+                            .defer_expr(self.unit_id, init_expr, allow_64bit_ops);
+
                     // Add mappings
                     for def in &decl.names {
                         self.const_eval
@@ -188,9 +197,14 @@ impl ConstEvalCtx {
 
     /// Defers the evaluation of an expression for later, giving back a handle
     /// for later evaluation
-    pub fn defer_expr(&self, unit_id: UnitId, expr: expr::ExprIdx) -> ConstExpr {
+    pub fn defer_expr(
+        &self,
+        unit_id: UnitId,
+        expr: expr::ExprIdx,
+        allow_64bit_ops: bool,
+    ) -> ConstExpr {
         let mut inner = self.inner.write().unwrap();
-        inner.defer_expr(unit_id, expr)
+        inner.defer_expr(unit_id, expr, allow_64bit_ops)
     }
 
     /// Adds a reference to a constant variable that can be constant evaluable
@@ -208,14 +222,6 @@ impl ConstEvalCtx {
 
         let mut inner = self.inner.write().unwrap();
         inner.eval_expr(expr)
-    }
-
-    /// Evaluates the value of a constant variable
-    pub fn eval_var(&self, var: GlobalDefId) -> ConstResult<ConstValue> {
-        // TODO: Try to look for a cached result before entering the actual computation
-
-        let mut inner = self.inner.write().unwrap();
-        inner.eval_var(var)
     }
 }
 
@@ -250,7 +256,12 @@ impl InnerCtx {
         }
     }
 
-    fn defer_expr(&mut self, unit_id: UnitId, expr: expr::ExprIdx) -> ConstExpr {
+    fn defer_expr(
+        &mut self,
+        unit_id: UnitId,
+        expr: expr::ExprIdx,
+        allow_64bit_ops: bool,
+    ) -> ConstExpr {
         let v = ConstExpr {
             id: self.eval_infos.len(),
         };
@@ -262,6 +273,7 @@ impl InnerCtx {
             expr_id: expr,
             span,
             state: State::Unevaluated,
+            allow_64bit_ops,
         };
 
         self.eval_infos.push(info);
@@ -296,8 +308,7 @@ impl InnerCtx {
         };
 
         // Do the eval
-        let (unit_id, root_expr) = (info.unit_id, info.expr_id);
-        let result = self.do_eval_expr(unit_id, root_expr, expr);
+        let result = self.do_eval_expr(expr);
 
         match result {
             Ok(v) => Ok(v),
@@ -335,24 +346,21 @@ impl InnerCtx {
         self.eval_expr(const_expr)
     }
 
-    fn do_eval_expr(
-        &mut self,
-        unit_id: UnitId,
-        root_expr: expr::ExprIdx,
-        const_expr: ConstExpr,
-    ) -> ConstResult<ConstValue> {
+    fn do_eval_expr(&mut self, const_expr: ConstExpr) -> ConstResult<ConstValue> {
         #[derive(Debug)]
         enum Eval {
             Expr(expr::ExprIdx),
             Op(ConstOp, toc_span::TextRange),
         }
 
+        let (unit_id, root_expr, allow_64bit_ops) = {
+            let info = &self.eval_infos[const_expr.id];
+            (info.unit_id, info.expr_id, info.allow_64bit_ops)
+        };
+
         // Unevaluated, evaluate the expression
         // Update the evaluation state to catch any evaluation cycles
         self.eval_infos[const_expr.id].state = State::Evaluating;
-
-        // TODO: Feed in restrictions from somewhere
-        let allow_64bit_ops = false;
 
         // Do the actual evaluation, as a stack maching
         let mut eval_stack = vec![Eval::Expr(root_expr)];
@@ -494,6 +502,8 @@ struct EvalInfo {
     span: toc_span::TextRange,
     /// Current evaluation state of the constant expression
     state: State,
+    /// If 64-bit operations are allowed in this expression
+    allow_64bit_ops: bool,
 }
 
 impl fmt::Debug for EvalInfo {

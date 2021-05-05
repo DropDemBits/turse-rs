@@ -29,15 +29,6 @@ use crate::ty::{self, DefKind, TyCtx, TyRef};
 // - Mutability in general falls under responsibility of assignability
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
-// Associating eval restrictions with `ConstVar`s / `GlobalDefId`s
-// - In the collection prepass, look at the typespec & infer the appropriate type
-//   - Need a `Map<(UnitId, ExprIdx), ConstExpr>` to dedup / associate `ConstExpr`s
-//       in range types
-// - If no typespec is specified for const, can fall back on sensible defaults
-//   - Inferred means that any type is okay, only need to make sure that
-//     typeck's & const_eval's inferred type agree
-// TODO: impl the above
-
 pub fn typecheck_unit(
     unit: &toc_hir::Unit,
     const_eval: Arc<ConstEvalCtx>,
@@ -221,7 +212,8 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             match seq_len {
                 hir_ty::SeqLength::Dynamic => Ok(ty::SeqLength::Dynamic),
                 hir_ty::SeqLength::Expr(expr) => {
-                    let const_expr = const_eval.defer_expr(unit_id, expr);
+                    // Never allow 64-bit ops (size is always less than 2^32)
+                    let const_expr = const_eval.defer_expr(unit_id, expr, false);
 
                     // Always eagerly evaluate the expr
                     let value = const_eval

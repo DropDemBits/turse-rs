@@ -10,8 +10,8 @@ use crate::const_eval::ConstError;
 pub struct ConstInt {
     /// invariant: must be representable with the given `sign` and `magnitude`
     magnitude: u64,
-    sign: IntSign,
-    width: IntWidth,
+    sign: Sign,
+    width: Width,
 }
 
 impl ConstInt {
@@ -24,7 +24,7 @@ impl ConstInt {
     pub fn from_unsigned(value: u64, allow_64bit_ops: bool) -> Result<Self, ConstError> {
         let width = if allow_64bit_ops {
             // Allow 64-bit operations, any value is allowed
-            IntWidth::As64
+            Width::As64
         } else {
             // Apply only 32-bit operations
             if value > u32::MAX as u64 {
@@ -32,11 +32,11 @@ impl ConstInt {
                 return Err(ConstError::IntOverflow);
             }
 
-            IntWidth::As32
+            Width::As32
         };
 
         Ok(Self {
-            sign: IntSign::Positive,
+            sign: Sign::Positive,
             magnitude: value,
             width,
         })
@@ -58,7 +58,7 @@ impl ConstInt {
                 return Err(ConstError::IntOverflow);
             }
 
-            IntWidth::As64
+            Width::As64
         } else {
             // Apply only 32-bit operations
             if (value.is_sign_negative() && value < i32::MIN as f64)
@@ -68,7 +68,7 @@ impl ConstInt {
                 return Err(ConstError::IntOverflow);
             }
 
-            IntWidth::As32
+            Width::As32
         };
 
         let (magnitude, sign) = {
@@ -76,12 +76,12 @@ impl ConstInt {
 
             if magnitude == 0 {
                 // Always +0
-                (0, IntSign::Positive)
+                (0, Sign::Positive)
             } else {
                 let sign = if value.is_sign_negative() {
-                    IntSign::Negative
+                    Sign::Negative
                 } else {
-                    IntSign::Positive
+                    Sign::Positive
                 };
 
                 (magnitude, sign)
@@ -102,8 +102,8 @@ impl ConstInt {
     /// and is actually representable as a u32, or `None` otherwise.
     pub fn into_u32(self) -> Option<u32> {
         match self.sign {
-            IntSign::Positive => self.magnitude.try_into().ok(),
-            IntSign::Negative => None,
+            Sign::Positive => self.magnitude.try_into().ok(),
+            Sign::Negative => None,
         }
     }
 
@@ -114,29 +114,30 @@ impl ConstInt {
     /// or `None` otherwise.
     pub fn into_u64(self) -> Option<u64> {
         match self.sign {
-            IntSign::Positive => Some(self.magnitude),
-            IntSign::Negative => None,
+            Sign::Positive => Some(self.magnitude),
+            Sign::Negative => None,
         }
     }
 
     /// Converts the `ConstInt` into the corresponding `f64` value.
     pub fn into_f64(self) -> f64 {
         match self.sign {
-            IntSign::Positive => self.magnitude as f64,
-            IntSign::Negative => -(self.magnitude as f64),
+            Sign::Positive => self.magnitude as f64,
+            Sign::Negative => -(self.magnitude as f64),
         }
     }
 
     /// Returns `true` if the integer has a negative sign, or
     /// `false` if the integer has a positive sign or is zero.
     pub fn is_negative(self) -> bool {
-        matches!(self.sign, IntSign::Negative)
+        matches!(self.sign, Sign::Negative)
     }
 
     /// Returns `true` if the integer has a positive sign or is zero, or
     /// `false` if the integer has a negative sign.
+    #[allow(dead_code)] // symmetric with `is_negative`
     pub fn is_positive(self) -> bool {
-        matches!(self.sign, IntSign::Positive)
+        matches!(self.sign, Sign::Positive)
     }
 
     /// Checked integer addition.
@@ -197,10 +198,10 @@ impl ConstInt {
 
         let new_sign = if self.sign == rhs.sign {
             // Will always be positive
-            IntSign::Positive
+            Sign::Positive
         } else {
             // Will always be negative
-            IntSign::Negative
+            Sign::Negative
         };
 
         Self::check_overflow(value, new_sign, effective_width)
@@ -226,10 +227,10 @@ impl ConstInt {
 
         let new_sign = if self.sign == rhs.sign {
             // Will always be positive
-            IntSign::Positive
+            Sign::Positive
         } else {
             // Will always be negative
-            IntSign::Negative
+            Sign::Negative
         };
 
         Self::check_overflow(Some(value), new_sign, effective_width)
@@ -249,7 +250,7 @@ impl ConstInt {
         // Adjust into the correct signage
         let (modulus, new_sign) = if remainder == 0 {
             // Always +0
-            (0, IntSign::Positive)
+            (0, Sign::Positive)
         } else {
             // Adjust into the right quadrant
             let modulus = if self.sign == rhs.sign {
@@ -280,7 +281,7 @@ impl ConstInt {
         // Adjust into the correct signage
         let (remainder, new_sign) = if remainder == 0 {
             // Always +0
-            (0, IntSign::Positive)
+            (0, Sign::Positive)
         } else {
             // Takes the sign of the 1st operand
             (remainder, self.sign)
@@ -325,14 +326,14 @@ impl ConstInt {
 
         // Truncate to the appropriate width
         let bits = match self.width {
-            IntWidth::As32 => bits & 0xFFFF_FFFF,
-            IntWidth::As64 => bits,
+            Width::As32 => bits & 0xFFFF_FFFF,
+            Width::As64 => bits,
         };
 
         // Always an unsigned integer, and always representable
         ConstInt {
             magnitude: bits,
-            sign: IntSign::Positive,
+            sign: Sign::Positive,
             width: self.width,
         }
     }
@@ -346,14 +347,14 @@ impl ConstInt {
 
         // Truncate to the appropriate width
         let bits = match self.width {
-            IntWidth::As32 => bits & 0xFFFF_FFFF,
-            IntWidth::As64 => bits,
+            Width::As32 => bits & 0xFFFF_FFFF,
+            Width::As64 => bits,
         };
 
         // Always an unsigned integer, and always representable
         ConstInt {
             magnitude: bits,
-            sign: IntSign::Positive,
+            sign: Sign::Positive,
             width: self.width,
         }
     }
@@ -367,14 +368,14 @@ impl ConstInt {
 
         // Truncate to the appropriate width
         let bits = match self.width {
-            IntWidth::As32 => bits & 0xFFFF_FFFF,
-            IntWidth::As64 => bits,
+            Width::As32 => bits & 0xFFFF_FFFF,
+            Width::As64 => bits,
         };
 
         // Always an unsigned integer, and always representable
         ConstInt {
             magnitude: bits,
-            sign: IntSign::Positive,
+            sign: Sign::Positive,
             width: self.width,
         }
     }
@@ -385,14 +386,14 @@ impl ConstInt {
     pub fn not(self) -> ConstInt {
         // Apply the not operation
         let bits = match self.width {
-            IntWidth::As32 => !self.into_bits() & 0xFFFF_FFFF,
-            IntWidth::As64 => !self.into_bits(),
+            Width::As32 => !self.into_bits() & 0xFFFF_FFFF,
+            Width::As64 => !self.into_bits(),
         };
 
         // Always an unsigned integer, and always representable
         ConstInt {
             magnitude: bits,
-            sign: IntSign::Positive,
+            sign: Sign::Positive,
             width: self.width,
         }
     }
@@ -414,7 +415,7 @@ impl ConstInt {
             let shift_amount = rhs.into_u64().ok_or_else(|| ConstError::IntOverflow)?;
 
             // Mask the shift amount depending on the effective integer width
-            if effective_width == IntWidth::As64 {
+            if effective_width == Width::As64 {
                 (shift_amount % 64) as u32
             } else {
                 (shift_amount % 32) as u32
@@ -423,8 +424,8 @@ impl ConstInt {
 
         // Since bitshifts are width-sensitive, mask appropriately
         let bits = match self.width {
-            IntWidth::As32 => self.into_bits() & 0xFFFF_FFFF,
-            IntWidth::As64 => self.into_bits(),
+            Width::As32 => self.into_bits() & 0xFFFF_FFFF,
+            Width::As64 => self.into_bits(),
         };
 
         let bits = bits
@@ -432,7 +433,7 @@ impl ConstInt {
             .ok_or_else(|| ConstError::IntOverflow)?;
 
         // Always an unsigned integer
-        let new_sign = IntSign::Positive;
+        let new_sign = Sign::Positive;
 
         Self::check_overflow(Some(bits), new_sign, effective_width)
     }
@@ -454,7 +455,7 @@ impl ConstInt {
             let shift_amount = rhs.into_u64().ok_or_else(|| ConstError::IntOverflow)?;
 
             // Mask the shift amount depending on the effective integer width
-            if effective_width == IntWidth::As64 {
+            if effective_width == Width::As64 {
                 (shift_amount % 64) as u32
             } else {
                 (shift_amount % 32) as u32
@@ -463,8 +464,8 @@ impl ConstInt {
 
         // Since bitshifts are width-sensitive, mask appropriately
         let bits = match self.width {
-            IntWidth::As32 => self.into_bits() & 0xFFFF_FFFF,
-            IntWidth::As64 => self.into_bits(),
+            Width::As32 => self.into_bits() & 0xFFFF_FFFF,
+            Width::As64 => self.into_bits(),
         };
 
         // Even though overflow would not occur since we currently mask the shift amount,
@@ -475,7 +476,7 @@ impl ConstInt {
             .ok_or_else(|| ConstError::IntOverflow)?;
 
         // Always an unsigned integer
-        let new_sign = IntSign::Positive;
+        let new_sign = Sign::Positive;
 
         Self::check_overflow(Some(bits), new_sign, effective_width)
     }
@@ -504,12 +505,12 @@ impl ConstInt {
     /// (not taking into account the width)
     fn into_bits(self) -> u64 {
         match self.sign {
-            IntSign::Positive => self.magnitude,
-            IntSign::Negative => !self.magnitude + 1,
+            Sign::Positive => self.magnitude,
+            Sign::Negative => !self.magnitude + 1,
         }
     }
 
-    fn effective_width(lhs: IntWidth, rhs: IntWidth) -> IntWidth {
+    fn effective_width(lhs: Width, rhs: Width) -> Width {
         // Potential widths
         // lhs rhs    effective width
         // 32  32  => 32
@@ -517,24 +518,24 @@ impl ConstInt {
         // 32  64  => 32
         // 64  64  => 64
 
-        if lhs == IntWidth::As64 && lhs == rhs {
-            IntWidth::As64
+        if lhs == Width::As64 && lhs == rhs {
+            Width::As64
         } else {
-            IntWidth::As32
+            Width::As32
         }
     }
 
     fn check_overflow(
         value: Option<u64>,
-        new_sign: IntSign,
-        effective_width: IntWidth,
+        new_sign: Sign,
+        effective_width: Width,
     ) -> Result<ConstInt, ConstError> {
         let (magnitude, sign) = {
             let effective_magnitude = value.ok_or(ConstError::IntOverflow)?;
 
             if effective_magnitude == 0 {
                 // `0` is always a "positive" number
-                (0, IntSign::Positive)
+                (0, Sign::Positive)
             } else {
                 // Keep the same magnitude
                 (effective_magnitude, new_sign)
@@ -542,17 +543,15 @@ impl ConstInt {
         };
 
         // Check for overflow
-        let overflowed = match effective_width {
+        let overflowed = match (effective_width, sign) {
             // [0, 0xFFFF_FFFF]
-            IntWidth::As32 if sign.is_positive() => magnitude > u32::MAX as u64,
+            (Width::As32, Sign::Positive) => magnitude > u32::MAX as u64,
             // [0, 0x8000_0000]
-            IntWidth::As32 if sign.is_negative() => magnitude > i32::MIN.unsigned_abs() as u64,
+            (Width::As32, Sign::Negative) => magnitude > i32::MIN.unsigned_abs() as u64,
             // [0, 0xFFFFFFFF_FFFFFFFF] or all values of u64
-            IntWidth::As64 if sign.is_positive() => false,
+            (Width::As64, Sign::Positive) => false,
             // [0, 0x80000000_00000000]
-            IntWidth::As64 if sign.is_negative() => magnitude > i64::MIN.unsigned_abs() as u64,
-            // All cases already covered
-            _ => unreachable!(),
+            (Width::As64, Sign::Negative) => magnitude > i64::MIN.unsigned_abs() as u64,
         };
 
         if !overflowed {
@@ -572,8 +571,8 @@ impl fmt::Display for ConstInt {
         let magnitude = if f.alternate() {
             // Show the width
             let width = match self.width {
-                IntWidth::As32 => "i32",
-                IntWidth::As64 => "i64",
+                Width::As32 => "i32",
+                Width::As64 => "i64",
             };
 
             format!("{}{}", self.magnitude, width)
@@ -582,37 +581,29 @@ impl fmt::Display for ConstInt {
             format!("{}", self.magnitude)
         };
 
-        f.pad_integral(matches!(self.sign, IntSign::Positive), "", &magnitude)
+        f.pad_integral(matches!(self.sign, Sign::Positive), "", &magnitude)
     }
 }
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum IntWidth {
+enum Width {
     As32,
     As64,
 }
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum IntSign {
+enum Sign {
     Positive,
     Negative,
 }
 
-impl IntSign {
+impl Sign {
     fn negate(self) -> Self {
         match self {
-            IntSign::Positive => IntSign::Negative,
-            IntSign::Negative => IntSign::Positive,
+            Sign::Positive => Sign::Negative,
+            Sign::Negative => Sign::Positive,
         }
-    }
-
-    fn is_positive(self) -> bool {
-        matches!(self, IntSign::Positive)
-    }
-
-    fn is_negative(self) -> bool {
-        matches!(self, IntSign::Negative)
     }
 }
