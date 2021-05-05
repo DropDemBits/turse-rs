@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var _ : char(true)"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Error)
+def_kinds:
+    DefId(0) Var(TyRef(Error))
+error at 13..17: wrong type for character count
+| note for 13..17: expected integer value, found boolean value

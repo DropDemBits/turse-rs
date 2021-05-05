@@ -1,8 +1,10 @@
 //! Type check tests
+use std::sync::Arc;
+
 use toc_reporting::ReportMessage;
 use unindent::unindent;
 
-use crate::ty::TyCtx;
+use crate::{const_eval::ConstEvalCtx, ty::TyCtx};
 
 macro_rules! test_for_each_op {
     ($top_level_name:ident, [$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal) => {
@@ -23,14 +25,20 @@ fn assert_typecheck(source: &str) {
     insta::assert_snapshot!(insta::internals::AutoName, do_typecheck(source), source);
 }
 
+#[track_caller]
+fn assert_named_typecheck(name: &str, source: &str) {
+    insta::assert_snapshot!(name, do_typecheck(source), source);
+}
+
 fn do_typecheck(source: &str) -> String {
     let parsed = toc_parser::parse(&source);
     let mut unit_map = toc_hir::UnitMapBuilder::new();
     let hir_res = toc_hir_lowering::lower_ast(parsed.syntax(), &mut unit_map);
-    let unit_map = unit_map.finish();
+    let unit_map = Arc::new(unit_map.finish());
 
     let unit = unit_map.get_unit(hir_res.id);
-    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit);
+    let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
+    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit, const_eval_ctx);
 
     stringify_typeck_results(&ty_ctx, &typeck_messages)
 }
@@ -148,4 +156,31 @@ fn typecheck_error_prop() {
     var j := c + a
     "#,
     ));
+}
+
+#[test]
+fn typecheck_sized_char() {
+    assert_named_typecheck("sized_char_literal", r#"var _ : char(1)"#);
+    // trip through negatives shouldn't affect anything
+    assert_named_typecheck("sized_char_simple_expr", r#"var _ : char(1 - 1 * 1 + 2)"#);
+    assert_named_typecheck("sized_char_zero_sized", r#"var _ : char(0)"#);
+    assert_named_typecheck("sized_char_max_sized", r#"var _ : char(32768)"#);
+    assert_named_typecheck("sized_char_wrong_type", r#"var _ : char(1.0)"#);
+    assert_named_typecheck("sized_char_wrong_type_bool", r#"var _ : char(true)"#);
+    assert_named_typecheck("sized_char_const_err", r#"var _ : char(1.0 div 0.0)"#);
+}
+
+#[test]
+fn typecheck_sized_string() {
+    assert_named_typecheck("sized_string_literal", r#"var _ : string(1)"#);
+    // trip through negatives shouldn't affect anything
+    assert_named_typecheck(
+        "sized_string_simple_expr",
+        r#"var _ : string(1 - 1 * 1 + 2)"#,
+    );
+    assert_named_typecheck("sized_string_zero_sized", r#"var _ : string(0)"#);
+    assert_named_typecheck("sized_string_max_sized", r#"var _ : string(32768)"#);
+    assert_named_typecheck("sized_string_wrong_type", r#"var _ : string(1.0)"#);
+    assert_named_typecheck("sized_string_wrong_type_bool", r#"var _ : string(true)"#);
+    assert_named_typecheck("sized_string_const_err", r#"var _ : string(1.0 div 0.0)"#);
 }

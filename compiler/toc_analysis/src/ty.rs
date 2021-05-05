@@ -115,6 +115,10 @@ pub enum Type {
     Char,
     /// Simple string type
     String,
+    /// Fixed-size character type
+    CharN(SeqLength),
+    /// Fixed-size string type
+    StringN(SeqLength),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -143,4 +147,12 @@ pub enum RealSize {
     Real8,
     /// Initialization checked version of `Real8`
     Real,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum SeqLength {
+    /// Runtime sized (only accepted for parameters)
+    Dynamic,
+    /// Fixed, compile-time size
+    Fixed(u32),
 }

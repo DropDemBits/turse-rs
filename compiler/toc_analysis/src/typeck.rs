@@ -3,11 +3,13 @@
 mod test;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use toc_hir::{expr, stmt, ty as hir_ty};
 use toc_reporting::{MessageKind, ReportMessage};
 use toc_span::Spanned;
 
+use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, ConstValue};
 use crate::ty::{self, DefKind, TyCtx, TyRef};
 
 // ???: Can we build up a type ctx without doing type propogation?
@@ -27,23 +29,31 @@ use crate::ty::{self, DefKind, TyCtx, TyRef};
 // - Mutability in general falls under responsibility of assignability
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
-pub fn typecheck_unit(unit: &toc_hir::Unit) -> (TyCtx, Vec<ReportMessage>) {
-    TypeCheck::check_unit(unit)
+pub fn typecheck_unit(
+    unit: &toc_hir::Unit,
+    const_eval: Arc<ConstEvalCtx>,
+) -> (TyCtx, Vec<ReportMessage>) {
+    TypeCheck::check_unit(unit, const_eval)
 }
 
 struct TypeCheck<'a> {
     unit: &'a toc_hir::Unit,
     ty_ctx: TyCtx,
     eval_kinds: HashMap<expr::ExprIdx, EvalKind>,
+    const_eval: Arc<ConstEvalCtx>,
     reporter: toc_reporting::MessageSink,
 }
 
 impl<'a> TypeCheck<'a> {
-    fn check_unit(unit: &'a toc_hir::Unit) -> (TyCtx, Vec<ReportMessage>) {
+    fn check_unit(
+        unit: &'a toc_hir::Unit,
+        const_eval: Arc<ConstEvalCtx>,
+    ) -> (TyCtx, Vec<ReportMessage>) {
         let mut typeck = Self {
             unit,
             ty_ctx: TyCtx::new(),
             eval_kinds: HashMap::new(),
+            const_eval,
             reporter: toc_reporting::MessageSink::new(),
         };
 
@@ -100,6 +110,8 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             DefKind::Var(ty_ref)
         };
 
+        // TODO: type check inititaliation if both ty_spec & init_expr are present
+
         for def in &decl.names {
             self.ty_ctx.map_def_id(*def, def_kind);
         }
@@ -111,8 +123,6 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 
     fn visit_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
         let ty = match expr {
-            toc_hir::expr::Literal::Int(_) => ty::Type::Int(ty::IntSize::Int),
-            toc_hir::expr::Literal::Nat(_) => ty::Type::Nat(ty::NatSize::Nat),
             toc_hir::expr::Literal::Integer(_) => ty::Type::Integer,
             toc_hir::expr::Literal::Real(_) => ty::Type::Real(ty::RealSize::Real),
             // TODO: Use sized char type for default string type
@@ -152,7 +162,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 
     fn visit_name(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Name) {
         // If def-id, fetch type from def id map
-        // If self, then fetch type from ???
+        // If self, then fetch type from provided class def id?
         let (use_id, ty_ref) = match expr {
             toc_hir::expr::Name::Name(use_id) => {
                 (use_id, self.ty_ctx.get_def_id_kind(use_id.as_def()))
@@ -187,6 +197,49 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
     }
 
     fn visit_primitive(&mut self, id: hir_ty::TypeIdx, ty: &hir_ty::Primitive) {
+        enum SeqLenError {
+            ConstEval(Spanned<ConstError>),
+            WrongType(Spanned<ConstValue>),
+            WrongSize(Spanned<ConstInt>),
+        }
+
+        fn into_ty_seq_len(
+            seq_len: toc_hir::ty::SeqLength,
+            unit_id: toc_hir::UnitId,
+            const_eval: &ConstEvalCtx,
+            unit: &toc_hir::Unit,
+        ) -> Result<ty::SeqLength, SeqLenError> {
+            match seq_len {
+                hir_ty::SeqLength::Dynamic => Ok(ty::SeqLength::Dynamic),
+                hir_ty::SeqLength::Expr(expr) => {
+                    // Never allow 64-bit ops (size is always less than 2^32)
+                    let const_expr = const_eval.defer_expr(unit_id, expr, false);
+
+                    // Always eagerly evaluate the expr
+                    let value = const_eval
+                        .eval_expr(const_expr)
+                        .map_err(|err| SeqLenError::ConstEval(err))?;
+
+                    let span = unit.database.expr_nodes.spans[&expr];
+
+                    // Check that the value is actually the correct type, and in the correct value range.
+                    // Size can only be in (0, 32768)
+                    let int = value
+                        .as_int()
+                        .ok_or_else(|| SeqLenError::WrongType(Spanned::new(value, span)))?;
+
+                    // Note: 32768 is the minimum defined limit for the length on `n`
+                    // ???: Do we want to add a config/feature option to change this?
+                    let size = int
+                        .into_u32()
+                        .filter(|size| (1..32768).contains(size))
+                        .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span)))?;
+
+                    Ok(ty::SeqLength::Fixed(size))
+                }
+            }
+        }
+
         // Create the correct type based off of the base primitive type
         let ty = match ty {
             hir_ty::Primitive::Int => ty::Type::Int(ty::IntSize::Int),
@@ -204,9 +257,56 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             hir_ty::Primitive::AddressInt => ty::Type::Nat(ty::NatSize::AddressInt),
             hir_ty::Primitive::Char => ty::Type::Char,
             hir_ty::Primitive::String => ty::Type::String,
-            // TODO: Produce sized charseq types
-            hir_ty::Primitive::SizedChar(_) => todo!(),
-            hir_ty::Primitive::SizedString(_) => todo!(),
+            hir_ty::Primitive::SizedChar(len) | hir_ty::Primitive::SizedString(len) => {
+                match into_ty_seq_len(*len, self.unit.id, &self.const_eval, &self.unit) {
+                    Ok(len) => {
+                        if matches!(ty, hir_ty::Primitive::SizedChar(_)) {
+                            ty::Type::CharN(len)
+                        } else {
+                            ty::Type::StringN(len)
+                        }
+                    }
+                    Err(err) => {
+                        match err {
+                            SeqLenError::ConstEval(err) => {
+                                err.item().report_to(&mut self.reporter, err.span());
+                            }
+                            SeqLenError::WrongType(value) => {
+                                self.reporter
+                                    .report_detailed(
+                                        MessageKind::Error,
+                                        "wrong type for character count",
+                                        value.span(),
+                                    )
+                                    .with_note(
+                                        &format!(
+                                            "expected integer value, found {}",
+                                            value.item().type_name()
+                                        ),
+                                        value.span(),
+                                    )
+                                    .finish();
+                            }
+                            SeqLenError::WrongSize(int) => {
+                                self.reporter
+                                    .report_detailed(
+                                        MessageKind::Error,
+                                        "invalid character count size",
+                                        int.span(),
+                                    )
+                                    .with_info("valid sizes are between 1 to 32767", int.span())
+                                    .with_note(
+                                        &format!("computed count is {}", int.item()),
+                                        int.span(),
+                                    )
+                                    .finish();
+                            }
+                        }
+
+                        ty::Type::Error
+                    }
+                }
+            }
         };
 
         // Maps the type id to the current type node

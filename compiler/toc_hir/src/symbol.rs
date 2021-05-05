@@ -2,6 +2,7 @@
 //! `SymbolTable` construction with respect to scoping rules occurs in `toc_hir_lowering`.
 
 use std::collections::HashMap;
+use std::fmt;
 
 use toc_span::TextRange;
 
@@ -46,22 +47,42 @@ impl UseId {
 }
 
 /// Definition of an identifier in a specific unit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GlobalDefId(UnitId, DefId);
 
 impl GlobalDefId {
+    pub fn unit_id(self) -> UnitId {
+        self.0
+    }
+
     pub fn as_local(self) -> DefId {
         self.1
     }
 }
 
+impl fmt::Debug for GlobalDefId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("GlobalDefId({:?}, {:?})", self.0, self.1))
+    }
+}
+
 /// Use of an identifier in a specific unit
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GlobalUseId(UnitId, UseId);
 
 impl GlobalUseId {
+    pub fn unit_id(self) -> UnitId {
+        self.0
+    }
+
     pub fn as_local(self) -> UseId {
         self.1
+    }
+}
+
+impl fmt::Debug for GlobalUseId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("GlobalUseId({:?}, {:?})", self.0, self.1))
     }
 }
 
@@ -173,6 +194,14 @@ impl SymbolTable {
 
     pub fn get_symbol(&self, def: DefId) -> &Symbol {
         self.defs.get(&def).unwrap()
+    }
+
+    pub fn get_def_span(&self, def_id: DefId) -> TextRange {
+        *self.def_spans.get(&def_id).unwrap()
+    }
+
+    pub fn get_use_span(&self, use_id: UseId) -> TextRange {
+        *self.use_spans.get(&use_id).unwrap()
     }
 
     fn new_def(&mut self) -> DefId {

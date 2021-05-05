@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var _ : char(1 - 1 * 1 + 2)"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(CharN(Fixed(2)))
+def_kinds:
+    DefId(0) Var(TyRef(CharN(Fixed(2))))

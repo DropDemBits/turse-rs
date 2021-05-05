@@ -1,0 +1,21 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: 1 - true
+
+---
+ConstEvalCtx {
+    inner: RwLock {
+        data: InnerCtx {
+            eval_infos: [
+                EvalInfo { unit_id: UnitId(0), span: 11..19, state: Error(WrongType) },
+            ],
+            var_to_expr: {
+                GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
+            },
+        },
+    },
+}
+ConstExpr { id: 0 } -> Spanned(WrongType, 13..14)
+
+error at 13..14: wrong type for compile-time expression
+

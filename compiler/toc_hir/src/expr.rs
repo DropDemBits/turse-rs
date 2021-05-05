@@ -34,8 +34,6 @@ pub enum Expr {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
-    Int(i64),
-    Nat(u64),
     Integer(u64),
     Real(f64),
     CharSeq(String),
