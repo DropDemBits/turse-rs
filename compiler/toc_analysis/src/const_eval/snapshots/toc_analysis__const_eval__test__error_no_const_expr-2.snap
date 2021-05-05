@@ -1,0 +1,22 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: "var a := 1\nconst b := a\nconst c := b\n"
+
+---
+ConstEvalCtx {
+    inner: RwLock {
+        data: InnerCtx {
+            eval_infos: [
+                EvalInfo { unit_id: UnitId(0), span: 22..24, state: Error(NoConstExpr(4..5)) },
+                EvalInfo { unit_id: UnitId(0), span: 35..37, state: Error(Reported) },
+            ],
+            var_to_expr: {
+                GlobalDefId(UnitId(0), DefId(1)): ConstExpr { id: 0 },
+                GlobalDefId(UnitId(0), DefId(2)): ConstExpr { id: 1 },
+            },
+        },
+    },
+}
+ConstExpr { id: 0 } -> Spanned(NoConstExpr(4..5), 22..24)
+ConstExpr { id: 1 } -> Spanned(Reported, 35..37)
+

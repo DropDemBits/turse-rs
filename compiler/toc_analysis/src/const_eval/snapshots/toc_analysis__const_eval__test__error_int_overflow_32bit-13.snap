@@ -6,8 +6,8 @@ expression: 1e100 div 1
 ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
-            eval_state: [
-                Error(Spanned(IntOverflow, 17..20)),
+            eval_infos: [
+                EvalInfo { unit_id: UnitId(0), span: 11..22, state: Error(IntOverflow) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,3 +15,5 @@ ConstEvalCtx {
         },
     },
 }
+ConstExpr { id: 0 } -> Spanned(IntOverflow, 17..20)
+

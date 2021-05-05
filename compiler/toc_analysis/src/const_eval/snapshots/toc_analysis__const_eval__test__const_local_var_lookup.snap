@@ -1,0 +1,25 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: "const a := 1\nconst b := a + 1\nconst c := b\n"
+
+---
+ConstEvalCtx {
+    inner: RwLock {
+        data: InnerCtx {
+            eval_infos: [
+                EvalInfo { unit_id: UnitId(0), span: 22..24, state: Value(Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })) },
+                EvalInfo { unit_id: UnitId(0), span: 35..41, state: Value(Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })) },
+                EvalInfo { unit_id: UnitId(0), span: 52..54, state: Value(Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })) },
+            ],
+            var_to_expr: {
+                GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
+                GlobalDefId(UnitId(0), DefId(1)): ConstExpr { id: 1 },
+                GlobalDefId(UnitId(0), DefId(2)): ConstExpr { id: 2 },
+            },
+        },
+    },
+}
+ConstExpr { id: 0 } -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+ConstExpr { id: 1 } -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
+ConstExpr { id: 2 } -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
+

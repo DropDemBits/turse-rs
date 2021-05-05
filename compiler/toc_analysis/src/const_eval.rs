@@ -229,8 +229,8 @@ impl fmt::Debug for ConstExpr {
 struct InnerCtx {
     /// Mapping for all of the units
     unit_map: Arc<UnitMap>,
-    /// Evaluation state of constant exprs
-    eval_state: Vec<EvalState>,
+    /// Evaluation info of constant exprs
+    eval_infos: Vec<EvalInfo>,
     /// Mapping GlobalDefId's into the corresponding ConstExpr
     var_to_expr: IndexMap<GlobalDefId, ConstExpr>,
 }
@@ -239,16 +239,26 @@ impl InnerCtx {
     fn new(unit_map: Arc<UnitMap>) -> Self {
         Self {
             unit_map,
-            eval_state: Vec::new(),
+            eval_infos: Vec::new(),
             var_to_expr: IndexMap::new(),
         }
     }
 
     fn defer_expr(&mut self, unit_id: UnitId, expr: expr::ExprIdx) -> ConstExpr {
         let v = ConstExpr {
-            id: self.eval_state.len(),
+            id: self.eval_infos.len(),
         };
-        self.eval_state.push(EvalState::Unevaluated(unit_id, expr));
+
+        let span = self.unit_map.get_unit(unit_id).database.expr_nodes.spans[&expr];
+
+        let info = EvalInfo {
+            unit_id,
+            expr_id: expr,
+            span,
+            state: State::Unevaluated,
+        };
+
+        self.eval_infos.push(info);
         v
     }
 
@@ -258,28 +268,29 @@ impl InnerCtx {
     }
 
     fn eval_expr(&mut self, expr: ConstExpr) -> ConstResult<ConstValue> {
-        // Lookup the initial state of the expression
-        let (unit_id, root_expr) = match &self.eval_state[expr.id] {
-            // Give cached value
-            EvalState::Value(v) => return Ok(v.clone()),
-            EvalState::Error(unit_id, root_expr, _) => {
-                let span = self.unit_map.get_unit(*unit_id).database.expr_nodes.spans[root_expr];
+        let info = &self.eval_infos[expr.id];
+        let span = info.span;
 
+        // Lookup the initial state of the expression
+        match &info.state {
+            // Give cached value
+            State::Value(v) => return Ok(v.clone()),
+            State::Error(_) => {
                 // Error should already be reported
                 return Err(Spanned::new(ConstError::Reported, span));
             }
-            EvalState::Evaluating(unit_id, root_expr) => {
+            State::Evaluating => {
                 // Encountered an evaluation cycle, update the evaluation state
-                let span = self.unit_map.get_unit(*unit_id).database.expr_nodes.spans[root_expr];
-                let err = Spanned::new(ConstError::EvalCycle, span);
+                self.eval_infos[expr.id].state = State::Error(ConstError::EvalCycle);
 
-                // Update the eval state
-                self.eval_state[expr.id] = EvalState::Error(*unit_id, *root_expr, err.clone());
+                let err = Spanned::new(ConstError::EvalCycle, span);
                 return Err(err);
             }
-            EvalState::Unevaluated(unit_id, root_expr) => (*unit_id, *root_expr),
+            State::Unevaluated => (),
         };
 
+        // Do the eval
+        let (unit_id, root_expr) = (info.unit_id, info.expr_id);
         let result = self.do_eval_expr(unit_id, root_expr, expr);
 
         match result {
@@ -287,17 +298,13 @@ impl InnerCtx {
             Err(err) => {
                 let err = if let ConstError::Reported = err.item() {
                     // Adjust the report location to the current expr
-                    // Knab the span from the root expr
-                    let span =
-                        self.unit_map.get_unit(unit_id).database.expr_nodes.spans[&root_expr];
-
                     Spanned::new(ConstError::Reported, span)
                 } else {
                     err
                 };
 
                 // Update the eval state with the corresponding error
-                self.eval_state[expr.id] = EvalState::Error(unit_id, root_expr, err.clone());
+                self.eval_infos[expr.id].state = State::Error(err.item().clone());
 
                 Err(err)
             }
@@ -336,7 +343,7 @@ impl InnerCtx {
 
         // Unevaluated, evaluate the expression
         // Update the evaluation state to catch any evaluation cycles
-        self.eval_state[const_expr.id] = EvalState::Evaluating(unit_id, root_expr);
+        self.eval_infos[const_expr.id].state = State::Evaluating;
 
         // TODO: Feed in restrictions from somewhere
         let allow_64bit_ops = false;
@@ -458,7 +465,7 @@ impl InnerCtx {
         assert!(operand_stack.is_empty());
 
         // Update the evaluation state
-        self.eval_state[const_expr.id] = EvalState::Value(result.clone());
+        self.eval_infos[const_expr.id].state = State::Value(result.clone());
 
         Ok(result)
     }
@@ -467,37 +474,50 @@ impl InnerCtx {
 impl fmt::Debug for InnerCtx {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("InnerCtx")
-            .field("eval_state", &self.eval_state)
+            .field("eval_infos", &self.eval_infos)
             .field("var_to_expr", &self.var_to_expr)
             .finish()
     }
 }
 
+/// Associated info for a constant expression
+struct EvalInfo {
+    unit_id: UnitId,
+    expr_id: expr::ExprIdx,
+    /// Span of the constant expression
+    span: toc_span::TextRange,
+    /// Current evaluation state of the constant expression
+    state: State,
+}
+
+impl fmt::Debug for EvalInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "EvalInfo {{ unit_id: {:?}, span: {:?}, state: {:?} }}",
+            self.unit_id, self.span, self.state
+        ))
+    }
+}
+
 /// Evaluation state of a constant expression
-enum EvalState {
+enum State {
     /// The expression has not been evaluated yet
-    Unevaluated(UnitId, expr::ExprIdx),
+    Unevaluated,
     /// The expression is in the process of being evaluated
-    Evaluating(UnitId, expr::ExprIdx),
+    Evaluating,
     /// The expression has been evaluated to a valid value
     Value(ConstValue),
     /// The expression has been evaluated, but not to a valid value
-    Error(UnitId, expr::ExprIdx, Spanned<ConstError>),
+    Error(ConstError),
 }
 
-impl fmt::Debug for EvalState {
+impl fmt::Debug for State {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            EvalState::Unevaluated(u, v) => {
-                f.write_fmt(format_args!("Unevaluated({:?}, {:?})", u, v))
-            }
-            EvalState::Evaluating(u, v) => {
-                f.write_fmt(format_args!("Evaluating({:?}, {:?})", u, v))
-            }
-            EvalState::Value(v) => f.write_fmt(format_args!("Value({:?})", v)),
-            EvalState::Error(u, v, w) => {
-                f.write_fmt(format_args!("Error({:?}, {:?}, {:?})", u, v, w))
-            }
+            State::Unevaluated => f.write_fmt(format_args!("Unevaluated")),
+            State::Evaluating => f.write_fmt(format_args!("Evaluating")),
+            State::Value(v) => f.write_fmt(format_args!("Value({:?})", v)),
+            State::Error(v) => f.write_fmt(format_args!("Error({:?})", v)),
         }
     }
 }

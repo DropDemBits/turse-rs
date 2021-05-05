@@ -5,8 +5,6 @@ use std::ops::Deref;
 
 use indexmap::IndexMap;
 
-use crate::const_eval::ConstExpr;
-
 /// A type reference, for each unique type
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TyRef(internment::Intern<Type>);

@@ -6,8 +6,8 @@ expression: false * 1
 ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
-            eval_state: [
-                Error(Spanned(WrongType, 17..18)),
+            eval_infos: [
+                EvalInfo { unit_id: UnitId(0), span: 11..20, state: Error(WrongType) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,3 +15,5 @@ ConstEvalCtx {
         },
     },
 }
+ConstExpr { id: 0 } -> Spanned(WrongType, 17..18)
+

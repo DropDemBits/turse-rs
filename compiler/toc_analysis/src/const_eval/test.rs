@@ -32,6 +32,8 @@ fn do_const_eval(source: &str) -> String {
     let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
     super::collect_const_vars(unit, const_eval_ctx.clone());
 
+    let mut results_str = String::new();
+
     // Need access to the inner state of the ConstEvalCtx, which is behind a lock
     {
         // Eagerly evaluate all of the available const vars
@@ -39,17 +41,22 @@ fn do_const_eval(source: &str) -> String {
         let const_exprs = inner.var_to_expr.values().copied().collect::<Vec<_>>();
 
         for expr in const_exprs {
-            let _ = inner.eval_expr(expr);
+            let results = match inner.eval_expr(expr) {
+                Ok(v) => format!("{:?} -> {:?}\n", expr, v),
+                Err(err) => format!("{:?} -> {:?}\n", expr, err),
+            };
+
+            results_str.push_str(&results);
         }
     }
 
     // Errors are bundled into the const error context
-    stringify_const_eval_results(&const_eval_ctx)
+    stringify_const_eval_results(&results_str, &const_eval_ctx)
 }
 
-fn stringify_const_eval_results(const_eval: &ConstEvalCtx) -> String {
+fn stringify_const_eval_results(results: &str, const_eval: &ConstEvalCtx) -> String {
     // Pretty print const eval ctx
-    format!("{:#?}", const_eval)
+    format!("{:#?}\n{}", const_eval, results)
 }
 
 #[test]
