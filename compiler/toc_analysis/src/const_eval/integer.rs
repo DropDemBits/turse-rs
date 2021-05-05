@@ -317,6 +317,7 @@ impl ConstInt {
     }
 
     /// Performs the bitwise "and" operation.
+    ///
     /// Implicitly transforms the integer into the unsigned variant
     pub fn and(self, rhs: ConstInt) -> ConstInt {
         // Apply the bit-and operation
@@ -337,6 +338,7 @@ impl ConstInt {
     }
 
     /// Performs the bitwise "or" operation.
+    ///
     /// Implicitly transforms the integer into the unsigned variant
     pub fn or(self, rhs: ConstInt) -> ConstInt {
         // Apply the bit-or operation
@@ -357,6 +359,7 @@ impl ConstInt {
     }
 
     /// Performs the bitwise "xor" operation.
+    ///
     /// Implicitly transforms the integer into the unsigned variant
     pub fn xor(self, rhs: ConstInt) -> ConstInt {
         // Apply the bit-xor operation
@@ -377,7 +380,8 @@ impl ConstInt {
     }
 
     /// Performs the bitwise negation operation.
-    /// Implicitly transforms the integer into the unsigned variant
+    ///
+    /// Implicitly transforms the integer into the unsigned variant.
     pub fn not(self) -> ConstInt {
         // Apply the not operation
         let bits = match self.width {
@@ -391,6 +395,89 @@ impl ConstInt {
             sign: IntSign::Positive,
             width: self.width,
         }
+    }
+
+    /// Checked integer shift left.
+    /// Computes `self shl rhs`,
+    /// returning `Err(ConstError::NegativeIntShift)` if `rhs` is negative,
+    /// or `Err(ConstError::IntOverflow)` if overflow occurred.
+    ///
+    /// Implicitly transforms the integer into the unsigned variant.
+    pub fn checked_shl(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        if rhs.is_negative() {
+            return Err(ConstError::NegativeIntShift);
+        }
+
+        let shift_amount: u32 = {
+            let shift_amount = rhs.into_u64().ok_or_else(|| ConstError::IntOverflow)?;
+
+            // Mask the shift amount depending on the effective integer width
+            if effective_width == IntWidth::As64 {
+                (shift_amount % 64) as u32
+            } else {
+                (shift_amount % 32) as u32
+            }
+        };
+
+        // Since bitshifts are width-sensitive, mask appropriately
+        let bits = match self.width {
+            IntWidth::As32 => self.into_bits() & 0xFFFF_FFFF,
+            IntWidth::As64 => self.into_bits(),
+        };
+
+        let bits = bits
+            .checked_shl(shift_amount)
+            .ok_or_else(|| ConstError::IntOverflow)?;
+
+        // Always an unsigned integer
+        let new_sign = IntSign::Positive;
+
+        Self::check_overflow(Some(bits), new_sign, effective_width)
+    }
+
+    /// Checked integer shift right.
+    /// Computes `self shr rhs`,
+    /// returning `Err(ConstError::NegativeIntShift)` if `rhs` is negative,
+    /// or `Err(ConstError::IntOverflow)` if overflow occurred.
+    ///
+    /// Implicitly transforms the integer into the unsigned variant.
+    pub fn checked_shr(self, rhs: ConstInt) -> Result<ConstInt, ConstError> {
+        let effective_width = Self::effective_width(self.width, rhs.width);
+
+        if rhs.is_negative() {
+            return Err(ConstError::NegativeIntShift);
+        }
+
+        let shift_amount: u32 = {
+            let shift_amount = rhs.into_u64().ok_or_else(|| ConstError::IntOverflow)?;
+
+            // Mask the shift amount depending on the effective integer width
+            if effective_width == IntWidth::As64 {
+                (shift_amount % 64) as u32
+            } else {
+                (shift_amount % 32) as u32
+            }
+        };
+
+        // Since bitshifts are width-sensitive, mask appropriately
+        let bits = match self.width {
+            IntWidth::As32 => self.into_bits() & 0xFFFF_FFFF,
+            IntWidth::As64 => self.into_bits(),
+        };
+
+        // Even though overflow would not occur since we currently mask the shift amount,
+        // still do a `checked_shr` since this masking behaviour is very odd and may
+        // be disabled by a config option.
+        let bits = bits
+            .checked_shr(shift_amount)
+            .ok_or_else(|| ConstError::IntOverflow)?;
+
+        // Always an unsigned integer
+        let new_sign = IntSign::Positive;
+
+        Self::check_overflow(Some(bits), new_sign, effective_width)
     }
 
     /// Negates the sign of the integer.
@@ -462,7 +549,7 @@ impl ConstInt {
             IntWidth::As32 if sign.is_negative() => magnitude > i32::MIN.unsigned_abs() as u64,
             // [0, 0xFFFFFFFF_FFFFFFFF] or all values of u64
             IntWidth::As64 if sign.is_positive() => false,
-            // [0, 0x80000000_00000000] or all values of u64
+            // [0, 0x80000000_00000000]
             IntWidth::As64 if sign.is_negative() => magnitude > i64::MIN.unsigned_abs() as u64,
             // All cases already covered
             _ => unreachable!(),

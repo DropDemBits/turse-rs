@@ -219,8 +219,8 @@
 - [x] And
 - [x] Or
 - [x] Xor
-- [ ] Shl
-- [ ] Shr
+- [x] Shl
+- [x] Shr
 - [x] Imply
 - [x] Not
 

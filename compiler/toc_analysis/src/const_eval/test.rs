@@ -199,6 +199,16 @@ fn bitwise_const_ops() {
 
         "not -0"
         "not -1"
+
+        "1 shl 3"
+        "-1 shl 0"
+
+        "24 shr 3"
+        "-24 shr 3"
+
+        // Wrapping around the mask
+        "1 shl 32"
+        "8 shr 32"
     ];
 }
 
@@ -312,6 +322,11 @@ fn error_int_overflow_32bit() {
         "2 ** 33"
         "2 ** 32"
         "(-2) ** 33"
+
+        // Over shl
+        "2 shl 31"
+        // Any shl over negative integers will overflow
+        "-1 shl 1"
     ];
 }
 
@@ -388,6 +403,9 @@ fn error_logical_wrong_types() {
         "false => 1.0"
 
         "not 1.0"
+
+        "1 shl 1.0"
+        "false shr 1"
     ];
 }
 
@@ -432,4 +450,10 @@ fn error_propogation() {
 #[test]
 fn error_negative_int_exp() {
     assert_const_eval_expr("2 ** -1");
+}
+
+#[test]
+fn error_negative_int_shift() {
+    assert_const_eval_expr("2 shl -1");
+    assert_const_eval_expr("2 shr -1");
 }

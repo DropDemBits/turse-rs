@@ -166,6 +166,9 @@ pub enum ConstError {
     /// Negative int exponent provided during power raising
     #[error("raising integer to a negative exponent")]
     NegativeIntExp,
+    /// Negative int shift provided during bit shifting
+    #[error("bit shifting integer by a negative amount")]
+    NegativeIntShift,
 }
 
 pub type ConstResult<T> = Result<T, Spanned<ConstError>>;

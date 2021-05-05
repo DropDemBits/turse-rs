@@ -252,8 +252,30 @@ impl ConstOp {
                     _ => Err(ConstError::WrongType),
                 }
             }
-            ConstOp::Shl => todo!(),
-            ConstOp::Shr => todo!(),
+            ConstOp::Shl => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_shl(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Shr => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        lhs.checked_shr(rhs).map(|v| ConstValue::Integer(v))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
             ConstOp::Less => todo!(),
             ConstOp::LessEq => todo!(),
             ConstOp::Greater => todo!(),
