@@ -76,6 +76,76 @@ fn arithmetic_const_ops() {
 }
 
 #[test]
+fn logic_const_ops() {
+    for_all_const_exprs![
+        "false and false" // 0
+        "false and true"  // 0
+        "true and false"  // 0
+        "true and true"   // 1
+
+        "false or false"  // 0
+        "false or true"   // 1
+        "true or false"   // 1
+        "true or true"    // 1
+
+        "false xor false" // 0
+        "false xor true"  // 1
+        "true xor false"  // 1
+        "true xor true"   // 0
+
+        "false => false"  // 1
+        "false => true"   // 1
+        "true => false"   // 0
+        "true => true"    // 1
+
+        "not true"
+        "not false"
+    ];
+}
+
+#[test]
+fn bitwise_const_ops() {
+    for_all_const_exprs![
+        "0 and 0"
+        "0 and 1"
+        "1 and 0"
+        "1 and 1"
+
+        "0 or 0"
+        "0 or 1"
+        "1 or 0"
+        "1 or 1"
+
+        "0 xor 0"
+        "0 xor 1"
+        "1 xor 0"
+        "1 xor 1"
+
+        "not 0"
+        "not 1"
+
+        // Applicable to negative numbers too
+        "0 and -0"
+        "0 and -1"
+        "1 and -0"
+        "1 and -1"
+
+        "0 or -0"
+        "0 or -1"
+        "1 or -0"
+        "1 or -1"
+
+        "0 xor -0"
+        "0 xor -1"
+        "1 xor -0"
+        "1 xor -1"
+
+        "not -0"
+        "not -1"
+    ];
+}
+
+#[test]
 fn real_promotion() {
     for_all_const_exprs![
         "1.0 + 1"
@@ -156,5 +226,48 @@ fn error_real_overflow() {
         "1e308 * 10"
         "-1e308 * 10"
         // Over idiv (checked in `error_int_overflow_{32,64}_bit`)
+    ];
+}
+
+#[test]
+fn error_arithmetic_wrong_types() {
+    for_all_const_exprs![
+        "1 + true"
+        "1 - true"
+        "1 * true"
+        "1 div true"
+        "false + 1"
+        "false - 1"
+        "false * 1"
+        "false div 1"
+
+        "1.0 + true"
+        "1.0 - true"
+        "1.0 * true"
+        "1.0 div true"
+        "false + 1.0"
+        "false - 1.0"
+        "false * 1.0"
+        "false div 1.0"
+
+        "-false"
+        "+true"
+    ];
+}
+
+#[test]
+fn error_logical_wrong_types() {
+    for_all_const_exprs![
+        "1.0 and false"
+        "1.0 or false"
+        "1.0 xor false"
+        "1.0 => false"
+
+        "false and 1.0"
+        "false or 1.0"
+        "false xor 1.0"
+        "false => 1.0"
+
+        "not 1.0"
     ];
 }

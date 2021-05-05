@@ -65,6 +65,8 @@ pub enum ConstValue {
     Integer(ConstInt),
     /// Floating point value
     Real(f64),
+    /// Boolean value
+    Bool(bool),
 }
 
 impl ConstValue {
@@ -77,6 +79,15 @@ impl ConstValue {
         match self {
             ConstValue::Integer(v) => Some(*v),
             _ => None,
+        }
+    }
+
+    /// Gets the human readable version of the value's type
+    pub fn type_name(&self) -> &str {
+        match self {
+            ConstValue::Integer(_) => "integer value",
+            ConstValue::Real(_) => "real value",
+            ConstValue::Bool(_) => "boolean value",
         }
     }
 
@@ -102,6 +113,18 @@ impl ConstValue {
         match self {
             ConstValue::Integer(v) => Ok(v.into_f64()),
             ConstValue::Real(v) => Ok(v),
+            _ => Err(ConstError::WrongType),
+        }
+    }
+
+    /// Converts a `ConstValue` into a `bool`.
+    ///
+    /// The only value types that are allowed to be cast into `bool` are:
+    ///
+    /// - `Bool`
+    fn cast_into_bool(self) -> Result<bool, ConstError> {
+        match self {
+            ConstValue::Bool(v) => Ok(v),
             _ => Err(ConstError::WrongType),
         }
     }
@@ -340,7 +363,7 @@ impl InnerCtx {
                         expr::Literal::Real(v) => ConstValue::Real(*v),
                         expr::Literal::CharSeq(_str) => todo!(),
                         expr::Literal::String(_str) => todo!(),
-                        expr::Literal::Boolean(_v) => todo!(),
+                        expr::Literal::Boolean(v) => ConstValue::Bool(*v),
                     };
 
                     operand_stack.push(operand);

@@ -197,23 +197,23 @@
 #### Arithmetic
 
 - [ ] Add
-  - [ ] Over numbers
+  - [x] Over numbers
   - [ ] Over sets
   - [ ] Over char seqs
 - [ ] Sub
-  - [ ] Over numbers
+  - [x] Over numbers
   - [ ] Over sets
 - [ ] Mul
-  - [ ] Over numbers
+  - [x] Over numbers
   - [ ] Over sets
-- [ ] Div
+- [x] Div
 - [ ] RealDiv
 - [ ] Mod
 - [ ] Rem
 - [ ] Exp
-- [ ] And
-- [ ] Or
-- [ ] Xor
+- [x] And
+- [x] Or
+- [x] Xor
 - [ ] Shl
 - [ ] Shr
 - [ ] Less
@@ -222,10 +222,10 @@
 - [ ] GreaterEq
 - [ ] Equal
 - [ ] NotEqual
-- [ ] Imply
-- [ ] Not
-- [ ] Identity
-- [ ] Negate
+- [x] Imply
+- [x] Not
+- [x] Identity
+- [x] Negate
 
 #### Type Conversion
 
@@ -248,6 +248,8 @@
 - [ ] max
 - [ ] min
 - [ ] sign
+- [ ] Set Constructor
+- [ ] (BinaryOp) In
 
 ## LSP Client/Server
 

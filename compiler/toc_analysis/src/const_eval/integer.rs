@@ -223,6 +223,83 @@ impl ConstInt {
         Self::check_overflow(Some(value), new_sign, effective_width)
     }
 
+    /// Performs the bitwise "and" operation.
+    /// Implicitly transforms the integer into the unsigned variant
+    pub fn and(self, rhs: ConstInt) -> ConstInt {
+        // Apply the bit-and operation
+        let bits = self.into_bits() & rhs.into_bits();
+
+        // Truncate to the appropriate width
+        let bits = match self.width {
+            IntWidth::As32 => bits & 0xFFFF_FFFF,
+            IntWidth::As64 => bits,
+        };
+
+        // Always an unsigned integer, and always representable
+        ConstInt {
+            magnitude: bits,
+            sign: IntSign::Positive,
+            width: self.width,
+        }
+    }
+
+    /// Performs the bitwise "or" operation.
+    /// Implicitly transforms the integer into the unsigned variant
+    pub fn or(self, rhs: ConstInt) -> ConstInt {
+        // Apply the bit-or operation
+        let bits = self.into_bits() | rhs.into_bits();
+
+        // Truncate to the appropriate width
+        let bits = match self.width {
+            IntWidth::As32 => bits & 0xFFFF_FFFF,
+            IntWidth::As64 => bits,
+        };
+
+        // Always an unsigned integer, and always representable
+        ConstInt {
+            magnitude: bits,
+            sign: IntSign::Positive,
+            width: self.width,
+        }
+    }
+
+    /// Performs the bitwise "xor" operation.
+    /// Implicitly transforms the integer into the unsigned variant
+    pub fn xor(self, rhs: ConstInt) -> ConstInt {
+        // Apply the bit-xor operation
+        let bits = self.into_bits() ^ rhs.into_bits();
+
+        // Truncate to the appropriate width
+        let bits = match self.width {
+            IntWidth::As32 => bits & 0xFFFF_FFFF,
+            IntWidth::As64 => bits,
+        };
+
+        // Always an unsigned integer, and always representable
+        ConstInt {
+            magnitude: bits,
+            sign: IntSign::Positive,
+            width: self.width,
+        }
+    }
+
+    /// Performs the bitwise negation operation.
+    /// Implicitly transforms the integer into the unsigned variant
+    pub fn not(self) -> ConstInt {
+        // Apply the not operation
+        let bits = match self.width {
+            IntWidth::As32 => !self.into_bits() & 0xFFFF_FFFF,
+            IntWidth::As64 => !self.into_bits(),
+        };
+
+        // Always an unsigned integer, and always representable
+        ConstInt {
+            magnitude: bits,
+            sign: IntSign::Positive,
+            width: self.width,
+        }
+    }
+
     /// Negates the sign of the integer.
     /// Does nothing for a magnitude of 0.
     pub fn negate(self) -> Result<ConstInt, ConstError> {
@@ -241,6 +318,15 @@ impl ConstInt {
         }
 
         self
+    }
+
+    /// Converts `self` into the corresponding bitwise representation
+    /// (not taking into account the width)
+    fn into_bits(self) -> u64 {
+        match self.sign {
+            IntSign::Positive => self.magnitude,
+            IntSign::Negative => !self.magnitude + 1,
+        }
     }
 
     fn effective_width(lhs: IntWidth, rhs: IntWidth) -> IntWidth {

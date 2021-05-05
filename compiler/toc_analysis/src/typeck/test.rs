@@ -166,6 +166,7 @@ fn typecheck_sized_char() {
     assert_named_typecheck("sized_char_zero_sized", r#"var _ : char(0)"#);
     assert_named_typecheck("sized_char_max_sized", r#"var _ : char(32768)"#);
     assert_named_typecheck("sized_char_wrong_type", r#"var _ : char(1.0)"#);
+    assert_named_typecheck("sized_char_wrong_type_bool", r#"var _ : char(true)"#);
     assert_named_typecheck("sized_char_const_err", r#"var _ : char(1.0 div 0.0)"#);
 }
 
@@ -180,5 +181,6 @@ fn typecheck_sized_string() {
     assert_named_typecheck("sized_string_zero_sized", r#"var _ : string(0)"#);
     assert_named_typecheck("sized_string_max_sized", r#"var _ : string(32768)"#);
     assert_named_typecheck("sized_string_wrong_type", r#"var _ : string(1.0)"#);
+    assert_named_typecheck("sized_string_wrong_type_bool", r#"var _ : string(true)"#);
     assert_named_typecheck("sized_string_const_err", r#"var _ : string(1.0 div 0.0)"#);
 }

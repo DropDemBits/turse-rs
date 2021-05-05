@@ -5,7 +5,7 @@ mod test;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use toc_hir::{expr, stmt, ty as hir_ty, UnitMap};
+use toc_hir::{expr, stmt, ty as hir_ty};
 use toc_reporting::{MessageKind, ReportMessage};
 use toc_span::Spanned;
 
@@ -285,11 +285,6 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                                 );
                             }
                             SeqLenError::WrongType(value) => {
-                                let stringified_ty = match value.item() {
-                                    ConstValue::Integer(_) => unreachable!(),
-                                    ConstValue::Real(_) => "real value",
-                                };
-
                                 self.reporter
                                     .report_detailed(
                                         MessageKind::Error,
@@ -299,7 +294,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                                     .with_note(
                                         &format!(
                                             "expected integer value, found {}",
-                                            stringified_ty
+                                            value.item().type_name()
                                         ),
                                         value.span(),
                                     )

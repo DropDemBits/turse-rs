@@ -55,6 +55,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_add(rhs).map(|v| ConstValue::Integer(v))
                     }
+                    _ => Err(ConstError::WrongType),
                 }
             }
             ConstOp::Sub => {
@@ -74,6 +75,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_sub(rhs).map(|v| ConstValue::Integer(v))
                     }
+                    _ => Err(ConstError::WrongType),
                 }
             }
             ConstOp::Mul => {
@@ -93,6 +95,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_mul(rhs).map(|v| ConstValue::Integer(v))
                     }
+                    _ => Err(ConstError::WrongType),
                 }
             }
             ConstOp::Div => {
@@ -114,15 +117,61 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_div(rhs).map(|v| ConstValue::Integer(v))
                     }
+                    _ => Err(ConstError::WrongType),
                 }
             }
             ConstOp::RealDiv => todo!(),
             ConstOp::Mod => todo!(),
             ConstOp::Rem => todo!(),
             ConstOp::Exp => todo!(),
-            ConstOp::And => todo!(),
-            ConstOp::Or => todo!(),
-            ConstOp::Xor => todo!(),
+            ConstOp::And => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        Ok(ConstValue::Integer(lhs.and(rhs)))
+                    }
+                    (lhs @ ConstValue::Bool(_), rhs) | (lhs, rhs @ ConstValue::Bool(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
+                        Ok(ConstValue::Bool(lhs & rhs))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Or => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        Ok(ConstValue::Integer(lhs.or(rhs)))
+                    }
+                    (lhs @ ConstValue::Bool(_), rhs) | (lhs, rhs @ ConstValue::Bool(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
+                        Ok(ConstValue::Bool(lhs | rhs))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Xor => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+                        Ok(ConstValue::Integer(lhs.xor(rhs)))
+                    }
+                    (lhs @ ConstValue::Bool(_), rhs) | (lhs, rhs @ ConstValue::Bool(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
+                        Ok(ConstValue::Bool(lhs ^ rhs))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
             ConstOp::Shl => todo!(),
             ConstOp::Shr => todo!(),
             ConstOp::Less => todo!(),
@@ -131,8 +180,27 @@ impl ConstOp {
             ConstOp::GreaterEq => todo!(),
             ConstOp::Equal => todo!(),
             ConstOp::NotEqual => todo!(),
-            ConstOp::Imply => todo!(),
-            ConstOp::Not => todo!(),
+            ConstOp::Imply => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+
+                match (lhs, rhs) {
+                    (lhs @ ConstValue::Bool(_), rhs) | (lhs, rhs @ ConstValue::Bool(_)) => {
+                        let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
+                        Ok(ConstValue::Bool(!lhs | rhs))
+                    }
+                    _ => Err(ConstError::WrongType),
+                }
+            }
+            ConstOp::Not => {
+                let rhs = operand_stack.pop().unwrap();
+
+                match rhs {
+                    ConstValue::Integer(v) => Ok(ConstValue::Integer(v.not())),
+                    ConstValue::Bool(v) => Ok(ConstValue::Bool(!v)),
+                    _ => Err(ConstError::WrongType),
+                }
+            }
             ConstOp::Identity => {
                 // Rhs must be a number
                 let rhs = operand_stack.pop().unwrap();
@@ -140,6 +208,7 @@ impl ConstOp {
                 match rhs {
                     rhs @ ConstValue::Integer(_) => Ok(rhs),
                     rhs @ ConstValue::Real(_) => Ok(rhs),
+                    _ => Err(ConstError::WrongType),
                 }
             }
             ConstOp::Negate => {
@@ -148,6 +217,7 @@ impl ConstOp {
                 match rhs {
                     ConstValue::Integer(v) => v.negate().map(|v| ConstValue::Integer(v)),
                     ConstValue::Real(v) => Ok(ConstValue::Real(-v)),
+                    _ => Err(ConstError::WrongType),
                 }
             }
         }
