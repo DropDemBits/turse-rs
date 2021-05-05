@@ -17,3 +17,5 @@ ConstEvalCtx {
 }
 ConstExpr { id: 0 } -> Spanned(DivByZero, 15..18)
 
+error at 15..18: division by zero in compile-time expression
+

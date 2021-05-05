@@ -269,12 +269,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                     Err(err) => {
                         match err {
                             SeqLenError::ConstEval(err) => {
-                                // TODO: Provide more detailed const eval errors
-                                self.reporter.report(
-                                    MessageKind::Error,
-                                    &format!("{}", err.item()),
-                                    err.span(),
-                                );
+                                err.item().report_to(&mut self.reporter, err.span());
                             }
                             SeqLenError::WrongType(value) => {
                                 self.reporter

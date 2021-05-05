@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use toc_reporting::{MessageSink, ReportMessage};
 use unindent::unindent;
 
 use crate::const_eval::ConstEvalCtx;
@@ -33,6 +34,7 @@ fn do_const_eval(source: &str) -> String {
     super::collect_const_vars(unit, const_eval_ctx.clone());
 
     let mut results_str = String::new();
+    let mut reporter = MessageSink::new();
 
     // Need access to the inner state of the ConstEvalCtx, which is behind a lock
     {
@@ -43,7 +45,11 @@ fn do_const_eval(source: &str) -> String {
         for expr in const_exprs {
             let results = match inner.eval_expr(expr) {
                 Ok(v) => format!("{:?} -> {:?}\n", expr, v),
-                Err(err) => format!("{:?} -> {:?}\n", expr, err),
+                Err(err) => {
+                    let text = format!("{:?} -> {:?}\n", expr, err);
+                    err.item().report_to(&mut reporter, err.span());
+                    text
+                }
             };
 
             results_str.push_str(&results);
@@ -51,12 +57,23 @@ fn do_const_eval(source: &str) -> String {
     }
 
     // Errors are bundled into the const error context
-    stringify_const_eval_results(&results_str, &const_eval_ctx)
+    stringify_const_eval_results(&results_str, &reporter.finish(), &const_eval_ctx)
 }
 
-fn stringify_const_eval_results(results: &str, const_eval: &ConstEvalCtx) -> String {
+fn stringify_const_eval_results(
+    results: &str,
+    messages: &[ReportMessage],
+    const_eval: &ConstEvalCtx,
+) -> String {
     // Pretty print const eval ctx
-    format!("{:#?}\n{}", const_eval, results)
+    let mut s = format!("{:#?}\n{}\n", const_eval, results);
+
+    // Pretty print the messages
+    for err in messages.iter() {
+        s.push_str(&format!("{}\n", err));
+    }
+
+    s
 }
 
 #[test]

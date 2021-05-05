@@ -17,3 +17,6 @@ ConstEvalCtx {
 }
 ConstExpr { id: 0 } -> Spanned(NoConstExpr(0..0), 11..16)
 
+error at 11..16: reference cannot be computed at compile-time
+| info for 0..0: reference declared here
+

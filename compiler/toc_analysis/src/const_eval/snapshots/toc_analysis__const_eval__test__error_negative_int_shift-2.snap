@@ -17,3 +17,5 @@ ConstEvalCtx {
 }
 ConstExpr { id: 0 } -> Spanned(NegativeIntShift, 13..16)
 
+error at 13..16: bit shifting integer by a negative amount
+

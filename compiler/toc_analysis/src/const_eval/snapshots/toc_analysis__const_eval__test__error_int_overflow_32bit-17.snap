@@ -17,3 +17,5 @@ ConstEvalCtx {
 }
 ConstExpr { id: 0 } -> Spanned(IntOverflow, 11..12)
 
+error at 11..12: integer overflow in compile-time expression
+

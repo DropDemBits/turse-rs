@@ -180,6 +180,35 @@ pub enum ConstError {
     NegativeIntShift,
 }
 
+impl ConstError {
+    /// Reports the detailed version of the `ConstError` to the given reporter
+    pub fn report_to(
+        &self,
+        reporter: &mut toc_reporting::MessageSink,
+        initial_span: toc_span::TextRange,
+    ) {
+        use toc_reporting::MessageKind;
+
+        // Ignore already reported messages
+        if matches!(self, Self::Reported) {
+            return;
+        }
+
+        // Report common message header
+        let msg = reporter.report_detailed(MessageKind::Error, &format!("{}", self), initial_span);
+
+        // Report extra details
+        match self {
+            Self::NoConstExpr(def_span) => {
+                // Report at the reference's definition spot
+                msg.with_info(&format!("reference declared here"), *def_span)
+            }
+            _ => msg,
+        }
+        .finish();
+    }
+}
+
 pub type ConstResult<T> = Result<T, Spanned<ConstError>>;
 
 /// Constant evaluation context

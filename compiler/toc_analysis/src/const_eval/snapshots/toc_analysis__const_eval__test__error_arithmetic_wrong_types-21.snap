@@ -17,3 +17,5 @@ ConstEvalCtx {
 }
 ConstExpr { id: 0 } -> Spanned(WrongType, 13..16)
 
+error at 13..16: wrong type for compile-time expression
+

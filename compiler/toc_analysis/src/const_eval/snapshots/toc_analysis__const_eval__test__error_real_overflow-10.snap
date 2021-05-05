@@ -17,3 +17,5 @@ ConstEvalCtx {
 }
 ConstExpr { id: 0 } -> Spanned(RealOverflow, 19..21)
 
+error at 19..21: real overflow in compile-time expression
+

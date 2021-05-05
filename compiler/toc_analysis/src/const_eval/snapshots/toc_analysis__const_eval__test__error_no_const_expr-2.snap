@@ -20,3 +20,6 @@ ConstEvalCtx {
 ConstExpr { id: 0 } -> Spanned(NoConstExpr(4..5), 22..24)
 ConstExpr { id: 1 } -> Spanned(Reported, 35..37)
 
+error at 22..24: reference cannot be computed at compile-time
+| info for 4..5: reference declared here
+
