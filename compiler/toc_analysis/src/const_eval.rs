@@ -142,9 +142,13 @@ pub enum ConstError {
     /// Not a valid const eval operation
     #[error("operation cannot be computed at compile-time")]
     NotConstOp,
-    /// No const expr is associated with this identifer
+    /// No const expr is associated with this identifer.
+    /// Provided span is the span of the symbol's definition
     #[error("reference cannot be computed at compile-time")]
-    NoConstExpr,
+    NoConstExpr(toc_span::TextRange),
+    /// Error is already reported
+    #[error("compile-time evaluation error already reported")]
+    Reported,
 
     // Computation errors
     /// Wrong operand type in eval expression
@@ -258,13 +262,19 @@ impl InnerCtx {
         let (unit_id, root_expr) = match &self.eval_state[expr.id] {
             // Give cached value
             EvalState::Value(v) => return Ok(v.clone()),
-            EvalState::Error(v) => return Err(v.clone()),
+            EvalState::Error(unit_id, root_expr, _) => {
+                let span = self.unit_map.get_unit(*unit_id).database.expr_nodes.spans[root_expr];
+
+                // Error should already be reported
+                return Err(Spanned::new(ConstError::Reported, span));
+            }
             EvalState::Evaluating(unit_id, root_expr) => {
                 // Encountered an evaluation cycle, update the evaluation state
-                let span = self.unit_map.get_unit(*unit_id).database.expr_nodes.spans[&root_expr];
+                let span = self.unit_map.get_unit(*unit_id).database.expr_nodes.spans[root_expr];
                 let err = Spanned::new(ConstError::EvalCycle, span);
 
-                self.eval_state[expr.id] = EvalState::Error(err.clone());
+                // Update the eval state
+                self.eval_state[expr.id] = EvalState::Error(*unit_id, *root_expr, err.clone());
                 return Err(err);
             }
             EvalState::Unevaluated(unit_id, root_expr) => (*unit_id, *root_expr),
@@ -272,12 +282,26 @@ impl InnerCtx {
 
         let result = self.do_eval_expr(unit_id, root_expr, expr);
 
-        if let Err(err) = &result {
-            // Update the eval state with the corresponding error
-            self.eval_state[expr.id] = EvalState::Error(err.clone());
-        }
+        match result {
+            Ok(v) => Ok(v),
+            Err(err) => {
+                let err = if let ConstError::Reported = err.item() {
+                    // Adjust the report location to the current expr
+                    // Knab the span from the root expr
+                    let span =
+                        self.unit_map.get_unit(unit_id).database.expr_nodes.spans[&root_expr];
 
-        result
+                    Spanned::new(ConstError::Reported, span)
+                } else {
+                    err
+                };
+
+                // Update the eval state with the corresponding error
+                self.eval_state[expr.id] = EvalState::Error(unit_id, root_expr, err.clone());
+
+                Err(err)
+            }
+        }
     }
 
     fn eval_var(&mut self, var: GlobalDefId) -> ConstResult<ConstValue> {
@@ -292,8 +316,9 @@ impl InnerCtx {
                 .symbol_table
                 .get_def_span(def_id);
 
-            Spanned::new(ConstError::NoConstExpr, span)
+            Spanned::new(ConstError::NoConstExpr(span), span)
         })?;
+
         self.eval_expr(const_expr)
     }
 
@@ -319,7 +344,6 @@ impl InnerCtx {
         // Do the actual evaluation, as a stack maching
         let mut eval_stack = vec![Eval::Expr(root_expr)];
         let mut operand_stack = vec![];
-        let unit = &self.unit_map[unit_id];
 
         loop {
             eprintln!("> {:?}", eval_stack);
@@ -338,6 +362,9 @@ impl InnerCtx {
                 None => break,
             };
 
+            // Fetch here to deal with borrowck
+            // Always reacquire the new unit
+            let unit = &self.unit_map[unit_id];
             let expr_span = unit.database.expr_nodes.spans[&local_expr];
 
             // ???: How to deal with enum field accesses?
@@ -385,10 +412,39 @@ impl InnerCtx {
                     // Push the inner expr
                     eval_stack.push(Eval::Expr(expr.expr));
                 }
-                expr::Expr::Name(_expr) => {
-                    // TODO: Deal with name exprs
+                expr::Expr::Name(name) => {
                     // May or may not reference a constant expression
-                    todo!()
+                    match name {
+                        expr::Name::Name(use_id) => {
+                            // Lookup var
+                            // ???: How to lookup identifiers imported from different units
+                            // - `Unit` should have an import table mapping local `UseId`s to
+                            //   `GlobalDefId`'s
+                            let global_def = use_id.as_def().into_global(unit_id);
+
+                            // Eval var
+                            let value = self.eval_var(global_def).map_err(|err| {
+                                if let ConstError::NoConstExpr(def_span) = err.item() {
+                                    // Change the span to reflect the use
+                                    Spanned::new(ConstError::NoConstExpr(*def_span), expr_span)
+                                } else {
+                                    // Keep as-is
+                                    err
+                                }
+                            })?;
+
+                            // Push (cached) value to the operand stack
+                            operand_stack.push(value);
+                        }
+                        expr::Name::Self_ => {
+                            // Never a const expr
+                            // TODO: Use the self's associated def_id
+                            return Err(Spanned::new(
+                                ConstError::NoConstExpr(Default::default()),
+                                expr_span,
+                            ));
+                        }
+                    }
                 }
             }
         }
@@ -426,7 +482,7 @@ enum EvalState {
     /// The expression has been evaluated to a valid value
     Value(ConstValue),
     /// The expression has been evaluated, but not to a valid value
-    Error(Spanned<ConstError>),
+    Error(UnitId, expr::ExprIdx, Spanned<ConstError>),
 }
 
 impl fmt::Debug for EvalState {
@@ -439,7 +495,9 @@ impl fmt::Debug for EvalState {
                 f.write_fmt(format_args!("Evaluating({:?}, {:?})", u, v))
             }
             EvalState::Value(v) => f.write_fmt(format_args!("Value({:?})", v)),
-            EvalState::Error(v) => f.write_fmt(format_args!("Error({:?})", v)),
+            EvalState::Error(u, v, w) => {
+                f.write_fmt(format_args!("Error({:?}, {:?}, {:?})", u, v, w))
+            }
         }
     }
 }

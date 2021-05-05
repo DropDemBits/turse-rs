@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use unindent::unindent;
+
 use crate::const_eval::ConstEvalCtx;
 
 #[track_caller]
@@ -167,6 +169,17 @@ fn real_promotion() {
 }
 
 #[test]
+fn const_local_var_lookup() {
+    assert_const_eval_expr(&unindent(
+        r#"
+    const a := 1
+    const b := a + 1
+    const c := b
+    "#,
+    ));
+}
+
+#[test]
 fn error_div_by_zero() {
     // TODO: Add tests cases for real div, mod & rem
     for_all_const_exprs!["1 div 0"];
@@ -270,4 +283,42 @@ fn error_logical_wrong_types() {
 
         "not 1.0"
     ];
+}
+
+#[test]
+fn error_no_const_expr() {
+    // Referencing a runtime-evaluated var
+    assert_const_eval(&unindent(
+        r#"
+    var a := 1
+    const b := a
+    "#,
+    ));
+
+    // Referencing a runtime-evaluated const
+    assert_const_eval(&unindent(
+        r#"
+    var a := 1
+    const b := a
+    const c := b
+    "#,
+    ));
+
+    // Referencing `self`
+    assert_const_eval(&unindent(
+        r#"
+    const a := self
+    "#,
+    ));
+}
+
+#[test]
+fn error_propogation() {
+    // Propogation of errors
+    assert_const_eval(&unindent(
+        r#"
+    const a := 1 div 0
+    const b := a
+    "#,
+    ));
 }
