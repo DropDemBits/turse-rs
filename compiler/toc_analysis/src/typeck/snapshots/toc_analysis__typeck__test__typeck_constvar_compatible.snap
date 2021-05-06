@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var k : int := 100"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))

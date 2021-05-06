@@ -95,6 +95,29 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             }
         };
 
+        if let stmt::ConstVarTail::Both(ty_spec, init_expr) = &decl.tail {
+            let lvalue_ty = self.ty_ctx.get_type(*ty_spec).unwrap();
+
+            let rvalue_eval = *self.eval_kinds.get(init_expr).unwrap();
+            let rvalue_ty = self.require_expr_ty(rvalue_eval);
+
+            if let Some(false) = ty_rules::is_ty_assignable_to(lvalue_ty, rvalue_ty) {
+                // TODO: invalidate associated `ConstExpr` in the event of an incompatible type
+
+                // Incompatible, report it
+                let init_span = self.unit.database.expr_nodes.spans[init_expr];
+                let spec_span = self.unit.database.type_nodes.spans[ty_spec];
+
+                self.reporter
+                    .report_detailed(MessageKind::Error, "mismatched types", init_span)
+                    .with_note(
+                        "initializer's type is incompatible with this type",
+                        spec_span,
+                    )
+                    .finish();
+            }
+        }
+
         // Make the type concrete
         let ty_ref = if *ty_ref == ty::Type::Integer {
             // Integer decomposes into a normal `int`
@@ -109,8 +132,6 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         } else {
             DefKind::Var(ty_ref)
         };
-
-        // TODO: type check inititaliation if both ty_spec & init_expr are present
 
         for def in &decl.names {
             self.ty_ctx.map_def_id(*def, def_kind);
@@ -335,38 +356,23 @@ impl TypeCheck<'_> {
         // nat - nat => nat
         use ty::{IntSize, NatSize, RealSize, Type};
 
-        fn is_number(ty: &Type) -> bool {
-            matches!(
-                ty,
-                Type::Integer | Type::Real(_) | Type::Int(_) | Type::Nat(_)
-            )
-        }
-
-        fn is_integer(ty: &Type) -> bool {
-            matches!(ty, Type::Integer | Type::Int(_) | Type::Nat(_))
-        }
-
-        fn is_nat(ty: &Type) -> bool {
-            matches!(ty, Type::Integer | Type::Nat(_))
-        }
-
-        fn is_error(ty: &Type) -> bool {
-            matches!(ty, Type::Error)
-        }
-
         fn check_number_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
             match (lhs_ty, rhs_ty) {
                 // Pass through integer inferrence
                 (Type::Integer, Type::Integer) => Some(Type::Integer),
 
                 // Normal operands
-                (operand, Type::Real(_)) | (Type::Real(_), operand) if is_number(operand) => {
+                (operand, Type::Real(_)) | (Type::Real(_), operand)
+                    if ty_rules::is_number(operand) =>
+                {
                     Some(Type::Real(RealSize::Real))
                 }
-                (operand, Type::Int(_)) | (Type::Int(_), operand) if is_integer(operand) => {
+                (operand, Type::Int(_)) | (Type::Int(_), operand)
+                    if ty_rules::is_integer(operand) =>
+                {
                     Some(Type::Int(IntSize::Int))
                 }
-                (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
+                (operand, Type::Nat(_)) | (Type::Nat(_), operand) if ty_rules::is_nat(operand) => {
                     Some(Type::Nat(NatSize::Nat))
                 }
                 _ => None,
@@ -386,7 +392,7 @@ impl TypeCheck<'_> {
 
         // Short circuit for error types
         // Don't duplicate errors
-        if is_error(&lhs_ty) || is_error(&rhs_ty) {
+        if ty_rules::is_error(&lhs_ty) || ty_rules::is_error(&rhs_ty) {
             return Type::Error;
         }
 
@@ -462,10 +468,14 @@ impl TypeCheck<'_> {
                 match (&*lhs_ty, &*rhs_ty) {
                     // Pass through type inferrence
                     (Type::Integer, Type::Integer) => Type::Integer,
-                    (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
+                    (operand, Type::Nat(_)) | (Type::Nat(_), operand)
+                        if ty_rules::is_nat(operand) =>
+                    {
                         Type::Nat(NatSize::Nat)
                     }
-                    (lhs, rhs) if is_number(lhs) && is_number(rhs) => Type::Int(IntSize::Int),
+                    (lhs, rhs) if ty_rules::is_number(lhs) && ty_rules::is_number(rhs) => {
+                        Type::Int(IntSize::Int)
+                    }
                     _ => {
                         // Type error
                         self.reporter
@@ -484,7 +494,7 @@ impl TypeCheck<'_> {
                 // Operations:
                 // - Floating point division (number, number => real)
 
-                if is_number(&lhs_ty) && is_number(&rhs_ty) {
+                if ty_rules::is_number(&lhs_ty) && ty_rules::is_number(&rhs_ty) {
                     Type::Real(RealSize::Real)
                 } else {
                     // Type error
@@ -599,5 +609,94 @@ impl EvalKind {
             | EvalKind::Value(ty) => Some(ty),
             EvalKind::Ref(DefKind::Type(_)) => None,
         }
+    }
+}
+
+mod ty_rules {
+    use crate::ty::{SeqLength, TyRef, Type};
+
+    /// Returns `Some(is_assignable)`, or `None` if either type is `ty::Error`
+    pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
+        // Current assignability rules:
+        // boolean <- boolean
+        // Int(_) <- Int(_)
+        //         | Nat(_) [runtime checked]
+        //         | Integer [runtime checked]
+        //
+        // Nat(_) <- Int(_) [runtime checked]
+        //         | Nat(_)
+        //         | Integer [runtime checked]
+        //
+        // Real(_) <- Real(_)
+        //          | Int(_) [runtime checked]
+        //          | Nat(_)
+        //          | Integer [runtime checked]
+        //
+        // Char   <- Char
+        //         | Char(1)
+        //
+        // Char(N) <- Char(M) where N = M
+        //
+        // String <- String
+        //         | String(N)
+        // String(N) <- String(M) where N >= M
+        //            | String [runtime checked]
+        //
+
+        let is_assignable = match (&*lvalue_ty, &*rvalue_ty) {
+            // Short-circuting error types
+            (Type::Error, _) | (_, Type::Error) => return None,
+
+            // Boolean types are assignable to each other
+            (Type::Boolean, Type::Boolean) => true,
+
+            // Integer types are assignable to each other
+            (Type::Nat(_), other) | (other, Type::Nat(_)) if is_integer(other) => true,
+            (Type::Int(_), other) | (other, Type::Int(_)) if is_integer(other) => true,
+
+            // All numeric types are assignable into a real
+            (Type::Real(_), rhs) if is_integer(rhs) => true,
+
+            // Char(1) and Char are assignable into Char
+            (Type::Char, Type::Char) => true,
+            (Type::Char, Type::CharN(SeqLength::Fixed(1))) => true,
+
+            // Char(M) is assignable into Char(N) if N = M or if dyn
+            (Type::CharN(SeqLength::Fixed(n)), Type::CharN(SeqLength::Fixed(m))) => n == m,
+
+            // String(N) and String are assignable into String
+            (Type::String, Type::String) => true,
+            (Type::String, Type::StringN(SeqLength::Fixed(_))) => true,
+
+            // String is assignable into String(N)
+            (Type::StringN(SeqLength::Fixed(_)), Type::String) => true,
+
+            // String(M) is assignable into String(N) if n >= m
+            (Type::StringN(SeqLength::Fixed(n)), Type::StringN(SeqLength::Fixed(m))) => n >= m,
+
+            // Not assignable otherwise
+            _ => false,
+        };
+
+        Some(is_assignable)
+    }
+
+    pub fn is_number(ty: &Type) -> bool {
+        matches!(
+            ty,
+            Type::Integer | Type::Real(_) | Type::Int(_) | Type::Nat(_)
+        )
+    }
+
+    pub fn is_integer(ty: &Type) -> bool {
+        matches!(ty, Type::Integer | Type::Int(_) | Type::Nat(_))
+    }
+
+    pub fn is_nat(ty: &Type) -> bool {
+        matches!(ty, Type::Integer | Type::Nat(_))
+    }
+
+    pub fn is_error(ty: &Type) -> bool {
+        matches!(ty, Type::Error)
     }
 }

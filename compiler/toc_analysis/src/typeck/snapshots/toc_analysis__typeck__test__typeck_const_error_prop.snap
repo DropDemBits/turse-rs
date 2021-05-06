@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const k := 20 + false\nconst l : int := k   % Nothing reported here\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+def_kinds:
+    DefId(0) Const(TyRef(Error))
+    DefId(1) Const(TyRef(Int(Int)))
+error at 14..15: incompatible types for addition
+| info: operands must both be numbers, strings, or sets

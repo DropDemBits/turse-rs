@@ -184,3 +184,30 @@ fn typecheck_sized_string() {
     assert_named_typecheck("sized_string_wrong_type_bool", r#"var _ : string(true)"#);
     assert_named_typecheck("sized_string_const_err", r#"var _ : string(1.0 div 0.0)"#);
 }
+
+#[test]
+fn typeck_constvar_initializer() {
+    assert_named_typecheck("typeck_var_compatible", r#"var k : int := 100"#);
+    assert_named_typecheck("typeck_var_incompatible", r#"var k : char := 20"#);
+    assert_named_typecheck(
+        "typeck_var_error_prop",
+        &unindent(
+            r#"
+    var k := 20 + false
+    var l : int := k   % Nothing reported here
+    "#,
+        ),
+    );
+
+    assert_named_typecheck("typeck_const_compatible", r#"const k : int := 100"#);
+    assert_named_typecheck("typeck_const_incompatible", r#"const k : char := 20"#);
+    assert_named_typecheck(
+        "typeck_const_error_prop",
+        &unindent(
+            r#"
+    const k := 20 + false
+    const l : int := k   % Nothing reported here
+    "#,
+        ),
+    );
+}
