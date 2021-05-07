@@ -179,7 +179,8 @@ fn typecheck_sized_string() {
         r#"var _ : string(1 - 1 * 1 + 2)"#,
     );
     assert_named_typecheck("sized_string_zero_sized", r#"var _ : string(0)"#);
-    assert_named_typecheck("sized_string_max_sized", r#"var _ : string(32768)"#);
+    assert_named_typecheck("sized_string_max_sized", r#"var _ : string(256)"#);
+    assert_named_typecheck("sized_string_over_sized", r#"var _ : string(512)"#);
     assert_named_typecheck("sized_string_wrong_type", r#"var _ : string(1.0)"#);
     assert_named_typecheck("sized_string_wrong_type_bool", r#"var _ : string(true)"#);
     assert_named_typecheck("sized_string_const_err", r#"var _ : string(1.0 div 0.0)"#);

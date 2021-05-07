@@ -3,6 +3,7 @@
 mod test;
 
 use std::collections::HashMap;
+use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use toc_hir::{expr, stmt, ty as hir_ty};
@@ -249,11 +250,11 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                         .as_int()
                         .ok_or_else(|| SeqLenError::WrongType(Spanned::new(value, span)))?;
 
-                    // Note: 32768 is the minimum defined limit for the length on `n`
-                    // ???: Do we want to add a config/feature option to change this?
+                    // Convert into a size, within the given limit
                     let size = int
                         .into_u32()
                         .and_then(|v| NonZeroU32::new(v))
+                        .filter(|size| size.get() < size_limit)
                         .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span)))?;
 
                     Ok(ty::SeqSize::Fixed(size))
@@ -279,7 +280,19 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             hir_ty::Primitive::Char => ty::Type::Char,
             hir_ty::Primitive::String => ty::Type::String,
             hir_ty::Primitive::SizedChar(len) | hir_ty::Primitive::SizedString(len) => {
-                match into_ty_seq_len(*len, self.unit.id, &self.const_eval, &self.unit) {
+                let size_limit = if matches!(ty, hir_ty::Primitive::SizedChar(_)) {
+                    // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
+                    // ???: Do we want to add a config/feature option to change this?
+                    32768
+                } else {
+                    // 256 is the maximum defined limit for the length on `n` for string(N),
+                    // so no option of changing that (unless we have control over the interpreter code).
+                    // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
+                    //   so we can't change it yet unless we use a new interpreter.
+                    256
+                };
+
+                match into_ty_seq_len(self, *len, size_limit) {
                     Ok(len) => {
                         if matches!(ty, hir_ty::Primitive::SizedChar(_)) {
                             ty::Type::CharN(len)
@@ -315,9 +328,12 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                                         "invalid character count size",
                                         int.span(),
                                     )
-                                    .with_info("valid sizes are between 1 to 32767", int.span())
                                     .with_note(
                                         &format!("computed count is {}", int.item()),
+                                        int.span(),
+                                    )
+                                    .with_info(
+                                        &format!("valid sizes are between 1 to {}", size_limit - 1),
                                         int.span(),
                                     )
                                     .finish();

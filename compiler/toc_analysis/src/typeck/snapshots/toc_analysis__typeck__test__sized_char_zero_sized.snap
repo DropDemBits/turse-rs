@@ -8,5 +8,5 @@ ty_nodes:
 def_kinds:
     DefId(0) Var(TyRef(Error))
 error at 13..14: invalid character count size
-| info for 13..14: valid sizes are between 1 to 32767
 | note for 13..14: computed count is 0
+| info for 13..14: valid sizes are between 1 to 32767
