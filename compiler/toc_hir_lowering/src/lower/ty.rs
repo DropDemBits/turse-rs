@@ -54,16 +54,13 @@ impl super::LoweringCtx {
     }
 
     fn lower_seq_length(&mut self, node: Option<ast::SeqLength>) -> ty::SeqLength {
-        if let Some(node) = node {
-            if node.star_token().is_some() {
-                ty::SeqLength::Dynamic
-            } else {
-                // Lower expr (if not present, then a none)
-                ty::SeqLength::Expr(self.lower_required_expr(node.expr()))
+        match node {
+            Some(node) if node.star_token().is_some() => ty::SeqLength::Dynamic,
+            Some(node) => ty::SeqLength::Expr(self.lower_required_expr(node.expr())),
+            None => {
+                // Missing expression
+                ty::SeqLength::Expr(self.lower_required_expr(None))
             }
-        } else {
-            // Missing expression
-            ty::SeqLength::Expr(self.lower_required_expr(None))
         }
     }
 }

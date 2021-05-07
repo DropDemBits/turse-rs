@@ -54,6 +54,12 @@ impl UnitMapBuilder {
     }
 }
 
+impl Default for UnitMapBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Map of all of the units in the program.
 /// Units are accessed either through the indexing operator, or
 /// by the `get_unit` method.
@@ -68,7 +74,7 @@ impl UnitMap {
     /// Gets an iterator over all of the units
     ///
     /// The first unit to be given is defined to be the root unit
-    pub fn units<'s>(&'s self) -> UnitIterator<'s> {
+    pub fn units(&self) -> UnitIterator<'_> {
         UnitIterator::new(self.units.iter())
     }
 

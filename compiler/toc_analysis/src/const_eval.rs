@@ -201,7 +201,7 @@ impl ConstError {
         match self {
             Self::NoConstExpr(def_span) => {
                 // Report at the reference's definition spot
-                msg.with_info(&format!("reference declared here"), *def_span)
+                msg.with_info("reference declared here", *def_span)
             }
             _ => msg,
         }

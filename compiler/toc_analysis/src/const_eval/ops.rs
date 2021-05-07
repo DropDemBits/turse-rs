@@ -53,7 +53,7 @@ impl ConstOp {
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_add(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_add(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -73,7 +73,7 @@ impl ConstOp {
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_sub(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_sub(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -93,7 +93,7 @@ impl ConstOp {
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_mul(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_mul(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -110,12 +110,12 @@ impl ConstOp {
                         match (lhs / rhs).trunc() {
                             _ if rhs == 0.0 => Err(ConstError::DivByZero),
                             v => ConstInt::from_signed_real(v, allow_64bit_ops)
-                                .map(|v| ConstValue::Integer(v)),
+                                .map(ConstValue::Integer),
                         }
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_div(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_div(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -157,7 +157,7 @@ impl ConstOp {
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_mod(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_mod(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -178,7 +178,7 @@ impl ConstOp {
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_rem(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_rem(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -199,7 +199,7 @@ impl ConstOp {
                     }
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_pow(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_pow(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -259,7 +259,7 @@ impl ConstOp {
                 match (lhs, rhs) {
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_shl(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_shl(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -271,7 +271,7 @@ impl ConstOp {
                 match (lhs, rhs) {
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
-                        lhs.checked_shr(rhs).map(|v| ConstValue::Integer(v))
+                        lhs.checked_shr(rhs).map(ConstValue::Integer)
                     }
                     _ => Err(ConstError::WrongType),
                 }
@@ -317,7 +317,7 @@ impl ConstOp {
                 let rhs = operand_stack.pop().unwrap();
 
                 match rhs {
-                    ConstValue::Integer(v) => v.negate().map(|v| ConstValue::Integer(v)),
+                    ConstValue::Integer(v) => v.negate().map(ConstValue::Integer),
                     ConstValue::Real(v) => Ok(ConstValue::Real(-v)),
                     _ => Err(ConstError::WrongType),
                 }

@@ -1,6 +1,9 @@
 //! Abstraction over interfacing the native filesystem
 
-use std::sync::{Arc, RwLock};
+use std::{
+    convert::TryFrom,
+    sync::{Arc, RwLock},
+};
 
 /// A unique file id
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -30,7 +33,8 @@ impl FileDb {
         // TODO: Dedup paths
         let mut files = self.files.write().unwrap();
 
-        let id = FileId(files.len() as u32);
+        let id = u32::try_from(files.len()).expect("Too many file ids");
+        let id = FileId(id);
         files.push(Arc::new(FileInfo {
             path: path.to_owned(),
             source: source.to_owned(),

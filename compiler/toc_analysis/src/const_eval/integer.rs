@@ -27,7 +27,7 @@ impl ConstInt {
             Width::As64
         } else {
             // Apply only 32-bit operations
-            if value > u32::MAX as u64 {
+            if value > u64::from(u32::MAX) {
                 // Already overflowing
                 return Err(ConstError::IntOverflow);
             }
@@ -61,8 +61,8 @@ impl ConstInt {
             Width::As64
         } else {
             // Apply only 32-bit operations
-            if (value.is_sign_negative() && value < i32::MIN as f64)
-                || (value.is_sign_positive() && value > u32::MAX as f64)
+            if (value.is_sign_negative() && value < f64::from(i32::MIN))
+                || (value.is_sign_positive() && value > f64::from(u32::MAX))
             {
                 // Already overflowing
                 return Err(ConstError::IntOverflow);
@@ -89,8 +89,8 @@ impl ConstInt {
         };
 
         Ok(Self {
-            sign,
             magnitude,
+            sign,
             width,
         })
     }
@@ -245,7 +245,7 @@ impl ConstInt {
         let remainder = self
             .magnitude
             .checked_rem(rhs.magnitude)
-            .ok_or_else(|| ConstError::DivByZero)?;
+            .ok_or(ConstError::DivByZero)?;
 
         // Adjust into the correct signage
         let (modulus, new_sign) = if remainder == 0 {
@@ -276,7 +276,7 @@ impl ConstInt {
         let remainder = self
             .magnitude
             .checked_rem(rhs.magnitude)
-            .ok_or_else(|| ConstError::DivByZero)?;
+            .ok_or(ConstError::DivByZero)?;
 
         // Adjust into the correct signage
         let (remainder, new_sign) = if remainder == 0 {
@@ -309,7 +309,7 @@ impl ConstInt {
         let value = self
             .magnitude
             .checked_pow(exp)
-            .ok_or_else(|| ConstError::IntOverflow)?;
+            .ok_or(ConstError::IntOverflow)?;
 
         // Adopts the sign of the base
         let new_sign = self.sign;
@@ -412,7 +412,7 @@ impl ConstInt {
         }
 
         let shift_amount: u32 = {
-            let shift_amount = rhs.into_u64().ok_or_else(|| ConstError::IntOverflow)?;
+            let shift_amount = rhs.into_u64().ok_or(ConstError::IntOverflow)?;
 
             // Mask the shift amount depending on the effective integer width
             if effective_width == Width::As64 {
@@ -430,7 +430,7 @@ impl ConstInt {
 
         let bits = bits
             .checked_shl(shift_amount)
-            .ok_or_else(|| ConstError::IntOverflow)?;
+            .ok_or(ConstError::IntOverflow)?;
 
         // Always an unsigned integer
         let new_sign = Sign::Positive;
@@ -452,7 +452,7 @@ impl ConstInt {
         }
 
         let shift_amount: u32 = {
-            let shift_amount = rhs.into_u64().ok_or_else(|| ConstError::IntOverflow)?;
+            let shift_amount = rhs.into_u64().ok_or(ConstError::IntOverflow)?;
 
             // Mask the shift amount depending on the effective integer width
             if effective_width == Width::As64 {
@@ -473,7 +473,7 @@ impl ConstInt {
         // be disabled by a config option.
         let bits = bits
             .checked_shr(shift_amount)
-            .ok_or_else(|| ConstError::IntOverflow)?;
+            .ok_or(ConstError::IntOverflow)?;
 
         // Always an unsigned integer
         let new_sign = Sign::Positive;
@@ -545,13 +545,13 @@ impl ConstInt {
         // Check for overflow
         let overflowed = match (effective_width, sign) {
             // [0, 0xFFFF_FFFF]
-            (Width::As32, Sign::Positive) => magnitude > u32::MAX as u64,
+            (Width::As32, Sign::Positive) => magnitude > u64::from(u32::MAX),
             // [0, 0x8000_0000]
-            (Width::As32, Sign::Negative) => magnitude > i32::MIN.unsigned_abs() as u64,
+            (Width::As32, Sign::Negative) => magnitude > u64::from(i32::MIN.unsigned_abs()),
             // [0, 0xFFFFFFFF_FFFFFFFF] or all values of u64
             (Width::As64, Sign::Positive) => false,
             // [0, 0x80000000_00000000]
-            (Width::As64, Sign::Negative) => magnitude > i64::MIN.unsigned_abs() as u64,
+            (Width::As64, Sign::Negative) => magnitude > i64::MIN.unsigned_abs(),
         };
 
         if !overflowed {

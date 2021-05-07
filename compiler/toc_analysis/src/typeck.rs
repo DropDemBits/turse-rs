@@ -240,7 +240,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                     let value = _self
                         .const_eval
                         .eval_expr(const_expr)
-                        .map_err(|err| SeqLenError::ConstEval(err))?;
+                        .map_err(SeqLenError::ConstEval)?;
 
                     let span = _self.unit.database.expr_nodes.spans[&expr];
 
@@ -253,7 +253,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                     // Convert into a size, within the given limit
                     let size = int
                         .into_u32()
-                        .and_then(|v| NonZeroU32::new(v))
+                        .and_then(NonZeroU32::new)
                         .filter(|size| size.get() < size_limit)
                         .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span)))?;
 
