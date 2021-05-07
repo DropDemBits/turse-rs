@@ -1,6 +1,7 @@
 //! Representation of Turing types
 
 use std::fmt::{self, Debug};
+use std::num::NonZeroU32;
 use std::ops::Deref;
 
 use indexmap::IndexMap;
@@ -116,11 +117,12 @@ pub enum Type {
     /// Simple string type
     String,
     /// Fixed-size character type
-    CharN(SeqLength),
+    CharN(SeqSize),
     /// Fixed-size string type
-    StringN(SeqLength),
+    StringN(SeqSize),
 }
 
+/// Size variant of an Int
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum IntSize {
     Int1,
@@ -130,6 +132,7 @@ pub enum IntSize {
     Int,
 }
 
+/// Size variant of a Nat
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum NatSize {
     Nat1,
@@ -141,6 +144,7 @@ pub enum NatSize {
     AddressInt,
 }
 
+/// Size variant of a Real
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum RealSize {
     Real4,
@@ -149,10 +153,11 @@ pub enum RealSize {
     Real,
 }
 
+/// Size of a CharSeq
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum SeqLength {
+pub enum SeqSize {
     /// Runtime sized (only accepted for parameters)
     Dynamic,
     /// Fixed, compile-time size
-    Fixed(u32),
+    Fixed(NonZeroU32),
 }

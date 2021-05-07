@@ -225,23 +225,23 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         }
 
         fn into_ty_seq_len(
+            _self: &mut TypeCheck<'_>,
             seq_len: toc_hir::ty::SeqLength,
-            unit_id: toc_hir::UnitId,
-            const_eval: &ConstEvalCtx,
-            unit: &toc_hir::Unit,
-        ) -> Result<ty::SeqLength, SeqLenError> {
+            size_limit: u32,
+        ) -> Result<ty::SeqSize, SeqLenError> {
             match seq_len {
-                hir_ty::SeqLength::Dynamic => Ok(ty::SeqLength::Dynamic),
+                hir_ty::SeqLength::Dynamic => Ok(ty::SeqSize::Dynamic),
                 hir_ty::SeqLength::Expr(expr) => {
                     // Never allow 64-bit ops (size is always less than 2^32)
-                    let const_expr = const_eval.defer_expr(unit_id, expr, false);
+                    let const_expr = _self.const_eval.defer_expr(_self.unit.id, expr, false);
 
                     // Always eagerly evaluate the expr
-                    let value = const_eval
+                    let value = _self
+                        .const_eval
                         .eval_expr(const_expr)
                         .map_err(|err| SeqLenError::ConstEval(err))?;
 
-                    let span = unit.database.expr_nodes.spans[&expr];
+                    let span = _self.unit.database.expr_nodes.spans[&expr];
 
                     // Check that the value is actually the correct type, and in the correct value range.
                     // Size can only be in (0, 32768)
@@ -253,10 +253,10 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
                     // ???: Do we want to add a config/feature option to change this?
                     let size = int
                         .into_u32()
-                        .filter(|size| (1..32768).contains(size))
+                        .and_then(|v| NonZeroU32::new(v))
                         .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span)))?;
 
-                    Ok(ty::SeqLength::Fixed(size))
+                    Ok(ty::SeqSize::Fixed(size))
                 }
             }
         }
@@ -613,7 +613,7 @@ impl EvalKind {
 }
 
 mod ty_rules {
-    use crate::ty::{SeqLength, TyRef, Type};
+    use crate::ty::{SeqSize, TyRef, Type};
 
     /// Returns `Some(is_assignable)`, or `None` if either type is `ty::Error`
     pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
@@ -659,20 +659,20 @@ mod ty_rules {
 
             // Char(1) and Char are assignable into Char
             (Type::Char, Type::Char) => true,
-            (Type::Char, Type::CharN(SeqLength::Fixed(1))) => true,
+            (Type::Char, Type::CharN(SeqSize::Fixed(size))) if size.get() == 1 => true,
 
-            // Char(M) is assignable into Char(N) if N = M or if dyn
-            (Type::CharN(SeqLength::Fixed(n)), Type::CharN(SeqLength::Fixed(m))) => n == m,
+            // Char(M) is assignable into Char(N) if N = M
+            (Type::CharN(SeqSize::Fixed(n)), Type::CharN(SeqSize::Fixed(m))) => n == m,
 
             // String(N) and String are assignable into String
             (Type::String, Type::String) => true,
-            (Type::String, Type::StringN(SeqLength::Fixed(_))) => true,
+            (Type::String, Type::StringN(SeqSize::Fixed(_))) => true,
 
             // String is assignable into String(N)
-            (Type::StringN(SeqLength::Fixed(_)), Type::String) => true,
+            (Type::StringN(SeqSize::Fixed(_)), Type::String) => true,
 
             // String(M) is assignable into String(N) if n >= m
-            (Type::StringN(SeqLength::Fixed(n)), Type::StringN(SeqLength::Fixed(m))) => n >= m,
+            (Type::StringN(SeqSize::Fixed(n)), Type::StringN(SeqSize::Fixed(m))) => n >= m,
 
             // Not assignable otherwise
             _ => false,
