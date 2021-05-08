@@ -1,6 +1,7 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
+use toc_span::Spanned;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
@@ -93,11 +94,17 @@ impl super::LoweringCtx {
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::Stmt> {
-        let op = stmt
-            .asn_op()
-            .and_then(|op| op.asn_kind())
-            .map(syntax_to_hir_asn_op)
-            .unwrap_or(stmt::AssignOp::None);
+        let op = {
+            let asn_op = stmt.asn_op()?;
+
+            let span = asn_op.asn_node()?.text_range();
+            let op_kind = asn_op
+                .asn_kind()
+                .map(syntax_to_hir_asn_op)
+                .unwrap_or(stmt::AssignOp::None);
+
+            Spanned::new(op_kind, span)
+        };
 
         let lhs = self.lower_expr(stmt.lhs()?.into_expr());
         let rhs = self.lower_expr(stmt.rhs()?);

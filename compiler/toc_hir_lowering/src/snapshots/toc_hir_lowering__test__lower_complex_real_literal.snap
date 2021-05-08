@@ -5,7 +5,7 @@ expression: "a := 2.225073858507201136057409796709131975934819546351645648023426
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..816): Assign(Assign { lhs: Idx::<Expr>(0), op: None, rhs: Idx::<Expr>(1) })
+Idx::<Stmt>(0) (0..816): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(1) })
 
 expr:
 Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))

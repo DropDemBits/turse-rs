@@ -5,8 +5,8 @@ expression: "q := j begin q := k end"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..7): Assign(Assign { lhs: Idx::<Expr>(0), op: None, rhs: Idx::<Expr>(1) })
-Idx::<Stmt>(1) (13..20): Assign(Assign { lhs: Idx::<Expr>(2), op: None, rhs: Idx::<Expr>(3) })
+Idx::<Stmt>(0) (0..7): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(1) })
+Idx::<Stmt>(1) (13..20): Assign(Assign { lhs: Idx::<Expr>(2), op: Spanned(None, 15..17), rhs: Idx::<Expr>(3) })
 Idx::<Stmt>(2) (7..23): Block(Block { stmts: [Idx::<Stmt>(1)] })
 
 expr:

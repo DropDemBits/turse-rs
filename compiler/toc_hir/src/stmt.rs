@@ -1,5 +1,6 @@
 //! Statement nodes
 use la_arena::Idx;
+use toc_span::Spanned;
 
 use crate::{expr, symbol, ty};
 
@@ -109,7 +110,7 @@ pub struct Assign {
     /// Left hand side of an assignment expression
     pub lhs: expr::ExprIdx,
     /// Operation performed between the arguments before assignment
-    pub op: AssignOp,
+    pub op: Spanned<AssignOp>,
     /// Right hand side of an assignment expression
     pub rhs: expr::ExprIdx,
 }
