@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const j : int := 2\nvar k : int := 1\nk := j\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+    Idx::<Type>(1) TyRef(Int(Int))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Int(Int)))

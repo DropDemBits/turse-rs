@@ -76,6 +76,15 @@ impl<'a> TypeCheck<'a> {
             self.ty_ctx.add_type(ty::Type::Error)
         }
     }
+
+    fn lookup_eval_kind(&self, expr: expr::ExprIdx) -> (&expr::Expr, EvalKind) {
+        let eval_kind = self
+            .eval_kinds
+            .get(&expr)
+            .expect("Expr is missing eval kind");
+        let expr = &self.unit.database[expr];
+        (expr, *eval_kind)
+    }
 }
 
 /// ???: Mapping concrete TypeId's back to ty::TypeIdx?
@@ -139,8 +148,57 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         }
     }
 
-    fn visit_assign(&mut self, _id: stmt::StmtIdx, _stmt: &stmt::Assign) {
-        // TODO: type check assignment
+    fn visit_assign(&mut self, _id: stmt::StmtIdx, stmt: &stmt::Assign) {
+        let (_l_value, l_value_eval) = self.lookup_eval_kind(stmt.lhs);
+        let (_r_value, r_value_eval) = self.lookup_eval_kind(stmt.rhs);
+
+        // Check if we can even assign into the lvalue (i.e. is lhs mutable)
+        let l_value_ty = if let Some(ty) = l_value_eval.as_mut_ref_ty() {
+            ty
+        } else {
+            let l_value_span = self.unit.database.expr_nodes.spans[&stmt.lhs];
+
+            // TODO: Stringify lhs for more clarity on the error location
+            self.reporter
+                .report_detailed(
+                    MessageKind::Error,
+                    "cannot assign into expression on left hand side",
+                    stmt.op.span(),
+                )
+                .with_note(
+                    "this expression cannot be used as a variable reference",
+                    l_value_span,
+                )
+                .finish();
+
+            // Bail out, nothing else to do anyways
+            return;
+        };
+        let r_value_ty = {
+            let r_value_ty = self.require_expr_ty(r_value_eval);
+
+            if let Some(bin_op) = stmt.op.item().as_binary_op() {
+                // Typecheck binary operands
+                let new_ty = self.type_check_binary_op(
+                    stmt.lhs,
+                    Spanned::new(bin_op, stmt.op.span()),
+                    stmt.rhs,
+                );
+                self.ty_ctx.add_type(new_ty)
+            } else {
+                r_value_ty
+            }
+        };
+
+        // Check if types are assignable
+        // Leave error types as "always assignable"
+        let asn_able = ty_rules::is_ty_assignable_to(l_value_ty, r_value_ty);
+        if !asn_able.unwrap_or(true) {
+            // TODO: Report expected type vs found type
+            // - Requires type stringification/display impl
+            self.reporter
+                .report(MessageKind::Error, "mismatched types", stmt.op.span());
+        }
     }
 
     fn visit_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
@@ -359,252 +417,24 @@ impl TypeCheck<'_> {
         op: Spanned<expr::BinaryOp>,
         rhs_id: expr::ExprIdx,
     ) -> ty::Type {
-        // Type classes:
-        // `charseq`: string, char, string(n), char(n)
-        // `number`: real, int, nat
-        // `integer`: int, nat
-
-        // lhs - rhs
-        // (int/nat) - real => real
-        // real - (int/nat) => real
-        // int - (int/nat) => int
-        // (int/nat) - int => int
-        // nat - nat => nat
-        use ty::{IntSize, NatSize, RealSize, Type};
-
-        fn check_number_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
-            match (lhs_ty, rhs_ty) {
-                // Pass through integer inferrence
-                (Type::Integer, Type::Integer) => Some(Type::Integer),
-
-                // Normal operands
-                (operand, Type::Real(_)) | (Type::Real(_), operand)
-                    if ty_rules::is_number(operand) =>
-                {
-                    Some(Type::Real(RealSize::Real))
-                }
-                (operand, Type::Int(_)) | (Type::Int(_), operand)
-                    if ty_rules::is_integer(operand) =>
-                {
-                    Some(Type::Int(IntSize::Int))
-                }
-                (operand, Type::Nat(_)) | (Type::Nat(_), operand) if ty_rules::is_nat(operand) => {
-                    Some(Type::Nat(NatSize::Nat))
-                }
-                _ => None,
-            }
+        fn get_ty_ref_from_expr(
+            _self: &mut TypeCheck<'_>,
+            expr: expr::ExprIdx,
+        ) -> Spanned<ty::TyRef> {
+            let ty_ref = _self.require_expr_ty(_self.eval_kinds[&expr]);
+            let span = _self.unit.database.expr_nodes.spans[&expr];
+            Spanned::new(ty_ref, span)
         }
 
-        let (_lhs, _lhs_eval, lhs_ty) = (
-            &self.unit.database[lhs_id],
-            self.eval_kinds[&lhs_id],
-            self.require_expr_ty(self.eval_kinds[&lhs_id]),
-        );
-        let (_rhs, _rhs_eval, rhs_ty) = (
-            &self.unit.database[rhs_id],
-            self.eval_kinds[&rhs_id],
-            self.require_expr_ty(self.eval_kinds[&rhs_id]),
-        );
+        let lhs_ty_ref = get_ty_ref_from_expr(self, lhs_id);
+        let rhs_ty_ref = get_ty_ref_from_expr(self, rhs_id);
 
-        // Short circuit for error types
-        // Don't duplicate errors
-        if ty_rules::is_error(&lhs_ty) || ty_rules::is_error(&rhs_ty) {
-            return Type::Error;
-        }
-
-        match op.item() {
-            expr::BinaryOp::Add => {
-                // Operations:
-                // x String concatenation (charseq, charseq => charseq)
-                // x Set union (set, set => set)
-                // - Addition (number, number => number)
-
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
-                    // Addition
-                    result_ty
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for addition",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers, strings, or sets", None)
-                        .finish();
-                    Type::Error
-                }
+        match ty_rules::check_binary_operands(lhs_ty_ref, op, rhs_ty_ref) {
+            Ok(ty) => ty,
+            Err(err) => {
+                ty_rules::report_binary_typecheck_error(err, &mut self.reporter);
+                ty::Type::Error
             }
-            expr::BinaryOp::Sub => {
-                // Operations:
-                // x Set difference (set, set => set)
-                // - Subtraction (number, number => number)
-
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
-                    // Subtraction
-                    result_ty
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for subtraction",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers or sets", None)
-                        .finish();
-                    Type::Error
-                }
-            }
-            expr::BinaryOp::Mul => {
-                // Operations:
-                // x Set intersection (set, set => set)
-                // - Multiplication (number, number => number)
-
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
-                    // Multiplication
-                    result_ty
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for multiplication",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers or sets", None)
-                        .finish();
-                    Type::Error
-                }
-            }
-            expr::BinaryOp::Div => {
-                // Operations:
-                // - Integer division (number, number => integer)
-
-                match (&*lhs_ty, &*rhs_ty) {
-                    // Pass through type inferrence
-                    (Type::Integer, Type::Integer) => Type::Integer,
-                    (operand, Type::Nat(_)) | (Type::Nat(_), operand)
-                        if ty_rules::is_nat(operand) =>
-                    {
-                        Type::Nat(NatSize::Nat)
-                    }
-                    (lhs, rhs) if ty_rules::is_number(lhs) && ty_rules::is_number(rhs) => {
-                        Type::Int(IntSize::Int)
-                    }
-                    _ => {
-                        // Type error
-                        self.reporter
-                            .report_detailed(
-                                MessageKind::Error,
-                                "incompatible types for integer division",
-                                op.span(),
-                            )
-                            .with_info("operands must both be numbers", None)
-                            .finish();
-                        Type::Error
-                    }
-                }
-            }
-            expr::BinaryOp::RealDiv => {
-                // Operations:
-                // - Floating point division (number, number => real)
-
-                if ty_rules::is_number(&lhs_ty) && ty_rules::is_number(&rhs_ty) {
-                    Type::Real(RealSize::Real)
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for division",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers", None)
-                        .finish();
-                    Type::Error
-                }
-            }
-            expr::BinaryOp::Mod => {
-                // Operations:
-                // - Modulo (number, number => number)
-
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
-                    // Modulo
-                    result_ty
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for modulo",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers", op.span())
-                        .finish();
-                    Type::Error
-                }
-            }
-            expr::BinaryOp::Rem => {
-                // Operations:
-                // - Remainder (number, number => number)
-
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
-                    // Remainder
-                    result_ty
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for remainder",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers", None)
-                        .finish();
-                    Type::Error
-                }
-            }
-            expr::BinaryOp::Exp => {
-                // Operations:
-                // - Exponation (number, number => number)
-
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
-                    // Exponentiation
-                    result_ty
-                } else {
-                    // Type error
-                    self.reporter
-                        .report_detailed(
-                            MessageKind::Error,
-                            "incompatible types for exponentiation",
-                            op.span(),
-                        )
-                        .with_info("operands must both be numbers", None)
-                        .finish();
-                    Type::Error
-                }
-            }
-            // Bitwise operators (integer, integer => nat)
-            // + Logical operators (boolean, boolean => boolean)
-            expr::BinaryOp::And => todo!(),
-            expr::BinaryOp::Or => todo!(),
-            expr::BinaryOp::Xor => todo!(),
-            // Pure bitwise operators
-            expr::BinaryOp::Shl => todo!(),
-            expr::BinaryOp::Shr => todo!(),
-            // Pure logical operator
-            expr::BinaryOp::Imply => todo!(),
-            // Comparison (a, b => boolean where a, b: Comparable)
-            expr::BinaryOp::Less => todo!(),
-            expr::BinaryOp::LessEq => todo!(),
-            expr::BinaryOp::Greater => todo!(),
-            expr::BinaryOp::GreaterEq => todo!(),
-            expr::BinaryOp::Equal => todo!(),
-            expr::BinaryOp::NotEqual => todo!(),
-            // Set membership tests (set(a), a => boolean)
-            expr::BinaryOp::In => todo!(),
-            expr::BinaryOp::NotIn => todo!(),
         }
     }
 }
@@ -626,10 +456,28 @@ impl EvalKind {
             EvalKind::Ref(DefKind::Type(_)) => None,
         }
     }
+
+    fn as_mut_ref_ty(self) -> Option<TyRef> {
+        match self {
+            EvalKind::Ref(DefKind::Var(ty)) | EvalKind::Ref(DefKind::Error(ty)) => Some(ty),
+            _ => None,
+        }
+    }
 }
 
 mod ty_rules {
+    use toc_hir::expr;
+    use toc_reporting::{MessageKind, MessageSink};
+    use toc_span::Spanned;
+
     use crate::ty::{SeqSize, TyRef, Type};
+
+    /// Type for associated mismatch binary operand types
+    pub struct MismatchedBinaryTypes {
+        _lhs: Spanned<TyRef>,
+        op: Spanned<expr::BinaryOp>,
+        _rhs: Spanned<TyRef>,
+    }
 
     /// Returns `Some(is_assignable)`, or `None` if either type is `ty::Error`
     pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
@@ -671,7 +519,7 @@ mod ty_rules {
             (Type::Int(_), other) | (other, Type::Int(_)) if is_integer(other) => true,
 
             // All numeric types are assignable into a real
-            (Type::Real(_), rhs) if is_integer(rhs) => true,
+            (Type::Real(_), rhs) if is_number(rhs) => true,
 
             // Char(1) and Char are assignable into Char
             (Type::Char, Type::Char) => true,
@@ -714,5 +562,290 @@ mod ty_rules {
 
     pub fn is_error(ty: &Type) -> bool {
         matches!(ty, Type::Error)
+    }
+
+    pub fn check_binary_operands(
+        lhs_ty_ref: Spanned<TyRef>,
+        op: Spanned<expr::BinaryOp>,
+        rhs_ty_ref: Spanned<TyRef>,
+    ) -> Result<Type, MismatchedBinaryTypes> {
+        // Type classes:
+        // `charseq`: string, char, string(n), char(n)
+        // `number`: real, int, nat
+        // `integer`: int, nat
+
+        // lhs - rhs
+        // (int/nat) - real => real
+        // real - (int/nat) => real
+        // int - (int/nat) => int
+        // (int/nat) - int => int
+        // nat - nat => nat
+        use crate::ty::{IntSize, NatSize, RealSize};
+
+        fn check_number_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
+            match (lhs_ty, rhs_ty) {
+                // Pass through integer inferrence
+                (Type::Integer, Type::Integer) => Some(Type::Integer),
+
+                // Normal operands
+                (operand, Type::Real(_)) | (Type::Real(_), operand) if is_number(operand) => {
+                    Some(Type::Real(RealSize::Real))
+                }
+                (operand, Type::Int(_)) | (Type::Int(_), operand) if is_integer(operand) => {
+                    Some(Type::Int(IntSize::Int))
+                }
+                (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
+                    Some(Type::Nat(NatSize::Nat))
+                }
+                _ => None,
+            }
+        }
+
+        fn create_binary_type_error(
+            lhs_ty_ref: Spanned<TyRef>,
+            op: Spanned<expr::BinaryOp>,
+            rhs_ty_ref: Spanned<TyRef>,
+        ) -> Result<Type, MismatchedBinaryTypes> {
+            Err(MismatchedBinaryTypes {
+                _lhs: lhs_ty_ref,
+                op,
+                _rhs: rhs_ty_ref,
+            })
+        }
+
+        let (lhs_ty, rhs_ty) = (&**lhs_ty_ref.item(), &**rhs_ty_ref.item());
+
+        // Short circuit for error types
+        // Don't duplicate errors
+        if is_error(&lhs_ty) || is_error(&rhs_ty) {
+            return Ok(Type::Error);
+        }
+
+        match op.item() {
+            // Arithmetic operators
+            expr::BinaryOp::Add => {
+                // Operations:
+                // x String concatenation (charseq, charseq => charseq)
+                // x Set union (set, set => set)
+                // - Addition (number, number => number)
+
+                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                    // Addition
+                    Ok(result_ty)
+                } else {
+                    // Type error
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Sub => {
+                // Operations:
+                // x Set difference (set, set => set)
+                // - Subtraction (number, number => number)
+
+                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                    // Subtraction
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Mul => {
+                // Operations:
+                // x Set intersection (set, set => set)
+                // - Multiplication (number, number => number)
+
+                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                    // Multiplication
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Div => {
+                // Operations:
+                // - Integer division (number, number => integer)
+
+                match (&*lhs_ty, &*rhs_ty) {
+                    // Pass through type inferrence
+                    (Type::Integer, Type::Integer) => Ok(Type::Integer),
+                    (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
+                        Ok(Type::Nat(NatSize::Nat))
+                    }
+                    (lhs, rhs) if is_number(lhs) && is_number(rhs) => Ok(Type::Int(IntSize::Int)),
+                    _ => create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref),
+                }
+            }
+            expr::BinaryOp::RealDiv => {
+                // Operations:
+                // - Floating point division (number, number => real)
+
+                if is_number(&lhs_ty) && is_number(&rhs_ty) {
+                    Ok(Type::Real(RealSize::Real))
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Mod => {
+                // Operations:
+                // - Modulo (number, number => number)
+
+                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                    // Modulo
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Rem => {
+                // Operations:
+                // - Remainder (number, number => number)
+
+                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                    // Remainder
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Exp => {
+                // Operations:
+                // - Exponation (number, number => number)
+
+                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                    // Exponentiation
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            // Bitwise operators (integer, integer => nat)
+            // + Logical operators (boolean, boolean => boolean)
+            expr::BinaryOp::And => todo!(),
+            expr::BinaryOp::Or => todo!(),
+            expr::BinaryOp::Xor => todo!(),
+            // Pure bitwise operators
+            expr::BinaryOp::Shl => todo!(),
+            expr::BinaryOp::Shr => todo!(),
+            // Pure logical operator
+            expr::BinaryOp::Imply => todo!(),
+            // Comparison (a, b => boolean where a, b: Comparable)
+            expr::BinaryOp::Less => todo!(),
+            expr::BinaryOp::LessEq => todo!(),
+            expr::BinaryOp::Greater => todo!(),
+            expr::BinaryOp::GreaterEq => todo!(),
+            expr::BinaryOp::Equal => todo!(),
+            expr::BinaryOp::NotEqual => todo!(),
+            // Set membership tests (set(a), a => boolean)
+            expr::BinaryOp::In => todo!(),
+            expr::BinaryOp::NotIn => todo!(),
+        }
+    }
+
+    pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut MessageSink) {
+        let MismatchedBinaryTypes { op, .. } = err;
+
+        match op.item() {
+            // Arithmetic operators
+            expr::BinaryOp::Add => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for addition",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers, strings, or sets", None)
+                    .finish();
+            }
+            expr::BinaryOp::Sub => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for subtraction",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers or sets", None)
+                    .finish();
+            }
+            expr::BinaryOp::Mul => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for multiplication",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers or sets", None)
+                    .finish();
+            }
+            expr::BinaryOp::Div => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for integer division",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers", None)
+                    .finish();
+            }
+            expr::BinaryOp::RealDiv => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for division",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers", None)
+                    .finish();
+            }
+            expr::BinaryOp::Mod => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for modulo",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers", op.span())
+                    .finish();
+            }
+            expr::BinaryOp::Rem => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for remainder",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers", None)
+                    .finish();
+            }
+            expr::BinaryOp::Exp => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "incompatible types for exponentiation",
+                        op.span(),
+                    )
+                    .with_info("operands must both be numbers", None)
+                    .finish();
+            }
+            // Bitwise operators (integer, integer => nat)
+            // + Logical operators (boolean, boolean => boolean)
+            expr::BinaryOp::And => todo!(),
+            expr::BinaryOp::Or => todo!(),
+            expr::BinaryOp::Xor => todo!(),
+            // Pure bitwise operators
+            expr::BinaryOp::Shl => todo!(),
+            expr::BinaryOp::Shr => todo!(),
+            // Pure logical operator
+            expr::BinaryOp::Imply => todo!(),
+            // Comparison (a, b => boolean where a, b: Comparable)
+            expr::BinaryOp::Less => todo!(),
+            expr::BinaryOp::LessEq => todo!(),
+            expr::BinaryOp::Greater => todo!(),
+            expr::BinaryOp::GreaterEq => todo!(),
+            expr::BinaryOp::Equal => todo!(),
+            expr::BinaryOp::NotEqual => todo!(),
+            // Set membership tests (set(a), a => boolean)
+            expr::BinaryOp::In => todo!(),
+            expr::BinaryOp::NotIn => todo!(),
+        }
     }
 }

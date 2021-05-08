@@ -138,6 +138,7 @@ impl MessageSink {
     /// Reports a detailed message
     ///
     /// Returns a builder for adding annotations
+    #[must_use = "message is not reported until `finish()` is called"]
     pub fn report_detailed(
         &mut self,
         kind: MessageKind,

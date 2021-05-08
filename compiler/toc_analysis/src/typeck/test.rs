@@ -20,6 +20,19 @@ macro_rules! test_for_each_op {
     };
 }
 
+macro_rules! test_named_group {
+    ($top_level_name:ident, [$($sub_name:ident => $source:literal),+ $(,)?]) => {
+        ::paste::paste! {
+            $(
+                #[test]
+                fn [<$top_level_name _ $sub_name>]() {
+                    assert_typecheck(&::unindent::unindent($source));
+                }
+            )+
+        }
+    }
+}
+
 #[track_caller]
 fn assert_typecheck(source: &str) {
     insta::assert_snapshot!(insta::internals::AutoName, do_typecheck(source), source);
@@ -211,4 +224,30 @@ fn typeck_constvar_initializer() {
     "#,
         ),
     );
+}
+
+test_named_group! {
+    typeck_assignment,
+    [
+        valid => r#"
+            const j : int := 2
+            var k : int := 1
+            k := j
+            "#,
+        lhs_not_mut_is_const => r#"
+            const j : int := 2
+            const k : int := 3
+            k := j
+            "#,
+        valid_compound_add => r#"
+            var lhs : real
+            var rhs : int
+            lhs += rhs
+            "#,
+        invalid_compound_add => r#"
+            var lhs : real
+            var rhs : boolean
+            lhs += rhs
+            "#,
+    ]
 }
