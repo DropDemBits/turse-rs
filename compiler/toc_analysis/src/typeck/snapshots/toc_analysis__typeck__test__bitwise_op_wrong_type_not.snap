@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    var r : real\n    var _r := not r\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Real(Real))
+def_kinds:
+    DefId(0) Var(TyRef(Real(Real)))
+    DefId(1) Var(TyRef(Error))
+error at 32..35: incompatible types for `not`
+| info: operand must be an integer or boolean

@@ -7,8 +7,8 @@ use unindent::unindent;
 use crate::{const_eval::ConstEvalCtx, ty::TyCtx};
 
 macro_rules! test_for_each_op {
-    ($top_level_name:ident, [$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal) => {
-        ::paste::paste! {
+    ($top_level_name:ident, $([$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal),+ $(,)?) => {
+        $(::paste::paste! {
                 $(
                 #[test]
                 fn [<$top_level_name _ $sub_name>]() {
@@ -16,7 +16,7 @@ macro_rules! test_for_each_op {
                     assert_typecheck(&source);
                 }
             )+
-        }
+        })+
     };
 }
 
@@ -101,7 +101,7 @@ fn undeclared_symbol() {
     assert_typecheck("var a := a");
 }
 
-// Typecheck numerical ops
+// Typecheck basic ops
 test_for_each_op! {
     number_op,
     [
@@ -127,11 +127,156 @@ test_for_each_op! {
     var _in := i {0} n
     var _ni := n {0} i
     var _nn := n {0} n
+"#,
+    [
+        ("+", identity),
+        ("-", negate),
+    ] => r#"
+    var r : real
+    var i : int
+    var n : nat
+    var _r := {0} r
+    var _i := {0} i
+    var _n := {0} n
+    "#
+}
+
+test_for_each_op! {
+    arithmetic_op_wrong_type,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+        ("div", idiv),
+        ("/", rdiv),
+        ("mod", r#mod),
+        ("rem", rem),
+        ("**", exp),
+    ] => r#"
+    var b : boolean
+    var r : real
+    var i : int
+    var n : nat
+    var _br := b {0} r
+    var _bi := b {0} i
+    var _bn := b {0} n
+    var _rb := r {0} b
+    var _ib := i {0} b
+    var _nb := n {0} b
+    var _bb := b {0} b
+"#,
+    [
+        ("+", identity),
+        ("-", negate),
+    ] => r#"
+    var b : boolean
+    var _b := {0} b
 "#
 }
 
+test_for_each_op! {
+    bitwise_op,
+    [
+        ("and", and),
+        ("or", or),
+        ("xor", xor),
+        ("shl", shl),
+        ("shr", shr),
+    ] => r#"
+    % Compatiblitly with all variant of integers
+    var i : int
+    var n : nat
+    var _ii := i {0} i
+    var _in := i {0} n
+    var _ni := n {0} i
+    var _nn := n {0} n
+"#,
+    [
+        ("not", not),
+    ] => r#"
+    % Compatiblitly with all variant of integers
+    var i : int
+    var n : nat
+    var _i := {0} i
+    var _n := {0} n
+"#
+}
+
+test_for_each_op! {
+    bitwise_op_wrong_type,
+    [
+        ("and", and),
+        ("or", or),
+        ("xor", xor),
+        ("shl", shl),
+        ("shr", shr),
+    ] => r#"
+    var b : boolean
+    var r : real
+    var i : int
+    var n : nat
+    var _bi := b {0} i
+    var _bn := b {0} n
+    var _ib := i {0} b
+    var _nb := n {0} b
+    var _ri := r {0} i
+    var _rn := r {0} n
+    var _ir := i {0} r
+    var _nr := n {0} r
+"#,
+    [
+        ("not", not),
+    ] => r#"
+    var r : real
+    var _r := {0} r
+"#
+}
+
+test_for_each_op! {
+    logical_op,
+    [
+        ("and", and),
+        ("or", or),
+        ("=>", imply),
+    ] => r#"
+    % Compatiblitly with booleans
+    var b : boolean
+    var _bb := b {0} b
+"#,
+    [
+        ("not", not),
+    ] => r#"
+    % Compatiblitly with booleans
+    var b : boolean
+    var _b := {0} b
+"#
+}
+
+test_for_each_op! {
+    logical_op_wrong_type,
+    [
+        ("and", and),
+        ("or", or),
+        ("=>", imply),
+    ] => r#"
+    var b : boolean
+    var r : real
+    var i : int
+    var n : nat
+    var _bi := b {0} i
+    var _bn := b {0} n
+    var _ib := i {0} b
+    var _nb := n {0} b
+    var _ri := r {0} i
+    var _rn := r {0} n
+    var _ir := i {0} r
+    var _nr := n {0} r
+"#,
+    // unary `not` also covered in `bitwise_op_wrong_type`
+}
+
 // Test integer inference for all compatible operators
-test_for_each_op!(
+test_for_each_op! {
     integer_inferrence,
     [
         ("+", add),
@@ -156,7 +301,23 @@ test_for_each_op!(
     var _i1 := i {0} 1
     var _n0 := 1 {0} n
     var _n1 := n {0} 1
-"#);
+"#,
+    [
+        ("+", identity),
+        ("-", negate),
+    ] => r#"
+    % Inferred integer types should pass
+    % Decl should be a concrete type
+    var a := {0} 1
+    % Types of operands should make the type concrete
+    var r : real
+    var i : int
+    var n : nat
+    var _r0 := {0} r
+    var _i0 := {0} i
+    var _n0 := {0} n
+"#
+}
 
 #[test]
 fn typecheck_error_prop() {

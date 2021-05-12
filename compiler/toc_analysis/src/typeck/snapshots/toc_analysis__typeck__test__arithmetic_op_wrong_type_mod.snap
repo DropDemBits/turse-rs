@@ -1,0 +1,36 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b mod r\n    var _bi := b mod i\n    var _bn := b mod n\n    var _rb := r mod b\n    var _ib := i mod b\n    var _nb := n mod b\n    var _bb := b mod b\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Boolean)
+    Idx::<Type>(1) TyRef(Real(Real))
+    Idx::<Type>(2) TyRef(Int(Int))
+    Idx::<Type>(3) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Boolean))
+    DefId(1) Var(TyRef(Real(Real)))
+    DefId(2) Var(TyRef(Int(Int)))
+    DefId(3) Var(TyRef(Nat(Nat)))
+    DefId(4) Var(TyRef(Error))
+    DefId(5) Var(TyRef(Error))
+    DefId(6) Var(TyRef(Error))
+    DefId(7) Var(TyRef(Error))
+    DefId(8) Var(TyRef(Error))
+    DefId(9) Var(TyRef(Error))
+    DefId(10) Var(TyRef(Error))
+error at 87..90: incompatible types for moduluo
+| info: operands must both be numbers
+error at 110..113: incompatible types for moduluo
+| info: operands must both be numbers
+error at 133..136: incompatible types for moduluo
+| info: operands must both be numbers
+error at 156..159: incompatible types for moduluo
+| info: operands must both be numbers
+error at 179..182: incompatible types for moduluo
+| info: operands must both be numbers
+error at 202..205: incompatible types for moduluo
+| info: operands must both be numbers
+error at 225..228: incompatible types for moduluo
+| info: operands must both be numbers

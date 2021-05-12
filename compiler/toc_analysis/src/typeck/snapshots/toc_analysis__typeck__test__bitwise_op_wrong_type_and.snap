@@ -1,0 +1,39 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _bi := b and i\n    var _bn := b and n\n    var _ib := i and b\n    var _nb := n and b\n    var _ri := r and i\n    var _rn := r and n\n    var _ir := i and r\n    var _nr := n and r\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Boolean)
+    Idx::<Type>(1) TyRef(Real(Real))
+    Idx::<Type>(2) TyRef(Int(Int))
+    Idx::<Type>(3) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Boolean))
+    DefId(1) Var(TyRef(Real(Real)))
+    DefId(2) Var(TyRef(Int(Int)))
+    DefId(3) Var(TyRef(Nat(Nat)))
+    DefId(4) Var(TyRef(Error))
+    DefId(5) Var(TyRef(Error))
+    DefId(6) Var(TyRef(Error))
+    DefId(7) Var(TyRef(Error))
+    DefId(8) Var(TyRef(Error))
+    DefId(9) Var(TyRef(Error))
+    DefId(10) Var(TyRef(Error))
+    DefId(11) Var(TyRef(Error))
+error at 87..90: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 110..113: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 133..136: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 156..159: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 179..182: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 202..205: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 225..228: incompatible types for `and`
+| info: operands must both be integers or booleans
+error at 248..251: incompatible types for `and`
+| info: operands must both be integers or booleans

@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    % Compatiblitly with all variant of integers\n    var i : int\n    var n : nat\n    var _i := not i\n    var _n := not n\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+    Idx::<Type>(1) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Nat(Nat)))
+    DefId(2) Var(TyRef(Nat(Nat)))
+    DefId(3) Var(TyRef(Nat(Nat)))

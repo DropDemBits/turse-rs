@@ -1,0 +1,36 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b / r\n    var _bi := b / i\n    var _bn := b / n\n    var _rb := r / b\n    var _ib := i / b\n    var _nb := n / b\n    var _bb := b / b\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Boolean)
+    Idx::<Type>(1) TyRef(Real(Real))
+    Idx::<Type>(2) TyRef(Int(Int))
+    Idx::<Type>(3) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Boolean))
+    DefId(1) Var(TyRef(Real(Real)))
+    DefId(2) Var(TyRef(Int(Int)))
+    DefId(3) Var(TyRef(Nat(Nat)))
+    DefId(4) Var(TyRef(Error))
+    DefId(5) Var(TyRef(Error))
+    DefId(6) Var(TyRef(Error))
+    DefId(7) Var(TyRef(Error))
+    DefId(8) Var(TyRef(Error))
+    DefId(9) Var(TyRef(Error))
+    DefId(10) Var(TyRef(Error))
+error at 87..88: incompatible types for real division
+| info: operands must both be numbers
+error at 108..109: incompatible types for real division
+| info: operands must both be numbers
+error at 129..130: incompatible types for real division
+| info: operands must both be numbers
+error at 150..151: incompatible types for real division
+| info: operands must both be numbers
+error at 171..172: incompatible types for real division
+| info: operands must both be numbers
+error at 192..193: incompatible types for real division
+| info: operands must both be numbers
+error at 213..214: incompatible types for real division
+| info: operands must both be numbers

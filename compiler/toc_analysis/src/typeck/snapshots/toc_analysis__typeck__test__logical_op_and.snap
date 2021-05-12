@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    % Compatiblitly with booleans\n    var b : boolean\n    var _bb := b and b\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Boolean)
+def_kinds:
+    DefId(0) Var(TyRef(Boolean))
+    DefId(1) Var(TyRef(Boolean))

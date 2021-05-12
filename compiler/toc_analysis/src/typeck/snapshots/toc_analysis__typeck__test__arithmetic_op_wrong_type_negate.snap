@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    var b : boolean\n    var _b := - b\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Boolean)
+def_kinds:
+    DefId(0) Var(TyRef(Boolean))
+    DefId(1) Var(TyRef(Error))
+error at 35..36: incompatible types for unary `-`
+| info: operand must be a number

@@ -225,9 +225,8 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         self.eval_kinds.insert(id, EvalKind::Value(ty));
     }
 
-    fn visit_unary(&mut self, id: toc_hir::expr::ExprIdx, _expr: &toc_hir::expr::Unary) {
-        // TODO: do full unexpr typechecks
-        let ty = ty::Type::Error;
+    fn visit_unary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Unary) {
+        let ty = self.type_check_unary_op(expr.op, expr.rhs);
 
         // Post unexpr type
         let ty = self.ty_ctx.add_type(ty);
@@ -411,28 +410,41 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 }
 
 impl TypeCheck<'_> {
+    fn get_ty_ref_from_expr(&mut self, expr: expr::ExprIdx) -> Spanned<ty::TyRef> {
+        let ty_ref = self.require_expr_ty(self.eval_kinds[&expr]);
+        let span = self.unit.database.expr_nodes.spans[&expr];
+        Spanned::new(ty_ref, span)
+    }
+
     fn type_check_binary_op(
         &mut self,
         lhs_id: expr::ExprIdx,
         op: Spanned<expr::BinaryOp>,
         rhs_id: expr::ExprIdx,
     ) -> ty::Type {
-        fn get_ty_ref_from_expr(
-            _self: &mut TypeCheck<'_>,
-            expr: expr::ExprIdx,
-        ) -> Spanned<ty::TyRef> {
-            let ty_ref = _self.require_expr_ty(_self.eval_kinds[&expr]);
-            let span = _self.unit.database.expr_nodes.spans[&expr];
-            Spanned::new(ty_ref, span)
-        }
-
-        let lhs_ty_ref = get_ty_ref_from_expr(self, lhs_id);
-        let rhs_ty_ref = get_ty_ref_from_expr(self, rhs_id);
+        let lhs_ty_ref = self.get_ty_ref_from_expr(lhs_id);
+        let rhs_ty_ref = self.get_ty_ref_from_expr(rhs_id);
 
         match ty_rules::check_binary_operands(lhs_ty_ref, op, rhs_ty_ref) {
             Ok(ty) => ty,
             Err(err) => {
                 ty_rules::report_binary_typecheck_error(err, &mut self.reporter);
+                ty::Type::Error
+            }
+        }
+    }
+
+    fn type_check_unary_op(
+        &mut self,
+        op: Spanned<expr::UnaryOp>,
+        rhs_id: expr::ExprIdx,
+    ) -> ty::Type {
+        let rhs_ty_ref = self.get_ty_ref_from_expr(rhs_id);
+
+        match ty_rules::check_unary_operands(op, rhs_ty_ref) {
+            Ok(ty) => ty,
+            Err(err) => {
+                ty_rules::report_unary_typecheck_error(err, &mut self.reporter);
                 ty::Type::Error
             }
         }
@@ -476,6 +488,12 @@ mod ty_rules {
     pub struct MismatchedBinaryTypes {
         _lhs: Spanned<TyRef>,
         op: Spanned<expr::BinaryOp>,
+        _rhs: Spanned<TyRef>,
+    }
+
+    /// Type for associated mismatch unary operand types
+    pub struct MismatchedUnaryTypes {
+        op: Spanned<expr::UnaryOp>,
         _rhs: Spanned<TyRef>,
     }
 
@@ -569,6 +587,8 @@ mod ty_rules {
         op: Spanned<expr::BinaryOp>,
         rhs_ty_ref: Spanned<TyRef>,
     ) -> Result<Type, MismatchedBinaryTypes> {
+        // TODO: Handle 32-bit vs 64-bit integer widths
+
         // Type classes:
         // `charseq`: string, char, string(n), char(n)
         // `number`: real, int, nat
@@ -582,7 +602,7 @@ mod ty_rules {
         // nat - nat => nat
         use crate::ty::{IntSize, NatSize, RealSize};
 
-        fn check_number_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
+        fn check_arithmetic_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
             match (lhs_ty, rhs_ty) {
                 // Pass through integer inferrence
                 (Type::Integer, Type::Integer) => Some(Type::Integer),
@@ -597,6 +617,15 @@ mod ty_rules {
                 (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
                     Some(Type::Nat(NatSize::Nat))
                 }
+                _ => None,
+            }
+        }
+
+        fn check_bitwise_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
+            match (lhs_ty, rhs_ty) {
+                // Normal operands
+                // Integer inferrence is not passed through
+                (lhs, rhs) if is_integer(lhs) && is_integer(rhs) => Some(Type::Nat(NatSize::Nat)),
                 _ => None,
             }
         }
@@ -629,7 +658,7 @@ mod ty_rules {
                 // x Set union (set, set => set)
                 // - Addition (number, number => number)
 
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                     // Addition
                     Ok(result_ty)
                 } else {
@@ -642,7 +671,7 @@ mod ty_rules {
                 // x Set difference (set, set => set)
                 // - Subtraction (number, number => number)
 
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                     // Subtraction
                     Ok(result_ty)
                 } else {
@@ -654,7 +683,7 @@ mod ty_rules {
                 // x Set intersection (set, set => set)
                 // - Multiplication (number, number => number)
 
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                     // Multiplication
                     Ok(result_ty)
                 } else {
@@ -689,7 +718,7 @@ mod ty_rules {
                 // Operations:
                 // - Modulo (number, number => number)
 
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                     // Modulo
                     Ok(result_ty)
                 } else {
@@ -700,7 +729,7 @@ mod ty_rules {
                 // Operations:
                 // - Remainder (number, number => number)
 
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                     // Remainder
                     Ok(result_ty)
                 } else {
@@ -711,7 +740,7 @@ mod ty_rules {
                 // Operations:
                 // - Exponation (number, number => number)
 
-                if let Some(result_ty) = check_number_operands(&lhs_ty, &rhs_ty) {
+                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                     // Exponentiation
                     Ok(result_ty)
                 } else {
@@ -720,14 +749,86 @@ mod ty_rules {
             }
             // Bitwise operators (integer, integer => nat)
             // + Logical operators (boolean, boolean => boolean)
-            expr::BinaryOp::And => todo!(),
-            expr::BinaryOp::Or => todo!(),
-            expr::BinaryOp::Xor => todo!(),
+            expr::BinaryOp::And => {
+                // Operations:
+                // - Bitwise And (integer, integer => nat)
+                // - Logical And (boolean, boolean => boolean)
+
+                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+                    // Bitwise And
+                    Ok(result_ty)
+                } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
+                    // Logical And
+                    Ok(Type::Boolean)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Or => {
+                // Operations:
+                // - Bitwise Or (integer, integer => nat)
+                // - Logical Or (boolean, boolean => boolean)
+
+                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+                    // Bitwise Or
+                    Ok(result_ty)
+                } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
+                    // Logical Or
+                    Ok(Type::Boolean)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Xor => {
+                // Operations:
+                // - Bitwise Xor (integer, integer => nat)
+                // - Logical Xor (boolean, boolean => boolean)
+
+                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+                    // Bitwise Xor
+                    Ok(result_ty)
+                } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
+                    // Logical Xor
+                    Ok(Type::Boolean)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
             // Pure bitwise operators
-            expr::BinaryOp::Shl => todo!(),
-            expr::BinaryOp::Shr => todo!(),
+            expr::BinaryOp::Shl => {
+                // Operations:
+                // - Bitwise Shl (integer, integer => nat)
+
+                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+                    // Bitwise Shl
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
+            expr::BinaryOp::Shr => {
+                // Operations:
+                // - Bitwise Shr (integer, integer => nat)
+
+                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+                    // Bitwise Shr
+                    Ok(result_ty)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
             // Pure logical operator
-            expr::BinaryOp::Imply => todo!(),
+            expr::BinaryOp::Imply => {
+                // Operations:
+                // - Imply (boolean, boolean => boolean)
+
+                if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
+                    // Logical Xor
+                    Ok(Type::Boolean)
+                } else {
+                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
+                }
+            }
             // Comparison (a, b => boolean where a, b: Comparable)
             expr::BinaryOp::Less => todo!(),
             expr::BinaryOp::LessEq => todo!(),
@@ -743,99 +844,60 @@ mod ty_rules {
 
     pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut MessageSink) {
         let MismatchedBinaryTypes { op, .. } = err;
+        let op_name = match op.item() {
+            expr::BinaryOp::Add => "addition",
+            expr::BinaryOp::Sub => "subtraction",
+            expr::BinaryOp::Mul => "multiplication",
+            expr::BinaryOp::Div => "integer division",
+            expr::BinaryOp::RealDiv => "real division",
+            expr::BinaryOp::Mod => "moduluo",
+            expr::BinaryOp::Rem => "remaindor",
+            expr::BinaryOp::Exp => "exponentiation",
+            expr::BinaryOp::And => "`and`",
+            expr::BinaryOp::Or => "`or`",
+            expr::BinaryOp::Xor => "`xor`",
+            expr::BinaryOp::Shl => "`shl`",
+            expr::BinaryOp::Shr => "`shr`",
+            expr::BinaryOp::Imply => "`=>`",
+            expr::BinaryOp::Less => "`<`",
+            expr::BinaryOp::LessEq => "`<=`",
+            expr::BinaryOp::Greater => "`>`",
+            expr::BinaryOp::GreaterEq => "`>=`",
+            expr::BinaryOp::Equal => "`=`",
+            expr::BinaryOp::NotEqual => "`not =`",
+            expr::BinaryOp::In => "`in`",
+            expr::BinaryOp::NotIn => "`not in`",
+        };
 
-        match op.item() {
+        let msg = reporter.report_detailed(
+            MessageKind::Error,
+            &format!("incompatible types for {}", op_name),
+            op.span(),
+        );
+        let msg = match op.item() {
             // Arithmetic operators
             expr::BinaryOp::Add => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for addition",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers, strings, or sets", None)
-                    .finish();
+                msg.with_info("operands must both be numbers, strings, or sets", None)
             }
-            expr::BinaryOp::Sub => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for subtraction",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers or sets", None)
-                    .finish();
+            expr::BinaryOp::Sub | expr::BinaryOp::Mul => {
+                msg.with_info("operands must both be numbers or sets", None)
             }
-            expr::BinaryOp::Mul => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for multiplication",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers or sets", None)
-                    .finish();
-            }
-            expr::BinaryOp::Div => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for integer division",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers", None)
-                    .finish();
-            }
-            expr::BinaryOp::RealDiv => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for division",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers", None)
-                    .finish();
-            }
-            expr::BinaryOp::Mod => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for modulo",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers", op.span())
-                    .finish();
-            }
-            expr::BinaryOp::Rem => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for remainder",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers", None)
-                    .finish();
-            }
-            expr::BinaryOp::Exp => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "incompatible types for exponentiation",
-                        op.span(),
-                    )
-                    .with_info("operands must both be numbers", None)
-                    .finish();
-            }
+            expr::BinaryOp::Div
+            | expr::BinaryOp::RealDiv
+            | expr::BinaryOp::Mod
+            | expr::BinaryOp::Rem
+            | expr::BinaryOp::Exp => msg.with_info("operands must both be numbers", None),
             // Bitwise operators (integer, integer => nat)
             // + Logical operators (boolean, boolean => boolean)
-            expr::BinaryOp::And => todo!(),
-            expr::BinaryOp::Or => todo!(),
-            expr::BinaryOp::Xor => todo!(),
+            expr::BinaryOp::And | expr::BinaryOp::Or | expr::BinaryOp::Xor => {
+                msg.with_info("operands must both be integers or booleans", None)
+            }
             // Pure bitwise operators
-            expr::BinaryOp::Shl => todo!(),
-            expr::BinaryOp::Shr => todo!(),
+            expr::BinaryOp::Shl | expr::BinaryOp::Shr => {
+                msg.with_info("operands must both be integers", None)
+            }
             // Pure logical operator
-            expr::BinaryOp::Imply => todo!(),
+            expr::BinaryOp::Imply => msg.with_info("operands must both be booleans", None),
             // Comparison (a, b => boolean where a, b: Comparable)
             expr::BinaryOp::Less => todo!(),
             expr::BinaryOp::LessEq => todo!(),
@@ -846,6 +908,80 @@ mod ty_rules {
             // Set membership tests (set(a), a => boolean)
             expr::BinaryOp::In => todo!(),
             expr::BinaryOp::NotIn => todo!(),
+        };
+        msg.finish();
+    }
+
+    pub fn check_unary_operands(
+        op: Spanned<expr::UnaryOp>,
+        rhs_ty_ref: Spanned<TyRef>,
+    ) -> Result<Type, MismatchedUnaryTypes> {
+        use crate::ty::{IntSize, NatSize, RealSize};
+
+        fn create_unary_type_error(
+            op: Spanned<expr::UnaryOp>,
+            rhs_ty_ref: Spanned<TyRef>,
+        ) -> Result<Type, MismatchedUnaryTypes> {
+            Err(MismatchedUnaryTypes {
+                op,
+                _rhs: rhs_ty_ref,
+            })
         }
+
+        let rhs_ty = &**rhs_ty_ref.item();
+
+        // Short circuit for error types
+        // Don't duplicate errors
+        if is_error(&rhs_ty) {
+            return Ok(Type::Error);
+        }
+
+        match op.item() {
+            expr::UnaryOp::Not => {
+                if is_integer(rhs_ty) {
+                    // Bitwise Not
+                    Ok(Type::Nat(NatSize::Nat))
+                } else if let Type::Boolean = &rhs_ty {
+                    // Logical Not
+                    Ok(Type::Boolean)
+                } else {
+                    create_unary_type_error(op, rhs_ty_ref)
+                }
+            }
+            expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
+                match rhs_ty {
+                    // Pass through integer inferrence
+                    Type::Integer => Ok(Type::Integer),
+
+                    // Normal operands
+                    Type::Real(_) => Ok(Type::Real(RealSize::Real)),
+                    Type::Int(_) => Ok(Type::Int(IntSize::Int)),
+                    Type::Nat(_) => Ok(Type::Nat(NatSize::Nat)),
+                    _ => create_unary_type_error(op, rhs_ty_ref),
+                }
+            }
+        }
+    }
+
+    pub fn report_unary_typecheck_error(err: MismatchedUnaryTypes, reporter: &mut MessageSink) {
+        let MismatchedUnaryTypes { op, .. } = err;
+        let op_name = match op.item() {
+            expr::UnaryOp::Not => "`not`",
+            expr::UnaryOp::Identity => "unary `+`",
+            expr::UnaryOp::Negate => "unary `-`",
+        };
+
+        let msg = reporter.report_detailed(
+            MessageKind::Error,
+            &format!("incompatible types for {}", op_name),
+            op.span(),
+        );
+        let msg = match op.item() {
+            expr::UnaryOp::Not => msg.with_info("operand must be an integer or boolean", None),
+            expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
+                msg.with_info("operand must be a number", None)
+            }
+        };
+        msg.finish();
     }
 }
