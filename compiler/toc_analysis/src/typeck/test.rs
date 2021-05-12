@@ -38,11 +38,6 @@ fn assert_typecheck(source: &str) {
     insta::assert_snapshot!(insta::internals::AutoName, do_typecheck(source), source);
 }
 
-#[track_caller]
-fn assert_named_typecheck(name: &str, source: &str) {
-    insta::assert_snapshot!(name, do_typecheck(source), source);
-}
-
 fn do_typecheck(source: &str) -> String {
     let parsed = toc_parser::parse(&source);
     let mut unit_map = toc_hir::UnitMapBuilder::new();
@@ -101,9 +96,22 @@ fn undeclared_symbol() {
     assert_typecheck("var a := a");
 }
 
+#[test]
+fn typecheck_error_prop() {
+    // Only one error should be reported, propogated error supresses the rest
+    assert_typecheck(&unindent(
+        r#"
+    var a : int
+    var b : string
+    var c := a + b
+    var j := c + a
+    "#,
+    ));
+}
+
 // Typecheck basic ops
 test_for_each_op! {
-    number_op,
+    arithmetic_op,
     [
         ("+", add),
         ("-", sub),
@@ -319,72 +327,57 @@ test_for_each_op! {
 "#
 }
 
-#[test]
-fn typecheck_error_prop() {
-    // Only one error should be reported, propogated error supresses the rest
-    assert_typecheck(&unindent(
-        r#"
-    var a : int
-    var b : string
-    var c := a + b
-    var j := c + a
-    "#,
-    ));
+test_named_group! {
+    sized_char,
+    [
+        literal => r#"var _ : char(1)"#,
+        // trip through negatives shouldn't affect anything
+        simple_expr => r#"var _ : char(1 - 1 * 1 + 2)"#,
+        zero_sized => r#"var _ : char(0)"#,
+        max_sized => r#"var _ : char(32768)"#,
+        wrong_type => r#"var _ : char(1.0)"#,
+        wrong_type_bool => r#"var _ : char(true)"#,
+        const_err => r#"var _ : char(1.0 div 0.0)"#,
+    ]
 }
 
-#[test]
-fn typecheck_sized_char() {
-    assert_named_typecheck("sized_char_literal", r#"var _ : char(1)"#);
-    // trip through negatives shouldn't affect anything
-    assert_named_typecheck("sized_char_simple_expr", r#"var _ : char(1 - 1 * 1 + 2)"#);
-    assert_named_typecheck("sized_char_zero_sized", r#"var _ : char(0)"#);
-    assert_named_typecheck("sized_char_max_sized", r#"var _ : char(32768)"#);
-    assert_named_typecheck("sized_char_wrong_type", r#"var _ : char(1.0)"#);
-    assert_named_typecheck("sized_char_wrong_type_bool", r#"var _ : char(true)"#);
-    assert_named_typecheck("sized_char_const_err", r#"var _ : char(1.0 div 0.0)"#);
+test_named_group! {
+    sized_string,
+    [
+        literal => r#"var _ : string(1)"#,
+        // trip through negatives shouldn't affect anything
+        simple_expr => r#"var _ : string(1 - 1 * 1 + 2)"#,
+        zero_sized => r#"var _ : string(0)"#,
+        max_sized => r#"var _ : string(256)"#,
+        over_sized => r#"var _ : string(512)"#,
+        wrong_type => r#"var _ : string(1.0)"#,
+        wrong_type_bool => r#"var _ : string(true)"#,
+        const_err => r#"var _ : string(1.0 div 0.0)"#,
+    ]
 }
 
-#[test]
-fn typecheck_sized_string() {
-    assert_named_typecheck("sized_string_literal", r#"var _ : string(1)"#);
-    // trip through negatives shouldn't affect anything
-    assert_named_typecheck(
-        "sized_string_simple_expr",
-        r#"var _ : string(1 - 1 * 1 + 2)"#,
-    );
-    assert_named_typecheck("sized_string_zero_sized", r#"var _ : string(0)"#);
-    assert_named_typecheck("sized_string_max_sized", r#"var _ : string(256)"#);
-    assert_named_typecheck("sized_string_over_sized", r#"var _ : string(512)"#);
-    assert_named_typecheck("sized_string_wrong_type", r#"var _ : string(1.0)"#);
-    assert_named_typecheck("sized_string_wrong_type_bool", r#"var _ : string(true)"#);
-    assert_named_typecheck("sized_string_const_err", r#"var _ : string(1.0 div 0.0)"#);
+test_named_group! {
+    typeck_var,
+    [
+        compatible => r#"var k : int := 100"#,
+        incompatible => r#"var k : char := 20"#,
+        error_prop => r#"
+            var k := 20 + false
+            var l : int := k   % Nothing reported here
+            "#
+    ]
 }
 
-#[test]
-fn typeck_constvar_initializer() {
-    assert_named_typecheck("typeck_var_compatible", r#"var k : int := 100"#);
-    assert_named_typecheck("typeck_var_incompatible", r#"var k : char := 20"#);
-    assert_named_typecheck(
-        "typeck_var_error_prop",
-        &unindent(
-            r#"
-    var k := 20 + false
-    var l : int := k   % Nothing reported here
-    "#,
-        ),
-    );
-
-    assert_named_typecheck("typeck_const_compatible", r#"const k : int := 100"#);
-    assert_named_typecheck("typeck_const_incompatible", r#"const k : char := 20"#);
-    assert_named_typecheck(
-        "typeck_const_error_prop",
-        &unindent(
-            r#"
-    const k := 20 + false
-    const l : int := k   % Nothing reported here
-    "#,
-        ),
-    );
+test_named_group! {
+    typeck_const,
+    [
+        compatible => r#"const k : int := 100"#,
+        incompatible => r#"const k : char := 20"#,
+        error_prop => r#"
+            const k := 20 + false
+            const l : int := k   % Nothing reported here
+            "#
+    ]
 }
 
 test_named_group! {
