@@ -1,5 +1,10 @@
 //! All valid compile-time operations
 
+use std::convert::TryFrom;
+
+use toc_hir::expr;
+use toc_span::Spanned;
+
 use crate::const_eval::{ConstError, ConstInt, ConstValue};
 
 #[derive(Debug, Clone, Copy)]
@@ -322,6 +327,49 @@ impl ConstOp {
                     _ => Err(ConstError::WrongType),
                 }
             }
+        }
+    }
+}
+
+impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
+    type Error = Spanned<ConstError>;
+
+    fn try_from(op: Spanned<expr::BinaryOp>) -> Result<Self, Self::Error> {
+        Ok(match op.item() {
+            expr::BinaryOp::Add => Self::Add,
+            expr::BinaryOp::Sub => Self::Sub,
+            expr::BinaryOp::Mul => Self::Mul,
+            expr::BinaryOp::Div => Self::Div,
+            expr::BinaryOp::RealDiv => Self::RealDiv,
+            expr::BinaryOp::Mod => Self::Mod,
+            expr::BinaryOp::Rem => Self::Rem,
+            expr::BinaryOp::Exp => Self::Exp,
+            expr::BinaryOp::And => Self::And,
+            expr::BinaryOp::Or => Self::Or,
+            expr::BinaryOp::Xor => Self::Xor,
+            expr::BinaryOp::Shl => Self::Shl,
+            expr::BinaryOp::Shr => Self::Shr,
+            expr::BinaryOp::Less => Self::Less,
+            expr::BinaryOp::LessEq => Self::LessEq,
+            expr::BinaryOp::Greater => Self::Greater,
+            expr::BinaryOp::GreaterEq => Self::GreaterEq,
+            expr::BinaryOp::Equal => Self::Equal,
+            expr::BinaryOp::NotEqual => Self::NotEqual,
+            expr::BinaryOp::Imply => Self::Imply,
+            // Not a compile-time operation
+            _ => return Err(Spanned::new(ConstError::NotConstOp, op.span())),
+        })
+    }
+}
+
+impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
+    type Error = Spanned<ConstError>;
+
+    fn try_from(op: Spanned<expr::UnaryOp>) -> Result<Self, Self::Error> {
+        match op.item() {
+            expr::UnaryOp::Not => Ok(Self::Not),
+            expr::UnaryOp::Identity => Ok(Self::Identity),
+            expr::UnaryOp::Negate => Ok(Self::Negate),
         }
     }
 }

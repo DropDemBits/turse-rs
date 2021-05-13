@@ -6,7 +6,7 @@ mod test;
 
 use std::fmt;
 use std::{
-    convert::{TryFrom, TryInto},
+    convert::TryInto,
     sync::{Arc, RwLock},
 };
 
@@ -25,12 +25,12 @@ use ops::ConstOp;
 pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
     use toc_hir::{stmt, HirVisitor};
 
-    struct Visitor {
-        unit_id: UnitId,
+    struct Visitor<'u> {
+        unit: &'u Unit,
         const_eval: Arc<ConstEvalCtx>,
     }
 
-    impl HirVisitor for Visitor {
+    impl HirVisitor for Visitor<'_> {
         fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
             if decl.is_const {
                 if let Some(init_expr) = decl.tail.init_expr() {
@@ -44,14 +44,43 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
                     //   - `min_value` and `max_value`: None (no restrictions in the value assignment)
                     let allow_64bit_ops = false;
 
-                    let const_expr =
-                        self.const_eval
-                            .defer_expr(self.unit_id, init_expr, allow_64bit_ops);
+                    let restrict_to = if let Some(ty) = decl.tail.type_spec() {
+                        let ty = &self.unit.database[ty];
+
+                        match ty {
+                            toc_hir::ty::Type::Primitive(prim_ty) => match prim_ty {
+                                toc_hir::ty::Primitive::Int
+                                | toc_hir::ty::Primitive::Int1
+                                | toc_hir::ty::Primitive::Int2
+                                | toc_hir::ty::Primitive::Int4
+                                | toc_hir::ty::Primitive::Nat
+                                | toc_hir::ty::Primitive::Nat1
+                                | toc_hir::ty::Primitive::Nat2
+                                | toc_hir::ty::Primitive::Nat4
+                                | toc_hir::ty::Primitive::AddressInt => RestrictType::Integer,
+                                toc_hir::ty::Primitive::Real
+                                | toc_hir::ty::Primitive::Real4
+                                | toc_hir::ty::Primitive::Real8 => RestrictType::Real,
+                                toc_hir::ty::Primitive::Boolean => RestrictType::Boolean,
+                                _ => RestrictType::None,
+                            },
+                            _ => RestrictType::None,
+                        }
+                    } else {
+                        RestrictType::None
+                    };
+
+                    let const_expr = self.const_eval.defer_expr(
+                        self.unit.id,
+                        init_expr,
+                        allow_64bit_ops,
+                        restrict_to,
+                    );
 
                     // Add mappings
                     for def in &decl.names {
                         self.const_eval
-                            .add_var(def.into_global(self.unit_id), const_expr);
+                            .add_var(def.into_global(self.unit.id), const_expr);
                     }
                 }
             };
@@ -60,10 +89,7 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
         // TODO: Visit type stmt for enum constvar & constvalue
     }
 
-    let mut visitor = Visitor {
-        unit_id: unit.id,
-        const_eval,
-    };
+    let mut visitor = Visitor { unit, const_eval };
 
     unit.walk_nodes(&mut visitor);
 }
@@ -160,7 +186,7 @@ pub enum ConstError {
     Reported,
 
     // Computation errors
-    /// Wrong operand type in eval expression
+    /// Wrong operand or resultant type in eval expression
     #[error("wrong type for compile-time expression")]
     WrongType,
     /// Integer overflow
@@ -231,9 +257,10 @@ impl ConstEvalCtx {
         unit_id: UnitId,
         expr: expr::ExprIdx,
         allow_64bit_ops: bool,
+        restrict_to: RestrictType,
     ) -> ConstExpr {
         let mut inner = self.inner.write().unwrap();
-        inner.defer_expr(unit_id, expr, allow_64bit_ops)
+        inner.defer_expr(unit_id, expr, allow_64bit_ops, restrict_to)
     }
 
     /// Adds a reference to a constant variable that can be constant evaluable
@@ -290,6 +317,7 @@ impl InnerCtx {
         unit_id: UnitId,
         expr: expr::ExprIdx,
         allow_64bit_ops: bool,
+        restrict_to: RestrictType,
     ) -> ConstExpr {
         let v = ConstExpr {
             id: self.eval_infos.len(),
@@ -303,6 +331,7 @@ impl InnerCtx {
             span,
             state: State::Unevaluated,
             allow_64bit_ops,
+            restrict_to,
         };
 
         self.eval_infos.push(info);
@@ -507,6 +536,29 @@ impl InnerCtx {
             .expect("All values popped off of operand stack");
         assert!(operand_stack.is_empty());
 
+        // Check against any restrictions
+        let result = {
+            // Check against any restrictions
+            let info = &self.eval_infos[const_expr.id];
+
+            match (info.restrict_to, result) {
+                // Any value allowed
+                (RestrictType::None, v) => Ok(v),
+                // Only integers allowed
+                (RestrictType::Integer, v @ ConstValue::Integer(_)) => Ok(v),
+                // Only reals allowed
+                (RestrictType::Real, v @ ConstValue::Real(_)) => Ok(v),
+                // Promote to real
+                (RestrictType::Real, ConstValue::Integer(i)) => Ok(ConstValue::Real(i.into_f64())),
+                // Only booleans allowed
+                (RestrictType::Boolean, v @ ConstValue::Bool(_)) => Ok(v),
+                _ => {
+                    // Mismatched types
+                    Err(Spanned::new(ConstError::WrongType, info.span))
+                }
+            }?
+        };
+
         // Update the evaluation state
         self.eval_infos[const_expr.id].state = State::Value(result.clone());
 
@@ -533,6 +585,8 @@ struct EvalInfo {
     state: State,
     /// If 64-bit operations are allowed in this expression
     allow_64bit_ops: bool,
+    /// What type a constant expression is allowed to evaluate to
+    restrict_to: RestrictType,
 }
 
 impl fmt::Debug for EvalInfo {
@@ -567,45 +621,16 @@ impl fmt::Debug for State {
     }
 }
 
-impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
-    type Error = Spanned<ConstError>;
-
-    fn try_from(op: Spanned<expr::BinaryOp>) -> Result<Self, Self::Error> {
-        Ok(match op.item() {
-            expr::BinaryOp::Add => Self::Add,
-            expr::BinaryOp::Sub => Self::Sub,
-            expr::BinaryOp::Mul => Self::Mul,
-            expr::BinaryOp::Div => Self::Div,
-            expr::BinaryOp::RealDiv => Self::RealDiv,
-            expr::BinaryOp::Mod => Self::Mod,
-            expr::BinaryOp::Rem => Self::Rem,
-            expr::BinaryOp::Exp => Self::Exp,
-            expr::BinaryOp::And => Self::And,
-            expr::BinaryOp::Or => Self::Or,
-            expr::BinaryOp::Xor => Self::Xor,
-            expr::BinaryOp::Shl => Self::Shl,
-            expr::BinaryOp::Shr => Self::Shr,
-            expr::BinaryOp::Less => Self::Less,
-            expr::BinaryOp::LessEq => Self::LessEq,
-            expr::BinaryOp::Greater => Self::Greater,
-            expr::BinaryOp::GreaterEq => Self::GreaterEq,
-            expr::BinaryOp::Equal => Self::Equal,
-            expr::BinaryOp::NotEqual => Self::NotEqual,
-            expr::BinaryOp::Imply => Self::Imply,
-            // Not a compile-time operation
-            _ => return Err(Spanned::new(ConstError::NotConstOp, op.span())),
-        })
-    }
-}
-
-impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
-    type Error = Spanned<ConstError>;
-
-    fn try_from(op: Spanned<expr::UnaryOp>) -> Result<Self, Self::Error> {
-        match op.item() {
-            expr::UnaryOp::Not => Ok(Self::Not),
-            expr::UnaryOp::Identity => Ok(Self::Identity),
-            expr::UnaryOp::Negate => Ok(Self::Negate),
-        }
-    }
+/// Type that a constant expression is restricted to
+#[derive(Debug, Clone, Copy)]
+pub enum RestrictType {
+    /// No restrictions on the evaluation type
+    None,
+    /// Restrict to a `ConstValue::Integer`.
+    Integer,
+    /// Restrict to a `ConstValue::Real`.
+    /// If the type is an `Integer`, it is implicitly promoted into a real
+    Real,
+    /// Restrict to a `ConstValue::Bool`.
+    Boolean,
 }

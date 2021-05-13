@@ -10,7 +10,7 @@ use toc_hir::{expr, stmt, ty as hir_ty};
 use toc_reporting::{MessageKind, MessageSink, ReportMessage};
 use toc_span::Spanned;
 
-use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, ConstValue};
+use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, ConstValue, RestrictType};
 use crate::ty::{self, DefKind, TyCtx, TyRef};
 
 // ???: Can we build up a type ctx without doing type propogation?
@@ -333,7 +333,10 @@ impl<'a> TypeCheck<'a> {
         };
 
         // Never allow 64-bit ops (size is always less than 2^32)
-        let const_expr = self.const_eval.defer_expr(self.unit.id, expr, false);
+        // Restrict to no type since we handle it here too
+        let const_expr = self
+            .const_eval
+            .defer_expr(self.unit.id, expr, false, RestrictType::None);
 
         // Always eagerly evaluate the expr
         let value = self
