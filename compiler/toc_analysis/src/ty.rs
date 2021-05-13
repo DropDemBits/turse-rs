@@ -1,4 +1,5 @@
 //! Representation of Turing types
+pub mod rules;
 
 use std::fmt::{self, Debug};
 use std::num::NonZeroU32;

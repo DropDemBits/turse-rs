@@ -7,7 +7,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use toc_hir::{expr, stmt, ty as hir_ty};
-use toc_reporting::{MessageKind, ReportMessage};
+use toc_reporting::{MessageKind, MessageSink, ReportMessage};
 use toc_span::Spanned;
 
 use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, ConstValue};
@@ -85,14 +85,8 @@ impl<'a> TypeCheck<'a> {
         let expr = &self.unit.database[expr];
         (expr, *eval_kind)
     }
-}
 
-/// ???: Mapping concrete TypeId's back to ty::TypeIdx?
-/// Pass in the ty::TypeIdx, which is mapped by the TyCtx
-impl toc_hir::HirVisitor for TypeCheck<'_> {
-    fn visit_unit(&mut self, _unit: &toc_hir::Unit) {}
-
-    fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
+    fn typeck_constvar(&mut self, decl: &stmt::ConstVar) {
         let ty_ref = match &decl.tail {
             stmt::ConstVarTail::Both(ty_spec, _) | stmt::ConstVarTail::TypeSpec(ty_spec) => {
                 // From type_spec
@@ -111,7 +105,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             let rvalue_eval = *self.eval_kinds.get(init_expr).unwrap();
             let rvalue_ty = self.require_expr_ty(rvalue_eval);
 
-            if let Some(false) = ty_rules::is_ty_assignable_to(lvalue_ty, rvalue_ty) {
+            if let Some(false) = ty::rules::is_ty_assignable_to(lvalue_ty, rvalue_ty) {
                 // TODO: invalidate associated `ConstExpr` in the event of an incompatible type
 
                 // Incompatible, report it
@@ -148,7 +142,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         }
     }
 
-    fn visit_assign(&mut self, _id: stmt::StmtIdx, stmt: &stmt::Assign) {
+    fn typeck_assign(&mut self, stmt: &stmt::Assign) {
         let (_l_value, l_value_eval) = self.lookup_eval_kind(stmt.lhs);
         let (_r_value, r_value_eval) = self.lookup_eval_kind(stmt.rhs);
 
@@ -192,7 +186,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 
         // Check if types are assignable
         // Leave error types as "always assignable"
-        let asn_able = ty_rules::is_ty_assignable_to(l_value_ty, r_value_ty);
+        let asn_able = ty::rules::is_ty_assignable_to(l_value_ty, r_value_ty);
         if !asn_able.unwrap_or(true) {
             // TODO: Report expected type vs found type
             // - Requires type stringification/display impl
@@ -201,7 +195,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         }
     }
 
-    fn visit_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
+    fn typeck_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
         let ty = match expr {
             toc_hir::expr::Literal::Integer(_) => ty::Type::Integer,
             toc_hir::expr::Literal::Real(_) => ty::Type::Real(ty::RealSize::Real),
@@ -216,7 +210,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         self.eval_kinds.insert(id, EvalKind::Value(ty));
     }
 
-    fn visit_binary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Binary) {
+    fn typeck_binary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Binary) {
         // TODO: do full binexpr typechecks
         let ty = self.type_check_binary_op(expr.lhs, expr.op, expr.rhs);
 
@@ -225,7 +219,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         self.eval_kinds.insert(id, EvalKind::Value(ty));
     }
 
-    fn visit_unary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Unary) {
+    fn typeck_unary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Unary) {
         let ty = self.type_check_unary_op(expr.op, expr.rhs);
 
         // Post unexpr type
@@ -233,13 +227,13 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         self.eval_kinds.insert(id, EvalKind::Value(ty));
     }
 
-    fn visit_paren(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Paren) {
+    fn typeck_paren(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Paren) {
         // Same eval kind as the inner
         let eval_kind = self.eval_kinds[&expr.expr];
         self.eval_kinds.insert(id, eval_kind);
     }
 
-    fn visit_name(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Name) {
+    fn typeck_name(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Name) {
         // If def-id, fetch type from def id map
         // If self, then fetch type from provided class def id?
         let (use_id, ty_ref) = match expr {
@@ -275,50 +269,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         self.eval_kinds.insert(id, EvalKind::Ref(eval_ty));
     }
 
-    fn visit_primitive(&mut self, id: hir_ty::TypeIdx, ty: &hir_ty::Primitive) {
-        enum SeqLenError {
-            ConstEval(Spanned<ConstError>),
-            WrongType(Spanned<ConstValue>),
-            WrongSize(Spanned<ConstInt>),
-        }
-
-        fn into_ty_seq_len(
-            _self: &mut TypeCheck<'_>,
-            seq_len: toc_hir::ty::SeqLength,
-            size_limit: u32,
-        ) -> Result<ty::SeqSize, SeqLenError> {
-            match seq_len {
-                hir_ty::SeqLength::Dynamic => Ok(ty::SeqSize::Dynamic),
-                hir_ty::SeqLength::Expr(expr) => {
-                    // Never allow 64-bit ops (size is always less than 2^32)
-                    let const_expr = _self.const_eval.defer_expr(_self.unit.id, expr, false);
-
-                    // Always eagerly evaluate the expr
-                    let value = _self
-                        .const_eval
-                        .eval_expr(const_expr)
-                        .map_err(SeqLenError::ConstEval)?;
-
-                    let span = _self.unit.database.expr_nodes.spans[&expr];
-
-                    // Check that the value is actually the correct type, and in the correct value range.
-                    // Size can only be in (0, 32768)
-                    let int = value
-                        .as_int()
-                        .ok_or_else(|| SeqLenError::WrongType(Spanned::new(value, span)))?;
-
-                    // Convert into a size, within the given limit
-                    let size = int
-                        .into_u32()
-                        .and_then(NonZeroU32::new)
-                        .filter(|size| size.get() < size_limit)
-                        .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span)))?;
-
-                    Ok(ty::SeqSize::Fixed(size))
-                }
-            }
-        }
-
+    fn typeck_primitive(&mut self, id: hir_ty::TypeIdx, ty: &hir_ty::Primitive) {
         // Create the correct type based off of the base primitive type
         let ty = match ty {
             hir_ty::Primitive::Int => ty::Type::Int(ty::IntSize::Int),
@@ -336,67 +287,30 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
             hir_ty::Primitive::AddressInt => ty::Type::Nat(ty::NatSize::AddressInt),
             hir_ty::Primitive::Char => ty::Type::Char,
             hir_ty::Primitive::String => ty::Type::String,
-            hir_ty::Primitive::SizedChar(len) | hir_ty::Primitive::SizedString(len) => {
-                let size_limit = if matches!(ty, hir_ty::Primitive::SizedChar(_)) {
-                    // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
-                    // ???: Do we want to add a config/feature option to change this?
-                    32768
-                } else {
-                    // 256 is the maximum defined limit for the length on `n` for string(N),
-                    // so no option of changing that (unless we have control over the interpreter code).
-                    // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
-                    //   so we can't change it yet unless we use a new interpreter.
-                    256
-                };
+            hir_ty::Primitive::SizedChar(len) => {
+                // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
+                // ???: Do we want to add a config/feature option to change this?
+                let size_limit = 32768;
 
-                match into_ty_seq_len(self, *len, size_limit) {
-                    Ok(len) => {
-                        if matches!(ty, hir_ty::Primitive::SizedChar(_)) {
-                            ty::Type::CharN(len)
-                        } else {
-                            ty::Type::StringN(len)
-                        }
-                    }
+                match self.lower_seq_len(*len, size_limit) {
+                    Ok(len) => ty::Type::CharN(len),
                     Err(err) => {
-                        match err {
-                            SeqLenError::ConstEval(err) => {
-                                err.item().report_to(&mut self.reporter, err.span());
-                            }
-                            SeqLenError::WrongType(value) => {
-                                self.reporter
-                                    .report_detailed(
-                                        MessageKind::Error,
-                                        "wrong type for character count",
-                                        value.span(),
-                                    )
-                                    .with_note(
-                                        &format!(
-                                            "expected integer value, found {}",
-                                            value.item().type_name()
-                                        ),
-                                        value.span(),
-                                    )
-                                    .finish();
-                            }
-                            SeqLenError::WrongSize(int) => {
-                                self.reporter
-                                    .report_detailed(
-                                        MessageKind::Error,
-                                        "invalid character count size",
-                                        int.span(),
-                                    )
-                                    .with_note(
-                                        &format!("computed count is {}", int.item()),
-                                        int.span(),
-                                    )
-                                    .with_info(
-                                        &format!("valid sizes are between 1 to {}", size_limit - 1),
-                                        int.span(),
-                                    )
-                                    .finish();
-                            }
-                        }
+                        err.report_to(&mut self.reporter);
+                        ty::Type::Error
+                    }
+                }
+            }
+            hir_ty::Primitive::SizedString(len) => {
+                // 256 is the maximum defined limit for the length on `n` for string(N),
+                // so no option of changing that (unless we have control over the interpreter code).
+                // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
+                //   so we can't change it yet unless we use a new interpreter.
+                let size_limit = 256;
 
+                match self.lower_seq_len(*len, size_limit) {
+                    Ok(len) => ty::Type::StringN(len),
+                    Err(err) => {
+                        err.report_to(&mut self.reporter);
                         ty::Type::Error
                     }
                 }
@@ -407,9 +321,44 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
         let ty_ref = self.ty_ctx.add_type(ty);
         self.ty_ctx.map_type(id, ty_ref);
     }
-}
 
-impl TypeCheck<'_> {
+    fn lower_seq_len(
+        &mut self,
+        seq_len: toc_hir::ty::SeqLength,
+        size_limit: u32,
+    ) -> Result<ty::SeqSize, SeqLenError> {
+        let expr = match seq_len {
+            hir_ty::SeqLength::Dynamic => return Ok(ty::SeqSize::Dynamic),
+            hir_ty::SeqLength::Expr(expr) => expr,
+        };
+
+        // Never allow 64-bit ops (size is always less than 2^32)
+        let const_expr = self.const_eval.defer_expr(self.unit.id, expr, false);
+
+        // Always eagerly evaluate the expr
+        let value = self
+            .const_eval
+            .eval_expr(const_expr)
+            .map_err(SeqLenError::ConstEval)?;
+
+        let span = self.unit.database.expr_nodes.spans[&expr];
+
+        // Check that the value is actually the correct type, and in the correct value range.
+        // Size can only be in (0, 32768)
+        let int = value
+            .as_int()
+            .ok_or_else(|| SeqLenError::WrongType(Spanned::new(value, span)))?;
+
+        // Convert into a size, within the given limit
+        let size = int
+            .into_u32()
+            .and_then(NonZeroU32::new)
+            .filter(|size| size.get() < size_limit)
+            .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span), size_limit))?;
+
+        Ok(ty::SeqSize::Fixed(size))
+    }
+
     fn get_ty_ref_from_expr(&mut self, expr: expr::ExprIdx) -> Spanned<ty::TyRef> {
         let ty_ref = self.require_expr_ty(self.eval_kinds[&expr]);
         let span = self.unit.database.expr_nodes.spans[&expr];
@@ -425,10 +374,10 @@ impl TypeCheck<'_> {
         let lhs_ty_ref = self.get_ty_ref_from_expr(lhs_id);
         let rhs_ty_ref = self.get_ty_ref_from_expr(rhs_id);
 
-        match ty_rules::check_binary_operands(lhs_ty_ref, op, rhs_ty_ref) {
+        match ty::rules::check_binary_operands(lhs_ty_ref, op, rhs_ty_ref) {
             Ok(ty) => ty,
             Err(err) => {
-                ty_rules::report_binary_typecheck_error(err, &mut self.reporter);
+                ty::rules::report_binary_typecheck_error(err, &mut self.reporter);
                 ty::Type::Error
             }
         }
@@ -441,13 +390,49 @@ impl TypeCheck<'_> {
     ) -> ty::Type {
         let rhs_ty_ref = self.get_ty_ref_from_expr(rhs_id);
 
-        match ty_rules::check_unary_operands(op, rhs_ty_ref) {
+        match ty::rules::check_unary_operands(op, rhs_ty_ref) {
             Ok(ty) => ty,
             Err(err) => {
-                ty_rules::report_unary_typecheck_error(err, &mut self.reporter);
+                ty::rules::report_unary_typecheck_error(err, &mut self.reporter);
                 ty::Type::Error
             }
         }
+    }
+}
+
+/// ???: Mapping concrete TypeId's back to ty::TypeIdx?
+/// Pass in the ty::TypeIdx, which is mapped by the TyCtx
+impl toc_hir::HirVisitor for TypeCheck<'_> {
+    fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
+        self.typeck_constvar(decl);
+    }
+
+    fn visit_assign(&mut self, _id: stmt::StmtIdx, stmt: &stmt::Assign) {
+        self.typeck_assign(stmt);
+    }
+
+    fn visit_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
+        self.typeck_literal(id, expr);
+    }
+
+    fn visit_binary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Binary) {
+        self.typeck_binary(id, expr);
+    }
+
+    fn visit_unary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Unary) {
+        self.typeck_unary(id, expr);
+    }
+
+    fn visit_paren(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Paren) {
+        self.typeck_paren(id, expr);
+    }
+
+    fn visit_name(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Name) {
+        self.typeck_name(id, expr);
+    }
+
+    fn visit_primitive(&mut self, id: hir_ty::TypeIdx, ty: &hir_ty::Primitive) {
+        self.typeck_primitive(id, ty);
     }
 }
 
@@ -477,511 +462,45 @@ impl EvalKind {
     }
 }
 
-mod ty_rules {
-    use toc_hir::expr;
-    use toc_reporting::{MessageKind, MessageSink};
-    use toc_span::Spanned;
+enum SeqLenError {
+    ConstEval(Spanned<ConstError>),
+    WrongType(Spanned<ConstValue>),
+    WrongSize(Spanned<ConstInt>, u32),
+}
 
-    use crate::ty::{SeqSize, TyRef, Type};
-
-    /// Type for associated mismatch binary operand types
-    pub struct MismatchedBinaryTypes {
-        _lhs: Spanned<TyRef>,
-        op: Spanned<expr::BinaryOp>,
-        _rhs: Spanned<TyRef>,
-    }
-
-    /// Type for associated mismatch unary operand types
-    pub struct MismatchedUnaryTypes {
-        op: Spanned<expr::UnaryOp>,
-        _rhs: Spanned<TyRef>,
-    }
-
-    /// Returns `Some(is_assignable)`, or `None` if either type is `ty::Error`
-    pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
-        // Current assignability rules:
-        // boolean <- boolean
-        // Int(_) <- Int(_)
-        //         | Nat(_) [runtime checked]
-        //         | Integer [runtime checked]
-        //
-        // Nat(_) <- Int(_) [runtime checked]
-        //         | Nat(_)
-        //         | Integer [runtime checked]
-        //
-        // Real(_) <- Real(_)
-        //          | Int(_) [runtime checked]
-        //          | Nat(_)
-        //          | Integer [runtime checked]
-        //
-        // Char   <- Char
-        //         | Char(1)
-        //
-        // Char(N) <- Char(M) where N = M
-        //
-        // String <- String
-        //         | String(N)
-        // String(N) <- String(M) where N >= M
-        //            | String [runtime checked]
-        //
-
-        let is_assignable = match (&*lvalue_ty, &*rvalue_ty) {
-            // Short-circuting error types
-            (Type::Error, _) | (_, Type::Error) => return None,
-
-            // Boolean types are assignable to each other
-            (Type::Boolean, Type::Boolean) => true,
-
-            // Integer types are assignable to each other
-            (Type::Nat(_), other) | (other, Type::Nat(_)) if is_integer(other) => true,
-            (Type::Int(_), other) | (other, Type::Int(_)) if is_integer(other) => true,
-
-            // All numeric types are assignable into a real
-            (Type::Real(_), rhs) if is_number(rhs) => true,
-
-            // Char(1) and Char are assignable into Char
-            (Type::Char, Type::Char) => true,
-            (Type::Char, Type::CharN(SeqSize::Fixed(size))) if size.get() == 1 => true,
-
-            // Char(M) is assignable into Char(N) if N = M
-            (Type::CharN(SeqSize::Fixed(n)), Type::CharN(SeqSize::Fixed(m))) => n == m,
-
-            // String(N) and String are assignable into String
-            (Type::String, Type::String) => true,
-            (Type::String, Type::StringN(SeqSize::Fixed(_))) => true,
-
-            // String is assignable into String(N)
-            (Type::StringN(SeqSize::Fixed(_)), Type::String) => true,
-
-            // String(M) is assignable into String(N) if n >= m
-            (Type::StringN(SeqSize::Fixed(n)), Type::StringN(SeqSize::Fixed(m))) => n >= m,
-
-            // Not assignable otherwise
-            _ => false,
-        };
-
-        Some(is_assignable)
-    }
-
-    pub fn is_number(ty: &Type) -> bool {
-        matches!(
-            ty,
-            Type::Integer | Type::Real(_) | Type::Int(_) | Type::Nat(_)
-        )
-    }
-
-    pub fn is_integer(ty: &Type) -> bool {
-        matches!(ty, Type::Integer | Type::Int(_) | Type::Nat(_))
-    }
-
-    pub fn is_nat(ty: &Type) -> bool {
-        matches!(ty, Type::Integer | Type::Nat(_))
-    }
-
-    pub fn is_error(ty: &Type) -> bool {
-        matches!(ty, Type::Error)
-    }
-
-    pub fn check_binary_operands(
-        lhs_ty_ref: Spanned<TyRef>,
-        op: Spanned<expr::BinaryOp>,
-        rhs_ty_ref: Spanned<TyRef>,
-    ) -> Result<Type, MismatchedBinaryTypes> {
-        // TODO: Handle 32-bit vs 64-bit integer widths
-
-        // Type classes:
-        // `charseq`: string, char, string(n), char(n)
-        // `number`: real, int, nat
-        // `integer`: int, nat
-
-        // lhs - rhs
-        // (int/nat) - real => real
-        // real - (int/nat) => real
-        // int - (int/nat) => int
-        // (int/nat) - int => int
-        // nat - nat => nat
-        use crate::ty::{IntSize, NatSize, RealSize};
-
-        fn check_arithmetic_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
-            match (lhs_ty, rhs_ty) {
-                // Pass through integer inferrence
-                (Type::Integer, Type::Integer) => Some(Type::Integer),
-
-                // Normal operands
-                (operand, Type::Real(_)) | (Type::Real(_), operand) if is_number(operand) => {
-                    Some(Type::Real(RealSize::Real))
-                }
-                (operand, Type::Int(_)) | (Type::Int(_), operand) if is_integer(operand) => {
-                    Some(Type::Int(IntSize::Int))
-                }
-                (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
-                    Some(Type::Nat(NatSize::Nat))
-                }
-                _ => None,
+impl SeqLenError {
+    fn report_to(&self, reporter: &mut MessageSink) {
+        match self {
+            SeqLenError::ConstEval(err) => {
+                err.item().report_to(reporter, err.span());
+            }
+            SeqLenError::WrongType(value) => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "wrong type for character count",
+                        value.span(),
+                    )
+                    .with_note(
+                        &format!("expected integer value, found {}", value.item().type_name()),
+                        value.span(),
+                    )
+                    .finish();
+            }
+            SeqLenError::WrongSize(int, size_limit) => {
+                reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "invalid character count size",
+                        int.span(),
+                    )
+                    .with_note(&format!("computed count is {}", int.item()), int.span())
+                    .with_info(
+                        &format!("valid sizes are between 1 to {}", size_limit - 1),
+                        int.span(),
+                    )
+                    .finish();
             }
         }
-
-        fn check_bitwise_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
-            match (lhs_ty, rhs_ty) {
-                // Normal operands
-                // Integer inferrence is not passed through
-                (lhs, rhs) if is_integer(lhs) && is_integer(rhs) => Some(Type::Nat(NatSize::Nat)),
-                _ => None,
-            }
-        }
-
-        fn create_binary_type_error(
-            lhs_ty_ref: Spanned<TyRef>,
-            op: Spanned<expr::BinaryOp>,
-            rhs_ty_ref: Spanned<TyRef>,
-        ) -> Result<Type, MismatchedBinaryTypes> {
-            Err(MismatchedBinaryTypes {
-                _lhs: lhs_ty_ref,
-                op,
-                _rhs: rhs_ty_ref,
-            })
-        }
-
-        let (lhs_ty, rhs_ty) = (&**lhs_ty_ref.item(), &**rhs_ty_ref.item());
-
-        // Short circuit for error types
-        // Don't duplicate errors
-        if is_error(&lhs_ty) || is_error(&rhs_ty) {
-            return Ok(Type::Error);
-        }
-
-        match op.item() {
-            // Arithmetic operators
-            expr::BinaryOp::Add => {
-                // Operations:
-                // x String concatenation (charseq, charseq => charseq)
-                // x Set union (set, set => set)
-                // - Addition (number, number => number)
-
-                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
-                    // Addition
-                    Ok(result_ty)
-                } else {
-                    // Type error
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Sub => {
-                // Operations:
-                // x Set difference (set, set => set)
-                // - Subtraction (number, number => number)
-
-                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
-                    // Subtraction
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Mul => {
-                // Operations:
-                // x Set intersection (set, set => set)
-                // - Multiplication (number, number => number)
-
-                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
-                    // Multiplication
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Div => {
-                // Operations:
-                // - Integer division (number, number => integer)
-
-                match (&*lhs_ty, &*rhs_ty) {
-                    // Pass through type inferrence
-                    (Type::Integer, Type::Integer) => Ok(Type::Integer),
-                    (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
-                        Ok(Type::Nat(NatSize::Nat))
-                    }
-                    (lhs, rhs) if is_number(lhs) && is_number(rhs) => Ok(Type::Int(IntSize::Int)),
-                    _ => create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref),
-                }
-            }
-            expr::BinaryOp::RealDiv => {
-                // Operations:
-                // - Floating point division (number, number => real)
-
-                if is_number(&lhs_ty) && is_number(&rhs_ty) {
-                    Ok(Type::Real(RealSize::Real))
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Mod => {
-                // Operations:
-                // - Modulo (number, number => number)
-
-                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
-                    // Modulo
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Rem => {
-                // Operations:
-                // - Remainder (number, number => number)
-
-                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
-                    // Remainder
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Exp => {
-                // Operations:
-                // - Exponation (number, number => number)
-
-                if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
-                    // Exponentiation
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            // Bitwise operators (integer, integer => nat)
-            // + Logical operators (boolean, boolean => boolean)
-            expr::BinaryOp::And => {
-                // Operations:
-                // - Bitwise And (integer, integer => nat)
-                // - Logical And (boolean, boolean => boolean)
-
-                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
-                    // Bitwise And
-                    Ok(result_ty)
-                } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
-                    // Logical And
-                    Ok(Type::Boolean)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Or => {
-                // Operations:
-                // - Bitwise Or (integer, integer => nat)
-                // - Logical Or (boolean, boolean => boolean)
-
-                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
-                    // Bitwise Or
-                    Ok(result_ty)
-                } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
-                    // Logical Or
-                    Ok(Type::Boolean)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Xor => {
-                // Operations:
-                // - Bitwise Xor (integer, integer => nat)
-                // - Logical Xor (boolean, boolean => boolean)
-
-                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
-                    // Bitwise Xor
-                    Ok(result_ty)
-                } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
-                    // Logical Xor
-                    Ok(Type::Boolean)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            // Pure bitwise operators
-            expr::BinaryOp::Shl => {
-                // Operations:
-                // - Bitwise Shl (integer, integer => nat)
-
-                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
-                    // Bitwise Shl
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            expr::BinaryOp::Shr => {
-                // Operations:
-                // - Bitwise Shr (integer, integer => nat)
-
-                if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
-                    // Bitwise Shr
-                    Ok(result_ty)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            // Pure logical operator
-            expr::BinaryOp::Imply => {
-                // Operations:
-                // - Imply (boolean, boolean => boolean)
-
-                if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
-                    // Logical Xor
-                    Ok(Type::Boolean)
-                } else {
-                    create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
-                }
-            }
-            // Comparison (a, b => boolean where a, b: Comparable)
-            expr::BinaryOp::Less => todo!(),
-            expr::BinaryOp::LessEq => todo!(),
-            expr::BinaryOp::Greater => todo!(),
-            expr::BinaryOp::GreaterEq => todo!(),
-            expr::BinaryOp::Equal => todo!(),
-            expr::BinaryOp::NotEqual => todo!(),
-            // Set membership tests (set(a), a => boolean)
-            expr::BinaryOp::In => todo!(),
-            expr::BinaryOp::NotIn => todo!(),
-        }
-    }
-
-    pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut MessageSink) {
-        let MismatchedBinaryTypes { op, .. } = err;
-        let op_name = match op.item() {
-            expr::BinaryOp::Add => "addition",
-            expr::BinaryOp::Sub => "subtraction",
-            expr::BinaryOp::Mul => "multiplication",
-            expr::BinaryOp::Div => "integer division",
-            expr::BinaryOp::RealDiv => "real division",
-            expr::BinaryOp::Mod => "moduluo",
-            expr::BinaryOp::Rem => "remaindor",
-            expr::BinaryOp::Exp => "exponentiation",
-            expr::BinaryOp::And => "`and`",
-            expr::BinaryOp::Or => "`or`",
-            expr::BinaryOp::Xor => "`xor`",
-            expr::BinaryOp::Shl => "`shl`",
-            expr::BinaryOp::Shr => "`shr`",
-            expr::BinaryOp::Imply => "`=>`",
-            expr::BinaryOp::Less => "`<`",
-            expr::BinaryOp::LessEq => "`<=`",
-            expr::BinaryOp::Greater => "`>`",
-            expr::BinaryOp::GreaterEq => "`>=`",
-            expr::BinaryOp::Equal => "`=`",
-            expr::BinaryOp::NotEqual => "`not =`",
-            expr::BinaryOp::In => "`in`",
-            expr::BinaryOp::NotIn => "`not in`",
-        };
-
-        let msg = reporter.report_detailed(
-            MessageKind::Error,
-            &format!("incompatible types for {}", op_name),
-            op.span(),
-        );
-        let msg = match op.item() {
-            // Arithmetic operators
-            expr::BinaryOp::Add => {
-                msg.with_info("operands must both be numbers, strings, or sets", None)
-            }
-            expr::BinaryOp::Sub | expr::BinaryOp::Mul => {
-                msg.with_info("operands must both be numbers or sets", None)
-            }
-            expr::BinaryOp::Div
-            | expr::BinaryOp::RealDiv
-            | expr::BinaryOp::Mod
-            | expr::BinaryOp::Rem
-            | expr::BinaryOp::Exp => msg.with_info("operands must both be numbers", None),
-            // Bitwise operators (integer, integer => nat)
-            // + Logical operators (boolean, boolean => boolean)
-            expr::BinaryOp::And | expr::BinaryOp::Or | expr::BinaryOp::Xor => {
-                msg.with_info("operands must both be integers or booleans", None)
-            }
-            // Pure bitwise operators
-            expr::BinaryOp::Shl | expr::BinaryOp::Shr => {
-                msg.with_info("operands must both be integers", None)
-            }
-            // Pure logical operator
-            expr::BinaryOp::Imply => msg.with_info("operands must both be booleans", None),
-            // Comparison (a, b => boolean where a, b: Comparable)
-            expr::BinaryOp::Less => todo!(),
-            expr::BinaryOp::LessEq => todo!(),
-            expr::BinaryOp::Greater => todo!(),
-            expr::BinaryOp::GreaterEq => todo!(),
-            expr::BinaryOp::Equal => todo!(),
-            expr::BinaryOp::NotEqual => todo!(),
-            // Set membership tests (set(a), a => boolean)
-            expr::BinaryOp::In => todo!(),
-            expr::BinaryOp::NotIn => todo!(),
-        };
-        msg.finish();
-    }
-
-    pub fn check_unary_operands(
-        op: Spanned<expr::UnaryOp>,
-        rhs_ty_ref: Spanned<TyRef>,
-    ) -> Result<Type, MismatchedUnaryTypes> {
-        use crate::ty::{IntSize, NatSize, RealSize};
-
-        fn create_unary_type_error(
-            op: Spanned<expr::UnaryOp>,
-            rhs_ty_ref: Spanned<TyRef>,
-        ) -> Result<Type, MismatchedUnaryTypes> {
-            Err(MismatchedUnaryTypes {
-                op,
-                _rhs: rhs_ty_ref,
-            })
-        }
-
-        let rhs_ty = &**rhs_ty_ref.item();
-
-        // Short circuit for error types
-        // Don't duplicate errors
-        if is_error(&rhs_ty) {
-            return Ok(Type::Error);
-        }
-
-        match op.item() {
-            expr::UnaryOp::Not => {
-                if is_integer(rhs_ty) {
-                    // Bitwise Not
-                    Ok(Type::Nat(NatSize::Nat))
-                } else if let Type::Boolean = &rhs_ty {
-                    // Logical Not
-                    Ok(Type::Boolean)
-                } else {
-                    create_unary_type_error(op, rhs_ty_ref)
-                }
-            }
-            expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
-                match rhs_ty {
-                    // Pass through integer inferrence
-                    Type::Integer => Ok(Type::Integer),
-
-                    // Normal operands
-                    Type::Real(_) => Ok(Type::Real(RealSize::Real)),
-                    Type::Int(_) => Ok(Type::Int(IntSize::Int)),
-                    Type::Nat(_) => Ok(Type::Nat(NatSize::Nat)),
-                    _ => create_unary_type_error(op, rhs_ty_ref),
-                }
-            }
-        }
-    }
-
-    pub fn report_unary_typecheck_error(err: MismatchedUnaryTypes, reporter: &mut MessageSink) {
-        let MismatchedUnaryTypes { op, .. } = err;
-        let op_name = match op.item() {
-            expr::UnaryOp::Not => "`not`",
-            expr::UnaryOp::Identity => "unary `+`",
-            expr::UnaryOp::Negate => "unary `-`",
-        };
-
-        let msg = reporter.report_detailed(
-            MessageKind::Error,
-            &format!("incompatible types for {}", op_name),
-            op.span(),
-        );
-        let msg = match op.item() {
-            expr::UnaryOp::Not => msg.with_info("operand must be an integer or boolean", None),
-            expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
-                msg.with_info("operand must be a number", None)
-            }
-        };
-        msg.finish();
     }
 }
