@@ -3,7 +3,7 @@
 use std::convert::TryInto;
 use std::fmt;
 
-use crate::const_eval::ConstError;
+use crate::const_eval::{errors::ErrorKind, ConstError};
 
 /// Constant Integer representation
 #[derive(Debug, Clone, Copy)]
@@ -29,7 +29,7 @@ impl ConstInt {
             // Apply only 32-bit operations
             if value > u64::from(u32::MAX) {
                 // Already overflowing
-                return Err(ConstError::IntOverflow);
+                return Err(ConstError::new(ErrorKind::IntOverflow));
             }
 
             Width::As32
@@ -55,7 +55,7 @@ impl ConstInt {
                 || (value.is_sign_positive() && value > u64::MAX as f64)
             {
                 // Already overflowing
-                return Err(ConstError::IntOverflow);
+                return Err(ConstError::new(ErrorKind::IntOverflow));
             }
 
             Width::As64
@@ -65,7 +65,7 @@ impl ConstInt {
                 || (value.is_sign_positive() && value > f64::from(u32::MAX))
             {
                 // Already overflowing
-                return Err(ConstError::IntOverflow);
+                return Err(ConstError::new(ErrorKind::IntOverflow));
             }
 
             Width::As32
@@ -223,7 +223,7 @@ impl ConstInt {
         let value = self
             .magnitude
             .checked_div(rhs.magnitude)
-            .ok_or(ConstError::DivByZero)?;
+            .ok_or_else(|| ConstError::new(ErrorKind::DivByZero))?;
 
         let new_sign = if self.sign == rhs.sign {
             // Will always be positive
@@ -245,7 +245,7 @@ impl ConstInt {
         let remainder = self
             .magnitude
             .checked_rem(rhs.magnitude)
-            .ok_or(ConstError::DivByZero)?;
+            .ok_or_else(|| ConstError::new(ErrorKind::DivByZero))?;
 
         // Adjust into the correct signage
         let (modulus, new_sign) = if remainder == 0 {
@@ -276,7 +276,7 @@ impl ConstInt {
         let remainder = self
             .magnitude
             .checked_rem(rhs.magnitude)
-            .ok_or(ConstError::DivByZero)?;
+            .ok_or_else(|| ConstError::new(ErrorKind::DivByZero))?;
 
         // Adjust into the correct signage
         let (remainder, new_sign) = if remainder == 0 {
@@ -298,18 +298,18 @@ impl ConstInt {
         let effective_width = Self::effective_width(self.width, rhs.width);
 
         if rhs.is_negative() {
-            return Err(ConstError::NegativeIntExp);
+            return Err(ConstError::new(ErrorKind::NegativeIntExp));
         }
 
         let exp = rhs
             .magnitude
             .try_into()
-            .map_err(|_| ConstError::IntOverflow)?;
+            .map_err(|_| ConstError::new(ErrorKind::IntOverflow))?;
 
         let value = self
             .magnitude
             .checked_pow(exp)
-            .ok_or(ConstError::IntOverflow)?;
+            .ok_or_else(|| ConstError::new(ErrorKind::IntOverflow))?;
 
         // Adopts the sign of the base
         let new_sign = self.sign;
@@ -408,11 +408,13 @@ impl ConstInt {
         let effective_width = Self::effective_width(self.width, rhs.width);
 
         if rhs.is_negative() {
-            return Err(ConstError::NegativeIntShift);
+            return Err(ConstError::new(ErrorKind::NegativeIntShift));
         }
 
         let shift_amount: u32 = {
-            let shift_amount = rhs.into_u64().ok_or(ConstError::IntOverflow)?;
+            let shift_amount = rhs
+                .into_u64()
+                .ok_or_else(|| ConstError::new(ErrorKind::IntOverflow))?;
 
             // Mask the shift amount depending on the effective integer width
             if effective_width == Width::As64 {
@@ -430,7 +432,7 @@ impl ConstInt {
 
         let bits = bits
             .checked_shl(shift_amount)
-            .ok_or(ConstError::IntOverflow)?;
+            .ok_or_else(|| ConstError::new(ErrorKind::IntOverflow))?;
 
         // Always an unsigned integer
         let new_sign = Sign::Positive;
@@ -448,11 +450,13 @@ impl ConstInt {
         let effective_width = Self::effective_width(self.width, rhs.width);
 
         if rhs.is_negative() {
-            return Err(ConstError::NegativeIntShift);
+            return Err(ConstError::new(ErrorKind::NegativeIntShift));
         }
 
         let shift_amount: u32 = {
-            let shift_amount = rhs.into_u64().ok_or(ConstError::IntOverflow)?;
+            let shift_amount = rhs
+                .into_u64()
+                .ok_or_else(|| ConstError::new(ErrorKind::IntOverflow))?;
 
             // Mask the shift amount depending on the effective integer width
             if effective_width == Width::As64 {
@@ -473,7 +477,7 @@ impl ConstInt {
         // be disabled by a config option.
         let bits = bits
             .checked_shr(shift_amount)
-            .ok_or(ConstError::IntOverflow)?;
+            .ok_or_else(|| ConstError::new(ErrorKind::IntOverflow))?;
 
         // Always an unsigned integer
         let new_sign = Sign::Positive;
@@ -531,7 +535,8 @@ impl ConstInt {
         effective_width: Width,
     ) -> Result<ConstInt, ConstError> {
         let (magnitude, sign) = {
-            let effective_magnitude = value.ok_or(ConstError::IntOverflow)?;
+            let effective_magnitude =
+                value.ok_or_else(|| ConstError::new(ErrorKind::IntOverflow))?;
 
             if effective_magnitude == 0 {
                 // `0` is always a "positive" number
@@ -561,7 +566,7 @@ impl ConstInt {
                 width: effective_width,
             })
         } else {
-            Err(ConstError::IntOverflow)
+            Err(ConstError::new(ErrorKind::IntOverflow))
         }
     }
 }

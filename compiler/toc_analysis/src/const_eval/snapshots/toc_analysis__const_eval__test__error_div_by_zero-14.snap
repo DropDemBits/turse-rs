@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 11..20, state: Error(DivByZero) },
+                EvalInfo { unit_id: UnitId(0), span: 11..20, state: Error(ConstError { kind: DivByZero }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,7 +15,7 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> Spanned(DivByZero, 13..16)
+ConstExpr { id: 0 } -> Spanned(ConstError { kind: DivByZero }, 13..16)
 
 error at 13..16: division by zero in compile-time expression
 

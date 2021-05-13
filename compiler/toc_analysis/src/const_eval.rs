@@ -1,8 +1,10 @@
 //! Compile-time constant evaluation
+mod errors;
 mod integer;
 mod ops;
 #[cfg(test)]
 mod test;
+mod value;
 
 use std::fmt;
 use std::{
@@ -15,8 +17,15 @@ use toc_hir::Unit;
 use toc_hir::{expr, symbol::GlobalDefId, UnitId, UnitMap};
 use toc_span::Spanned;
 
+pub use errors::ConstError;
 pub use integer::ConstInt;
+pub use value::ConstValue;
+
+use errors::ErrorKind;
 use ops::ConstOp;
+
+/// A constant evaluation result, with the error containing a span associated with the error
+pub type ConstResult<T> = Result<T, Spanned<ConstError>>;
 
 /// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
 pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
@@ -94,165 +103,6 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
     unit.walk_nodes(&mut visitor);
 }
 
-#[derive(Debug, Clone)]
-pub enum ConstValue {
-    /// General integer value
-    Integer(ConstInt),
-    /// Floating point value
-    Real(f64),
-    /// Boolean value
-    Bool(bool),
-}
-
-impl ConstValue {
-    /// Unwraps a `ConstValue` into the corresponding `ConstInt`
-    ///
-    /// ## Returns
-    /// If `self` is a `ConstValue::Integer`, returns the corresponding ConstInt value.
-    /// Otherwise, returns `ConstError::WrongType`.
-    pub fn into_int(self) -> Result<ConstInt, ConstError> {
-        match self {
-            ConstValue::Integer(v) => Ok(v),
-            _ => Err(ConstError::WrongResultType(self, RestrictType::Integer)),
-        }
-    }
-
-    /// Gets the human readable version of the value's type
-    pub fn type_name(&self) -> &str {
-        match self {
-            ConstValue::Integer(_) => "integer value",
-            ConstValue::Real(_) => "real value",
-            ConstValue::Bool(_) => "boolean value",
-        }
-    }
-
-    /// Converts a `ConstValue` into a `ConstInt`.
-    ///
-    /// The only value types that are allowed to be cast into `ConstInt` are:
-    ///
-    /// - `Integer`
-    fn cast_into_int(self) -> Result<ConstInt, ConstError> {
-        match self {
-            ConstValue::Integer(v) => Ok(v),
-            _ => Err(ConstError::WrongOperandType),
-        }
-    }
-
-    /// Converts a `ConstValue` into a `f64`.
-    ///
-    /// The only value types that are allowed to be cast into a `f64` are:
-    ///
-    /// - `Integer`
-    /// - `Real`
-    fn cast_into_real(self) -> Result<f64, ConstError> {
-        match self {
-            ConstValue::Integer(v) => Ok(v.into_f64()),
-            ConstValue::Real(v) => Ok(v),
-            _ => Err(ConstError::WrongOperandType),
-        }
-    }
-
-    /// Converts a `ConstValue` into a `bool`.
-    ///
-    /// The only value types that are allowed to be cast into `bool` are:
-    ///
-    /// - `Bool`
-    fn cast_into_bool(self) -> Result<bool, ConstError> {
-        match self {
-            ConstValue::Bool(v) => Ok(v),
-            _ => Err(ConstError::WrongOperandType),
-        }
-    }
-}
-
-#[derive(Debug, Clone, thiserror::Error)]
-pub enum ConstError {
-    // Traversal errors
-    /// Encountered an evaluation cycle
-    #[error("detected a compile-time evaluation cycle")]
-    EvalCycle,
-    /// Missing expression operand
-    #[error("operand is an invalid expression")]
-    MissingExpr,
-    /// Not a valid const eval operation
-    #[error("operation cannot be computed at compile-time")]
-    NotConstOp,
-    /// No const expr is associated with this identifer.
-    /// Provided span is the span of the symbol's definition
-    #[error("reference cannot be computed at compile-time")]
-    NoConstExpr(toc_span::TextRange),
-    /// Error is already reported
-    #[error("compile-time evaluation error already reported")]
-    Reported,
-
-    // Computation errors
-    /// Wrong operand type in eval expression
-    #[error("wrong type for compile-time expression")]
-    WrongOperandType,
-    /// Wrong resultant type in eval expression
-    #[error("wrong type for compile-time expression")]
-    WrongResultType(ConstValue, RestrictType),
-    /// Integer overflow
-    #[error("integer overflow in compile-time expression")]
-    IntOverflow,
-    /// Floating point overflow
-    #[error("real overflow in compile-time expression")]
-    RealOverflow,
-    /// Division by zero
-    #[error("division by zero in compile-time expression")]
-    DivByZero,
-    /// Negative int exponent provided during power raising
-    #[error("raising integer to a negative exponent")]
-    NegativeIntExp,
-    /// Negative int shift provided during bit shifting
-    #[error("bit shifting integer by a negative amount")]
-    NegativeIntShift,
-}
-
-impl ConstError {
-    /// Reports the detailed version of the `ConstError` to the given reporter
-    pub fn report_to(
-        &self,
-        reporter: &mut toc_reporting::MessageSink,
-        initial_span: toc_span::TextRange,
-    ) {
-        use toc_reporting::MessageKind;
-
-        // Ignore already reported messages
-        if matches!(self, Self::Reported) {
-            return;
-        }
-
-        // Report common message header
-        let msg = reporter.report_detailed(MessageKind::Error, &format!("{}", self), initial_span);
-
-        // Report extra details
-        match self {
-            Self::NoConstExpr(def_span) => {
-                // Report at the reference's definition spot
-                msg.with_info("reference declared here", *def_span)
-            }
-            Self::WrongResultType(found, expected) => {
-                let expected_name = match expected {
-                    RestrictType::None => panic!("Wrong result type on no restriction"),
-                    RestrictType::Integer => "integer value",
-                    RestrictType::Real => "real value",
-                    RestrictType::Boolean => "boolean value",
-                };
-
-                msg.with_note(
-                    &format!("expected {}, found {}", expected_name, found.type_name()),
-                    initial_span,
-                )
-            }
-            _ => msg,
-        }
-        .finish();
-    }
-}
-
-pub type ConstResult<T> = Result<T, Spanned<ConstError>>;
-
 /// Constant evaluation context
 #[derive(Debug)]
 pub struct ConstEvalCtx {
@@ -294,19 +144,6 @@ impl ConstEvalCtx {
 
         let mut inner = self.inner.write().unwrap();
         inner.eval_expr(expr)
-    }
-}
-
-/// Reference to an expression to be evaluated
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConstExpr {
-    id: usize,
-}
-// Maps `ConstExpr` to unit local `toc_hir::expr::ExprIdx`
-
-impl fmt::Debug for ConstExpr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("ConstExpr {{ id: {:?} }}", self.id))
     }
 }
 
@@ -369,14 +206,14 @@ impl InnerCtx {
             State::Value(v) => return Ok(v.clone()),
             State::Error(_) => {
                 // Error should already be reported
-                return Err(Spanned::new(ConstError::Reported, span));
+                return Err(Spanned::new(ConstError::reported(), span));
             }
             State::Evaluating => {
                 // Encountered an evaluation cycle, update the evaluation state
-                self.eval_infos[expr.id].state = State::Error(ConstError::EvalCycle);
+                let err = ConstError::new(ErrorKind::EvalCycle);
+                self.eval_infos[expr.id].state = State::Error(err.clone());
 
-                let err = Spanned::new(ConstError::EvalCycle, span);
-                return Err(err);
+                return Err(Spanned::new(err, span));
             }
             State::Unevaluated => (),
         };
@@ -387,9 +224,9 @@ impl InnerCtx {
         match result {
             Ok(v) => Ok(v),
             Err(err) => {
-                let err = if let ConstError::Reported = err.item() {
+                let err = if let ErrorKind::Reported = err.item().kind() {
                     // Adjust the report location to the current expr
-                    Spanned::new(ConstError::Reported, span)
+                    Spanned::new(err.item().clone(), span)
                 } else {
                     err
                 };
@@ -414,7 +251,7 @@ impl InnerCtx {
                 .symbol_table
                 .get_def_span(def_id);
 
-            Spanned::new(ConstError::NoConstExpr(span), span)
+            Spanned::new(ConstError::new(ErrorKind::NoConstExpr(span)), span)
         })?;
 
         self.eval_expr(const_expr)
@@ -468,7 +305,10 @@ impl InnerCtx {
             match &unit.database[local_expr] {
                 expr::Expr::Missing => {
                     // Bail out
-                    return Err(Spanned::new(ConstError::MissingExpr, expr_span));
+                    return Err(Spanned::new(
+                        ConstError::new(ErrorKind::MissingExpr),
+                        expr_span,
+                    ));
                 }
                 expr::Expr::Literal(expr) => {
                     // ???: How to deal with 32-bit vs 64-bit integers?
@@ -519,9 +359,9 @@ impl InnerCtx {
 
                             // Eval var
                             let value = self.eval_var(global_def).map_err(|err| {
-                                if let ConstError::NoConstExpr(def_span) = err.item() {
+                                if let ErrorKind::NoConstExpr(_) = err.item().kind() {
                                     // Change the span to reflect the use
-                                    Spanned::new(ConstError::NoConstExpr(*def_span), expr_span)
+                                    Spanned::new(err.item().clone(), expr_span)
                                 } else {
                                     // Keep as-is
                                     err
@@ -535,7 +375,7 @@ impl InnerCtx {
                             // Never a const expr
                             // TODO: Use the self's associated def_id
                             return Err(Spanned::new(
-                                ConstError::NoConstExpr(Default::default()),
+                                ConstError::new(ErrorKind::NoConstExpr(Default::default())),
                                 expr_span,
                             ));
                         }
@@ -570,7 +410,7 @@ impl InnerCtx {
                 (RestrictType::Boolean, v @ ConstValue::Bool(_)) => Ok(v),
                 // Mismatched types
                 (_, v) => Err(Spanned::new(
-                    ConstError::WrongResultType(v, info.restrict_to),
+                    ConstError::new(ErrorKind::WrongResultType(v, info.restrict_to)),
                     info.span,
                 )),
             }?
@@ -589,6 +429,21 @@ impl fmt::Debug for InnerCtx {
             .field("eval_infos", &self.eval_infos)
             .field("var_to_expr", &self.var_to_expr)
             .finish()
+    }
+}
+
+/// Reference to an expression to be evaluated.
+///
+/// `ConstExprs` are not unique to any singular unit, and instead are
+/// references to a specific `expr::Expr` in the corresponding unit.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ConstExpr {
+    id: usize,
+}
+
+impl fmt::Debug for ConstExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("ConstExpr {{ id: {:?} }}", self.id))
     }
 }
 

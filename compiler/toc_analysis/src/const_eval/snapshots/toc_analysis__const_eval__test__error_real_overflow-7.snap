@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 11..22, state: Error(RealOverflow) },
+                EvalInfo { unit_id: UnitId(0), span: 11..22, state: Error(ConstError { kind: RealOverflow }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,7 +15,7 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> Spanned(RealOverflow, 17..18)
+ConstExpr { id: 0 } -> Spanned(ConstError { kind: RealOverflow }, 17..18)
 
 error at 17..18: real overflow in compile-time expression
 
