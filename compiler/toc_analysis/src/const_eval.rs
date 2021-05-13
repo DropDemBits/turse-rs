@@ -18,9 +18,6 @@ use toc_span::Spanned;
 pub use integer::ConstInt;
 use ops::ConstOp;
 
-// TODO: Deal with const vars with type errors
-// Only need to map the var to an error const expr
-
 /// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
 pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
     use toc_hir::{stmt, HirVisitor};
@@ -34,13 +31,16 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
         fn visit_constvar(&mut self, _id: stmt::StmtIdx, decl: &stmt::ConstVar) {
             if decl.is_const {
                 if let Some(init_expr) = decl.tail.init_expr() {
-                    // TODO: Associate assignment & evaluation restrictions with GlobalDefId's
+                    // TODO: Infer 64-bit restrictions once 64-bit types are impl'd & lowered
+                    // TODO: Infer value range restrictions once range types are lowered
                     // - Look at type spec and infer the following:
                     //   - `allow_64bit_ops`: check if the type is a 64-bit integer type (`int8`, `long int`, `nat8`, `long nat`)
+                    //   - `restrict_to`: allowed type of a constant expression
                     //   - `min_value` and `max_value`: if it's a range type, associate ConstExpr's with the bounds
                     //
                     // - If no type spec is specified, then can infer the following defaults
                     //   - `allow_64bit_ops`: false (all operations are 32-bit by default)
+                    //   - `restrict_to`: `RestrictType::None` (any value is allowed)
                     //   - `min_value` and `max_value`: None (no restrictions in the value assignment)
                     let allow_64bit_ops = false;
 
@@ -86,7 +86,7 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
             };
         }
 
-        // TODO: Visit type stmt for enum constvar & constvalue
+        // TODO: Visit type stmt for ConstVar & ConstValue of set and enum
     }
 
     let mut visitor = Visitor { unit, const_eval };
@@ -105,15 +105,15 @@ pub enum ConstValue {
 }
 
 impl ConstValue {
-    /// Unwraps a `ConstValue` as `ConstInt`
+    /// Unwraps a `ConstValue` into the corresponding `ConstInt`
     ///
     /// ## Returns
     /// If `self` is a `ConstValue::Integer`, returns the corresponding ConstInt value.
-    /// Otherwise, returns `None`.
-    pub fn as_int(&self) -> Option<ConstInt> {
+    /// Otherwise, returns `ConstError::WrongType`.
+    pub fn into_int(self) -> Result<ConstInt, ConstError> {
         match self {
-            ConstValue::Integer(v) => Some(*v),
-            _ => None,
+            ConstValue::Integer(v) => Ok(v),
+            _ => Err(ConstError::WrongResultType(self, RestrictType::Integer)),
         }
     }
 
@@ -134,7 +134,7 @@ impl ConstValue {
     fn cast_into_int(self) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
-            _ => Err(ConstError::WrongType),
+            _ => Err(ConstError::WrongOperandType),
         }
     }
 
@@ -148,7 +148,7 @@ impl ConstValue {
         match self {
             ConstValue::Integer(v) => Ok(v.into_f64()),
             ConstValue::Real(v) => Ok(v),
-            _ => Err(ConstError::WrongType),
+            _ => Err(ConstError::WrongOperandType),
         }
     }
 
@@ -160,7 +160,7 @@ impl ConstValue {
     fn cast_into_bool(self) -> Result<bool, ConstError> {
         match self {
             ConstValue::Bool(v) => Ok(v),
-            _ => Err(ConstError::WrongType),
+            _ => Err(ConstError::WrongOperandType),
         }
     }
 }
@@ -186,9 +186,12 @@ pub enum ConstError {
     Reported,
 
     // Computation errors
-    /// Wrong operand or resultant type in eval expression
+    /// Wrong operand type in eval expression
     #[error("wrong type for compile-time expression")]
-    WrongType,
+    WrongOperandType,
+    /// Wrong resultant type in eval expression
+    #[error("wrong type for compile-time expression")]
+    WrongResultType(ConstValue, RestrictType),
     /// Integer overflow
     #[error("integer overflow in compile-time expression")]
     IntOverflow,
@@ -228,6 +231,19 @@ impl ConstError {
             Self::NoConstExpr(def_span) => {
                 // Report at the reference's definition spot
                 msg.with_info("reference declared here", *def_span)
+            }
+            Self::WrongResultType(found, expected) => {
+                let expected_name = match expected {
+                    RestrictType::None => panic!("Wrong result type on no restriction"),
+                    RestrictType::Integer => "integer value",
+                    RestrictType::Real => "real value",
+                    RestrictType::Boolean => "boolean value",
+                };
+
+                msg.with_note(
+                    &format!("expected {}, found {}", expected_name, found.type_name()),
+                    initial_span,
+                )
             }
             _ => msg,
         }
@@ -387,7 +403,7 @@ impl InnerCtx {
     }
 
     fn eval_var(&mut self, var: GlobalDefId) -> ConstResult<ConstValue> {
-        // TODO: Handle evaluation restrictions
+        // Evaluation restrictions are passed off to the const exprs themselves
         let const_expr = *self.var_to_expr.get(&var).ok_or_else(|| {
             // Fetch the span of the declaration
             let (unit_id, def_id) = (var.unit_id(), var.as_local());
@@ -552,10 +568,11 @@ impl InnerCtx {
                 (RestrictType::Real, ConstValue::Integer(i)) => Ok(ConstValue::Real(i.into_f64())),
                 // Only booleans allowed
                 (RestrictType::Boolean, v @ ConstValue::Bool(_)) => Ok(v),
-                _ => {
-                    // Mismatched types
-                    Err(Spanned::new(ConstError::WrongType, info.span))
-                }
+                // Mismatched types
+                (_, v) => Err(Spanned::new(
+                    ConstError::WrongResultType(v, info.restrict_to),
+                    info.span,
+                )),
             }?
         };
 

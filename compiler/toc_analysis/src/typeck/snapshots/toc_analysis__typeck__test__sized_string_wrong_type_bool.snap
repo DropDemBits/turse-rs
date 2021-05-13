@@ -7,5 +7,5 @@ ty_nodes:
     Idx::<Type>(0) TyRef(Error)
 def_kinds:
     DefId(0) Var(TyRef(Error))
-error at 15..19: wrong type for character count
+error at 15..19: wrong type for compile-time expression
 | note for 15..19: expected integer value, found boolean value

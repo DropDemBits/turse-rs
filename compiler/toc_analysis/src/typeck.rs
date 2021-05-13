@@ -10,7 +10,7 @@ use toc_hir::{expr, stmt, ty as hir_ty};
 use toc_reporting::{MessageKind, MessageSink, ReportMessage};
 use toc_span::Spanned;
 
-use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, ConstValue, RestrictType};
+use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, RestrictType};
 use crate::ty::{self, DefKind, TyCtx, TyRef};
 
 // ???: Can we build up a type ctx without doing type propogation?
@@ -106,8 +106,6 @@ impl<'a> TypeCheck<'a> {
             let rvalue_ty = self.require_expr_ty(rvalue_eval);
 
             if let Some(false) = ty::rules::is_ty_assignable_to(lvalue_ty, rvalue_ty) {
-                // TODO: invalidate associated `ConstExpr` in the event of an incompatible type
-
                 // Incompatible, report it
                 let init_span = self.unit.database.expr_nodes.spans[init_expr];
                 let spec_span = self.unit.database.type_nodes.spans[ty_spec];
@@ -119,6 +117,11 @@ impl<'a> TypeCheck<'a> {
                         spec_span,
                     )
                     .finish();
+
+                // Don't need to worry about ConstValue being anything,
+                // since that should be handled by const eval type restrictions
+                // However, there should still be an assert here
+                // TODO: Add assert ensuring there is no valid ConstValue
             }
         }
 
@@ -349,8 +352,8 @@ impl<'a> TypeCheck<'a> {
         // Check that the value is actually the correct type, and in the correct value range.
         // Size can only be in (0, 32768)
         let int = value
-            .as_int()
-            .ok_or_else(|| SeqLenError::WrongType(Spanned::new(value, span)))?;
+            .into_int()
+            .map_err(|err| SeqLenError::ConstEval(Spanned::new(err, span)))?;
 
         // Convert into a size, within the given limit
         let size = int
@@ -467,7 +470,6 @@ impl EvalKind {
 
 enum SeqLenError {
     ConstEval(Spanned<ConstError>),
-    WrongType(Spanned<ConstValue>),
     WrongSize(Spanned<ConstInt>, u32),
 }
 
@@ -476,19 +478,6 @@ impl SeqLenError {
         match self {
             SeqLenError::ConstEval(err) => {
                 err.item().report_to(reporter, err.span());
-            }
-            SeqLenError::WrongType(value) => {
-                reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "wrong type for character count",
-                        value.span(),
-                    )
-                    .with_note(
-                        &format!("expected integer value, found {}", value.item().type_name()),
-                        value.span(),
-                    )
-                    .finish();
             }
             SeqLenError::WrongSize(int, size_limit) => {
                 reporter
