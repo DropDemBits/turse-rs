@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var cmx : char(256)\n\nvar _e00 : string := cmx % [not captured by ctc]\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(1) TyRef(String)
+def_kinds:
+    DefId(0) Var(TyRef(CharN(Fixed(256))))
+    DefId(1) Var(TyRef(String))
+error at 42..70: mismatched types
+| note for 32..39: initializer's type is incompatible with this type

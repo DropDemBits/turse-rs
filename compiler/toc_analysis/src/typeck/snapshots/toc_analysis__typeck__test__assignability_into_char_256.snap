@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 256\nvar c256 : char(256)\nvar s : string\n\nvar _v00 : char(N) := c256\nvar _v01 : char(N) := s % runtime checked, always fails\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(1) TyRef(String)
+    Idx::<Type>(2) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(3) TyRef(CharN(Fixed(256)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(CharN(Fixed(256))))
+    DefId(2) Var(TyRef(String))
+    DefId(3) Var(TyRef(CharN(Fixed(256))))
+    DefId(4) Var(TyRef(CharN(Fixed(256))))

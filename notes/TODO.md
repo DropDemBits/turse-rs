@@ -162,7 +162,7 @@
     - [ ] Bits
     - [ ] Call
   - [ ] Type
-    - [ ] Prim (SeqLength)
+    - [x] Prim (SeqLength)
     - [ ] Name
     - [ ] Range
     - [ ] Enum

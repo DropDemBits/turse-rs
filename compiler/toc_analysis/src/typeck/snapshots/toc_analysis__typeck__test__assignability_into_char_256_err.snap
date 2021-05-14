@@ -1,0 +1,32 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257)\nvar s5 : string(5)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c5\nvar _e01 : char(N) := c257\nvar _e02 : char(N) := s5 % [not captured by ctc]\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Char)
+    Idx::<Type>(1) TyRef(CharN(Fixed(5)))
+    Idx::<Type>(2) TyRef(CharN(Fixed(257)))
+    Idx::<Type>(3) TyRef(StringN(Fixed(5)))
+    Idx::<Type>(4) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(5) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(6) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(7) TyRef(CharN(Fixed(256)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Char))
+    DefId(2) Var(TyRef(CharN(Fixed(5))))
+    DefId(3) Var(TyRef(CharN(Fixed(257))))
+    DefId(4) Var(TyRef(StringN(Fixed(5))))
+    DefId(5) Var(TyRef(CharN(Fixed(256))))
+    DefId(6) Var(TyRef(CharN(Fixed(256))))
+    DefId(7) Var(TyRef(CharN(Fixed(256))))
+    DefId(8) Var(TyRef(CharN(Fixed(256))))
+error at 108..110: mismatched types
+| note for 97..105: initializer's type is incompatible with this type
+error at 132..135: mismatched types
+| note for 121..129: initializer's type is incompatible with this type
+error at 157..162: mismatched types
+| note for 146..154: initializer's type is incompatible with this type
+error at 184..211: mismatched types
+| note for 173..181: initializer's type is incompatible with this type

@@ -1,0 +1,14 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 255\nvar c256 : char(256)\n\nvar _e00 : string(N) := c256 % [not captured by ctc]\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(CharN(Fixed(256)))
+    Idx::<Type>(1) TyRef(StringN(Fixed(255)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(CharN(Fixed(256))))
+    DefId(2) Var(TyRef(StringN(Fixed(255))))
+error at 61..90: mismatched types
+| note for 48..58: initializer's type is incompatible with this type

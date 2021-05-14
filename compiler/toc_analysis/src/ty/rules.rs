@@ -20,30 +20,52 @@ pub struct MismatchedUnaryTypes {
 
 /// Returns `Some(is_assignable)`, or `None` if either type is `ty::Error`
 pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
+    /// Maximum length of a `string`
+    const MAX_STRING_LEN: u32 = 256;
+
     // Current assignability rules:
-    // boolean <- boolean
-    // Int(_) <- Int(_)
-    //         | Nat(_) [runtime checked]
-    //         | Integer [runtime checked]
+    // boolean :=
+    //   boolean
     //
-    // Nat(_) <- Int(_) [runtime checked]
-    //         | Nat(_)
-    //         | Integer [runtime checked]
+    // Int(_) :=
+    //   Int(_)
+    // | Nat(_) [runtime checked]
+    // | Integer [runtime checked]
     //
-    // Real(_) <- Real(_)
-    //          | Int(_) [runtime checked]
-    //          | Nat(_)
-    //          | Integer [runtime checked]
+    // Nat(_) :=
+    //   Int(_) [runtime checked]
+    // | Nat(_)
+    // | Integer [runtime checked]
     //
-    // Char   <- Char
-    //         | Char(1)
+    // Real(_) :=
+    //   Real(_)
+    // | Int(_) [runtime checked]
+    // | Nat(_)
+    // | Integer [runtime checked]
     //
-    // Char(N) <- Char(M) where N = M
+    // Char :=
+    //   Char
+    // | Char(1)
+    // | String(1)
+    // | String [runtime checked]
     //
-    // String <- String
-    //         | String(N)
-    // String(N) <- String(M) where N >= M
-    //            | String [runtime checked]
+    // Char(N) :=
+    //   Char if N = 1
+    // | Char(M) where N = M
+    // | String(M) where N = M
+    // | String [runtime checked]
+    //
+    // String :=
+    //   Char
+    // | String
+    // | Char(N) where N < 256
+    // | String(N)
+    //
+    // String(N) :=
+    //   String(M) where N >= M
+    // | Char(M) where N >= M and M < 256
+    // | Char
+    // | String [runtime checked]
     //
 
     let is_assignable = match (&*lvalue_ty, &*rvalue_ty) {
@@ -60,22 +82,43 @@ pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
         // All numeric types are assignable into a real
         (Type::Real(_), rhs) if is_number(rhs) => true,
 
-        // Char(1) and Char are assignable into Char
+        // Char rules:
+        // - String(1), Char(1), and Char are assignable into Char
+        // - String is assignable into Char, but checked at runtime
         (Type::Char, Type::Char) => true,
         (Type::Char, Type::CharN(SeqSize::Fixed(size))) if size.get() == 1 => true,
+        (Type::Char, Type::StringN(SeqSize::Fixed(size))) if size.get() == 1 => true,
+        (Type::Char, Type::String) => true,
 
-        // Char(M) is assignable into Char(N) if N = M
+        // Char(N) rules:
+        // - Char is assignable into Char(N) if N = 1
+        // - Char(M) is assignable into Char(N) if N = M
+        // - String(M) is assignable into Char(N) if N <= M, but double checked at runtime
+        // - String is assignable into Char(N), but checked at runtime
+        (Type::CharN(SeqSize::Fixed(n)), Type::Char) => n.get() == 1,
         (Type::CharN(SeqSize::Fixed(n)), Type::CharN(SeqSize::Fixed(m))) => n == m,
+        (Type::CharN(SeqSize::Fixed(n)), Type::StringN(SeqSize::Fixed(m))) => n <= m,
+        (Type::CharN(SeqSize::Fixed(_)), Type::String) => true,
 
-        // String(N) and String are assignable into String
+        // String rules:
+        // - Char, String(N) and String are assignable into String
+        // - Char(N) is assignable into String if N < `MAX_STRING_LEN`
         (Type::String, Type::String) => true,
         (Type::String, Type::StringN(SeqSize::Fixed(_))) => true,
+        (Type::String, Type::Char) => true,
+        (Type::String, Type::CharN(SeqSize::Fixed(n))) => n.get() < MAX_STRING_LEN,
 
-        // String is assignable into String(N)
+        // String(N) rules:
+        // - Char is assignable into String(N)
+        // - String is assignable into String(N), but checked at runtime
+        // - String(M) is assignable into String(N), but is double checked at runtime
+        // - Char(M) is assignable into String(N) if n >= m and m < `MAX_STRING_LEN`
+        (Type::StringN(SeqSize::Fixed(_)), Type::Char) => true,
         (Type::StringN(SeqSize::Fixed(_)), Type::String) => true,
-
-        // String(M) is assignable into String(N) if n >= m
-        (Type::StringN(SeqSize::Fixed(n)), Type::StringN(SeqSize::Fixed(m))) => n >= m,
+        (Type::StringN(SeqSize::Fixed(_)), Type::StringN(SeqSize::Fixed(_))) => true,
+        (Type::StringN(SeqSize::Fixed(n)), Type::CharN(SeqSize::Fixed(m))) => {
+            n >= m && m.get() < MAX_STRING_LEN
+        }
 
         // Not assignable otherwise
         _ => false,

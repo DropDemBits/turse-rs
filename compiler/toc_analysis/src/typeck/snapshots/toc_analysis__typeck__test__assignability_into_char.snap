@@ -1,0 +1,23 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\n\nvar _v00 : char := c\nvar _v01 : char := c1\nvar _v02 : char := s1\nvar _v03 : char := s % runtime checked\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Char)
+    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
+    Idx::<Type>(2) TyRef(String)
+    Idx::<Type>(3) TyRef(StringN(Fixed(1)))
+    Idx::<Type>(4) TyRef(Char)
+    Idx::<Type>(5) TyRef(Char)
+    Idx::<Type>(6) TyRef(Char)
+    Idx::<Type>(7) TyRef(Char)
+def_kinds:
+    DefId(0) Var(TyRef(Char))
+    DefId(1) Var(TyRef(CharN(Fixed(1))))
+    DefId(2) Var(TyRef(String))
+    DefId(3) Var(TyRef(StringN(Fixed(1))))
+    DefId(4) Var(TyRef(Char))
+    DefId(5) Var(TyRef(Char))
+    DefId(6) Var(TyRef(Char))
+    DefId(7) Var(TyRef(Char))

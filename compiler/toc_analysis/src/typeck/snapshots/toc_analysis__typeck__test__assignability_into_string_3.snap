@@ -1,0 +1,36 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c3 : char(3)\nvar s : string\nvar s1 : string(1)\nvar s3 : string(3)\nvar s5 : string(5)\n\nvar _v00 : string(N) := c\nvar _v01 : string(N) := c1\nvar _v02 : string(N) := s1\nvar _v03 : string(N) := c3\nvar _v04 : string(N) := s3\nvar _v05 : string(N) := s % runtime checked\nvar _v06 : string(N) := s5 % runtime checked\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Char)
+    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
+    Idx::<Type>(2) TyRef(CharN(Fixed(3)))
+    Idx::<Type>(3) TyRef(String)
+    Idx::<Type>(4) TyRef(StringN(Fixed(1)))
+    Idx::<Type>(5) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(6) TyRef(StringN(Fixed(5)))
+    Idx::<Type>(7) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(8) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(9) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(10) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(11) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(12) TyRef(StringN(Fixed(3)))
+    Idx::<Type>(13) TyRef(StringN(Fixed(3)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Char))
+    DefId(2) Var(TyRef(CharN(Fixed(1))))
+    DefId(3) Var(TyRef(CharN(Fixed(3))))
+    DefId(4) Var(TyRef(String))
+    DefId(5) Var(TyRef(StringN(Fixed(1))))
+    DefId(6) Var(TyRef(StringN(Fixed(3))))
+    DefId(7) Var(TyRef(StringN(Fixed(5))))
+    DefId(8) Var(TyRef(StringN(Fixed(3))))
+    DefId(9) Var(TyRef(StringN(Fixed(3))))
+    DefId(10) Var(TyRef(StringN(Fixed(3))))
+    DefId(11) Var(TyRef(StringN(Fixed(3))))
+    DefId(12) Var(TyRef(StringN(Fixed(3))))
+    DefId(13) Var(TyRef(StringN(Fixed(3))))
+    DefId(14) Var(TyRef(StringN(Fixed(3))))

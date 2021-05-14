@@ -1,0 +1,33 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var c : char\nvar c1 : char(1)\nvar s1 : string(1)\nvar c5 : char(5)\nvar c255 : char(255)\nvar s : string\nvar s5 : string(5)\n\nvar _v00 : string := c\nvar _v01 : string := c1\nvar _v02 : string := c5\nvar _v05 : string := c255\nvar _v03 : string := s1\nvar _v04 : string := s5\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Char)
+    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
+    Idx::<Type>(2) TyRef(StringN(Fixed(1)))
+    Idx::<Type>(3) TyRef(CharN(Fixed(5)))
+    Idx::<Type>(4) TyRef(CharN(Fixed(255)))
+    Idx::<Type>(5) TyRef(String)
+    Idx::<Type>(6) TyRef(StringN(Fixed(5)))
+    Idx::<Type>(7) TyRef(String)
+    Idx::<Type>(8) TyRef(String)
+    Idx::<Type>(9) TyRef(String)
+    Idx::<Type>(10) TyRef(String)
+    Idx::<Type>(11) TyRef(String)
+    Idx::<Type>(12) TyRef(String)
+def_kinds:
+    DefId(0) Var(TyRef(Char))
+    DefId(1) Var(TyRef(CharN(Fixed(1))))
+    DefId(2) Var(TyRef(StringN(Fixed(1))))
+    DefId(3) Var(TyRef(CharN(Fixed(5))))
+    DefId(4) Var(TyRef(CharN(Fixed(255))))
+    DefId(5) Var(TyRef(String))
+    DefId(6) Var(TyRef(StringN(Fixed(5))))
+    DefId(7) Var(TyRef(String))
+    DefId(8) Var(TyRef(String))
+    DefId(9) Var(TyRef(String))
+    DefId(10) Var(TyRef(String))
+    DefId(11) Var(TyRef(String))
+    DefId(12) Var(TyRef(String))

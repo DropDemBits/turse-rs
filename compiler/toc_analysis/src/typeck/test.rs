@@ -414,3 +414,238 @@ test_named_group! {
             "#,
     ]
 }
+
+test_named_group! {
+    assignability_into,
+    [
+        boolean => r#"
+        var b : boolean
+
+        var _v00 : boolean := b
+        "#,
+        boolean_err => r#"
+        var r : real
+        var i : int
+        var n : nat
+
+        var _e00 : boolean := 1
+        var _e01 : boolean := i
+        var _e02 : boolean := n
+        var _e03 : boolean := r
+        "#,
+        int => r#"
+        var i : int
+        var n : nat
+
+        var _v00 : int := 1
+        var _v01 : int := i
+        var _v02 : int := n
+        "#,
+        int_err => r#"
+        var b : boolean
+        var r : real
+
+        var _e00 : int := b
+        var _e01 : int := r
+        "#,
+        nat => r#"
+        var i : int
+        var n : nat
+
+        var _v00 : nat := 1
+        var _v01 : nat := i
+        var _v02 : nat := n
+        "#,
+        nat_err => r#"
+        var b : boolean
+        var r : real
+
+        var _e00 : nat := b
+        var _e01 : nat := r
+        "#,
+        real => r#"
+        var r : real
+        var i : int
+        var n : nat
+
+        var _v00 : real := 1
+        var _v01 : real := i
+        var _v02 : real := n
+        var _v03 : real := r
+        "#,
+        real_err => r#"
+        var b : boolean
+
+        var _e00 : real := b
+        "#,
+        r#char => r#"
+        var c : char
+        var c1 : char(1)
+        var s : string
+        var s1 : string(1)
+
+        var _v00 : char := c
+        var _v01 : char := c1
+        var _v02 : char := s1
+        var _v03 : char := s % runtime checked
+        "#,
+        r#char_err => r#"
+        var c5 : char(5)
+        var s5 : string(5)
+
+        var _e00 : char := s5
+        var _e01 : char := c5 % [not captured by ctc]
+        "#,
+        r#char_1 => r#"
+        const N := 1
+        var c : char
+        var c1 : char(1)
+        var s : string
+        var s1 : string(1)
+        var s5 : string(5)
+
+        var _v00 : char(N) := c
+        var _v01 : char(N) := c1
+        var _v02 : char(N) := s1
+        var _v03 : char(N) := s % runtime checked
+        var _v04 : char(N) := s5 % runtime checked
+        "#,
+        r#char_1_err => r#"
+        const N := 1
+        var c5 : char(5)
+
+        var _e00 : char(N) := c5
+        "#,
+        r#char_3 => r#"
+        const N := 3
+        var c3 : char(3)
+        var s3 : string(3)
+        var s : string
+        var s5 : string(5)
+
+        var _v00 : char(N) := c3
+        var _v01 : char(N) := s3
+        var _v02 : char(N) := s % runtime checked
+        var _v03 : char(N) := s5 % runtime checked
+        "#,
+        r#char_3_err => r#"
+        const N := 3
+        var c : char
+        var c1 : char(1)
+        var c5 : char(5)
+        var s1 : string(1)
+
+        var _e00 : char(N) := c
+        var _e01 : char(N) := c1
+        var _e02 : char(N) := c5
+        var _e03 : char(N) := s1 % [not captured by ctc]
+        "#,
+        r#char_256 => r#"
+        const N := 256
+        var c256 : char(256)
+        var s : string
+
+        var _v00 : char(N) := c256
+        var _v01 : char(N) := s % runtime checked, always fails
+        "#,
+        r#char_256_err => r#"
+        const N := 256
+        var c : char
+        var c5 : char(5)
+        var c257 : char(257)
+        var s5 : string(5)
+
+        var _e00 : char(N) := c
+        var _e01 : char(N) := c5
+        var _e01 : char(N) := c257
+        var _e02 : char(N) := s5 % [not captured by ctc]
+        "#,
+        r#string => r#"
+        var c : char
+        var c1 : char(1)
+        var s1 : string(1)
+        var c5 : char(5)
+        var c255 : char(255)
+        var s : string
+        var s5 : string(5)
+
+        var _v00 : string := c
+        var _v01 : string := c1
+        var _v02 : string := c5
+        var _v05 : string := c255
+        var _v03 : string := s1
+        var _v04 : string := s5
+        "#,
+        r#string_err => r#"
+        var cmx : char(256)
+
+        var _e00 : string := cmx % [not captured by ctc]
+        "#,
+        r#string_1 => r#"
+        const N := 1
+        var c : char
+        var c1 : char(1)
+        var s : string
+        var s1 : string(1)
+        var s5 : string(5)
+
+        var _v00 : string(N) := c
+        var _v01 : string(N) := c1
+        var _v02 : string(N) := s1
+        var _v03 : string(N) := s % runtime checked
+        var _v04 : string(N) := s5 % rutime checked
+        "#,
+        r#string_1_err => r#"
+        const N := 1
+        var c5 : char(5)
+
+        var _e00 : string(N) := c5 % [not captured by ctc]
+        "#,
+        r#string_3 => r#"
+        const N := 3
+        var c : char
+        var c1 : char(1)
+        var c3 : char(3)
+        var s : string
+        var s1 : string(1)
+        var s3 : string(3)
+        var s5 : string(5)
+
+        var _v00 : string(N) := c
+        var _v01 : string(N) := c1
+        var _v02 : string(N) := s1
+        var _v03 : string(N) := c3
+        var _v04 : string(N) := s3
+        var _v05 : string(N) := s % runtime checked
+        var _v06 : string(N) := s5 % runtime checked
+        "#,
+        r#string_3_err => r#"
+        const N := 3
+        var c5 : char(5)
+
+        var _e00 : string(N) := c5 % [not captured by ctc]
+        "#,
+        r#string_255 => r#"
+        const N := 255
+        var c : char
+        var c1 : char(1)
+        var c255 : char(255)
+        var s : string
+        var s1 : string(1)
+        var s255 : string(255)
+
+        var _v00 : string(N) := c
+        var _v01 : string(N) := c1
+        var _v02 : string(N) := s1
+        var _v03 : string(N) := c255
+        var _v04 : string(N) := s255
+        var _v05 : string(N) := s % runtime checked, always good
+        "#,
+        r#string_255_err => r#"
+        const N := 255
+        var c256 : char(256)
+
+        var _e00 : string(N) := c256 % [not captured by ctc]
+        "#,
+    ]
+}

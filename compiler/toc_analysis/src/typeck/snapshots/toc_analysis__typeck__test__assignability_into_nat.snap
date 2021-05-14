@@ -1,0 +1,17 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var i : int\nvar n : nat\n\nvar _v00 : nat := 1\nvar _v01 : nat := i\nvar _v02 : nat := n\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+    Idx::<Type>(1) TyRef(Nat(Nat))
+    Idx::<Type>(2) TyRef(Nat(Nat))
+    Idx::<Type>(3) TyRef(Nat(Nat))
+    Idx::<Type>(4) TyRef(Nat(Nat))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Nat(Nat)))
+    DefId(2) Var(TyRef(Nat(Nat)))
+    DefId(3) Var(TyRef(Nat(Nat)))
+    DefId(4) Var(TyRef(Nat(Nat)))

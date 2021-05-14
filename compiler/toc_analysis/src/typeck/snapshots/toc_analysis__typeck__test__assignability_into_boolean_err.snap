@@ -1,0 +1,29 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\nvar _e01 : boolean := i\nvar _e02 : boolean := n\nvar _e03 : boolean := r\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Real(Real))
+    Idx::<Type>(1) TyRef(Int(Int))
+    Idx::<Type>(2) TyRef(Nat(Nat))
+    Idx::<Type>(3) TyRef(Boolean)
+    Idx::<Type>(4) TyRef(Boolean)
+    Idx::<Type>(5) TyRef(Boolean)
+    Idx::<Type>(6) TyRef(Boolean)
+def_kinds:
+    DefId(0) Var(TyRef(Real(Real)))
+    DefId(1) Var(TyRef(Int(Int)))
+    DefId(2) Var(TyRef(Nat(Nat)))
+    DefId(3) Var(TyRef(Boolean))
+    DefId(4) Var(TyRef(Boolean))
+    DefId(5) Var(TyRef(Boolean))
+    DefId(6) Var(TyRef(Boolean))
+error at 60..62: mismatched types
+| note for 49..57: initializer's type is incompatible with this type
+error at 84..86: mismatched types
+| note for 73..81: initializer's type is incompatible with this type
+error at 108..110: mismatched types
+| note for 97..105: initializer's type is incompatible with this type
+error at 132..134: mismatched types
+| note for 121..129: initializer's type is incompatible with this type

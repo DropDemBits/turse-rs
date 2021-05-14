@@ -1,0 +1,32 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar s1 : string(1)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c1\nvar _e02 : char(N) := c5\nvar _e03 : char(N) := s1 % [not captured by ctc]\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Char)
+    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
+    Idx::<Type>(2) TyRef(CharN(Fixed(5)))
+    Idx::<Type>(3) TyRef(StringN(Fixed(1)))
+    Idx::<Type>(4) TyRef(CharN(Fixed(3)))
+    Idx::<Type>(5) TyRef(CharN(Fixed(3)))
+    Idx::<Type>(6) TyRef(CharN(Fixed(3)))
+    Idx::<Type>(7) TyRef(CharN(Fixed(3)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Char))
+    DefId(2) Var(TyRef(CharN(Fixed(1))))
+    DefId(3) Var(TyRef(CharN(Fixed(5))))
+    DefId(4) Var(TyRef(StringN(Fixed(1))))
+    DefId(5) Var(TyRef(CharN(Fixed(3))))
+    DefId(6) Var(TyRef(CharN(Fixed(3))))
+    DefId(7) Var(TyRef(CharN(Fixed(3))))
+    DefId(8) Var(TyRef(CharN(Fixed(3))))
+error at 102..104: mismatched types
+| note for 91..99: initializer's type is incompatible with this type
+error at 126..129: mismatched types
+| note for 115..123: initializer's type is incompatible with this type
+error at 151..154: mismatched types
+| note for 140..148: initializer's type is incompatible with this type
+error at 176..203: mismatched types
+| note for 165..173: initializer's type is incompatible with this type

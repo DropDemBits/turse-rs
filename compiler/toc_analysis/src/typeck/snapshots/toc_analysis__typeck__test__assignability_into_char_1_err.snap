@@ -1,0 +1,14 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : char(N) := c5\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(CharN(Fixed(5)))
+    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(CharN(Fixed(5))))
+    DefId(2) Var(TyRef(CharN(Fixed(1))))
+error at 53..56: mismatched types
+| note for 42..50: initializer's type is incompatible with this type
