@@ -1130,11 +1130,15 @@ fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
     );
 
     // false_branch
-    match_token!(|p| match {
-        TokenKind::Else => { else_stmt(p, false); }
-        TokenKind::Elseif, TokenKind::Elsif, TokenKind::Elif => { elseif_stmt(p, false); }
-        _ => { /* no false branch */ }
-    });
+    // Only show "canonical" versions of tokens
+    if p.at(TokenKind::Else) {
+        else_stmt(p, false);
+    } else if p.at_hidden(TokenKind::Elseif)
+        || p.at_hidden(TokenKind::Elif)
+        || p.at(TokenKind::Elsif)
+    {
+        elseif_stmt(p, false);
+    }
 
     Some(m.complete(p, SyntaxKind::IfBody))
 }
@@ -1144,8 +1148,8 @@ fn elseif_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
 
     let m = p.start();
 
-    if p.at(TokenKind::Elseif) || p.at(TokenKind::Elif) {
-        // `elsif` is blessed version
+    if p.at(TokenKind::Elseif) || p.at_hidden(TokenKind::Elif) {
+        // `elsif` is canonical version
         p.warn_alias("‘elsif’");
         p.bump();
     } else {
@@ -1621,7 +1625,8 @@ fn stmt_list(p: &mut Parser, excluding: Option<&[TokenKind]>) -> Option<Complete
 fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
     let m = p.start();
 
-    if combined.map(|kind| p.at(kind)).unwrap_or(false) {
+    // combined isn't the canonical version, so don't show it to the world
+    if combined.map(|kind| p.at_hidden(kind)).unwrap_or(false) {
         let tail_text = match tail {
             TokenKind::If => "if",
             TokenKind::Case => "case",

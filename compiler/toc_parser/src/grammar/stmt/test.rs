@@ -1829,7 +1829,7 @@ fn recover_if_stmt_missing_end() {
                     KwThen@8..12 "then"
                     StmtList@12..12
                   EndGroup@12..12
-            error at 8..12: expected ‘else’, ‘elseif’, ‘elsif’, ‘elif’, ‘endif’ or ‘end’ after here"#]],
+            error at 8..12: expected ‘else’, ‘elsif’ or ‘end’ after here"#]],
     );
 }
 
@@ -2040,7 +2040,7 @@ fn recover_if_stmt_multiple_elses() {
                             Whitespace@26..27 " "
                             KwIf@27..29 "if"
                   EndGroup@29..29
-            error at 27..29: expected ‘endif’ or ‘end’ after here"#]],
+            error at 27..29: expected ‘end’ after here"#]],
     );
 }
 
@@ -2838,7 +2838,7 @@ fn recover_just_loop() {
                       EndGroup@11..14
                         KwEnd@11..14 "end"
                   EndGroup@14..14
-            error at 11..14: expected ‘endloop’ or ‘end’ after here"#]],
+            error at 11..14: expected ‘end’ after here"#]],
     );
 }
 
@@ -9121,7 +9121,7 @@ fn recover_on_include() {
                           StringLiteral@12..24 "\"still_here\""
                   EndGroup@24..24
             error at 4..11: expected identifier or ‘:’, but found ‘include’
-            error at 12..24: expected ‘endfor’ or ‘end’ after here"#]],
+            error at 12..24: expected ‘end’ after here"#]],
     )
 }
 
