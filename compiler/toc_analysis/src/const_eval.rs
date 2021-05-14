@@ -278,9 +278,6 @@ impl InnerCtx {
         let mut operand_stack = vec![];
 
         loop {
-            eprintln!("> {:?}", eval_stack);
-            eprintln!("? {:?}", operand_stack);
-
             let local_expr = match eval_stack.pop() {
                 Some(Eval::Expr(expr)) => expr,
                 Some(Eval::Op(op, span)) => {
@@ -383,8 +380,6 @@ impl InnerCtx {
                 }
             }
         }
-
-        eprintln!("Operand Stack: {:?}", operand_stack);
 
         // Should be one value remaining
         let result = operand_stack

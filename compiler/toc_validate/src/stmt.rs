@@ -409,7 +409,7 @@ pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut Valida
 }
 
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
-    if !dbg!(block_containing_node(node)).is_module_kind() {
+    if !block_containing_node(node).is_module_kind() {
         ctx.push_error(
             &format!("{} is only allowed in module-like blocks", kind),
             node.text_range(),
@@ -418,7 +418,7 @@ pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut V
 }
 
 pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
-    if !dbg!(block_containing_node(node)).is_top_level() {
+    if !block_containing_node(node).is_top_level() {
         ctx.push_error(
             &format!("{} is only allowed at module-like or program level", kind),
             node.text_range(),
