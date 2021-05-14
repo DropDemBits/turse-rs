@@ -20,11 +20,22 @@ pub(super) fn ty_primitive(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::Addressint,
         TokenKind::Boolean,
-        TokenKind::Int, TokenKind::Int1, TokenKind::Int2, TokenKind::Int4,
-        TokenKind::Nat, TokenKind::Nat1, TokenKind::Nat2, TokenKind::Nat4,
-        TokenKind::Real, TokenKind::Real4, TokenKind::Real8 => { prim_type(p) }
-        TokenKind::Char => { prim_charseq_type(p, TokenKind::Char) }
-        TokenKind::String_ => { prim_charseq_type(p, TokenKind::String_) }
+        // Ints
+        TokenKind::Int,
+        TokenKind::Int1,
+        TokenKind::Int2,
+        TokenKind::Int4,
+        // Nats
+        TokenKind::Nat,
+        TokenKind::Nat1,
+        TokenKind::Nat2,
+        TokenKind::Nat4,
+        // Reals
+        TokenKind::Real,
+        TokenKind::Real4,
+        TokenKind::Real8 => prim_type(p),
+        TokenKind::Char => prim_charseq_type(p, TokenKind::Char),
+        TokenKind::String_ => prim_charseq_type(p, TokenKind::String_),
         _ => None // Not a primitive type
     })
 }
@@ -33,22 +44,22 @@ fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker>
     ty_primitive(p).or_else(|| {
         match_token!(|p| match {
             TokenKind::Flexible,
-            TokenKind::Array => { array_type(p) } // array_type
-            TokenKind::Enum => { enum_type(p) } // enum_type
+            TokenKind::Array => array_type(p), // array_type
+            TokenKind::Enum => enum_type(p), // enum_type
             TokenKind::Unchecked,
-            TokenKind::Pointer => { pointer_type(p) } // pointer_type
-            TokenKind::Caret => { short_pointer_type(p) } // pointer_type (short form)
-            TokenKind::Set => { set_type(p) } // set_type
+            TokenKind::Pointer => pointer_type(p), // pointer_type
+            TokenKind::Caret => short_pointer_type(p), // pointer_type (short form)
+            TokenKind::Set => set_type(p), // set_type
             TokenKind::Procedure,
-            TokenKind::Function => { subprog_type(p) } // subprog_type
-            TokenKind::Record => { record_type(p) } // record_type
-            TokenKind::Union => { union_type(p) } // union_type
-            TokenKind::Packed => { packed_type(p) }
-            TokenKind::Collection => { collection_type(p) } // collection_type
+            TokenKind::Function => subprog_type(p), // subprog_type
+            TokenKind::Record => record_type(p), // record_type
+            TokenKind::Union => union_type(p), // union_type
+            TokenKind::Packed => packed_type(p),
+            TokenKind::Collection => collection_type(p), // collection_type
             TokenKind::Priority,
             TokenKind::Deferred,
             TokenKind::Timeout,
-            TokenKind::Condition => { condition_type(p) } // condition_type
+            TokenKind::Condition => condition_type(p), // condition_type
             _ => {
                 if allow_ty_expr {
                     expr::expr(p).and_then(|cm| {
@@ -420,12 +431,8 @@ fn packed_type(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     match_token!(|p| match {
-        TokenKind::Record => {
-            record_type_tail(p, m)
-        }
-        TokenKind::Union => {
-            union_type_tail(p, m)
-        }
+        TokenKind::Record => record_type_tail(p, m),
+        TokenKind::Union => union_type_tail(p, m),
         _ => {
             // Unexpected type
             p.error_unexpected().with_marker(m).report();

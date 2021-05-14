@@ -208,12 +208,12 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
 fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
     match_token! {
         |p| match {
-            TokenKind::Identifier => { name_expr(p) }
-            TokenKind::Self_ => { self_expr(p) }
-            TokenKind::Bits => { bits_expr(p) }
-            TokenKind::ObjectClass => { objclass_expr(p) }
-            TokenKind::Cheat => { cheat_expr(p) }
-            TokenKind::SizeOf => { sizeof_expr(p) }
+            TokenKind::Identifier => name_expr(p),
+            TokenKind::Self_ => self_expr(p),
+            TokenKind::Bits => bits_expr(p),
+            TokenKind::ObjectClass => objclass_expr(p),
+            TokenKind::Cheat => cheat_expr(p),
+            TokenKind::SizeOf => sizeof_expr(p),
             _ => {
                 // Try parsing an indirect expr primitive,
                 // or otherwise a primary expression
@@ -257,10 +257,10 @@ fn primary(p: &mut Parser) -> Option<CompletedMarker> {
         TokenKind::StringLiteral,
         TokenKind::CharLiteral,
         TokenKind::True,
-        TokenKind::False => { literal_expr(p) }
-        TokenKind::LeftParen => { paren_expr(p) }
-        TokenKind::Init => { init_expr(p) }
-        TokenKind::Nil => { nil_expr(p) }
+        TokenKind::False => literal_expr(p),
+        TokenKind::LeftParen => paren_expr(p),
+        TokenKind::Init => init_expr(p),
+        TokenKind::Nil => nil_expr(p),
         _ => None
     })
 }
@@ -483,8 +483,8 @@ fn indirect_expr_tail(p: &mut Parser, lhs: CompletedMarker) -> CompletedMarker {
 
 fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<PrefixOp> {
     let ref_prefix_ops = match_token!(|p| match {
-        TokenKind::Caret => { Some(PrefixOp::Deref) }
-        TokenKind::Pound => { Some(PrefixOp::NatCheat) }
+        TokenKind::Caret => Some(PrefixOp::Deref),
+        TokenKind::Pound => Some(PrefixOp::NatCheat),
         _ => None,
     });
 
@@ -497,9 +497,9 @@ fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<PrefixOp> {
     ref_prefix_ops.or_else(|| {
         Some(match_token!(|p| match {
             TokenKind::Tilde,
-            TokenKind::Not => { PrefixOp::Not }
-            TokenKind::Plus => { PrefixOp::Identity }
-            TokenKind::Minus => { PrefixOp::Negate }
+            TokenKind::Not => PrefixOp::Not,
+            TokenKind::Plus => PrefixOp::Identity,
+            TokenKind::Minus => PrefixOp::Negate,
             _ => return None,
         }))
     })
@@ -507,10 +507,10 @@ fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<PrefixOp> {
 
 fn infix_op(p: &mut Parser, min_infix_power: u8) -> Option<InfixOp> {
     let ref_infix_ops = match_token!(|p| match {
-        TokenKind::Dot => { Some(InfixOp::Dot) },
-        TokenKind::Arrow => { Some(InfixOp::Arrow) },
-        TokenKind::LeftParen => { Some(InfixOp::Call) },
-        _ => None,
+        TokenKind::Dot => Some(InfixOp::Dot),
+        TokenKind::Arrow => Some(InfixOp::Arrow),
+        TokenKind::LeftParen => Some(InfixOp::Call),
+        _ => None
     });
 
     if min_infix_power >= toc_syntax::MIN_REF_BINDING_POWER {
@@ -522,32 +522,30 @@ fn infix_op(p: &mut Parser, min_infix_power: u8) -> Option<InfixOp> {
     ref_infix_ops.or_else(|| {
         Some(match_token! {
             |p| match {
-                TokenKind::Imply => { InfixOp::Imply },
+                TokenKind::Imply => InfixOp::Imply,
                 TokenKind::Pipe,
-                TokenKind::Or => { InfixOp::Or }
+                TokenKind::Or => InfixOp::Or,
                 TokenKind::Ampersand,
-                TokenKind::And => { InfixOp::And }
-                TokenKind::Less => { InfixOp::Less }
-                TokenKind::Greater => { InfixOp::Greater }
-                TokenKind::Equ => { InfixOp::Equal }
-                TokenKind::LessEqu => { InfixOp::LessEq }
-                TokenKind::GreaterEqu => { InfixOp::GreaterEq }
-                TokenKind::In => { InfixOp::In }
+                TokenKind::And => InfixOp::And,
+                TokenKind::Less => InfixOp::Less,
+                TokenKind::Greater => InfixOp::Greater,
+                TokenKind::Equ => InfixOp::Equal,
+                TokenKind::LessEqu => InfixOp::LessEq,
+                TokenKind::GreaterEqu => InfixOp::GreaterEq,
+                TokenKind::In => InfixOp::In,
                 TokenKind::Tilde,
-                TokenKind::Not => {
-                    maybe_composite_not_op(p, min_infix_power)?
-                }
-                TokenKind::Plus => { InfixOp::Add }
-                TokenKind::Minus => { InfixOp::Sub }
-                TokenKind::Xor => { InfixOp::Xor }
-                TokenKind::Star => { InfixOp::Mul }
-                TokenKind::Slash => { InfixOp::RealDiv }
-                TokenKind::Div => { InfixOp::Div }
-                TokenKind::Mod => { InfixOp::Mod }
-                TokenKind::Rem => { InfixOp::Rem }
-                TokenKind::Shl => { InfixOp::Shl }
-                TokenKind::Shr => { InfixOp::Shr },
-                TokenKind::Exp => { InfixOp::Exp },
+                TokenKind::Not => maybe_composite_not_op(p, min_infix_power)?,
+                TokenKind::Plus => InfixOp::Add,
+                TokenKind::Minus => InfixOp::Sub,
+                TokenKind::Xor => InfixOp::Xor,
+                TokenKind::Star => InfixOp::Mul,
+                TokenKind::Slash => InfixOp::RealDiv,
+                TokenKind::Div => InfixOp::Div,
+                TokenKind::Mod => InfixOp::Mod,
+                TokenKind::Rem => InfixOp::Rem,
+                TokenKind::Shl => InfixOp::Shl,
+                TokenKind::Shr => InfixOp::Shr,
+                TokenKind::Exp => InfixOp::Exp,
                 _ => {
                     // Not an infix operator
                     return None;
@@ -575,12 +573,12 @@ pub(super) fn maybe_composite_not_op(p: &mut Parser, min_infix_power: u8) -> Opt
             p.bump(); // consume "in"
             m.complete(p, SyntaxKind::NotIn); // make NotIn node
             InfixOp::NotIn
-        },
+        }
         TokenKind::Equ => {
             p.bump(); // consume "="
             m.complete(p, SyntaxKind::NotEq); // make NotEq node
             InfixOp::NotEqual
-        },
+        }
         _ => {
             // "not" / "~" is not allowed as an infix operator
             p.error_unexpected()

@@ -8456,7 +8456,7 @@ fn recover_just_inherit() {
                 InheritStmt@0..7
                   KwInherit@0..7 "inherit"
                   ExternalItem@7..7
-            error at 0..7: expected ‘(’, string literal or identifier after here"#]],
+            error at 0..7: expected string literal or identifier after here"#]],
     );
 }
 
@@ -8604,7 +8604,7 @@ fn recover_just_implement() {
                 ImplementStmt@0..9
                   KwImplement@0..9 "implement"
                   ExternalItem@9..9
-            error at 0..9: expected ‘by’, ‘(’, string literal or identifier after here"#]],
+            error at 0..9: expected ‘by’, string literal or identifier after here"#]],
     );
 }
 

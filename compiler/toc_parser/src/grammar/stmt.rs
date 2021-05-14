@@ -14,62 +14,62 @@ pub(super) fn stmt(p: &mut Parser) -> Option<CompletedMarker> {
                 while p.eat(TokenKind::Semicolon) {}
                 None
             }
-            TokenKind::Var => { const_var_decl(p) }
-            TokenKind::Const => { const_var_decl(p) }
-            TokenKind::Type => { type_decl(p) }
-            TokenKind::Bind => { bind_decl(p) }
-            TokenKind::Procedure => { procedure_decl(p) }
-            TokenKind::Function => { function_decl(p) }
-            TokenKind::Process => { process_decl(p) }
-            TokenKind::External => { external_decl(p) }
-            TokenKind::Forward => { forward_decl(p) }
-            TokenKind::Deferred => { deferred_decl(p) }
-            TokenKind::Body => { body_decl(p) }
-            TokenKind::Module => { module_decl(p) }
-            TokenKind::Class => { class_decl(p) }
-            TokenKind::Monitor => { monitor_decl(p) }
+            TokenKind::Var => const_var_decl(p),
+            TokenKind::Const => const_var_decl(p),
+            TokenKind::Type => type_decl(p),
+            TokenKind::Bind => bind_decl(p),
+            TokenKind::Procedure => procedure_decl(p),
+            TokenKind::Function => function_decl(p),
+            TokenKind::Process => process_decl(p),
+            TokenKind::External => external_decl(p),
+            TokenKind::Forward => forward_decl(p),
+            TokenKind::Deferred => deferred_decl(p),
+            TokenKind::Body => body_decl(p),
+            TokenKind::Module => module_decl(p),
+            TokenKind::Class => class_decl(p),
+            TokenKind::Monitor => monitor_decl(p),
 
-            TokenKind::Open => { open_stmt(p) }
-            TokenKind::Close => { close_stmt(p) }
-            TokenKind::Put => { put_stmt(p) }
-            TokenKind::Get => { get_stmt(p) }
-            TokenKind::Read => { read_stmt(p) }
-            TokenKind::Write => { write_stmt(p) }
-            TokenKind::Seek => { seek_stmt(p) }
-            TokenKind::Tell => { tell_stmt(p) }
-            TokenKind::For =>{ for_stmt(p) }
-            TokenKind::Loop =>{ loop_stmt(p) }
-            TokenKind::Exit =>{ exit_stmt(p) }
-            TokenKind::If => { if_stmt(p) }
+            TokenKind::Open => open_stmt(p),
+            TokenKind::Close => close_stmt(p),
+            TokenKind::Put => put_stmt(p),
+            TokenKind::Get => get_stmt(p),
+            TokenKind::Read => read_stmt(p),
+            TokenKind::Write => write_stmt(p),
+            TokenKind::Seek => seek_stmt(p),
+            TokenKind::Tell => tell_stmt(p),
+            TokenKind::For => for_stmt(p),
+            TokenKind::Loop => loop_stmt(p),
+            TokenKind::Exit => exit_stmt(p),
+            TokenKind::If => if_stmt(p),
             TokenKind::Elif,
             TokenKind::Elsif,
-            TokenKind::Elseif => { elseif_stmt(p, true) } // recovery parse
-            TokenKind::Else => { else_stmt(p, true) } // recovery parse
-            TokenKind::Case =>{ case_stmt(p) }
-            TokenKind::Begin => { block_stmt(p) }
-            TokenKind::Invariant => { stmt_with_expr(p, TokenKind::Invariant, SyntaxKind::InvariantStmt) }
-            TokenKind::Assert => { stmt_with_expr(p, TokenKind::Assert, SyntaxKind::AssertStmt) }
-            TokenKind::Return => { stmt_only_kw(p, TokenKind::Return, SyntaxKind::ReturnStmt) }
-            TokenKind::Result_ => { stmt_with_expr(p, TokenKind::Result_, SyntaxKind::ResultStmt) }
-            TokenKind::New => { heap_stmt(p, SyntaxKind::NewStmt) }
-            TokenKind::Free => { heap_stmt(p, SyntaxKind::FreeStmt) }
-            TokenKind::Tag => { tag_stmt(p) }
-            TokenKind::Fork => { fork_stmt(p) }
-            TokenKind::Signal => { stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt) }
-            TokenKind::Pause => { stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt) }
-            TokenKind::Wait => { wait_stmt(p) }
-            TokenKind::Quit => { quit_stmt(p) }
-            TokenKind::Break => { stmt_only_kw(p, TokenKind::Break, SyntaxKind::BreakStmt) }
-            TokenKind::Checked => { stmt_only_kw(p, TokenKind::Checked, SyntaxKind::CheckednessStmt) }
-            TokenKind::Unchecked => { stmt_only_kw(p, TokenKind::Unchecked, SyntaxKind::CheckednessStmt) }
-            TokenKind::Pre => { stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt) }
-            TokenKind::Init => { init_stmt(p) }
-            TokenKind::Post => { stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt) }
-            TokenKind::Handler => { handler_stmt(p) }
-            TokenKind::Inherit => { inherit_stmt(p) }
-            TokenKind::Implement => { implement_stmt(p) }
-            TokenKind::Import => { import_stmt(p) }
-            TokenKind::Export => { export_stmt(p) }
+            TokenKind::Elseif => elseif_stmt(p, true), // recovery parse
+            TokenKind::Else => else_stmt(p, true), // recovery parse
+            TokenKind::Case => case_stmt(p),
+            TokenKind::Begin => block_stmt(p),
+            TokenKind::Invariant => stmt_with_expr(p, TokenKind::Invariant, SyntaxKind::InvariantStmt),
+            TokenKind::Assert => stmt_with_expr(p, TokenKind::Assert, SyntaxKind::AssertStmt),
+            TokenKind::Return => stmt_only_kw(p, TokenKind::Return, SyntaxKind::ReturnStmt),
+            TokenKind::Result_ => stmt_with_expr(p, TokenKind::Result_, SyntaxKind::ResultStmt),
+            TokenKind::New => heap_stmt(p, SyntaxKind::NewStmt),
+            TokenKind::Free => heap_stmt(p, SyntaxKind::FreeStmt),
+            TokenKind::Tag => tag_stmt(p),
+            TokenKind::Fork => fork_stmt(p),
+            TokenKind::Signal => stmt_with_expr(p, TokenKind::Signal, SyntaxKind::SignalStmt),
+            TokenKind::Pause => stmt_with_expr(p, TokenKind::Pause, SyntaxKind::PauseStmt),
+            TokenKind::Wait => wait_stmt(p),
+            TokenKind::Quit => quit_stmt(p),
+            TokenKind::Break => stmt_only_kw(p, TokenKind::Break, SyntaxKind::BreakStmt),
+            TokenKind::Checked => stmt_only_kw(p, TokenKind::Checked, SyntaxKind::CheckednessStmt),
+            TokenKind::Unchecked => stmt_only_kw(p, TokenKind::Unchecked, SyntaxKind::CheckednessStmt),
+            TokenKind::Pre => stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt),
+            TokenKind::Init => init_stmt(p),
+            TokenKind::Post => stmt_with_expr(p, TokenKind::Post, SyntaxKind::PostStmt),
+            TokenKind::Handler => handler_stmt(p),
+            TokenKind::Inherit => inherit_stmt(p),
+            TokenKind::Implement => implement_stmt(p),
+            TokenKind::Import => import_stmt(p),
+            TokenKind::Export => export_stmt(p),
             TokenKind::End,
             TokenKind::EndIf,
             TokenKind::EndFor,
@@ -139,63 +139,65 @@ fn stmt_only_kw(
 }
 
 fn parse_asn_op(p: &mut Parser) -> Option<CompletedMarker> {
-    if p.at_hidden(TokenKind::Equ) {
-        // Simple assignment, but mistyped `=` instead of `:=`
-        p.warn_alias("‘:=’");
+    match_token! {|p| match {
+        [hidden] TokenKind::Equ => {
+            // Simple assignment, but mistyped `=` instead of `:=`
+            p.warn_alias("‘:=’");
 
-        let m = p.start();
-        p.bump(); // bump `=`
-        return Some(m.complete(p, SyntaxKind::AsnOp));
-    }
-
-    if p.at(TokenKind::Assign) {
-        // Simple assignment
-        let m = p.start();
-        p.bump(); // bump `:=`
-        Some(m.complete(p, SyntaxKind::AsnOp))
-    } else {
-        // Compound assignment
-        let valid_asn_op = match_token!(|p| match {
-            TokenKind::Imply => { true }
-            TokenKind::Or => { true }
-            TokenKind::Pipe => { true }
-            TokenKind::And => { true }
-            TokenKind::Ampersand => { true }
-            TokenKind::Plus => { true }
-            TokenKind::Minus => { true }
-            TokenKind::Xor => { true }
-            TokenKind::Star => { true }
-            TokenKind::Slash => { true }
-            TokenKind::Div => { true }
-            TokenKind::Mod => { true }
-            TokenKind::Rem => { true }
-            TokenKind::Shl => { true }
-            TokenKind::Shr => { true }
-            TokenKind::Exp => { true }
-            _ => false,
-        });
-
-        if !valid_asn_op {
-            // abandon parsing as compound op
-            return None;
+            let m = p.start();
+            p.bump(); // bump `=`
+            Some(m.complete(p, SyntaxKind::AsnOp))
         }
-
-        let m = p.start();
-
-        // bump operator
-        p.bump();
-
-        if !p.at(TokenKind::Equ) {
-            // not a valid asn op, missing equ
-            // wrap inside of an error node
-            p.error_unexpected().with_marker(m).report();
-            return None;
+        TokenKind::Assign => {
+            // Simple assignment
+            let m = p.start();
+            p.bump(); // bump `:=`
+            Some(m.complete(p, SyntaxKind::AsnOp))
         }
+        _ => {
+            // Compound assignment
+            let valid_asn_op = match_token!(|p| match {
+                TokenKind::Imply => true,
+                TokenKind::Or => true,
+                TokenKind::Pipe => true,
+                TokenKind::And => true,
+                TokenKind::Ampersand => true,
+                TokenKind::Plus => true,
+                TokenKind::Minus => true,
+                TokenKind::Xor => true,
+                TokenKind::Star => true,
+                TokenKind::Slash => true,
+                TokenKind::Div => true,
+                TokenKind::Mod => true,
+                TokenKind::Rem => true,
+                TokenKind::Shl => true,
+                TokenKind::Shr => true,
+                TokenKind::Exp => true,
+                _ => false,
+            });
 
-        // bump equ
-        p.bump();
-        Some(m.complete(p, SyntaxKind::AsnOp))
-    }
+            if !valid_asn_op {
+                // abandon parsing as compound op
+                return None;
+            }
+
+            let m = p.start();
+
+            // bump operator
+            p.bump();
+
+            if !p.at(TokenKind::Equ) {
+                // not a valid asn op, missing equ
+                // wrap inside of an error node
+                p.error_unexpected().with_marker(m).report();
+                return None;
+            }
+
+            // bump equ
+            p.bump();
+            Some(m.complete(p, SyntaxKind::AsnOp))
+        }
+    }}
 }
 
 // Decls //
@@ -229,7 +231,7 @@ fn const_var_decl(p: &mut Parser) -> Option<CompletedMarker> {
 
     // note when validating: if array is init-sized, then it should require 'init'
     // if type is implied, then init is not allowed
-    // refining error: for const, could say that initialzer is required
+    // refining error: for const, could say that initializer is required
     if p.at_hidden(TokenKind::Equ) {
         p.warn_alias("‘:=’");
         p.bump(); // bump `=`
@@ -462,12 +464,8 @@ fn external_decl(p: &mut Parser) -> Option<CompletedMarker> {
     p.reset_expected_tokens();
 
     match_token!(|p| match {
-        TokenKind::Function => {
-            fcn_header(p, true);
-        }
-        TokenKind::Procedure => {
-            proc_header(p);
-        }
+        TokenKind::Function => fcn_header(p, true),
+        TokenKind::Procedure => proc_header(p),
         TokenKind::Var => {
             let mut require_initializer = true;
             let m = p.start();
@@ -497,10 +495,11 @@ fn external_decl(p: &mut Parser) -> Option<CompletedMarker> {
                 p.error_unexpected().report();
             }
 
-            m.complete(p, SyntaxKind::ExternalVar);
+            Some(m.complete(p, SyntaxKind::ExternalVar))
         }
         _ => {
             p.error_unexpected().report();
+            None
         }
     });
 
@@ -514,12 +513,12 @@ fn forward_decl(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     match_token!(|p| match {
-        TokenKind::Function => { fcn_header(p, true); }
-        TokenKind::Procedure => { proc_header(p); }
+        TokenKind::Function => fcn_header(p, true),
+        TokenKind::Procedure => proc_header(p),
         _ => {
             // just 'forward' by itself
             p.error_unexpected().with_marker(m).report();
-            return None;
+            return None
         }
     });
 
@@ -537,12 +536,12 @@ fn deferred_decl(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     match_token!(|p| match {
-        TokenKind::Function => { fcn_header(p, true); }
-        TokenKind::Procedure => { proc_header(p); }
+        TokenKind::Function => fcn_header(p, true),
+        TokenKind::Procedure => proc_header(p),
         _ => {
             // just 'deferred' by itself
             p.error_unexpected().with_marker(m).report();
-            return None;
+            return None
         }
     });
 
@@ -555,8 +554,8 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
     p.bump();
 
     match_token!(|p| match {
-        TokenKind::Function => { fcn_header(p, false); }
-        TokenKind::Procedure => { proc_header(p); }
+        TokenKind::Function => fcn_header(p, false),
+        TokenKind::Procedure => proc_header(p),
         _ => {
             // Expect just param spec & result ty
             let m = p.start();
@@ -573,7 +572,7 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
             if p.at(TokenKind::Colon) || p.at(TokenKind::Identifier) {
                 fcn_result(p);
             }
-            m.complete(p,SyntaxKind::PlainHeader);
+            Some(m.complete(p,SyntaxKind::PlainHeader))
         }
     });
 
@@ -619,7 +618,7 @@ fn monitor_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    let as_class = p.eat(TokenKind::Class);
+    let as_class = p.hidden_eat(TokenKind::Class);
 
     attr_pervasive(p);
     super::name(p);
@@ -1131,14 +1130,15 @@ fn if_body(p: &mut Parser) -> Option<CompletedMarker> {
 
     // false_branch
     // Only show "canonical" versions of tokens
-    if p.at(TokenKind::Else) {
-        else_stmt(p, false);
-    } else if p.at_hidden(TokenKind::Elseif)
-        || p.at_hidden(TokenKind::Elif)
-        || p.at(TokenKind::Elsif)
-    {
-        elseif_stmt(p, false);
-    }
+    match_token! {
+        |p| match {
+            TokenKind::Else => else_stmt(p, false),
+            TokenKind::Elsif,
+            [hidden] TokenKind::Elseif,
+            [hidden] TokenKind::Elif => elseif_stmt(p, false),
+            _ => { None } // No tail
+        }
+    };
 
     Some(m.complete(p, SyntaxKind::IfBody))
 }
@@ -1528,9 +1528,11 @@ fn export_item(p: &mut Parser) -> Option<CompletedMarker> {
 /// Parses thing but surrounded by optional parens.
 /// Handles requiring the right paren if left paren is encountered
 fn with_opt_parens(p: &mut Parser, require_something: bool, thing: impl FnOnce(&mut Parser)) {
-    let require_parens = p.eat(TokenKind::LeftParen);
+    // Use `hidden_eat` and `at_hidden` so that the optional tokens
+    // don't pollute the expected list
+    let require_parens = p.hidden_eat(TokenKind::LeftParen);
 
-    if require_something || !p.at(TokenKind::RightParen) {
+    if require_something || !p.at_hidden(TokenKind::RightParen) {
         p.with_extra_recovery(&[TokenKind::RightParen], |p| {
             thing(p);
         });
@@ -1647,44 +1649,36 @@ fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
 
 fn attr_pervasive(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
-        TokenKind::Pervasive,
-        TokenKind::Star => {
+        [hidden] TokenKind::Pervasive,
+        [hidden] TokenKind::Star => {
             let m = p.start();
             p.bump();
             Some(m.complete(p, SyntaxKind::PervasiveAttr))
         }
-        _ => {
-            // dont clog up the expected tokens with the attributes
-            p.reset_expected_tokens();
-            None
-        }
+        _ => None
     })
 }
 
 fn attr_unqualified(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
-        TokenKind::Unqualified => {
+        [hidden] TokenKind::Unqualified => {
             let m = p.start();
             p.bump();
             Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
         }
-        TokenKind::Tilde => {
+        [hidden] TokenKind::Tilde => {
             // '~' '.'
             let m = p.start();
             p.bump();
 
             if !p.eat(TokenKind::Dot) {
                 p.error_unexpected().with_marker(m).report();
-                None
-            } else {
-                Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
+                return None;
             }
+
+            Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
         }
-        _ => {
-            // dont clog up the expected tokens with the attributes
-            p.reset_expected_tokens();
-            None
-        }
+        _ => None
     })
 }
 
@@ -1692,16 +1686,12 @@ macro_rules! make_single_attr {
     ($i:ident, $tk:expr, $kind:expr ) => {
         fn $i(p: &mut Parser) -> Option<CompletedMarker> {
             match_token!(|p| match {
-                $tk => {
+                [hidden] $tk => {
                     let m = p.start();
                     p.bump();
                     Some(m.complete(p, $kind))
                 }
-                _ => {
-                    // dont clog up the expected tokens with the attributes
-                    p.reset_expected_tokens();
-                    None
-                }
+                _ => None
             })
         }
     };
@@ -1714,21 +1704,12 @@ make_single_attr!(attr_forward, TokenKind::Forward, SyntaxKind::ForwardAttr);
 make_single_attr!(attr_opaque, TokenKind::Opaque, SyntaxKind::OpaqueAttr);
 
 fn at_stmt_block_end(p: &mut Parser) -> bool {
-    let at_block_end = match_token!(|p| match {
-        TokenKind::End,
-        TokenKind::EndIf,
-        TokenKind::EndCase,
-        TokenKind::EndFor,
-        TokenKind::EndLoop => {
-            true
-        }
-        _ => {
-            false
-        }
-    });
-
-    // hide the checks
-    p.reset_expected_tokens();
-
-    at_block_end
+    match_token!(|p| match {
+        [hidden] TokenKind::End,
+        [hidden] TokenKind::EndIf,
+        [hidden] TokenKind::EndCase,
+        [hidden] TokenKind::EndFor,
+        [hidden] TokenKind::EndLoop => true,
+        _ => false,
+    })
 }

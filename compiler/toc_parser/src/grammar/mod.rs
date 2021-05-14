@@ -1,5 +1,8 @@
 //! Grammar parsing
 #![allow(clippy::unnecessary_wraps)] // Simplifies top level grammar entry points
+// both of these due to macro expansion
+#![allow(clippy::needless_bool)]
+#![allow(unused_braces)]
 
 // All parsed items
 
@@ -95,16 +98,98 @@
 // - collection_type
 // - condition_type
 
-/// Helper for matching tokens
+/// Helper for matching tokens.
+///
+/// Prepending `[hidden]` before a token to match
+/// (e.g. `[hidden] TokenKind::Elseif`) ensures that the token
+/// is not added to the list of expected tokens.
 macro_rules! match_token {
-    (|$parser:ident| match {
-        $($($tok:expr),+ => $action:block $(,)?)+
-        _ => $otherwise:expr $(,)?
-    }) => {
-        match () {
-            $( _ if $($parser.at($tok) || )+ false => $action )+
-            _ => $otherwise
+    (|$parser:ident| match { $($inner:tt)* }) => {
+        __match_token!(@init ($parser) { $($inner)* })
+    };
+}
+
+macro_rules! __match_token {
+    (@init ($p:ident) { $($other:tt)* }) => {
+        __match_token!(@expand ($p) [false] { $($other)* })
+    };
+    (@expand ($p:ident) [$_unused:expr] { _ => $otherwise:expr $(,)? }) => {
+        { $otherwise }
+    };
+    // Carry through tail `=>`
+    (@expand ($p:ident) [$current:expr] { $tok:expr => $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current || __match_token!(@at ($p) $tok)]
+            { => $($other)* }
+        )
+    };
+    (@expand ($p:ident) [$current:expr] { [hidden] $tok:expr => $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current || __match_token!(@at_hidden ($p) $tok)]
+            { => $($other)* }
+        )
+    };
+    // Or, expand token list
+    (@expand ($p:ident) [$current:expr] { $tok:expr, $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current || __match_token!(@at ($p) $tok)]
+            { $($other)* }
+        )
+    };
+    (@expand ($p:ident) [$current:expr] { [hidden] $tok:expr, $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current || __match_token!(@at_hidden ($p) $tok)]
+            { $($other)* }
+        )
+    };
+
+    // Match groups of two
+    (@expand ($p:ident) [$current:expr] { $tok_a:expr, $tok_b:expr, $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current || __match_token!(@at ($p) $tok_a) || __match_token!(@at ($p) $tok_b)]
+            { $($other)* }
+        )
+    };
+    // Match group of 3, with terminating tail
+    (@expand ($p:ident) [$current:expr] { $tok_a:expr, $tok_b:expr, $tok_c:expr => $($other:tt)* }) => {
+        __match_token!(
+            @expand ($p)
+            [$current
+                || __match_token!(@at ($p) $tok_a)
+                || __match_token!(@at ($p) $tok_b)
+                || __match_token!(@at ($p) $tok_c)
+            ]
+            { => $($other)* }
+        )
+    };
+    // Emit action
+    (@expand ($p:ident) [$match_toks:expr] { => $action:expr, $($other:tt)* }) => {
+        if $match_toks {
+            $action
+        } else {
+            __match_token!(@expand ($p) [false] { $($other)* })
         }
+
+    };
+    (@expand ($p:ident) [$match_toks:expr] { => $action:block $($other:tt)* }) => {
+        if $match_toks {
+            $action
+        } else {
+            __match_token!(@expand ($p) [false] { $($other)* })
+        }
+
+    };
+    // Conditions
+    (@at ($p:ident) $tok:expr) => {
+        $p.at($tok)
+    };
+    (@at_hidden ($p:ident) $tok:expr) => {
+        $p.at_hidden($tok)
     };
 }
 
@@ -233,10 +318,10 @@ pub(self) fn param_spec(p: &mut Parser) -> Option<CompletedMarker> {
 pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
         TokenKind::Function,
-        TokenKind::Procedure => { ty::subprog_type(p) }
+        TokenKind::Procedure => ty::subprog_type(p),
         TokenKind::Var,
         TokenKind::Register,
-        TokenKind::Identifier => { ty::constvar_param(p) }
+        TokenKind::Identifier => ty::constvar_param(p),
         _ => {
             // not a thing
             None

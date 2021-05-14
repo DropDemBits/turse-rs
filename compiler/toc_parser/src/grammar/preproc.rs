@@ -11,13 +11,13 @@ use super::*;
 /// Only preprocessor conditionals and 'include' are allowed
 pub(super) fn stmt_preproc(p: &mut Parser) -> Option<CompletedMarker> {
     match_token!(|p| match {
-        TokenKind::PreprocIf => { if_preproc(p) }
+        TokenKind::PreprocIf => if_preproc(p),
         TokenKind::PreprocElseIf,
-        TokenKind::PreprocElsIf => { elseif_preproc(p, true) } // recovery
-        TokenKind::PreprocElse => { else_preproc(p, true) } // recovery
+        TokenKind::PreprocElsIf => elseif_preproc(p, true), // recovery
+        TokenKind::PreprocElse => else_preproc(p, true), // recovery
         TokenKind::PreprocEnd,
-        TokenKind::PreprocEndIf => { endif_preproc(p) } // recovery
-        TokenKind::Include => { include_preproc(p) },
+        TokenKind::PreprocEndIf => endif_preproc(p), // recovery
+        TokenKind::Include => include_preproc(p),
         _ => None
     })
     .map(|cm| cm.precede(p).complete(p, SyntaxKind::PreprocGlob))
@@ -85,10 +85,11 @@ fn if_body(p: &mut Parser) {
 
     // Eat other bit
     match_token!(|p| match {
-        TokenKind::PreprocElseIf, TokenKind::PreprocElsIf => { elseif_preproc(p, false); }
-        TokenKind::PreprocElse => { else_preproc(p, false); }
-        _ => {} // done
-    })
+        TokenKind::PreprocElseIf,
+        TokenKind::PreprocElsIf => elseif_preproc(p, false),
+        TokenKind::PreprocElse => else_preproc(p, false),
+        _ => { None } // done
+    });
 }
 
 fn else_preproc(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
@@ -202,13 +203,16 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
             p.bump();
             let m = m.complete(p, SyntaxKind::Name).precede(p);
             Some(m.complete(p, SyntaxKind::PPNameExpr))
-        },
+        }
         TokenKind::LeftParen => {
+            // match paren expr
             let m = p.start();
             p.bump();
+
             p.with_extra_recovery(&[TokenKind::RightParen], |p| {
                 preproc_expr(p);
             });
+
             p.expect_punct(TokenKind::RightParen);
             Some(m.complete(p, SyntaxKind::PPParenExpr))
         }
@@ -230,19 +234,19 @@ fn prefix(p: &mut Parser) -> Option<CompletedMarker> {
 }
 
 fn prefix_op(p: &mut Parser) -> Option<PrefixOp> {
-    Some(match_token!(|p| match {
+    match_token!(|p| match {
         TokenKind::Not,
-        TokenKind::Tilde => { PrefixOp::Not }
-        _ => return None
-    }))
+        TokenKind::Tilde => Some(PrefixOp::Not),
+        _ => None
+    })
 }
 
 fn infix_op(p: &mut Parser) -> Option<InfixOp> {
-    Some(match_token!(|p| match {
+    match_token!(|p| match {
         TokenKind::And,
-        TokenKind::Ampersand => { InfixOp::And }
+        TokenKind::Ampersand => Some(InfixOp::And),
         TokenKind::Or,
-        TokenKind::Pipe => { InfixOp::Or }
-        _ => return None
-    }))
+        TokenKind::Pipe => Some(InfixOp::Or),
+        _ => None
+    })
 }
