@@ -62,6 +62,7 @@ pub(crate) enum Expected {
     PreprocCondition,
     Statement,
     Type,
+    InfixOp,
 }
 
 impl fmt::Display for Expected {
@@ -71,6 +72,7 @@ impl fmt::Display for Expected {
             Self::PreprocCondition => "preprocessor condition",
             Self::Statement => "statement",
             Self::Type => "type specifier",
+            Self::InfixOp => "infix operator",
         })
     }
 }

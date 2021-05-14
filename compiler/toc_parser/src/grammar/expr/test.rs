@@ -3440,7 +3440,7 @@ fn recover_chained_indirect_tails() {
                     LiteralExpr@14..15
                       IntLiteral@14..15 "2"
                     RightParen@15..16 ")"
-            error at 11..12: expected ‘.’, ‘->’, ‘(’, ‘=>’, ‘|’, ‘or’, ‘&’, ‘and’, ‘<’, ‘>’, ‘=’, ‘<=’, ‘>=’, ‘in’, ‘~’, ‘not’, ‘+’, ‘-’, ‘xor’, ‘*’, ‘/’, ‘div’, ‘mod’, ‘rem’, ‘shl’, ‘shr’ or ‘**’, but found ‘@’"#]],
+            error at 11..12: expected infix operator, but found ‘@’"#]],
     );
 }
 

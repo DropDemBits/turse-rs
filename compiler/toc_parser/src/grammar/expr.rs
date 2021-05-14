@@ -132,7 +132,9 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             if p.at_hidden(TokenKind::At) {
                 // can't chain indirect expr tails
                 // outcome has been decided
-                p.error_unexpected().report();
+                p.error_unexpected()
+                    .with_category(Expected::InfixOp)
+                    .report();
             } else {
                 // It's probably the end of an expression, so dropped the acquired expected tokens
                 p.reset_expected_tokens();
