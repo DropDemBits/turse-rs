@@ -18,36 +18,36 @@ mod cond {
             expect![[r##"
                 Source@0..62
                   Whitespace@0..5 "\n    "
-                  StmtList@5..62
-                    PreprocGlob@5..62
-                      PPIf@5..62
+                  StmtList@5..57
+                    PreprocGlob@5..57
+                      PPIf@5..57
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
-                        PPNameExpr@9..11
-                          Name@9..11
+                        PPNameExpr@9..10
+                          Name@9..10
                             Identifier@9..10 "A"
-                            Whitespace@10..11 " "
+                        Whitespace@10..11 " "
                         KwThen@11..15 "then"
                         Whitespace@15..20 "\n    "
-                        PPTokenBody@20..50
-                          AssertStmt@20..36
+                        PPTokenBody@20..45
+                          AssertStmt@20..31
                             KwAssert@20..26 "assert"
                             Whitespace@26..27 " "
-                            LiteralExpr@27..36
+                            LiteralExpr@27..31
                               KwTrue@27..31 "true"
-                              Whitespace@31..36 "\n    "
-                          BlockStmt@36..50
+                          Whitespace@31..36 "\n    "
+                          BlockStmt@36..45
                             KwBegin@36..41 "begin"
                             Whitespace@41..42 " "
                             StmtList@42..42
-                            EndGroup@42..50
+                            EndGroup@42..45
                               KwEnd@42..45 "end"
-                              Whitespace@45..50 "\n    "
-                        PPEndIf@50..62
+                        Whitespace@45..50 "\n    "
+                        PPEndIf@50..57
                           PPKwEnd@50..54 "#end"
                           Whitespace@54..55 " "
                           KwIf@55..57 "if"
-                          Whitespace@57..62 "\n    ""##]],
+                  Whitespace@57..62 "\n    ""##]],
         );
     }
 
@@ -63,32 +63,32 @@ mod cond {
             expect![[r##"
                 Source@0..60
                   Whitespace@0..5 "\n    "
-                  StmtList@5..60
-                    PreprocGlob@5..60
-                      PPIf@5..60
+                  StmtList@5..55
+                    PreprocGlob@5..55
+                      PPIf@5..55
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
                         KwThen@9..13 "then"
                         Whitespace@13..18 "\n    "
-                        PPTokenBody@18..48
-                          AssertStmt@18..34
+                        PPTokenBody@18..43
+                          AssertStmt@18..29
                             KwAssert@18..24 "assert"
                             Whitespace@24..25 " "
-                            LiteralExpr@25..34
+                            LiteralExpr@25..29
                               KwTrue@25..29 "true"
-                              Whitespace@29..34 "\n    "
-                          BlockStmt@34..48
+                          Whitespace@29..34 "\n    "
+                          BlockStmt@34..43
                             KwBegin@34..39 "begin"
                             Whitespace@39..40 " "
                             StmtList@40..40
-                            EndGroup@40..48
+                            EndGroup@40..43
                               KwEnd@40..43 "end"
-                              Whitespace@43..48 "\n    "
-                        PPEndIf@48..60
+                        Whitespace@43..48 "\n    "
+                        PPEndIf@48..55
                           PPKwEnd@48..52 "#end"
                           Whitespace@52..53 " "
                           KwIf@53..55 "if"
-                          Whitespace@55..60 "\n    "
+                  Whitespace@55..60 "\n    "
                 error at 9..13: expected preprocessor condition, but found ‘then’"##]],
         );
     }
@@ -105,34 +105,34 @@ mod cond {
             expect![[r##"
                 Source@0..57
                   Whitespace@0..5 "\n    "
-                  StmtList@5..57
-                    PreprocGlob@5..57
-                      PPIf@5..57
+                  StmtList@5..52
+                    PreprocGlob@5..52
+                      PPIf@5..52
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
-                        PPNameExpr@9..15
-                          Name@9..15
+                        PPNameExpr@9..10
+                          Name@9..10
                             Identifier@9..10 "A"
-                            Whitespace@10..15 "\n    "
-                        PPTokenBody@15..45
-                          AssertStmt@15..31
+                        Whitespace@10..15 "\n    "
+                        PPTokenBody@15..40
+                          AssertStmt@15..26
                             KwAssert@15..21 "assert"
                             Whitespace@21..22 " "
-                            LiteralExpr@22..31
+                            LiteralExpr@22..26
                               KwTrue@22..26 "true"
-                              Whitespace@26..31 "\n    "
-                          BlockStmt@31..45
+                          Whitespace@26..31 "\n    "
+                          BlockStmt@31..40
                             KwBegin@31..36 "begin"
                             Whitespace@36..37 " "
                             StmtList@37..37
-                            EndGroup@37..45
+                            EndGroup@37..40
                               KwEnd@37..40 "end"
-                              Whitespace@40..45 "\n    "
-                        PPEndIf@45..57
+                        Whitespace@40..45 "\n    "
+                        PPEndIf@45..52
                           PPKwEnd@45..49 "#end"
                           Whitespace@49..50 " "
                           KwIf@50..52 "if"
-                          Whitespace@52..57 "\n    "
+                  Whitespace@52..57 "\n    "
                 error at 15..21: expected ‘then’, but found ‘assert’"##]],
         );
     }
@@ -148,31 +148,31 @@ mod cond {
             expect![[r##"
                 Source@0..50
                   Whitespace@0..5 "\n    "
-                  StmtList@5..50
-                    PreprocGlob@5..50
-                      PPIf@5..50
+                  StmtList@5..45
+                    PreprocGlob@5..45
+                      PPIf@5..45
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
-                        PPNameExpr@9..11
-                          Name@9..11
+                        PPNameExpr@9..10
+                          Name@9..10
                             Identifier@9..10 "A"
-                            Whitespace@10..11 " "
+                        Whitespace@10..11 " "
                         KwThen@11..15 "then"
                         Whitespace@15..20 "\n    "
-                        PPTokenBody@20..50
-                          AssertStmt@20..36
+                        PPTokenBody@20..45
+                          AssertStmt@20..31
                             KwAssert@20..26 "assert"
                             Whitespace@26..27 " "
-                            LiteralExpr@27..36
+                            LiteralExpr@27..31
                               KwTrue@27..31 "true"
-                              Whitespace@31..36 "\n    "
-                          BlockStmt@36..50
+                          Whitespace@31..36 "\n    "
+                          BlockStmt@36..45
                             KwBegin@36..41 "begin"
                             Whitespace@41..42 " "
                             StmtList@42..42
-                            EndGroup@42..50
+                            EndGroup@42..45
                               KwEnd@42..45 "end"
-                              Whitespace@45..50 "\n    "
+                  Whitespace@45..50 "\n    "
                 error at 45..50: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’ after here"##]],
         );
     }
@@ -191,52 +191,52 @@ mod cond {
             expect![[r##"
                 Source@0..97
                   Whitespace@0..5 "\n    "
-                  StmtList@5..97
-                    PreprocGlob@5..97
-                      PPIf@5..97
+                  StmtList@5..92
+                    PreprocGlob@5..92
+                      PPIf@5..92
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
-                        PPNameExpr@9..11
-                          Name@9..11
+                        PPNameExpr@9..10
+                          Name@9..10
                             Identifier@9..10 "A"
-                            Whitespace@10..11 " "
+                        Whitespace@10..11 " "
                         KwThen@11..15 "then"
                         Whitespace@15..20 "\n    "
-                        PPTokenBody@20..36
-                          AssertStmt@20..36
+                        PPTokenBody@20..31
+                          AssertStmt@20..31
                             KwAssert@20..26 "assert"
                             Whitespace@26..27 " "
-                            LiteralExpr@27..36
+                            LiteralExpr@27..31
                               KwTrue@27..31 "true"
-                              Whitespace@31..36 "\n    "
-                        PPElseif@36..85
+                        Whitespace@31..36 "\n    "
+                        PPElseif@36..80
                           PPKwElsif@36..42 "#elsif"
                           Whitespace@42..43 " "
-                          PPNameExpr@43..45
-                            Name@43..45
+                          PPNameExpr@43..44
+                            Name@43..44
                               Identifier@43..44 "B"
-                              Whitespace@44..45 " "
+                          Whitespace@44..45 " "
                           KwThen@45..49 "then"
                           Whitespace@49..54 "\n    "
-                          PPTokenBody@54..85
-                            AssertStmt@54..71
+                          PPTokenBody@54..80
+                            AssertStmt@54..66
                               KwAssert@54..60 "assert"
                               Whitespace@60..61 " "
-                              LiteralExpr@61..71
+                              LiteralExpr@61..66
                                 KwFalse@61..66 "false"
-                                Whitespace@66..71 "\n    "
-                            BlockStmt@71..85
+                            Whitespace@66..71 "\n    "
+                            BlockStmt@71..80
                               KwBegin@71..76 "begin"
                               Whitespace@76..77 " "
                               StmtList@77..77
-                              EndGroup@77..85
+                              EndGroup@77..80
                                 KwEnd@77..80 "end"
-                                Whitespace@80..85 "\n    "
-                        PPEndIf@85..97
+                        Whitespace@80..85 "\n    "
+                        PPEndIf@85..92
                           PPKwEnd@85..89 "#end"
                           Whitespace@89..90 " "
                           KwIf@90..92 "if"
-                          Whitespace@92..97 "\n    ""##]],
+                  Whitespace@92..97 "\n    ""##]],
         );
     }
 
@@ -256,69 +256,69 @@ mod cond {
             expect![[r##"
                 Source@0..132
                   Whitespace@0..5 "\n    "
-                  StmtList@5..132
-                    PreprocGlob@5..132
-                      PPIf@5..132
+                  StmtList@5..127
+                    PreprocGlob@5..127
+                      PPIf@5..127
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
-                        PPNameExpr@9..11
-                          Name@9..11
+                        PPNameExpr@9..10
+                          Name@9..10
                             Identifier@9..10 "A"
-                            Whitespace@10..11 " "
+                        Whitespace@10..11 " "
                         KwThen@11..15 "then"
                         Whitespace@15..20 "\n    "
-                        PPTokenBody@20..36
-                          AssertStmt@20..36
+                        PPTokenBody@20..31
+                          AssertStmt@20..31
                             KwAssert@20..26 "assert"
                             Whitespace@26..27 " "
-                            LiteralExpr@27..36
+                            LiteralExpr@27..31
                               KwTrue@27..31 "true"
-                              Whitespace@31..36 "\n    "
-                        PPElseif@36..120
+                        Whitespace@31..36 "\n    "
+                        PPElseif@36..115
                           PPKwElsif@36..42 "#elsif"
                           Whitespace@42..43 " "
-                          PPNameExpr@43..45
-                            Name@43..45
+                          PPNameExpr@43..44
+                            Name@43..44
                               Identifier@43..44 "B"
-                              Whitespace@44..45 " "
+                          Whitespace@44..45 " "
                           KwThen@45..49 "then"
                           Whitespace@49..54 "\n    "
-                          PPTokenBody@54..85
-                            AssertStmt@54..71
+                          PPTokenBody@54..80
+                            AssertStmt@54..66
                               KwAssert@54..60 "assert"
                               Whitespace@60..61 " "
-                              LiteralExpr@61..71
+                              LiteralExpr@61..66
                                 KwFalse@61..66 "false"
-                                Whitespace@66..71 "\n    "
-                            BlockStmt@71..85
+                            Whitespace@66..71 "\n    "
+                            BlockStmt@71..80
                               KwBegin@71..76 "begin"
                               Whitespace@76..77 " "
                               StmtList@77..77
-                              EndGroup@77..85
+                              EndGroup@77..80
                                 KwEnd@77..80 "end"
-                                Whitespace@80..85 "\n    "
-                          PPElseif@85..120
+                          Whitespace@80..85 "\n    "
+                          PPElseif@85..115
                             PPKwElseif@85..92 "#elseif"
                             Whitespace@92..93 " "
-                            PPNameExpr@93..95
-                              Name@93..95
+                            PPNameExpr@93..94
+                              Name@93..94
                                 Identifier@93..94 "C"
-                                Whitespace@94..95 " "
+                            Whitespace@94..95 " "
                             KwThen@95..99 "then"
                             Whitespace@99..104 "\n    "
-                            PPTokenBody@104..120
-                              PutStmt@104..120
+                            PPTokenBody@104..115
+                              PutStmt@104..115
                                 KwPut@104..107 "put"
                                 Whitespace@107..108 " "
-                                PutItem@108..120
-                                  LiteralExpr@108..120
+                                PutItem@108..115
+                                  LiteralExpr@108..115
                                     StringLiteral@108..115 "\"hello\""
-                                    Whitespace@115..120 "\n    "
-                        PPEndIf@120..132
+                        Whitespace@115..120 "\n    "
+                        PPEndIf@120..127
                           PPKwEnd@120..124 "#end"
                           Whitespace@124..125 " "
                           KwIf@125..127 "if"
-                          Whitespace@127..132 "\n    "
+                  Whitespace@127..132 "\n    "
                 warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
         );
     }
@@ -341,81 +341,81 @@ mod cond {
             expect![[r##"
                 Source@0..170
                   Whitespace@0..5 "\n    "
-                  StmtList@5..170
-                    PreprocGlob@5..170
-                      PPIf@5..170
+                  StmtList@5..165
+                    PreprocGlob@5..165
+                      PPIf@5..165
                         PPKwIf@5..8 "#if"
                         Whitespace@8..9 " "
-                        PPNameExpr@9..11
-                          Name@9..11
+                        PPNameExpr@9..10
+                          Name@9..10
                             Identifier@9..10 "A"
-                            Whitespace@10..11 " "
+                        Whitespace@10..11 " "
                         KwThen@11..15 "then"
                         Whitespace@15..20 "\n    "
-                        PPTokenBody@20..36
-                          AssertStmt@20..36
+                        PPTokenBody@20..31
+                          AssertStmt@20..31
                             KwAssert@20..26 "assert"
                             Whitespace@26..27 " "
-                            LiteralExpr@27..36
+                            LiteralExpr@27..31
                               KwTrue@27..31 "true"
-                              Whitespace@31..36 "\n    "
-                        PPElseif@36..158
+                        Whitespace@31..36 "\n    "
+                        PPElseif@36..153
                           PPKwElsif@36..42 "#elsif"
                           Whitespace@42..43 " "
-                          PPNameExpr@43..45
-                            Name@43..45
+                          PPNameExpr@43..44
+                            Name@43..44
                               Identifier@43..44 "B"
-                              Whitespace@44..45 " "
+                          Whitespace@44..45 " "
                           KwThen@45..49 "then"
                           Whitespace@49..54 "\n    "
-                          PPTokenBody@54..85
-                            AssertStmt@54..71
+                          PPTokenBody@54..80
+                            AssertStmt@54..66
                               KwAssert@54..60 "assert"
                               Whitespace@60..61 " "
-                              LiteralExpr@61..71
+                              LiteralExpr@61..66
                                 KwFalse@61..66 "false"
-                                Whitespace@66..71 "\n    "
-                            BlockStmt@71..85
+                            Whitespace@66..71 "\n    "
+                            BlockStmt@71..80
                               KwBegin@71..76 "begin"
                               Whitespace@76..77 " "
                               StmtList@77..77
-                              EndGroup@77..85
+                              EndGroup@77..80
                                 KwEnd@77..80 "end"
-                                Whitespace@80..85 "\n    "
-                          PPElseif@85..158
+                          Whitespace@80..85 "\n    "
+                          PPElseif@85..153
                             PPKwElseif@85..92 "#elseif"
                             Whitespace@92..93 " "
-                            PPNameExpr@93..95
-                              Name@93..95
+                            PPNameExpr@93..94
+                              Name@93..94
                                 Identifier@93..94 "C"
-                                Whitespace@94..95 " "
+                            Whitespace@94..95 " "
                             KwThen@95..99 "then"
                             Whitespace@99..104 "\n    "
-                            PPTokenBody@104..120
-                              PutStmt@104..120
+                            PPTokenBody@104..115
+                              PutStmt@104..115
                                 KwPut@104..107 "put"
                                 Whitespace@107..108 " "
-                                PutItem@108..120
-                                  LiteralExpr@108..120
+                                PutItem@108..115
+                                  LiteralExpr@108..115
                                     StringLiteral@108..115 "\"hello\""
-                                    Whitespace@115..120 "\n    "
-                            PPElse@120..158
+                            Whitespace@115..120 "\n    "
+                            PPElse@120..153
                               PPKwElse@120..125 "#else"
                               Whitespace@125..130 "\n    "
-                              PPTokenBody@130..158
-                                PutStmt@130..158
+                              PPTokenBody@130..153
+                                PutStmt@130..153
                                   KwPut@130..133 "put"
                                   Whitespace@133..134 " "
                                   PutItem@134..151
                                     LiteralExpr@134..151
                                       StringLiteral@134..151 "\"actually exec\'d\""
                                   Range@151..153 ".."
-                                  Whitespace@153..158 "\n    "
-                        PPEndIf@158..170
+                        Whitespace@153..158 "\n    "
+                        PPEndIf@158..165
                           PPKwEnd@158..162 "#end"
                           Whitespace@162..163 " "
                           KwIf@163..165 "if"
-                          Whitespace@165..170 "\n    "
+                  Whitespace@165..170 "\n    "
                 warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
         );
     }
@@ -432,30 +432,30 @@ mod cond {
             expect![[r##"
                 Source@0..47
                   Whitespace@0..5 "\n    "
-                  StmtList@5..47
-                    PreprocGlob@5..47
-                      PPElseif@5..47
+                  StmtList@5..42
+                    PreprocGlob@5..42
+                      PPElseif@5..42
                         PPKwElsif@5..11 "#elsif"
                         Whitespace@11..12 " "
-                        PPNameExpr@12..14
-                          Name@12..14
+                        PPNameExpr@12..13
+                          Name@12..13
                             Identifier@12..13 "A"
-                            Whitespace@13..14 " "
+                        Whitespace@13..14 " "
                         KwThen@14..18 "then"
                         Whitespace@18..23 "\n    "
-                        PPTokenBody@23..35
-                          PauseStmt@23..35
+                        PPTokenBody@23..30
+                          PauseStmt@23..30
                             KwPause@23..28 "pause"
                             Whitespace@28..29 " "
-                            NameExpr@29..35
-                              Name@29..35
+                            NameExpr@29..30
+                              Name@29..30
                                 Identifier@29..30 "e"
-                                Whitespace@30..35 "\n    "
-                        PPEndIf@35..47
+                        Whitespace@30..35 "\n    "
+                        PPEndIf@35..42
                           PPKwEnd@35..39 "#end"
                           Whitespace@39..40 " "
                           KwIf@40..42 "if"
-                          Whitespace@42..47 "\n    ""##]],
+                  Whitespace@42..47 "\n    ""##]],
         );
     }
 
@@ -471,30 +471,30 @@ mod cond {
             expect![[r##"
                 Source@0..48
                   Whitespace@0..5 "\n    "
-                  StmtList@5..48
-                    PreprocGlob@5..48
-                      PPElseif@5..48
+                  StmtList@5..43
+                    PreprocGlob@5..43
+                      PPElseif@5..43
                         PPKwElseif@5..12 "#elseif"
                         Whitespace@12..13 " "
-                        PPNameExpr@13..15
-                          Name@13..15
+                        PPNameExpr@13..14
+                          Name@13..14
                             Identifier@13..14 "A"
-                            Whitespace@14..15 " "
+                        Whitespace@14..15 " "
                         KwThen@15..19 "then"
                         Whitespace@19..24 "\n    "
-                        PPTokenBody@24..36
-                          PauseStmt@24..36
+                        PPTokenBody@24..31
+                          PauseStmt@24..31
                             KwPause@24..29 "pause"
                             Whitespace@29..30 " "
-                            NameExpr@30..36
-                              Name@30..36
+                            NameExpr@30..31
+                              Name@30..31
                                 Identifier@30..31 "e"
-                                Whitespace@31..36 "\n    "
-                        PPEndIf@36..48
+                        Whitespace@31..36 "\n    "
+                        PPEndIf@36..43
                           PPKwEnd@36..40 "#end"
                           Whitespace@40..41 " "
                           KwIf@41..43 "if"
-                          Whitespace@43..48 "\n    "
+                  Whitespace@43..48 "\n    "
                 warn at 5..12: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
         );
     }
@@ -511,24 +511,24 @@ mod cond {
             expect![[r##"
                 Source@0..39
                   Whitespace@0..5 "\n    "
-                  StmtList@5..39
-                    PreprocGlob@5..39
-                      PPElse@5..39
+                  StmtList@5..34
+                    PreprocGlob@5..34
+                      PPElse@5..34
                         PPKwElse@5..10 "#else"
                         Whitespace@10..15 "\n    "
-                        PPTokenBody@15..27
-                          PauseStmt@15..27
+                        PPTokenBody@15..22
+                          PauseStmt@15..22
                             KwPause@15..20 "pause"
                             Whitespace@20..21 " "
-                            NameExpr@21..27
-                              Name@21..27
+                            NameExpr@21..22
+                              Name@21..22
                                 Identifier@21..22 "e"
-                                Whitespace@22..27 "\n    "
-                        PPEndIf@27..39
+                        Whitespace@22..27 "\n    "
+                        PPEndIf@27..34
                           PPKwEnd@27..31 "#end"
                           Whitespace@31..32 " "
                           KwIf@32..34 "if"
-                          Whitespace@34..39 "\n    ""##]],
+                  Whitespace@34..39 "\n    ""##]],
         );
     }
 
@@ -542,13 +542,13 @@ mod cond {
             expect![[r##"
                 Source@0..17
                   Whitespace@0..5 "\n    "
-                  StmtList@5..17
-                    PreprocGlob@5..17
-                      PPEndIf@5..17
+                  StmtList@5..12
+                    PreprocGlob@5..12
+                      PPEndIf@5..12
                         PPKwEnd@5..9 "#end"
                         Whitespace@9..10 " "
                         KwIf@10..12 "if"
-                        Whitespace@12..17 "\n    ""##]],
+                  Whitespace@12..17 "\n    ""##]],
         );
     }
 
@@ -668,39 +668,39 @@ mod cond {
             expect![[r##"
                 Source@0..57
                   Whitespace@0..5 "\n    "
-                  StmtList@5..57
-                    ConstVarDecl@5..18
+                  StmtList@5..52
+                    ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..11
-                        Name@9..11
+                      NameList@9..10
+                        Name@9..10
                           Identifier@9..10 "i"
-                          Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Assign@11..13 ":="
-                      Whitespace@13..18 "\n    "
-                    PreprocGlob@18..57
-                      PPIf@18..57
+                    Whitespace@13..18 "\n    "
+                    PreprocGlob@18..52
+                      PPIf@18..52
                         PPKwIf@18..21 "#if"
                         Whitespace@21..22 " "
-                        PPNameExpr@22..24
-                          Name@22..24
+                        PPNameExpr@22..23
+                          Name@22..23
                             Identifier@22..23 "A"
-                            Whitespace@23..24 " "
+                        Whitespace@23..24 " "
                         KwThen@24..28 "then"
                         Whitespace@28..33 "\n    "
-                        PPTokenBody@33..45
-                          PauseStmt@33..45
+                        PPTokenBody@33..40
+                          PauseStmt@33..40
                             KwPause@33..38 "pause"
                             Whitespace@38..39 " "
-                            NameExpr@39..45
-                              Name@39..45
+                            NameExpr@39..40
+                              Name@39..40
                                 Identifier@39..40 "e"
-                                Whitespace@40..45 "\n    "
-                        PPEndIf@45..57
+                        Whitespace@40..45 "\n    "
+                        PPEndIf@45..52
                           PPKwEnd@45..49 "#end"
                           Whitespace@49..50 " "
                           KwIf@50..52 "if"
-                          Whitespace@52..57 "\n    "
+                  Whitespace@52..57 "\n    "
                 error at 18..21: expected expression, but found ‘#if’"##]],
         );
     }
@@ -718,39 +718,39 @@ mod cond {
             expect![[r##"
                 Source@0..60
                   Whitespace@0..5 "\n    "
-                  StmtList@5..60
-                    ConstVarDecl@5..18
+                  StmtList@5..55
+                    ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..11
-                        Name@9..11
+                      NameList@9..10
+                        Name@9..10
                           Identifier@9..10 "i"
-                          Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Assign@11..13 ":="
-                      Whitespace@13..18 "\n    "
-                    PreprocGlob@18..60
-                      PPElseif@18..60
+                    Whitespace@13..18 "\n    "
+                    PreprocGlob@18..55
+                      PPElseif@18..55
                         PPKwElsif@18..24 "#elsif"
                         Whitespace@24..25 " "
-                        PPNameExpr@25..27
-                          Name@25..27
+                        PPNameExpr@25..26
+                          Name@25..26
                             Identifier@25..26 "A"
-                            Whitespace@26..27 " "
+                        Whitespace@26..27 " "
                         KwThen@27..31 "then"
                         Whitespace@31..36 "\n    "
-                        PPTokenBody@36..48
-                          PauseStmt@36..48
+                        PPTokenBody@36..43
+                          PauseStmt@36..43
                             KwPause@36..41 "pause"
                             Whitespace@41..42 " "
-                            NameExpr@42..48
-                              Name@42..48
+                            NameExpr@42..43
+                              Name@42..43
                                 Identifier@42..43 "e"
-                                Whitespace@43..48 "\n    "
-                        PPEndIf@48..60
+                        Whitespace@43..48 "\n    "
+                        PPEndIf@48..55
                           PPKwEnd@48..52 "#end"
                           Whitespace@52..53 " "
                           KwIf@53..55 "if"
-                          Whitespace@55..60 "\n    "
+                  Whitespace@55..60 "\n    "
                 error at 18..24: expected expression, but found ‘#elsif’"##]],
         );
     }
@@ -768,39 +768,39 @@ mod cond {
             expect![[r##"
                 Source@0..61
                   Whitespace@0..5 "\n    "
-                  StmtList@5..61
-                    ConstVarDecl@5..18
+                  StmtList@5..56
+                    ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..11
-                        Name@9..11
+                      NameList@9..10
+                        Name@9..10
                           Identifier@9..10 "i"
-                          Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Assign@11..13 ":="
-                      Whitespace@13..18 "\n    "
-                    PreprocGlob@18..61
-                      PPElseif@18..61
+                    Whitespace@13..18 "\n    "
+                    PreprocGlob@18..56
+                      PPElseif@18..56
                         PPKwElseif@18..25 "#elseif"
                         Whitespace@25..26 " "
-                        PPNameExpr@26..28
-                          Name@26..28
+                        PPNameExpr@26..27
+                          Name@26..27
                             Identifier@26..27 "A"
-                            Whitespace@27..28 " "
+                        Whitespace@27..28 " "
                         KwThen@28..32 "then"
                         Whitespace@32..37 "\n    "
-                        PPTokenBody@37..49
-                          PauseStmt@37..49
+                        PPTokenBody@37..44
+                          PauseStmt@37..44
                             KwPause@37..42 "pause"
                             Whitespace@42..43 " "
-                            NameExpr@43..49
-                              Name@43..49
+                            NameExpr@43..44
+                              Name@43..44
                                 Identifier@43..44 "e"
-                                Whitespace@44..49 "\n    "
-                        PPEndIf@49..61
+                        Whitespace@44..49 "\n    "
+                        PPEndIf@49..56
                           PPKwEnd@49..53 "#end"
                           Whitespace@53..54 " "
                           KwIf@54..56 "if"
-                          Whitespace@56..61 "\n    "
+                  Whitespace@56..61 "\n    "
                 error at 18..25: expected expression, but found ‘#elseif’
                 warn at 18..25: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
         );
@@ -819,33 +819,33 @@ mod cond {
             expect![[r##"
                 Source@0..52
                   Whitespace@0..5 "\n    "
-                  StmtList@5..52
-                    ConstVarDecl@5..18
+                  StmtList@5..47
+                    ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..11
-                        Name@9..11
+                      NameList@9..10
+                        Name@9..10
                           Identifier@9..10 "i"
-                          Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Assign@11..13 ":="
-                      Whitespace@13..18 "\n    "
-                    PreprocGlob@18..52
-                      PPElse@18..52
+                    Whitespace@13..18 "\n    "
+                    PreprocGlob@18..47
+                      PPElse@18..47
                         PPKwElse@18..23 "#else"
                         Whitespace@23..28 "\n    "
-                        PPTokenBody@28..40
-                          PauseStmt@28..40
+                        PPTokenBody@28..35
+                          PauseStmt@28..35
                             KwPause@28..33 "pause"
                             Whitespace@33..34 " "
-                            NameExpr@34..40
-                              Name@34..40
+                            NameExpr@34..35
+                              Name@34..35
                                 Identifier@34..35 "e"
-                                Whitespace@35..40 "\n    "
-                        PPEndIf@40..52
+                        Whitespace@35..40 "\n    "
+                        PPEndIf@40..47
                           PPKwEnd@40..44 "#end"
                           Whitespace@44..45 " "
                           KwIf@45..47 "if"
-                          Whitespace@47..52 "\n    "
+                  Whitespace@47..52 "\n    "
                 error at 18..23: expected expression, but found ‘#else’"##]],
         );
     }
@@ -861,22 +861,22 @@ mod cond {
             expect![[r##"
                 Source@0..30
                   Whitespace@0..5 "\n    "
-                  StmtList@5..30
-                    ConstVarDecl@5..18
+                  StmtList@5..25
+                    ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..11
-                        Name@9..11
+                      NameList@9..10
+                        Name@9..10
                           Identifier@9..10 "i"
-                          Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Assign@11..13 ":="
-                      Whitespace@13..18 "\n    "
-                    PreprocGlob@18..30
-                      PPEndIf@18..30
+                    Whitespace@13..18 "\n    "
+                    PreprocGlob@18..25
+                      PPEndIf@18..25
                         PPKwEnd@18..22 "#end"
                         Whitespace@22..23 " "
                         KwIf@23..25 "if"
-                        Whitespace@25..30 "\n    "
+                  Whitespace@25..30 "\n    "
                 error at 18..22: expected expression, but found ‘#end’"##]],
         );
     }
@@ -891,15 +891,15 @@ mod cond {
                 Source@0..24
                   Whitespace@0..5 "\n    "
                   StmtList@5..24
-                    ConstVarDecl@5..18
+                    ConstVarDecl@5..13
                       KwVar@5..8 "var"
                       Whitespace@8..9 " "
-                      NameList@9..11
-                        Name@9..11
+                      NameList@9..10
+                        Name@9..10
                           Identifier@9..10 "i"
-                          Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Assign@11..13 ":="
-                      Whitespace@13..18 "\n    "
+                    Whitespace@13..18 "\n    "
                     PreprocGlob@18..24
                       PPEndIf@18..24
                         PPKwEndIf@18..24 "#endif"
@@ -924,13 +924,13 @@ mod expr {
                       PPIf@0..22
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPUnaryExpr@4..10
+                        PPUnaryExpr@4..9
                           KwNot@4..7 "not"
                           Whitespace@7..8 " "
-                          PPNameExpr@8..10
-                            Name@8..10
+                          PPNameExpr@8..9
+                            Name@8..9
                               Identifier@8..9 "A"
-                              Whitespace@9..10 " "
+                        Whitespace@9..10 " "
                         KwThen@10..14 "then"
                         Whitespace@14..15 " "
                         PPTokenBody@15..15
@@ -952,13 +952,13 @@ mod expr {
                       PPIf@0..20
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPUnaryExpr@4..8
+                        PPUnaryExpr@4..7
                           Tilde@4..5 "~"
                           Whitespace@5..6 " "
-                          PPNameExpr@6..8
-                            Name@6..8
+                          PPNameExpr@6..7
+                            Name@6..7
                               Identifier@6..7 "A"
-                              Whitespace@7..8 " "
+                        Whitespace@7..8 " "
                         KwThen@8..12 "then"
                         Whitespace@12..13 " "
                         PPTokenBody@13..13
@@ -980,22 +980,22 @@ mod expr {
                       PPIf@0..30
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPUnaryExpr@4..18
+                        PPUnaryExpr@4..17
                           Tilde@4..5 "~"
                           Whitespace@5..6 " "
-                          PPUnaryExpr@6..18
+                          PPUnaryExpr@6..17
                             KwNot@6..9 "not"
                             Whitespace@9..10 " "
-                            PPUnaryExpr@10..18
+                            PPUnaryExpr@10..17
                               Tilde@10..11 "~"
                               Whitespace@11..12 " "
-                              PPUnaryExpr@12..18
+                              PPUnaryExpr@12..17
                                 KwNot@12..15 "not"
                                 Whitespace@15..16 " "
-                                PPNameExpr@16..18
-                                  Name@16..18
+                                PPNameExpr@16..17
+                                  Name@16..17
                                     Identifier@16..17 "A"
-                                    Whitespace@17..18 " "
+                        Whitespace@17..18 " "
                         KwThen@18..22 "then"
                         Whitespace@22..23 " "
                         PPTokenBody@23..23
@@ -1017,17 +1017,17 @@ mod expr {
                       PPIf@0..24
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..12
-                          PPNameExpr@4..6
-                            Name@4..6
+                        PPBinaryExpr@4..11
+                          PPNameExpr@4..5
+                            Name@4..5
                               Identifier@4..5 "A"
-                              Whitespace@5..6 " "
+                          Whitespace@5..6 " "
                           KwAnd@6..9 "and"
                           Whitespace@9..10 " "
-                          PPNameExpr@10..12
-                            Name@10..12
+                          PPNameExpr@10..11
+                            Name@10..11
                               Identifier@10..11 "B"
-                              Whitespace@11..12 " "
+                        Whitespace@11..12 " "
                         KwThen@12..16 "then"
                         Whitespace@16..17 " "
                         PPTokenBody@17..17
@@ -1049,17 +1049,17 @@ mod expr {
                       PPIf@0..22
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..10
-                          PPNameExpr@4..6
-                            Name@4..6
+                        PPBinaryExpr@4..9
+                          PPNameExpr@4..5
+                            Name@4..5
                               Identifier@4..5 "A"
-                              Whitespace@5..6 " "
+                          Whitespace@5..6 " "
                           Ampersand@6..7 "&"
                           Whitespace@7..8 " "
-                          PPNameExpr@8..10
-                            Name@8..10
+                          PPNameExpr@8..9
+                            Name@8..9
                               Identifier@8..9 "B"
-                              Whitespace@9..10 " "
+                        Whitespace@9..10 " "
                         KwThen@10..14 "then"
                         Whitespace@14..15 " "
                         PPTokenBody@15..15
@@ -1081,17 +1081,17 @@ mod expr {
                       PPIf@0..23
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..11
-                          PPNameExpr@4..6
-                            Name@4..6
+                        PPBinaryExpr@4..10
+                          PPNameExpr@4..5
+                            Name@4..5
                               Identifier@4..5 "A"
-                              Whitespace@5..6 " "
+                          Whitespace@5..6 " "
                           KwOr@6..8 "or"
                           Whitespace@8..9 " "
-                          PPNameExpr@9..11
-                            Name@9..11
+                          PPNameExpr@9..10
+                            Name@9..10
                               Identifier@9..10 "B"
-                              Whitespace@10..11 " "
+                        Whitespace@10..11 " "
                         KwThen@11..15 "then"
                         Whitespace@15..16 " "
                         PPTokenBody@16..16
@@ -1113,17 +1113,17 @@ mod expr {
                       PPIf@0..22
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..10
-                          PPNameExpr@4..6
-                            Name@4..6
+                        PPBinaryExpr@4..9
+                          PPNameExpr@4..5
+                            Name@4..5
                               Identifier@4..5 "A"
-                              Whitespace@5..6 " "
+                          Whitespace@5..6 " "
                           Pipe@6..7 "|"
                           Whitespace@7..8 " "
-                          PPNameExpr@8..10
-                            Name@8..10
+                          PPNameExpr@8..9
+                            Name@8..9
                               Identifier@8..9 "B"
-                              Whitespace@9..10 " "
+                        Whitespace@9..10 " "
                         KwThen@10..14 "then"
                         Whitespace@14..15 " "
                         PPTokenBody@15..15
@@ -1145,31 +1145,31 @@ mod expr {
                       PPIf@0..32
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..20
-                          PPBinaryExpr@4..16
-                            PPNameExpr@4..6
-                              Name@4..6
+                        PPBinaryExpr@4..19
+                          PPBinaryExpr@4..15
+                            PPNameExpr@4..5
+                              Name@4..5
                                 Identifier@4..5 "A"
-                                Whitespace@5..6 " "
+                            Whitespace@5..6 " "
                             Pipe@6..7 "|"
                             Whitespace@7..8 " "
-                            PPBinaryExpr@8..16
-                              PPNameExpr@8..10
-                                Name@8..10
+                            PPBinaryExpr@8..15
+                              PPNameExpr@8..9
+                                Name@8..9
                                   Identifier@8..9 "B"
-                                  Whitespace@9..10 " "
+                              Whitespace@9..10 " "
                               KwAnd@10..13 "and"
                               Whitespace@13..14 " "
-                              PPNameExpr@14..16
-                                Name@14..16
+                              PPNameExpr@14..15
+                                Name@14..15
                                   Identifier@14..15 "C"
-                                  Whitespace@15..16 " "
+                          Whitespace@15..16 " "
                           Pipe@16..17 "|"
                           Whitespace@17..18 " "
-                          PPNameExpr@18..20
-                            Name@18..20
+                          PPNameExpr@18..19
+                            Name@18..19
                               Identifier@18..19 "D"
-                              Whitespace@19..20 " "
+                        Whitespace@19..20 " "
                         KwThen@20..24 "then"
                         Whitespace@24..25 " "
                         PPTokenBody@25..25
@@ -1191,9 +1191,9 @@ mod expr {
                       PPIf@0..20
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPUnaryExpr@4..8
+                        PPUnaryExpr@4..7
                           KwNot@4..7 "not"
-                          Whitespace@7..8 " "
+                        Whitespace@7..8 " "
                         KwThen@8..12 "then"
                         Whitespace@12..13 " "
                         PPTokenBody@13..13
@@ -1216,13 +1216,13 @@ mod expr {
                       PPIf@0..22
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..10
-                          PPNameExpr@4..6
-                            Name@4..6
+                        PPBinaryExpr@4..9
+                          PPNameExpr@4..5
+                            Name@4..5
                               Identifier@4..5 "A"
-                              Whitespace@5..6 " "
+                          Whitespace@5..6 " "
                           KwAnd@6..9 "and"
-                          Whitespace@9..10 " "
+                        Whitespace@9..10 " "
                         KwThen@10..14 "then"
                         Whitespace@14..15 " "
                         PPTokenBody@15..15
@@ -1245,22 +1245,22 @@ mod expr {
                       PPIf@0..24
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPNameExpr@4..6
-                          Name@4..6
+                        PPNameExpr@4..5
+                          Name@4..5
                             Identifier@4..5 "A"
-                            Whitespace@5..6 " "
-                        PPTokenBody@6..17
-                          Error@6..10
+                        Whitespace@5..6 " "
+                        PPTokenBody@6..16
+                          Error@6..9
                             KwNot@6..9 "not"
-                            Whitespace@9..10 " "
-                          CallStmt@10..12
-                            NameExpr@10..12
-                              Name@10..12
+                          Whitespace@9..10 " "
+                          CallStmt@10..11
+                            NameExpr@10..11
+                              Name@10..11
                                 Identifier@10..11 "B"
-                                Whitespace@11..12 " "
-                          Error@12..17
+                          Whitespace@11..12 " "
+                          Error@12..16
                             KwThen@12..16 "then"
-                            Whitespace@16..17 " "
+                        Whitespace@16..17 " "
                         PPEndIf@17..24
                           PPKwEnd@17..21 "#end"
                           Whitespace@21..22 " "
@@ -1281,18 +1281,18 @@ mod expr {
                       PPIf@0..22
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        Error@4..8
+                        Error@4..7
                           KwAnd@4..7 "and"
-                          Whitespace@7..8 " "
-                        PPTokenBody@8..15
-                          CallStmt@8..10
-                            NameExpr@8..10
-                              Name@8..10
+                        Whitespace@7..8 " "
+                        PPTokenBody@8..14
+                          CallStmt@8..9
+                            NameExpr@8..9
+                              Name@8..9
                                 Identifier@8..9 "B"
-                                Whitespace@9..10 " "
-                          Error@10..15
+                          Whitespace@9..10 " "
+                          Error@10..14
                             KwThen@10..14 "then"
-                            Whitespace@14..15 " "
+                        Whitespace@14..15 " "
                         PPEndIf@15..22
                           PPKwEnd@15..19 "#end"
                           Whitespace@19..20 " "
@@ -1314,27 +1314,27 @@ mod expr {
                       PPIf@0..31
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..19
-                          PPParenExpr@4..14
+                        PPBinaryExpr@4..18
+                          PPParenExpr@4..13
                             LeftParen@4..5 "("
                             PPBinaryExpr@5..12
-                              PPNameExpr@5..7
-                                Name@5..7
+                              PPNameExpr@5..6
+                                Name@5..6
                                   Identifier@5..6 "A"
-                                  Whitespace@6..7 " "
+                              Whitespace@6..7 " "
                               KwAnd@7..10 "and"
                               Whitespace@10..11 " "
                               PPNameExpr@11..12
                                 Name@11..12
                                   Identifier@11..12 "B"
                             RightParen@12..13 ")"
-                            Whitespace@13..14 " "
+                          Whitespace@13..14 " "
                           KwOr@14..16 "or"
                           Whitespace@16..17 " "
-                          PPNameExpr@17..19
-                            Name@17..19
+                          PPNameExpr@17..18
+                            Name@17..18
                               Identifier@17..18 "C"
-                              Whitespace@18..19 " "
+                        Whitespace@18..19 " "
                         KwThen@19..23 "then"
                         Whitespace@23..24 " "
                         PPTokenBody@24..24
@@ -1356,37 +1356,37 @@ mod expr {
                       PPIf@0..36
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPBinaryExpr@4..24
-                          PPParenExpr@4..12
+                        PPBinaryExpr@4..23
+                          PPParenExpr@4..11
                             LeftParen@4..5 "("
                             PPBinaryExpr@5..10
-                              PPNameExpr@5..7
-                                Name@5..7
+                              PPNameExpr@5..6
+                                Name@5..6
                                   Identifier@5..6 "A"
-                                  Whitespace@6..7 " "
+                              Whitespace@6..7 " "
                               Pipe@7..8 "|"
                               Whitespace@8..9 " "
                               PPNameExpr@9..10
                                 Name@9..10
                                   Identifier@9..10 "B"
                             RightParen@10..11 ")"
-                            Whitespace@11..12 " "
+                          Whitespace@11..12 " "
                           KwAnd@12..15 "and"
                           Whitespace@15..16 " "
-                          PPParenExpr@16..24
+                          PPParenExpr@16..23
                             LeftParen@16..17 "("
                             PPBinaryExpr@17..22
-                              PPNameExpr@17..19
-                                Name@17..19
+                              PPNameExpr@17..18
+                                Name@17..18
                                   Identifier@17..18 "C"
-                                  Whitespace@18..19 " "
+                              Whitespace@18..19 " "
                               Pipe@19..20 "|"
                               Whitespace@20..21 " "
                               PPNameExpr@21..22
                                 Name@21..22
                                   Identifier@21..22 "D"
                             RightParen@22..23 ")"
-                            Whitespace@23..24 " "
+                        Whitespace@23..24 " "
                         KwThen@24..28 "then"
                         Whitespace@28..29 " "
                         PPTokenBody@29..29
@@ -1408,12 +1408,12 @@ mod expr {
                       PPIf@0..19
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPParenExpr@4..7
+                        PPParenExpr@4..6
                           LeftParen@4..5 "("
-                          PPNameExpr@5..7
-                            Name@5..7
+                          PPNameExpr@5..6
+                            Name@5..6
                               Identifier@5..6 "A"
-                              Whitespace@6..7 " "
+                        Whitespace@6..7 " "
                         KwThen@7..11 "then"
                         Whitespace@11..12 " "
                         PPTokenBody@12..12
@@ -1436,10 +1436,10 @@ mod expr {
                       PPIf@0..19
                         PPKwIf@0..3 "#if"
                         Whitespace@3..4 " "
-                        PPParenExpr@4..7
+                        PPParenExpr@4..6
                           LeftParen@4..5 "("
                           RightParen@5..6 ")"
-                          Whitespace@6..7 " "
+                        Whitespace@6..7 " "
                         KwThen@7..11 "then"
                         Whitespace@11..12 " "
                         PPTokenBody@12..12

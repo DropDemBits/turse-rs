@@ -19,11 +19,11 @@ def_kinds:
     DefId(4) Var(TyRef(Boolean))
     DefId(5) Var(TyRef(Boolean))
     DefId(6) Var(TyRef(Boolean))
-error at 60..62: mismatched types
-| note for 49..57: initializer's type is incompatible with this type
-error at 84..86: mismatched types
-| note for 73..81: initializer's type is incompatible with this type
-error at 108..110: mismatched types
-| note for 97..105: initializer's type is incompatible with this type
-error at 132..134: mismatched types
-| note for 121..129: initializer's type is incompatible with this type
+error at 60..61: mismatched types
+| note for 49..56: initializer's type is incompatible with this type
+error at 84..85: mismatched types
+| note for 73..80: initializer's type is incompatible with this type
+error at 108..109: mismatched types
+| note for 97..104: initializer's type is incompatible with this type
+error at 132..133: mismatched types
+| note for 121..128: initializer's type is incompatible with this type

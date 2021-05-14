@@ -22,7 +22,7 @@ fn report_dangling_elseif() {
 fn report_monitor_class_with_dev_spec() {
     check(
         "monitor class a : 1 end a",
-        expect![[r#"error at 16..20: device specification is not allowed for monitor classes"#]],
+        expect![[r#"error at 16..19: device specification is not allowed for monitor classes"#]],
     );
 }
 
@@ -76,9 +76,7 @@ fn only_missing_module_end_name() {
 fn report_var_register_attr_in_main() {
     check(
         "var register a : int",
-        expect![[
-            r#"error at 4..13: ‘register’ attribute is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 4..12: ‘register’ attribute is not allowed at module-like or program level"#]],
     );
 }
 
@@ -88,7 +86,7 @@ fn report_var_register_attr_in_unit() {
         "unit var register a : int",
         expect![[r#"
             error at 5..25: expected a module, class, or monitor declaration
-            error at 9..18: ‘register’ attribute is not allowed at module-like or program level"#]],
+            error at 9..17: ‘register’ attribute is not allowed at module-like or program level"#]],
     );
 }
 
@@ -96,9 +94,7 @@ fn report_var_register_attr_in_unit() {
 fn report_var_register_attr_in_module() {
     check(
         "module a var register a : int end a",
-        expect![[
-            r#"error at 13..22: ‘register’ attribute is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 13..21: ‘register’ attribute is not allowed at module-like or program level"#]],
     );
 }
 
@@ -106,9 +102,7 @@ fn report_var_register_attr_in_module() {
 fn report_var_register_attr_in_monitor() {
     check(
         "monitor a var register a : int end a",
-        expect![[
-            r#"error at 14..23: ‘register’ attribute is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 14..22: ‘register’ attribute is not allowed at module-like or program level"#]],
     );
 }
 
@@ -116,9 +110,7 @@ fn report_var_register_attr_in_monitor() {
 fn report_var_register_attr_in_class() {
     check(
         "class a var register a : int end a",
-        expect![[
-            r#"error at 12..21: ‘register’ attribute is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 12..20: ‘register’ attribute is not allowed at module-like or program level"#]],
     );
 }
 
@@ -238,9 +230,7 @@ fn report_bind_decl_in_main_block() {
 fn report_bind_decl_in_module_block() {
     check(
         "module q bind a to b end q",
-        expect![[
-            r#"error at 9..21: ‘bind’ declaration is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 9..20: ‘bind’ declaration is not allowed at module-like or program level"#]],
     );
 }
 
@@ -248,9 +238,7 @@ fn report_bind_decl_in_module_block() {
 fn report_bind_decl_in_class_block() {
     check(
         "class q bind a to b end q",
-        expect![[
-            r#"error at 8..20: ‘bind’ declaration is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 8..19: ‘bind’ declaration is not allowed at module-like or program level"#]],
     );
 }
 
@@ -258,9 +246,7 @@ fn report_bind_decl_in_class_block() {
 fn report_bind_decl_in_monitor_block() {
     check(
         "monitor q bind a to b end q",
-        expect![[
-            r#"error at 10..22: ‘bind’ declaration is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 10..21: ‘bind’ declaration is not allowed at module-like or program level"#]],
     );
 }
 
@@ -268,9 +254,7 @@ fn report_bind_decl_in_monitor_block() {
 fn report_bind_decl_in_monitor_class_block() {
     check(
         "monitor class q bind a to b end q",
-        expect![[
-            r#"error at 16..28: ‘bind’ declaration is not allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 16..27: ‘bind’ declaration is not allowed at module-like or program level"#]],
     );
 }
 
@@ -288,7 +272,7 @@ fn report_init_expr_with_int_ty() {
         "var a : int := init(1)",
         expect![[r#"
             error at 15..22: ‘init’ initializer is not allowed here
-            | info for 8..12: ‘init’ initializer can only be used with array, record, or union types"#]],
+            | info for 8..11: ‘init’ initializer can only be used with array, record, or union types"#]],
     );
 }
 
@@ -324,7 +308,7 @@ fn report_not_init_expr_with_unbounded_array() {
         "var a : array 1 .. * of int := 2",
         expect![[r#"
             error at 31..32: ‘init’ initializer is required here
-            | note for 8..28: this is an unbounded array type
+            | note for 8..27: this is an unbounded array type
             | info: unbounded arrays have their upper bounds specified by ‘init’ initializers"#]],
     );
 }
@@ -354,9 +338,7 @@ fn proc_decl_in_module() {
 fn report_proc_decl_in_proc_decl() {
     check(
         "proc a proc a end a end a",
-        expect![[
-            r#"error at 7..20: ‘procedure’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 7..19: ‘procedure’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -364,9 +346,7 @@ fn report_proc_decl_in_proc_decl() {
 fn report_proc_decl_in_block_stmt() {
     check(
         "begin proc a end a end",
-        expect![[
-            r#"error at 6..19: ‘procedure’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 6..18: ‘procedure’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -382,7 +362,7 @@ fn report_dev_spec_in_forward_decl() {
 fn report_dev_spec_in_main_proc() {
     check(
         "proc a : 2 end a",
-        expect![[r#"error at 7..11: device specification is not allowed here"#]],
+        expect![[r#"error at 7..10: device specification is not allowed here"#]],
     );
 }
 
@@ -390,7 +370,7 @@ fn report_dev_spec_in_main_proc() {
 fn report_dev_spec_in_monitor_proc() {
     check(
         "monitor a proc a : 2 end a end a",
-        expect![[r#"error at 17..21: device specification is not allowed here"#]],
+        expect![[r#"error at 17..20: device specification is not allowed here"#]],
     );
 }
 
@@ -413,9 +393,7 @@ fn fcn_decl_in_module() {
 fn report_fcn_decl_in_fcn_decl() {
     check(
         "fcn a : int fcn a : int end a end a",
-        expect![[
-            r#"error at 12..30: ‘function’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 12..29: ‘function’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -423,9 +401,7 @@ fn report_fcn_decl_in_fcn_decl() {
 fn report_fcn_decl_in_block_stmt() {
     check(
         "begin fcn a : int end a end",
-        expect![[
-            r#"error at 6..24: ‘function’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 6..23: ‘function’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -448,9 +424,7 @@ fn process_decl_in_monitor() {
 fn report_process_decl_in_monitor_class() {
     check(
         "monitor class q process a end a end q",
-        expect![[
-            r#"error at 16..32: ‘process’ declarations is not allowed in classes or monitor classes"#
-        ]],
+        expect![[r#"error at 16..31: ‘process’ declarations is not allowed in classes or monitor classes"#]],
     );
 }
 
@@ -458,9 +432,7 @@ fn report_process_decl_in_monitor_class() {
 fn report_process_decl_in_class() {
     check(
         "class q process a end a end q",
-        expect![[
-            r#"error at 8..24: ‘process’ declarations is not allowed in classes or monitor classes"#
-        ]],
+        expect![[r#"error at 8..23: ‘process’ declarations is not allowed in classes or monitor classes"#]],
     );
 }
 
@@ -468,9 +440,7 @@ fn report_process_decl_in_class() {
 fn report_process_decl_in_process_decl() {
     check(
         "process a process a end a end a",
-        expect![[
-            r#"error at 10..26: ‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s"#
-        ]],
+        expect![[r#"error at 10..25: ‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s"#]],
     );
 }
 
@@ -478,9 +448,7 @@ fn report_process_decl_in_process_decl() {
 fn report_process_decl_in_block_stmt() {
     check(
         "begin process a end a end",
-        expect![[
-            r#"error at 6..22: ‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s"#
-        ]],
+        expect![[r#"error at 6..21: ‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s"#]],
     );
 }
 
@@ -536,9 +504,7 @@ fn forward_decl_in_module() {
 fn report_forward_decl_in_proc_decl() {
     check(
         "proc a forward proc a end a",
-        expect![[
-            r#"error at 7..22: ‘forward’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 7..21: ‘forward’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -546,9 +512,7 @@ fn report_forward_decl_in_proc_decl() {
 fn report_forward_decl_in_block_stmt() {
     check(
         "begin forward proc a end",
-        expect![[
-            r#"error at 6..21: ‘forward’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 6..20: ‘forward’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -566,9 +530,7 @@ fn body_decl_in_module() {
 fn report_body_decl_in_proc_decl() {
     check(
         "proc a body a end a end a",
-        expect![[
-            r#"error at 7..20: ‘body’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 7..19: ‘body’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -576,9 +538,7 @@ fn report_body_decl_in_proc_decl() {
 fn report_body_decl_in_block_stmt() {
     check(
         "begin body a end a end",
-        expect![[
-            r#"error at 6..19: ‘body’ declaration is only allowed at module-like or program level"#
-        ]],
+        expect![[r#"error at 6..18: ‘body’ declaration is only allowed at module-like or program level"#]],
     );
 }
 
@@ -646,7 +606,7 @@ fn for_stmt_full_decreasing() {
 fn report_for_stmt_partial_decreasing() {
     check(
         "for decreasing : a end for",
-        expect![[r#"error at 17..19: decreasing for-loop requires explicit end bound"#]],
+        expect![[r#"error at 17..18: decreasing for-loop requires explicit end bound"#]],
     );
 }
 
@@ -777,8 +737,6 @@ fn report_invariant_stmt_in_main() {
 fn report_invariant_stmt_in_inner() {
     check(
         "begin invariant false end",
-        expect![[
-            r#"error at 6..22: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#
-        ]],
+        expect![[r#"error at 6..21: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#]],
     );
 }

@@ -10,5 +10,5 @@ def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
     DefId(1) Var(TyRef(CharN(Fixed(5))))
     DefId(2) Var(TyRef(StringN(Fixed(3))))
-error at 55..82: mismatched types
-| note for 42..52: initializer's type is incompatible with this type
+error at 55..57: mismatched types
+| note for 42..51: initializer's type is incompatible with this type

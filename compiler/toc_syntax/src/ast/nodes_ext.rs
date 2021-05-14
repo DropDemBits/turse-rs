@@ -26,7 +26,9 @@ impl PPBinaryExpr {
     }
 
     pub fn op_node(&self) -> Option<SyntaxElement> {
-        self.syntax().children_with_tokens().nth(1)
+        self.syntax()
+            .children_with_tokens()
+            .find(|n| n.kind().is_binary_op())
     }
 
     pub fn rhs(&self) -> Option<PPExpr> {
@@ -44,8 +46,10 @@ impl PPUnaryExpr {
         }
     }
 
-    pub fn op_token(&self) -> Option<SyntaxToken> {
-        self.syntax().children_with_tokens().next()?.into_token()
+    pub fn op_token(&self) -> Option<SyntaxElement> {
+        self.syntax()
+            .children_with_tokens()
+            .find(|n| n.kind().is_unary_op())
     }
 
     pub fn rhs(&self) -> Option<PPExpr> {
@@ -91,7 +95,9 @@ impl BinaryExpr {
     }
 
     pub fn op_node(&self) -> Option<SyntaxElement> {
-        self.syntax().children_with_tokens().nth(1)
+        self.syntax()
+            .children_with_tokens()
+            .find(|n| n.kind().is_binary_op())
     }
 
     pub fn rhs(&self) -> Option<Expr> {
@@ -111,8 +117,10 @@ impl UnaryExpr {
         }
     }
 
-    pub fn op_node(&self) -> Option<SyntaxToken> {
-        self.syntax().children_with_tokens().next()?.into_token()
+    pub fn op_node(&self) -> Option<SyntaxElement> {
+        self.syntax()
+            .children_with_tokens()
+            .find(|n| n.kind().is_unary_op())
     }
 
     pub fn rhs(&self) -> Option<Expr> {

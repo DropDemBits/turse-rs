@@ -14,3 +14,9 @@ pub(crate) enum Event {
     /// Dropped start node
     Tombstone,
 }
+
+impl Default for Event {
+    fn default() -> Self {
+        Self::Placeholder
+    }
+}

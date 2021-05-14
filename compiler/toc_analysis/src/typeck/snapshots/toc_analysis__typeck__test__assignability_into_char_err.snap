@@ -13,7 +13,7 @@ def_kinds:
     DefId(1) Var(TyRef(StringN(Fixed(5))))
     DefId(2) Var(TyRef(Char))
     DefId(3) Var(TyRef(Char))
-error at 56..59: mismatched types
-| note for 48..53: initializer's type is incompatible with this type
-error at 78..105: mismatched types
-| note for 70..75: initializer's type is incompatible with this type
+error at 56..58: mismatched types
+| note for 48..52: initializer's type is incompatible with this type
+error at 78..80: mismatched types
+| note for 70..74: initializer's type is incompatible with this type

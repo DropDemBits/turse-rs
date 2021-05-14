@@ -379,6 +379,45 @@ impl From<SyntaxKind> for rowan::SyntaxKind {
     }
 }
 
+impl SyntaxKind {
+    fn is_binary_op(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::Imply
+                | SyntaxKind::KwOr
+                | SyntaxKind::Pipe
+                | SyntaxKind::KwAnd
+                | SyntaxKind::Ampersand
+                | SyntaxKind::Less
+                | SyntaxKind::Greater
+                | SyntaxKind::LessEqu
+                | SyntaxKind::GreaterEqu
+                | SyntaxKind::Equ
+                | SyntaxKind::NotEq
+                | SyntaxKind::KwIn
+                | SyntaxKind::NotIn
+                | SyntaxKind::Plus
+                | SyntaxKind::Minus
+                | SyntaxKind::KwXor
+                | SyntaxKind::Star
+                | SyntaxKind::Slash
+                | SyntaxKind::KwDiv
+                | SyntaxKind::KwMod
+                | SyntaxKind::KwRem
+                | SyntaxKind::KwShl
+                | SyntaxKind::KwShr
+                | SyntaxKind::Exp
+        )
+    }
+
+    fn is_unary_op(&self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::KwNot | SyntaxKind::Tilde | SyntaxKind::Plus | SyntaxKind::Minus
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Lang {}
 impl Language for Lang {

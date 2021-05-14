@@ -8,10 +8,13 @@ use toc_reporting::{MessageSink, ReportMessage};
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
+// TODO: Move tail trivia somewhere else!
+
 pub(super) struct Sink<'t, 'src> {
     builder: GreenNodeBuilder<'static>,
     tokens: &'t [Token<'src>],
     cursor: usize,
+    depth: usize,
     events: Vec<Event>,
     messages: Vec<ReportMessage>,
 }
@@ -26,6 +29,7 @@ impl<'t, 'src> Sink<'t, 'src> {
             builder: GreenNodeBuilder::new(),
             tokens,
             cursor: 0,
+            depth: 0,
             events,
             messages: collected_sinks
                 .into_iter()
@@ -37,17 +41,22 @@ impl<'t, 'src> Sink<'t, 'src> {
 
     pub(super) fn finish(mut self) -> ParseResult {
         for idx in 0..self.events.len() {
-            match mem::replace(&mut self.events[idx], Event::Placeholder) {
+            match mem::take(&mut self.events[idx]) {
                 Event::StartNode {
                     kind,
                     forward_parent,
                 } => {
+                    if self.depth > 0 {
+                        // Give trivia to the parent node
+                        self.skip_trivia();
+                    }
+
                     let mut look_at = forward_parent.map(|off| idx + off);
                     let mut parent_kinds = vec![kind];
 
                     while let Some(parent_at) = look_at {
                         // Pull forward parent node
-                        let node = mem::replace(&mut self.events[parent_at], Event::Placeholder);
+                        let node = mem::take(&mut self.events[parent_at]);
 
                         if let Event::StartNode {
                             kind,
@@ -65,14 +74,26 @@ impl<'t, 'src> Sink<'t, 'src> {
                     // Push the nodes, from outermost (last) to innermost (first)
                     parent_kinds.into_iter().rev().for_each(|kind| {
                         self.builder.start_node(kind.into());
+                        self.depth += 1;
                     });
                 }
-                Event::AddToken => self.token(),
-                Event::FinishNode => self.builder.finish_node(),
-                Event::Tombstone | Event::Placeholder => {}
+                Event::AddToken => {
+                    // Always nom on trivia before the actual token
+                    self.skip_trivia();
+                    self.token();
+                }
+                Event::FinishNode => {
+                    if self.depth == 1 {
+                        // Only on the last node do we consume trivia,
+                        // since we don't want extra trivia on the end of other nodes
+                        // (this affects error reporting span)
+                        self.skip_trivia();
+                    }
+                    self.depth -= 1;
+                    self.builder.finish_node();
+                }
+                Event::Tombstone | Event::Placeholder => {} // No-op
             }
-
-            self.skip_trivia();
         }
 
         ParseResult {

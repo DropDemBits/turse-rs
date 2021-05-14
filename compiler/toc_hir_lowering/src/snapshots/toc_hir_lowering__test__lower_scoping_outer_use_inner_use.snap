@@ -5,15 +5,15 @@ expression: "q := j begin q := k end"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..7): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(1) })
-Idx::<Stmt>(1) (13..20): Assign(Assign { lhs: Idx::<Expr>(2), op: Spanned(None, 15..17), rhs: Idx::<Expr>(3) })
+Idx::<Stmt>(0) (0..6): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(1) })
+Idx::<Stmt>(1) (13..19): Assign(Assign { lhs: Idx::<Expr>(2), op: Spanned(None, 15..17), rhs: Idx::<Expr>(3) })
 Idx::<Stmt>(2) (7..23): Block(Block { stmts: [Idx::<Stmt>(1)] })
 
 expr:
-Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (5..7): Name(Name(UseId(DefId(1), 0)))
-Idx::<Expr>(2) (13..15): Name(Name(UseId(DefId(0), 1)))
-Idx::<Expr>(3) (18..20): Name(Name(UseId(DefId(2), 0)))
+Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (5..6): Name(Name(UseId(DefId(1), 0)))
+Idx::<Expr>(2) (13..14): Name(Name(UseId(DefId(0), 1)))
+Idx::<Expr>(3) (18..19): Name(Name(UseId(DefId(2), 0)))
 
 ty:
 

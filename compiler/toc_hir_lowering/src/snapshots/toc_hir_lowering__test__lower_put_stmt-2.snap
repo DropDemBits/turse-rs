@@ -8,14 +8,14 @@ stmt:
 Idx::<Stmt>(0) (0..41): Put(Put { stream_num: None, items: [Skip, Item(PutItem { expr: Idx::<Expr>(0), width: Some(Idx::<Expr>(1)), precision: None, exponent_width: None }), Item(PutItem { expr: Idx::<Expr>(2), width: Some(Idx::<Expr>(3)), precision: Some(Idx::<Expr>(4)), exponent_width: None }), Item(PutItem { expr: Idx::<Expr>(5), width: Some(Idx::<Expr>(6)), precision: Some(Idx::<Expr>(7)), exponent_width: Some(Idx::<Expr>(8)) })], append_newline: true })
 
 expr:
-Idx::<Expr>(0) (10..12): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(0) (10..11): Name(Name(UseId(DefId(0), 0)))
 Idx::<Expr>(1) (14..15): Literal(Integer(1))
-Idx::<Expr>(2) (17..19): Name(Name(UseId(DefId(1), 0)))
-Idx::<Expr>(3) (21..23): Literal(Integer(2))
+Idx::<Expr>(2) (17..18): Name(Name(UseId(DefId(1), 0)))
+Idx::<Expr>(3) (21..22): Literal(Integer(2))
 Idx::<Expr>(4) (25..26): Literal(Integer(3))
-Idx::<Expr>(5) (28..30): Name(Name(UseId(DefId(2), 0)))
-Idx::<Expr>(6) (32..34): Literal(Integer(4))
-Idx::<Expr>(7) (36..38): Literal(Integer(5))
+Idx::<Expr>(5) (28..29): Name(Name(UseId(DefId(2), 0)))
+Idx::<Expr>(6) (32..33): Literal(Integer(4))
+Idx::<Expr>(7) (36..37): Literal(Integer(5))
 Idx::<Expr>(8) (40..41): Literal(Integer(6))
 
 ty:

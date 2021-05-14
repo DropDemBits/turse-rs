@@ -8,4 +8,4 @@ ty_nodes:
 def_kinds:
     DefId(0) Var(TyRef(Char))
 error at 16..18: mismatched types
-| note for 8..13: initializer's type is incompatible with this type
+| note for 8..12: initializer's type is incompatible with this type

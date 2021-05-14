@@ -255,26 +255,26 @@ mod test {
             "var i := ??? 1 /* skipped */ % skipped too",
             expect![[r#"
                 Source@0..42
-                  StmtList@0..42
-                    ConstVarDecl@0..42
+                  StmtList@0..14
+                    ConstVarDecl@0..14
                       KwVar@0..3 "var"
                       Whitespace@3..4 " "
-                      NameList@4..6
-                        Name@4..6
+                      NameList@4..5
+                        Name@4..5
                           Identifier@4..5 "i"
-                          Whitespace@5..6 " "
+                      Whitespace@5..6 " "
                       Assign@6..8 ":="
                       Whitespace@8..9 " "
                       Error@9..10 "?"
                       Error@10..11 "?"
                       Error@11..12 "?"
                       Whitespace@12..13 " "
-                      LiteralExpr@13..42
+                      LiteralExpr@13..14
                         IntLiteral@13..14 "1"
-                        Whitespace@14..15 " "
-                        Comment@15..28 "/* skipped */"
-                        Whitespace@28..29 " "
-                        Comment@29..42 "% skipped too"
+                  Whitespace@14..15 " "
+                  Comment@15..28 "/* skipped */"
+                  Whitespace@28..29 " "
+                  Comment@29..42 "% skipped too"
                 error at 9..10: invalid character
                 error at 10..11: invalid character
                 error at 11..12: invalid character"#]],

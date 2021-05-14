@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 22..24, state: Error(ConstError { kind: NoConstExpr(4..5) }) },
+                EvalInfo { unit_id: UnitId(0), span: 22..23, state: Error(ConstError { kind: NoConstExpr(4..5) }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(1)): ConstExpr { id: 0 },
@@ -15,8 +15,8 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> Spanned(ConstError { kind: NoConstExpr(4..5) }, 22..24)
+ConstExpr { id: 0 } -> Spanned(ConstError { kind: NoConstExpr(4..5) }, 22..23)
 
-error at 22..24: reference cannot be computed at compile-time
+error at 22..23: reference cannot be computed at compile-time
 | info for 4..5: reference declared here
 

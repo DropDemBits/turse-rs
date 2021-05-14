@@ -13,7 +13,7 @@ def_kinds:
     DefId(1) Var(TyRef(Real(Real)))
     DefId(2) Var(TyRef(Nat(Nat)))
     DefId(3) Var(TyRef(Nat(Nat)))
-error at 48..50: mismatched types
-| note for 41..45: initializer's type is incompatible with this type
-error at 68..70: mismatched types
-| note for 61..65: initializer's type is incompatible with this type
+error at 48..49: mismatched types
+| note for 41..44: initializer's type is incompatible with this type
+error at 68..69: mismatched types
+| note for 61..64: initializer's type is incompatible with this type

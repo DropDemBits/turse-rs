@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 12..32, state: Value(Real(3.5)) },
+                EvalInfo { unit_id: UnitId(0), span: 12..24, state: Value(Real(3.5)) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -16,4 +16,5 @@ ConstEvalCtx {
     },
 }
 ConstExpr { id: 0 } -> Real(3.5)
+
 

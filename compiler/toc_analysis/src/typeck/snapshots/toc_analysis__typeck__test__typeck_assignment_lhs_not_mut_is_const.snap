@@ -10,4 +10,4 @@ def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
     DefId(1) Const(TyRef(Int(Int)))
 error at 40..42: cannot assign into expression on left hand side
-| note for 38..40: this expression cannot be used as a variable reference
+| note for 38..39: this expression cannot be used as a variable reference

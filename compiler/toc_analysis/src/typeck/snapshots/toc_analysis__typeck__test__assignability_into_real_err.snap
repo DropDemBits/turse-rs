@@ -9,5 +9,5 @@ ty_nodes:
 def_kinds:
     DefId(0) Var(TyRef(Boolean))
     DefId(1) Var(TyRef(Real(Real)))
-error at 36..38: mismatched types
-| note for 28..33: initializer's type is incompatible with this type
+error at 36..37: mismatched types
+| note for 28..32: initializer's type is incompatible with this type

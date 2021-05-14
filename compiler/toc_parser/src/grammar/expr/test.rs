@@ -604,9 +604,9 @@ fn parse_expr_with_leading_ws() {
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
-                  AsnOp@1..8
+                  AsnOp@1..3
                     Assign@1..3 ":="
-                    Whitespace@3..8 "     "
+                  Whitespace@3..8 "     "
                   LiteralExpr@8..14
                     RadixLiteral@8..14 "16#480""##]],
     );
@@ -618,16 +618,16 @@ fn parse_expr_with_trailing_ws() {
         "_:=1.0e5    ",
         expect![[r#"
             Source@0..12
-              StmtList@0..12
-                AssignStmt@0..12
+              StmtList@0..8
+                AssignStmt@0..8
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  LiteralExpr@3..12
+                  LiteralExpr@3..8
                     RealLiteral@3..8 "1.0e5"
-                    Whitespace@8..12 "    ""#]],
+              Whitespace@8..12 "    ""#]],
     );
 }
 
@@ -637,17 +637,17 @@ fn parse_expr_with_surrounding_ws() {
         "_:=  12345    ",
         expect![[r#"
             Source@0..14
-              StmtList@0..14
-                AssignStmt@0..14
+              StmtList@0..10
+                AssignStmt@0..10
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
-                  AsnOp@1..5
+                  AsnOp@1..3
                     Assign@1..3 ":="
-                    Whitespace@3..5 "  "
-                  LiteralExpr@5..14
+                  Whitespace@3..5 "  "
+                  LiteralExpr@5..10
                     IntLiteral@5..10 "12345"
-                    Whitespace@10..14 "    ""#]],
+              Whitespace@10..14 "    ""#]],
     );
 }
 
@@ -657,34 +657,34 @@ fn parse_bin_expr_with_ws() {
         "_:=  1 + 2 - 3* 4    ",
         expect![[r#"
             Source@0..21
-              StmtList@0..21
-                AssignStmt@0..21
+              StmtList@0..17
+                AssignStmt@0..17
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
-                  AsnOp@1..5
+                  AsnOp@1..3
                     Assign@1..3 ":="
-                    Whitespace@3..5 "  "
-                  BinaryExpr@5..21
-                    BinaryExpr@5..11
-                      LiteralExpr@5..7
+                  Whitespace@3..5 "  "
+                  BinaryExpr@5..17
+                    BinaryExpr@5..10
+                      LiteralExpr@5..6
                         IntLiteral@5..6 "1"
-                        Whitespace@6..7 " "
+                      Whitespace@6..7 " "
                       Plus@7..8 "+"
                       Whitespace@8..9 " "
-                      LiteralExpr@9..11
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "2"
-                        Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Minus@11..12 "-"
                     Whitespace@12..13 " "
-                    BinaryExpr@13..21
+                    BinaryExpr@13..17
                       LiteralExpr@13..14
                         IntLiteral@13..14 "3"
                       Star@14..15 "*"
                       Whitespace@15..16 " "
-                      LiteralExpr@16..21
+                      LiteralExpr@16..17
                         IntLiteral@16..17 "4"
-                        Whitespace@17..21 "    ""#]],
+              Whitespace@17..21 "    ""#]],
     );
 }
 
@@ -700,57 +700,57 @@ fn parse_exprs_with_comments() {
         + 1 % go back up 1"#,
         expect![[r#"
             Source@0..159
-              StmtList@0..159
-                AssignStmt@0..108
+              StmtList@0..144
+                AssignStmt@0..98
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
-                  AsnOp@1..12
+                  AsnOp@1..3
                     Assign@1..3 ":="
-                    Whitespace@3..12 "\n        "
-                  BinaryExpr@12..108
-                    BinaryExpr@12..62
-                      LiteralExpr@12..22
+                  Whitespace@3..12 "\n        "
+                  BinaryExpr@12..98
+                    BinaryExpr@12..25
+                      LiteralExpr@12..13
                         IntLiteral@12..13 "1"
-                        Whitespace@13..22 "\n        "
+                      Whitespace@13..22 "\n        "
                       Plus@22..23 "+"
                       Whitespace@23..24 " "
-                      LiteralExpr@24..62
+                      LiteralExpr@24..25
                         IntLiteral@24..25 "2"
-                        Whitespace@25..26 " "
-                        Comment@26..53 "% interspersed line c ..."
-                        Whitespace@53..62 "\n        "
+                    Whitespace@25..26 " "
+                    Comment@26..53 "% interspersed line c ..."
+                    Whitespace@53..62 "\n        "
                     Plus@62..63 "+"
                     Whitespace@63..64 " "
                     Comment@64..96 "/* random interleaved ..."
                     Whitespace@96..97 " "
-                    LiteralExpr@97..108
+                    LiteralExpr@97..98
                       IntLiteral@97..98 "3"
-                      Whitespace@98..108 "\n\n        "
-                AssignStmt@108..159
+                Whitespace@98..108 "\n\n        "
+                AssignStmt@108..144
                   NameExpr@108..109
                     Name@108..109
                       Identifier@108..109 "_"
                   AsnOp@109..111
                     Assign@109..111 ":="
-                  BinaryExpr@111..159
-                    BinaryExpr@111..141
-                      LiteralExpr@111..113
+                  BinaryExpr@111..144
+                    BinaryExpr@111..116
+                      LiteralExpr@111..112
                         IntLiteral@111..112 "3"
-                        Whitespace@112..113 " "
+                      Whitespace@112..113 " "
                       Minus@113..114 "-"
                       Whitespace@114..115 " "
-                      LiteralExpr@115..141
+                      LiteralExpr@115..116
                         IntLiteral@115..116 "2"
-                        Whitespace@116..117 " "
-                        Comment@117..132 "% step down two"
-                        Whitespace@132..141 "\n        "
+                    Whitespace@116..117 " "
+                    Comment@117..132 "% step down two"
+                    Whitespace@132..141 "\n        "
                     Plus@141..142 "+"
                     Whitespace@142..143 " "
-                    LiteralExpr@143..159
+                    LiteralExpr@143..144
                       IntLiteral@143..144 "1"
-                      Whitespace@144..145 " "
-                      Comment@145..159 "% go back up 1""#]],
+              Whitespace@144..145 " "
+              Comment@145..159 "% go back up 1""#]],
     );
 }
 
@@ -768,9 +768,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Imply@5..7 "=>"
                     Whitespace@7..8 " "
                     LiteralExpr@8..9
@@ -788,9 +788,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwOr@5..7 "or"
                     Whitespace@7..8 " "
                     LiteralExpr@8..9
@@ -808,9 +808,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Pipe@5..6 "|"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -828,9 +828,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwAnd@5..8 "and"
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -848,9 +848,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Ampersand@5..6 "&"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -868,9 +868,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Less@5..6 "<"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -888,9 +888,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Greater@5..6 ">"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -908,9 +908,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     LessEqu@5..7 "<="
                     Whitespace@7..8 " "
                     LiteralExpr@8..9
@@ -928,9 +928,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     GreaterEqu@5..7 ">="
                     Whitespace@7..8 " "
                     LiteralExpr@8..9
@@ -948,9 +948,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Plus@5..6 "+"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -968,9 +968,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Minus@5..6 "-"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -988,9 +988,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Star@5..6 "*"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -1008,9 +1008,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..8
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Slash@5..6 "/"
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
@@ -1028,9 +1028,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwDiv@5..8 "div"
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -1048,9 +1048,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwRem@5..8 "rem"
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -1068,9 +1068,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwMod@5..8 "mod"
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -1088,9 +1088,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwShl@5..8 "shl"
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -1108,9 +1108,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwShr@5..8 "shr"
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -1128,9 +1128,9 @@ fn parse_simple_infix() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Exp@5..7 "**"
                     Whitespace@7..8 " "
                     LiteralExpr@8..9
@@ -1154,15 +1154,15 @@ fn exp_right_associativity() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..14
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "2"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Exp@5..7 "**"
                     Whitespace@7..8 " "
                     BinaryExpr@8..14
-                      LiteralExpr@8..10
+                      LiteralExpr@8..9
                         IntLiteral@8..9 "3"
-                        Whitespace@9..10 " "
+                      Whitespace@9..10 " "
                       Exp@10..12 "**"
                       Whitespace@12..13 " "
                       LiteralExpr@13..14
@@ -1184,13 +1184,13 @@ fn parse_ne_form1() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotEq@5..8
+                    Whitespace@4..5 " "
+                    NotEq@5..7
                       Tilde@5..6 "~"
                       Equ@6..7 "="
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     LiteralExpr@8..9
                       IntLiteral@8..9 "2""#]],
     );
@@ -1210,14 +1210,14 @@ fn parse_ne_form2() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotEq@5..9
+                    Whitespace@4..5 " "
+                    NotEq@5..8
                       Tilde@5..6 "~"
                       Whitespace@6..7 " "
                       Equ@7..8 "="
-                      Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     LiteralExpr@9..10
                       IntLiteral@9..10 "2""#]],
     );
@@ -1237,14 +1237,14 @@ fn parse_ne_form3() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..12
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotEq@5..11
+                    Whitespace@4..5 " "
+                    NotEq@5..10
                       KwNot@5..8 "not"
                       Whitespace@8..9 " "
                       Equ@9..10 "="
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     LiteralExpr@11..12
                       IntLiteral@11..12 "2""#]],
     );
@@ -1264,13 +1264,13 @@ fn parse_ne_form4() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..11
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotEq@5..10
+                    Whitespace@4..5 " "
+                    NotEq@5..9
                       KwNot@5..8 "not"
                       Equ@8..9 "="
-                      Whitespace@9..10 " "
+                    Whitespace@9..10 " "
                     LiteralExpr@10..11
                       IntLiteral@10..11 "2""#]],
     );
@@ -1290,9 +1290,9 @@ fn parse_in() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..9
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwIn@5..7 "in"
                     Whitespace@7..8 " "
                     NameExpr@8..9
@@ -1315,14 +1315,14 @@ fn parse_not_in_form1() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..13
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotIn@5..12
+                    Whitespace@4..5 " "
+                    NotIn@5..11
                       KwNot@5..8 "not"
                       Whitespace@8..9 " "
                       KwIn@9..11 "in"
-                      Whitespace@11..12 " "
+                    Whitespace@11..12 " "
                     NameExpr@12..13
                       Name@12..13
                         Identifier@12..13 "a""#]],
@@ -1343,13 +1343,13 @@ fn parse_not_in_form2() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotIn@5..9
+                    Whitespace@4..5 " "
+                    NotIn@5..8
                       Tilde@5..6 "~"
                       KwIn@6..8 "in"
-                      Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     NameExpr@9..10
                       Name@9..10
                         Identifier@9..10 "a""#]],
@@ -1370,14 +1370,14 @@ fn parse_not_in_form3() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..11
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
-                    NotIn@5..10
+                    Whitespace@4..5 " "
+                    NotIn@5..9
                       Tilde@5..6 "~"
                       Whitespace@6..7 " "
                       KwIn@7..9 "in"
-                      Whitespace@9..10 " "
+                    Whitespace@9..10 " "
                     NameExpr@10..11
                       Name@10..11
                         Identifier@10..11 "a""#]],
@@ -1397,9 +1397,9 @@ fn recover_tilde_as_infix() {
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  LiteralExpr@3..5
+                  LiteralExpr@3..4
                     IntLiteral@3..4 "1"
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   Error@5..8
                     Tilde@5..6 "~"
                     Whitespace@6..7 " "
@@ -1421,9 +1421,9 @@ fn recover_not_as_infix() {
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  LiteralExpr@3..5
+                  LiteralExpr@3..4
                     IntLiteral@3..4 "1"
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   Error@5..10
                     KwNot@5..8 "not"
                     Whitespace@8..9 " "
@@ -2060,14 +2060,14 @@ fn parse_nested_call_expr() {
                         Identifier@3..4 "a"
                     ParamList@4..24
                       LeftParen@4..5 "("
-                      Param@5..19
+                      Param@5..18
                         CallExpr@5..17
                           NameExpr@5..6
                             Name@5..6
                               Identifier@5..6 "b"
                           ParamList@6..17
                             LeftParen@6..7 "("
-                            Param@7..12
+                            Param@7..11
                               CallExpr@7..10
                                 NameExpr@7..8
                                   Name@7..8
@@ -2076,26 +2076,26 @@ fn parse_nested_call_expr() {
                                   LeftParen@8..9 "("
                                   RightParen@9..10 ")"
                               Comma@10..11 ","
-                              Whitespace@11..12 " "
-                            Param@12..15
+                            Whitespace@11..12 " "
+                            Param@12..14
                               NameExpr@12..13
                                 Name@12..13
                                   Identifier@12..13 "d"
                               Comma@13..14 ","
-                              Whitespace@14..15 " "
+                            Whitespace@14..15 " "
                             Param@15..16
                               NameExpr@15..16
                                 Name@15..16
                                   Identifier@15..16 "e"
                             RightParen@16..17 ")"
                         Comma@17..18 ","
-                        Whitespace@18..19 " "
-                      Param@19..22
+                      Whitespace@18..19 " "
+                      Param@19..21
                         NameExpr@19..20
                           Name@19..20
                             Identifier@19..20 "f"
                         Comma@20..21 ","
-                        Whitespace@21..22 " "
+                      Whitespace@21..22 " "
                       Param@22..23
                         NameExpr@22..23
                           Name@22..23
@@ -2146,22 +2146,22 @@ fn parse_call_expr_with_many_args() {
                         Identifier@3..4 "a"
                     ParamList@4..17
                       LeftParen@4..5 "("
-                      Param@5..8
+                      Param@5..7
                         LiteralExpr@5..6
                           IntLiteral@5..6 "1"
                         Comma@6..7 ","
-                        Whitespace@7..8 " "
-                      Param@8..15
+                      Whitespace@7..8 " "
+                      Param@8..14
                         BinaryExpr@8..13
-                          LiteralExpr@8..10
+                          LiteralExpr@8..9
                             IntLiteral@8..9 "2"
-                            Whitespace@9..10 " "
+                          Whitespace@9..10 " "
                           Plus@10..11 "+"
                           Whitespace@11..12 " "
                           LiteralExpr@12..13
                             IntLiteral@12..13 "3"
                         Comma@13..14 ","
-                        Whitespace@14..15 " "
+                      Whitespace@14..15 " "
                       Param@15..16
                         NameExpr@15..16
                           Name@15..16
@@ -2260,22 +2260,22 @@ fn recover_call_expr_missing_delim() {
         expect![[r#"
             Source@0..9
               StmtList@0..9
-                AssignStmt@0..7
+                AssignStmt@0..6
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  CallExpr@3..7
+                  CallExpr@3..6
                     NameExpr@3..4
                       Name@3..4
                         Identifier@3..4 "a"
-                    ParamList@4..7
+                    ParamList@4..6
                       LeftParen@4..5 "("
-                      Param@5..7
-                        LiteralExpr@5..7
+                      Param@5..6
+                        LiteralExpr@5..6
                           IntLiteral@5..6 "1"
-                          Whitespace@6..7 " "
+                Whitespace@6..7 " "
                 CallStmt@7..8
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1"
@@ -2667,23 +2667,23 @@ fn recover_init_expr_missing_delimiter() {
         expect![[r#"
             Source@0..15
               StmtList@0..15
-                AssignStmt@0..13
+                AssignStmt@0..12
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  InitExpr@3..13
+                  InitExpr@3..12
                     KwInit@3..7 "init"
                     LeftParen@7..8 "("
-                    ExprList@8..13
+                    ExprList@8..12
                       LiteralExpr@8..9
                         IntLiteral@8..9 "1"
                       Comma@9..10 ","
                       Whitespace@10..11 " "
-                      LiteralExpr@11..13
+                      LiteralExpr@11..12
                         IntLiteral@11..12 "2"
-                        Whitespace@12..13 " "
+                Whitespace@12..13 " "
                 CallStmt@13..14
                   LiteralExpr@13..14
                     IntLiteral@13..14 "3"
@@ -2808,9 +2808,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..16
-                    PrimType@3..11
+                    PrimType@3..10
                       KwBoolean@3..10 "boolean"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     At@11..12 "@"
                     Whitespace@12..13 " "
                     LeftParen@13..14 "("
@@ -2830,9 +2830,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..19
-                    PrimType@3..14
+                    PrimType@3..13
                       KwAddressint@3..13 "addressint"
-                      Whitespace@13..14 " "
+                    Whitespace@13..14 " "
                     At@14..15 "@"
                     Whitespace@15..16 " "
                     LeftParen@16..17 "("
@@ -2852,9 +2852,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..12
-                    PrimType@3..7
+                    PrimType@3..6
                       KwInt@3..6 "int"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     At@7..8 "@"
                     Whitespace@8..9 " "
                     LeftParen@9..10 "("
@@ -2874,9 +2874,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwInt1@3..7 "int1"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -2896,9 +2896,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwInt2@3..7 "int2"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -2918,9 +2918,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwInt4@3..7 "int4"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -2940,9 +2940,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..12
-                    PrimType@3..7
+                    PrimType@3..6
                       KwNat@3..6 "nat"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     At@7..8 "@"
                     Whitespace@8..9 " "
                     LeftParen@9..10 "("
@@ -2962,9 +2962,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwNat1@3..7 "nat1"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -2984,9 +2984,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwNat2@3..7 "nat2"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -3006,9 +3006,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwNat4@3..7 "nat4"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -3028,9 +3028,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwReal@3..7 "real"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -3050,9 +3050,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..14
-                    PrimType@3..9
+                    PrimType@3..8
                       KwReal4@3..8 "real4"
-                      Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     At@9..10 "@"
                     Whitespace@10..11 " "
                     LeftParen@11..12 "("
@@ -3072,9 +3072,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..14
-                    PrimType@3..9
+                    PrimType@3..8
                       KwReal8@3..8 "real8"
-                      Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     At@9..10 "@"
                     Whitespace@10..11 " "
                     LeftParen@11..12 "("
@@ -3094,9 +3094,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..15
-                    PrimType@3..10
+                    PrimType@3..9
                       KwString@3..9 "string"
-                      Whitespace@9..10 " "
+                    Whitespace@9..10 " "
                     At@10..11 "@"
                     Whitespace@11..12 " "
                     LeftParen@12..13 "("
@@ -3116,9 +3116,9 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..13
-                    PrimType@3..8
+                    PrimType@3..7
                       KwChar@3..7 "char"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     At@8..9 "@"
                     Whitespace@9..10 " "
                     LeftParen@10..11 "("
@@ -3138,8 +3138,8 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..22
-                    PrimType@3..17
-                      SizedStringType@3..17
+                    PrimType@3..16
+                      SizedStringType@3..16
                         KwString@3..9 "string"
                         LeftParen@9..10 "("
                         SeqLength@10..15
@@ -3154,7 +3154,7 @@ fn parse_indirect_expr_ty() {
                             LiteralExpr@14..15
                               IntLiteral@14..15 "3"
                         RightParen@15..16 ")"
-                        Whitespace@16..17 " "
+                    Whitespace@16..17 " "
                     At@17..18 "@"
                     Whitespace@18..19 " "
                     LeftParen@19..20 "("
@@ -3174,8 +3174,8 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..20
-                    PrimType@3..15
-                      SizedCharType@3..15
+                    PrimType@3..14
+                      SizedCharType@3..14
                         KwChar@3..7 "char"
                         LeftParen@7..8 "("
                         SeqLength@8..13
@@ -3190,7 +3190,7 @@ fn parse_indirect_expr_ty() {
                             LiteralExpr@12..13
                               IntLiteral@12..13 "5"
                         RightParen@13..14 ")"
-                        Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     At@15..16 "@"
                     Whitespace@16..17 " "
                     LeftParen@17..18 "("
@@ -3210,14 +3210,14 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..18
-                    PrimType@3..13
-                      SizedStringType@3..13
+                    PrimType@3..12
+                      SizedStringType@3..12
                         KwString@3..9 "string"
                         LeftParen@9..10 "("
                         SeqLength@10..11
                           Star@10..11 "*"
                         RightParen@11..12 ")"
-                        Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     At@13..14 "@"
                     Whitespace@14..15 " "
                     LeftParen@15..16 "("
@@ -3237,14 +3237,14 @@ fn parse_indirect_expr_ty() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..16
-                    PrimType@3..11
-                      SizedCharType@3..11
+                    PrimType@3..10
+                      SizedCharType@3..10
                         KwChar@3..7 "char"
                         LeftParen@7..8 "("
                         SeqLength@8..9
                           Star@8..9 "*"
                         RightParen@9..10 ")"
-                        Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     At@11..12 "@"
                     Whitespace@12..13 " "
                     LeftParen@13..14 "("
@@ -3268,10 +3268,10 @@ fn parse_indirect_expr_ty_ref() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..10
-                    NameExpr@3..5
-                      Name@3..5
+                    NameExpr@3..4
+                      Name@3..4
                         Identifier@3..4 "a"
-                        Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     At@5..6 "@"
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
@@ -3291,7 +3291,7 @@ fn parse_indirect_expr_ty_ref() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..14
-                    FieldExpr@3..9
+                    FieldExpr@3..8
                       FieldExpr@3..6
                         NameExpr@3..4
                           Name@3..4
@@ -3300,9 +3300,9 @@ fn parse_indirect_expr_ty_ref() {
                         Name@5..6
                           Identifier@5..6 "b"
                       Dot@6..7 "."
-                      Name@7..9
+                      Name@7..8
                         Identifier@7..8 "c"
-                        Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     At@9..10 "@"
                     Whitespace@10..11 " "
                     LeftParen@11..12 "("
@@ -3328,10 +3328,10 @@ fn parse_indirect_expr_not_ty_ref_deref() {
                   DerefExpr@3..11
                     Caret@3..4 "^"
                     IndirectExpr@4..11
-                      NameExpr@4..6
-                        Name@4..6
+                      NameExpr@4..5
+                        Name@4..5
                           Identifier@4..5 "a"
-                          Whitespace@5..6 " "
+                      Whitespace@5..6 " "
                       At@6..7 "@"
                       Whitespace@7..8 " "
                       LeftParen@8..9 "("
@@ -3355,9 +3355,9 @@ fn parse_indirect_expr_not_ty_ref_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..10
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "1"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     At@5..6 "@"
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
@@ -3381,7 +3381,7 @@ fn parse_indirect_expr_not_ty_ref_parens() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   IndirectExpr@3..16
-                    ParenExpr@3..11
+                    ParenExpr@3..10
                       LeftParen@3..4 "("
                       FieldExpr@4..9
                         FieldExpr@4..7
@@ -3395,7 +3395,7 @@ fn parse_indirect_expr_not_ty_ref_parens() {
                         Name@8..9
                           Identifier@8..9 "c"
                       RightParen@9..10 ")"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     At@11..12 "@"
                     Whitespace@12..13 " "
                     LeftParen@13..14 "("
@@ -3413,27 +3413,27 @@ fn recover_chained_indirect_tails() {
         expect![[r#"
             Source@0..16
               StmtList@0..16
-                AssignStmt@0..13
+                AssignStmt@0..12
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  IndirectExpr@3..11
-                    NameExpr@3..5
-                      Name@3..5
+                  IndirectExpr@3..10
+                    NameExpr@3..4
+                      Name@3..4
                         Identifier@3..4 "a"
-                        Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     At@5..6 "@"
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
                     LiteralExpr@8..9
                       IntLiteral@8..9 "1"
                     RightParen@9..10 ")"
-                    Whitespace@10..11 " "
-                  Error@11..13
+                  Whitespace@10..11 " "
+                  Error@11..12
                     At@11..12 "@"
-                    Whitespace@12..13 " "
+                Whitespace@12..13 " "
                 CallStmt@13..16
                   ParenExpr@13..16
                     LeftParen@13..14 "("
@@ -3452,20 +3452,20 @@ fn parse_indirect_expr_in_ref_pos() {
             Source@0..15
               StmtList@0..15
                 AssignStmt@0..15
-                  IndirectExpr@0..11
-                    PrimType@0..5
+                  IndirectExpr@0..10
+                    PrimType@0..4
                       KwChar@0..4 "char"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     At@5..6 "@"
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
                     LiteralExpr@8..9
                       IntLiteral@8..9 "1"
                     RightParen@9..10 ")"
-                    Whitespace@10..11 " "
-                  AsnOp@11..14
+                  Whitespace@10..11 " "
+                  AsnOp@11..13
                     Assign@11..13 ":="
-                    Whitespace@13..14 " "
+                  Whitespace@13..14 " "
                   LiteralExpr@14..15
                     IntLiteral@14..15 "1""#]],
     );
@@ -3496,19 +3496,19 @@ fn parse_bits_expr() {
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
-                  AsnOp@1..4
+                  AsnOp@1..3
                     Assign@1..3 ":="
-                    Whitespace@3..4 " "
+                  Whitespace@3..4 " "
                   BitsExpr@4..14
                     KwBits@4..8 "bits"
                     ParamList@8..14
                       LeftParen@8..9 "("
-                      Param@9..12
+                      Param@9..11
                         NameExpr@9..10
                           Name@9..10
                             Identifier@9..10 "a"
                         Comma@10..11 ","
-                        Whitespace@11..12 " "
+                      Whitespace@11..12 " "
                       Param@12..13
                         LiteralExpr@12..13
                           IntLiteral@12..13 "1"
@@ -3528,12 +3528,12 @@ fn parse_bits_ref() {
                     KwBits@0..4 "bits"
                     ParamList@4..10
                       LeftParen@4..5 "("
-                      Param@5..8
+                      Param@5..7
                         NameExpr@5..6
                           Name@5..6
                             Identifier@5..6 "a"
                         Comma@6..7 ","
-                        Whitespace@7..8 " "
+                      Whitespace@7..8 " "
                       Param@8..9
                         LiteralExpr@8..9
                           IntLiteral@8..9 "1"
@@ -3553,23 +3553,23 @@ fn parse_bits_ref_range() {
                     KwBits@0..4 "bits"
                     ParamList@4..19
                       LeftParen@4..5 "("
-                      Param@5..8
+                      Param@5..7
                         NameExpr@5..6
                           Name@5..6
                             Identifier@5..6 "a"
                         Comma@6..7 ","
-                        Whitespace@7..8 " "
+                      Whitespace@7..8 " "
                       Param@8..18
                         RangeItem@8..18
-                          LiteralExpr@8..10
+                          LiteralExpr@8..9
                             IntLiteral@8..9 "1"
-                            Whitespace@9..10 " "
+                          Whitespace@9..10 " "
                           Range@10..12 ".."
                           Whitespace@12..13 " "
                           BinaryExpr@13..18
-                            LiteralExpr@13..15
+                            LiteralExpr@13..14
                               IntLiteral@13..14 "2"
-                              Whitespace@14..15 " "
+                            Whitespace@14..15 " "
                             Minus@15..16 "-"
                             Whitespace@16..17 " "
                             LiteralExpr@17..18
@@ -3591,17 +3591,17 @@ fn parse_bits_ref_relative_range() {
                     KwBits@0..4 "bits"
                     ParamList@4..15
                       LeftParen@4..5 "("
-                      Param@5..8
+                      Param@5..7
                         NameExpr@5..6
                           Name@5..6
                             Identifier@5..6 "a"
                         Comma@6..7 ","
-                        Whitespace@7..8 " "
+                      Whitespace@7..8 " "
                       Param@8..14
                         RangeItem@8..14
-                          LiteralExpr@8..10
+                          LiteralExpr@8..9
                             IntLiteral@8..9 "1"
-                            Whitespace@9..10 " "
+                          Whitespace@9..10 " "
                           Range@10..12 ".."
                           Whitespace@12..13 " "
                           RelativeBound@13..14
@@ -3673,9 +3673,9 @@ fn parse_objclass_expr() {
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
-                  AsnOp@1..4
+                  AsnOp@1..3
                     Assign@1..3 ":="
-                    Whitespace@3..4 " "
+                  Whitespace@3..4 " "
                   ObjClassExpr@4..18
                     KwObjectClass@4..15 "objectclass"
                     ParamList@15..18
@@ -3722,12 +3722,12 @@ fn parse_objclass_many_args() {
                     KwObjectClass@0..11 "objectclass"
                     ParamList@11..17
                       LeftParen@11..12 "("
-                      Param@12..15
+                      Param@12..14
                         NameExpr@12..13
                           Name@12..13
                             Identifier@12..13 "a"
                         Comma@13..14 ","
-                        Whitespace@14..15 " "
+                      Whitespace@14..15 " "
                       Param@15..16
                         NameExpr@15..16
                           Name@15..16
@@ -3775,13 +3775,13 @@ fn parse_cheat_expr() {
             Source@0..23
               StmtList@0..23
                 AssignStmt@0..23
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "_"
-                      Whitespace@1..2 " "
-                  AsnOp@2..5
+                  Whitespace@1..2 " "
+                  AsnOp@2..4
                     Assign@2..4 ":="
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   CheatExpr@5..23
                     KwCheat@5..10 "cheat"
                     LeftParen@10..11 "("
@@ -3809,13 +3809,13 @@ fn parse_cheat_expr_with_opt_size_spec() {
             Source@0..22
               StmtList@0..22
                 AssignStmt@0..22
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "_"
-                      Whitespace@1..2 " "
-                  AsnOp@2..5
+                  Whitespace@1..2 " "
+                  AsnOp@2..4
                     Assign@2..4 ":="
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   CheatExpr@5..22
                     KwCheat@5..10 "cheat"
                     LeftParen@10..11 "("
@@ -3823,9 +3823,9 @@ fn parse_cheat_expr_with_opt_size_spec() {
                       KwInt@11..14 "int"
                     Comma@14..15 ","
                     Whitespace@15..16 " "
-                    LiteralExpr@16..18
+                    LiteralExpr@16..17
                       IntLiteral@16..17 "8"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     SizeSpec@18..21
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
@@ -3877,13 +3877,13 @@ fn recover_cheat_expr_missing_size_spec_expr() {
                       KwInt@9..12 "int"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
-                    NameExpr@14..16
-                      Name@14..16
+                    NameExpr@14..15
+                      Name@14..15
                         Identifier@14..15 "a"
-                        Whitespace@15..16 " "
-                    SizeSpec@16..18
+                    Whitespace@15..16 " "
+                    SizeSpec@16..17
                       Colon@16..17 ":"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     RightParen@18..19 ")"
             error at 18..19: expected expression, but found ‘)’"#]],
     );
@@ -4055,14 +4055,14 @@ fn parse_call_expr_range_item_left_bounded() {
                       LeftParen@4..5 "("
                       Param@5..15
                         RangeItem@5..15
-                          RelativeBound@5..11
+                          RelativeBound@5..10
                             Star@5..6 "*"
                             Whitespace@6..7 " "
                             Minus@7..8 "-"
                             Whitespace@8..9 " "
-                            LiteralExpr@9..11
+                            LiteralExpr@9..10
                               IntLiteral@9..10 "1"
-                              Whitespace@10..11 " "
+                          Whitespace@10..11 " "
                           Range@11..13 ".."
                           Whitespace@13..14 " "
                           NameExpr@14..15
@@ -4093,10 +4093,10 @@ fn parse_call_expr_range_item_right_bounded() {
                       LeftParen@4..5 "("
                       Param@5..15
                         RangeItem@5..15
-                          NameExpr@5..7
-                            Name@5..7
+                          NameExpr@5..6
+                            Name@5..6
                               Identifier@5..6 "a"
-                              Whitespace@6..7 " "
+                          Whitespace@6..7 " "
                           Range@7..9 ".."
                           Whitespace@9..10 " "
                           RelativeBound@10..15
@@ -4131,14 +4131,14 @@ fn parse_call_expr_range_item_both_relatively_bounded() {
                       LeftParen@4..5 "("
                       Param@5..19
                         RangeItem@5..19
-                          RelativeBound@5..11
+                          RelativeBound@5..10
                             Star@5..6 "*"
                             Whitespace@6..7 " "
                             Minus@7..8 "-"
                             Whitespace@8..9 " "
-                            LiteralExpr@9..11
+                            LiteralExpr@9..10
                               IntLiteral@9..10 "1"
-                              Whitespace@10..11 " "
+                          Whitespace@10..11 " "
                           Range@11..13 ".."
                           Whitespace@13..14 " "
                           RelativeBound@14..19
@@ -4173,9 +4173,9 @@ fn parse_call_expr_range_item_both_end_bounded() {
                       LeftParen@4..5 "("
                       Param@5..11
                         RangeItem@5..11
-                          RelativeBound@5..7
+                          RelativeBound@5..6
                             Star@5..6 "*"
-                            Whitespace@6..7 " "
+                          Whitespace@6..7 " "
                           Range@7..9 ".."
                           Whitespace@9..10 " "
                           RelativeBound@10..11
@@ -4203,14 +4203,14 @@ fn recover_call_expr_range_item_missing_expr() {
                         Identifier@3..4 "a"
                     ParamList@4..11
                       LeftParen@4..5 "("
-                      Param@5..10
-                        RangeItem@5..10
-                          NameExpr@5..7
-                            Name@5..7
+                      Param@5..9
+                        RangeItem@5..9
+                          NameExpr@5..6
+                            Name@5..6
                               Identifier@5..6 "a"
-                              Whitespace@6..7 " "
+                          Whitespace@6..7 " "
                           Range@7..9 ".."
-                          Whitespace@9..10 " "
+                      Whitespace@9..10 " "
                       RightParen@10..11 ")"
             error at 10..11: expected expression, but found ‘)’"#]],
     );
@@ -4235,12 +4235,12 @@ fn recover_call_expr_relative_bound_missing_expr() {
                         Identifier@3..4 "a"
                     ParamList@4..10
                       LeftParen@4..5 "("
-                      Param@5..9
-                        RelativeBound@5..9
+                      Param@5..8
+                        RelativeBound@5..8
                           Star@5..6 "*"
                           Whitespace@6..7 " "
                           Minus@7..8 "-"
-                          Whitespace@8..9 " "
+                      Whitespace@8..9 " "
                       RightParen@9..10 ")"
             error at 9..10: expected expression, but found ‘)’"#]],
     );
@@ -4253,22 +4253,22 @@ fn recover_call_expr_relative_bound_missing_minus() {
         expect![[r#"
             Source@0..9
               StmtList@0..9
-                AssignStmt@0..7
+                AssignStmt@0..6
                   NameExpr@0..1
                     Name@0..1
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  CallExpr@3..7
+                  CallExpr@3..6
                     NameExpr@3..4
                       Name@3..4
                         Identifier@3..4 "a"
-                    ParamList@4..7
+                    ParamList@4..6
                       LeftParen@4..5 "("
-                      Param@5..7
-                        RelativeBound@5..7
+                      Param@5..6
+                        RelativeBound@5..6
                           Star@5..6 "*"
-                          Whitespace@6..7 " "
+                Whitespace@6..7 " "
                 CallStmt@7..8
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1"
@@ -4325,21 +4325,21 @@ fn parse_call_expr_many_all_items() {
                         Identifier@3..11 "set_cons"
                     ParamList@11..31
                       LeftParen@11..12 "("
-                      Param@12..17
+                      Param@12..16
                         AllItem@12..15
                           KwAll@12..15 "all"
                         Comma@15..16 ","
-                        Whitespace@16..17 " "
-                      Param@17..22
+                      Whitespace@16..17 " "
+                      Param@17..21
                         AllItem@17..20
                           KwAll@17..20 "all"
                         Comma@20..21 ","
-                        Whitespace@21..22 " "
-                      Param@22..27
+                      Whitespace@21..22 " "
+                      Param@22..26
                         AllItem@22..25
                           KwAll@22..25 "all"
                         Comma@25..26 ","
-                        Whitespace@26..27 " "
+                      Whitespace@26..27 " "
                       Param@27..30
                         AllItem@27..30
                           KwAll@27..30 "all"
@@ -4361,16 +4361,16 @@ fn recover_all_not_primary() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..19
-                    CallExpr@3..16
+                    CallExpr@3..15
                       NameExpr@3..11
                         Name@3..11
                           Identifier@3..11 "set_cons"
-                      ParamList@11..16
+                      ParamList@11..15
                         LeftParen@11..12 "("
-                        Param@12..16
-                          AllItem@12..16
+                        Param@12..15
+                          AllItem@12..15
                             KwAll@12..15 "all"
-                            Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     Plus@16..17 "+"
                     Whitespace@17..18 " "
                     LiteralExpr@18..19
@@ -4396,9 +4396,9 @@ fn parse_self_expr() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   ArrowExpr@3..12
-                    SelfExpr@3..8
+                    SelfExpr@3..7
                       KwSelf@3..7 "self"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     Arrow@8..10 "->"
                     Whitespace@10..11 " "
                     Name@11..12
@@ -4415,9 +4415,9 @@ fn parse_self_ref() {
               StmtList@0..9
                 CallStmt@0..9
                   ArrowExpr@0..9
-                    SelfExpr@0..5
+                    SelfExpr@0..4
                       KwSelf@0..4 "self"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     Arrow@5..7 "->"
                     Whitespace@7..8 " "
                     Name@8..9
@@ -4511,9 +4511,9 @@ fn parse_nil_expr_opt_spec_not_ref() {
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
                     BinaryExpr@8..13
-                      LiteralExpr@8..10
+                      LiteralExpr@8..9
                         IntLiteral@8..9 "1"
-                        Whitespace@9..10 " "
+                      Whitespace@9..10 " "
                       Plus@10..11 "+"
                       Whitespace@11..12 " "
                       LiteralExpr@12..13
@@ -4582,16 +4582,16 @@ fn recover_include_glob_expr() {
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                PreprocGlob@3..18
-                  PPInclude@3..18
+                PreprocGlob@3..17
+                  PPInclude@3..17
                     KwInclude@3..10 "include"
                     Whitespace@10..11 " "
-                    LiteralExpr@11..18
+                    LiteralExpr@11..17
                       StringLiteral@11..17 "\"here\""
-                      Whitespace@17..18 " "
-                Error@18..20
+                Whitespace@17..18 " "
+                Error@18..19
                   Plus@18..19 "+"
-                  Whitespace@19..20 " "
+                Whitespace@19..20 " "
                 CallStmt@20..21
                   LiteralExpr@20..21
                     IntLiteral@20..21 "1"
@@ -4608,16 +4608,16 @@ fn recover_include_glob_ref() {
         expect![[r#"
             Source@0..27
               StmtList@0..27
-                PreprocGlob@0..15
-                  PPInclude@0..15
+                PreprocGlob@0..14
+                  PPInclude@0..14
                     KwInclude@0..7 "include"
                     Whitespace@7..8 " "
-                    LiteralExpr@8..15
+                    LiteralExpr@8..14
                       StringLiteral@8..14 "\"here\""
-                      Whitespace@14..15 " "
-                Error@15..18
+                Whitespace@14..15 " "
+                Error@15..17
                   Arrow@15..17 "->"
-                  Whitespace@17..18 " "
+                Whitespace@17..18 " "
                 CallStmt@18..27
                   NameExpr@18..27
                     Name@18..27
@@ -4640,17 +4640,17 @@ fn parse_infix_after_indirect() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..17
-                    IndirectExpr@3..13
-                      PrimType@3..7
+                    IndirectExpr@3..12
+                      PrimType@3..6
                         KwInt@3..6 "int"
-                        Whitespace@6..7 " "
+                      Whitespace@6..7 " "
                       At@7..8 "@"
                       Whitespace@8..9 " "
                       LeftParen@9..10 "("
                       LiteralExpr@10..11
                         IntLiteral@10..11 "1"
                       RightParen@11..12 ")"
-                      Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     GreaterEqu@13..15 ">="
                     Whitespace@15..16 " "
                     LiteralExpr@16..17
@@ -4666,15 +4666,15 @@ fn parse_nat_cheat_as_ref() {
             Source@0..9
               StmtList@0..9
                 AssignStmt@0..9
-                  NatCheatExpr@0..5
+                  NatCheatExpr@0..4
                     Pound@0..1 "#"
-                    NameExpr@1..5
-                      Name@1..5
+                    NameExpr@1..4
+                      Name@1..4
                         Identifier@1..4 "woo"
-                        Whitespace@4..5 " "
-                  AsnOp@5..8
+                  Whitespace@4..5 " "
+                  AsnOp@5..7
                     Assign@5..7 ":="
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   LiteralExpr@8..9
                     IntLiteral@8..9 "1""##]],
     );
@@ -4956,21 +4956,21 @@ fn parse_not_eq_after_higher_precedence_op() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   BinaryExpr@3..17
-                    BinaryExpr@3..11
-                      NameExpr@3..5
-                        Name@3..5
+                    BinaryExpr@3..10
+                      NameExpr@3..4
+                        Name@3..4
                           Identifier@3..4 "A"
-                          Whitespace@4..5 " "
+                      Whitespace@4..5 " "
                       KwMod@5..8 "mod"
                       Whitespace@8..9 " "
-                      NameExpr@9..11
-                        Name@9..11
+                      NameExpr@9..10
+                        Name@9..10
                           Identifier@9..10 "B"
-                          Whitespace@10..11 " "
-                    NotEq@11..16
+                    Whitespace@10..11 " "
+                    NotEq@11..15
                       KwNot@11..14 "not"
                       Equ@14..15 "="
-                      Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     LiteralExpr@16..17
                       IntLiteral@16..17 "0""#]],
     );

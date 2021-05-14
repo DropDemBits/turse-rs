@@ -8,8 +8,8 @@ stmt:
 Idx::<Stmt>(0) (0..10): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(3) })
 
 expr:
-Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (5..7): Name(Name(UseId(DefId(0), 1)))
+Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (5..6): Name(Name(UseId(DefId(0), 1)))
 Idx::<Expr>(2) (9..10): Name(Name(UseId(DefId(0), 2)))
 Idx::<Expr>(3) (5..10): Binary(Binary { lhs: Idx::<Expr>(1), op: Spanned(Add, 7..8), rhs: Idx::<Expr>(2) })
 

@@ -8,7 +8,7 @@ stmt:
 Idx::<Stmt>(0) (0..6): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(Add, 2..3), rhs: Idx::<Expr>(1) })
 
 expr:
-Idx::<Expr>(0) (0..2): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
 Idx::<Expr>(1) (5..6): Name(Name(UseId(DefId(1), 0)))
 
 ty:

@@ -25,172 +25,172 @@ type _ : string
         expect![[r#"
             Source@0..226
               Whitespace@0..1 "\n"
-              StmtList@1..226
-                TypeDecl@1..21
+              StmtList@1..221
+                TypeDecl@1..20
                   KwType@1..5 "type"
                   Whitespace@5..6 " "
-                  Name@6..8
+                  Name@6..7
                     Identifier@6..7 "_"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
-                  PrimType@10..21
+                  PrimType@10..20
                     KwAddressint@10..20 "addressint"
-                    Whitespace@20..21 "\n"
-                TypeDecl@21..38
+                Whitespace@20..21 "\n"
+                TypeDecl@21..37
                   KwType@21..25 "type"
                   Whitespace@25..26 " "
-                  Name@26..28
+                  Name@26..27
                     Identifier@26..27 "_"
-                    Whitespace@27..28 " "
+                  Whitespace@27..28 " "
                   Colon@28..29 ":"
                   Whitespace@29..30 " "
-                  PrimType@30..38
+                  PrimType@30..37
                     KwBoolean@30..37 "boolean"
-                    Whitespace@37..38 "\n"
-                TypeDecl@38..51
+                Whitespace@37..38 "\n"
+                TypeDecl@38..50
                   KwType@38..42 "type"
                   Whitespace@42..43 " "
-                  Name@43..45
+                  Name@43..44
                     Identifier@43..44 "_"
-                    Whitespace@44..45 " "
+                  Whitespace@44..45 " "
                   Colon@45..46 ":"
                   Whitespace@46..47 " "
-                  PrimType@47..51
+                  PrimType@47..50
                     KwInt@47..50 "int"
-                    Whitespace@50..51 "\n"
-                TypeDecl@51..65
+                Whitespace@50..51 "\n"
+                TypeDecl@51..64
                   KwType@51..55 "type"
                   Whitespace@55..56 " "
-                  Name@56..58
+                  Name@56..57
                     Identifier@56..57 "_"
-                    Whitespace@57..58 " "
+                  Whitespace@57..58 " "
                   Colon@58..59 ":"
                   Whitespace@59..60 " "
-                  PrimType@60..65
+                  PrimType@60..64
                     KwInt1@60..64 "int1"
-                    Whitespace@64..65 "\n"
-                TypeDecl@65..79
+                Whitespace@64..65 "\n"
+                TypeDecl@65..78
                   KwType@65..69 "type"
                   Whitespace@69..70 " "
-                  Name@70..72
+                  Name@70..71
                     Identifier@70..71 "_"
-                    Whitespace@71..72 " "
+                  Whitespace@71..72 " "
                   Colon@72..73 ":"
                   Whitespace@73..74 " "
-                  PrimType@74..79
+                  PrimType@74..78
                     KwInt2@74..78 "int2"
-                    Whitespace@78..79 "\n"
-                TypeDecl@79..93
+                Whitespace@78..79 "\n"
+                TypeDecl@79..92
                   KwType@79..83 "type"
                   Whitespace@83..84 " "
-                  Name@84..86
+                  Name@84..85
                     Identifier@84..85 "_"
-                    Whitespace@85..86 " "
+                  Whitespace@85..86 " "
                   Colon@86..87 ":"
                   Whitespace@87..88 " "
-                  PrimType@88..93
+                  PrimType@88..92
                     KwInt4@88..92 "int4"
-                    Whitespace@92..93 "\n"
-                TypeDecl@93..106
+                Whitespace@92..93 "\n"
+                TypeDecl@93..105
                   KwType@93..97 "type"
                   Whitespace@97..98 " "
-                  Name@98..100
+                  Name@98..99
                     Identifier@98..99 "_"
-                    Whitespace@99..100 " "
+                  Whitespace@99..100 " "
                   Colon@100..101 ":"
                   Whitespace@101..102 " "
-                  PrimType@102..106
+                  PrimType@102..105
                     KwNat@102..105 "nat"
-                    Whitespace@105..106 "\n"
-                TypeDecl@106..120
+                Whitespace@105..106 "\n"
+                TypeDecl@106..119
                   KwType@106..110 "type"
                   Whitespace@110..111 " "
-                  Name@111..113
+                  Name@111..112
                     Identifier@111..112 "_"
-                    Whitespace@112..113 " "
+                  Whitespace@112..113 " "
                   Colon@113..114 ":"
                   Whitespace@114..115 " "
-                  PrimType@115..120
+                  PrimType@115..119
                     KwNat1@115..119 "nat1"
-                    Whitespace@119..120 "\n"
-                TypeDecl@120..134
+                Whitespace@119..120 "\n"
+                TypeDecl@120..133
                   KwType@120..124 "type"
                   Whitespace@124..125 " "
-                  Name@125..127
+                  Name@125..126
                     Identifier@125..126 "_"
-                    Whitespace@126..127 " "
+                  Whitespace@126..127 " "
                   Colon@127..128 ":"
                   Whitespace@128..129 " "
-                  PrimType@129..134
+                  PrimType@129..133
                     KwNat2@129..133 "nat2"
-                    Whitespace@133..134 "\n"
-                TypeDecl@134..148
+                Whitespace@133..134 "\n"
+                TypeDecl@134..147
                   KwType@134..138 "type"
                   Whitespace@138..139 " "
-                  Name@139..141
+                  Name@139..140
                     Identifier@139..140 "_"
-                    Whitespace@140..141 " "
+                  Whitespace@140..141 " "
                   Colon@141..142 ":"
                   Whitespace@142..143 " "
-                  PrimType@143..148
+                  PrimType@143..147
                     KwNat4@143..147 "nat4"
-                    Whitespace@147..148 "\n"
-                TypeDecl@148..162
+                Whitespace@147..148 "\n"
+                TypeDecl@148..161
                   KwType@148..152 "type"
                   Whitespace@152..153 " "
-                  Name@153..155
+                  Name@153..154
                     Identifier@153..154 "_"
-                    Whitespace@154..155 " "
+                  Whitespace@154..155 " "
                   Colon@155..156 ":"
                   Whitespace@156..157 " "
-                  PrimType@157..162
+                  PrimType@157..161
                     KwReal@157..161 "real"
-                    Whitespace@161..162 "\n"
-                TypeDecl@162..177
+                Whitespace@161..162 "\n"
+                TypeDecl@162..176
                   KwType@162..166 "type"
                   Whitespace@166..167 " "
-                  Name@167..169
+                  Name@167..168
                     Identifier@167..168 "_"
-                    Whitespace@168..169 " "
+                  Whitespace@168..169 " "
                   Colon@169..170 ":"
                   Whitespace@170..171 " "
-                  PrimType@171..177
+                  PrimType@171..176
                     KwReal4@171..176 "real4"
-                    Whitespace@176..177 "\n"
-                TypeDecl@177..192
+                Whitespace@176..177 "\n"
+                TypeDecl@177..191
                   KwType@177..181 "type"
                   Whitespace@181..182 " "
-                  Name@182..184
+                  Name@182..183
                     Identifier@182..183 "_"
-                    Whitespace@183..184 " "
+                  Whitespace@183..184 " "
                   Colon@184..185 ":"
                   Whitespace@185..186 " "
-                  PrimType@186..192
+                  PrimType@186..191
                     KwReal8@186..191 "real8"
-                    Whitespace@191..192 "\n"
-                TypeDecl@192..206
+                Whitespace@191..192 "\n"
+                TypeDecl@192..205
                   KwType@192..196 "type"
                   Whitespace@196..197 " "
-                  Name@197..199
+                  Name@197..198
                     Identifier@197..198 "_"
-                    Whitespace@198..199 " "
+                  Whitespace@198..199 " "
                   Colon@199..200 ":"
                   Whitespace@200..201 " "
-                  PrimType@201..206
+                  PrimType@201..205
                     KwChar@201..205 "char"
-                    Whitespace@205..206 "\n"
-                TypeDecl@206..226
+                Whitespace@205..206 "\n"
+                TypeDecl@206..221
                   KwType@206..210 "type"
                   Whitespace@210..211 " "
-                  Name@211..213
+                  Name@211..212
                     Identifier@211..212 "_"
-                    Whitespace@212..213 " "
+                  Whitespace@212..213 " "
                   Colon@213..214 ":"
                   Whitespace@214..215 " "
-                  PrimType@215..226
+                  PrimType@215..221
                     KwString@215..221 "string"
-                    Whitespace@221..226 "\n    ""#]],
+              Whitespace@221..226 "\n    ""#]],
     );
 }
 
@@ -204,9 +204,9 @@ fn parse_sized_char_type() {
                 TypeDecl@0..21
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..21
@@ -215,9 +215,9 @@ fn parse_sized_char_type() {
                       LeftParen@14..15 "("
                       SeqLength@15..20
                         BinaryExpr@15..20
-                          LiteralExpr@15..17
+                          LiteralExpr@15..16
                             IntLiteral@15..16 "1"
-                            Whitespace@16..17 " "
+                          Whitespace@16..17 " "
                           Plus@17..18 "+"
                           Whitespace@18..19 " "
                           NameExpr@19..20
@@ -237,9 +237,9 @@ fn parse_sized_string_type() {
                 TypeDecl@0..23
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..23
@@ -248,9 +248,9 @@ fn parse_sized_string_type() {
                       LeftParen@16..17 "("
                       SeqLength@17..22
                         BinaryExpr@17..22
-                          LiteralExpr@17..19
+                          LiteralExpr@17..18
                             IntLiteral@17..18 "1"
-                            Whitespace@18..19 " "
+                          Whitespace@18..19 " "
                           Plus@19..20 "+"
                           Whitespace@20..21 " "
                           NameExpr@21..22
@@ -270,9 +270,9 @@ fn parse_dyn_sized_char_type() {
                 TypeDecl@0..16
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PrimType@9..16
@@ -295,9 +295,9 @@ fn parse_dyn_sized_string_type() {
                 TypeDecl@0..18
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PrimType@9..18
@@ -320,9 +320,9 @@ fn recover_empty_sized_char_type() {
                 TypeDecl@0..16
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..16
@@ -345,9 +345,9 @@ fn recover_empty_sized_string_type() {
                 TypeDecl@0..18
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..18
@@ -370,9 +370,9 @@ fn recover_not_expr_in_sized_char_type() {
                 TypeDecl@0..18
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..18
@@ -397,9 +397,9 @@ fn recover_not_expr_in_sized_string_type() {
                 TypeDecl@0..20
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..20
@@ -424,9 +424,9 @@ fn recover_missing_right_paren_in_sized_char_type() {
                 TypeDecl@0..16
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..16
@@ -450,9 +450,9 @@ fn recover_missing_right_paren_in_sized_string_type() {
                 TypeDecl@0..18
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..8
+                  Name@5..7
                     Identifier@5..7 "sc"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..18
@@ -476,9 +476,9 @@ fn parse_name_type() {
                 TypeDecl@0..10
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..10
@@ -494,9 +494,9 @@ fn parse_name_type() {
                 TypeDecl@0..14
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..14
@@ -525,9 +525,9 @@ fn parse_name_type_not_a_ref() {
                 TypeDecl@0..10
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..10
@@ -542,9 +542,9 @@ fn parse_name_type_not_a_ref() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..22
@@ -563,28 +563,28 @@ fn parse_expr_as_name_type() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   NameType@9..22
                     BinaryExpr@9..22
-                      BinaryExpr@9..19
-                        BinaryExpr@9..15
-                          LiteralExpr@9..11
+                      BinaryExpr@9..18
+                        BinaryExpr@9..14
+                          LiteralExpr@9..10
                             IntLiteral@9..10 "1"
-                            Whitespace@10..11 " "
+                          Whitespace@10..11 " "
                           Plus@11..12 "+"
                           Whitespace@12..13 " "
-                          LiteralExpr@13..15
+                          LiteralExpr@13..14
                             IntLiteral@13..14 "2"
-                            Whitespace@14..15 " "
+                        Whitespace@14..15 " "
                         Plus@15..16 "+"
                         Whitespace@16..17 " "
-                        LiteralExpr@17..19
+                        LiteralExpr@17..18
                           IntLiteral@17..18 "3"
-                          Whitespace@18..19 " "
+                      Whitespace@18..19 " "
                       Minus@19..20 "-"
                       Whitespace@20..21 " "
                       LiteralExpr@21..22
@@ -602,15 +602,15 @@ fn parse_range_type() {
                 TypeDecl@0..15
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..15
-                    LiteralExpr@9..11
+                    LiteralExpr@9..10
                       IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
                     LiteralExpr@14..15
@@ -628,15 +628,15 @@ fn parse_unbounded_range_type() {
                 TypeDecl@0..15
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..15
-                    LiteralExpr@9..11
+                    LiteralExpr@9..10
                       IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
                     UnsizedBound@14..15
@@ -654,15 +654,15 @@ fn recover_range_type_missing_tail() {
                 TypeDecl@0..13
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..13
-                    LiteralExpr@9..11
+                    LiteralExpr@9..10
                       IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Range@11..13 ".."
             error at 11..13: expected expression after here"#]],
     );
@@ -678,15 +678,15 @@ fn recover_range_type_not_an_expr() {
                 TypeDecl@0..21
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RangeType@9..21
-                    LiteralExpr@9..11
+                    LiteralExpr@9..10
                       IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Range@11..13 ".."
                     Whitespace@13..14 " "
                     Error@14..21
@@ -706,9 +706,9 @@ fn parse_pointer_type() {
                 TypeDecl@0..23
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..23
@@ -731,9 +731,9 @@ fn parse_pointer_type_to_named() {
                 TypeDecl@0..33
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..33
@@ -766,9 +766,9 @@ fn parse_unchecked_pointer_type() {
                 TypeDecl@0..40
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..40
@@ -793,9 +793,9 @@ fn parse_unchecked_short_pointer_type() {
                 TypeDecl@0..30
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..30
@@ -817,9 +817,9 @@ fn parse_short_pointer_type() {
                 TypeDecl@0..13
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..13
@@ -839,9 +839,9 @@ fn recover_pointer_type_missing_to() {
                 TypeDecl@0..27
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..27
@@ -863,9 +863,9 @@ fn recover_pointer_type_just_unchecked() {
                 TypeDecl@0..18
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..18
@@ -884,9 +884,9 @@ fn parse_enum_type() {
                 TypeDecl@0..17
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..17
@@ -910,9 +910,9 @@ fn parse_enum_type_multiple_names() {
                 TypeDecl@0..23
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..23
@@ -941,26 +941,26 @@ fn recover_enum_type_missing_delimiter() {
         expect![[r#"
             Source@0..22
               StmtList@0..22
-                TypeDecl@0..20
+                TypeDecl@0..19
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  EnumType@9..20
+                  EnumType@9..19
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..20
+                    NameList@15..19
                       Name@15..16
                         Identifier@15..16 "a"
                       Comma@16..17 ","
                       Whitespace@17..18 " "
-                      Name@18..20
+                      Name@18..19
                         Identifier@18..19 "b"
-                        Whitespace@19..20 " "
+                Whitespace@19..20 " "
                 CallStmt@20..21
                   NameExpr@20..21
                     Name@20..21
@@ -982,16 +982,16 @@ fn recover_enum_type_missing_name() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..22
                     KwEnum@9..13 "enum"
                     Whitespace@13..14 " "
                     LeftParen@14..15 "("
-                    NameList@15..21
+                    NameList@15..20
                       Name@15..16
                         Identifier@15..16 "a"
                       Comma@16..17 ","
@@ -999,7 +999,7 @@ fn recover_enum_type_missing_name() {
                       Name@18..19
                         Identifier@18..19 "b"
                       Comma@19..20 ","
-                      Whitespace@20..21 " "
+                    Whitespace@20..21 " "
                     RightParen@21..22 ")"
             error at 21..22: expected identifier, but found ‘)’"#]],
     );
@@ -1012,9 +1012,9 @@ fn recover_enum_type_missing_name() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..22
@@ -1045,9 +1045,9 @@ fn recover_enum_type_missing_name_and_right_paren() {
                 TypeDecl@0..20
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..20
@@ -1076,9 +1076,9 @@ fn recover_enum_type_missing_right_paren() {
                 TypeDecl@0..19
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..19
@@ -1106,9 +1106,9 @@ fn recover_enum_type_missing_names() {
                 TypeDecl@0..16
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   EnumType@9..16
@@ -1131,9 +1131,9 @@ fn parse_set_type() {
                 TypeDecl@0..23
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..23
@@ -1157,9 +1157,9 @@ fn parse_set_type_not_index_type() {
                 TypeDecl@0..19
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..19
@@ -1182,9 +1182,9 @@ fn parse_set_type_of_range() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..22
@@ -1193,9 +1193,9 @@ fn parse_set_type_of_range() {
                     KwOf@13..15 "of"
                     Whitespace@15..16 " "
                     RangeType@16..22
-                      LiteralExpr@16..18
+                      LiteralExpr@16..17
                         IntLiteral@16..17 "1"
-                        Whitespace@17..18 " "
+                      Whitespace@17..18 " "
                       Range@18..20 ".."
                       Whitespace@20..21 " "
                       LiteralExpr@21..22
@@ -1214,9 +1214,9 @@ fn parse_set_type_of_unbounded_range() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..22
@@ -1225,9 +1225,9 @@ fn parse_set_type_of_unbounded_range() {
                     KwOf@13..15 "of"
                     Whitespace@15..16 " "
                     RangeType@16..22
-                      LiteralExpr@16..18
+                      LiteralExpr@16..17
                         IntLiteral@16..17 "1"
-                        Whitespace@17..18 " "
+                      Whitespace@17..18 " "
                       Range@18..20 ".."
                       Whitespace@20..21 " "
                       UnsizedBound@21..22
@@ -1246,9 +1246,9 @@ fn recover_set_type_missing_of() {
                 TypeDecl@0..17
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..17
@@ -1271,9 +1271,9 @@ fn recover_set_type_missing_ty() {
                 TypeDecl@0..15
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..15
@@ -1295,9 +1295,9 @@ fn recover_just_set() {
                 TypeDecl@0..12
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   SetType@9..12
@@ -1316,9 +1316,9 @@ fn parse_condition_type() {
                 TypeDecl@0..18
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ConditionType@9..18
@@ -1336,15 +1336,15 @@ fn parse_condition_type_attrs() {
                 TypeDecl@0..27
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ConditionType@9..27
-                    ConditionKind@9..18
+                    ConditionKind@9..17
                       KwPriority@9..17 "priority"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     KwCondition@18..27 "condition""#]],
     );
     check(
@@ -1355,15 +1355,15 @@ fn parse_condition_type_attrs() {
                 TypeDecl@0..27
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ConditionType@9..27
-                    ConditionKind@9..18
+                    ConditionKind@9..17
                       KwDeferred@9..17 "deferred"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     KwCondition@18..27 "condition""#]],
     );
     check(
@@ -1374,15 +1374,15 @@ fn parse_condition_type_attrs() {
                 TypeDecl@0..26
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ConditionType@9..26
-                    ConditionKind@9..17
+                    ConditionKind@9..16
                       KwTimeout@9..16 "timeout"
-                      Whitespace@16..17 " "
+                    Whitespace@16..17 " "
                     KwCondition@17..26 "condition""#]],
     );
 }
@@ -1397,15 +1397,15 @@ fn recover_condition_type_attrs_without_condition() {
                 TypeDecl@0..31
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ConditionType@9..31
-                    ConditionKind@9..18
+                    ConditionKind@9..17
                       KwPriority@9..17 "priority"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     Error@18..31
                       Identifier@18..31 "not_condition"
             error at 18..31: expected ‘condition’, but found identifier"#]],
@@ -1422,9 +1422,9 @@ fn parse_collection_type() {
                 TypeDecl@0..26
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   CollectionType@9..26
@@ -1447,9 +1447,9 @@ fn parse_collection_type_forward() {
                 TypeDecl@0..32
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   CollectionType@9..32
@@ -1474,9 +1474,9 @@ fn recover_collection_type_no_ty() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   CollectionType@9..22
@@ -1497,9 +1497,9 @@ fn recover_collection_type_no_of() {
                 TypeDecl@0..23
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   CollectionType@9..23
@@ -1521,9 +1521,9 @@ fn recover_collection_type_no_forward_name() {
                 TypeDecl@0..30
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   CollectionType@9..30
@@ -1546,9 +1546,9 @@ fn recover_just_collection() {
                 TypeDecl@0..19
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   CollectionType@9..19
@@ -1567,24 +1567,24 @@ fn parse_array_type() {
                 TypeDecl@0..28
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ArrayType@9..28
                     KwArray@9..14 "array"
                     Whitespace@14..15 " "
-                    RangeList@15..22
-                      RangeType@15..22
-                        LiteralExpr@15..17
+                    RangeList@15..21
+                      RangeType@15..21
+                        LiteralExpr@15..16
                           IntLiteral@15..16 "1"
-                          Whitespace@16..17 " "
+                        Whitespace@16..17 " "
                         Range@17..19 ".."
                         Whitespace@19..20 " "
-                        LiteralExpr@20..22
+                        LiteralExpr@20..21
                           IntLiteral@20..21 "3"
-                          Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
                     PrimType@25..28
@@ -1602,19 +1602,19 @@ fn parse_array_type_with_many_ranges() {
                 TypeDecl@0..46
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ArrayType@9..46
                     KwArray@9..14 "array"
                     Whitespace@14..15 " "
-                    RangeList@15..37
+                    RangeList@15..36
                       RangeType@15..21
-                        LiteralExpr@15..17
+                        LiteralExpr@15..16
                           IntLiteral@15..16 "1"
-                          Whitespace@16..17 " "
+                        Whitespace@16..17 " "
                         Range@17..19 ".."
                         Whitespace@19..20 " "
                         LiteralExpr@20..21
@@ -1625,9 +1625,9 @@ fn parse_array_type_with_many_ranges() {
                         KwBoolean@23..30 "boolean"
                       Comma@30..31 ","
                       Whitespace@31..32 " "
-                      PrimType@32..37
+                      PrimType@32..36
                         KwChar@32..36 "char"
-                        Whitespace@36..37 " "
+                    Whitespace@36..37 " "
                     KwOf@37..39 "of"
                     Whitespace@39..40 " "
                     PrimType@40..46
@@ -1645,9 +1645,9 @@ fn parse_flexible_array_type() {
                 TypeDecl@0..41
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ArrayType@9..41
@@ -1655,16 +1655,16 @@ fn parse_flexible_array_type() {
                     Whitespace@17..18 " "
                     KwArray@18..23 "array"
                     Whitespace@23..24 " "
-                    RangeList@24..31
-                      RangeType@24..31
-                        LiteralExpr@24..26
+                    RangeList@24..30
+                      RangeType@24..30
+                        LiteralExpr@24..25
                           IntLiteral@24..25 "1"
-                          Whitespace@25..26 " "
+                        Whitespace@25..26 " "
                         Range@26..28 ".."
                         Whitespace@28..29 " "
-                        LiteralExpr@29..31
+                        LiteralExpr@29..30
                           IntLiteral@29..30 "3"
-                          Whitespace@30..31 " "
+                    Whitespace@30..31 " "
                     KwOf@31..33 "of"
                     Whitespace@33..34 " "
                     PrimType@34..41
@@ -1684,19 +1684,19 @@ fn recover_flexible_not_array() {
         expect![[r#"
             Source@0..35
               StmtList@0..35
-                TypeDecl@0..28
+                TypeDecl@0..27
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  Error@9..28
+                  Error@9..27
                     KwFlexible@9..17 "flexible"
                     Whitespace@17..18 " "
                     Identifier@18..27 "not_array"
-                    Whitespace@27..28 " "
+                Whitespace@27..28 " "
                 CallStmt@28..35
                   NameExpr@28..35
                     Name@28..35
@@ -1715,9 +1715,9 @@ fn recover_array_empty_range_list() {
                 TypeDecl@0..21
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ArrayType@9..21
@@ -1742,24 +1742,24 @@ fn recover_array_no_elem_ty() {
                 TypeDecl@0..24
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ArrayType@9..24
                     KwArray@9..14 "array"
                     Whitespace@14..15 " "
-                    RangeList@15..22
-                      RangeType@15..22
-                        LiteralExpr@15..17
+                    RangeList@15..21
+                      RangeType@15..21
+                        LiteralExpr@15..16
                           IntLiteral@15..16 "1"
-                          Whitespace@16..17 " "
+                        Whitespace@16..17 " "
                         Range@17..19 ".."
                         Whitespace@19..20 " "
-                        LiteralExpr@20..22
+                        LiteralExpr@20..21
                           IntLiteral@20..21 "3"
-                          Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
             error at 22..24: expected type specifier after here"#]],
     );
@@ -1775,34 +1775,34 @@ fn parse_fcn_type() {
                 TypeDecl@0..39
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   FcnType@9..39
                     KwFunction@9..17 "function"
                     Whitespace@17..18 " "
-                    Name@18..21
+                    Name@18..20
                       Identifier@18..20 "_a"
-                      Whitespace@20..21 " "
-                    ParamSpec@21..34
+                    Whitespace@20..21 " "
+                    ParamSpec@21..33
                       LeftParen@21..22 "("
                       ConstVarParam@22..32
-                        NameList@22..27
+                        NameList@22..26
                           Name@22..23
                             Identifier@22..23 "a"
                           Comma@23..24 ","
                           Whitespace@24..25 " "
-                          Name@25..27
+                          Name@25..26
                             Identifier@25..26 "b"
-                            Whitespace@26..27 " "
+                        Whitespace@26..27 " "
                         Colon@27..28 ":"
                         Whitespace@28..29 " "
                         PrimType@29..32
                           KwInt@29..32 "int"
                       RightParen@32..33 ")"
-                      Whitespace@33..34 " "
+                    Whitespace@33..34 " "
                     Colon@34..35 ":"
                     Whitespace@35..36 " "
                     PrimType@36..39
@@ -1820,28 +1820,28 @@ fn parse_proc_type() {
                 TypeDecl@0..34
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..34
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..34
                       LeftParen@22..23 "("
                       ConstVarParam@23..33
-                        NameList@23..28
+                        NameList@23..27
                           Name@23..24
                             Identifier@23..24 "a"
                           Comma@24..25 ","
                           Whitespace@25..26 " "
-                          Name@26..28
+                          Name@26..27
                             Identifier@26..27 "b"
-                            Whitespace@27..28 " "
+                        Whitespace@27..28 " "
                         Colon@28..29 ":"
                         Whitespace@29..30 " "
                         PrimType@30..33
@@ -1857,40 +1857,40 @@ fn recover_proc_type_with_result_ty() {
         expect![[r#"
             Source@0..40
               StmtList@0..40
-                TypeDecl@0..35
+                TypeDecl@0..34
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  ProcType@9..35
+                  ProcType@9..34
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
-                    ParamSpec@22..35
+                    Whitespace@21..22 " "
+                    ParamSpec@22..34
                       LeftParen@22..23 "("
                       ConstVarParam@23..33
-                        NameList@23..28
+                        NameList@23..27
                           Name@23..24
                             Identifier@23..24 "a"
                           Comma@24..25 ","
                           Whitespace@25..26 " "
-                          Name@26..28
+                          Name@26..27
                             Identifier@26..27 "b"
-                            Whitespace@27..28 " "
+                        Whitespace@27..28 " "
                         Colon@28..29 ":"
                         Whitespace@29..30 " "
                         PrimType@30..33
                           KwInt@30..33 "int"
                       RightParen@33..34 ")"
-                      Whitespace@34..35 " "
-                Error@35..37
+                Whitespace@34..35 " "
+                Error@35..36
                   Colon@35..36 ":"
-                  Whitespace@36..37 " "
+                Whitespace@36..37 " "
                 Error@37..40
                   PrimType@37..40
                     KwInt@37..40 "int"
@@ -1909,28 +1909,28 @@ fn recover_fcn_type_without_result_ty() {
                 TypeDecl@0..33
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   FcnType@9..33
                     KwFunction@9..17 "function"
                     Whitespace@17..18 " "
-                    Name@18..21
+                    Name@18..20
                       Identifier@18..20 "_a"
-                      Whitespace@20..21 " "
+                    Whitespace@20..21 " "
                     ParamSpec@21..33
                       LeftParen@21..22 "("
                       ConstVarParam@22..32
-                        NameList@22..27
+                        NameList@22..26
                           Name@22..23
                             Identifier@22..23 "a"
                           Comma@23..24 ","
                           Whitespace@24..25 " "
-                          Name@25..27
+                          Name@25..26
                             Identifier@25..26 "b"
-                            Whitespace@26..27 " "
+                        Whitespace@26..27 " "
                         Colon@27..28 ":"
                         Whitespace@28..29 " "
                         PrimType@29..32
@@ -1950,31 +1950,31 @@ fn parse_fcn_type_opt_name() {
                 TypeDecl@0..36
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   FcnType@9..36
                     KwFunction@9..17 "function"
                     Whitespace@17..18 " "
-                    ParamSpec@18..31
+                    ParamSpec@18..30
                       LeftParen@18..19 "("
                       ConstVarParam@19..29
-                        NameList@19..24
+                        NameList@19..23
                           Name@19..20
                             Identifier@19..20 "a"
                           Comma@20..21 ","
                           Whitespace@21..22 " "
-                          Name@22..24
+                          Name@22..23
                             Identifier@22..23 "b"
-                            Whitespace@23..24 " "
+                        Whitespace@23..24 " "
                         Colon@24..25 ":"
                         Whitespace@25..26 " "
                         PrimType@26..29
                           KwInt@26..29 "int"
                       RightParen@29..30 ")"
-                      Whitespace@30..31 " "
+                    Whitespace@30..31 " "
                     Colon@31..32 ":"
                     Whitespace@32..33 " "
                     PrimType@33..36
@@ -1992,21 +1992,21 @@ fn parse_fcn_type_no_params() {
                 TypeDecl@0..29
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   FcnType@9..29
                     KwFunction@9..17 "function"
                     Whitespace@17..18 " "
-                    Name@18..21
+                    Name@18..20
                       Identifier@18..20 "_a"
-                      Whitespace@20..21 " "
-                    ParamSpec@21..24
+                    Whitespace@20..21 " "
+                    ParamSpec@21..23
                       LeftParen@21..22 "("
                       RightParen@22..23 ")"
-                      Whitespace@23..24 " "
+                    Whitespace@23..24 " "
                     Colon@24..25 ":"
                     Whitespace@25..26 " "
                     PrimType@26..29
@@ -2024,17 +2024,17 @@ fn parse_fcn_type_opt_parens() {
                 TypeDecl@0..26
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   FcnType@9..26
                     KwFunction@9..17 "function"
                     Whitespace@17..18 " "
-                    Name@18..21
+                    Name@18..20
                       Identifier@18..20 "_a"
-                      Whitespace@20..21 " "
+                    Whitespace@20..21 " "
                     Colon@21..22 ":"
                     Whitespace@22..23 " "
                     PrimType@23..26
@@ -2052,38 +2052,38 @@ fn parse_proc_type_fcn_param() {
                 TypeDecl@0..55
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..55
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..55
                       LeftParen@22..23 "("
                       FcnType@23..54
                         KwFunction@23..31 "function"
                         Whitespace@31..32 " "
-                        Name@32..38
+                        Name@32..37
                           Identifier@32..37 "embed"
-                          Whitespace@37..38 " "
-                        ParamSpec@38..49
+                        Whitespace@37..38 " "
+                        ParamSpec@38..48
                           LeftParen@38..39 "("
                           ConstVarParam@39..47
-                            NameList@39..41
-                              Name@39..41
+                            NameList@39..40
+                              Name@39..40
                                 Identifier@39..40 "a"
-                                Whitespace@40..41 " "
+                            Whitespace@40..41 " "
                             Colon@41..42 ":"
                             Whitespace@42..43 " "
                             PrimType@43..47
                               KwChar@43..47 "char"
                           RightParen@47..48 ")"
-                          Whitespace@48..49 " "
+                        Whitespace@48..49 " "
                         Colon@49..50 ":"
                         Whitespace@50..51 " "
                         PrimType@51..54
@@ -2102,17 +2102,17 @@ fn parse_proc_type_all_constvar_attrs() {
                 TypeDecl@0..50
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..50
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..50
                       LeftParen@22..23 "("
                       ConstVarParam@23..49
@@ -2120,10 +2120,10 @@ fn parse_proc_type_all_constvar_attrs() {
                         Whitespace@26..27 " "
                         KwRegister@27..35 "register"
                         Whitespace@35..36 " "
-                        NameList@36..38
-                          Name@36..38
+                        NameList@36..37
+                          Name@36..37
                             Identifier@36..37 "a"
-                            Whitespace@37..38 " "
+                        Whitespace@37..38 " "
                         Colon@38..39 ":"
                         Whitespace@39..40 " "
                         KwCheat@40..45 "cheat"
@@ -2144,17 +2144,17 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                 TypeDecl@0..42
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..42
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..42
                       LeftParen@22..23 "("
                       ConstVarParam@23..41
@@ -2178,17 +2178,17 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                 TypeDecl@0..33
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..33
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..33
                       LeftParen@22..23 "("
                       ConstVarParam@23..32
@@ -2210,17 +2210,17 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                 TypeDecl@0..38
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..38
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..38
                       LeftParen@22..23 "("
                       ConstVarParam@23..37
@@ -2246,26 +2246,26 @@ fn recover_proc_type_constvar_missing_ty() {
                 TypeDecl@0..28
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ProcType@9..28
                     KwProcedure@9..18 "procedure"
                     Whitespace@18..19 " "
-                    Name@19..22
+                    Name@19..21
                       Identifier@19..21 "_a"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     ParamSpec@22..28
                       LeftParen@22..23 "("
-                      ConstVarParam@23..27
-                        NameList@23..25
-                          Name@23..25
+                      ConstVarParam@23..26
+                        NameList@23..24
+                          Name@23..24
                             Identifier@23..24 "a"
-                            Whitespace@24..25 " "
+                        Whitespace@24..25 " "
                         Colon@25..26 ":"
-                        Whitespace@26..27 " "
+                      Whitespace@26..27 " "
                       RightParen@27..28 ")"
             error at 27..28: expected type specifier, but found ‘)’"#]],
     );
@@ -2281,24 +2281,24 @@ fn parse_record_type() {
                 TypeDecl@0..34
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RecordType@9..34
                     KwRecord@9..15 "record"
                     Whitespace@15..16 " "
-                    RecordField@16..24
-                      NameList@16..18
-                        Name@16..18
+                    RecordField@16..23
+                      NameList@16..17
+                        Name@16..17
                           Identifier@16..17 "a"
-                          Whitespace@17..18 " "
+                      Whitespace@17..18 " "
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
-                      PrimType@20..24
+                      PrimType@20..23
                         KwInt@20..23 "int"
-                        Whitespace@23..24 " "
+                    Whitespace@23..24 " "
                     EndGroup@24..34
                       KwEnd@24..27 "end"
                       Whitespace@27..28 " "
@@ -2311,35 +2311,35 @@ fn parse_record_type_packed_attr() {
     check(
         "type _ : packed record a : int end record",
         expect![[r#"
-        Source@0..41
-          StmtList@0..41
-            TypeDecl@0..41
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..7
-                Identifier@5..6 "_"
-                Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              RecordType@9..41
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-                KwRecord@16..22 "record"
-                Whitespace@22..23 " "
-                RecordField@23..31
-                  NameList@23..25
-                    Name@23..25
-                      Identifier@23..24 "a"
+            Source@0..41
+              StmtList@0..41
+                TypeDecl@0..41
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  RecordType@9..41
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    KwRecord@16..22 "record"
+                    Whitespace@22..23 " "
+                    RecordField@23..30
+                      NameList@23..24
+                        Name@23..24
+                          Identifier@23..24 "a"
                       Whitespace@24..25 " "
-                  Colon@25..26 ":"
-                  Whitespace@26..27 " "
-                  PrimType@27..31
-                    KwInt@27..30 "int"
+                      Colon@25..26 ":"
+                      Whitespace@26..27 " "
+                      PrimType@27..30
+                        KwInt@27..30 "int"
                     Whitespace@30..31 " "
-                EndGroup@31..41
-                  KwEnd@31..34 "end"
-                  Whitespace@34..35 " "
-                  KwRecord@35..41 "record""#]],
+                    EndGroup@31..41
+                      KwEnd@31..34 "end"
+                      Whitespace@34..35 " "
+                      KwRecord@35..41 "record""#]],
     );
 }
 
@@ -2359,26 +2359,26 @@ fn parse_record_type_many_fields() {
                 TypeDecl@5..89
                   KwType@5..9 "type"
                   Whitespace@9..10 " "
-                  Name@10..12
+                  Name@10..11
                     Identifier@10..11 "_"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   Colon@12..13 ":"
                   Whitespace@13..14 " "
                   RecordType@14..89
                     KwRecord@14..20 "record"
                     Whitespace@20..29 "\n        "
-                    RecordField@29..45
-                      NameList@29..31
-                        Name@29..31
+                    RecordField@29..36
+                      NameList@29..30
+                        Name@29..30
                           Identifier@29..30 "a"
-                          Whitespace@30..31 " "
+                      Whitespace@30..31 " "
                       Colon@31..32 ":"
                       Whitespace@32..33 " "
-                      PrimType@33..45
+                      PrimType@33..36
                         KwInt@33..36 "int"
-                        Whitespace@36..45 "\n        "
-                    RecordField@45..67
-                      NameList@45..53
+                    Whitespace@36..45 "\n        "
+                    RecordField@45..58
+                      NameList@45..52
                         Name@45..46
                           Identifier@45..46 "b"
                         Comma@46..47 ","
@@ -2387,24 +2387,24 @@ fn parse_record_type_many_fields() {
                           Identifier@48..49 "c"
                         Comma@49..50 ","
                         Whitespace@50..51 " "
-                        Name@51..53
+                        Name@51..52
                           Identifier@51..52 "d"
-                          Whitespace@52..53 " "
+                      Whitespace@52..53 " "
                       Colon@53..54 ":"
                       Whitespace@54..55 " "
-                      PrimType@55..67
+                      PrimType@55..58
                         KwInt@55..58 "int"
-                        Whitespace@58..67 "\n        "
-                    RecordField@67..79
-                      NameList@67..69
-                        Name@67..69
+                    Whitespace@58..67 "\n        "
+                    RecordField@67..74
+                      NameList@67..68
+                        Name@67..68
                           Identifier@67..68 "e"
-                          Whitespace@68..69 " "
+                      Whitespace@68..69 " "
                       Colon@69..70 ":"
                       Whitespace@70..71 " "
-                      PrimType@71..79
+                      PrimType@71..74
                         KwInt@71..74 "int"
-                        Whitespace@74..79 "\n    "
+                    Whitespace@74..79 "\n    "
                     EndGroup@79..89
                       KwEnd@79..82 "end"
                       Whitespace@82..83 " "
@@ -2428,27 +2428,27 @@ fn parse_record_type_opt_semicolon() {
                 TypeDecl@5..103
                   KwType@5..9 "type"
                   Whitespace@9..10 " "
-                  Name@10..12
+                  Name@10..11
                     Identifier@10..11 "_"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   Colon@12..13 ":"
                   Whitespace@13..14 " "
                   RecordType@14..103
                     KwRecord@14..20 "record"
                     Whitespace@20..29 "\n        "
-                    RecordField@29..46
-                      NameList@29..31
-                        Name@29..31
+                    RecordField@29..37
+                      NameList@29..30
+                        Name@29..30
                           Identifier@29..30 "a"
-                          Whitespace@30..31 " "
+                      Whitespace@30..31 " "
                       Colon@31..32 ":"
                       Whitespace@32..33 " "
                       PrimType@33..36
                         KwInt@33..36 "int"
                       Semicolon@36..37 ";"
-                      Whitespace@37..46 "\n        "
-                    RecordField@46..80
-                      NameList@46..54
+                    Whitespace@37..46 "\n        "
+                    RecordField@46..71
+                      NameList@46..53
                         Name@46..47
                           Identifier@46..47 "b"
                         Comma@47..48 ","
@@ -2457,9 +2457,9 @@ fn parse_record_type_opt_semicolon() {
                           Identifier@49..50 "c"
                         Comma@50..51 ","
                         Whitespace@51..52 " "
-                        Name@52..54
+                        Name@52..53
                           Identifier@52..53 "d"
-                          Whitespace@53..54 " "
+                      Whitespace@53..54 " "
                       Colon@54..55 ":"
                       Whitespace@55..56 " "
                       PrimType@56..59
@@ -2476,18 +2476,18 @@ fn parse_record_type_opt_semicolon() {
                       Semicolon@68..69 ";"
                       Semicolon@69..70 ";"
                       Semicolon@70..71 ";"
-                      Whitespace@71..80 "\n        "
-                    RecordField@80..93
-                      NameList@80..82
-                        Name@80..82
+                    Whitespace@71..80 "\n        "
+                    RecordField@80..88
+                      NameList@80..81
+                        Name@80..81
                           Identifier@80..81 "e"
-                          Whitespace@81..82 " "
+                      Whitespace@81..82 " "
                       Colon@82..83 ":"
                       Whitespace@83..84 " "
                       PrimType@84..87
                         KwInt@84..87 "int"
                       Semicolon@87..88 ";"
-                      Whitespace@88..93 "\n    "
+                    Whitespace@88..93 "\n    "
                     EndGroup@93..103
                       KwEnd@93..96 "end"
                       Whitespace@96..97 " "
@@ -2506,9 +2506,9 @@ fn parse_record_type_empty() {
                 TypeDecl@0..26
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RecordType@9..26
@@ -2531,25 +2531,25 @@ fn recover_record_type_missing_last_name() {
                 TypeDecl@0..35
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RecordType@9..35
                     KwRecord@9..15 "record"
                     Whitespace@15..16 " "
-                    RecordField@16..25
-                      NameList@16..19
+                    RecordField@16..24
+                      NameList@16..18
                         Name@16..17
                           Identifier@16..17 "a"
                         Comma@17..18 ","
-                        Whitespace@18..19 " "
+                      Whitespace@18..19 " "
                       Colon@19..20 ":"
                       Whitespace@20..21 " "
-                      PrimType@21..25
+                      PrimType@21..24
                         KwInt@21..24 "int"
-                        Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     EndGroup@25..35
                       KwEnd@25..28 "end"
                       Whitespace@28..29 " "
@@ -2568,9 +2568,9 @@ fn recover_just_record() {
                 TypeDecl@0..15
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RecordType@9..15
@@ -2590,9 +2590,9 @@ fn parse_union_type() {
                 TypeDecl@0..51
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..51
@@ -2600,12 +2600,12 @@ fn parse_union_type() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    PrimType@17..22
+                    PrimType@17..21
                       KwChar@17..21 "char"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
-                    UnionVariant@25..42
+                    UnionVariant@25..41
                       KwLabel@25..30 "label"
                       Whitespace@30..31 " "
                       ExprList@31..32
@@ -2613,16 +2613,16 @@ fn parse_union_type() {
                           IntLiteral@31..32 "1"
                       Colon@32..33 ":"
                       Whitespace@33..34 " "
-                      RecordField@34..42
-                        NameList@34..36
-                          Name@34..36
+                      RecordField@34..41
+                        NameList@34..35
+                          Name@34..35
                             Identifier@34..35 "a"
-                            Whitespace@35..36 " "
+                        Whitespace@35..36 " "
                         Colon@36..37 ":"
                         Whitespace@37..38 " "
-                        PrimType@38..42
+                        PrimType@38..41
                           KwInt@38..41 "int"
-                          Whitespace@41..42 " "
+                    Whitespace@41..42 " "
                     EndGroup@42..51
                       KwEnd@42..45 "end"
                       Whitespace@45..46 " "
@@ -2640,9 +2640,9 @@ fn parse_union_type_packed_attr() {
                 TypeDecl@0..57
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..57
@@ -2652,26 +2652,26 @@ fn parse_union_type_packed_attr() {
                     Whitespace@21..22 " "
                     Colon@22..23 ":"
                     Whitespace@23..24 " "
-                    PrimType@24..29
+                    PrimType@24..28
                       KwChar@24..28 "char"
-                      Whitespace@28..29 " "
+                    Whitespace@28..29 " "
                     KwOf@29..31 "of"
                     Whitespace@31..32 " "
-                    UnionVariant@32..48
+                    UnionVariant@32..47
                       KwLabel@32..37 "label"
                       Whitespace@37..38 " "
                       Colon@38..39 ":"
                       Whitespace@39..40 " "
-                      RecordField@40..48
-                        NameList@40..42
-                          Name@40..42
+                      RecordField@40..47
+                        NameList@40..41
+                          Name@40..41
                             Identifier@40..41 "a"
-                            Whitespace@41..42 " "
+                        Whitespace@41..42 " "
                         Colon@42..43 ":"
                         Whitespace@43..44 " "
-                        PrimType@44..48
+                        PrimType@44..47
                           KwInt@44..47 "int"
-                          Whitespace@47..48 " "
+                    Whitespace@47..48 " "
                     EndGroup@48..57
                       KwEnd@48..51 "end"
                       Whitespace@51..52 " "
@@ -2689,9 +2689,9 @@ fn recover_just_union() {
                 TypeDecl@0..14
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..14
@@ -2711,9 +2711,9 @@ fn recover_just_union_head() {
                 TypeDecl@0..27
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..27
@@ -2721,9 +2721,9 @@ fn recover_just_union_head() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    PrimType@17..25
+                    PrimType@17..24
                       KwBoolean@17..24 "boolean"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     KwOf@25..27 "of"
                     EndGroup@27..27
             error at 25..27: expected ‘label’ or ‘end’ after here"#]],
@@ -2740,9 +2740,9 @@ fn parse_empty_union() {
                 TypeDecl@0..34
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..34
@@ -2750,9 +2750,9 @@ fn parse_empty_union() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    PrimType@17..22
+                    PrimType@17..21
                       KwChar@17..21 "char"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
                     EndGroup@25..34
@@ -2772,9 +2772,9 @@ fn union_type_many_variants() {
                 TypeDecl@0..73
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..73
@@ -2782,12 +2782,12 @@ fn union_type_many_variants() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    PrimType@17..25
+                    PrimType@17..24
                       KwBoolean@17..24 "boolean"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     KwOf@25..27 "of"
                     Whitespace@27..28 " "
-                    UnionVariant@28..56
+                    UnionVariant@28..55
                       KwLabel@28..33 "label"
                       Whitespace@33..34 " "
                       ExprList@34..38
@@ -2799,31 +2799,31 @@ fn union_type_many_variants() {
                           IntLiteral@37..38 "2"
                       Colon@38..39 ":"
                       Whitespace@39..40 " "
-                      RecordField@40..48
-                        NameList@40..42
-                          Name@40..42
+                      RecordField@40..47
+                        NameList@40..41
+                          Name@40..41
                             Identifier@40..41 "a"
-                            Whitespace@41..42 " "
+                        Whitespace@41..42 " "
                         Colon@42..43 ":"
                         Whitespace@43..44 " "
-                        PrimType@44..48
+                        PrimType@44..47
                           KwInt@44..47 "int"
-                          Whitespace@47..48 " "
-                      RecordField@48..56
-                        NameList@48..50
-                          Name@48..50
+                      Whitespace@47..48 " "
+                      RecordField@48..55
+                        NameList@48..49
+                          Name@48..49
                             Identifier@48..49 "b"
-                            Whitespace@49..50 " "
+                        Whitespace@49..50 " "
                         Colon@50..51 ":"
                         Whitespace@51..52 " "
-                        PrimType@52..56
+                        PrimType@52..55
                           KwInt@52..55 "int"
-                          Whitespace@55..56 " "
-                    UnionVariant@56..64
+                    Whitespace@55..56 " "
+                    UnionVariant@56..63
                       KwLabel@56..61 "label"
                       Whitespace@61..62 " "
                       Colon@62..63 ":"
-                      Whitespace@63..64 " "
+                    Whitespace@63..64 " "
                     EndGroup@64..73
                       KwEnd@64..67 "end"
                       Whitespace@67..68 " "
@@ -2841,9 +2841,9 @@ fn union_type_default_variant() {
                 TypeDecl@0..42
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..42
@@ -2851,20 +2851,20 @@ fn union_type_default_variant() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    RangeType@17..22
+                    RangeType@17..21
                       LiteralExpr@17..18
                         IntLiteral@17..18 "1"
                       Range@18..20 ".."
-                      LiteralExpr@20..22
+                      LiteralExpr@20..21
                         IntLiteral@20..21 "2"
-                        Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
-                    UnionVariant@25..33
+                    UnionVariant@25..32
                       KwLabel@25..30 "label"
                       Whitespace@30..31 " "
                       Colon@31..32 ":"
-                      Whitespace@32..33 " "
+                    Whitespace@32..33 " "
                     EndGroup@33..42
                       KwEnd@33..36 "end"
                       Whitespace@36..37 " "
@@ -2882,9 +2882,9 @@ fn recover_union_type_missing_label_colon() {
                 TypeDecl@0..40
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..40
@@ -2892,13 +2892,13 @@ fn recover_union_type_missing_label_colon() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    RangeType@17..22
+                    RangeType@17..21
                       LiteralExpr@17..18
                         IntLiteral@17..18 "1"
                       Range@18..20 ".."
-                      LiteralExpr@20..22
+                      LiteralExpr@20..21
                         IntLiteral@20..21 "2"
-                        Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
                     UnionVariant@25..31
@@ -2920,35 +2920,35 @@ fn recover_union_type_not_label() {
         expect![[r#"
             Source@0..39
               StmtList@0..39
-                TypeDecl@0..30
+                TypeDecl@0..29
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  UnionType@9..30
+                  UnionType@9..29
                     KwUnion@9..14 "union"
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    RangeType@17..22
+                    RangeType@17..21
                       LiteralExpr@17..18
                         IntLiteral@17..18 "1"
                       Range@18..20 ".."
-                      LiteralExpr@20..22
+                      LiteralExpr@20..21
                         IntLiteral@20..21 "2"
-                        Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwOf@22..24 "of"
                     Whitespace@24..25 " "
-                    EndGroup@25..30
-                      Error@25..30
+                    EndGroup@25..29
+                      Error@25..29
                         Identifier@25..29 "nope"
-                        Whitespace@29..30 " "
-                Error@30..34
+                Whitespace@29..30 " "
+                Error@30..33
                   KwEnd@30..33 "end"
-                  Whitespace@33..34 " "
+                Whitespace@33..34 " "
                 Error@34..39
                   KwUnion@34..39 "union"
             error at 25..29: expected ‘label’ or ‘end’, but found identifier
@@ -2967,22 +2967,22 @@ fn union_type_parse_tag_name() {
                 TypeDecl@0..45
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..45
                     KwUnion@9..14 "union"
                     Whitespace@14..15 " "
-                    Name@15..23
+                    Name@15..22
                       Identifier@15..22 "taggged"
-                      Whitespace@22..23 " "
+                    Whitespace@22..23 " "
                     Colon@23..24 ":"
                     Whitespace@24..25 " "
-                    PrimType@25..33
+                    PrimType@25..32
                       KwBoolean@25..32 "boolean"
-                      Whitespace@32..33 " "
+                    Whitespace@32..33 " "
                     KwOf@33..35 "of"
                     Whitespace@35..36 " "
                     EndGroup@36..45
@@ -3002,9 +3002,9 @@ fn recover_bare_union_type() {
                 TypeDecl@0..24
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..24
@@ -3028,9 +3028,9 @@ fn recover_record_type_on_var() {
                 TypeDecl@0..16
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   RecordType@9..16
@@ -3042,10 +3042,10 @@ fn recover_record_type_on_var() {
                 ConstVarDecl@16..27
                   KwVar@16..19 "var"
                   Whitespace@19..20 " "
-                  NameList@20..22
-                    Name@20..22
+                  NameList@20..21
+                    Name@20..21
                       Identifier@20..21 "a"
-                      Whitespace@21..22 " "
+                  Whitespace@21..22 " "
                   Colon@22..23 ":"
                   Whitespace@23..24 " "
                   PrimType@24..27
@@ -3064,9 +3064,9 @@ fn recover_union_variant_type_on_var() {
                 TypeDecl@0..36
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   UnionType@9..36
@@ -3074,9 +3074,9 @@ fn recover_union_variant_type_on_var() {
                     Whitespace@14..15 " "
                     Colon@15..16 ":"
                     Whitespace@16..17 " "
-                    PrimType@17..25
+                    PrimType@17..24
                       KwBoolean@17..24 "boolean"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     KwOf@25..27 "of"
                     Whitespace@27..28 "\n"
                     UnionVariant@28..36
@@ -3090,10 +3090,10 @@ fn recover_union_variant_type_on_var() {
                 ConstVarDecl@36..47
                   KwVar@36..39 "var"
                   Whitespace@39..40 " "
-                  NameList@40..42
-                    Name@40..42
+                  NameList@40..41
+                    Name@40..41
                       Identifier@40..41 "a"
-                      Whitespace@41..42 " "
+                  Whitespace@41..42 " "
                   Colon@42..43 ":"
                   Whitespace@43..44 " "
                   PrimType@44..47
@@ -3107,21 +3107,21 @@ fn recover_packed_not_packable_type() {
     check(
         "type _ : packed int",
         expect![[r#"
-        Source@0..19
-          StmtList@0..19
-            TypeDecl@0..19
-              KwType@0..4 "type"
-              Whitespace@4..5 " "
-              Name@5..7
-                Identifier@5..6 "_"
-                Whitespace@6..7 " "
-              Colon@7..8 ":"
-              Whitespace@8..9 " "
-              Error@9..19
-                KwPacked@9..15 "packed"
-                Whitespace@15..16 " "
-                KwInt@16..19 "int"
-        error at 16..19: expected ‘record’ or ‘union’, but found ‘int’"#]],
+            Source@0..19
+              StmtList@0..19
+                TypeDecl@0..19
+                  KwType@0..4 "type"
+                  Whitespace@4..5 " "
+                  Name@5..6
+                    Identifier@5..6 "_"
+                  Whitespace@6..7 " "
+                  Colon@7..8 ":"
+                  Whitespace@8..9 " "
+                  Error@9..19
+                    KwPacked@9..15 "packed"
+                    Whitespace@15..16 " "
+                    KwInt@16..19 "int"
+            error at 16..19: expected ‘record’ or ‘union’, but found ‘int’"#]],
     );
 }
 
@@ -3131,18 +3131,18 @@ fn recover_just_packed() {
         "type _ : packed ",
         expect![[r#"
             Source@0..16
-              StmtList@0..16
-                TypeDecl@0..16
+              StmtList@0..15
+                TypeDecl@0..15
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
-                  Error@9..16
+                  Error@9..15
                     KwPacked@9..15 "packed"
-                    Whitespace@15..16 " "
+              Whitespace@15..16 " "
             error at 15..16: expected ‘record’ or ‘union’ after here"#]],
     );
 }
@@ -3154,22 +3154,22 @@ fn recover_include_glob_ty() {
         r#"type _ : include "some_foreign_location" "#,
         expect![[r#"
             Source@0..41
-              StmtList@0..41
-                TypeDecl@0..9
+              StmtList@0..40
+                TypeDecl@0..8
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "_"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
-                  Whitespace@8..9 " "
-                PreprocGlob@9..41
-                  PPInclude@9..41
+                Whitespace@8..9 " "
+                PreprocGlob@9..40
+                  PPInclude@9..40
                     KwInclude@9..16 "include"
                     Whitespace@16..17 " "
-                    LiteralExpr@17..41
+                    LiteralExpr@17..40
                       StringLiteral@17..40 "\"some_foreign_location\""
-                      Whitespace@40..41 " "
+              Whitespace@40..41 " "
             error at 9..16: expected type specifier, but found ‘include’"#]],
     )
 }

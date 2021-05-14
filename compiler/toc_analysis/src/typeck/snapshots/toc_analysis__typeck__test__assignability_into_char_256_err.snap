@@ -22,11 +22,11 @@ def_kinds:
     DefId(6) Var(TyRef(CharN(Fixed(256))))
     DefId(7) Var(TyRef(CharN(Fixed(256))))
     DefId(8) Var(TyRef(CharN(Fixed(256))))
-error at 108..110: mismatched types
-| note for 97..105: initializer's type is incompatible with this type
-error at 132..135: mismatched types
-| note for 121..129: initializer's type is incompatible with this type
-error at 157..162: mismatched types
-| note for 146..154: initializer's type is incompatible with this type
-error at 184..211: mismatched types
-| note for 173..181: initializer's type is incompatible with this type
+error at 108..109: mismatched types
+| note for 97..104: initializer's type is incompatible with this type
+error at 132..134: mismatched types
+| note for 121..128: initializer's type is incompatible with this type
+error at 157..161: mismatched types
+| note for 146..153: initializer's type is incompatible with this type
+error at 184..186: mismatched types
+| note for 173..180: initializer's type is incompatible with this type

@@ -36,7 +36,7 @@ fn report_unit_not_allowed_decl_and_extra() {
     check(
         "unit begin end begin end begin end",
         expect![[r#"
-            error at 5..15: expected a module, class, or monitor declaration
+            error at 5..14: expected a module, class, or monitor declaration
             error at 15..34: found extra text after unit declaration"#]],
     );
 }

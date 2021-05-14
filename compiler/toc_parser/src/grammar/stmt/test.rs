@@ -19,10 +19,10 @@ fn parse_opt_semicolon() {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
                   PrimType@8..11
@@ -32,9 +32,9 @@ fn parse_opt_semicolon() {
                 TypeDecl@13..29
                   KwType@13..17 "type"
                   Whitespace@17..18 " "
-                  Name@18..20
+                  Name@18..19
                     Identifier@18..19 "j"
-                    Whitespace@19..20 " "
+                  Whitespace@19..20 " "
                   Colon@20..21 ":"
                   Whitespace@21..22 " "
                   PrimType@22..29
@@ -125,15 +125,15 @@ fn parse_var_decl() {
                 ConstVarDecl@0..16
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
-                  PrimType@8..12
+                  PrimType@8..11
                     KwInt@8..11 "int"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   Assign@12..14 ":="
                   Whitespace@14..15 " "
                   LiteralExpr@15..16
@@ -151,15 +151,15 @@ fn parse_const_decl() {
                 ConstVarDecl@0..18
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
-                  PrimType@10..14
+                  PrimType@10..13
                     KwInt@10..13 "int"
-                    Whitespace@13..14 " "
+                  Whitespace@13..14 " "
                   Assign@14..16 ":="
                   Whitespace@16..17 " "
                   LiteralExpr@17..18
@@ -177,15 +177,15 @@ fn parse_var_decl_with_alt_eq() {
                 ConstVarDecl@0..15
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
-                  PrimType@8..12
+                  PrimType@8..11
                     KwInt@8..11 "int"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   Equ@12..13 "="
                   Whitespace@13..14 " "
                   LiteralExpr@14..15
@@ -204,15 +204,15 @@ fn parse_const_decl_with_alt_eq() {
                 ConstVarDecl@0..17
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
-                  PrimType@10..14
+                  PrimType@10..13
                     KwInt@10..13 "int"
-                    Whitespace@13..14 " "
+                  Whitespace@13..14 " "
                   Equ@14..15 "="
                   Whitespace@15..16 " "
                   LiteralExpr@16..17
@@ -231,13 +231,13 @@ fn parse_var_decl_with_pervasive_attr() {
                 ConstVarDecl@0..21
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  PervasiveAttr@4..14
+                  PervasiveAttr@4..13
                     KwPervasive@4..13 "pervasive"
-                    Whitespace@13..14 " "
-                  NameList@14..16
-                    Name@14..16
+                  Whitespace@13..14 " "
+                  NameList@14..15
+                    Name@14..15
                       Identifier@14..15 "a"
-                      Whitespace@15..16 " "
+                  Whitespace@15..16 " "
                   Colon@16..17 ":"
                   Whitespace@17..18 " "
                   PrimType@18..21
@@ -255,13 +255,13 @@ fn parse_var_decl_with_alt_pervasive_attr() {
                 ConstVarDecl@0..13
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  PervasiveAttr@4..6
+                  PervasiveAttr@4..5
                     Star@4..5 "*"
-                    Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  Whitespace@5..6 " "
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..13
@@ -279,13 +279,13 @@ fn parse_var_decl_with_register_attr() {
                 ConstVarDecl@0..20
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  RegisterAttr@4..13
+                  RegisterAttr@4..12
                     KwRegister@4..12 "register"
-                    Whitespace@12..13 " "
-                  NameList@13..15
-                    Name@13..15
+                  Whitespace@12..13 " "
+                  NameList@13..14
+                    Name@13..14
                       Identifier@13..14 "a"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   Colon@15..16 ":"
                   Whitespace@16..17 " "
                   PrimType@17..20
@@ -303,16 +303,16 @@ fn parse_var_decl_with_all_attrs() {
                 ConstVarDecl@0..30
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  PervasiveAttr@4..14
+                  PervasiveAttr@4..13
                     KwPervasive@4..13 "pervasive"
-                    Whitespace@13..14 " "
-                  RegisterAttr@14..23
+                  Whitespace@13..14 " "
+                  RegisterAttr@14..22
                     KwRegister@14..22 "register"
-                    Whitespace@22..23 " "
-                  NameList@23..25
-                    Name@23..25
+                  Whitespace@22..23 " "
+                  NameList@23..24
+                    Name@23..24
                       Identifier@23..24 "a"
-                      Whitespace@24..25 " "
+                  Whitespace@24..25 " "
                   Colon@25..26 ":"
                   Whitespace@26..27 " "
                   PrimType@27..30
@@ -330,10 +330,10 @@ fn parse_var_decl_no_init() {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
                   PrimType@8..11
@@ -351,10 +351,10 @@ fn recover_const_decl_no_init() {
                 ConstVarDecl@0..13
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Colon@8..9 ":"
                   Whitespace@9..10 " "
                   PrimType@10..13
@@ -373,7 +373,7 @@ fn parse_var_decl_multiple_names() {
                 ConstVarDecl@0..16
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..12
+                  NameList@4..11
                     Name@4..5
                       Identifier@4..5 "a"
                     Comma@5..6 ","
@@ -382,9 +382,9 @@ fn parse_var_decl_multiple_names() {
                       Identifier@7..8 "b"
                     Comma@8..9 ","
                     Whitespace@9..10 " "
-                    Name@10..12
+                    Name@10..11
                       Identifier@10..11 "c"
-                      Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   Assign@12..14 ":="
                   Whitespace@14..15 " "
                   LiteralExpr@15..16
@@ -402,7 +402,7 @@ fn recover_not_name_in_var_decl_multiple_names() {
                 ConstVarDecl@0..17
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..13
+                  NameList@4..12
                     Name@4..5
                       Identifier@4..5 "a"
                     Comma@5..6 ","
@@ -411,9 +411,9 @@ fn recover_not_name_in_var_decl_multiple_names() {
                       KwTo@7..9 "to"
                     Comma@9..10 ","
                     Whitespace@10..11 " "
-                    Name@11..13
+                    Name@11..12
                       Identifier@11..12 "c"
-                      Whitespace@12..13 " "
+                  Whitespace@12..13 " "
                   Assign@13..15 ":="
                   Whitespace@15..16 " "
                   LiteralExpr@16..17
@@ -432,10 +432,10 @@ fn recover_not_name_in_var_decl() {
                 ConstVarDecl@0..11
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..7
-                    Error@4..7
+                  NameList@4..6
+                    Error@4..6
                       KwTo@4..6 "to"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Assign@7..9 ":="
                   Whitespace@9..10 " "
                   LiteralExpr@10..11
@@ -488,10 +488,10 @@ fn recover_var_decl_missing_ty() {
                 ConstVarDecl@0..12
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
                   Assign@8..10 ":="
@@ -512,15 +512,15 @@ fn recover_var_decl_not_a_ty() {
                 ConstVarDecl@0..15
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Colon@6..7 ":"
                   Whitespace@7..8 " "
-                  Error@8..11
+                  Error@8..10
                     KwTo@8..10 "to"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
                   Whitespace@13..14 " "
                   LiteralExpr@14..15
@@ -558,11 +558,11 @@ fn recover_var_decl_missing_final_name() {
                 ConstVarDecl@0..12
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..7
+                  NameList@4..6
                     Name@4..5
                       Identifier@4..5 "a"
                     Comma@5..6 ","
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PrimType@9..12
@@ -581,10 +581,10 @@ fn parse_var_decl_inferred_ty() {
                 ConstVarDecl@0..10
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
                   Whitespace@8..9 " "
                   LiteralExpr@9..10
@@ -602,10 +602,10 @@ fn parse_const_decl_inferred_ty() {
                 ConstVarDecl@0..12
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Assign@8..10 ":="
                   Whitespace@10..11 " "
                   LiteralExpr@11..12
@@ -620,18 +620,18 @@ fn parse_several_stmts() {
         expect![[r#"
             Source@0..14
               StmtList@0..14
-                ConstVarDecl@0..13
+                ConstVarDecl@0..12
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Assign@8..10 ":="
                   Whitespace@10..11 " "
-                  LiteralExpr@11..13
+                  LiteralExpr@11..12
                     IntLiteral@11..12 "1"
-                    Whitespace@12..13 "\n"
+                Whitespace@12..13 "\n"
                 CallStmt@13..14
                   NameExpr@13..14
                     Name@13..14
@@ -646,22 +646,22 @@ fn recover_on_var() {
         expect![[r#"
             Source@0..22
               StmtList@0..22
-                ConstVarDecl@0..12
+                ConstVarDecl@0..10
                   KwConst@0..5 "const"
                   Whitespace@5..6 " "
-                  NameList@6..8
-                    Name@6..8
+                  NameList@6..7
+                    Name@6..7
                       Identifier@6..7 "a"
-                      Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   Assign@8..10 ":="
-                  Whitespace@10..12 " \n"
+                Whitespace@10..12 " \n"
                 ConstVarDecl@12..22
                   KwVar@12..15 "var"
                   Whitespace@15..16 " "
-                  NameList@16..18
-                    Name@16..18
+                  NameList@16..17
+                    Name@16..17
                       Identifier@16..17 "b"
-                      Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   Assign@18..20 ":="
                   Whitespace@20..21 " "
                   LiteralExpr@21..22
@@ -677,22 +677,22 @@ fn recover_on_const() {
         expect![[r#"
             Source@0..22
               StmtList@0..22
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ConstVarDecl@10..22
                   KwConst@10..15 "const"
                   Whitespace@15..16 " "
-                  NameList@16..18
-                    Name@16..18
+                  NameList@16..17
+                    Name@16..17
                       Identifier@16..17 "b"
-                      Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   Assign@18..20 ":="
                   Whitespace@20..21 " "
                   LiteralExpr@21..22
@@ -709,24 +709,24 @@ fn parse_assign_stmt() {
             Source@0..14
               StmtList@0..14
                 AssignStmt@0..14
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..5
+                  Whitespace@1..2 " "
+                  AsnOp@2..4
                     Assign@2..4 ":="
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   BinaryExpr@5..14
-                    BinaryExpr@5..11
-                      NameExpr@5..7
-                        Name@5..7
+                    BinaryExpr@5..10
+                      NameExpr@5..6
+                        Name@5..6
                           Identifier@5..6 "b"
-                          Whitespace@6..7 " "
+                      Whitespace@6..7 " "
                       Plus@7..8 "+"
                       Whitespace@8..9 " "
-                      LiteralExpr@9..11
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "2"
-                        Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Plus@11..12 "+"
                     Whitespace@12..13 " "
                     NameExpr@13..14
@@ -743,15 +743,15 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     Imply@2..4 "=>"
                     Whitespace@4..5 " "
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -761,14 +761,14 @@ fn parse_compound_assign_stmt() {
             Source@0..6
               StmtList@0..6
                 AssignStmt@0..6
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..5
+                  Whitespace@1..2 " "
+                  AsnOp@2..4
                     Pipe@2..3 "|"
                     Equ@3..4 "="
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1""#]],
     );
@@ -778,15 +778,15 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     KwOr@2..4 "or"
                     Whitespace@4..5 " "
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -796,15 +796,15 @@ fn parse_compound_assign_stmt() {
             Source@0..7
               StmtList@0..7
                 AssignStmt@0..7
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..6
+                  Whitespace@1..2 " "
+                  AsnOp@2..5
                     Ampersand@2..3 "&"
                     Whitespace@3..4 " "
                     Equ@4..5 "="
-                    Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1""#]],
     );
@@ -814,14 +814,14 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     KwAnd@2..5 "and"
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -831,15 +831,15 @@ fn parse_compound_assign_stmt() {
             Source@0..7
               StmtList@0..7
                 AssignStmt@0..7
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..6
+                  Whitespace@1..2 " "
+                  AsnOp@2..5
                     Plus@2..3 "+"
                     Whitespace@3..4 " "
                     Equ@4..5 "="
-                    Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1""#]],
     );
@@ -849,14 +849,14 @@ fn parse_compound_assign_stmt() {
             Source@0..6
               StmtList@0..6
                 AssignStmt@0..6
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..5
+                  Whitespace@1..2 " "
+                  AsnOp@2..4
                     Minus@2..3 "-"
                     Equ@3..4 "="
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1""#]],
     );
@@ -866,15 +866,15 @@ fn parse_compound_assign_stmt() {
             Source@0..9
               StmtList@0..9
                 AssignStmt@0..9
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..8
+                  Whitespace@1..2 " "
+                  AsnOp@2..7
                     KwXor@2..5 "xor"
                     Whitespace@5..6 " "
                     Equ@6..7 "="
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   LiteralExpr@8..9
                     IntLiteral@8..9 "1""#]],
     );
@@ -884,14 +884,14 @@ fn parse_compound_assign_stmt() {
             Source@0..6
               StmtList@0..6
                 AssignStmt@0..6
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..5
+                  Whitespace@1..2 " "
+                  AsnOp@2..4
                     Star@2..3 "*"
                     Equ@3..4 "="
-                    Whitespace@4..5 " "
+                  Whitespace@4..5 " "
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1""#]],
     );
@@ -901,15 +901,15 @@ fn parse_compound_assign_stmt() {
             Source@0..7
               StmtList@0..7
                 AssignStmt@0..7
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..6
+                  Whitespace@1..2 " "
+                  AsnOp@2..5
                     Slash@2..3 "/"
                     Whitespace@3..4 " "
                     Equ@4..5 "="
-                    Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1""#]],
     );
@@ -919,14 +919,14 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     KwDiv@2..5 "div"
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -936,15 +936,15 @@ fn parse_compound_assign_stmt() {
             Source@0..9
               StmtList@0..9
                 AssignStmt@0..9
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..8
+                  Whitespace@1..2 " "
+                  AsnOp@2..7
                     KwMod@2..5 "mod"
                     Whitespace@5..6 " "
                     Equ@6..7 "="
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   LiteralExpr@8..9
                     IntLiteral@8..9 "1""#]],
     );
@@ -954,14 +954,14 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     KwRem@2..5 "rem"
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -971,15 +971,15 @@ fn parse_compound_assign_stmt() {
             Source@0..9
               StmtList@0..9
                 AssignStmt@0..9
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..8
+                  Whitespace@1..2 " "
+                  AsnOp@2..7
                     KwShl@2..5 "shl"
                     Whitespace@5..6 " "
                     Equ@6..7 "="
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   LiteralExpr@8..9
                     IntLiteral@8..9 "1""#]],
     );
@@ -989,14 +989,14 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     KwShr@2..5 "shr"
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -1006,15 +1006,15 @@ fn parse_compound_assign_stmt() {
             Source@0..8
               StmtList@0..8
                 AssignStmt@0..8
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..7
+                  Whitespace@1..2 " "
+                  AsnOp@2..6
                     Exp@2..4 "**"
                     Whitespace@4..5 " "
                     Equ@5..6 "="
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1""#]],
     );
@@ -1028,20 +1028,20 @@ fn recover_not_weird_asn_op() {
         expect![[r#"
             Source@0..12
               StmtList@0..12
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..5
                   KwNot@2..5 "not"
                 Error@5..6
                   Equ@5..6 "="
                 Error@6..7
                   Equ@6..7 "="
-                Error@7..11
+                Error@7..10
                   KwNot@7..10 "not"
-                  Whitespace@10..11 " "
+                Whitespace@10..11 " "
                 CallStmt@11..12
                   LiteralExpr@11..12
                     IntLiteral@11..12 "1"
@@ -1055,20 +1055,20 @@ fn recover_not_weird_asn_op() {
         expect![[r#"
             Source@0..8
               StmtList@0..8
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..3
                   Tilde@2..3 "~"
                 Error@3..4
                   Equ@3..4 "="
                 Error@4..5
                   Equ@4..5 "="
-                Error@5..7
+                Error@5..6
                   Tilde@5..6 "~"
-                  Whitespace@6..7 " "
+                Whitespace@6..7 " "
                 CallStmt@7..8
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1"
@@ -1087,14 +1087,14 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..6
               StmtList@0..6
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                Error@2..5
+                Whitespace@1..2 " "
+                Error@2..4
                   LessEqu@2..4 "<="
-                  Whitespace@4..5 " "
+                Whitespace@4..5 " "
                 CallStmt@5..6
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1"
@@ -1105,16 +1105,16 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..7
               StmtList@0..7
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..4
                   LessEqu@2..4 "<="
-                Error@4..6
+                Error@4..5
                   Equ@4..5 "="
-                  Whitespace@5..6 " "
+                Whitespace@5..6 " "
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
@@ -1126,14 +1126,14 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..6
               StmtList@0..6
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                Error@2..5
+                Whitespace@1..2 " "
+                Error@2..4
                   GreaterEqu@2..4 ">="
-                  Whitespace@4..5 " "
+                Whitespace@4..5 " "
                 CallStmt@5..6
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1"
@@ -1144,16 +1144,16 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..7
               StmtList@0..7
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..4
                   GreaterEqu@2..4 ">="
-                Error@4..6
+                Error@4..5
                   Equ@4..5 "="
-                  Whitespace@5..6 " "
+                Whitespace@5..6 " "
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
@@ -1167,18 +1167,18 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..7
               StmtList@0..7
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..3
                   Tilde@2..3 "~"
                 Error@3..4
                   Equ@3..4 "="
-                Error@4..6
+                Error@4..5
                   Equ@4..5 "="
-                  Whitespace@5..6 " "
+                Whitespace@5..6 " "
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
@@ -1191,18 +1191,18 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..9
               StmtList@0..9
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..5
                   KwNot@2..5 "not"
                 Error@5..6
                   Equ@5..6 "="
-                Error@6..8
+                Error@6..7
                   Equ@6..7 "="
-                  Whitespace@7..8 " "
+                Whitespace@7..8 " "
                 CallStmt@8..9
                   LiteralExpr@8..9
                     IntLiteral@8..9 "1"
@@ -1215,19 +1215,19 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..11
               StmtList@0..11
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                Error@2..6
+                Whitespace@1..2 " "
+                Error@2..5
                   KwNot@2..5 "not"
-                  Whitespace@5..6 " "
+                Whitespace@5..6 " "
                 Error@6..8
                   KwIn@6..8 "in"
-                Error@8..10
+                Error@8..9
                   Equ@8..9 "="
-                  Whitespace@9..10 " "
+                Whitespace@9..10 " "
                 CallStmt@10..11
                   LiteralExpr@10..11
                     IntLiteral@10..11 "1"
@@ -1240,18 +1240,18 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..8
               StmtList@0..8
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..3
                   Tilde@2..3 "~"
                 Error@3..5
                   KwIn@3..5 "in"
-                Error@5..7
+                Error@5..6
                   Equ@5..6 "="
-                  Whitespace@6..7 " "
+                Whitespace@6..7 " "
                 CallStmt@7..8
                   LiteralExpr@7..8
                     IntLiteral@7..8 "1"
@@ -1264,16 +1264,16 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..7
               StmtList@0..7
-                CallStmt@0..2
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..1
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                Whitespace@1..2 " "
                 Error@2..4
                   KwIn@2..4 "in"
-                Error@4..6
+                Error@4..5
                   Equ@4..5 "="
-                  Whitespace@5..6 " "
+                Whitespace@5..6 " "
                 CallStmt@6..7
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
@@ -1285,16 +1285,16 @@ fn recover_not_a_compound_asn_op() {
         expect![[r#"
             Source@0..6
               StmtList@0..6
-                AssignStmt@0..5
-                  NameExpr@0..2
-                    Name@0..2
+                AssignStmt@0..4
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
+                  Whitespace@1..2 " "
                   AsnOp@2..3
                     Equ@2..3 "="
-                  Error@3..5
+                  Error@3..4
                     Equ@3..4 "="
-                    Whitespace@4..5 " "
+                Whitespace@4..5 " "
                 CallStmt@5..6
                   LiteralExpr@5..6
                     IntLiteral@5..6 "1"
@@ -1311,16 +1311,16 @@ fn recover_missing_eq_in_asn_op() {
         expect![[r#"
             Source@0..7
               StmtList@0..7
-                CallStmt@0..6
-                  NameExpr@0..2
-                    Name@0..2
+                CallStmt@0..5
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  Error@2..6
+                  Whitespace@1..2 " "
+                  Error@2..5
                     Plus@2..3 "+"
                     Whitespace@3..4 " "
                     IntLiteral@4..5 "1"
-                    Whitespace@5..6 "\n"
+                Whitespace@5..6 "\n"
                 CallStmt@6..7
                   NameExpr@6..7
                     Name@6..7
@@ -1337,13 +1337,13 @@ fn recover_eq_instead_of_asn() {
             Source@0..5
               StmtList@0..5
                 AssignStmt@0..5
-                  NameExpr@0..2
-                    Name@0..2
+                  NameExpr@0..1
+                    Name@0..1
                       Identifier@0..1 "a"
-                      Whitespace@1..2 " "
-                  AsnOp@2..4
+                  Whitespace@1..2 " "
+                  AsnOp@2..3
                     Equ@2..3 "="
-                    Whitespace@3..4 " "
+                  Whitespace@3..4 " "
                   LiteralExpr@4..5
                     IntLiteral@4..5 "1"
             warn at 2..3: ‘=’ found, assuming it to be ‘:=’"#]],
@@ -1360,9 +1360,9 @@ fn parse_type_decl() {
                 TypeDecl@0..12
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "a"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PrimType@9..12
@@ -1380,9 +1380,9 @@ fn parse_type_decl_with_forward() {
                 TypeDecl@0..16
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "a"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   KwForward@9..16 "forward""#]],
@@ -1399,12 +1399,12 @@ fn parse_type_decl_with_pervasive_attr() {
                 TypeDecl@0..22
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  PervasiveAttr@5..15
+                  PervasiveAttr@5..14
                     KwPervasive@5..14 "pervasive"
-                    Whitespace@14..15 " "
-                  Name@15..17
+                  Whitespace@14..15 " "
+                  Name@15..16
                     Identifier@15..16 "a"
-                    Whitespace@16..17 " "
+                  Whitespace@16..17 " "
                   Colon@17..18 ":"
                   Whitespace@18..19 " "
                   PrimType@19..22
@@ -1422,12 +1422,12 @@ fn parse_type_decl_with_star_attr() {
                 TypeDecl@0..14
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  PervasiveAttr@5..7
+                  PervasiveAttr@5..6
                     Star@5..6 "*"
-                    Whitespace@6..7 " "
-                  Name@7..9
+                  Whitespace@6..7 " "
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
+                  Whitespace@8..9 " "
                   Colon@9..10 ":"
                   Whitespace@10..11 " "
                   PrimType@11..14
@@ -1441,15 +1441,15 @@ fn recover_type_decl_missing_type() {
         "type a : ",
         expect![[r#"
             Source@0..9
-              StmtList@0..9
-                TypeDecl@0..9
+              StmtList@0..8
+                TypeDecl@0..8
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "a"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
-                  Whitespace@8..9 " "
+              Whitespace@8..9 " "
             error at 8..9: expected type specifier after here"#]],
     );
 }
@@ -1482,9 +1482,9 @@ fn recover_type_decl_missing_colon() {
                 TypeDecl@0..14
                   KwType@0..4 "type"
                   Whitespace@4..5 " "
-                  Name@5..7
+                  Name@5..6
                     Identifier@5..6 "a"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   KwForward@7..14 "forward"
             error at 7..14: expected ‘:’, but found ‘forward’"#]],
     );
@@ -1526,21 +1526,21 @@ fn recover_on_type() {
         expect![[r#"
             Source@0..22
               StmtList@0..22
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 TypeDecl@10..22
                   KwType@10..14 "type"
                   Whitespace@14..15 " "
-                  Name@15..17
+                  Name@15..16
                     Identifier@15..16 "a"
-                    Whitespace@16..17 " "
+                  Whitespace@16..17 " "
                   Colon@17..18 ":"
                   Whitespace@18..19 " "
                   PrimType@19..22
@@ -1559,19 +1559,19 @@ fn parse_block_stmt() {
                 BlockStmt@0..20
                   KwBegin@0..5 "begin"
                   Whitespace@5..6 " "
-                  StmtList@6..17
-                    ConstVarDecl@6..17
+                  StmtList@6..16
+                    ConstVarDecl@6..16
                       KwVar@6..9 "var"
                       Whitespace@9..10 " "
-                      NameList@10..12
-                        Name@10..12
+                      NameList@10..11
+                        Name@10..11
                           Identifier@10..11 "a"
-                          Whitespace@11..12 " "
+                      Whitespace@11..12 " "
                       Assign@12..14 ":="
                       Whitespace@14..15 " "
-                      LiteralExpr@15..17
+                      LiteralExpr@15..16
                         IntLiteral@15..16 "1"
-                        Whitespace@16..17 " "
+                  Whitespace@16..17 " "
                   EndGroup@17..20
                     KwEnd@17..20 "end""#]],
     );
@@ -1600,15 +1600,15 @@ fn recover_on_block_stmt() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                ConstVarDecl@0..9
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..9 " "
+                Whitespace@8..9 " "
                 BlockStmt@9..18
                   KwBegin@9..14 "begin"
                   Whitespace@14..15 " "
@@ -1629,25 +1629,25 @@ fn parse_if_stmt() {
                 IfStmt@0..33
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
-                  IfBody@3..27
-                    LiteralExpr@3..8
+                  IfBody@3..26
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     Whitespace@12..13 " "
-                    StmtList@13..27
-                      ConstVarDecl@13..27
+                    StmtList@13..26
+                      ConstVarDecl@13..26
                         KwVar@13..16 "var"
                         Whitespace@16..17 " "
-                        NameList@17..21
-                          Name@17..21
+                        NameList@17..20
+                          Name@17..20
                             Identifier@17..20 "key"
-                            Whitespace@20..21 " "
+                        Whitespace@20..21 " "
                         Colon@21..22 ":"
                         Whitespace@22..23 " "
-                        PrimType@23..27
+                        PrimType@23..26
                           KwInt@23..26 "int"
-                          Whitespace@26..27 " "
+                  Whitespace@26..27 " "
                   EndGroup@27..33
                     KwEnd@27..30 "end"
                     Whitespace@30..31 " "
@@ -1666,9 +1666,9 @@ fn parse_if_else() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..18
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     Whitespace@12..13 " "
                     StmtList@13..13
@@ -1694,9 +1694,9 @@ fn parse_if_elseif_else() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..34
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     Whitespace@12..13 " "
                     StmtList@13..13
@@ -1704,9 +1704,9 @@ fn parse_if_elseif_else() {
                       KwElsif@13..18 "elsif"
                       Whitespace@18..19 " "
                       IfBody@19..34
-                        LiteralExpr@19..24
+                        LiteralExpr@19..23
                           KwTrue@19..23 "true"
-                          Whitespace@23..24 " "
+                        Whitespace@23..24 " "
                         KwThen@24..28 "then"
                         Whitespace@28..29 " "
                         StmtList@29..29
@@ -1732,9 +1732,9 @@ fn parse_if_chained_alternates() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..45
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     Whitespace@12..13 " "
                     StmtList@13..13
@@ -1742,9 +1742,9 @@ fn parse_if_chained_alternates() {
                       KwElseif@13..19 "elseif"
                       Whitespace@19..20 " "
                       IfBody@20..45
-                        LiteralExpr@20..25
+                        LiteralExpr@20..24
                           KwTrue@20..24 "true"
-                          Whitespace@24..25 " "
+                        Whitespace@24..25 " "
                         KwThen@25..29 "then"
                         Whitespace@29..30 " "
                         StmtList@30..30
@@ -1752,9 +1752,9 @@ fn parse_if_chained_alternates() {
                           KwElif@30..34 "elif"
                           Whitespace@34..35 " "
                           IfBody@35..45
-                            LiteralExpr@35..40
+                            LiteralExpr@35..39
                               KwTrue@35..39 "true"
-                              Whitespace@39..40 " "
+                            Whitespace@39..40 " "
                             KwThen@40..44 "then"
                             Whitespace@44..45 " "
                             StmtList@45..45
@@ -1800,9 +1800,9 @@ fn recover_if_stmt_missing_then() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..8
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     StmtList@8..8
                   EndGroup@8..14
                     KwEnd@8..11 "end"
@@ -1823,9 +1823,9 @@ fn recover_if_stmt_missing_end() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..12
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     StmtList@12..12
                   EndGroup@12..12
@@ -1844,9 +1844,9 @@ fn parse_if_alternate_end() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..13
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     Whitespace@12..13 " "
                     StmtList@13..13
@@ -1867,9 +1867,9 @@ fn parse_elseif_stmt() {
                   KwElsif@0..5 "elsif"
                   Whitespace@5..6 " "
                   IfBody@6..16
-                    LiteralExpr@6..11
+                    LiteralExpr@6..10
                       KwTrue@6..10 "true"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     KwThen@11..15 "then"
                     Whitespace@15..16 " "
                     StmtList@16..16
@@ -1891,9 +1891,9 @@ fn parse_elseif_alternates_stmt() {
                   KwElseif@0..6 "elseif"
                   Whitespace@6..7 " "
                   IfBody@7..17
-                    LiteralExpr@7..12
+                    LiteralExpr@7..11
                       KwTrue@7..11 "true"
-                      Whitespace@11..12 " "
+                    Whitespace@11..12 " "
                     KwThen@12..16 "then"
                     Whitespace@16..17 " "
                     StmtList@17..17
@@ -1912,9 +1912,9 @@ fn parse_elseif_alternates_stmt() {
                   KwElif@0..4 "elif"
                   Whitespace@4..5 " "
                   IfBody@5..15
-                    LiteralExpr@5..10
+                    LiteralExpr@5..9
                       KwTrue@5..9 "true"
-                      Whitespace@9..10 " "
+                    Whitespace@9..10 " "
                     KwThen@10..14 "then"
                     Whitespace@14..15 " "
                     StmtList@15..15
@@ -1937,9 +1937,9 @@ fn parse_elseif_alternate_end() {
                   KwElsif@0..5 "elsif"
                   Whitespace@5..6 " "
                   IfBody@6..16
-                    LiteralExpr@6..11
+                    LiteralExpr@6..10
                       KwTrue@6..10 "true"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     KwThen@11..15 "then"
                     Whitespace@15..16 " "
                     StmtList@16..16
@@ -1965,9 +1965,9 @@ fn parse_chained_elseif_stmt() {
                   KwElsif@5..10 "elsif"
                   Whitespace@10..11 " "
                   IfBody@11..54
-                    LiteralExpr@11..16
+                    LiteralExpr@11..15
                       KwTrue@11..15 "true"
-                      Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     KwThen@16..20 "then"
                     Whitespace@20..25 "\n    "
                     StmtList@25..25
@@ -1975,9 +1975,9 @@ fn parse_chained_elseif_stmt() {
                       KwElsif@25..30 "elsif"
                       Whitespace@30..31 " "
                       IfBody@31..54
-                        LiteralExpr@31..36
+                        LiteralExpr@31..35
                           KwTrue@31..35 "true"
-                          Whitespace@35..36 " "
+                        Whitespace@35..36 " "
                         KwThen@36..40 "then"
                         Whitespace@40..45 "\n    "
                         StmtList@45..45
@@ -2021,9 +2021,9 @@ fn recover_if_stmt_multiple_elses() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..29
-                    LiteralExpr@3..8
+                    LiteralExpr@3..7
                       KwTrue@3..7 "true"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     KwThen@8..12 "then"
                     Whitespace@12..13 " "
                     StmtList@13..13
@@ -2051,22 +2051,22 @@ fn recover_on_if() {
         expect![[r#"
             Source@0..29
               StmtList@0..29
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 IfStmt@10..29
                   KwIf@10..12 "if"
                   Whitespace@12..13 " "
                   IfBody@13..23
-                    LiteralExpr@13..18
+                    LiteralExpr@13..17
                       KwTrue@13..17 "true"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     KwThen@18..22 "then"
                     Whitespace@22..23 " "
                     StmtList@23..23
@@ -2085,15 +2085,15 @@ fn recover_on_else() {
         expect![[r#"
             Source@0..21
               StmtList@0..21
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ElseStmt@10..21
                   KwElse@10..14 "else"
                   Whitespace@14..15 " "
@@ -2113,22 +2113,22 @@ fn recover_on_elseif() {
         expect![[r#"
             Source@0..33
               StmtList@0..33
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ElseifStmt@10..33
                   KwElseif@10..16 "elseif"
                   Whitespace@16..17 " "
                   IfBody@17..27
-                    LiteralExpr@17..22
+                    LiteralExpr@17..21
                       KwTrue@17..21 "true"
-                      Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     KwThen@22..26 "then"
                     Whitespace@26..27 " "
                     StmtList@27..27
@@ -2148,22 +2148,22 @@ fn recover_on_elsif() {
         expect![[r#"
             Source@0..32
               StmtList@0..32
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ElseifStmt@10..32
                   KwElsif@10..15 "elsif"
                   Whitespace@15..16 " "
                   IfBody@16..26
-                    LiteralExpr@16..21
+                    LiteralExpr@16..20
                       KwTrue@16..20 "true"
-                      Whitespace@20..21 " "
+                    Whitespace@20..21 " "
                     KwThen@21..25 "then"
                     Whitespace@25..26 " "
                     StmtList@26..26
@@ -2182,22 +2182,22 @@ fn recover_on_elif() {
         expect![[r#"
             Source@0..31
               StmtList@0..31
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ElseifStmt@10..31
                   KwElif@10..14 "elif"
                   Whitespace@14..15 " "
                   IfBody@15..25
-                    LiteralExpr@15..20
+                    LiteralExpr@15..19
                       KwTrue@15..19 "true"
-                      Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     KwThen@20..24 "then"
                     Whitespace@24..25 " "
                     StmtList@25..25
@@ -2221,9 +2221,9 @@ fn recover_begin_missing_end_in_if() {
                   KwIf@0..2 "if"
                   Whitespace@2..3 " "
                   IfBody@3..16
-                    LiteralExpr@3..5
+                    LiteralExpr@3..4
                       IntLiteral@3..4 "0"
-                      Whitespace@4..5 " "
+                    Whitespace@4..5 " "
                     KwThen@5..9 "then"
                     Whitespace@9..10 " "
                     StmtList@10..16
@@ -2304,15 +2304,15 @@ fn parse_invariant_stmt() {
                   KwInvariant@0..9 "invariant"
                   Whitespace@9..10 " "
                   BinaryExpr@10..19
-                    BinaryExpr@10..16
-                      LiteralExpr@10..12
+                    BinaryExpr@10..15
+                      LiteralExpr@10..11
                         IntLiteral@10..11 "1"
-                        Whitespace@11..12 " "
+                      Whitespace@11..12 " "
                       Plus@12..13 "+"
                       Whitespace@13..14 " "
-                      LiteralExpr@14..16
+                      LiteralExpr@14..15
                         IntLiteral@14..15 "1"
-                        Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     Equ@16..17 "="
                     Whitespace@17..18 " "
                     LiteralExpr@18..19
@@ -2340,15 +2340,15 @@ fn recover_on_invariant() {
         expect![[r#"
             Source@0..19
               StmtList@0..19
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 InvariantStmt@10..19
                   KwInvariant@10..19 "invariant"
             error at 10..19: expected expression, but found ‘invariant’"#]],
@@ -2366,15 +2366,15 @@ fn parse_assert_stmt() {
                   KwAssert@0..6 "assert"
                   Whitespace@6..7 " "
                   BinaryExpr@7..16
-                    BinaryExpr@7..13
-                      LiteralExpr@7..9
+                    BinaryExpr@7..12
+                      LiteralExpr@7..8
                         IntLiteral@7..8 "1"
-                        Whitespace@8..9 " "
+                      Whitespace@8..9 " "
                       Plus@9..10 "+"
                       Whitespace@10..11 " "
-                      LiteralExpr@11..13
+                      LiteralExpr@11..12
                         IntLiteral@11..12 "1"
-                        Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     Equ@13..14 "="
                     Whitespace@14..15 " "
                     LiteralExpr@15..16
@@ -2402,15 +2402,15 @@ fn recover_on_assert() {
         expect![[r#"
             Source@0..21
               StmtList@0..21
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 AssertStmt@10..21
                   KwAssert@10..16 "assert"
                   Whitespace@16..17 " "
@@ -2472,15 +2472,15 @@ fn recover_on_signal() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 SignalStmt@10..18
                   KwSignal@10..16 "signal"
                   Whitespace@16..17 " "
@@ -2502,15 +2502,15 @@ fn parse_pause_stmt() {
                   KwPause@0..5 "pause"
                   Whitespace@5..6 " "
                   BinaryExpr@6..15
-                    BinaryExpr@6..12
-                      LiteralExpr@6..8
+                    BinaryExpr@6..11
+                      LiteralExpr@6..7
                         IntLiteral@6..7 "1"
-                        Whitespace@7..8 " "
+                      Whitespace@7..8 " "
                       Plus@8..9 "+"
                       Whitespace@9..10 " "
-                      LiteralExpr@10..12
+                      LiteralExpr@10..11
                         IntLiteral@10..11 "1"
-                        Whitespace@11..12 " "
+                    Whitespace@11..12 " "
                     Equ@12..13 "="
                     Whitespace@13..14 " "
                     LiteralExpr@14..15
@@ -2538,15 +2538,15 @@ fn recover_on_pause() {
         expect![[r#"
             Source@0..17
               StmtList@0..17
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 PauseStmt@10..17
                   KwPause@10..15 "pause"
                   Whitespace@15..16 " "
@@ -2591,15 +2591,15 @@ fn recover_on_result() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ResultStmt@10..18
                   KwResult@10..16 "result"
                   Whitespace@16..17 " "
@@ -2628,15 +2628,15 @@ fn recover_on_return() {
         expect![[r#"
             Source@0..16
               StmtList@0..16
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ReturnStmt@10..16
                   KwReturn@10..16 "return"
             error at 10..16: expected expression, but found ‘return’"#]],
@@ -2662,15 +2662,15 @@ fn recover_on_checked() {
         expect![[r#"
             Source@0..17
               StmtList@0..17
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 CheckednessStmt@10..17
                   KwChecked@10..17 "checked"
             error at 10..17: expected expression, but found ‘checked’"#]],
@@ -2696,15 +2696,15 @@ fn recover_on_unchecked() {
         expect![[r#"
             Source@0..19
               StmtList@0..19
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 CheckednessStmt@10..19
                   KwUnchecked@10..19 "unchecked"
             error at 10..19: expected expression, but found ‘unchecked’"#]],
@@ -2721,23 +2721,23 @@ fn parse_loop_stmt() {
                 LoopStmt@0..37
                   KwLoop@0..4 "loop"
                   Whitespace@4..5 " "
-                  StmtList@5..29
-                    BlockStmt@5..29
+                  StmtList@5..28
+                    BlockStmt@5..28
                       KwBegin@5..10 "begin"
                       Whitespace@10..11 " "
-                      StmtList@11..25
-                        LoopStmt@11..25
+                      StmtList@11..24
+                        LoopStmt@11..24
                           KwLoop@11..15 "loop"
                           Whitespace@15..16 " "
                           StmtList@16..16
-                          EndGroup@16..25
+                          EndGroup@16..24
                             KwEnd@16..19 "end"
                             Whitespace@19..20 " "
                             KwLoop@20..24 "loop"
-                            Whitespace@24..25 " "
-                      EndGroup@25..29
+                      Whitespace@24..25 " "
+                      EndGroup@25..28
                         KwEnd@25..28 "end"
-                        Whitespace@28..29 " "
+                  Whitespace@28..29 " "
                   EndGroup@29..37
                     KwEnd@29..32 "end"
                     Whitespace@32..33 " "
@@ -2755,23 +2755,23 @@ fn parse_nested_loop_stmt() {
                 LoopStmt@0..37
                   KwLoop@0..4 "loop"
                   Whitespace@4..5 " "
-                  StmtList@5..29
-                    BlockStmt@5..29
+                  StmtList@5..28
+                    BlockStmt@5..28
                       KwBegin@5..10 "begin"
                       Whitespace@10..11 " "
-                      StmtList@11..25
-                        LoopStmt@11..25
+                      StmtList@11..24
+                        LoopStmt@11..24
                           KwLoop@11..15 "loop"
                           Whitespace@15..16 " "
                           StmtList@16..16
-                          EndGroup@16..25
+                          EndGroup@16..24
                             KwEnd@16..19 "end"
                             Whitespace@19..20 " "
                             KwLoop@20..24 "loop"
-                            Whitespace@24..25 " "
-                      EndGroup@25..29
+                      Whitespace@24..25 " "
+                      EndGroup@25..28
                         KwEnd@25..28 "end"
-                        Whitespace@28..29 " "
+                  Whitespace@28..29 " "
                   EndGroup@29..37
                     KwEnd@29..32 "end"
                     Whitespace@32..33 " "
@@ -2803,13 +2803,13 @@ fn recover_loop_stmt_missing_tail_loop() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                LoopStmt@0..9
+                LoopStmt@0..8
                   KwLoop@0..4 "loop"
                   Whitespace@4..5 " "
                   StmtList@5..5
-                  EndGroup@5..9
+                  EndGroup@5..8
                     KwEnd@5..8 "end"
-                    Whitespace@8..9 " "
+                Whitespace@8..9 " "
                 BlockStmt@9..18
                   KwBegin@9..14 "begin"
                   Whitespace@14..15 " "
@@ -2849,15 +2849,15 @@ fn recover_on_loop() {
         expect![[r#"
             Source@0..23
               StmtList@0..23
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 LoopStmt@10..23
                   KwLoop@10..14 "loop"
                   Whitespace@14..15 " "
@@ -2921,15 +2921,15 @@ fn recover_on_exit() {
         expect![[r#"
             Source@0..14
               StmtList@0..14
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ExitStmt@10..14
                   KwExit@10..14 "exit"
             error at 10..14: expected expression, but found ‘exit’"#]],
@@ -2947,36 +2947,36 @@ fn parse_for_loop() {
         expect![[r#"
             Source@0..59
               Whitespace@0..5 "\n    "
-              StmtList@5..59
-                ForStmt@5..59
+              StmtList@5..54
+                ForStmt@5..54
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "i"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Colon@11..12 ":"
                   Whitespace@12..13 " "
-                  ForBounds@13..28
-                    LiteralExpr@13..15
+                  ForBounds@13..19
+                    LiteralExpr@13..14
                       IntLiteral@13..14 "1"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Range@15..17 ".."
                     Whitespace@17..18 " "
-                    LiteralExpr@18..28
+                    LiteralExpr@18..19
                       IntLiteral@18..19 "3"
-                      Whitespace@19..28 "\n        "
-                  StmtList@28..47
-                    InvariantStmt@28..47
+                  Whitespace@19..28 "\n        "
+                  StmtList@28..42
+                    InvariantStmt@28..42
                       KwInvariant@28..37 "invariant"
                       Whitespace@37..38 " "
-                      LiteralExpr@38..47
+                      LiteralExpr@38..42
                         KwTrue@38..42 "true"
-                        Whitespace@42..47 "\n    "
-                  EndGroup@47..59
+                  Whitespace@42..47 "\n    "
+                  EndGroup@47..54
                     KwEnd@47..50 "end"
                     Whitespace@50..51 " "
                     KwFor@51..54 "for"
-                    Whitespace@54..59 "\n    ""#]],
+              Whitespace@54..59 "\n    ""#]],
     );
 }
 
@@ -2991,34 +2991,34 @@ fn parse_for_loop_alt_end() {
         expect![[r#"
             Source@0..58
               Whitespace@0..5 "\n    "
-              StmtList@5..58
-                ForStmt@5..58
+              StmtList@5..53
+                ForStmt@5..53
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "i"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Colon@11..12 ":"
                   Whitespace@12..13 " "
-                  ForBounds@13..28
-                    LiteralExpr@13..15
+                  ForBounds@13..19
+                    LiteralExpr@13..14
                       IntLiteral@13..14 "1"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Range@15..17 ".."
                     Whitespace@17..18 " "
-                    LiteralExpr@18..28
+                    LiteralExpr@18..19
                       IntLiteral@18..19 "3"
-                      Whitespace@19..28 "\n        "
-                  StmtList@28..47
-                    InvariantStmt@28..47
+                  Whitespace@19..28 "\n        "
+                  StmtList@28..42
+                    InvariantStmt@28..42
                       KwInvariant@28..37 "invariant"
                       Whitespace@37..38 " "
-                      LiteralExpr@38..47
+                      LiteralExpr@38..42
                         KwTrue@38..42 "true"
-                        Whitespace@42..47 "\n    "
-                  EndGroup@47..58
+                  Whitespace@42..47 "\n    "
+                  EndGroup@47..53
                     KwEndFor@47..53 "endfor"
-                    Whitespace@53..58 "\n    "
+              Whitespace@53..58 "\n    "
             warn at 47..53: ‘endfor’ found, assuming it to be ’end for’"#]],
     );
 }
@@ -3034,38 +3034,38 @@ fn parse_decreasing_for_loop() {
         expect![[r#"
             Source@0..70
               Whitespace@0..5 "\n    "
-              StmtList@5..70
-                ForStmt@5..70
+              StmtList@5..65
+                ForStmt@5..65
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
                   KwDecreasing@9..19 "decreasing"
                   Whitespace@19..20 " "
-                  Name@20..22
+                  Name@20..21
                     Identifier@20..21 "i"
-                    Whitespace@21..22 " "
+                  Whitespace@21..22 " "
                   Colon@22..23 ":"
                   Whitespace@23..24 " "
-                  ForBounds@24..39
-                    LiteralExpr@24..26
+                  ForBounds@24..30
+                    LiteralExpr@24..25
                       IntLiteral@24..25 "1"
-                      Whitespace@25..26 " "
+                    Whitespace@25..26 " "
                     Range@26..28 ".."
                     Whitespace@28..29 " "
-                    LiteralExpr@29..39
+                    LiteralExpr@29..30
                       IntLiteral@29..30 "3"
-                      Whitespace@30..39 "\n        "
-                  StmtList@39..58
-                    InvariantStmt@39..58
+                  Whitespace@30..39 "\n        "
+                  StmtList@39..53
+                    InvariantStmt@39..53
                       KwInvariant@39..48 "invariant"
                       Whitespace@48..49 " "
-                      LiteralExpr@49..58
+                      LiteralExpr@49..53
                         KwTrue@49..53 "true"
-                        Whitespace@53..58 "\n    "
-                  EndGroup@58..70
+                  Whitespace@53..58 "\n    "
+                  EndGroup@58..65
                     KwEnd@58..61 "end"
                     Whitespace@61..62 " "
                     KwFor@62..65 "for"
-                    Whitespace@65..70 "\n    ""#]],
+              Whitespace@65..70 "\n    ""#]],
     );
 }
 
@@ -3080,44 +3080,44 @@ fn parse_for_loop_opt_step_by() {
         expect![[r#"
             Source@0..75
               Whitespace@0..5 "\n    "
-              StmtList@5..75
-                ForStmt@5..75
+              StmtList@5..70
+                ForStmt@5..70
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
                   KwDecreasing@9..19 "decreasing"
                   Whitespace@19..20 " "
-                  Name@20..22
+                  Name@20..21
                     Identifier@20..21 "i"
-                    Whitespace@21..22 " "
+                  Whitespace@21..22 " "
                   Colon@22..23 ":"
                   Whitespace@23..24 " "
-                  ForBounds@24..31
-                    LiteralExpr@24..26
+                  ForBounds@24..30
+                    LiteralExpr@24..25
                       IntLiteral@24..25 "1"
-                      Whitespace@25..26 " "
+                    Whitespace@25..26 " "
                     Range@26..28 ".."
                     Whitespace@28..29 " "
-                    LiteralExpr@29..31
+                    LiteralExpr@29..30
                       IntLiteral@29..30 "8"
-                      Whitespace@30..31 " "
-                  StepBy@31..44
+                  Whitespace@30..31 " "
+                  StepBy@31..35
                     KwBy@31..33 "by"
                     Whitespace@33..34 " "
-                    LiteralExpr@34..44
+                    LiteralExpr@34..35
                       IntLiteral@34..35 "3"
-                      Whitespace@35..44 "\n        "
-                  StmtList@44..63
-                    InvariantStmt@44..63
+                  Whitespace@35..44 "\n        "
+                  StmtList@44..58
+                    InvariantStmt@44..58
                       KwInvariant@44..53 "invariant"
                       Whitespace@53..54 " "
-                      LiteralExpr@54..63
+                      LiteralExpr@54..58
                         KwTrue@54..58 "true"
-                        Whitespace@58..63 "\n    "
-                  EndGroup@63..75
+                  Whitespace@58..63 "\n    "
+                  EndGroup@63..70
                     KwEnd@63..66 "end"
                     Whitespace@66..67 " "
                     KwFor@67..70 "for"
-                    Whitespace@70..75 "\n    ""#]],
+              Whitespace@70..75 "\n    ""#]],
     );
 }
 
@@ -3135,23 +3135,23 @@ fn parse_for_loop_alt_bounds() {
                 ForStmt@5..55
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "i"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Colon@11..12 ":"
                   Whitespace@12..13 " "
-                  ForBounds@13..29
-                    NameExpr@13..29
-                      Name@13..29
+                  ForBounds@13..20
+                    NameExpr@13..20
+                      Name@13..20
                         Identifier@13..20 "a_range"
-                        Whitespace@20..29 "\n        "
-                  StmtList@29..48
-                    InvariantStmt@29..48
+                  Whitespace@20..29 "\n        "
+                  StmtList@29..43
+                    InvariantStmt@29..43
                       KwInvariant@29..38 "invariant"
                       Whitespace@38..39 " "
-                      LiteralExpr@39..48
+                      LiteralExpr@39..43
                         KwTrue@39..43 "true"
-                        Whitespace@43..48 "\n    "
+                  Whitespace@43..48 "\n    "
                   EndGroup@48..55
                     KwEnd@48..51 "end"
                     Whitespace@51..52 " "
@@ -3170,33 +3170,33 @@ fn parse_for_loop_opt_name() {
         expect![[r#"
             Source@0..57
               Whitespace@0..5 "\n    "
-              StmtList@5..57
-                ForStmt@5..57
+              StmtList@5..52
+                ForStmt@5..52
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
                   Colon@9..10 ":"
                   Whitespace@10..11 " "
-                  ForBounds@11..26
-                    LiteralExpr@11..13
+                  ForBounds@11..17
+                    LiteralExpr@11..12
                       IntLiteral@11..12 "1"
-                      Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     Range@13..15 ".."
                     Whitespace@15..16 " "
-                    LiteralExpr@16..26
+                    LiteralExpr@16..17
                       IntLiteral@16..17 "8"
-                      Whitespace@17..26 "\n        "
-                  StmtList@26..45
-                    InvariantStmt@26..45
+                  Whitespace@17..26 "\n        "
+                  StmtList@26..40
+                    InvariantStmt@26..40
                       KwInvariant@26..35 "invariant"
                       Whitespace@35..36 " "
-                      LiteralExpr@36..45
+                      LiteralExpr@36..40
                         KwTrue@36..40 "true"
-                        Whitespace@40..45 "\n    "
-                  EndGroup@45..57
+                  Whitespace@40..45 "\n    "
+                  EndGroup@45..52
                     KwEnd@45..48 "end"
                     Whitespace@48..49 " "
                     KwFor@49..52 "for"
-                    Whitespace@52..57 "\n    ""#]],
+              Whitespace@52..57 "\n    ""#]],
     );
 }
 
@@ -3211,33 +3211,33 @@ fn recover_for_loop_missing_left_bound() {
         expect![[r#"
             Source@0..57
               Whitespace@0..5 "\n    "
-              StmtList@5..57
-                ForStmt@5..57
+              StmtList@5..52
+                ForStmt@5..52
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "i"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Colon@11..12 ":"
                   Whitespace@12..13 " "
-                  ForBounds@13..26
+                  ForBounds@13..17
                     Range@13..15 ".."
                     Whitespace@15..16 " "
-                    LiteralExpr@16..26
+                    LiteralExpr@16..17
                       IntLiteral@16..17 "8"
-                      Whitespace@17..26 "\n        "
-                  StmtList@26..45
-                    InvariantStmt@26..45
+                  Whitespace@17..26 "\n        "
+                  StmtList@26..40
+                    InvariantStmt@26..40
                       KwInvariant@26..35 "invariant"
                       Whitespace@35..36 " "
-                      LiteralExpr@36..45
+                      LiteralExpr@36..40
                         KwTrue@36..40 "true"
-                        Whitespace@40..45 "\n    "
-                  EndGroup@45..57
+                  Whitespace@40..45 "\n    "
+                  EndGroup@45..52
                     KwEnd@45..48 "end"
                     Whitespace@48..49 " "
                     KwFor@49..52 "for"
-                    Whitespace@52..57 "\n    "
+              Whitespace@52..57 "\n    "
             error at 13..15: expected expression, but found ‘..’"#]],
     );
 }
@@ -3255,36 +3255,36 @@ fn parse_for_loop_bound_over_single_int() {
         expect![[r#"
             Source@0..65
               Whitespace@0..5 "\n    "
-              StmtList@5..65
-                ForStmt@5..65
+              StmtList@5..60
+                ForStmt@5..60
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "i"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Colon@11..12 ":"
                   Whitespace@12..13 " "
-                  ForBounds@13..23
-                    LiteralExpr@13..23
+                  ForBounds@13..14
+                    LiteralExpr@13..14
                       IntLiteral@13..14 "1"
-                      Whitespace@14..23 "\n        "
-                  StmtList@23..53
-                    CallStmt@23..34
-                      NameExpr@23..34
-                        Name@23..34
+                  Whitespace@14..23 "\n        "
+                  StmtList@23..48
+                    CallStmt@23..25
+                      NameExpr@23..25
+                        Name@23..25
                           Identifier@23..25 "ay"
-                          Whitespace@25..34 "\n        "
-                    InvariantStmt@34..53
+                    Whitespace@25..34 "\n        "
+                    InvariantStmt@34..48
                       KwInvariant@34..43 "invariant"
                       Whitespace@43..44 " "
-                      LiteralExpr@44..53
+                      LiteralExpr@44..48
                         KwTrue@44..48 "true"
-                        Whitespace@48..53 "\n    "
-                  EndGroup@53..65
+                  Whitespace@48..53 "\n    "
+                  EndGroup@53..60
                     KwEnd@53..56 "end"
                     Whitespace@56..57 " "
                     KwFor@57..60 "for"
-                    Whitespace@60..65 "\n    ""#]],
+              Whitespace@60..65 "\n    ""#]],
     );
 }
 
@@ -3299,33 +3299,33 @@ fn recover_for_loop_missing_right_bound() {
         expect![[r#"
             Source@0..57
               Whitespace@0..5 "\n    "
-              StmtList@5..57
-                ForStmt@5..57
+              StmtList@5..52
+                ForStmt@5..52
                   KwFor@5..8 "for"
                   Whitespace@8..9 " "
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "i"
-                    Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Colon@11..12 ":"
                   Whitespace@12..13 " "
-                  ForBounds@13..26
-                    LiteralExpr@13..15
+                  ForBounds@13..17
+                    LiteralExpr@13..14
                       IntLiteral@13..14 "1"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Range@15..17 ".."
-                    Whitespace@17..26 "\n        "
-                  StmtList@26..45
-                    InvariantStmt@26..45
+                  Whitespace@17..26 "\n        "
+                  StmtList@26..40
+                    InvariantStmt@26..40
                       KwInvariant@26..35 "invariant"
                       Whitespace@35..36 " "
-                      LiteralExpr@36..45
+                      LiteralExpr@36..40
                         KwTrue@36..40 "true"
-                        Whitespace@40..45 "\n    "
-                  EndGroup@45..57
+                  Whitespace@40..45 "\n    "
+                  EndGroup@45..52
                     KwEnd@45..48 "end"
                     Whitespace@48..49 " "
                     KwFor@49..52 "for"
-                    Whitespace@52..57 "\n    "
+              Whitespace@52..57 "\n    "
             error at 26..35: expected expression, but found ‘invariant’"#]],
     );
 }
@@ -3385,45 +3385,45 @@ fn recover_on_for_loop() {
         expect![[r#"
             Source@0..72
               Whitespace@0..5 "\n    "
-              StmtList@5..72
-                ConstVarDecl@5..18
+              StmtList@5..67
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
-                ForStmt@18..72
+                Whitespace@13..18 "\n    "
+                ForStmt@18..67
                   KwFor@18..21 "for"
                   Whitespace@21..22 " "
-                  Name@22..24
+                  Name@22..23
                     Identifier@22..23 "i"
-                    Whitespace@23..24 " "
+                  Whitespace@23..24 " "
                   Colon@24..25 ":"
                   Whitespace@25..26 " "
-                  ForBounds@26..41
-                    LiteralExpr@26..28
+                  ForBounds@26..32
+                    LiteralExpr@26..27
                       IntLiteral@26..27 "1"
-                      Whitespace@27..28 " "
+                    Whitespace@27..28 " "
                     Range@28..30 ".."
                     Whitespace@30..31 " "
-                    LiteralExpr@31..41
+                    LiteralExpr@31..32
                       IntLiteral@31..32 "8"
-                      Whitespace@32..41 "\n        "
-                  StmtList@41..60
-                    InvariantStmt@41..60
+                  Whitespace@32..41 "\n        "
+                  StmtList@41..55
+                    InvariantStmt@41..55
                       KwInvariant@41..50 "invariant"
                       Whitespace@50..51 " "
-                      LiteralExpr@51..60
+                      LiteralExpr@51..55
                         KwTrue@51..55 "true"
-                        Whitespace@55..60 "\n    "
-                  EndGroup@60..72
+                  Whitespace@55..60 "\n    "
+                  EndGroup@60..67
                     KwEnd@60..63 "end"
                     Whitespace@63..64 " "
                     KwFor@64..67 "for"
-                    Whitespace@67..72 "\n    "
+              Whitespace@67..72 "\n    "
             error at 18..21: expected expression, but found ‘for’"#]],
     );
 }
@@ -3446,12 +3446,12 @@ fn parse_case_stmt() {
                 CaseStmt@5..144
                   KwCase@5..9 "case"
                   Whitespace@9..10 " "
-                  LiteralExpr@10..12
+                  LiteralExpr@10..11
                     IntLiteral@10..11 "1"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   KwOf@12..14 "of"
                   Whitespace@14..23 "\n        "
-                  CaseArm@23..68
+                  CaseArm@23..59
                     KwLabel@23..28 "label"
                     Whitespace@28..29 " "
                     ExprList@29..33
@@ -3463,13 +3463,13 @@ fn parse_case_stmt() {
                         IntLiteral@32..33 "2"
                     Colon@33..34 ":"
                     Whitespace@34..47 "\n            "
-                    StmtList@47..68
-                      AssertStmt@47..68
+                    StmtList@47..59
+                      AssertStmt@47..59
                         KwAssert@47..53 "assert"
                         Whitespace@53..54 " "
-                        LiteralExpr@54..68
+                        LiteralExpr@54..59
                           KwFalse@54..59 "false"
-                          Whitespace@59..68 "\n        "
+                  Whitespace@59..68 "\n        "
                   CaseArm@68..85
                     KwLabel@68..73 "label"
                     Whitespace@73..74 " "
@@ -3479,21 +3479,21 @@ fn parse_case_stmt() {
                     Colon@75..76 ":"
                     Whitespace@76..85 "\n        "
                     StmtList@85..85
-                  CaseArm@85..136
+                  CaseArm@85..114
                     KwLabel@85..90 "label"
                     Whitespace@90..91 " "
                     Colon@91..92 ":"
                     Whitespace@92..105 "\n            "
-                    StmtList@105..136
-                      BlockStmt@105..136
+                    StmtList@105..114
+                      BlockStmt@105..114
                         KwBegin@105..110 "begin"
                         Whitespace@110..111 " "
                         StmtList@111..111
-                        EndGroup@111..136
+                        EndGroup@111..114
                           KwEnd@111..114 "end"
-                          Whitespace@114..115 " "
-                          Comment@115..131 "% no fallthrough"
-                          Whitespace@131..136 "\n    "
+                  Whitespace@114..115 " "
+                  Comment@115..131 "% no fallthrough"
+                  Whitespace@131..136 "\n    "
                   EndGroup@136..144
                     KwEnd@136..139 "end"
                     Whitespace@139..140 " "
@@ -3515,9 +3515,9 @@ fn parse_case_stmt_alt_end() {
                 CaseStmt@5..42
                   KwCase@5..9 "case"
                   Whitespace@9..10 " "
-                  LiteralExpr@10..12
+                  LiteralExpr@10..11
                     IntLiteral@10..11 "1"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   KwOf@12..14 "of"
                   Whitespace@14..23 "\n        "
                   CaseArm@23..35
@@ -3545,9 +3545,9 @@ fn parse_empty_case_stmt() {
                 CaseStmt@5..27
                   KwCase@5..9 "case"
                   Whitespace@9..10 " "
-                  LiteralExpr@10..12
+                  LiteralExpr@10..11
                     IntLiteral@10..11 "1"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   KwOf@12..14 "of"
                   Whitespace@14..19 "\n    "
                   EndGroup@19..27
@@ -3571,9 +3571,9 @@ fn recover_case_stmt_missing_of() {
                 CaseStmt@5..40
                   KwCase@5..9 "case"
                   Whitespace@9..10 " "
-                  LiteralExpr@10..20
+                  LiteralExpr@10..11
                     IntLiteral@10..11 "1"
-                    Whitespace@11..20 "\n        "
+                  Whitespace@11..20 "\n        "
                   CaseArm@20..32
                     KwLabel@20..25 "label"
                     Whitespace@25..26 " "
@@ -3630,21 +3630,21 @@ fn recover_on_case_stmt() {
             Source@0..56
               Whitespace@0..5 "\n    "
               StmtList@5..56
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 CaseStmt@18..56
                   KwCase@18..22 "case"
                   Whitespace@22..23 " "
-                  LiteralExpr@23..25
+                  LiteralExpr@23..24
                     IntLiteral@23..24 "1"
-                    Whitespace@24..25 " "
+                  Whitespace@24..25 " "
                   KwOf@25..27 "of"
                   Whitespace@27..36 "\n        "
                   CaseArm@36..48
@@ -3672,9 +3672,9 @@ fn parse_bind_decl() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..15
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     KwTo@7..9 "to"
                     Whitespace@9..10 " "
                     FieldExpr@10..15
@@ -3702,9 +3702,9 @@ fn parse_bind_decl_many_bindings() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..11
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     KwTo@7..9 "to"
                     Whitespace@9..10 " "
                     NameExpr@10..11
@@ -3713,9 +3713,9 @@ fn parse_bind_decl_many_bindings() {
                   Comma@11..12 ","
                   Whitespace@12..13 " "
                   BindItem@13..19
-                    Name@13..15
+                    Name@13..14
                       Identifier@13..14 "c"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     KwTo@15..17 "to"
                     Whitespace@17..18 " "
                     NameExpr@18..19
@@ -3724,9 +3724,9 @@ fn parse_bind_decl_many_bindings() {
                   Comma@19..20 ","
                   Whitespace@20..21 " "
                   BindItem@21..27
-                    Name@21..23
+                    Name@21..22
                       Identifier@21..22 "e"
-                      Whitespace@22..23 " "
+                    Whitespace@22..23 " "
                     KwTo@23..25 "to"
                     Whitespace@25..26 " "
                     NameExpr@26..27
@@ -3746,12 +3746,12 @@ fn parse_bind_decl_opt_var() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..15
-                    VarAttr@5..9
+                    VarAttr@5..8
                       KwVar@5..8 "var"
-                      Whitespace@8..9 " "
-                    Name@9..11
+                    Whitespace@8..9 " "
+                    Name@9..10
                       Identifier@9..10 "a"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     KwTo@11..13 "to"
                     Whitespace@13..14 " "
                     NameExpr@14..15
@@ -3771,12 +3771,12 @@ fn parse_bind_decl_opt_register() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..20
-                    RegisterAttr@5..14
+                    RegisterAttr@5..13
                       KwRegister@5..13 "register"
-                      Whitespace@13..14 " "
-                    Name@14..16
+                    Whitespace@13..14 " "
+                    Name@14..15
                       Identifier@14..15 "a"
-                      Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     KwTo@16..18 "to"
                     Whitespace@18..19 " "
                     NameExpr@19..20
@@ -3796,15 +3796,15 @@ fn parse_bind_decl_opt_var_register() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..24
-                    VarAttr@5..9
+                    VarAttr@5..8
                       KwVar@5..8 "var"
-                      Whitespace@8..9 " "
-                    RegisterAttr@9..18
+                    Whitespace@8..9 " "
+                    RegisterAttr@9..17
                       KwRegister@9..17 "register"
-                      Whitespace@17..18 " "
-                    Name@18..20
+                    Whitespace@17..18 " "
+                    Name@18..19
                       Identifier@18..19 "a"
-                      Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     KwTo@20..22 "to"
                     Whitespace@22..23 " "
                     NameExpr@23..24
@@ -3825,9 +3825,9 @@ fn parse_bind_decl_not_to_ref() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..11
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     KwTo@7..9 "to"
                     Whitespace@9..10 " "
                     LiteralExpr@10..11
@@ -3868,9 +3868,9 @@ fn recover_bind_decl_missing_to() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..8
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     NameExpr@7..8
                       Name@7..8
                         Identifier@7..8 "b"
@@ -3890,9 +3890,9 @@ fn recover_bind_decl_missing_binding() {
                   KwBind@0..4 "bind"
                   Whitespace@4..5 " "
                   BindItem@5..9
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     KwTo@7..9 "to"
             error at 7..9: expected expression after here"#]],
     );
@@ -3921,22 +3921,22 @@ fn recover_on_bind() {
         expect![[r#"
             Source@0..21
               StmtList@0..21
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 BindDecl@10..21
                   KwBind@10..14 "bind"
                   Whitespace@14..15 " "
                   BindItem@15..21
-                    Name@15..17
+                    Name@15..16
                       Identifier@15..16 "e"
-                      Whitespace@16..17 " "
+                    Whitespace@16..17 " "
                     KwTo@17..19 "to"
                     Whitespace@19..20 " "
                     NameExpr@20..21
@@ -3958,32 +3958,32 @@ fn parse_proc_decl() {
               Whitespace@0..5 "\n    "
               StmtList@5..57
                 ProcDecl@5..57
-                  ProcHeader@5..35
+                  ProcHeader@5..26
                     KwProcedure@5..14 "procedure"
                     Whitespace@14..15 " "
-                    Name@15..17
+                    Name@15..16
                       Identifier@15..16 "a"
-                      Whitespace@16..17 " "
-                    ParamSpec@17..35
+                    Whitespace@16..17 " "
+                    ParamSpec@17..26
                       LeftParen@17..18 "("
                       ConstVarParam@18..25
-                        NameList@18..20
-                          Name@18..20
+                        NameList@18..19
+                          Name@18..19
                             Identifier@18..19 "a"
-                            Whitespace@19..20 " "
+                        Whitespace@19..20 " "
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
                         PrimType@22..25
                           KwInt@22..25 "int"
                       RightParen@25..26 ")"
-                      Whitespace@26..35 "\n        "
-                  StmtList@35..52
-                    AssertStmt@35..52
+                  Whitespace@26..35 "\n        "
+                  StmtList@35..47
+                    AssertStmt@35..47
                       KwAssert@35..41 "assert"
                       Whitespace@41..42 " "
-                      LiteralExpr@42..52
+                      LiteralExpr@42..47
                         KwFalse@42..47 "false"
-                        Whitespace@47..52 "\n    "
+                  Whitespace@47..52 "\n    "
                   EndGroup@52..57
                     KwEnd@52..55 "end"
                     Whitespace@55..56 " "
@@ -4003,44 +4003,44 @@ fn parse_proc_decl_opt_devspec() {
               Whitespace@0..5 "\n    "
               StmtList@5..65
                 ProcDecl@5..65
-                  ProcHeader@5..43
+                  ProcHeader@5..34
                     KwProcedure@5..14 "procedure"
                     Whitespace@14..15 " "
-                    Name@15..17
+                    Name@15..16
                       Identifier@15..16 "a"
-                      Whitespace@16..17 " "
-                    ParamSpec@17..27
+                    Whitespace@16..17 " "
+                    ParamSpec@17..26
                       LeftParen@17..18 "("
                       ConstVarParam@18..25
-                        NameList@18..20
-                          Name@18..20
+                        NameList@18..19
+                          Name@18..19
                             Identifier@18..19 "a"
-                            Whitespace@19..20 " "
+                        Whitespace@19..20 " "
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
                         PrimType@22..25
                           KwInt@22..25 "int"
                       RightParen@25..26 ")"
-                      Whitespace@26..27 " "
-                    DeviceSpec@27..43
+                    Whitespace@26..27 " "
+                    DeviceSpec@27..34
                       Colon@27..28 ":"
                       Whitespace@28..29 " "
-                      BinaryExpr@29..43
-                        LiteralExpr@29..31
+                      BinaryExpr@29..34
+                        LiteralExpr@29..30
                           IntLiteral@29..30 "1"
-                          Whitespace@30..31 " "
+                        Whitespace@30..31 " "
                         Plus@31..32 "+"
                         Whitespace@32..33 " "
-                        LiteralExpr@33..43
+                        LiteralExpr@33..34
                           IntLiteral@33..34 "3"
-                          Whitespace@34..43 "\n        "
-                  StmtList@43..60
-                    AssertStmt@43..60
+                  Whitespace@34..43 "\n        "
+                  StmtList@43..55
+                    AssertStmt@43..55
                       KwAssert@43..49 "assert"
                       Whitespace@49..50 " "
-                      LiteralExpr@50..60
+                      LiteralExpr@50..55
                         KwFalse@50..55 "false"
-                        Whitespace@55..60 "\n    "
+                  Whitespace@55..60 "\n    "
                   EndGroup@60..65
                     KwEnd@60..63 "end"
                     Whitespace@63..64 " "
@@ -4060,19 +4060,19 @@ fn parse_proc_plain() {
               Whitespace@0..5 "\n    "
               StmtList@5..47
                 ProcDecl@5..47
-                  ProcHeader@5..25
+                  ProcHeader@5..16
                     KwProcedure@5..14 "procedure"
                     Whitespace@14..15 " "
-                    Name@15..25
+                    Name@15..16
                       Identifier@15..16 "a"
-                      Whitespace@16..25 "\n        "
-                  StmtList@25..42
-                    AssertStmt@25..42
+                  Whitespace@16..25 "\n        "
+                  StmtList@25..37
+                    AssertStmt@25..37
                       KwAssert@25..31 "assert"
                       Whitespace@31..32 " "
-                      LiteralExpr@32..42
+                      LiteralExpr@32..37
                         KwFalse@32..37 "false"
-                        Whitespace@37..42 "\n    "
+                  Whitespace@37..42 "\n    "
                   EndGroup@42..47
                     KwEnd@42..45 "end"
                     Whitespace@45..46 " "
@@ -4085,26 +4085,26 @@ fn parse_proc_decl_embedded_import() {
     check(
         "proc a import () end a",
         expect![[r#"
-        Source@0..22
-          StmtList@0..22
-            ProcDecl@0..22
-              ProcHeader@0..7
-                KwProcedure@0..4 "proc"
-                Whitespace@4..5 " "
-                Name@5..7
-                  Identifier@5..6 "a"
+            Source@0..22
+              StmtList@0..22
+                ProcDecl@0..22
+                  ProcHeader@0..6
+                    KwProcedure@0..4 "proc"
+                    Whitespace@4..5 " "
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Whitespace@6..7 " "
-              ImportStmt@7..17
-                KwImport@7..13 "import"
-                Whitespace@13..14 " "
-                LeftParen@14..15 "("
-                RightParen@15..16 ")"
-                Whitespace@16..17 " "
-              StmtList@17..17
-              EndGroup@17..22
-                KwEnd@17..20 "end"
-                Whitespace@20..21 " "
-                Identifier@21..22 "a""#]],
+                  ImportStmt@7..16
+                    KwImport@7..13 "import"
+                    Whitespace@13..14 " "
+                    LeftParen@14..15 "("
+                    RightParen@15..16 ")"
+                  Whitespace@16..17 " "
+                  StmtList@17..17
+                  EndGroup@17..22
+                    KwEnd@17..20 "end"
+                    Whitespace@20..21 " "
+                    Identifier@21..22 "a""#]],
     );
 }
 
@@ -4120,16 +4120,16 @@ fn recover_proc_decl_missing_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..45
                 ProcDecl@5..45
-                  ProcHeader@5..23
+                  ProcHeader@5..14
                     KwProcedure@5..14 "procedure"
-                    Whitespace@14..23 "\n        "
-                  StmtList@23..40
-                    AssertStmt@23..40
+                  Whitespace@14..23 "\n        "
+                  StmtList@23..35
+                    AssertStmt@23..35
                       KwAssert@23..29 "assert"
                       Whitespace@29..30 " "
-                      LiteralExpr@30..40
+                      LiteralExpr@30..35
                         KwFalse@30..35 "false"
-                        Whitespace@35..40 "\n    "
+                  Whitespace@35..40 "\n    "
                   EndGroup@40..45
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
@@ -4150,19 +4150,19 @@ fn recover_proc_decl_missing_tail_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..45
                 ProcDecl@5..45
-                  ProcHeader@5..25
+                  ProcHeader@5..16
                     KwProcedure@5..14 "procedure"
                     Whitespace@14..15 " "
-                    Name@15..25
+                    Name@15..16
                       Identifier@15..16 "a"
-                      Whitespace@16..25 "\n        "
-                  StmtList@25..42
-                    AssertStmt@25..42
+                  Whitespace@16..25 "\n        "
+                  StmtList@25..37
+                    AssertStmt@25..37
                       KwAssert@25..31 "assert"
                       Whitespace@31..32 " "
-                      LiteralExpr@32..42
+                      LiteralExpr@32..37
                         KwFalse@32..37 "false"
-                        Whitespace@37..42 "\n    "
+                  Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
             error at 42..45: expected identifier after here"#]],
@@ -4181,29 +4181,29 @@ fn recover_on_proc() {
             Source@0..60
               Whitespace@0..5 "\n    "
               StmtList@5..60
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 ProcDecl@18..60
-                  ProcHeader@18..38
+                  ProcHeader@18..29
                     KwProcedure@18..27 "procedure"
                     Whitespace@27..28 " "
-                    Name@28..38
+                    Name@28..29
                       Identifier@28..29 "a"
-                      Whitespace@29..38 "\n        "
-                  StmtList@38..55
-                    AssertStmt@38..55
+                  Whitespace@29..38 "\n        "
+                  StmtList@38..50
+                    AssertStmt@38..50
                       KwAssert@38..44 "assert"
                       Whitespace@44..45 " "
-                      LiteralExpr@45..55
+                      LiteralExpr@45..50
                         KwFalse@45..50 "false"
-                        Whitespace@50..55 "\n    "
+                  Whitespace@50..55 "\n    "
                   EndGroup@55..60
                     KwEnd@55..58 "end"
                     Whitespace@58..59 " "
@@ -4224,38 +4224,38 @@ fn parse_fcn_decl() {
               Whitespace@0..5 "\n    "
               StmtList@5..62
                 FcnDecl@5..62
-                  FcnHeader@5..40
+                  FcnHeader@5..31
                     KwFunction@5..13 "function"
                     Whitespace@13..14 " "
-                    Name@14..16
+                    Name@14..15
                       Identifier@14..15 "a"
-                      Whitespace@15..16 " "
-                    ParamSpec@16..26
+                    Whitespace@15..16 " "
+                    ParamSpec@16..25
                       LeftParen@16..17 "("
                       ConstVarParam@17..24
-                        NameList@17..19
-                          Name@17..19
+                        NameList@17..18
+                          Name@17..18
                             Identifier@17..18 "a"
-                            Whitespace@18..19 " "
+                        Whitespace@18..19 " "
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
                         PrimType@21..24
                           KwInt@21..24 "int"
                       RightParen@24..25 ")"
-                      Whitespace@25..26 " "
-                    FcnResult@26..40
+                    Whitespace@25..26 " "
+                    FcnResult@26..31
                       Colon@26..27 ":"
                       Whitespace@27..28 " "
-                      PrimType@28..40
+                      PrimType@28..31
                         KwInt@28..31 "int"
-                        Whitespace@31..40 "\n        "
-                  StmtList@40..57
-                    AssertStmt@40..57
+                  Whitespace@31..40 "\n        "
+                  StmtList@40..52
+                    AssertStmt@40..52
                       KwAssert@40..46 "assert"
                       Whitespace@46..47 " "
-                      LiteralExpr@47..57
+                      LiteralExpr@47..52
                         KwFalse@47..52 "false"
-                        Whitespace@52..57 "\n    "
+                  Whitespace@52..57 "\n    "
                   EndGroup@57..62
                     KwEnd@57..60 "end"
                     Whitespace@60..61 " "
@@ -4275,41 +4275,41 @@ fn parse_fcn_decl_opt_ret_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..60
                 FcnDecl@5..60
-                  FcnHeader@5..38
+                  FcnHeader@5..29
                     KwFunction@5..8 "fcn"
                     Whitespace@8..9 " "
-                    Name@9..11
+                    Name@9..10
                       Identifier@9..10 "a"
-                      Whitespace@10..11 " "
-                    ParamSpec@11..21
+                    Whitespace@10..11 " "
+                    ParamSpec@11..20
                       LeftParen@11..12 "("
                       ConstVarParam@12..19
-                        NameList@12..14
-                          Name@12..14
+                        NameList@12..13
+                          Name@12..13
                             Identifier@12..13 "a"
-                            Whitespace@13..14 " "
+                        Whitespace@13..14 " "
                         Colon@14..15 ":"
                         Whitespace@15..16 " "
                         PrimType@16..19
                           KwInt@16..19 "int"
                       RightParen@19..20 ")"
-                      Whitespace@20..21 " "
-                    FcnResult@21..38
-                      Name@21..24
+                    Whitespace@20..21 " "
+                    FcnResult@21..29
+                      Name@21..23
                         Identifier@21..23 "ae"
-                        Whitespace@23..24 " "
+                      Whitespace@23..24 " "
                       Colon@24..25 ":"
                       Whitespace@25..26 " "
-                      PrimType@26..38
+                      PrimType@26..29
                         KwInt@26..29 "int"
-                        Whitespace@29..38 "\n        "
-                  StmtList@38..55
-                    AssertStmt@38..55
+                  Whitespace@29..38 "\n        "
+                  StmtList@38..50
+                    AssertStmt@38..50
                       KwAssert@38..44 "assert"
                       Whitespace@44..45 " "
-                      LiteralExpr@45..55
+                      LiteralExpr@45..50
                         KwFalse@45..50 "false"
-                        Whitespace@50..55 "\n    "
+                  Whitespace@50..55 "\n    "
                   EndGroup@55..60
                     KwEnd@55..58 "end"
                     Whitespace@58..59 " "
@@ -4329,28 +4329,28 @@ fn parse_fcn_plain() {
               Whitespace@0..5 "\n    "
               StmtList@5..49
                 FcnDecl@5..49
-                  FcnHeader@5..27
+                  FcnHeader@5..18
                     KwFunction@5..8 "fcn"
                     Whitespace@8..9 " "
-                    Name@9..11
+                    Name@9..10
                       Identifier@9..10 "a"
-                      Whitespace@10..11 " "
-                    FcnResult@11..27
-                      Name@11..13
+                    Whitespace@10..11 " "
+                    FcnResult@11..18
+                      Name@11..12
                         Identifier@11..12 "a"
-                        Whitespace@12..13 " "
+                      Whitespace@12..13 " "
                       Colon@13..14 ":"
                       Whitespace@14..15 " "
-                      PrimType@15..27
+                      PrimType@15..18
                         KwInt@15..18 "int"
-                        Whitespace@18..27 "\n        "
-                  StmtList@27..44
-                    AssertStmt@27..44
+                  Whitespace@18..27 "\n        "
+                  StmtList@27..39
+                    AssertStmt@27..39
                       KwAssert@27..33 "assert"
                       Whitespace@33..34 " "
-                      LiteralExpr@34..44
+                      LiteralExpr@34..39
                         KwFalse@34..39 "false"
-                        Whitespace@39..44 "\n    "
+                  Whitespace@39..44 "\n    "
                   EndGroup@44..49
                     KwEnd@44..47 "end"
                     Whitespace@47..48 " "
@@ -4363,32 +4363,32 @@ fn parse_fcn_decl_embedded_import() {
     check(
         "fcn a : int import () end a",
         expect![[r#"
-        Source@0..27
-          StmtList@0..27
-            FcnDecl@0..27
-              FcnHeader@0..12
-                KwFunction@0..3 "fcn"
-                Whitespace@3..4 " "
-                Name@4..6
-                  Identifier@4..5 "a"
-                  Whitespace@5..6 " "
-                FcnResult@6..12
-                  Colon@6..7 ":"
-                  Whitespace@7..8 " "
-                  PrimType@8..12
-                    KwInt@8..11 "int"
-                    Whitespace@11..12 " "
-              ImportStmt@12..22
-                KwImport@12..18 "import"
-                Whitespace@18..19 " "
-                LeftParen@19..20 "("
-                RightParen@20..21 ")"
-                Whitespace@21..22 " "
-              StmtList@22..22
-              EndGroup@22..27
-                KwEnd@22..25 "end"
-                Whitespace@25..26 " "
-                Identifier@26..27 "a""#]],
+            Source@0..27
+              StmtList@0..27
+                FcnDecl@0..27
+                  FcnHeader@0..11
+                    KwFunction@0..3 "fcn"
+                    Whitespace@3..4 " "
+                    Name@4..5
+                      Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                    FcnResult@6..11
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      PrimType@8..11
+                        KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                  ImportStmt@12..21
+                    KwImport@12..18 "import"
+                    Whitespace@18..19 " "
+                    LeftParen@19..20 "("
+                    RightParen@20..21 ")"
+                  Whitespace@21..22 " "
+                  StmtList@22..22
+                  EndGroup@22..27
+                    KwEnd@22..25 "end"
+                    Whitespace@25..26 " "
+                    Identifier@26..27 "a""#]],
     );
 }
 
@@ -4397,32 +4397,32 @@ fn parse_fcn_decl_embedded_pre() {
     check(
         "fcn a : int pre true end a",
         expect![[r#"
-        Source@0..26
-          StmtList@0..26
-            FcnDecl@0..26
-              FcnHeader@0..12
-                KwFunction@0..3 "fcn"
-                Whitespace@3..4 " "
-                Name@4..6
-                  Identifier@4..5 "a"
-                  Whitespace@5..6 " "
-                FcnResult@6..12
-                  Colon@6..7 ":"
-                  Whitespace@7..8 " "
-                  PrimType@8..12
-                    KwInt@8..11 "int"
-                    Whitespace@11..12 " "
-              PreStmt@12..21
-                KwPre@12..15 "pre"
-                Whitespace@15..16 " "
-                LiteralExpr@16..21
-                  KwTrue@16..20 "true"
+            Source@0..26
+              StmtList@0..26
+                FcnDecl@0..26
+                  FcnHeader@0..11
+                    KwFunction@0..3 "fcn"
+                    Whitespace@3..4 " "
+                    Name@4..5
+                      Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                    FcnResult@6..11
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      PrimType@8..11
+                        KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                  PreStmt@12..20
+                    KwPre@12..15 "pre"
+                    Whitespace@15..16 " "
+                    LiteralExpr@16..20
+                      KwTrue@16..20 "true"
                   Whitespace@20..21 " "
-              StmtList@21..21
-              EndGroup@21..26
-                KwEnd@21..24 "end"
-                Whitespace@24..25 " "
-                Identifier@25..26 "a""#]],
+                  StmtList@21..21
+                  EndGroup@21..26
+                    KwEnd@21..24 "end"
+                    Whitespace@24..25 " "
+                    Identifier@25..26 "a""#]],
     );
 }
 
@@ -4431,38 +4431,38 @@ fn parse_fcn_decl_embedded_init() {
     check(
         "fcn a : int init i := 1 end a",
         expect![[r#"
-        Source@0..29
-          StmtList@0..29
-            FcnDecl@0..29
-              FcnHeader@0..12
-                KwFunction@0..3 "fcn"
-                Whitespace@3..4 " "
-                Name@4..6
-                  Identifier@4..5 "a"
-                  Whitespace@5..6 " "
-                FcnResult@6..12
-                  Colon@6..7 ":"
-                  Whitespace@7..8 " "
-                  PrimType@8..12
-                    KwInt@8..11 "int"
-                    Whitespace@11..12 " "
-              InitStmt@12..24
-                KwInit@12..16 "init"
-                Whitespace@16..17 " "
-                InitVar@17..24
-                  Name@17..19
-                    Identifier@17..18 "i"
-                    Whitespace@18..19 " "
-                  Assign@19..21 ":="
-                  Whitespace@21..22 " "
-                  LiteralExpr@22..24
-                    IntLiteral@22..23 "1"
-                    Whitespace@23..24 " "
-              StmtList@24..24
-              EndGroup@24..29
-                KwEnd@24..27 "end"
-                Whitespace@27..28 " "
-                Identifier@28..29 "a""#]],
+            Source@0..29
+              StmtList@0..29
+                FcnDecl@0..29
+                  FcnHeader@0..11
+                    KwFunction@0..3 "fcn"
+                    Whitespace@3..4 " "
+                    Name@4..5
+                      Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                    FcnResult@6..11
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      PrimType@8..11
+                        KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                  InitStmt@12..23
+                    KwInit@12..16 "init"
+                    Whitespace@16..17 " "
+                    InitVar@17..23
+                      Name@17..18
+                        Identifier@17..18 "i"
+                      Whitespace@18..19 " "
+                      Assign@19..21 ":="
+                      Whitespace@21..22 " "
+                      LiteralExpr@22..23
+                        IntLiteral@22..23 "1"
+                  Whitespace@23..24 " "
+                  StmtList@24..24
+                  EndGroup@24..29
+                    KwEnd@24..27 "end"
+                    Whitespace@27..28 " "
+                    Identifier@28..29 "a""#]],
     );
 }
 
@@ -4471,32 +4471,32 @@ fn parse_fcn_decl_embedded_post() {
     check(
         "fcn a : int post false end a",
         expect![[r#"
-        Source@0..28
-          StmtList@0..28
-            FcnDecl@0..28
-              FcnHeader@0..12
-                KwFunction@0..3 "fcn"
-                Whitespace@3..4 " "
-                Name@4..6
-                  Identifier@4..5 "a"
-                  Whitespace@5..6 " "
-                FcnResult@6..12
-                  Colon@6..7 ":"
-                  Whitespace@7..8 " "
-                  PrimType@8..12
-                    KwInt@8..11 "int"
-                    Whitespace@11..12 " "
-              PostStmt@12..23
-                KwPost@12..16 "post"
-                Whitespace@16..17 " "
-                LiteralExpr@17..23
-                  KwFalse@17..22 "false"
+            Source@0..28
+              StmtList@0..28
+                FcnDecl@0..28
+                  FcnHeader@0..11
+                    KwFunction@0..3 "fcn"
+                    Whitespace@3..4 " "
+                    Name@4..5
+                      Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                    FcnResult@6..11
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      PrimType@8..11
+                        KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                  PostStmt@12..22
+                    KwPost@12..16 "post"
+                    Whitespace@16..17 " "
+                    LiteralExpr@17..22
+                      KwFalse@17..22 "false"
                   Whitespace@22..23 " "
-              StmtList@23..23
-              EndGroup@23..28
-                KwEnd@23..26 "end"
-                Whitespace@26..27 " "
-                Identifier@27..28 "a""#]],
+                  StmtList@23..23
+                  EndGroup@23..28
+                    KwEnd@23..26 "end"
+                    Whitespace@26..27 " "
+                    Identifier@27..28 "a""#]],
     );
 }
 
@@ -4505,40 +4505,40 @@ fn parse_fcn_decl_embedded_handler() {
     check(
         "fcn a : int handler (_) end handler end a",
         expect![[r#"
-        Source@0..41
-          StmtList@0..41
-            FcnDecl@0..41
-              FcnHeader@0..12
-                KwFunction@0..3 "fcn"
-                Whitespace@3..4 " "
-                Name@4..6
-                  Identifier@4..5 "a"
-                  Whitespace@5..6 " "
-                FcnResult@6..12
-                  Colon@6..7 ":"
-                  Whitespace@7..8 " "
-                  PrimType@8..12
-                    KwInt@8..11 "int"
-                    Whitespace@11..12 " "
-              HandlerStmt@12..36
-                KwHandler@12..19 "handler"
-                Whitespace@19..20 " "
-                LeftParen@20..21 "("
-                Name@21..22
-                  Identifier@21..22 "_"
-                RightParen@22..23 ")"
-                Whitespace@23..24 " "
-                StmtList@24..24
-                EndGroup@24..36
-                  KwEnd@24..27 "end"
-                  Whitespace@27..28 " "
-                  KwHandler@28..35 "handler"
+            Source@0..41
+              StmtList@0..41
+                FcnDecl@0..41
+                  FcnHeader@0..11
+                    KwFunction@0..3 "fcn"
+                    Whitespace@3..4 " "
+                    Name@4..5
+                      Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                    FcnResult@6..11
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      PrimType@8..11
+                        KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                  HandlerStmt@12..35
+                    KwHandler@12..19 "handler"
+                    Whitespace@19..20 " "
+                    LeftParen@20..21 "("
+                    Name@21..22
+                      Identifier@21..22 "_"
+                    RightParen@22..23 ")"
+                    Whitespace@23..24 " "
+                    StmtList@24..24
+                    EndGroup@24..35
+                      KwEnd@24..27 "end"
+                      Whitespace@27..28 " "
+                      KwHandler@28..35 "handler"
                   Whitespace@35..36 " "
-              StmtList@36..36
-              EndGroup@36..41
-                KwEnd@36..39 "end"
-                Whitespace@39..40 " "
-                Identifier@40..41 "a""#]],
+                  StmtList@36..36
+                  EndGroup@36..41
+                    KwEnd@36..39 "end"
+                    Whitespace@39..40 " "
+                    Identifier@40..41 "a""#]],
     );
 }
 
@@ -4554,22 +4554,22 @@ fn recover_fcn_decl_missing_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..45
                 FcnDecl@5..45
-                  FcnHeader@5..23
+                  FcnHeader@5..14
                     KwFunction@5..8 "fcn"
                     Whitespace@8..9 " "
-                    FcnResult@9..23
+                    FcnResult@9..14
                       Colon@9..10 ":"
                       Whitespace@10..11 " "
-                      PrimType@11..23
+                      PrimType@11..14
                         KwInt@11..14 "int"
-                        Whitespace@14..23 "\n        "
-                  StmtList@23..40
-                    AssertStmt@23..40
+                  Whitespace@14..23 "\n        "
+                  StmtList@23..35
+                    AssertStmt@23..35
                       KwAssert@23..29 "assert"
                       Whitespace@29..30 " "
-                      LiteralExpr@30..40
+                      LiteralExpr@30..35
                         KwFalse@30..35 "false"
-                        Whitespace@35..40 "\n    "
+                  Whitespace@35..40 "\n    "
                   EndGroup@40..45
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
@@ -4590,25 +4590,25 @@ fn recover_fcn_decl_missing_tail_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..45
                 FcnDecl@5..45
-                  FcnHeader@5..25
+                  FcnHeader@5..16
                     KwFunction@5..8 "fcn"
                     Whitespace@8..9 " "
-                    Name@9..11
+                    Name@9..10
                       Identifier@9..10 "a"
-                      Whitespace@10..11 " "
-                    FcnResult@11..25
+                    Whitespace@10..11 " "
+                    FcnResult@11..16
                       Colon@11..12 ":"
                       Whitespace@12..13 " "
-                      PrimType@13..25
+                      PrimType@13..16
                         KwInt@13..16 "int"
-                        Whitespace@16..25 "\n        "
-                  StmtList@25..42
-                    AssertStmt@25..42
+                  Whitespace@16..25 "\n        "
+                  StmtList@25..37
+                    AssertStmt@25..37
                       KwAssert@25..31 "assert"
                       Whitespace@31..32 " "
-                      LiteralExpr@32..42
+                      LiteralExpr@32..37
                         KwFalse@32..37 "false"
-                        Whitespace@37..42 "\n    "
+                  Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
             error at 42..45: expected identifier after here"#]],
@@ -4627,22 +4627,22 @@ fn recover_fcn_decl_missing_ret_ty() {
               Whitespace@0..5 "\n    "
               StmtList@5..43
                 FcnDecl@5..43
-                  FcnHeader@5..21
+                  FcnHeader@5..12
                     KwFunction@5..8 "fcn"
                     Whitespace@8..9 " "
-                    Name@9..11
+                    Name@9..10
                       Identifier@9..10 "a"
-                      Whitespace@10..11 " "
-                    FcnResult@11..21
+                    Whitespace@10..11 " "
+                    FcnResult@11..12
                       Colon@11..12 ":"
-                      Whitespace@12..21 "\n        "
-                  StmtList@21..38
-                    AssertStmt@21..38
+                  Whitespace@12..21 "\n        "
+                  StmtList@21..33
+                    AssertStmt@21..33
                       KwAssert@21..27 "assert"
                       Whitespace@27..28 " "
-                      LiteralExpr@28..38
+                      LiteralExpr@28..33
                         KwFalse@28..33 "false"
-                        Whitespace@33..38 "\n    "
+                  Whitespace@33..38 "\n    "
                   EndGroup@38..43
                     KwEnd@38..41 "end"
                     Whitespace@41..42 " "
@@ -4663,22 +4663,22 @@ fn recover_fcn_decl_missing_colon() {
               Whitespace@0..5 "\n    "
               StmtList@5..45
                 FcnDecl@5..45
-                  FcnHeader@5..23
+                  FcnHeader@5..14
                     KwFunction@5..8 "fcn"
                     Whitespace@8..9 " "
-                    Name@9..11
+                    Name@9..10
                       Identifier@9..10 "a"
-                      Whitespace@10..11 " "
-                    Error@11..23
+                    Whitespace@10..11 " "
+                    Error@11..14
                       KwInt@11..14 "int"
-                      Whitespace@14..23 "\n        "
-                  StmtList@23..40
-                    AssertStmt@23..40
+                  Whitespace@14..23 "\n        "
+                  StmtList@23..35
+                    AssertStmt@23..35
                       KwAssert@23..29 "assert"
                       Whitespace@29..30 " "
-                      LiteralExpr@30..40
+                      LiteralExpr@30..35
                         KwFalse@30..35 "false"
-                        Whitespace@35..40 "\n    "
+                  Whitespace@35..40 "\n    "
                   EndGroup@40..45
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
@@ -4699,35 +4699,35 @@ fn recover_on_fcn() {
             Source@0..60
               Whitespace@0..5 "\n    "
               StmtList@5..60
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 FcnDecl@18..60
-                  FcnHeader@18..38
+                  FcnHeader@18..29
                     KwFunction@18..21 "fcn"
                     Whitespace@21..22 " "
-                    Name@22..24
+                    Name@22..23
                       Identifier@22..23 "a"
-                      Whitespace@23..24 " "
-                    FcnResult@24..38
+                    Whitespace@23..24 " "
+                    FcnResult@24..29
                       Colon@24..25 ":"
                       Whitespace@25..26 " "
-                      PrimType@26..38
+                      PrimType@26..29
                         KwInt@26..29 "int"
-                        Whitespace@29..38 "\n        "
-                  StmtList@38..55
-                    AssertStmt@38..55
+                  Whitespace@29..38 "\n        "
+                  StmtList@38..50
+                    AssertStmt@38..50
                       KwAssert@38..44 "assert"
                       Whitespace@44..45 " "
-                      LiteralExpr@45..55
+                      LiteralExpr@45..50
                         KwFalse@45..50 "false"
-                        Whitespace@50..55 "\n    "
+                  Whitespace@50..55 "\n    "
                   EndGroup@55..60
                     KwEnd@55..58 "end"
                     Whitespace@58..59 " "
@@ -4747,15 +4747,15 @@ fn parse_pre_stmt() {
                   KwPre@0..3 "pre"
                   Whitespace@3..4 " "
                   BinaryExpr@4..13
-                    BinaryExpr@4..10
-                      LiteralExpr@4..6
+                    BinaryExpr@4..9
+                      LiteralExpr@4..5
                         IntLiteral@4..5 "1"
-                        Whitespace@5..6 " "
+                      Whitespace@5..6 " "
                       Plus@6..7 "+"
                       Whitespace@7..8 " "
-                      LiteralExpr@8..10
+                      LiteralExpr@8..9
                         IntLiteral@8..9 "1"
-                        Whitespace@9..10 " "
+                    Whitespace@9..10 " "
                     Equ@10..11 "="
                     Whitespace@11..12 " "
                     LiteralExpr@12..13
@@ -4783,15 +4783,15 @@ fn recover_on_pre() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 PreStmt@10..18
                   KwPre@10..13 "pre"
                   Whitespace@13..14 " "
@@ -4812,15 +4812,15 @@ fn parse_post_stmt() {
                   KwPost@0..4 "post"
                   Whitespace@4..5 " "
                   BinaryExpr@5..14
-                    BinaryExpr@5..11
-                      LiteralExpr@5..7
+                    BinaryExpr@5..10
+                      LiteralExpr@5..6
                         IntLiteral@5..6 "1"
-                        Whitespace@6..7 " "
+                      Whitespace@6..7 " "
                       Plus@7..8 "+"
                       Whitespace@8..9 " "
-                      LiteralExpr@9..11
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                        Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Equ@11..12 "="
                     Whitespace@12..13 " "
                     LiteralExpr@13..14
@@ -4848,15 +4848,15 @@ fn recover_on_post() {
         expect![[r#"
             Source@0..19
               StmtList@0..19
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 PostStmt@10..19
                   KwPost@10..14 "post"
                   Whitespace@14..15 " "
@@ -4877,9 +4877,9 @@ fn parse_init_stmt() {
                   KwInit@0..4 "init"
                   Whitespace@4..5 " "
                   InitVar@5..11
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "k"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     Assign@7..9 ":="
                     Whitespace@9..10 " "
                     LiteralExpr@10..11
@@ -4898,9 +4898,9 @@ fn parse_init_stmt_alt_asn() {
                   KwInit@0..4 "init"
                   Whitespace@4..5 " "
                   InitVar@5..10
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "k"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     Equ@7..8 "="
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
@@ -4920,9 +4920,9 @@ fn parse_init_stmt_multiple() {
                   KwInit@0..4 "init"
                   Whitespace@4..5 " "
                   InitVar@5..11
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "k"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     Assign@7..9 ":="
                     Whitespace@9..10 " "
                     LiteralExpr@10..11
@@ -4930,9 +4930,9 @@ fn parse_init_stmt_multiple() {
                   Comma@11..12 ","
                   Whitespace@12..13 " "
                   InitVar@13..19
-                    Name@13..15
+                    Name@13..14
                       Identifier@13..14 "l"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Assign@15..17 ":="
                     Whitespace@17..18 " "
                     NameExpr@18..19
@@ -4941,9 +4941,9 @@ fn parse_init_stmt_multiple() {
                   Comma@19..20 ","
                   Whitespace@20..21 " "
                   InitVar@21..27
-                    Name@21..23
+                    Name@21..22
                       Identifier@21..22 "m"
-                      Whitespace@22..23 " "
+                    Whitespace@22..23 " "
                     Assign@23..25 ":="
                     Whitespace@25..26 " "
                     LiteralExpr@26..27
@@ -4962,9 +4962,9 @@ fn recover_init_stmt_missing_asn() {
                   KwInit@0..4 "init"
                   Whitespace@4..5 " "
                   InitVar@5..8
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     LiteralExpr@7..8
                       IntLiteral@7..8 "1"
             error at 7..8: expected ‘:=’, but found int literal"#]],
@@ -4982,9 +4982,9 @@ fn recover_init_stmt_missing_expr() {
                   KwInit@0..4 "init"
                   Whitespace@4..5 " "
                   InitVar@5..9
-                    Name@5..7
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     Assign@7..9 ":="
             error at 7..9: expected expression after here"#]],
     );
@@ -5030,20 +5030,20 @@ fn recover_on_init() {
         expect![[r#"
             Source@0..20
               StmtList@0..20
-                LoopStmt@0..9
+                LoopStmt@0..8
                   KwLoop@0..4 "loop"
                   Whitespace@4..5 " "
                   StmtList@5..5
-                  EndGroup@5..9
+                  EndGroup@5..8
                     KwEnd@5..8 "end"
-                    Whitespace@8..9 "\n"
+                Whitespace@8..9 "\n"
                 InitStmt@9..20
                   KwInit@9..13 "init"
                   Whitespace@13..14 " "
                   InitVar@14..20
-                    Name@14..16
+                    Name@14..15
                       Identifier@14..15 "a"
-                      Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     Assign@16..18 ":="
                     Whitespace@18..19 " "
                     LiteralExpr@19..20
@@ -5067,10 +5067,10 @@ fn parse_handler_stmt() {
                     Identifier@9..10 "k"
                   RightParen@10..11 ")"
                   Whitespace@11..12 " "
-                  StmtList@12..19
-                    ReturnStmt@12..19
+                  StmtList@12..18
+                    ReturnStmt@12..18
                       KwReturn@12..18 "return"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   EndGroup@19..30
                     KwEnd@19..22 "end"
                     Whitespace@22..23 " "
@@ -5091,10 +5091,10 @@ fn recover_handler_stmt_missing_name() {
                   LeftParen@8..9 "("
                   RightParen@9..10 ")"
                   Whitespace@10..11 " "
-                  StmtList@11..18
-                    ReturnStmt@11..18
+                  StmtList@11..17
+                    ReturnStmt@11..17
                       KwReturn@11..17 "return"
-                      Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   EndGroup@18..29
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
@@ -5117,10 +5117,10 @@ fn recover_handler_stmt_missing_left_paren() {
                     Identifier@8..9 "a"
                   RightParen@9..10 ")"
                   Whitespace@10..11 " "
-                  StmtList@11..18
-                    ReturnStmt@11..18
+                  StmtList@11..17
+                    ReturnStmt@11..17
                       KwReturn@11..17 "return"
-                      Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   EndGroup@18..29
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
@@ -5140,13 +5140,13 @@ fn recover_handler_stmt_missing_right_paren() {
                   KwHandler@0..7 "handler"
                   Whitespace@7..8 " "
                   LeftParen@8..9 "("
-                  Name@9..11
+                  Name@9..10
                     Identifier@9..10 "a"
-                    Whitespace@10..11 " "
-                  StmtList@11..18
-                    ReturnStmt@11..18
+                  Whitespace@10..11 " "
+                  StmtList@11..17
+                    ReturnStmt@11..17
                       KwReturn@11..17 "return"
-                      Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   EndGroup@18..29
                     KwEnd@18..21 "end"
                     Whitespace@21..22 " "
@@ -5165,10 +5165,10 @@ fn recover_handler_stmt_missing_name_portion() {
                 HandlerStmt@0..26
                   KwHandler@0..7 "handler"
                   Whitespace@7..8 " "
-                  StmtList@8..15
-                    ReturnStmt@8..15
+                  StmtList@8..14
+                    ReturnStmt@8..14
                       KwReturn@8..14 "return"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   EndGroup@15..26
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
@@ -5192,10 +5192,10 @@ fn recover_handler_stmt_missing_tail() {
                     Identifier@9..10 "a"
                   RightParen@10..11 ")"
                   Whitespace@11..12 " "
-                  StmtList@12..19
-                    ReturnStmt@12..19
+                  StmtList@12..18
+                    ReturnStmt@12..18
                       KwReturn@12..18 "return"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   EndGroup@19..22
                     KwEnd@19..22 "end"
             error at 19..22: expected ‘handler’ after here"#]],
@@ -5224,15 +5224,15 @@ fn recover_on_handler() {
         expect![[r#"
             Source@0..33
               StmtList@0..33
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 HandlerStmt@10..33
                   KwHandler@10..17 "handler"
                   Whitespace@17..18 " "
@@ -5305,9 +5305,9 @@ fn parse_quit_stmt_opt_quit_code() {
                   Colon@5..6 ":"
                   Whitespace@6..7 " "
                   BinaryExpr@7..12
-                    LiteralExpr@7..9
+                    LiteralExpr@7..8
                       IntLiteral@7..8 "1"
-                      Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     Plus@9..10 "+"
                     Whitespace@10..11 " "
                     LiteralExpr@11..12
@@ -5325,15 +5325,15 @@ fn parse_quit_stmt_all_opt() {
                 QuitStmt@0..14
                   KwQuit@0..4 "quit"
                   Whitespace@4..5 " "
-                  QuitCause@5..7
+                  QuitCause@5..6
                     Less@5..6 "<"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   BinaryExpr@9..14
-                    LiteralExpr@9..11
+                    LiteralExpr@9..10
                       IntLiteral@9..10 "1"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     Plus@11..12 "+"
                     Whitespace@12..13 " "
                     LiteralExpr@13..14
@@ -5347,12 +5347,12 @@ fn recover_quit_stmt_missing_code_expr() {
         "quit : ",
         expect![[r#"
             Source@0..7
-              StmtList@0..7
-                QuitStmt@0..7
+              StmtList@0..6
+                QuitStmt@0..6
                   KwQuit@0..4 "quit"
                   Whitespace@4..5 " "
                   Colon@5..6 ":"
-                  Whitespace@6..7 " "
+              Whitespace@6..7 " "
             error at 6..7: expected expression after here"#]],
     );
 }
@@ -5364,15 +5364,15 @@ fn recover_on_quit() {
         expect![[r#"
             Source@0..14
               StmtList@0..14
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 QuitStmt@10..14
                   KwQuit@10..14 "quit"
             error at 10..14: expected expression, but found ‘quit’"#]],
@@ -5395,9 +5395,9 @@ fn parse_tag_stmt() {
                   Comma@5..6 ","
                   Whitespace@6..7 " "
                   BinaryExpr@7..12
-                    LiteralExpr@7..9
+                    LiteralExpr@7..8
                       IntLiteral@7..8 "1"
-                      Whitespace@8..9 " "
+                    Whitespace@8..9 " "
                     Plus@9..10 "+"
                     Whitespace@10..11 " "
                     LiteralExpr@11..12
@@ -5411,15 +5411,15 @@ fn recover_tag_stmt_missing_tag_val() {
         "tag a, ",
         expect![[r#"
             Source@0..7
-              StmtList@0..7
-                TagStmt@0..7
+              StmtList@0..6
+                TagStmt@0..6
                   KwTag@0..3 "tag"
                   Whitespace@3..4 " "
                   NameExpr@4..5
                     Name@4..5
                       Identifier@4..5 "a"
                   Comma@5..6 ","
-                  Whitespace@6..7 " "
+              Whitespace@6..7 " "
             error at 6..7: expected expression after here"#]],
     );
 }
@@ -5434,10 +5434,10 @@ fn recover_tag_stmt_missing_tag_comma() {
                 TagStmt@0..7
                   KwTag@0..3 "tag"
                   Whitespace@3..4 " "
-                  NameExpr@4..6
-                    Name@4..6
+                  NameExpr@4..5
+                    Name@4..5
                       Identifier@4..5 "a"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   LiteralExpr@6..7
                     IntLiteral@6..7 "1"
             error at 6..7: expected ‘,’, but found int literal"#]],
@@ -5482,15 +5482,15 @@ fn recover_on_tag() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 TagStmt@10..18
                   KwTag@10..13 "tag"
                   Whitespace@13..14 " "
@@ -5521,12 +5521,12 @@ fn parse_fork_stmt() {
                         Identifier@5..6 "a"
                     ParamList@6..14
                       LeftParen@6..7 "("
-                      Param@7..11
+                      Param@7..10
                         NameExpr@7..9
                           Name@7..9
                             Identifier@7..9 "pa"
                         Comma@9..10 ","
-                        Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Param@11..13
                         NameExpr@11..13
                           Name@11..13
@@ -5581,10 +5581,10 @@ fn parse_fork_stmt_opt_status() {
                 ForkStmt@0..13
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
-                  NameExpr@5..7
-                    Name@5..7
+                  NameExpr@5..6
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
@@ -5604,10 +5604,10 @@ fn parse_fork_stmt_opt_stack_size() {
                 ForkStmt@0..17
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
-                  NameExpr@5..7
-                    Name@5..7
+                  NameExpr@5..6
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
@@ -5632,10 +5632,10 @@ fn parse_fork_stmt_opt_process_ref() {
                 ForkStmt@0..20
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
-                  NameExpr@5..7
-                    Name@5..7
+                  NameExpr@5..6
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
@@ -5666,10 +5666,10 @@ fn recover_fork_stmt_process_ref_missing_ref() {
                 ForkStmt@0..19
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
-                  NameExpr@5..7
-                    Name@5..7
+                  NameExpr@5..6
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
@@ -5698,10 +5698,10 @@ fn recover_fork_stmt_process_ref_missing_stack_size_expr() {
                 ForkStmt@0..18
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
-                  NameExpr@5..7
-                    Name@5..7
+                  NameExpr@5..6
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..13
@@ -5731,10 +5731,10 @@ fn recover_fork_stmt_process_ref_missing_stat_ref() {
                 ForkStmt@0..14
                   KwFork@0..4 "fork"
                   Whitespace@4..5 " "
-                  NameExpr@5..7
-                    Name@5..7
+                  NameExpr@5..6
+                    Name@5..6
                       Identifier@5..6 "a"
-                      Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   ForkStatus@9..9
@@ -5772,15 +5772,15 @@ fn recover_on_fork() {
         expect![[r#"
             Source@0..16
               StmtList@0..16
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ForkStmt@10..16
                   KwFork@10..14 "fork"
                   Whitespace@14..15 " "
@@ -5884,15 +5884,15 @@ fn recover_on_new() {
         expect![[r#"
             Source@0..15
               StmtList@0..15
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 NewStmt@10..15
                   KwNew@10..13 "new"
                   Whitespace@13..14 " "
@@ -5998,15 +5998,15 @@ fn recover_on_free() {
         expect![[r#"
             Source@0..16
               StmtList@0..16
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 FreeStmt@10..16
                   KwFree@10..14 "free"
                   Whitespace@14..15 " "
@@ -6054,10 +6054,10 @@ fn parse_deferred_fcn() {
                     Whitespace@12..13 " "
                     Name@13..14
                       Identifier@13..14 "a"
-                    ParamSpec@14..17
+                    ParamSpec@14..16
                       LeftParen@14..15 "("
                       RightParen@15..16 ")"
-                      Whitespace@16..17 " "
+                    Whitespace@16..17 " "
                     FcnResult@17..22
                       Colon@17..18 ":"
                       Whitespace@18..19 " "
@@ -6089,15 +6089,15 @@ fn recover_on_deferred() {
             Source@0..34
               Whitespace@0..5 "\n    "
               StmtList@5..34
-                ConstVarDecl@5..19
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..19 " \n    "
+                Whitespace@13..19 " \n    "
                 DeferredDecl@19..34
                   KwDeferred@19..27 "deferred"
                   Whitespace@27..28 " "
@@ -6146,10 +6146,10 @@ fn parse_forward_fcn() {
                     Whitespace@11..12 " "
                     Name@12..13
                       Identifier@12..13 "a"
-                    ParamSpec@13..16
+                    ParamSpec@13..15
                       LeftParen@13..14 "("
                       RightParen@14..15 ")"
-                      Whitespace@15..16 " "
+                    Whitespace@15..16 " "
                     FcnResult@16..21
                       Colon@16..17 ":"
                       Whitespace@17..18 " "
@@ -6168,12 +6168,12 @@ fn parse_forward_decl_import_list() {
                 ForwardDecl@0..50
                   KwForward@0..7 "forward"
                   Whitespace@7..8 " "
-                  ProcHeader@8..15
+                  ProcHeader@8..14
                     KwProcedure@8..12 "proc"
                     Whitespace@12..13 " "
-                    Name@13..15
+                    Name@13..14
                       Identifier@13..14 "a"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   KwImport@15..21 "import"
                   Whitespace@21..22 " "
                   ImportList@22..50
@@ -6184,27 +6184,27 @@ fn parse_forward_decl_import_list() {
                     Comma@23..24 ","
                     Whitespace@24..25 " "
                     ImportItem@25..30
-                      VarAttr@25..29
+                      VarAttr@25..28
                         KwVar@25..28 "var"
-                        Whitespace@28..29 " "
+                      Whitespace@28..29 " "
                       ExternalItem@29..30
                         Name@29..30
                           Identifier@29..30 "c"
                     Comma@30..31 ","
                     Whitespace@31..32 " "
                     ImportItem@32..39
-                      ConstAttr@32..38
+                      ConstAttr@32..37
                         KwConst@32..37 "const"
-                        Whitespace@37..38 " "
+                      Whitespace@37..38 " "
                       ExternalItem@38..39
                         Name@38..39
                           Identifier@38..39 "d"
                     Comma@39..40 ","
                     Whitespace@40..41 " "
                     ImportItem@41..50
-                      ForwardAttr@41..49
+                      ForwardAttr@41..48
                         KwForward@41..48 "forward"
-                        Whitespace@48..49 " "
+                      Whitespace@48..49 " "
                       ExternalItem@49..50
                         Name@49..50
                           Identifier@49..50 "e""#]],
@@ -6221,12 +6221,12 @@ fn recover_forward_decl_missing_import_name() {
                 ForwardDecl@0..21
                   KwForward@0..7 "forward"
                   Whitespace@7..8 " "
-                  ProcHeader@8..15
+                  ProcHeader@8..14
                     KwProcedure@8..12 "proc"
                     Whitespace@12..13 " "
-                    Name@13..15
+                    Name@13..14
                       Identifier@13..14 "a"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   KwImport@15..21 "import"
                   ImportList@21..21
                     ImportItem@21..21
@@ -6258,15 +6258,15 @@ fn recover_on_forward() {
             Source@0..33
               Whitespace@0..5 "\n    "
               StmtList@5..33
-                ConstVarDecl@5..19
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..19 " \n    "
+                Whitespace@13..19 " \n    "
                 ForwardDecl@19..33
                   KwForward@19..26 "forward"
                   Whitespace@26..27 " "
@@ -6292,21 +6292,21 @@ fn parse_body_proc() {
                 BodyDecl@5..32
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  ProcHeader@10..27
+                  ProcHeader@10..22
                     KwProcedure@10..14 "proc"
                     Whitespace@14..15 " "
                     Name@15..16
                       Identifier@15..16 "a"
-                    ParamSpec@16..19
+                    ParamSpec@16..18
                       LeftParen@16..17 "("
                       RightParen@17..18 ")"
-                      Whitespace@18..19 " "
-                    DeviceSpec@19..27
+                    Whitespace@18..19 " "
+                    DeviceSpec@19..22
                       Colon@19..20 ":"
                       Whitespace@20..21 " "
-                      LiteralExpr@21..27
+                      LiteralExpr@21..22
                         IntLiteral@21..22 "1"
-                        Whitespace@22..27 "\n    "
+                  Whitespace@22..27 "\n    "
                   StmtList@27..27
                   EndGroup@27..32
                     KwEnd@27..30 "end"
@@ -6328,12 +6328,12 @@ fn parse_body_proc_bare() {
                 BodyDecl@5..26
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  ProcHeader@10..21
+                  ProcHeader@10..16
                     KwProcedure@10..14 "proc"
                     Whitespace@14..15 " "
-                    Name@15..21
+                    Name@15..16
                       Identifier@15..16 "a"
-                      Whitespace@16..21 "\n    "
+                  Whitespace@16..21 "\n    "
                   StmtList@21..21
                   EndGroup@21..26
                     KwEnd@21..24 "end"
@@ -6355,21 +6355,21 @@ fn parse_body_fcn() {
                 BodyDecl@5..33
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  FcnHeader@10..28
+                  FcnHeader@10..23
                     KwFunction@10..13 "fcn"
                     Whitespace@13..14 " "
                     Name@14..15
                       Identifier@14..15 "a"
-                    ParamSpec@15..18
+                    ParamSpec@15..17
                       LeftParen@15..16 "("
                       RightParen@16..17 ")"
-                      Whitespace@17..18 " "
-                    FcnResult@18..28
+                    Whitespace@17..18 " "
+                    FcnResult@18..23
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
-                      PrimType@20..28
+                      PrimType@20..23
                         KwInt@20..23 "int"
-                        Whitespace@23..28 "\n    "
+                  Whitespace@23..28 "\n    "
                   StmtList@28..28
                   EndGroup@28..33
                     KwEnd@28..31 "end"
@@ -6392,15 +6392,15 @@ fn parse_body_fcn_no_ret_ty() {
                 BodyDecl@5..27
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  FcnHeader@10..22
+                  FcnHeader@10..17
                     KwFunction@10..13 "fcn"
                     Whitespace@13..14 " "
                     Name@14..15
                       Identifier@14..15 "a"
-                    ParamSpec@15..22
+                    ParamSpec@15..17
                       LeftParen@15..16 "("
                       RightParen@16..17 ")"
-                      Whitespace@17..22 "\n    "
+                  Whitespace@17..22 "\n    "
                   StmtList@22..22
                   EndGroup@22..27
                     KwEnd@22..25 "end"
@@ -6422,12 +6422,12 @@ fn parse_body_fcn_bare() {
                 BodyDecl@5..25
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  FcnHeader@10..20
+                  FcnHeader@10..15
                     KwFunction@10..13 "fcn"
                     Whitespace@13..14 " "
-                    Name@14..20
+                    Name@14..15
                       Identifier@14..15 "a"
-                      Whitespace@15..20 "\n    "
+                  Whitespace@15..20 "\n    "
                   StmtList@20..20
                   EndGroup@20..25
                     KwEnd@20..23 "end"
@@ -6449,10 +6449,10 @@ fn parse_body_plain() {
                 BodyDecl@5..21
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  PlainHeader@10..16
-                    Name@10..16
+                  PlainHeader@10..11
+                    Name@10..11
                       Identifier@10..11 "a"
-                      Whitespace@11..16 "\n    "
+                  Whitespace@11..16 "\n    "
                   StmtList@16..16
                   EndGroup@16..21
                     KwEnd@16..19 "end"
@@ -6474,23 +6474,23 @@ fn parse_body_plain_with_params() {
                 BodyDecl@5..31
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  PlainHeader@10..26
-                    Name@10..12
+                  PlainHeader@10..21
+                    Name@10..11
                       Identifier@10..11 "a"
-                      Whitespace@11..12 " "
-                    ParamSpec@12..26
+                    Whitespace@11..12 " "
+                    ParamSpec@12..21
                       LeftParen@12..13 "("
                       ConstVarParam@13..20
-                        NameList@13..15
-                          Name@13..15
+                        NameList@13..14
+                          Name@13..14
                             Identifier@13..14 "k"
-                            Whitespace@14..15 " "
+                        Whitespace@14..15 " "
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
                         PrimType@17..20
                           KwInt@17..20 "int"
                       RightParen@20..21 ")"
-                      Whitespace@21..26 "\n    "
+                  Whitespace@21..26 "\n    "
                   StmtList@26..26
                   EndGroup@26..31
                     KwEnd@26..29 "end"
@@ -6512,29 +6512,29 @@ fn parse_body_plain_with_params_and_ret_ty() {
                 BodyDecl@5..37
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  PlainHeader@10..32
-                    Name@10..12
+                  PlainHeader@10..27
+                    Name@10..11
                       Identifier@10..11 "a"
-                      Whitespace@11..12 " "
-                    ParamSpec@12..22
+                    Whitespace@11..12 " "
+                    ParamSpec@12..21
                       LeftParen@12..13 "("
                       ConstVarParam@13..20
-                        NameList@13..15
-                          Name@13..15
+                        NameList@13..14
+                          Name@13..14
                             Identifier@13..14 "k"
-                            Whitespace@14..15 " "
+                        Whitespace@14..15 " "
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
                         PrimType@17..20
                           KwInt@17..20 "int"
                       RightParen@20..21 ")"
-                      Whitespace@21..22 " "
-                    FcnResult@22..32
+                    Whitespace@21..22 " "
+                    FcnResult@22..27
                       Colon@22..23 ":"
                       Whitespace@23..24 " "
-                      PrimType@24..32
+                      PrimType@24..27
                         KwInt@24..27 "int"
-                        Whitespace@27..32 "\n    "
+                  Whitespace@27..32 "\n    "
                   StmtList@32..32
                   EndGroup@32..37
                     KwEnd@32..35 "end"
@@ -6556,16 +6556,16 @@ fn parse_body_plain_with_ret_ty() {
                 BodyDecl@5..27
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  PlainHeader@10..22
-                    Name@10..12
+                  PlainHeader@10..17
+                    Name@10..11
                       Identifier@10..11 "a"
-                      Whitespace@11..12 " "
-                    FcnResult@12..22
+                    Whitespace@11..12 " "
+                    FcnResult@12..17
                       Colon@12..13 ":"
                       Whitespace@13..14 " "
-                      PrimType@14..22
+                      PrimType@14..17
                         KwInt@14..17 "int"
-                        Whitespace@17..22 "\n    "
+                  Whitespace@17..22 "\n    "
                   StmtList@22..22
                   EndGroup@22..27
                     KwEnd@22..25 "end"
@@ -6588,32 +6588,32 @@ fn parse_body_plain_with_params_and_full_ret_ty() {
                 BodyDecl@5..40
                   KwBody@5..9 "body"
                   Whitespace@9..10 " "
-                  PlainHeader@10..35
-                    Name@10..12
+                  PlainHeader@10..30
+                    Name@10..11
                       Identifier@10..11 "a"
-                      Whitespace@11..12 " "
-                    ParamSpec@12..22
+                    Whitespace@11..12 " "
+                    ParamSpec@12..21
                       LeftParen@12..13 "("
                       ConstVarParam@13..20
-                        NameList@13..15
-                          Name@13..15
+                        NameList@13..14
+                          Name@13..14
                             Identifier@13..14 "k"
-                            Whitespace@14..15 " "
+                        Whitespace@14..15 " "
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
                         PrimType@17..20
                           KwInt@17..20 "int"
                       RightParen@20..21 ")"
-                      Whitespace@21..22 " "
-                    FcnResult@22..35
-                      Name@22..25
+                    Whitespace@21..22 " "
+                    FcnResult@22..30
+                      Name@22..24
                         Identifier@22..24 "no"
-                        Whitespace@24..25 " "
+                      Whitespace@24..25 " "
                       Colon@25..26 ":"
                       Whitespace@26..27 " "
-                      PrimType@27..35
+                      PrimType@27..30
                         KwInt@27..30 "int"
-                        Whitespace@30..35 "\n    "
+                  Whitespace@30..35 "\n    "
                   StmtList@35..35
                   EndGroup@35..40
                     KwEnd@35..38 "end"
@@ -6628,26 +6628,26 @@ fn parse_body_decl_and_import() {
     check(
         "body a import () end a",
         expect![[r#"
-        Source@0..22
-          StmtList@0..22
-            BodyDecl@0..22
-              KwBody@0..4 "body"
-              Whitespace@4..5 " "
-              PlainHeader@5..7
-                Name@5..7
-                  Identifier@5..6 "a"
+            Source@0..22
+              StmtList@0..22
+                BodyDecl@0..22
+                  KwBody@0..4 "body"
+                  Whitespace@4..5 " "
+                  PlainHeader@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Whitespace@6..7 " "
-              StmtList@7..17
-                ImportStmt@7..17
-                  KwImport@7..13 "import"
-                  Whitespace@13..14 " "
-                  LeftParen@14..15 "("
-                  RightParen@15..16 ")"
+                  StmtList@7..16
+                    ImportStmt@7..16
+                      KwImport@7..13 "import"
+                      Whitespace@13..14 " "
+                      LeftParen@14..15 "("
+                      RightParen@15..16 ")"
                   Whitespace@16..17 " "
-              EndGroup@17..22
-                KwEnd@17..20 "end"
-                Whitespace@20..21 " "
-                Identifier@21..22 "a""#]],
+                  EndGroup@17..22
+                    KwEnd@17..20 "end"
+                    Whitespace@20..21 " "
+                    Identifier@21..22 "a""#]],
     );
 }
 
@@ -6656,26 +6656,26 @@ fn parse_body_decl_embedded_pre() {
     check(
         "body a pre true end a",
         expect![[r#"
-        Source@0..21
-          StmtList@0..21
-            BodyDecl@0..21
-              KwBody@0..4 "body"
-              Whitespace@4..5 " "
-              PlainHeader@5..7
-                Name@5..7
-                  Identifier@5..6 "a"
+            Source@0..21
+              StmtList@0..21
+                BodyDecl@0..21
+                  KwBody@0..4 "body"
+                  Whitespace@4..5 " "
+                  PlainHeader@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Whitespace@6..7 " "
-              PreStmt@7..16
-                KwPre@7..10 "pre"
-                Whitespace@10..11 " "
-                LiteralExpr@11..16
-                  KwTrue@11..15 "true"
+                  PreStmt@7..15
+                    KwPre@7..10 "pre"
+                    Whitespace@10..11 " "
+                    LiteralExpr@11..15
+                      KwTrue@11..15 "true"
                   Whitespace@15..16 " "
-              StmtList@16..16
-              EndGroup@16..21
-                KwEnd@16..19 "end"
-                Whitespace@19..20 " "
-                Identifier@20..21 "a""#]],
+                  StmtList@16..16
+                  EndGroup@16..21
+                    KwEnd@16..19 "end"
+                    Whitespace@19..20 " "
+                    Identifier@20..21 "a""#]],
     );
 }
 
@@ -6689,20 +6689,20 @@ fn recover_body_plain_missing_name() {
                 BodyDecl@0..20
                   KwBody@0..4 "body"
                   Whitespace@4..5 " "
-                  PlainHeader@5..15
-                    ParamSpec@5..15
+                  PlainHeader@5..14
+                    ParamSpec@5..14
                       LeftParen@5..6 "("
                       ConstVarParam@6..13
-                        NameList@6..8
-                          Name@6..8
+                        NameList@6..7
+                          Name@6..7
                             Identifier@6..7 "k"
-                            Whitespace@7..8 " "
+                        Whitespace@7..8 " "
                         Colon@8..9 ":"
                         Whitespace@9..10 " "
                         PrimType@10..13
                           KwInt@10..13 "int"
                       RightParen@13..14 ")"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   StmtList@15..15
                   EndGroup@15..20
                     KwEnd@15..18 "end"
@@ -6739,22 +6739,22 @@ fn recover_on_body() {
             Source@0..34
               Whitespace@0..5 "\n    "
               StmtList@5..34
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 BodyDecl@18..34
                   KwBody@18..22 "body"
                   Whitespace@22..23 " "
-                  PlainHeader@23..29
-                    Name@23..29
+                  PlainHeader@23..24
+                    Name@23..24
                       Identifier@23..24 "a"
-                      Whitespace@24..29 "\n    "
+                  Whitespace@24..29 "\n    "
                   StmtList@29..29
                   EndGroup@29..34
                     KwEnd@29..32 "end"
@@ -6774,9 +6774,9 @@ fn parse_module_decl() {
                 ModuleDecl@0..14
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
+                  Whitespace@8..9 " "
                   StmtList@9..9
                   EndGroup@9..14
                     KwEnd@9..12 "end"
@@ -6795,12 +6795,12 @@ fn parse_module_decl_attr_pervasive() {
                 ModuleDecl@0..24
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  PervasiveAttr@7..17
+                  PervasiveAttr@7..16
                     KwPervasive@7..16 "pervasive"
-                    Whitespace@16..17 " "
-                  Name@17..19
+                  Whitespace@16..17 " "
+                  Name@17..18
                     Identifier@17..18 "a"
-                    Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   StmtList@19..19
                   EndGroup@19..24
                     KwEnd@19..22 "end"
@@ -6819,16 +6819,16 @@ fn parse_module_decl_embedded_implement() {
                 ModuleDecl@0..26
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  ImplementStmt@9..21
+                  Whitespace@8..9 " "
+                  ImplementStmt@9..20
                     KwImplement@9..18 "implement"
                     Whitespace@18..19 " "
-                    ExternalItem@19..21
-                      Name@19..21
+                    ExternalItem@19..20
+                      Name@19..20
                         Identifier@19..20 "a"
-                        Whitespace@20..21 " "
+                  Whitespace@20..21 " "
                   StmtList@21..21
                   EndGroup@21..26
                     KwEnd@21..24 "end"
@@ -6848,25 +6848,25 @@ fn parse_module_decl_embedded_implement_by() {
                 ModuleDecl@0..41
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  ImplementStmt@9..21
+                  Whitespace@8..9 " "
+                  ImplementStmt@9..20
                     KwImplement@9..18 "implement"
                     Whitespace@18..19 " "
-                    ExternalItem@19..21
-                      Name@19..21
+                    ExternalItem@19..20
+                      Name@19..20
                         Identifier@19..20 "a"
-                        Whitespace@20..21 " "
-                  ImplementByStmt@21..36
+                  Whitespace@20..21 " "
+                  ImplementByStmt@21..35
                     KwImplement@21..30 "implement"
                     Whitespace@30..31 " "
                     KwBy@31..33 "by"
                     Whitespace@33..34 " "
-                    ExternalItem@34..36
-                      Name@34..36
+                    ExternalItem@34..35
+                      Name@34..35
                         Identifier@34..35 "a"
-                        Whitespace@35..36 " "
+                  Whitespace@35..36 " "
                   StmtList@36..36
                   EndGroup@36..41
                     KwEnd@36..39 "end"
@@ -6886,28 +6886,28 @@ fn parse_module_decl_double_implement_by() {
                 ModuleDecl@0..44
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  ImplementByStmt@9..24
+                  Whitespace@8..9 " "
+                  ImplementByStmt@9..23
                     KwImplement@9..18 "implement"
                     Whitespace@18..19 " "
                     KwBy@19..21 "by"
                     Whitespace@21..22 " "
-                    ExternalItem@22..24
-                      Name@22..24
+                    ExternalItem@22..23
+                      Name@22..23
                         Identifier@22..23 "a"
-                        Whitespace@23..24 " "
-                  StmtList@24..39
-                    ImplementByStmt@24..39
+                  Whitespace@23..24 " "
+                  StmtList@24..38
+                    ImplementByStmt@24..38
                       KwImplement@24..33 "implement"
                       Whitespace@33..34 " "
                       KwBy@34..36 "by"
                       Whitespace@36..37 " "
-                      ExternalItem@37..39
-                        Name@37..39
+                      ExternalItem@37..38
+                        Name@37..38
                           Identifier@37..38 "a"
-                          Whitespace@38..39 " "
+                  Whitespace@38..39 " "
                   EndGroup@39..44
                     KwEnd@39..42 "end"
                     Whitespace@42..43 " "
@@ -6925,23 +6925,23 @@ fn recover_module_decl_double_implement() {
                 ModuleDecl@0..38
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  ImplementStmt@9..21
+                  Whitespace@8..9 " "
+                  ImplementStmt@9..20
                     KwImplement@9..18 "implement"
                     Whitespace@18..19 " "
-                    ExternalItem@19..21
-                      Name@19..21
+                    ExternalItem@19..20
+                      Name@19..20
                         Identifier@19..20 "a"
-                        Whitespace@20..21 " "
-                  ImplementByStmt@21..33
+                  Whitespace@20..21 " "
+                  ImplementByStmt@21..32
                     KwImplement@21..30 "implement"
                     Whitespace@30..31 " "
-                    ExternalItem@31..33
-                      Name@31..33
+                    ExternalItem@31..32
+                      Name@31..32
                         Identifier@31..32 "a"
-                        Whitespace@32..33 " "
+                  Whitespace@32..33 " "
                   StmtList@33..33
                   EndGroup@33..38
                     KwEnd@33..36 "end"
@@ -6961,18 +6961,18 @@ fn parse_module_decl_embedded_import() {
                 ModuleDecl@0..23
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  ImportStmt@9..18
+                  Whitespace@8..9 " "
+                  ImportStmt@9..17
                     KwImport@9..15 "import"
                     Whitespace@15..16 " "
-                    ImportList@16..18
-                      ImportItem@16..18
-                        ExternalItem@16..18
-                          Name@16..18
+                    ImportList@16..17
+                      ImportItem@16..17
+                        ExternalItem@16..17
+                          Name@16..17
                             Identifier@16..17 "a"
-                            Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   StmtList@18..18
                   EndGroup@18..23
                     KwEnd@18..21 "end"
@@ -6991,16 +6991,16 @@ fn parse_module_decl_embedded_export() {
                 ModuleDecl@0..23
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  ExportStmt@9..18
+                  Whitespace@8..9 " "
+                  ExportStmt@9..17
                     KwExport@9..15 "export"
                     Whitespace@15..16 " "
-                    ExportItem@16..18
-                      Name@16..18
+                    ExportItem@16..17
+                      Name@16..17
                         Identifier@16..17 "a"
-                        Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   StmtList@18..18
                   EndGroup@18..23
                     KwEnd@18..21 "end"
@@ -7019,16 +7019,16 @@ fn parse_module_decl_embedded_pre() {
                 ModuleDecl@0..20
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  PreStmt@9..15
+                  Whitespace@8..9 " "
+                  PreStmt@9..14
                     KwPre@9..12 "pre"
                     Whitespace@12..13 " "
-                    NameExpr@13..15
-                      Name@13..15
+                    NameExpr@13..14
+                      Name@13..14
                         Identifier@13..14 "a"
-                        Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   StmtList@15..15
                   EndGroup@15..20
                     KwEnd@15..18 "end"
@@ -7048,24 +7048,24 @@ fn parse_module_decl_double_pre() {
                 ModuleDecl@0..26
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
-                  PreStmt@9..15
+                  Whitespace@8..9 " "
+                  PreStmt@9..14
                     KwPre@9..12 "pre"
                     Whitespace@12..13 " "
-                    NameExpr@13..15
-                      Name@13..15
+                    NameExpr@13..14
+                      Name@13..14
                         Identifier@13..14 "a"
-                        Whitespace@14..15 " "
-                  StmtList@15..21
-                    PreStmt@15..21
+                  Whitespace@14..15 " "
+                  StmtList@15..20
+                    PreStmt@15..20
                       KwPre@15..18 "pre"
                       Whitespace@18..19 " "
-                      NameExpr@19..21
-                        Name@19..21
+                      NameExpr@19..20
+                        Name@19..20
                           Identifier@19..20 "a"
-                          Whitespace@20..21 " "
+                  Whitespace@20..21 " "
                   EndGroup@21..26
                     KwEnd@21..24 "end"
                     Whitespace@24..25 " "
@@ -7084,17 +7084,17 @@ fn parse_module_decl_embedded_post() {
                 ModuleDecl@0..21
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
+                  Whitespace@8..9 " "
                   StmtList@9..9
-                  PostStmt@9..16
+                  PostStmt@9..15
                     KwPost@9..13 "post"
                     Whitespace@13..14 " "
-                    NameExpr@14..16
-                      Name@14..16
+                    NameExpr@14..15
+                      Name@14..15
                         Identifier@14..15 "a"
-                        Whitespace@15..16 " "
+                  Whitespace@15..16 " "
                   EndGroup@16..21
                     KwEnd@16..19 "end"
                     Whitespace@19..20 " "
@@ -7113,28 +7113,28 @@ fn recover_module_decl_double_post() {
                 ModuleDecl@0..16
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
+                  Whitespace@8..9 " "
                   StmtList@9..9
-                  PostStmt@9..16
+                  PostStmt@9..15
                     KwPost@9..13 "post"
                     Whitespace@13..14 " "
-                    NameExpr@14..16
-                      Name@14..16
+                    NameExpr@14..15
+                      Name@14..15
                         Identifier@14..15 "a"
-                        Whitespace@15..16 " "
+                  Whitespace@15..16 " "
                   EndGroup@16..16
-                PostStmt@16..23
+                PostStmt@16..22
                   KwPost@16..20 "post"
                   Whitespace@20..21 " "
-                  NameExpr@21..23
-                    Name@21..23
+                  NameExpr@21..22
+                    Name@21..22
                       Identifier@21..22 "a"
-                      Whitespace@22..23 " "
-                Error@23..27
+                Whitespace@22..23 " "
+                Error@23..26
                   KwEnd@23..26 "end"
-                  Whitespace@26..27 " "
+                Whitespace@26..27 " "
                 CallStmt@27..28
                   NameExpr@27..28
                     Name@27..28
@@ -7173,9 +7173,9 @@ fn recover_module_decl_missing_tail_name() {
                 ModuleDecl@0..12
                   KwModule@0..6 "module"
                   Whitespace@6..7 " "
-                  Name@7..9
+                  Name@7..8
                     Identifier@7..8 "a"
-                    Whitespace@8..9 " "
+                  Whitespace@8..9 " "
                   StmtList@9..9
                   EndGroup@9..12
                     KwEnd@9..12 "end"
@@ -7205,21 +7205,21 @@ fn recover_on_module() {
         expect![[r#"
             Source@0..24
               StmtList@0..24
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ModuleDecl@10..24
                   KwModule@10..16 "module"
                   Whitespace@16..17 " "
-                  Name@17..19
+                  Name@17..18
                     Identifier@17..18 "a"
-                    Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   StmtList@19..19
                   EndGroup@19..24
                     KwEnd@19..22 "end"
@@ -7239,9 +7239,9 @@ fn parse_class_decl() {
                 ClassDecl@0..13
                   KwClass@0..5 "class"
                   Whitespace@5..6 " "
-                  Name@6..8
+                  Name@6..7
                     Identifier@6..7 "a"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   StmtList@8..8
                   EndGroup@8..13
                     KwEnd@8..11 "end"
@@ -7260,12 +7260,12 @@ fn parse_class_decl_attr_pervasive() {
                 ClassDecl@0..15
                   KwClass@0..5 "class"
                   Whitespace@5..6 " "
-                  PervasiveAttr@6..8
+                  PervasiveAttr@6..7
                     Star@6..7 "*"
-                    Whitespace@7..8 " "
-                  Name@8..10
+                  Whitespace@7..8 " "
+                  Name@8..9
                     Identifier@8..9 "a"
-                    Whitespace@9..10 " "
+                  Whitespace@9..10 " "
                   StmtList@10..10
                   EndGroup@10..15
                     KwEnd@10..13 "end"
@@ -7284,16 +7284,16 @@ fn parse_class_decl_embedded_inherit() {
                 ClassDecl@0..23
                   KwClass@0..5 "class"
                   Whitespace@5..6 " "
-                  Name@6..8
+                  Name@6..7
                     Identifier@6..7 "a"
-                    Whitespace@7..8 " "
-                  InheritStmt@8..18
+                  Whitespace@7..8 " "
+                  InheritStmt@8..17
                     KwInherit@8..15 "inherit"
                     Whitespace@15..16 " "
-                    ExternalItem@16..18
-                      Name@16..18
+                    ExternalItem@16..17
+                      Name@16..17
                         Identifier@16..17 "a"
-                        Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   StmtList@18..18
                   EndGroup@18..23
                     KwEnd@18..21 "end"
@@ -7331,9 +7331,9 @@ fn recover_class_decl_missing_tail_name() {
                 ClassDecl@0..11
                   KwClass@0..5 "class"
                   Whitespace@5..6 " "
-                  Name@6..8
+                  Name@6..7
                     Identifier@6..7 "a"
-                    Whitespace@7..8 " "
+                  Whitespace@7..8 " "
                   StmtList@8..8
                   EndGroup@8..11
                     KwEnd@8..11 "end"
@@ -7363,21 +7363,21 @@ fn recover_on_class() {
         expect![[r#"
             Source@0..23
               StmtList@0..23
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ClassDecl@10..23
                   KwClass@10..15 "class"
                   Whitespace@15..16 " "
-                  Name@16..18
+                  Name@16..17
                     Identifier@16..17 "a"
-                    Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   StmtList@18..18
                   EndGroup@18..23
                     KwEnd@18..21 "end"
@@ -7397,9 +7397,9 @@ fn parse_monitor_decl() {
                 MonitorDecl@0..15
                   KwMonitor@0..7 "monitor"
                   Whitespace@7..8 " "
-                  Name@8..10
+                  Name@8..9
                     Identifier@8..9 "a"
-                    Whitespace@9..10 " "
+                  Whitespace@9..10 " "
                   StmtList@10..10
                   EndGroup@10..15
                     KwEnd@10..13 "end"
@@ -7418,12 +7418,12 @@ fn parse_monitor_decl_attr_pervasive() {
                 MonitorDecl@0..25
                   KwMonitor@0..7 "monitor"
                   Whitespace@7..8 " "
-                  PervasiveAttr@8..18
+                  PervasiveAttr@8..17
                     KwPervasive@8..17 "pervasive"
-                    Whitespace@17..18 " "
-                  Name@18..20
+                  Whitespace@17..18 " "
+                  Name@18..19
                     Identifier@18..19 "a"
-                    Whitespace@19..20 " "
+                  Whitespace@19..20 " "
                   StmtList@20..20
                   EndGroup@20..25
                     KwEnd@20..23 "end"
@@ -7442,21 +7442,21 @@ fn parse_monitor_decl_opt_dev_spec() {
                 MonitorDecl@0..23
                   KwMonitor@0..7 "monitor"
                   Whitespace@7..8 " "
-                  Name@8..10
+                  Name@8..9
                     Identifier@8..9 "a"
-                    Whitespace@9..10 " "
-                  DeviceSpec@10..18
+                  Whitespace@9..10 " "
+                  DeviceSpec@10..17
                     Colon@10..11 ":"
                     Whitespace@11..12 " "
-                    BinaryExpr@12..18
-                      LiteralExpr@12..14
+                    BinaryExpr@12..17
+                      LiteralExpr@12..13
                         IntLiteral@12..13 "1"
-                        Whitespace@13..14 " "
+                      Whitespace@13..14 " "
                       Plus@14..15 "+"
                       Whitespace@15..16 " "
-                      LiteralExpr@16..18
+                      LiteralExpr@16..17
                         IntLiteral@16..17 "2"
-                        Whitespace@17..18 " "
+                  Whitespace@17..18 " "
                   StmtList@18..18
                   EndGroup@18..23
                     KwEnd@18..21 "end"
@@ -7475,12 +7475,12 @@ fn recover_monitor_decl_missing_dev_spec_expr() {
                 MonitorDecl@0..17
                   KwMonitor@0..7 "monitor"
                   Whitespace@7..8 " "
-                  Name@8..10
+                  Name@8..9
                     Identifier@8..9 "a"
-                    Whitespace@9..10 " "
-                  DeviceSpec@10..12
+                  Whitespace@9..10 " "
+                  DeviceSpec@10..11
                     Colon@10..11 ":"
-                    Whitespace@11..12 " "
+                  Whitespace@11..12 " "
                   StmtList@12..12
                   EndGroup@12..17
                     KwEnd@12..15 "end"
@@ -7519,9 +7519,9 @@ fn recover_monitor_decl_missing_tail_name() {
                 MonitorDecl@0..13
                   KwMonitor@0..7 "monitor"
                   Whitespace@7..8 " "
-                  Name@8..10
+                  Name@8..9
                     Identifier@8..9 "a"
-                    Whitespace@9..10 " "
+                  Whitespace@9..10 " "
                   StmtList@10..10
                   EndGroup@10..13
                     KwEnd@10..13 "end"
@@ -7551,21 +7551,21 @@ fn recover_on_monitor() {
         expect![[r#"
             Source@0..25
               StmtList@0..25
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 MonitorDecl@10..25
                   KwMonitor@10..17 "monitor"
                   Whitespace@17..18 " "
-                  Name@18..20
+                  Name@18..19
                     Identifier@18..19 "a"
-                    Whitespace@19..20 " "
+                  Whitespace@19..20 " "
                   StmtList@20..20
                   EndGroup@20..25
                     KwEnd@20..23 "end"
@@ -7587,9 +7587,9 @@ fn parse_monitor_class_decl() {
                   Whitespace@7..8 " "
                   KwClass@8..13 "class"
                   Whitespace@13..14 " "
-                  Name@14..16
+                  Name@14..15
                     Identifier@14..15 "a"
-                    Whitespace@15..16 " "
+                  Whitespace@15..16 " "
                   StmtList@16..16
                   EndGroup@16..21
                     KwEnd@16..19 "end"
@@ -7610,12 +7610,12 @@ fn parse_monitor_class_decl_attr_pervasive() {
                   Whitespace@7..8 " "
                   KwClass@8..13 "class"
                   Whitespace@13..14 " "
-                  PervasiveAttr@14..24
+                  PervasiveAttr@14..23
                     KwPervasive@14..23 "pervasive"
-                    Whitespace@23..24 " "
-                  Name@24..26
+                  Whitespace@23..24 " "
+                  Name@24..25
                     Identifier@24..25 "a"
-                    Whitespace@25..26 " "
+                  Whitespace@25..26 " "
                   StmtList@26..26
                   EndGroup@26..31
                     KwEnd@26..29 "end"
@@ -7636,21 +7636,21 @@ fn parse_monitor_class_decl_opt_dev_spec() {
                   Whitespace@7..8 " "
                   KwClass@8..13 "class"
                   Whitespace@13..14 " "
-                  Name@14..16
+                  Name@14..15
                     Identifier@14..15 "a"
-                    Whitespace@15..16 " "
-                  DeviceSpec@16..24
+                  Whitespace@15..16 " "
+                  DeviceSpec@16..23
                     Colon@16..17 ":"
                     Whitespace@17..18 " "
-                    BinaryExpr@18..24
-                      LiteralExpr@18..20
+                    BinaryExpr@18..23
+                      LiteralExpr@18..19
                         IntLiteral@18..19 "1"
-                        Whitespace@19..20 " "
+                      Whitespace@19..20 " "
                       Plus@20..21 "+"
                       Whitespace@21..22 " "
-                      LiteralExpr@22..24
+                      LiteralExpr@22..23
                         IntLiteral@22..23 "2"
-                        Whitespace@23..24 " "
+                  Whitespace@23..24 " "
                   StmtList@24..24
                   EndGroup@24..29
                     KwEnd@24..27 "end"
@@ -7664,28 +7664,28 @@ fn parse_monitor_class_decl_embedded_inherit() {
     check(
         "monitor class a inherit a end a",
         expect![[r#"
-        Source@0..31
-          StmtList@0..31
-            ClassDecl@0..31
-              KwMonitor@0..7 "monitor"
-              Whitespace@7..8 " "
-              KwClass@8..13 "class"
-              Whitespace@13..14 " "
-              Name@14..16
-                Identifier@14..15 "a"
-                Whitespace@15..16 " "
-              InheritStmt@16..26
-                KwInherit@16..23 "inherit"
-                Whitespace@23..24 " "
-                ExternalItem@24..26
-                  Name@24..26
-                    Identifier@24..25 "a"
-                    Whitespace@25..26 " "
-              StmtList@26..26
-              EndGroup@26..31
-                KwEnd@26..29 "end"
-                Whitespace@29..30 " "
-                Identifier@30..31 "a""#]],
+            Source@0..31
+              StmtList@0..31
+                ClassDecl@0..31
+                  KwMonitor@0..7 "monitor"
+                  Whitespace@7..8 " "
+                  KwClass@8..13 "class"
+                  Whitespace@13..14 " "
+                  Name@14..15
+                    Identifier@14..15 "a"
+                  Whitespace@15..16 " "
+                  InheritStmt@16..25
+                    KwInherit@16..23 "inherit"
+                    Whitespace@23..24 " "
+                    ExternalItem@24..25
+                      Name@24..25
+                        Identifier@24..25 "a"
+                  Whitespace@25..26 " "
+                  StmtList@26..26
+                  EndGroup@26..31
+                    KwEnd@26..29 "end"
+                    Whitespace@29..30 " "
+                    Identifier@30..31 "a""#]],
     );
 }
 
@@ -7703,23 +7703,23 @@ fn parse_process_decl() {
                 ProcessDecl@5..45
                   KwProcess@5..12 "process"
                   Whitespace@12..13 " "
-                  Name@13..15
+                  Name@13..14
                     Identifier@13..14 "a"
-                    Whitespace@14..15 " "
-                  ParamSpec@15..27
+                  Whitespace@14..15 " "
+                  ParamSpec@15..18
                     LeftParen@15..16 "("
                     ConstVarParam@16..17
                       NameList@16..17
                         Name@16..17
                           Identifier@16..17 "a"
                     RightParen@17..18 ")"
-                    Whitespace@18..27 "\n        "
-                  PreStmt@27..40
+                  Whitespace@18..27 "\n        "
+                  PreStmt@27..35
                     KwPre@27..30 "pre"
                     Whitespace@30..31 " "
-                    LiteralExpr@31..40
+                    LiteralExpr@31..35
                       KwTrue@31..35 "true"
-                      Whitespace@35..40 "\n    "
+                  Whitespace@35..40 "\n    "
                   StmtList@40..40
                   EndGroup@40..45
                     KwEnd@40..43 "end"
@@ -7743,35 +7743,35 @@ fn parse_process_decl_opt_stack_size() {
                 ProcessDecl@5..53
                   KwProcess@5..12 "process"
                   Whitespace@12..13 " "
-                  Name@13..15
+                  Name@13..14
                     Identifier@13..14 "a"
-                    Whitespace@14..15 " "
-                  ParamSpec@15..19
+                  Whitespace@14..15 " "
+                  ParamSpec@15..18
                     LeftParen@15..16 "("
                     ConstVarParam@16..17
                       NameList@16..17
                         Name@16..17
                           Identifier@16..17 "a"
                     RightParen@17..18 ")"
-                    Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   Colon@19..20 ":"
                   Whitespace@20..21 " "
-                  BinaryExpr@21..35
-                    LiteralExpr@21..23
+                  BinaryExpr@21..26
+                    LiteralExpr@21..22
                       IntLiteral@21..22 "1"
-                      Whitespace@22..23 " "
+                    Whitespace@22..23 " "
                     Plus@23..24 "+"
                     Whitespace@24..25 " "
-                    NameExpr@25..35
-                      Name@25..35
+                    NameExpr@25..26
+                      Name@25..26
                         Identifier@25..26 "t"
-                        Whitespace@26..35 "\n        "
-                  PreStmt@35..48
+                  Whitespace@26..35 "\n        "
+                  PreStmt@35..43
                     KwPre@35..38 "pre"
                     Whitespace@38..39 " "
-                    LiteralExpr@39..48
+                    LiteralExpr@39..43
                       KwTrue@39..43 "true"
-                      Whitespace@43..48 "\n    "
+                  Whitespace@43..48 "\n    "
                   StmtList@48..48
                   EndGroup@48..53
                     KwEnd@48..51 "end"
@@ -7795,15 +7795,15 @@ fn parse_process_no_params() {
                 ProcessDecl@5..41
                   KwProcess@5..12 "process"
                   Whitespace@12..13 " "
-                  Name@13..23
+                  Name@13..14
                     Identifier@13..14 "a"
-                    Whitespace@14..23 "\n        "
-                  PreStmt@23..36
+                  Whitespace@14..23 "\n        "
+                  PreStmt@23..31
                     KwPre@23..26 "pre"
                     Whitespace@26..27 " "
-                    LiteralExpr@27..36
+                    LiteralExpr@27..31
                       KwTrue@27..31 "true"
-                      Whitespace@31..36 "\n    "
+                  Whitespace@31..36 "\n    "
                   StmtList@36..36
                   EndGroup@36..41
                     KwEnd@36..39 "end"
@@ -7817,25 +7817,25 @@ fn parse_process_decl_embedded_import() {
     check(
         "process a import () end a",
         expect![[r#"
-        Source@0..25
-          StmtList@0..25
-            ProcessDecl@0..25
-              KwProcess@0..7 "process"
-              Whitespace@7..8 " "
-              Name@8..10
-                Identifier@8..9 "a"
-                Whitespace@9..10 " "
-              ImportStmt@10..20
-                KwImport@10..16 "import"
-                Whitespace@16..17 " "
-                LeftParen@17..18 "("
-                RightParen@18..19 ")"
-                Whitespace@19..20 " "
-              StmtList@20..20
-              EndGroup@20..25
-                KwEnd@20..23 "end"
-                Whitespace@23..24 " "
-                Identifier@24..25 "a""#]],
+            Source@0..25
+              StmtList@0..25
+                ProcessDecl@0..25
+                  KwProcess@0..7 "process"
+                  Whitespace@7..8 " "
+                  Name@8..9
+                    Identifier@8..9 "a"
+                  Whitespace@9..10 " "
+                  ImportStmt@10..19
+                    KwImport@10..16 "import"
+                    Whitespace@16..17 " "
+                    LeftParen@17..18 "("
+                    RightParen@18..19 ")"
+                  Whitespace@19..20 " "
+                  StmtList@20..20
+                  EndGroup@20..25
+                    KwEnd@20..23 "end"
+                    Whitespace@23..24 " "
+                    Identifier@24..25 "a""#]],
     );
 }
 
@@ -7852,9 +7852,9 @@ fn recover_process_decl_missing_stack_size_expr() {
                 ProcessDecl@5..26
                   KwProcess@5..12 "process"
                   Whitespace@12..13 " "
-                  Name@13..15
+                  Name@13..14
                     Identifier@13..14 "a"
-                    Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   Colon@15..16 ":"
                   Whitespace@16..21 "\n    "
                   StmtList@21..21
@@ -7901,9 +7901,9 @@ fn recover_process_decl_missing_tail_name() {
                 ProcessDecl@5..22
                   KwProcess@5..12 "process"
                   Whitespace@12..13 " "
-                  Name@13..19
+                  Name@13..14
                     Identifier@13..14 "a"
-                    Whitespace@14..19 "\n    "
+                  Whitespace@14..19 "\n    "
                   StmtList@19..19
                   EndGroup@19..22
                     KwEnd@19..22 "end"
@@ -7937,21 +7937,21 @@ fn recover_on_process() {
             Source@0..37
               Whitespace@0..5 "\n    "
               StmtList@5..37
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 ProcessDecl@18..37
                   KwProcess@18..25 "process"
                   Whitespace@25..26 " "
-                  Name@26..32
+                  Name@26..27
                     Identifier@26..27 "a"
-                    Whitespace@27..32 "\n    "
+                  Whitespace@27..32 "\n    "
                   StmtList@32..32
                   EndGroup@32..37
                     KwEnd@32..35 "end"
@@ -7971,15 +7971,15 @@ fn parse_external_fcn() {
                 ExternalDecl@0..36
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  LiteralExpr@9..22
+                  LiteralExpr@9..21
                     StringLiteral@9..21 "\"error_last\""
-                    Whitespace@21..22 " "
+                  Whitespace@21..22 " "
                   FcnHeader@22..36
                     KwFunction@22..25 "fcn"
                     Whitespace@25..26 " "
-                    Name@26..31
+                    Name@26..30
                       Identifier@26..30 "Last"
-                      Whitespace@30..31 " "
+                    Whitespace@30..31 " "
                     FcnResult@31..36
                       Colon@31..32 ":"
                       Whitespace@32..33 " "
@@ -8001,9 +8001,9 @@ fn parse_external_fcn_no_spec() {
                   FcnHeader@9..23
                     KwFunction@9..12 "fcn"
                     Whitespace@12..13 " "
-                    Name@13..18
+                    Name@13..17
                       Identifier@13..17 "Blit"
-                      Whitespace@17..18 " "
+                    Whitespace@17..18 " "
                     FcnResult@18..23
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
@@ -8022,9 +8022,9 @@ fn parse_external_proc() {
                 ExternalDecl@0..34
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  LiteralExpr@9..23
+                  LiteralExpr@9..22
                     StringLiteral@9..22 "\"view_update\""
-                    Whitespace@22..23 " "
+                  Whitespace@22..23 " "
                   ProcHeader@23..34
                     KwProcedure@23..27 "proc"
                     Whitespace@27..28 " "
@@ -8061,32 +8061,32 @@ fn parse_external_var() {
                 ExternalDecl@0..35
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..19
-                    BinaryExpr@9..15
-                      LiteralExpr@9..11
+                  BinaryExpr@9..18
+                    BinaryExpr@9..14
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                        Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Plus@11..12 "+"
                       Whitespace@12..13 " "
-                      LiteralExpr@13..15
+                      LiteralExpr@13..14
                         IntLiteral@13..14 "1"
-                        Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Minus@15..16 "-"
                     Whitespace@16..17 " "
-                    LiteralExpr@17..19
+                    LiteralExpr@17..18
                       IntLiteral@17..18 "1"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   ExternalVar@19..35
                     KwVar@19..22 "var"
                     Whitespace@22..23 " "
-                    Name@23..25
+                    Name@23..24
                       Identifier@23..24 "a"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     Colon@25..26 ":"
                     Whitespace@26..27 " "
-                    PrimType@27..31
+                    PrimType@27..30
                       KwInt@27..30 "int"
-                      Whitespace@30..31 " "
+                    Whitespace@30..31 " "
                     Assign@31..33 ":="
                     Whitespace@33..34 " "
                     LiteralExpr@34..35
@@ -8104,15 +8104,15 @@ fn parse_external_var_named_spec() {
                 ExternalDecl@0..32
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  LiteralExpr@9..17
+                  LiteralExpr@9..16
                     StringLiteral@9..16 "\"errno\""
-                    Whitespace@16..17 " "
+                  Whitespace@16..17 " "
                   ExternalVar@17..32
                     KwVar@17..20 "var"
                     Whitespace@20..21 " "
-                    Name@21..27
+                    Name@21..26
                       Identifier@21..26 "errno"
-                      Whitespace@26..27 " "
+                    Whitespace@26..27 " "
                     Colon@27..28 ":"
                     Whitespace@28..29 " "
                     PrimType@29..32
@@ -8130,27 +8130,27 @@ fn parse_external_var_alt_init() {
                 ExternalDecl@0..28
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..19
-                    BinaryExpr@9..15
-                      LiteralExpr@9..11
+                  BinaryExpr@9..18
+                    BinaryExpr@9..14
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                        Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Plus@11..12 "+"
                       Whitespace@12..13 " "
-                      LiteralExpr@13..15
+                      LiteralExpr@13..14
                         IntLiteral@13..14 "1"
-                        Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Minus@15..16 "-"
                     Whitespace@16..17 " "
-                    LiteralExpr@17..19
+                    LiteralExpr@17..18
                       IntLiteral@17..18 "1"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   ExternalVar@19..28
                     KwVar@19..22 "var"
                     Whitespace@22..23 " "
-                    Name@23..25
+                    Name@23..24
                       Identifier@23..24 "a"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     Equ@25..26 "="
                     Whitespace@26..27 " "
                     LiteralExpr@27..28
@@ -8169,27 +8169,27 @@ fn parse_external_var_no_init() {
                 ExternalDecl@0..30
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..19
-                    BinaryExpr@9..15
-                      LiteralExpr@9..11
+                  BinaryExpr@9..18
+                    BinaryExpr@9..14
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                        Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Plus@11..12 "+"
                       Whitespace@12..13 " "
-                      LiteralExpr@13..15
+                      LiteralExpr@13..14
                         IntLiteral@13..14 "1"
-                        Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Minus@15..16 "-"
                     Whitespace@16..17 " "
-                    LiteralExpr@17..19
+                    LiteralExpr@17..18
                       IntLiteral@17..18 "1"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   ExternalVar@19..30
                     KwVar@19..22 "var"
                     Whitespace@22..23 " "
-                    Name@23..25
+                    Name@23..24
                       Identifier@23..24 "a"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     Colon@25..26 ":"
                     Whitespace@26..27 " "
                     PrimType@27..30
@@ -8207,27 +8207,27 @@ fn parse_external_var_no_ty() {
                 ExternalDecl@0..29
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..19
-                    BinaryExpr@9..15
-                      LiteralExpr@9..11
+                  BinaryExpr@9..18
+                    BinaryExpr@9..14
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                        Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Plus@11..12 "+"
                       Whitespace@12..13 " "
-                      LiteralExpr@13..15
+                      LiteralExpr@13..14
                         IntLiteral@13..14 "1"
-                        Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Minus@15..16 "-"
                     Whitespace@16..17 " "
-                    LiteralExpr@17..19
+                    LiteralExpr@17..18
                       IntLiteral@17..18 "1"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   ExternalVar@19..29
                     KwVar@19..22 "var"
                     Whitespace@22..23 " "
-                    Name@23..25
+                    Name@23..24
                       Identifier@23..24 "a"
-                      Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     Assign@25..27 ":="
                     Whitespace@27..28 " "
                     LiteralExpr@28..29
@@ -8245,21 +8245,21 @@ fn recover_external_var_bare() {
                 ExternalDecl@0..24
                   KwExternal@0..8 "external"
                   Whitespace@8..9 " "
-                  BinaryExpr@9..19
-                    BinaryExpr@9..15
-                      LiteralExpr@9..11
+                  BinaryExpr@9..18
+                    BinaryExpr@9..14
+                      LiteralExpr@9..10
                         IntLiteral@9..10 "1"
-                        Whitespace@10..11 " "
+                      Whitespace@10..11 " "
                       Plus@11..12 "+"
                       Whitespace@12..13 " "
-                      LiteralExpr@13..15
+                      LiteralExpr@13..14
                         IntLiteral@13..14 "1"
-                        Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Minus@15..16 "-"
                     Whitespace@16..17 " "
-                    LiteralExpr@17..19
+                    LiteralExpr@17..18
                       IntLiteral@17..18 "1"
-                      Whitespace@18..19 " "
+                  Whitespace@18..19 " "
                   ExternalVar@19..24
                     KwVar@19..22 "var"
                     Whitespace@22..23 " "
@@ -8277,21 +8277,21 @@ fn recover_external_on_const() {
         expect![[r#"
             Source@0..27
               StmtList@0..27
-                ExternalDecl@0..9
+                ExternalDecl@0..8
                   KwExternal@0..8 "external"
-                  Whitespace@8..9 " "
+                Whitespace@8..9 " "
                 ConstVarDecl@9..27
                   KwConst@9..14 "const"
                   Whitespace@14..15 " "
-                  NameList@15..17
-                    Name@15..17
+                  NameList@15..16
+                    Name@15..16
                       Identifier@15..16 "a"
-                      Whitespace@16..17 " "
+                  Whitespace@16..17 " "
                   Colon@17..18 ":"
                   Whitespace@18..19 " "
-                  PrimType@19..23
+                  PrimType@19..22
                     KwInt@19..22 "int"
-                    Whitespace@22..23 " "
+                  Whitespace@22..23 " "
                   Assign@23..25 ":="
                   Whitespace@25..26 " "
                   LiteralExpr@26..27
@@ -8320,15 +8320,15 @@ fn recover_on_external() {
         expect![[r#"
             Source@0..24
               StmtList@0..24
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ExternalDecl@10..24
                   KwExternal@10..18 "external"
                   Whitespace@18..19 " "
@@ -8467,15 +8467,15 @@ fn recover_on_inherit() {
         expect![[r#"
             Source@0..18
               StmtList@0..18
-                ConstVarDecl@0..9
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..9 " "
+                Whitespace@8..9 " "
                 InheritStmt@9..18
                   KwInherit@9..16 "inherit"
                   Whitespace@16..17 " "
@@ -8615,15 +8615,15 @@ fn recover_on_implement() {
         expect![[r#"
             Source@0..20
               StmtList@0..20
-                ConstVarDecl@0..9
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..9 " "
+                Whitespace@8..9 " "
                 ImplementStmt@9..20
                   KwImplement@9..18 "implement"
                   Whitespace@18..19 " "
@@ -8658,9 +8658,9 @@ fn parse_import_stmt() {
                   Whitespace@14..15 " "
                   ImportItem@15..29
                     ExternalItem@15..29
-                      Name@15..17
+                      Name@15..16
                         Identifier@15..16 "c"
-                        Whitespace@16..17 " "
+                      Whitespace@16..17 " "
                       KwIn@17..19 "in"
                       Whitespace@19..20 " "
                       LiteralExpr@20..29
@@ -8674,19 +8674,19 @@ fn parse_multiple_import_stmt() {
     check(
         "import () import ()",
         expect![[r#"
-        Source@0..19
-          ImportStmt@0..10
-            KwImport@0..6 "import"
-            Whitespace@6..7 " "
-            LeftParen@7..8 "("
-            RightParen@8..9 ")"
-            Whitespace@9..10 " "
-          StmtList@10..19
-            ImportStmt@10..19
-              KwImport@10..16 "import"
-              Whitespace@16..17 " "
-              LeftParen@17..18 "("
-              RightParen@18..19 ")""#]],
+            Source@0..19
+              ImportStmt@0..9
+                KwImport@0..6 "import"
+                Whitespace@6..7 " "
+                LeftParen@7..8 "("
+                RightParen@8..9 ")"
+              Whitespace@9..10 " "
+              StmtList@10..19
+                ImportStmt@10..19
+                  KwImport@10..16 "import"
+                  Whitespace@16..17 " "
+                  LeftParen@17..18 "("
+                  RightParen@18..19 ")""#]],
     );
 }
 
@@ -8739,27 +8739,27 @@ fn parse_import_stmt_attrs() {
                 Whitespace@6..7 " "
                 ImportList@7..32
                   ImportItem@7..12
-                    VarAttr@7..11
+                    VarAttr@7..10
                       KwVar@7..10 "var"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     ExternalItem@11..12
                       Name@11..12
                         Identifier@11..12 "a"
                   Comma@12..13 ","
                   Whitespace@13..14 " "
                   ImportItem@14..21
-                    ConstAttr@14..20
+                    ConstAttr@14..19
                       KwConst@14..19 "const"
-                      Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     ExternalItem@20..21
                       Name@20..21
                         Identifier@20..21 "b"
                   Comma@21..22 ","
                   Whitespace@22..23 " "
                   ImportItem@23..32
-                    ForwardAttr@23..31
+                    ForwardAttr@23..30
                       KwForward@23..30 "forward"
-                      Whitespace@30..31 " "
+                    Whitespace@30..31 " "
                     ExternalItem@31..32
                       Name@31..32
                         Identifier@31..32 "c"
@@ -8824,15 +8824,15 @@ fn recover_on_import() {
         expect![[r#"
             Source@0..19
               StmtList@0..19
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ImportStmt@10..19
                   KwImport@10..16 "import"
                   Whitespace@16..17 " "
@@ -8884,43 +8884,43 @@ fn parse_export_stmt_attrs() {
                   KwExport@0..6 "export"
                   Whitespace@6..7 " "
                   ExportItem@7..16
-                    VarAttr@7..11
+                    VarAttr@7..10
                       KwVar@7..10 "var"
-                      Whitespace@10..11 " "
-                    VarAttr@11..15
+                    Whitespace@10..11 " "
+                    VarAttr@11..14
                       KwVar@11..14 "var"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     Name@15..16
                       Identifier@15..16 "a"
                   Comma@16..17 ","
                   Whitespace@17..18 " "
                   ExportItem@18..31
-                    PervasiveAttr@18..28
+                    PervasiveAttr@18..27
                       KwPervasive@18..27 "pervasive"
-                      Whitespace@27..28 " "
-                    PervasiveAttr@28..30
+                    Whitespace@27..28 " "
+                    PervasiveAttr@28..29
                       Star@28..29 "*"
-                      Whitespace@29..30 " "
+                    Whitespace@29..30 " "
                     Name@30..31
                       Identifier@30..31 "b"
                   Comma@31..32 ","
                   Whitespace@32..33 " "
                   ExportItem@33..49
-                    UnqualifiedAttr@33..45
+                    UnqualifiedAttr@33..44
                       KwUnqualified@33..44 "unqualified"
-                      Whitespace@44..45 " "
-                    UnqualifiedAttr@45..48
+                    Whitespace@44..45 " "
+                    UnqualifiedAttr@45..47
                       Tilde@45..46 "~"
                       Dot@46..47 "."
-                      Whitespace@47..48 " "
+                    Whitespace@47..48 " "
                     Name@48..49
                       Identifier@48..49 "c"
                   Comma@49..50 ","
                   Whitespace@50..51 " "
                   ExportItem@51..59
-                    OpaqueAttr@51..58
+                    OpaqueAttr@51..57
                       KwOpaque@51..57 "opaque"
-                      Whitespace@57..58 " "
+                    Whitespace@57..58 " "
                     Name@58..59
                       Identifier@58..59 "d""#]],
     );
@@ -8970,15 +8970,15 @@ fn parse_export_stmt_attrs_and_all() {
                   KwExport@0..6 "export"
                   Whitespace@6..7 " "
                   ExportItem@7..18
-                    VarAttr@7..11
+                    VarAttr@7..10
                       KwVar@7..10 "var"
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     UnqualifiedAttr@11..13
                       Tilde@11..12 "~"
                       Dot@12..13 "."
-                    PervasiveAttr@13..15
+                    PervasiveAttr@13..14
                       Star@13..14 "*"
-                      Whitespace@14..15 " "
+                    Whitespace@14..15 " "
                     KwAll@15..18 "all""#]],
     );
 }
@@ -9051,15 +9051,15 @@ fn recover_on_export() {
         expect![[r#"
             Source@0..19
               StmtList@0..19
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ExportStmt@10..19
                   KwExport@10..16 "export"
                   Whitespace@16..17 " "
@@ -9076,14 +9076,14 @@ fn parse_include_glob_stmt() {
         r#"include "oh_here_too" "#,
         expect![[r#"
             Source@0..22
-              StmtList@0..22
-                PreprocGlob@0..22
-                  PPInclude@0..22
+              StmtList@0..21
+                PreprocGlob@0..21
+                  PPInclude@0..21
                     KwInclude@0..7 "include"
                     Whitespace@7..8 " "
-                    LiteralExpr@8..22
+                    LiteralExpr@8..21
                       StringLiteral@8..21 "\"oh_here_too\""
-                      Whitespace@21..22 " ""#]],
+              Whitespace@21..22 " ""#]],
     );
 }
 
@@ -9146,9 +9146,9 @@ fn recover_many_units() {
               KwUnit@0..4 "unit"
               Whitespace@4..5 " "
               StmtList@5..14
-                Error@5..10
+                Error@5..9
                   KwUnit@5..9 "unit"
-                  Whitespace@9..10 " "
+                Whitespace@9..10 " "
                 Error@10..14
                   KwUnit@10..14 "unit"
             error at 5..9: expected statement, but found ‘unit’
@@ -9214,9 +9214,9 @@ fn recover_tell_stmt_missing_file_ref() {
                 TellStmt@0..10
                   KwTell@0..4 "tell"
                   Whitespace@4..5 " "
-                  StreamNum@5..7
+                  StreamNum@5..6
                     Colon@5..6 ":"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   NameExpr@9..10
@@ -9232,8 +9232,8 @@ fn recover_tell_stmt_missing_tell_dest() {
         "tell : a, ",
         expect![[r#"
             Source@0..10
-              StmtList@0..10
-                TellStmt@0..10
+              StmtList@0..9
+                TellStmt@0..9
                   KwTell@0..4 "tell"
                   Whitespace@4..5 " "
                   StreamNum@5..8
@@ -9243,7 +9243,7 @@ fn recover_tell_stmt_missing_tell_dest() {
                       Name@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
-                  Whitespace@9..10 " "
+              Whitespace@9..10 " "
             error at 9..10: expected expression after here"#]],
     );
 }
@@ -9268,15 +9268,15 @@ fn recover_on_tell() {
         expect![[r#"
             Source@0..21
               StmtList@0..21
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 TellStmt@10..21
                   KwTell@10..14 "tell"
                   Whitespace@14..15 " "
@@ -9314,10 +9314,10 @@ fn parse_seek_stmt() {
                   Comma@8..9 ","
                   Whitespace@9..10 " "
                   BinaryExpr@10..15
-                    NameExpr@10..12
-                      Name@10..12
+                    NameExpr@10..11
+                      Name@10..11
                         Identifier@10..11 "b"
-                        Whitespace@11..12 " "
+                    Whitespace@11..12 " "
                     Plus@12..13 "+"
                     Whitespace@13..14 " "
                     LiteralExpr@14..15
@@ -9357,9 +9357,9 @@ fn recover_seek_stmt_missing_file_ref() {
                 SeekStmt@0..10
                   KwSeek@0..4 "seek"
                   Whitespace@4..5 " "
-                  StreamNum@5..7
+                  StreamNum@5..6
                     Colon@5..6 ":"
-                    Whitespace@6..7 " "
+                  Whitespace@6..7 " "
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   NameExpr@9..10
@@ -9375,8 +9375,8 @@ fn recover_seek_stmt_missing_to_expr() {
         "seek : a, ",
         expect![[r#"
             Source@0..10
-              StmtList@0..10
-                SeekStmt@0..10
+              StmtList@0..9
+                SeekStmt@0..9
                   KwSeek@0..4 "seek"
                   Whitespace@4..5 " "
                   StreamNum@5..8
@@ -9386,7 +9386,7 @@ fn recover_seek_stmt_missing_to_expr() {
                       Name@7..8
                         Identifier@7..8 "a"
                   Comma@8..9 ","
-                  Whitespace@9..10 " "
+              Whitespace@9..10 " "
             error at 9..10: expected expression after here"#]],
     );
 }
@@ -9411,15 +9411,15 @@ fn recover_on_seek() {
         expect![[r#"
             Source@0..21
               StmtList@0..21
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 SeekStmt@10..21
                   KwSeek@10..14 "seek"
                   Whitespace@14..15 " "
@@ -9493,13 +9493,13 @@ fn parse_read_stmt_opt_status() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..20
-                    StreamNum@5..12
+                    StreamNum@5..11
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
-                      NameExpr@7..12
-                        Name@7..12
+                      NameExpr@7..11
+                        Name@7..11
                           Identifier@7..11 "fref"
-                          Whitespace@11..12 " "
+                    Whitespace@11..12 " "
                     Colon@12..13 ":"
                     Whitespace@13..14 " "
                     NameExpr@14..17
@@ -9540,10 +9540,10 @@ fn parse_read_stmt_all_item_variants() {
                     Comma@14..15 ","
                     Whitespace@15..16 " "
                     BinaryItem@16..22
-                      NameExpr@16..18
-                        Name@16..18
+                      NameExpr@16..17
+                        Name@16..17
                           Identifier@16..17 "b"
-                          Whitespace@17..18 " "
+                      Whitespace@17..18 " "
                       RequestSize@18..22
                         Colon@18..19 ":"
                         Whitespace@19..20 " "
@@ -9553,22 +9553,22 @@ fn parse_read_stmt_all_item_variants() {
                     Comma@22..23 ","
                     Whitespace@23..24 " "
                     BinaryItem@24..40
-                      NameExpr@24..26
-                        Name@24..26
+                      NameExpr@24..25
+                        Name@24..25
                           Identifier@24..25 "c"
-                          Whitespace@25..26 " "
-                      RequestSize@26..34
+                      Whitespace@25..26 " "
+                      RequestSize@26..33
                         Colon@26..27 ":"
                         Whitespace@27..28 " "
-                        BinaryExpr@28..34
-                          LiteralExpr@28..30
+                        BinaryExpr@28..33
+                          LiteralExpr@28..29
                             IntLiteral@28..29 "1"
-                            Whitespace@29..30 " "
+                          Whitespace@29..30 " "
                           Plus@30..31 "+"
                           Whitespace@31..32 " "
-                          LiteralExpr@32..34
+                          LiteralExpr@32..33
                             IntLiteral@32..33 "2"
-                            Whitespace@33..34 " "
+                      Whitespace@33..34 " "
                       ActualSize@34..40
                         Colon@34..35 ":"
                         Whitespace@35..36 " "
@@ -9597,26 +9597,26 @@ fn recover_read_stmt_missing_actual_sz_expr() {
                           Identifier@7..11 "fref"
                     Comma@11..12 ","
                     Whitespace@12..13 " "
-                    BinaryItem@13..25
-                      NameExpr@13..15
-                        Name@13..15
+                    BinaryItem@13..24
+                      NameExpr@13..14
+                        Name@13..14
                           Identifier@13..14 "a"
-                          Whitespace@14..15 " "
-                      RequestSize@15..23
+                      Whitespace@14..15 " "
+                      RequestSize@15..22
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
-                        BinaryExpr@17..23
-                          LiteralExpr@17..19
+                        BinaryExpr@17..22
+                          LiteralExpr@17..18
                             IntLiteral@17..18 "1"
-                            Whitespace@18..19 " "
+                          Whitespace@18..19 " "
                           Plus@19..20 "+"
                           Whitespace@20..21 " "
-                          LiteralExpr@21..23
+                          LiteralExpr@21..22
                             IntLiteral@21..22 "2"
-                            Whitespace@22..23 " "
-                      ActualSize@23..25
+                      Whitespace@22..23 " "
+                      ActualSize@23..24
                         Colon@23..24 ":"
-                        Whitespace@24..25 " "
+                    Whitespace@24..25 " "
                     Comma@25..26 ","
                     Whitespace@26..27 " "
                     BinaryItem@27..28
@@ -9647,13 +9647,13 @@ fn recover_read_stmt_missing_req_sz_expr() {
                     Comma@11..12 ","
                     Whitespace@12..13 " "
                     BinaryItem@13..22
-                      NameExpr@13..15
-                        Name@13..15
+                      NameExpr@13..14
+                        Name@13..14
                           Identifier@13..14 "a"
-                          Whitespace@14..15 " "
-                      RequestSize@15..18
+                      Whitespace@14..15 " "
+                      RequestSize@15..16
                         Colon@15..16 ":"
-                        Whitespace@16..18 "  "
+                      Whitespace@16..18 "  "
                       ActualSize@18..22
                         Colon@18..19 ":"
                         Whitespace@19..20 " "
@@ -9690,13 +9690,13 @@ fn recover_read_stmt_missing_item_data_expr() {
                     Comma@11..12 ","
                     Whitespace@12..14 "  "
                     BinaryItem@14..24
-                      RequestSize@14..20
+                      RequestSize@14..19
                         Colon@14..15 ":"
                         Whitespace@15..16 " "
-                        NameExpr@16..20
-                          Name@16..20
+                        NameExpr@16..19
+                          Name@16..19
                             Identifier@16..19 "req"
-                            Whitespace@19..20 " "
+                      Whitespace@19..20 " "
                       ActualSize@20..24
                         Colon@20..21 ":"
                         Whitespace@21..22 " "
@@ -9724,29 +9724,29 @@ fn recover_read_stmt_missing_sts_ref() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..31
-                    StreamNum@5..12
+                    StreamNum@5..11
                       Colon@5..6 ":"
                       Whitespace@6..7 " "
-                      NameExpr@7..12
-                        Name@7..12
+                      NameExpr@7..11
+                        Name@7..11
                           Identifier@7..11 "fref"
-                          Whitespace@11..12 " "
+                    Whitespace@11..12 " "
                     Colon@12..13 ":"
                     Whitespace@13..14 " "
                     Comma@14..15 ","
                     Whitespace@15..16 " "
                     BinaryItem@16..28
-                      NameExpr@16..18
-                        Name@16..18
+                      NameExpr@16..17
+                        Name@16..17
                           Identifier@16..17 "a"
-                          Whitespace@17..18 " "
-                      RequestSize@18..24
+                      Whitespace@17..18 " "
+                      RequestSize@18..23
                         Colon@18..19 ":"
                         Whitespace@19..20 " "
-                        NameExpr@20..24
-                          Name@20..24
+                        NameExpr@20..23
+                          Name@20..23
                             Identifier@20..23 "req"
-                            Whitespace@23..24 " "
+                      Whitespace@23..24 " "
                       ActualSize@24..28
                         Colon@24..25 ":"
                         Whitespace@25..26 " "
@@ -9774,9 +9774,9 @@ fn recover_read_stmt_missing_file_ref() {
                   KwRead@0..4 "read"
                   Whitespace@4..5 " "
                   BinaryIO@5..29
-                    StreamNum@5..7
+                    StreamNum@5..6
                       Colon@5..6 ":"
-                      Whitespace@6..7 " "
+                    Whitespace@6..7 " "
                     Colon@7..8 ":"
                     Whitespace@8..9 " "
                     NameExpr@9..12
@@ -9785,17 +9785,17 @@ fn recover_read_stmt_missing_file_ref() {
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..26
-                      NameExpr@14..16
-                        Name@14..16
+                      NameExpr@14..15
+                        Name@14..15
                           Identifier@14..15 "a"
-                          Whitespace@15..16 " "
-                      RequestSize@16..22
+                      Whitespace@15..16 " "
+                      RequestSize@16..21
                         Colon@16..17 ":"
                         Whitespace@17..18 " "
-                        NameExpr@18..22
-                          Name@18..22
+                        NameExpr@18..21
+                          Name@18..21
                             Identifier@18..21 "req"
-                            Whitespace@21..22 " "
+                      Whitespace@21..22 " "
                       ActualSize@22..26
                         Colon@22..23 ":"
                         Whitespace@23..24 " "
@@ -9834,15 +9834,15 @@ fn recover_on_read() {
         expect![[r#"
             Source@0..21
               StmtList@0..21
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 ReadStmt@10..21
                   KwRead@10..14 "read"
                   Whitespace@14..15 " "
@@ -9918,13 +9918,13 @@ fn parse_write_stmt_opt_status() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..21
-                    StreamNum@6..13
+                    StreamNum@6..12
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
-                      NameExpr@8..13
-                        Name@8..13
+                      NameExpr@8..12
+                        Name@8..12
                           Identifier@8..12 "fref"
-                          Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     Colon@13..14 ":"
                     Whitespace@14..15 " "
                     NameExpr@15..18
@@ -9965,10 +9965,10 @@ fn parse_write_stmt_all_item_variants() {
                     Comma@15..16 ","
                     Whitespace@16..17 " "
                     BinaryItem@17..23
-                      NameExpr@17..19
-                        Name@17..19
+                      NameExpr@17..18
+                        Name@17..18
                           Identifier@17..18 "b"
-                          Whitespace@18..19 " "
+                      Whitespace@18..19 " "
                       RequestSize@19..23
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
@@ -9978,22 +9978,22 @@ fn parse_write_stmt_all_item_variants() {
                     Comma@23..24 ","
                     Whitespace@24..25 " "
                     BinaryItem@25..41
-                      NameExpr@25..27
-                        Name@25..27
+                      NameExpr@25..26
+                        Name@25..26
                           Identifier@25..26 "c"
-                          Whitespace@26..27 " "
-                      RequestSize@27..35
+                      Whitespace@26..27 " "
+                      RequestSize@27..34
                         Colon@27..28 ":"
                         Whitespace@28..29 " "
-                        BinaryExpr@29..35
-                          LiteralExpr@29..31
+                        BinaryExpr@29..34
+                          LiteralExpr@29..30
                             IntLiteral@29..30 "1"
-                            Whitespace@30..31 " "
+                          Whitespace@30..31 " "
                           Plus@31..32 "+"
                           Whitespace@32..33 " "
-                          LiteralExpr@33..35
+                          LiteralExpr@33..34
                             IntLiteral@33..34 "2"
-                            Whitespace@34..35 " "
+                      Whitespace@34..35 " "
                       ActualSize@35..41
                         Colon@35..36 ":"
                         Whitespace@36..37 " "
@@ -10022,26 +10022,26 @@ fn recover_write_stmt_missing_actual_sz_expr() {
                           Identifier@8..12 "fref"
                     Comma@12..13 ","
                     Whitespace@13..14 " "
-                    BinaryItem@14..26
-                      NameExpr@14..16
-                        Name@14..16
+                    BinaryItem@14..25
+                      NameExpr@14..15
+                        Name@14..15
                           Identifier@14..15 "a"
-                          Whitespace@15..16 " "
-                      RequestSize@16..24
+                      Whitespace@15..16 " "
+                      RequestSize@16..23
                         Colon@16..17 ":"
                         Whitespace@17..18 " "
-                        BinaryExpr@18..24
-                          LiteralExpr@18..20
+                        BinaryExpr@18..23
+                          LiteralExpr@18..19
                             IntLiteral@18..19 "1"
-                            Whitespace@19..20 " "
+                          Whitespace@19..20 " "
                           Plus@20..21 "+"
                           Whitespace@21..22 " "
-                          LiteralExpr@22..24
+                          LiteralExpr@22..23
                             IntLiteral@22..23 "2"
-                            Whitespace@23..24 " "
-                      ActualSize@24..26
+                      Whitespace@23..24 " "
+                      ActualSize@24..25
                         Colon@24..25 ":"
-                        Whitespace@25..26 " "
+                    Whitespace@25..26 " "
                     Comma@26..27 ","
                     Whitespace@27..28 " "
                     BinaryItem@28..29
@@ -10072,13 +10072,13 @@ fn recover_write_stmt_missing_req_sz_expr() {
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     BinaryItem@14..23
-                      NameExpr@14..16
-                        Name@14..16
+                      NameExpr@14..15
+                        Name@14..15
                           Identifier@14..15 "a"
-                          Whitespace@15..16 " "
-                      RequestSize@16..19
+                      Whitespace@15..16 " "
+                      RequestSize@16..17
                         Colon@16..17 ":"
-                        Whitespace@17..19 "  "
+                      Whitespace@17..19 "  "
                       ActualSize@19..23
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
@@ -10115,13 +10115,13 @@ fn recover_write_stmt_missing_item_data_expr() {
                     Comma@12..13 ","
                     Whitespace@13..15 "  "
                     BinaryItem@15..25
-                      RequestSize@15..21
+                      RequestSize@15..20
                         Colon@15..16 ":"
                         Whitespace@16..17 " "
-                        NameExpr@17..21
-                          Name@17..21
+                        NameExpr@17..20
+                          Name@17..20
                             Identifier@17..20 "req"
-                            Whitespace@20..21 " "
+                      Whitespace@20..21 " "
                       ActualSize@21..25
                         Colon@21..22 ":"
                         Whitespace@22..23 " "
@@ -10149,29 +10149,29 @@ fn recover_write_stmt_missing_sts_ref() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..32
-                    StreamNum@6..13
+                    StreamNum@6..12
                       Colon@6..7 ":"
                       Whitespace@7..8 " "
-                      NameExpr@8..13
-                        Name@8..13
+                      NameExpr@8..12
+                        Name@8..12
                           Identifier@8..12 "fref"
-                          Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     Colon@13..14 ":"
                     Whitespace@14..15 " "
                     Comma@15..16 ","
                     Whitespace@16..17 " "
                     BinaryItem@17..29
-                      NameExpr@17..19
-                        Name@17..19
+                      NameExpr@17..18
+                        Name@17..18
                           Identifier@17..18 "a"
-                          Whitespace@18..19 " "
-                      RequestSize@19..25
+                      Whitespace@18..19 " "
+                      RequestSize@19..24
                         Colon@19..20 ":"
                         Whitespace@20..21 " "
-                        NameExpr@21..25
-                          Name@21..25
+                        NameExpr@21..24
+                          Name@21..24
                             Identifier@21..24 "req"
-                            Whitespace@24..25 " "
+                      Whitespace@24..25 " "
                       ActualSize@25..29
                         Colon@25..26 ":"
                         Whitespace@26..27 " "
@@ -10199,9 +10199,9 @@ fn recover_write_stmt_missing_file_ref() {
                   KwWrite@0..5 "write"
                   Whitespace@5..6 " "
                   BinaryIO@6..30
-                    StreamNum@6..8
+                    StreamNum@6..7
                       Colon@6..7 ":"
-                      Whitespace@7..8 " "
+                    Whitespace@7..8 " "
                     Colon@8..9 ":"
                     Whitespace@9..10 " "
                     NameExpr@10..13
@@ -10210,17 +10210,17 @@ fn recover_write_stmt_missing_file_ref() {
                     Comma@13..14 ","
                     Whitespace@14..15 " "
                     BinaryItem@15..27
-                      NameExpr@15..17
-                        Name@15..17
+                      NameExpr@15..16
+                        Name@15..16
                           Identifier@15..16 "a"
-                          Whitespace@16..17 " "
-                      RequestSize@17..23
+                      Whitespace@16..17 " "
+                      RequestSize@17..22
                         Colon@17..18 ":"
                         Whitespace@18..19 " "
-                        NameExpr@19..23
-                          Name@19..23
+                        NameExpr@19..22
+                          Name@19..22
                             Identifier@19..22 "req"
-                            Whitespace@22..23 " "
+                      Whitespace@22..23 " "
                       ActualSize@23..27
                         Colon@23..24 ":"
                         Whitespace@24..25 " "
@@ -10259,15 +10259,15 @@ fn recover_on_write() {
         expect![[r#"
             Source@0..22
               StmtList@0..22
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 WriteStmt@10..22
                   KwWrite@10..15 "write"
                   Whitespace@15..16 " "
@@ -10542,11 +10542,11 @@ fn recover_new_open_missing_mode() {
         r#"open : fref, a_path, "#,
         expect![[r#"
             Source@0..21
-              StmtList@0..21
-                OpenStmt@0..21
+              StmtList@0..20
+                OpenStmt@0..20
                   KwOpen@0..4 "open"
                   Whitespace@4..5 " "
-                  NewOpen@5..21
+                  NewOpen@5..20
                     Colon@5..6 ":"
                     Whitespace@6..7 " "
                     NameExpr@7..11
@@ -10559,7 +10559,7 @@ fn recover_new_open_missing_mode() {
                         Name@13..19
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
-                    Whitespace@20..21 " "
+              Whitespace@20..21 " "
             error at 20..21: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’ after here"#]],
     );
 }
@@ -10705,15 +10705,15 @@ fn recover_on_open() {
             Source@0..50
               Whitespace@0..9 "\n        "
               StmtList@9..50
-                ConstVarDecl@9..26
+                ConstVarDecl@9..17
                   KwVar@9..12 "var"
                   Whitespace@12..13 " "
-                  NameList@13..15
-                    Name@13..15
+                  NameList@13..14
+                    Name@13..14
                       Identifier@13..14 "i"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   Assign@15..17 ":="
-                  Whitespace@17..26 "\n        "
+                Whitespace@17..26 "\n        "
                 OpenStmt@26..50
                   KwOpen@26..30 "open"
                   Whitespace@30..31 " "
@@ -10750,10 +10750,10 @@ fn parse_old_close() {
                   OldClose@6..18
                     LeftParen@6..7 "("
                     Whitespace@7..8 " "
-                    NameExpr@8..17
-                      Name@8..17
+                    NameExpr@8..16
+                      Name@8..16
                         Identifier@8..16 "some_ref"
-                        Whitespace@16..17 " "
+                    Whitespace@16..17 " "
                     RightParen@17..18 ")""#]],
     );
 }
@@ -10764,17 +10764,17 @@ fn recover_old_close_missing_right_paren() {
         r#"close ( some_ref "#,
         expect![[r#"
             Source@0..17
-              StmtList@0..17
-                CloseStmt@0..17
+              StmtList@0..16
+                CloseStmt@0..16
                   KwClose@0..5 "close"
                   Whitespace@5..6 " "
-                  OldClose@6..17
+                  OldClose@6..16
                     LeftParen@6..7 "("
                     Whitespace@7..8 " "
-                    NameExpr@8..17
-                      Name@8..17
+                    NameExpr@8..16
+                      Name@8..16
                         Identifier@8..16 "some_ref"
-                        Whitespace@16..17 " "
+              Whitespace@16..17 " "
             error at 16..17: expected ‘)’ after here"#]],
     );
 }
@@ -10804,14 +10804,14 @@ fn recover_old_close_missing_left_paren() {
         expect![[r#"
             Source@0..17
               StmtList@0..17
-                CloseStmt@0..16
+                CloseStmt@0..15
                   KwClose@0..5 "close"
                   Whitespace@5..7 "  "
-                  NewClose@7..16
-                    NameExpr@7..16
-                      Name@7..16
+                  NewClose@7..15
+                    NameExpr@7..15
+                      Name@7..15
                         Identifier@7..15 "some_ref"
-                        Whitespace@15..16 " "
+                Whitespace@15..16 " "
                 Error@16..17
                   RightParen@16..17 ")"
             error at 7..15: expected ‘(’ or ‘:’, but found identifier
@@ -10844,13 +10844,13 @@ fn recover_new_close_missing_file_ref() {
         r#"close : "#,
         expect![[r#"
             Source@0..8
-              StmtList@0..8
-                CloseStmt@0..8
+              StmtList@0..7
+                CloseStmt@0..7
                   KwClose@0..5 "close"
                   Whitespace@5..6 " "
-                  NewClose@6..8
+                  NewClose@6..7
                     Colon@6..7 ":"
-                    Whitespace@7..8 " "
+              Whitespace@7..8 " "
             error at 7..8: expected expression after here"#]],
     );
 }
@@ -10897,15 +10897,15 @@ fn recover_on_close() {
             Source@0..42
               Whitespace@0..9 "\n        "
               StmtList@9..42
-                ConstVarDecl@9..26
+                ConstVarDecl@9..17
                   KwVar@9..12 "var"
                   Whitespace@12..13 " "
-                  NameList@13..15
-                    Name@13..15
+                  NameList@13..14
+                    Name@13..14
                       Identifier@13..14 "i"
-                      Whitespace@14..15 " "
+                  Whitespace@14..15 " "
                   Assign@15..17 ":="
-                  Whitespace@17..26 "\n        "
+                Whitespace@17..26 "\n        "
                 CloseStmt@26..42
                   KwClose@26..31 "close"
                   Whitespace@31..32 " "
@@ -10936,9 +10936,9 @@ fn parse_put_stmt() {
                   Comma@5..6 ","
                   Whitespace@6..7 " "
                   PutItem@7..14
-                    LiteralExpr@7..11
+                    LiteralExpr@7..10
                       StringLiteral@7..10 "\"b\""
-                      Whitespace@10..11 " "
+                    Whitespace@10..11 " "
                     PutOpt@11..14
                       Colon@11..12 ":"
                       Whitespace@12..13 " "
@@ -10946,42 +10946,42 @@ fn parse_put_stmt() {
                         IntLiteral@13..14 "2"
                   Comma@14..15 ","
                   Whitespace@15..16 " "
-                  PutItem@16..30
-                    LiteralExpr@16..20
+                  PutItem@16..29
+                    LiteralExpr@16..19
                       RealLiteral@16..19 "1.0"
-                      Whitespace@19..20 " "
-                    PutOpt@20..24
+                    Whitespace@19..20 " "
+                    PutOpt@20..23
                       Colon@20..21 ":"
                       Whitespace@21..22 " "
-                      LiteralExpr@22..24
+                      LiteralExpr@22..23
                         IntLiteral@22..23 "3"
-                        Whitespace@23..24 " "
-                    PutOpt@24..30
+                    Whitespace@23..24 " "
+                    PutOpt@24..29
                       Colon@24..25 ":"
                       Whitespace@25..26 " "
-                      LiteralExpr@26..30
+                      LiteralExpr@26..29
                         RealLiteral@26..29 "5.0"
-                        Whitespace@29..30 " "
+                  Whitespace@29..30 " "
                   Comma@30..31 ","
                   Whitespace@31..32 " "
                   PutItem@32..47
-                    LiteralExpr@32..36
+                    LiteralExpr@32..35
                       RealLiteral@32..35 "1.0"
-                      Whitespace@35..36 " "
-                    PutOpt@36..40
+                    Whitespace@35..36 " "
+                    PutOpt@36..39
                       Colon@36..37 ":"
                       Whitespace@37..38 " "
-                      NameExpr@38..40
-                        Name@38..40
+                      NameExpr@38..39
+                        Name@38..39
                           Identifier@38..39 "w"
-                          Whitespace@39..40 " "
-                    PutOpt@40..44
+                    Whitespace@39..40 " "
+                    PutOpt@40..43
                       Colon@40..41 ":"
                       Whitespace@41..42 " "
-                      NameExpr@42..44
-                        Name@42..44
+                      NameExpr@42..43
+                        Name@42..43
                           Identifier@42..43 "f"
-                          Whitespace@43..44 " "
+                    Whitespace@43..44 " "
                     PutOpt@44..47
                       Colon@44..45 ":"
                       Whitespace@45..46 " "
@@ -11057,24 +11057,24 @@ fn recover_put_stmt_missing_opt_exp_expr() {
                   Comma@7..8 ","
                   Whitespace@8..9 " "
                   PutItem@9..27
-                    NameExpr@9..14
-                      Name@9..14
+                    NameExpr@9..13
+                      Name@9..13
                         Identifier@9..13 "item"
-                        Whitespace@13..14 " "
-                    PutOpt@14..18
+                    Whitespace@13..14 " "
+                    PutOpt@14..17
                       Colon@14..15 ":"
                       Whitespace@15..16 " "
-                      NameExpr@16..18
-                        Name@16..18
+                      NameExpr@16..17
+                        Name@16..17
                           Identifier@16..17 "w"
-                          Whitespace@17..18 " "
-                    PutOpt@18..22
+                    Whitespace@17..18 " "
+                    PutOpt@18..21
                       Colon@18..19 ":"
                       Whitespace@19..20 " "
-                      NameExpr@20..22
-                        Name@20..22
+                      NameExpr@20..21
+                        Name@20..21
                           Identifier@20..21 "f"
-                          Whitespace@21..22 " "
+                    Whitespace@21..22 " "
                     PutOpt@22..27
                       Colon@22..23 ":"
                       Whitespace@23..25 "  "
@@ -11102,28 +11102,28 @@ fn recover_put_stmt_missing_opt_fract_expr() {
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
-                  PutItem@9..25
-                    NameExpr@9..14
-                      Name@9..14
+                  PutItem@9..24
+                    NameExpr@9..13
+                      Name@9..13
                         Identifier@9..13 "item"
-                        Whitespace@13..14 " "
-                    PutOpt@14..18
+                    Whitespace@13..14 " "
+                    PutOpt@14..17
                       Colon@14..15 ":"
                       Whitespace@15..16 " "
-                      NameExpr@16..18
-                        Name@16..18
+                      NameExpr@16..17
+                        Name@16..17
                           Identifier@16..17 "w"
-                          Whitespace@17..18 " "
-                    PutOpt@18..21
+                    Whitespace@17..18 " "
+                    PutOpt@18..19
                       Colon@18..19 ":"
-                      Whitespace@19..21 "  "
-                    PutOpt@21..25
+                    Whitespace@19..21 "  "
+                    PutOpt@21..24
                       Colon@21..22 ":"
                       Whitespace@22..23 " "
-                      NameExpr@23..25
-                        Name@23..25
+                      NameExpr@23..24
+                        Name@23..24
                           Identifier@23..24 "e"
-                          Whitespace@24..25 " "
+                  Whitespace@24..25 " "
                   Range@25..27 ".."
             error at 21..22: expected expression, but found ‘:’"#]],
     );
@@ -11147,28 +11147,28 @@ fn recover_put_stmt_missing_width_expr() {
                         Identifier@6..7 "s"
                   Comma@7..8 ","
                   Whitespace@8..9 " "
-                  PutItem@9..25
-                    NameExpr@9..14
-                      Name@9..14
+                  PutItem@9..24
+                    NameExpr@9..13
+                      Name@9..13
                         Identifier@9..13 "item"
-                        Whitespace@13..14 " "
-                    PutOpt@14..17
+                    Whitespace@13..14 " "
+                    PutOpt@14..15
                       Colon@14..15 ":"
-                      Whitespace@15..17 "  "
-                    PutOpt@17..21
+                    Whitespace@15..17 "  "
+                    PutOpt@17..20
                       Colon@17..18 ":"
                       Whitespace@18..19 " "
-                      NameExpr@19..21
-                        Name@19..21
+                      NameExpr@19..20
+                        Name@19..20
                           Identifier@19..20 "f"
-                          Whitespace@20..21 " "
-                    PutOpt@21..25
+                    Whitespace@20..21 " "
+                    PutOpt@21..24
                       Colon@21..22 ":"
                       Whitespace@22..23 " "
-                      NameExpr@23..25
-                        Name@23..25
+                      NameExpr@23..24
+                        Name@23..24
                           Identifier@23..24 "e"
-                          Whitespace@24..25 " "
+                  Whitespace@24..25 " "
                   Range@25..27 ".."
             error at 17..18: expected expression, but found ‘:’"#]],
     );
@@ -11239,37 +11239,37 @@ fn recover_put_stmt_missing_stream_expr() {
                 PutStmt@0..27
                   KwPut@0..3 "put"
                   Whitespace@3..4 " "
-                  StreamNum@4..6
+                  StreamNum@4..5
                     Colon@4..5 ":"
-                    Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Comma@6..7 ","
                   Whitespace@7..8 " "
-                  PutItem@8..25
-                    NameExpr@8..13
-                      Name@8..13
+                  PutItem@8..24
+                    NameExpr@8..12
+                      Name@8..12
                         Identifier@8..12 "item"
-                        Whitespace@12..13 " "
-                    PutOpt@13..17
+                    Whitespace@12..13 " "
+                    PutOpt@13..16
                       Colon@13..14 ":"
                       Whitespace@14..15 " "
-                      NameExpr@15..17
-                        Name@15..17
+                      NameExpr@15..16
+                        Name@15..16
                           Identifier@15..16 "w"
-                          Whitespace@16..17 " "
-                    PutOpt@17..21
+                    Whitespace@16..17 " "
+                    PutOpt@17..20
                       Colon@17..18 ":"
                       Whitespace@18..19 " "
-                      NameExpr@19..21
-                        Name@19..21
+                      NameExpr@19..20
+                        Name@19..20
                           Identifier@19..20 "f"
-                          Whitespace@20..21 " "
-                    PutOpt@21..25
+                    Whitespace@20..21 " "
+                    PutOpt@21..24
                       Colon@21..22 ":"
                       Whitespace@22..23 " "
-                      NameExpr@23..25
-                        Name@23..25
+                      NameExpr@23..24
+                        Name@23..24
                           Identifier@23..24 "e"
-                          Whitespace@24..25 " "
+                  Whitespace@24..25 " "
                   Range@25..27 ".."
             error at 6..7: expected expression, but found ‘,’"#]],
     );
@@ -11299,15 +11299,15 @@ fn recover_on_put() {
             Source@0..26
               Whitespace@0..5 "\n    "
               StmtList@5..26
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 PutStmt@18..26
                   KwPut@18..21 "put"
                   Whitespace@21..22 " "
@@ -11338,10 +11338,10 @@ fn parse_get_stmt() {
                   Comma@11..12 ","
                   Whitespace@12..13 " "
                   GetItem@13..23
-                    NameExpr@13..20
-                      Name@13..20
+                    NameExpr@13..19
+                      Name@13..19
                         Identifier@13..19 "to_end"
-                        Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     GetWidth@20..23
                       Colon@20..21 ":"
                       Whitespace@21..22 " "
@@ -11349,10 +11349,10 @@ fn parse_get_stmt() {
                   Comma@23..24 ","
                   Whitespace@24..25 " "
                   GetItem@25..38
-                    NameExpr@25..34
-                      Name@25..34
+                    NameExpr@25..33
+                      Name@25..33
                         Identifier@25..33 "or_width"
-                        Whitespace@33..34 " "
+                    Whitespace@33..34 " "
                     GetWidth@34..38
                       Colon@34..35 ":"
                       Whitespace@35..36 " "
@@ -11392,8 +11392,8 @@ fn recover_get_stmt_missing_width_expr() {
         r#"get : s, a, b : "#,
         expect![[r#"
             Source@0..16
-              StmtList@0..16
-                GetStmt@0..16
+              StmtList@0..15
+                GetStmt@0..15
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
                   StreamNum@4..7
@@ -11410,14 +11410,14 @@ fn recover_get_stmt_missing_width_expr() {
                         Identifier@9..10 "a"
                   Comma@10..11 ","
                   Whitespace@11..12 " "
-                  GetItem@12..16
-                    NameExpr@12..14
-                      Name@12..14
+                  GetItem@12..15
+                    NameExpr@12..13
+                      Name@12..13
                         Identifier@12..13 "b"
-                        Whitespace@13..14 " "
-                    GetWidth@14..16
+                    Whitespace@13..14 " "
+                    GetWidth@14..15
                       Colon@14..15 ":"
-                      Whitespace@15..16 " "
+              Whitespace@15..16 " "
             error at 15..16: expected expression after here"#]],
     );
 }
@@ -11444,10 +11444,10 @@ fn recover_get_stmt_missing_item() {
                   Comma@9..10 ","
                   Whitespace@10..11 " "
                   GetItem@11..16
-                    NameExpr@11..13
-                      Name@11..13
+                    NameExpr@11..12
+                      Name@11..12
                         Identifier@11..12 "b"
-                        Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     GetWidth@13..16
                       Colon@13..14 ":"
                       Whitespace@14..15 " "
@@ -11455,10 +11455,10 @@ fn recover_get_stmt_missing_item() {
                   Comma@16..17 ","
                   Whitespace@17..18 " "
                   GetItem@18..23
-                    NameExpr@18..20
-                      Name@18..20
+                    NameExpr@18..19
+                      Name@18..19
                         Identifier@18..19 "c"
-                        Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     GetWidth@20..23
                       Colon@20..21 ":"
                       Whitespace@21..22 " "
@@ -11500,10 +11500,10 @@ fn recover_get_stmt_missing_item_in_list() {
                   Comma@16..17 ","
                   Whitespace@17..18 " "
                   GetItem@18..23
-                    NameExpr@18..20
-                      Name@18..20
+                    NameExpr@18..19
+                      Name@18..19
                         Identifier@18..19 "c"
-                        Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     GetWidth@20..23
                       Colon@20..21 ":"
                       Whitespace@21..22 " "
@@ -11523,9 +11523,9 @@ fn recover_get_stmt_missing_stream_expr() {
                 GetStmt@0..23
                   KwGet@0..3 "get"
                   Whitespace@3..4 " "
-                  StreamNum@4..6
+                  StreamNum@4..5
                     Colon@4..5 ":"
-                    Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Comma@6..7 ","
                   Whitespace@7..8 " "
                   GetItem@8..9
@@ -11535,10 +11535,10 @@ fn recover_get_stmt_missing_stream_expr() {
                   Comma@9..10 ","
                   Whitespace@10..11 " "
                   GetItem@11..16
-                    NameExpr@11..13
-                      Name@11..13
+                    NameExpr@11..12
+                      Name@11..12
                         Identifier@11..12 "b"
-                        Whitespace@12..13 " "
+                    Whitespace@12..13 " "
                     GetWidth@13..16
                       Colon@13..14 ":"
                       Whitespace@14..15 " "
@@ -11546,10 +11546,10 @@ fn recover_get_stmt_missing_stream_expr() {
                   Comma@16..17 ","
                   Whitespace@17..18 " "
                   GetItem@18..23
-                    NameExpr@18..20
-                      Name@18..20
+                    NameExpr@18..19
+                      Name@18..19
                         Identifier@18..19 "c"
-                        Whitespace@19..20 " "
+                    Whitespace@19..20 " "
                     GetWidth@20..23
                       Colon@20..21 ":"
                       Whitespace@21..22 " "
@@ -11583,15 +11583,15 @@ fn recover_on_get() {
             Source@0..26
               Whitespace@0..5 "\n    "
               StmtList@5..26
-                ConstVarDecl@5..18
+                ConstVarDecl@5..13
                   KwVar@5..8 "var"
                   Whitespace@8..9 " "
-                  NameList@9..11
-                    Name@9..11
+                  NameList@9..10
+                    Name@9..10
                       Identifier@9..10 "i"
-                      Whitespace@10..11 " "
+                  Whitespace@10..11 " "
                   Assign@11..13 ":="
-                  Whitespace@13..18 "\n    "
+                Whitespace@13..18 "\n    "
                 GetStmt@18..26
                   KwGet@18..21 "get"
                   Whitespace@21..22 " "
@@ -11618,37 +11618,37 @@ fn parse_nested_if_in_else() {
                 IfStmt@5..96
                   KwIf@5..7 "if"
                   Whitespace@7..8 " "
-                  IfBody@8..90
-                    LiteralExpr@8..14
+                  IfBody@8..85
+                    LiteralExpr@8..13
                       KwFalse@8..13 "false"
-                      Whitespace@13..14 " "
+                    Whitespace@13..14 " "
                     KwThen@14..18 "then"
                     Whitespace@18..23 "\n    "
                     StmtList@23..23
-                    ElseStmt@23..90
+                    ElseStmt@23..85
                       KwElse@23..27 "else"
                       Whitespace@27..36 "\n        "
-                      StmtList@36..90
-                        CallStmt@36..58
-                          NameExpr@36..58
-                            Name@36..58
+                      StmtList@36..85
+                        CallStmt@36..49
+                          NameExpr@36..49
+                            Name@36..49
                               Identifier@36..49 "a_filler_expr"
-                              Whitespace@49..58 "\n        "
-                        IfStmt@58..90
+                        Whitespace@49..58 "\n        "
+                        IfStmt@58..85
                           KwIf@58..60 "if"
                           Whitespace@60..61 " "
                           IfBody@61..79
-                            LiteralExpr@61..66
+                            LiteralExpr@61..65
                               KwTrue@61..65 "true"
-                              Whitespace@65..66 " "
+                            Whitespace@65..66 " "
                             KwThen@66..70 "then"
                             Whitespace@70..79 "\n        "
                             StmtList@79..79
-                          EndGroup@79..90
+                          EndGroup@79..85
                             KwEnd@79..82 "end"
                             Whitespace@82..83 " "
                             KwIf@83..85 "if"
-                            Whitespace@85..90 "\n    "
+                  Whitespace@85..90 "\n    "
                   EndGroup@90..96
                     KwEnd@90..93 "end"
                     Whitespace@93..94 " "
@@ -11698,15 +11698,15 @@ fn recover_wait_stmt_missing_opt_arg_expr() {
         "wait a, ",
         expect![[r#"
             Source@0..8
-              StmtList@0..8
-                WaitStmt@0..8
+              StmtList@0..7
+                WaitStmt@0..7
                   KwWait@0..4 "wait"
                   Whitespace@4..5 " "
                   NameExpr@5..6
                     Name@5..6
                       Identifier@5..6 "a"
                   Comma@6..7 ","
-                  Whitespace@7..8 " "
+              Whitespace@7..8 " "
             error at 7..8: expected expression after here"#]],
     );
 }
@@ -11731,15 +11731,15 @@ fn recover_on_wait() {
         expect![[r#"
             Source@0..16
               StmtList@0..16
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 WaitStmt@10..16
                   KwWait@10..14 "wait"
                   Whitespace@14..15 " "
@@ -11769,15 +11769,15 @@ fn recover_on_break() {
         expect![[r#"
             Source@0..15
               StmtList@0..15
-                ConstVarDecl@0..10
+                ConstVarDecl@0..8
                   KwVar@0..3 "var"
                   Whitespace@3..4 " "
-                  NameList@4..6
-                    Name@4..6
+                  NameList@4..5
+                    Name@4..5
                       Identifier@4..5 "i"
-                      Whitespace@5..6 " "
+                  Whitespace@5..6 " "
                   Assign@6..8 ":="
-                  Whitespace@8..10 " \n"
+                Whitespace@8..10 " \n"
                 BreakStmt@10..15
                   KwBreak@10..15 "break"
             error at 10..15: expected expression, but found ‘break’"#]],
@@ -11789,30 +11789,30 @@ fn recover_fcn_decl_safe_end() {
     check(
         "fcn a : int pre end a",
         expect![[r#"
-        Source@0..21
-          StmtList@0..21
-            FcnDecl@0..21
-              FcnHeader@0..12
-                KwFunction@0..3 "fcn"
-                Whitespace@3..4 " "
-                Name@4..6
-                  Identifier@4..5 "a"
-                  Whitespace@5..6 " "
-                FcnResult@6..12
-                  Colon@6..7 ":"
-                  Whitespace@7..8 " "
-                  PrimType@8..12
-                    KwInt@8..11 "int"
-                    Whitespace@11..12 " "
-              PreStmt@12..16
-                KwPre@12..15 "pre"
-                Whitespace@15..16 " "
-              StmtList@16..16
-              EndGroup@16..21
-                KwEnd@16..19 "end"
-                Whitespace@19..20 " "
-                Identifier@20..21 "a"
-        error at 16..19: expected expression, but found ‘end’"#]],
+            Source@0..21
+              StmtList@0..21
+                FcnDecl@0..21
+                  FcnHeader@0..11
+                    KwFunction@0..3 "fcn"
+                    Whitespace@3..4 " "
+                    Name@4..5
+                      Identifier@4..5 "a"
+                    Whitespace@5..6 " "
+                    FcnResult@6..11
+                      Colon@6..7 ":"
+                      Whitespace@7..8 " "
+                      PrimType@8..11
+                        KwInt@8..11 "int"
+                  Whitespace@11..12 " "
+                  PreStmt@12..15
+                    KwPre@12..15 "pre"
+                  Whitespace@15..16 " "
+                  StmtList@16..16
+                  EndGroup@16..21
+                    KwEnd@16..19 "end"
+                    Whitespace@19..20 " "
+                    Identifier@20..21 "a"
+            error at 16..19: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -11821,24 +11821,24 @@ fn recover_proc_decl_safe_end() {
     check(
         "proc a pre end a",
         expect![[r#"
-        Source@0..16
-          StmtList@0..16
-            ProcDecl@0..16
-              ProcHeader@0..7
-                KwProcedure@0..4 "proc"
-                Whitespace@4..5 " "
-                Name@5..7
-                  Identifier@5..6 "a"
+            Source@0..16
+              StmtList@0..16
+                ProcDecl@0..16
+                  ProcHeader@0..6
+                    KwProcedure@0..4 "proc"
+                    Whitespace@4..5 " "
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Whitespace@6..7 " "
-              PreStmt@7..11
-                KwPre@7..10 "pre"
-                Whitespace@10..11 " "
-              StmtList@11..11
-              EndGroup@11..16
-                KwEnd@11..14 "end"
-                Whitespace@14..15 " "
-                Identifier@15..16 "a"
-        error at 11..14: expected expression, but found ‘end’"#]],
+                  PreStmt@7..10
+                    KwPre@7..10 "pre"
+                  Whitespace@10..11 " "
+                  StmtList@11..11
+                  EndGroup@11..16
+                    KwEnd@11..14 "end"
+                    Whitespace@14..15 " "
+                    Identifier@15..16 "a"
+            error at 11..14: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -11847,23 +11847,23 @@ fn recover_process_decl_safe_end() {
     check(
         "process a pre end a",
         expect![[r#"
-        Source@0..19
-          StmtList@0..19
-            ProcessDecl@0..19
-              KwProcess@0..7 "process"
-              Whitespace@7..8 " "
-              Name@8..10
-                Identifier@8..9 "a"
-                Whitespace@9..10 " "
-              PreStmt@10..14
-                KwPre@10..13 "pre"
-                Whitespace@13..14 " "
-              StmtList@14..14
-              EndGroup@14..19
-                KwEnd@14..17 "end"
-                Whitespace@17..18 " "
-                Identifier@18..19 "a"
-        error at 14..17: expected expression, but found ‘end’"#]],
+            Source@0..19
+              StmtList@0..19
+                ProcessDecl@0..19
+                  KwProcess@0..7 "process"
+                  Whitespace@7..8 " "
+                  Name@8..9
+                    Identifier@8..9 "a"
+                  Whitespace@9..10 " "
+                  PreStmt@10..13
+                    KwPre@10..13 "pre"
+                  Whitespace@13..14 " "
+                  StmtList@14..14
+                  EndGroup@14..19
+                    KwEnd@14..17 "end"
+                    Whitespace@17..18 " "
+                    Identifier@18..19 "a"
+            error at 14..17: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -11872,23 +11872,23 @@ fn recover_module_decl_safe_end() {
     check(
         "module a pre end a",
         expect![[r#"
-        Source@0..18
-          StmtList@0..18
-            ModuleDecl@0..18
-              KwModule@0..6 "module"
-              Whitespace@6..7 " "
-              Name@7..9
-                Identifier@7..8 "a"
-                Whitespace@8..9 " "
-              PreStmt@9..13
-                KwPre@9..12 "pre"
-                Whitespace@12..13 " "
-              StmtList@13..13
-              EndGroup@13..18
-                KwEnd@13..16 "end"
-                Whitespace@16..17 " "
-                Identifier@17..18 "a"
-        error at 13..16: expected expression, but found ‘end’"#]],
+            Source@0..18
+              StmtList@0..18
+                ModuleDecl@0..18
+                  KwModule@0..6 "module"
+                  Whitespace@6..7 " "
+                  Name@7..8
+                    Identifier@7..8 "a"
+                  Whitespace@8..9 " "
+                  PreStmt@9..12
+                    KwPre@9..12 "pre"
+                  Whitespace@12..13 " "
+                  StmtList@13..13
+                  EndGroup@13..18
+                    KwEnd@13..16 "end"
+                    Whitespace@16..17 " "
+                    Identifier@17..18 "a"
+            error at 13..16: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -11897,23 +11897,23 @@ fn recover_monitor_decl_safe_end() {
     check(
         "monitor a pre end a",
         expect![[r#"
-        Source@0..19
-          StmtList@0..19
-            MonitorDecl@0..19
-              KwMonitor@0..7 "monitor"
-              Whitespace@7..8 " "
-              Name@8..10
-                Identifier@8..9 "a"
-                Whitespace@9..10 " "
-              PreStmt@10..14
-                KwPre@10..13 "pre"
-                Whitespace@13..14 " "
-              StmtList@14..14
-              EndGroup@14..19
-                KwEnd@14..17 "end"
-                Whitespace@17..18 " "
-                Identifier@18..19 "a"
-        error at 14..17: expected expression, but found ‘end’"#]],
+            Source@0..19
+              StmtList@0..19
+                MonitorDecl@0..19
+                  KwMonitor@0..7 "monitor"
+                  Whitespace@7..8 " "
+                  Name@8..9
+                    Identifier@8..9 "a"
+                  Whitespace@9..10 " "
+                  PreStmt@10..13
+                    KwPre@10..13 "pre"
+                  Whitespace@13..14 " "
+                  StmtList@14..14
+                  EndGroup@14..19
+                    KwEnd@14..17 "end"
+                    Whitespace@17..18 " "
+                    Identifier@18..19 "a"
+            error at 14..17: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -11922,23 +11922,23 @@ fn recover_class_decl_safe_end() {
     check(
         "class a pre end a",
         expect![[r#"
-        Source@0..17
-          StmtList@0..17
-            ClassDecl@0..17
-              KwClass@0..5 "class"
-              Whitespace@5..6 " "
-              Name@6..8
-                Identifier@6..7 "a"
-                Whitespace@7..8 " "
-              PreStmt@8..12
-                KwPre@8..11 "pre"
-                Whitespace@11..12 " "
-              StmtList@12..12
-              EndGroup@12..17
-                KwEnd@12..15 "end"
-                Whitespace@15..16 " "
-                Identifier@16..17 "a"
-        error at 12..15: expected expression, but found ‘end’"#]],
+            Source@0..17
+              StmtList@0..17
+                ClassDecl@0..17
+                  KwClass@0..5 "class"
+                  Whitespace@5..6 " "
+                  Name@6..7
+                    Identifier@6..7 "a"
+                  Whitespace@7..8 " "
+                  PreStmt@8..11
+                    KwPre@8..11 "pre"
+                  Whitespace@11..12 " "
+                  StmtList@12..12
+                  EndGroup@12..17
+                    KwEnd@12..15 "end"
+                    Whitespace@15..16 " "
+                    Identifier@16..17 "a"
+            error at 12..15: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -11990,20 +11990,20 @@ fn recover_loop_stmt_safe_end() {
     check(
         "loop invariant end loop",
         expect![[r#"
-        Source@0..23
-          StmtList@0..23
-            LoopStmt@0..23
-              KwLoop@0..4 "loop"
-              Whitespace@4..5 " "
-              StmtList@5..15
-                InvariantStmt@5..15
-                  KwInvariant@5..14 "invariant"
+            Source@0..23
+              StmtList@0..23
+                LoopStmt@0..23
+                  KwLoop@0..4 "loop"
+                  Whitespace@4..5 " "
+                  StmtList@5..14
+                    InvariantStmt@5..14
+                      KwInvariant@5..14 "invariant"
                   Whitespace@14..15 " "
-              EndGroup@15..23
-                KwEnd@15..18 "end"
-                Whitespace@18..19 " "
-                KwLoop@19..23 "loop"
-        error at 15..18: expected expression, but found ‘end’"#]],
+                  EndGroup@15..23
+                    KwEnd@15..18 "end"
+                    Whitespace@18..19 " "
+                    KwLoop@19..23 "loop"
+            error at 15..18: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -12012,19 +12012,19 @@ fn recover_loop_stmt_safe_end_alt() {
     check(
         "loop invariant endloop",
         expect![[r#"
-        Source@0..22
-          StmtList@0..22
-            LoopStmt@0..22
-              KwLoop@0..4 "loop"
-              Whitespace@4..5 " "
-              StmtList@5..15
-                InvariantStmt@5..15
-                  KwInvariant@5..14 "invariant"
+            Source@0..22
+              StmtList@0..22
+                LoopStmt@0..22
+                  KwLoop@0..4 "loop"
+                  Whitespace@4..5 " "
+                  StmtList@5..14
+                    InvariantStmt@5..14
+                      KwInvariant@5..14 "invariant"
                   Whitespace@14..15 " "
-              EndGroup@15..22
-                KwEndLoop@15..22 "endloop"
-        error at 15..22: expected expression, but found ‘endloop’
-        warn at 15..22: ‘endloop’ found, assuming it to be ’end loop’"#]],
+                  EndGroup@15..22
+                    KwEndLoop@15..22 "endloop"
+            error at 15..22: expected expression, but found ‘endloop’
+            warn at 15..22: ‘endloop’ found, assuming it to be ’end loop’"#]],
     );
 }
 
@@ -12033,27 +12033,27 @@ fn recover_if_stmt_safe_end() {
     check(
         "if a then assert end if",
         expect![[r#"
-        Source@0..23
-          StmtList@0..23
-            IfStmt@0..23
-              KwIf@0..2 "if"
-              Whitespace@2..3 " "
-              IfBody@3..17
-                NameExpr@3..5
-                  Name@3..5
-                    Identifier@3..4 "a"
+            Source@0..23
+              StmtList@0..23
+                IfStmt@0..23
+                  KwIf@0..2 "if"
+                  Whitespace@2..3 " "
+                  IfBody@3..16
+                    NameExpr@3..4
+                      Name@3..4
+                        Identifier@3..4 "a"
                     Whitespace@4..5 " "
-                KwThen@5..9 "then"
-                Whitespace@9..10 " "
-                StmtList@10..17
-                  AssertStmt@10..17
-                    KwAssert@10..16 "assert"
-                    Whitespace@16..17 " "
-              EndGroup@17..23
-                KwEnd@17..20 "end"
-                Whitespace@20..21 " "
-                KwIf@21..23 "if"
-        error at 17..20: expected expression, but found ‘end’"#]],
+                    KwThen@5..9 "then"
+                    Whitespace@9..10 " "
+                    StmtList@10..16
+                      AssertStmt@10..16
+                        KwAssert@10..16 "assert"
+                  Whitespace@16..17 " "
+                  EndGroup@17..23
+                    KwEnd@17..20 "end"
+                    Whitespace@20..21 " "
+                    KwIf@21..23 "if"
+            error at 17..20: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -12062,26 +12062,26 @@ fn recover_if_stmt_safe_end_alt() {
     check(
         "if a then assert endif",
         expect![[r#"
-        Source@0..22
-          StmtList@0..22
-            IfStmt@0..22
-              KwIf@0..2 "if"
-              Whitespace@2..3 " "
-              IfBody@3..17
-                NameExpr@3..5
-                  Name@3..5
-                    Identifier@3..4 "a"
+            Source@0..22
+              StmtList@0..22
+                IfStmt@0..22
+                  KwIf@0..2 "if"
+                  Whitespace@2..3 " "
+                  IfBody@3..16
+                    NameExpr@3..4
+                      Name@3..4
+                        Identifier@3..4 "a"
                     Whitespace@4..5 " "
-                KwThen@5..9 "then"
-                Whitespace@9..10 " "
-                StmtList@10..17
-                  AssertStmt@10..17
-                    KwAssert@10..16 "assert"
-                    Whitespace@16..17 " "
-              EndGroup@17..22
-                KwEndIf@17..22 "endif"
-        error at 17..22: expected expression, but found ‘endif’
-        warn at 17..22: ‘endif’ found, assuming it to be ’end if’"#]],
+                    KwThen@5..9 "then"
+                    Whitespace@9..10 " "
+                    StmtList@10..16
+                      AssertStmt@10..16
+                        KwAssert@10..16 "assert"
+                  Whitespace@16..17 " "
+                  EndGroup@17..22
+                    KwEndIf@17..22 "endif"
+            error at 17..22: expected expression, but found ‘endif’
+            warn at 17..22: ‘endif’ found, assuming it to be ’end if’"#]],
     );
 }
 
@@ -12090,27 +12090,27 @@ fn recover_elsif_stmt_safe_end() {
     check(
         "elsif a then assert end if",
         expect![[r#"
-        Source@0..26
-          StmtList@0..26
-            ElseifStmt@0..26
-              KwElsif@0..5 "elsif"
-              Whitespace@5..6 " "
-              IfBody@6..20
-                NameExpr@6..8
-                  Name@6..8
-                    Identifier@6..7 "a"
+            Source@0..26
+              StmtList@0..26
+                ElseifStmt@0..26
+                  KwElsif@0..5 "elsif"
+                  Whitespace@5..6 " "
+                  IfBody@6..19
+                    NameExpr@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                     Whitespace@7..8 " "
-                KwThen@8..12 "then"
-                Whitespace@12..13 " "
-                StmtList@13..20
-                  AssertStmt@13..20
-                    KwAssert@13..19 "assert"
-                    Whitespace@19..20 " "
-              EndGroup@20..26
-                KwEnd@20..23 "end"
-                Whitespace@23..24 " "
-                KwIf@24..26 "if"
-        error at 20..23: expected expression, but found ‘end’"#]],
+                    KwThen@8..12 "then"
+                    Whitespace@12..13 " "
+                    StmtList@13..19
+                      AssertStmt@13..19
+                        KwAssert@13..19 "assert"
+                  Whitespace@19..20 " "
+                  EndGroup@20..26
+                    KwEnd@20..23 "end"
+                    Whitespace@23..24 " "
+                    KwIf@24..26 "if"
+            error at 20..23: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -12119,26 +12119,26 @@ fn recover_elsif_stmt_safe_end_alt() {
     check(
         "elsif a then assert endif",
         expect![[r#"
-        Source@0..25
-          StmtList@0..25
-            ElseifStmt@0..25
-              KwElsif@0..5 "elsif"
-              Whitespace@5..6 " "
-              IfBody@6..20
-                NameExpr@6..8
-                  Name@6..8
-                    Identifier@6..7 "a"
+            Source@0..25
+              StmtList@0..25
+                ElseifStmt@0..25
+                  KwElsif@0..5 "elsif"
+                  Whitespace@5..6 " "
+                  IfBody@6..19
+                    NameExpr@6..7
+                      Name@6..7
+                        Identifier@6..7 "a"
                     Whitespace@7..8 " "
-                KwThen@8..12 "then"
-                Whitespace@12..13 " "
-                StmtList@13..20
-                  AssertStmt@13..20
-                    KwAssert@13..19 "assert"
-                    Whitespace@19..20 " "
-              EndGroup@20..25
-                KwEndIf@20..25 "endif"
-        error at 20..25: expected expression, but found ‘endif’
-        warn at 20..25: ‘endif’ found, assuming it to be ’end if’"#]],
+                    KwThen@8..12 "then"
+                    Whitespace@12..13 " "
+                    StmtList@13..19
+                      AssertStmt@13..19
+                        KwAssert@13..19 "assert"
+                  Whitespace@19..20 " "
+                  EndGroup@20..25
+                    KwEndIf@20..25 "endif"
+            error at 20..25: expected expression, but found ‘endif’
+            warn at 20..25: ‘endif’ found, assuming it to be ’end if’"#]],
     );
 }
 
@@ -12147,20 +12147,20 @@ fn recover_else_stmt_safe_end() {
     check(
         "else assert end if",
         expect![[r#"
-        Source@0..18
-          StmtList@0..18
-            ElseStmt@0..18
-              KwElse@0..4 "else"
-              Whitespace@4..5 " "
-              StmtList@5..12
-                AssertStmt@5..12
-                  KwAssert@5..11 "assert"
+            Source@0..18
+              StmtList@0..18
+                ElseStmt@0..18
+                  KwElse@0..4 "else"
+                  Whitespace@4..5 " "
+                  StmtList@5..11
+                    AssertStmt@5..11
+                      KwAssert@5..11 "assert"
                   Whitespace@11..12 " "
-              EndGroup@12..18
-                KwEnd@12..15 "end"
-                Whitespace@15..16 " "
-                KwIf@16..18 "if"
-        error at 12..15: expected expression, but found ‘end’"#]],
+                  EndGroup@12..18
+                    KwEnd@12..15 "end"
+                    Whitespace@15..16 " "
+                    KwIf@16..18 "if"
+            error at 12..15: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -12169,19 +12169,19 @@ fn recover_else_stmt_safe_end_alt() {
     check(
         "else assert endif",
         expect![[r#"
-        Source@0..17
-          StmtList@0..17
-            ElseStmt@0..17
-              KwElse@0..4 "else"
-              Whitespace@4..5 " "
-              StmtList@5..12
-                AssertStmt@5..12
-                  KwAssert@5..11 "assert"
+            Source@0..17
+              StmtList@0..17
+                ElseStmt@0..17
+                  KwElse@0..4 "else"
+                  Whitespace@4..5 " "
+                  StmtList@5..11
+                    AssertStmt@5..11
+                      KwAssert@5..11 "assert"
                   Whitespace@11..12 " "
-              EndGroup@12..17
-                KwEndIf@12..17 "endif"
-        error at 12..17: expected expression, but found ‘endif’
-        warn at 12..17: ‘endif’ found, assuming it to be ’end if’"#]],
+                  EndGroup@12..17
+                    KwEndIf@12..17 "endif"
+            error at 12..17: expected expression, but found ‘endif’
+            warn at 12..17: ‘endif’ found, assuming it to be ’end if’"#]],
     );
 }
 
@@ -12190,27 +12190,27 @@ fn recover_case_stmt_safe_end() {
     check(
         "case a of label end case",
         expect![[r#"
-        Source@0..24
-          StmtList@0..24
-            CaseStmt@0..24
-              KwCase@0..4 "case"
-              Whitespace@4..5 " "
-              NameExpr@5..7
-                Name@5..7
-                  Identifier@5..6 "a"
+            Source@0..24
+              StmtList@0..24
+                CaseStmt@0..24
+                  KwCase@0..4 "case"
+                  Whitespace@4..5 " "
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Whitespace@6..7 " "
-              KwOf@7..9 "of"
-              Whitespace@9..10 " "
-              CaseArm@10..16
-                KwLabel@10..15 "label"
-                Whitespace@15..16 " "
-                ExprList@16..16
-                StmtList@16..16
-              EndGroup@16..24
-                KwEnd@16..19 "end"
-                Whitespace@19..20 " "
-                KwCase@20..24 "case"
-        error at 16..19: expected expression, but found ‘end’"#]],
+                  KwOf@7..9 "of"
+                  Whitespace@9..10 " "
+                  CaseArm@10..16
+                    KwLabel@10..15 "label"
+                    Whitespace@15..16 " "
+                    ExprList@16..16
+                    StmtList@16..16
+                  EndGroup@16..24
+                    KwEnd@16..19 "end"
+                    Whitespace@19..20 " "
+                    KwCase@20..24 "case"
+            error at 16..19: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -12219,26 +12219,26 @@ fn recover_case_stmt_safe_alt_end() {
     check(
         "case a of label endcase",
         expect![[r#"
-        Source@0..23
-          StmtList@0..23
-            CaseStmt@0..23
-              KwCase@0..4 "case"
-              Whitespace@4..5 " "
-              NameExpr@5..7
-                Name@5..7
-                  Identifier@5..6 "a"
+            Source@0..23
+              StmtList@0..23
+                CaseStmt@0..23
+                  KwCase@0..4 "case"
+                  Whitespace@4..5 " "
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "a"
                   Whitespace@6..7 " "
-              KwOf@7..9 "of"
-              Whitespace@9..10 " "
-              CaseArm@10..16
-                KwLabel@10..15 "label"
-                Whitespace@15..16 " "
-                ExprList@16..16
-                StmtList@16..16
-              EndGroup@16..23
-                KwEndCase@16..23 "endcase"
-        error at 16..23: expected expression, but found ‘endcase’
-        warn at 16..23: ‘endcase’ found, assuming it to be ’end case’"#]],
+                  KwOf@7..9 "of"
+                  Whitespace@9..10 " "
+                  CaseArm@10..16
+                    KwLabel@10..15 "label"
+                    Whitespace@15..16 " "
+                    ExprList@16..16
+                    StmtList@16..16
+                  EndGroup@16..23
+                    KwEndCase@16..23 "endcase"
+            error at 16..23: expected expression, but found ‘endcase’
+            warn at 16..23: ‘endcase’ found, assuming it to be ’end case’"#]],
     );
 }
 
@@ -12247,18 +12247,18 @@ fn recover_block_stmt_safe_end() {
     check(
         "begin assert end",
         expect![[r#"
-        Source@0..16
-          StmtList@0..16
-            BlockStmt@0..16
-              KwBegin@0..5 "begin"
-              Whitespace@5..6 " "
-              StmtList@6..13
-                AssertStmt@6..13
-                  KwAssert@6..12 "assert"
+            Source@0..16
+              StmtList@0..16
+                BlockStmt@0..16
+                  KwBegin@0..5 "begin"
+                  Whitespace@5..6 " "
+                  StmtList@6..12
+                    AssertStmt@6..12
+                      KwAssert@6..12 "assert"
                   Whitespace@12..13 " "
-              EndGroup@13..16
-                KwEnd@13..16 "end"
-        error at 13..16: expected expression, but found ‘end’"#]],
+                  EndGroup@13..16
+                    KwEnd@13..16 "end"
+            error at 13..16: expected expression, but found ‘end’"#]],
     );
 }
 
@@ -12267,25 +12267,25 @@ fn recover_handler_stmt_safe_end() {
     check(
         "handler (a) assert end handler",
         expect![[r#"
-        Source@0..30
-          StmtList@0..30
-            HandlerStmt@0..30
-              KwHandler@0..7 "handler"
-              Whitespace@7..8 " "
-              LeftParen@8..9 "("
-              Name@9..10
-                Identifier@9..10 "a"
-              RightParen@10..11 ")"
-              Whitespace@11..12 " "
-              StmtList@12..19
-                AssertStmt@12..19
-                  KwAssert@12..18 "assert"
+            Source@0..30
+              StmtList@0..30
+                HandlerStmt@0..30
+                  KwHandler@0..7 "handler"
+                  Whitespace@7..8 " "
+                  LeftParen@8..9 "("
+                  Name@9..10
+                    Identifier@9..10 "a"
+                  RightParen@10..11 ")"
+                  Whitespace@11..12 " "
+                  StmtList@12..18
+                    AssertStmt@12..18
+                      KwAssert@12..18 "assert"
                   Whitespace@18..19 " "
-              EndGroup@19..30
-                KwEnd@19..22 "end"
-                Whitespace@22..23 " "
-                KwHandler@23..30 "handler"
-        error at 19..22: expected expression, but found ‘end’"#]],
+                  EndGroup@19..30
+                    KwEnd@19..22 "end"
+                    Whitespace@22..23 " "
+                    KwHandler@23..30 "handler"
+            error at 19..22: expected expression, but found ‘end’"#]],
     );
 }
 
