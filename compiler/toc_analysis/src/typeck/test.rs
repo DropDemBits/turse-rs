@@ -46,6 +46,7 @@ fn do_typecheck(source: &str) -> String {
 
     let unit = unit_map.get_unit(hir_res.id);
     let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
+    crate::const_eval::collect_const_vars(unit, const_eval_ctx.clone());
     let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit, const_eval_ctx);
 
     stringify_typeck_results(&ty_ctx, &typeck_messages)
@@ -333,6 +334,10 @@ test_named_group! {
         literal => r#"var _ : char(1)"#,
         // trip through negatives shouldn't affect anything
         simple_expr => r#"var _ : char(1 - 1 * 1 + 2)"#,
+        indirect_expr => r#"
+        const N := 1
+        var _ : char(N)
+        "#,
         zero_sized => r#"var _ : char(0)"#,
         max_sized => r#"var _ : char(32768)"#,
         wrong_type => r#"var _ : char(1.0)"#,
@@ -347,6 +352,10 @@ test_named_group! {
         literal => r#"var _ : string(1)"#,
         // trip through negatives shouldn't affect anything
         simple_expr => r#"var _ : string(1 - 1 * 1 + 2)"#,
+        indirect_expr => r#"
+        const N := 1
+        var _ : string(N)
+        "#,
         zero_sized => r#"var _ : string(0)"#,
         max_sized => r#"var _ : string(256)"#,
         over_sized => r#"var _ : string(512)"#,

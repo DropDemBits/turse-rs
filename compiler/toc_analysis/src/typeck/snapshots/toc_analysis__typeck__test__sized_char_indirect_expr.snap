@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const N := 1\nvar _ : char(N)\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(CharN(Fixed(1)))
+def_kinds:
+    DefId(0) Const(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(CharN(Fixed(1))))
