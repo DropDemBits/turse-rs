@@ -13,9 +13,9 @@ use toc_span::Spanned;
 use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, RestrictType};
 use crate::ty::{self, DefKind, TyCtx, TyRef};
 
-// ???: Can we build up a type ctx without doing type propogation?
-// Type propogation is inferring of types from inputs
-// E.g. this stmt involves some type propogation
+// ???: Can we build up a type ctx without doing type propagation?
+// Type propagation is inferring of types from inputs
+// E.g. this stmt involves some type propagation
 // ```ignore
 // const k := 3
 // ```
@@ -100,12 +100,12 @@ impl<'a> TypeCheck<'a> {
         };
 
         if let stmt::ConstVarTail::Both(ty_spec, init_expr) = &decl.tail {
-            let lvalue_ty = self.ty_ctx.get_type(*ty_spec).unwrap();
+            let l_value_ty = self.ty_ctx.get_type(*ty_spec).unwrap();
 
-            let rvalue_eval = *self.eval_kinds.get(init_expr).unwrap();
-            let rvalue_ty = self.require_expr_ty(rvalue_eval);
+            let r_value_eval = *self.eval_kinds.get(init_expr).unwrap();
+            let r_value_ty = self.require_expr_ty(r_value_eval);
 
-            if let Some(false) = ty::rules::is_ty_assignable_to(lvalue_ty, rvalue_ty) {
+            if let Some(false) = ty::rules::is_ty_assignable_to(l_value_ty, r_value_ty) {
                 // Incompatible, report it
                 let init_span = self.unit.database.expr_nodes.spans[init_expr];
                 let spec_span = self.unit.database.type_nodes.spans[ty_spec];
@@ -149,7 +149,7 @@ impl<'a> TypeCheck<'a> {
         let (_l_value, l_value_eval) = self.lookup_eval_kind(stmt.lhs);
         let (_r_value, r_value_eval) = self.lookup_eval_kind(stmt.rhs);
 
-        // Check if we can even assign into the lvalue (i.e. is lhs mutable)
+        // Check if we can even assign into the l_value (i.e. is lhs mutable)
         let l_value_ty = if let Some(ty) = l_value_eval.as_mut_ref_ty() {
             ty
         } else {
@@ -217,7 +217,7 @@ impl<'a> TypeCheck<'a> {
         // TODO: do full binexpr typechecks
         let ty = self.type_check_binary_op(expr.lhs, expr.op, expr.rhs);
 
-        // Post binexpr type
+        // Post binary expr type
         let ty = self.ty_ctx.add_type(ty);
         self.eval_kinds.insert(id, EvalKind::Value(ty));
     }
@@ -225,7 +225,7 @@ impl<'a> TypeCheck<'a> {
     fn typeck_unary(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Unary) {
         let ty = self.type_check_unary_op(expr.op, expr.rhs);
 
-        // Post unexpr type
+        // Post unary expr type
         let ty = self.ty_ctx.add_type(ty);
         self.eval_kinds.insert(id, EvalKind::Value(ty));
     }
@@ -268,7 +268,7 @@ impl<'a> TypeCheck<'a> {
             def_kind
         };
 
-        // Evalutes to a reference
+        // Evaluates to a reference
         self.eval_kinds.insert(id, EvalKind::Ref(eval_ty));
     }
 

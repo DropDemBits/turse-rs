@@ -188,7 +188,7 @@ impl LiteralExpr {
                         let start_slice = radix_slice.len() + 1 + err.index;
                         let end_slice = start_slice + 1;
 
-                        // Chars are guarranteed to be in the ascii range
+                        // Chars are guaranteed to be in the ascii range
                         assert!(text.get(start_slice..end_slice).is_some());
 
                         LiteralParseError::IntRadixInvalidDigit(start_slice, end_slice)
@@ -410,7 +410,7 @@ impl<'a> CharSeqExtractor<'a> {
 
                 // Convert to character & check if it's in range
                 // Since we're only feeding in chars that are 0..7 and only octal values up to
-                // 777 (decimal 512), parsing should be infalliable
+                // 777 (decimal 512), parsing should be infallible
                 let chr_value = lexical::parse_radix::<u16, _>(digits, 8).unwrap();
 
                 if let Ok(chr) = u8::try_from(chr_value) {
@@ -464,7 +464,7 @@ impl<'a> CharSeqExtractor<'a> {
 
                 // Convert to character value & push it
                 // Since we're only feeding in chars that are '0'..'F' and only hex values up to
-                // `u8::MAX`, parsing should be infalliable
+                // `u8::MAX`, parsing should be infallible
                 let chr_value = lexical::parse_radix::<u8, _>(digits, 16).unwrap();
                 self.push(chr_value as char);
             }
@@ -505,7 +505,7 @@ impl<'a> CharSeqExtractor<'a> {
 
                 // Convert to Unicode codepoint
                 // Since we're only feeding in chars that are '0'..'F' and only hex values up to
-                // `u32::MAX`, parsing should be infalliable
+                // `u32::MAX`, parsing should be infallible
                 let codepoint = lexical::parse_radix::<u32, _>(digits, 16).unwrap();
 
                 // Try to convert codepoint into a `char`

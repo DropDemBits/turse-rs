@@ -19,7 +19,7 @@ pub struct MismatchedUnaryTypes {
 }
 
 /// Returns `Some(is_assignable)`, or `None` if either type is `ty::Error`
-pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
+pub fn is_ty_assignable_to(l_value_ty: TyRef, r_value_ty: TyRef) -> Option<bool> {
     /// Maximum length of a `string`
     const MAX_STRING_LEN: u32 = 256;
 
@@ -68,8 +68,8 @@ pub fn is_ty_assignable_to(lvalue_ty: TyRef, rvalue_ty: TyRef) -> Option<bool> {
     // | String [runtime checked]
     //
 
-    let is_assignable = match (&*lvalue_ty, &*rvalue_ty) {
-        // Short-circuting error types
+    let is_assignable = match (&*l_value_ty, &*r_value_ty) {
+        // Short-circuiting error types
         (Type::Error, _) | (_, Type::Error) => return None,
 
         // Boolean types are assignable to each other
@@ -168,7 +168,7 @@ pub fn check_binary_operands(
 
     fn check_arithmetic_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
         match (lhs_ty, rhs_ty) {
-            // Pass through integer inferrence
+            // Pass through integer inference
             (Type::Integer, Type::Integer) => Some(Type::Integer),
 
             // Normal operands
@@ -188,7 +188,7 @@ pub fn check_binary_operands(
     fn check_bitwise_operands(lhs_ty: &Type, rhs_ty: &Type) -> Option<Type> {
         match (lhs_ty, rhs_ty) {
             // Normal operands
-            // Integer inferrence is not passed through
+            // Integer inference is not passed through
             (lhs, rhs) if is_integer(lhs) && is_integer(rhs) => Some(Type::Nat(NatSize::Nat)),
             _ => None,
         }
@@ -259,7 +259,7 @@ pub fn check_binary_operands(
             // - Integer division (number, number => integer)
 
             match (&*lhs_ty, &*rhs_ty) {
-                // Pass through type inferrence
+                // Pass through type inference
                 (Type::Integer, Type::Integer) => Ok(Type::Integer),
                 (operand, Type::Nat(_)) | (Type::Nat(_), operand) if is_nat(operand) => {
                     Ok(Type::Nat(NatSize::Nat))
@@ -302,7 +302,7 @@ pub fn check_binary_operands(
         }
         expr::BinaryOp::Exp => {
             // Operations:
-            // - Exponation (number, number => number)
+            // - Exponentiation (number, number => number)
 
             if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
                 // Exponentiation
@@ -414,8 +414,8 @@ pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut 
         expr::BinaryOp::Mul => "multiplication",
         expr::BinaryOp::Div => "integer division",
         expr::BinaryOp::RealDiv => "real division",
-        expr::BinaryOp::Mod => "moduluo",
-        expr::BinaryOp::Rem => "remaindor",
+        expr::BinaryOp::Mod => "modulus",
+        expr::BinaryOp::Rem => "remainder",
         expr::BinaryOp::Exp => "exponentiation",
         expr::BinaryOp::And => "`and`",
         expr::BinaryOp::Or => "`or`",
@@ -514,7 +514,7 @@ pub fn check_unary_operands(
         }
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
             match rhs_ty {
-                // Pass through integer inferrence
+                // Pass through integer inference
                 Type::Integer => Ok(Type::Integer),
 
                 // Normal operands

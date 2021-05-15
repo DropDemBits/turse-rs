@@ -1,5 +1,5 @@
 //! Lowering implementation.
-//! Fragmentend into submodules by node class
+//! Fragmented into submodules by node class
 #![allow(clippy::unnecessary_wraps)] // Top level lowering points also return Option
 
 mod expr;

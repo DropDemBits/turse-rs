@@ -44,7 +44,7 @@ impl<'t, 'src> Source<'t, 'src> {
         self.tokens.get(cursor)
     }
 
-    /// Skips over all triva tokens
+    /// Skips over all trivia tokens
     fn skip_trivia(&mut self) {
         while self.at_trivia(self.cursor) {
             self.cursor += 1;

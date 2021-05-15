@@ -220,7 +220,7 @@ pub struct PutItem {
     pub expr: expr::ExprIdx,
     /// The minimum printing width.
     pub width: Option<expr::ExprIdx>,
-    /// The amount of decimials put for `real*` types.
+    /// The amount of decimals put for `real*` types.
     pub precision: Option<expr::ExprIdx>,
     /// The minimum printing width for exponents of `real*` types.
     pub exponent_width: Option<expr::ExprIdx>,
@@ -247,7 +247,7 @@ impl PutItem {
         }
     }
 
-    /// Constructs a new `PutItem` with the `precision` argument, and any prerequesite arguments.
+    /// Constructs a new `PutItem` with the `precision` argument, and any prerequisite arguments.
     pub fn with_precision(
         expr: expr::ExprIdx,
         width: expr::ExprIdx,
@@ -261,7 +261,7 @@ impl PutItem {
         }
     }
 
-    /// Constructs a new `PutItem` with the `exponent_width` argument, and any prerequesite arguments.
+    /// Constructs a new `PutItem` with the `exponent_width` argument, and any prerequisite arguments.
     pub fn with_exponent_width(
         expr: expr::ExprIdx,
         width: expr::ExprIdx,

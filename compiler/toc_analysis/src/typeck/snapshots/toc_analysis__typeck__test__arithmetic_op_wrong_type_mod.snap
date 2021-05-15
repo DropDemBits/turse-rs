@@ -20,17 +20,17 @@ def_kinds:
     DefId(8) Var(TyRef(Error))
     DefId(9) Var(TyRef(Error))
     DefId(10) Var(TyRef(Error))
-error at 87..90: incompatible types for moduluo
+error at 87..90: incompatible types for modulus
 | info: operands must both be numbers
-error at 110..113: incompatible types for moduluo
+error at 110..113: incompatible types for modulus
 | info: operands must both be numbers
-error at 133..136: incompatible types for moduluo
+error at 133..136: incompatible types for modulus
 | info: operands must both be numbers
-error at 156..159: incompatible types for moduluo
+error at 156..159: incompatible types for modulus
 | info: operands must both be numbers
-error at 179..182: incompatible types for moduluo
+error at 179..182: incompatible types for modulus
 | info: operands must both be numbers
-error at 202..205: incompatible types for moduluo
+error at 202..205: incompatible types for modulus
 | info: operands must both be numbers
-error at 225..228: incompatible types for moduluo
+error at 225..228: incompatible types for modulus
 | info: operands must both be numbers

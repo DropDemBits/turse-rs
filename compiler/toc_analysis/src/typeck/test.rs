@@ -99,7 +99,7 @@ fn undeclared_symbol() {
 
 #[test]
 fn typecheck_error_prop() {
-    // Only one error should be reported, propogated error supresses the rest
+    // Only one error should be reported, propagated error suppresses the rest
     assert_typecheck(&unindent(
         r#"
     var a : int
@@ -123,7 +123,7 @@ test_for_each_op! {
         ("rem", rem),
         ("**", exp),
     ] => r#"
-    % Compatiblitly with all variant of numbers
+    % Compatibility with all variant of numbers
     var r : real
     var i : int
     var n : nat
@@ -192,7 +192,7 @@ test_for_each_op! {
         ("shl", shl),
         ("shr", shr),
     ] => r#"
-    % Compatiblitly with all variant of integers
+    % Compatibility with all variant of integers
     var i : int
     var n : nat
     var _ii := i {0} i
@@ -203,7 +203,7 @@ test_for_each_op! {
     [
         ("not", not),
     ] => r#"
-    % Compatiblitly with all variant of integers
+    % Compatibility with all variant of integers
     var i : int
     var n : nat
     var _i := {0} i
@@ -248,14 +248,14 @@ test_for_each_op! {
         ("or", or),
         ("=>", imply),
     ] => r#"
-    % Compatiblitly with booleans
+    % Compatibility with booleans
     var b : boolean
     var _bb := b {0} b
 "#,
     [
         ("not", not),
     ] => r#"
-    % Compatiblitly with booleans
+    % Compatibility with booleans
     var b : boolean
     var _b := {0} b
 "#
@@ -286,7 +286,7 @@ test_for_each_op! {
 
 // Test integer inference for all compatible operators
 test_for_each_op! {
-    integer_inferrence,
+    integer_inference,
     [
         ("+", add),
         ("-", sub),
@@ -593,7 +593,7 @@ test_named_group! {
         var _v01 : string(N) := c1
         var _v02 : string(N) := s1
         var _v03 : string(N) := s % runtime checked
-        var _v04 : string(N) := s5 % rutime checked
+        var _v04 : string(N) := s5 % runtime checked
         "#,
         r#string_1_err => r#"
         const N := 1

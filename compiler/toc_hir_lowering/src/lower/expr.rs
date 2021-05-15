@@ -11,7 +11,7 @@ impl super::LoweringCtx {
         if let Some(expr) = expr {
             self.lower_expr(expr)
         } else {
-            // Allocate a generice span
+            // Allocate a generic span
             self.database
                 .expr_nodes
                 .alloc_spanned(expr::Expr::Missing, Default::default())

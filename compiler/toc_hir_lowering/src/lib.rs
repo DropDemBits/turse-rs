@@ -14,7 +14,7 @@
 // ----
 // Once all deps are parsed, then lower into HIR for all of them
 //
-// FileDB should only care about giving unique file handes corresponding to text sources.
+// FileDB should only care about giving unique file handles corresponding to text sources.
 // Other DBs will deal with what they map to (e.g. a separate DB managing all of the CSTs)
 
 mod lower;

@@ -454,8 +454,8 @@ fn error_no_const_expr() {
 }
 
 #[test]
-fn error_propogation() {
-    // Propogation of errors
+fn error_propagation() {
+    // Propagation of errors
     assert_const_eval(&unindent(
         r#"
     const a := 1 div 0
