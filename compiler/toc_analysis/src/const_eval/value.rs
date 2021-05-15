@@ -1,5 +1,7 @@
 //! Compile-time values
 
+use toc_span::TextRange;
+
 use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt, RestrictType};
 
 #[derive(Debug, Clone)]
@@ -13,18 +15,20 @@ pub enum ConstValue {
 }
 
 impl ConstValue {
-    /// Unwraps a `ConstValue` into the corresponding `ConstInt`
+    /// Unwraps a `ConstValue` into the corresponding `ConstInt`.
+    ///
+    /// The span provided is for reporting conversion errors
     ///
     /// ## Returns
     /// If `self` is a `ConstValue::Integer`, returns the corresponding ConstInt value.
     /// Otherwise, returns `ConstError::WrongType`.
-    pub fn into_int(self) -> Result<ConstInt, ConstError> {
+    pub fn into_int(self, span: TextRange) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
-            _ => Err(ConstError::new(ErrorKind::WrongResultType(
-                self,
-                RestrictType::Integer,
-            ))),
+            _ => Err(ConstError::new(
+                ErrorKind::WrongResultType(self, RestrictType::Integer),
+                span,
+            )),
         }
     }
 
@@ -45,7 +49,7 @@ impl ConstValue {
     pub(super) fn cast_into_int(self) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
-            _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
         }
     }
 
@@ -59,7 +63,7 @@ impl ConstValue {
         match self {
             ConstValue::Integer(v) => Ok(v.into_f64()),
             ConstValue::Real(v) => Ok(v),
-            _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
         }
     }
 
@@ -71,7 +75,7 @@ impl ConstValue {
     pub(super) fn cast_into_bool(self) -> Result<bool, ConstError> {
         match self {
             ConstValue::Bool(v) => Ok(v),
-            _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
         }
     }
 }

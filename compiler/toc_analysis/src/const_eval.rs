@@ -15,7 +15,6 @@ use std::{
 use indexmap::IndexMap;
 use toc_hir::Unit;
 use toc_hir::{expr, symbol::GlobalDefId, UnitId, UnitMap};
-use toc_span::Spanned;
 
 pub use errors::ConstError;
 pub use integer::ConstInt;
@@ -25,7 +24,7 @@ use errors::ErrorKind;
 use ops::ConstOp;
 
 /// A constant evaluation result, with the error containing a span associated with the error
-pub type ConstResult<T> = Result<T, Spanned<ConstError>>;
+pub type ConstResult<T> = Result<T, ConstError>;
 
 /// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
 pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
@@ -206,14 +205,14 @@ impl InnerCtx {
             State::Value(v) => return Ok(v.clone()),
             State::Error(_) => {
                 // Error should already be reported
-                return Err(Spanned::new(ConstError::reported(), span));
+                return Err(ConstError::reported(span));
             }
             State::Evaluating => {
                 // Encountered an evaluation cycle, update the evaluation state
-                let err = ConstError::new(ErrorKind::EvalCycle);
+                let err = ConstError::new(ErrorKind::EvalCycle, span);
                 self.eval_infos[expr.id].state = State::Error(err.clone());
 
-                return Err(Spanned::new(err, span));
+                return Err(err);
             }
             State::Unevaluated => (),
         };
@@ -224,15 +223,15 @@ impl InnerCtx {
         match result {
             Ok(v) => Ok(v),
             Err(err) => {
-                let err = if let ErrorKind::Reported = err.item().kind() {
+                let err = if let ErrorKind::Reported = err.kind() {
                     // Adjust the report location to the current expr
-                    Spanned::new(err.item().clone(), span)
+                    ConstError::reported(span)
                 } else {
                     err
                 };
 
                 // Update the eval state with the corresponding error
-                self.eval_infos[expr.id].state = State::Error(err.item().clone());
+                self.eval_infos[expr.id].state = State::Error(err.clone());
 
                 Err(err)
             }
@@ -251,7 +250,7 @@ impl InnerCtx {
                 .symbol_table
                 .get_def_span(def_id);
 
-            Spanned::new(ConstError::new(ErrorKind::NoConstExpr(span)), span)
+            ConstError::new(ErrorKind::NoConstExpr(span), span)
         })?;
 
         self.eval_expr(const_expr)
@@ -273,7 +272,7 @@ impl InnerCtx {
         // Update the evaluation state to catch any evaluation cycles
         self.eval_infos[const_expr.id].state = State::Evaluating;
 
-        // Do the actual evaluation, as a stack maching
+        // Do the actual evaluation, as a stack machine
         let mut eval_stack = vec![Eval::Expr(root_expr)];
         let mut operand_stack = vec![];
 
@@ -284,7 +283,7 @@ impl InnerCtx {
                     // Perform operation
                     let result = op
                         .evaluate(&mut operand_stack, allow_64bit_ops)
-                        .map_err(|err| Spanned::new(err, span))?;
+                        .map_err(|err| err.change_span(span))?;
                     operand_stack.push(result);
                     continue;
                 }
@@ -302,21 +301,18 @@ impl InnerCtx {
             match &unit.database[local_expr] {
                 expr::Expr::Missing => {
                     // Bail out
-                    return Err(Spanned::new(
-                        ConstError::new(ErrorKind::MissingExpr),
-                        expr_span,
-                    ));
+                    return Err(ConstError::new(ErrorKind::MissingExpr, expr_span));
                 }
                 expr::Expr::Literal(expr) => {
                     // ???: How to deal with 32-bit vs 64-bit integers?
                     // - Could yoink info from somewhere?
                     // - Only need to know if ops need to be done in either 32 or 64 bit mode
 
-                    // Convert into a Constvalue
+                    // Convert into a ConstValue
                     let operand = match expr {
                         expr::Literal::Integer(v) => {
                             let v = ConstInt::from_unsigned(*v, allow_64bit_ops)
-                                .map_err(|err| Spanned::new(err, expr_span))?;
+                                .map_err(|err| err.change_span(expr_span))?;
                             ConstValue::Integer(v)
                         }
                         expr::Literal::Real(v) => ConstValue::Real(*v),
@@ -356,9 +352,9 @@ impl InnerCtx {
 
                             // Eval var
                             let value = self.eval_var(global_def).map_err(|err| {
-                                if let ErrorKind::NoConstExpr(_) = err.item().kind() {
+                                if let ErrorKind::NoConstExpr(_) = err.kind() {
                                     // Change the span to reflect the use
-                                    Spanned::new(err.item().clone(), expr_span)
+                                    err.change_span(expr_span)
                                 } else {
                                     // Keep as-is
                                     err
@@ -371,8 +367,8 @@ impl InnerCtx {
                         expr::Name::Self_ => {
                             // Never a const expr
                             // TODO: Use the self's associated def_id
-                            return Err(Spanned::new(
-                                ConstError::new(ErrorKind::NoConstExpr(Default::default())),
+                            return Err(ConstError::new(
+                                ErrorKind::NoConstExpr(Default::default()),
                                 expr_span,
                             ));
                         }
@@ -404,8 +400,8 @@ impl InnerCtx {
                 // Only booleans allowed
                 (RestrictType::Boolean, v @ ConstValue::Bool(_)) => Ok(v),
                 // Mismatched types
-                (_, v) => Err(Spanned::new(
-                    ConstError::new(ErrorKind::WrongResultType(v, info.restrict_to)),
+                (_, v) => Err(ConstError::new(
+                    ErrorKind::WrongResultType(v, info.restrict_to),
                     info.span,
                 )),
             }?

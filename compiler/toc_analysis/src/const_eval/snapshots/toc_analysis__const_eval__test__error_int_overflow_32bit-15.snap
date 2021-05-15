@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 11..29, state: Error(ConstError { kind: IntOverflow }) },
+                EvalInfo { unit_id: UnitId(0), span: 11..29, state: Error(ConstError { kind: IntOverflow, span: 23..26 }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,7 +15,7 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> Spanned(ConstError { kind: IntOverflow }, 23..26)
+ConstExpr { id: 0 } -> ConstError { kind: IntOverflow, span: 23..26 }
 
 error at 23..26: integer overflow in compile-time expression
 

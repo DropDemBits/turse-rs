@@ -351,9 +351,7 @@ impl<'a> TypeCheck<'a> {
 
         // Check that the value is actually the correct type, and in the correct value range.
         // Size can only be in (0, 32768)
-        let int = value
-            .into_int()
-            .map_err(|err| SeqLenError::ConstEval(Spanned::new(err, span)))?;
+        let int = value.into_int(span).map_err(SeqLenError::ConstEval)?;
 
         // Convert into a size, within the given limit
         let size = int
@@ -469,16 +467,14 @@ impl EvalKind {
 }
 
 enum SeqLenError {
-    ConstEval(Spanned<ConstError>),
+    ConstEval(ConstError),
     WrongSize(Spanned<ConstInt>, u32),
 }
 
 impl SeqLenError {
     fn report_to(&self, reporter: &mut MessageSink) {
         match self {
-            SeqLenError::ConstEval(err) => {
-                err.item().report_to(reporter, err.span());
-            }
+            SeqLenError::ConstEval(err) => err.report_to(reporter),
             SeqLenError::WrongSize(int, size_limit) => {
                 reporter
                     .report_detailed(

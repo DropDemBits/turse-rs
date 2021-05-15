@@ -52,7 +52,9 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
                         match lhs + rhs {
-                            v if v.is_infinite() => Err(ConstError::new(ErrorKind::RealOverflow)),
+                            v if v.is_infinite() => {
+                                Err(ConstError::without_span(ErrorKind::RealOverflow))
+                            }
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
@@ -60,7 +62,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_add(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Sub => {
@@ -72,7 +74,9 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
                         match lhs - rhs {
-                            v if v.is_infinite() => Err(ConstError::new(ErrorKind::RealOverflow)),
+                            v if v.is_infinite() => {
+                                Err(ConstError::without_span(ErrorKind::RealOverflow))
+                            }
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
@@ -80,7 +84,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_sub(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Mul => {
@@ -92,7 +96,9 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
                         match lhs * rhs {
-                            v if v.is_infinite() => Err(ConstError::new(ErrorKind::RealOverflow)),
+                            v if v.is_infinite() => {
+                                Err(ConstError::without_span(ErrorKind::RealOverflow))
+                            }
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
@@ -100,7 +106,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_mul(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Div => {
@@ -113,7 +119,7 @@ impl ConstOp {
 
                         // Divide & truncate, then convert to an integer
                         match (lhs / rhs).trunc() {
-                            _ if rhs == 0.0 => Err(ConstError::new(ErrorKind::DivByZero)),
+                            _ if rhs == 0.0 => Err(ConstError::without_span(ErrorKind::DivByZero)),
                             v => ConstInt::from_signed_real(v, allow_64bit_ops)
                                 .map(ConstValue::Integer),
                         }
@@ -122,7 +128,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_div(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::RealDiv => {
@@ -137,12 +143,14 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
                         match lhs / rhs {
-                            _ if rhs == 0.0 => Err(ConstError::new(ErrorKind::DivByZero)),
-                            v if v.is_infinite() => Err(ConstError::new(ErrorKind::RealOverflow)),
+                            _ if rhs == 0.0 => Err(ConstError::without_span(ErrorKind::DivByZero)),
+                            v if v.is_infinite() => {
+                                Err(ConstError::without_span(ErrorKind::RealOverflow))
+                            }
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Mod => {
@@ -156,7 +164,7 @@ impl ConstOp {
                         let floored_mod = lhs - rhs * (lhs / rhs).floor();
 
                         match floored_mod {
-                            _ if rhs == 0.0 => Err(ConstError::new(ErrorKind::DivByZero)),
+                            _ if rhs == 0.0 => Err(ConstError::without_span(ErrorKind::DivByZero)),
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
@@ -164,7 +172,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_mod(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Rem => {
@@ -177,7 +185,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
                         match lhs % lhs {
-                            _ if rhs == 0.0 => Err(ConstError::new(ErrorKind::DivByZero)),
+                            _ if rhs == 0.0 => Err(ConstError::without_span(ErrorKind::DivByZero)),
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
@@ -185,7 +193,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_rem(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Exp => {
@@ -198,7 +206,9 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
                         match lhs.powf(rhs) {
-                            v if v.is_infinite() => Err(ConstError::new(ErrorKind::RealOverflow)),
+                            v if v.is_infinite() => {
+                                Err(ConstError::without_span(ErrorKind::RealOverflow))
+                            }
                             v => Ok(ConstValue::Real(v)),
                         }
                     }
@@ -206,7 +216,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_pow(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::And => {
@@ -222,7 +232,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
                         Ok(ConstValue::Bool(lhs & rhs))
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Or => {
@@ -238,7 +248,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
                         Ok(ConstValue::Bool(lhs | rhs))
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Xor => {
@@ -254,7 +264,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
                         Ok(ConstValue::Bool(lhs ^ rhs))
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Shl => {
@@ -266,7 +276,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_shl(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Shr => {
@@ -278,7 +288,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_shr(rhs).map(ConstValue::Integer)
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Less => todo!(),
@@ -296,7 +306,7 @@ impl ConstOp {
                         let (lhs, rhs) = (lhs.cast_into_bool()?, rhs.cast_into_bool()?);
                         Ok(ConstValue::Bool(!lhs | rhs))
                     }
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Not => {
@@ -305,7 +315,7 @@ impl ConstOp {
                 match rhs {
                     ConstValue::Integer(v) => Ok(ConstValue::Integer(v.not())),
                     ConstValue::Bool(v) => Ok(ConstValue::Bool(!v)),
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Identity => {
@@ -315,7 +325,7 @@ impl ConstOp {
                 match rhs {
                     rhs @ ConstValue::Integer(_) => Ok(rhs),
                     rhs @ ConstValue::Real(_) => Ok(rhs),
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
             ConstOp::Negate => {
@@ -324,7 +334,7 @@ impl ConstOp {
                 match rhs {
                     ConstValue::Integer(v) => v.negate().map(ConstValue::Integer),
                     ConstValue::Real(v) => Ok(ConstValue::Real(-v)),
-                    _ => Err(ConstError::new(ErrorKind::WrongOperandType)),
+                    _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
         }
@@ -332,7 +342,7 @@ impl ConstOp {
 }
 
 impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
-    type Error = Spanned<ConstError>;
+    type Error = ConstError;
 
     fn try_from(op: Spanned<expr::BinaryOp>) -> Result<Self, Self::Error> {
         Ok(match op.item() {
@@ -357,18 +367,13 @@ impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
             expr::BinaryOp::NotEqual => Self::NotEqual,
             expr::BinaryOp::Imply => Self::Imply,
             // Not a compile-time operation
-            _ => {
-                return Err(Spanned::new(
-                    ConstError::new(ErrorKind::NotConstOp),
-                    op.span(),
-                ))
-            }
+            _ => return Err(ConstError::new(ErrorKind::NotConstOp, op.span())),
         })
     }
 }
 
 impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
-    type Error = Spanned<ConstError>;
+    type Error = ConstError;
 
     fn try_from(op: Spanned<expr::UnaryOp>) -> Result<Self, Self::Error> {
         match op.item() {

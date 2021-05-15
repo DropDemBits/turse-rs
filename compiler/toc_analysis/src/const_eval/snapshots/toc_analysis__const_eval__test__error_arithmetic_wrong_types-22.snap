@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 11..20, state: Error(ConstError { kind: WrongOperandType }) },
+                EvalInfo { unit_id: UnitId(0), span: 11..20, state: Error(ConstError { kind: WrongOperandType, span: 13..15 }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,7 +15,7 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> Spanned(ConstError { kind: WrongOperandType }, 13..15)
+ConstExpr { id: 0 } -> ConstError { kind: WrongOperandType, span: 13..15 }
 
 error at 13..15: wrong type for compile-time expression
 

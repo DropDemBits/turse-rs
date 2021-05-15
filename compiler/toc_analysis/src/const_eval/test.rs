@@ -47,7 +47,7 @@ fn do_const_eval(source: &str) -> String {
                 Ok(v) => format!("{:?} -> {:?}\n", expr, v),
                 Err(err) => {
                     let text = format!("{:?} -> {:?}\n", expr, err);
-                    err.item().report_to(&mut reporter, err.span());
+                    err.report_to(&mut reporter);
                     text
                 }
             };

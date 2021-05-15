@@ -1,19 +1,37 @@
 //! Errors during constant evaluation
+use toc_span::TextRange;
+
 use crate::const_eval::{ConstValue, RestrictType};
 
 #[derive(Debug, Clone)]
 pub struct ConstError {
     kind: ErrorKind,
+    span: TextRange,
 }
 
 impl ConstError {
-    pub(super) fn new(kind: ErrorKind) -> Self {
-        Self { kind }
+    pub(super) fn new(kind: ErrorKind, span: TextRange) -> Self {
+        Self { kind, span }
     }
 
-    pub(super) fn reported() -> Self {
+    pub(super) fn without_span(kind: ErrorKind) -> Self {
+        Self {
+            kind,
+            span: TextRange::default(),
+        }
+    }
+
+    pub(super) fn reported(span: TextRange) -> Self {
         Self {
             kind: ErrorKind::Reported,
+            span,
+        }
+    }
+
+    pub(super) fn change_span(self, new_span: TextRange) -> Self {
+        Self {
+            kind: self.kind,
+            span: new_span,
         }
     }
 
@@ -22,11 +40,7 @@ impl ConstError {
     }
 
     /// Reports the detailed version of the `ConstError` to the given reporter
-    pub fn report_to(
-        &self,
-        reporter: &mut toc_reporting::MessageSink,
-        initial_span: toc_span::TextRange,
-    ) {
+    pub fn report_to(&self, reporter: &mut toc_reporting::MessageSink) {
         use toc_reporting::MessageKind;
 
         // Ignore already reported messages
@@ -36,7 +50,7 @@ impl ConstError {
 
         // Report common message header
         let msg =
-            reporter.report_detailed(MessageKind::Error, &format!("{}", self.kind), initial_span);
+            reporter.report_detailed(MessageKind::Error, &format!("{}", self.kind), self.span);
 
         // Report extra details
         match &self.kind {
@@ -54,7 +68,7 @@ impl ConstError {
 
                 msg.with_note(
                     &format!("expected {}, found {}", expected_name, found.type_name()),
-                    initial_span,
+                    self.span,
                 )
             }
             _ => msg,
