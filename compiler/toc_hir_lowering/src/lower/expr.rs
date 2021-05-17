@@ -70,6 +70,8 @@ impl super::LoweringCtx {
         let value = match value {
             LiteralValue::Int(v) => expr::Literal::Integer(v),
             LiteralValue::Real(v) => expr::Literal::Real(v),
+            LiteralValue::Char(v) if v.is_empty() => return None,
+            LiteralValue::Char(v) if v.len() == 1 => expr::Literal::Char(v.chars().next().unwrap()),
             LiteralValue::Char(v) => expr::Literal::CharSeq(v),
             LiteralValue::String(v) => expr::Literal::String(v),
             LiteralValue::Boolean(v) => expr::Literal::Boolean(v),

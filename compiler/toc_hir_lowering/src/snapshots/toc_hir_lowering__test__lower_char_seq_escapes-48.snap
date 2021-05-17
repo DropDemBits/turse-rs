@@ -1,6 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/src/test.rs
-expression: "a := '^'"
+expression: "a := \"^\""
 
 ---
 database:
@@ -9,7 +9,7 @@ Idx::<Stmt>(0) (0..8): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2.
 
 expr:
 Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (5..8): Literal(CharSeq("\'"))
+Idx::<Expr>(1) (5..8): Literal(String("\""))
 
 ty:
 
@@ -18,6 +18,6 @@ root stmts:
 symtab:
 DefId(0): (0..1, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
 UseId(DefId(0), 0): 0..1
-error at 6..8: invalid char literal: unknown caret escape
-error at 5..8: invalid char literal: missing terminator character
+error at 6..8: invalid string literal: unknown caret escape
+error at 5..8: invalid string literal: missing terminator character
 

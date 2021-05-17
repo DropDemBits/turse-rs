@@ -316,6 +316,7 @@ impl InnerCtx {
                             ConstValue::Integer(v)
                         }
                         expr::Literal::Real(v) => ConstValue::Real(*v),
+                        expr::Literal::Char(_c) => todo!(),
                         expr::Literal::CharSeq(_str) => todo!(),
                         expr::Literal::String(_str) => todo!(),
                         expr::Literal::Boolean(v) => ConstValue::Bool(*v),

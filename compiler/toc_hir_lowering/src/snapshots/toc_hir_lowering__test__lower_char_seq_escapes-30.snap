@@ -1,6 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/src/test.rs
-expression: "a := '\\u394o'"
+expression: "a := \"\\u394o\""
 
 ---
 database:
@@ -9,7 +9,7 @@ Idx::<Stmt>(0) (0..13): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2
 
 expr:
 Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (5..13): Literal(CharSeq("Δo"))
+Idx::<Expr>(1) (5..13): Literal(String("Δo"))
 
 ty:
 

@@ -3,6 +3,7 @@
 mod test;
 
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
@@ -354,8 +355,12 @@ impl<'a> TypeCheck<'a> {
         let ty = match expr {
             toc_hir::expr::Literal::Integer(_) => ty::Type::Integer,
             toc_hir::expr::Literal::Real(_) => ty::Type::Real(ty::RealSize::Real),
-            // TODO: Use sized char type for default string type
-            toc_hir::expr::Literal::CharSeq(_) => ty::Type::String,
+            toc_hir::expr::Literal::Char(_) => ty::Type::Char,
+            toc_hir::expr::Literal::CharSeq(s) => {
+                let size = NonZeroU32::new(s.len().try_into().unwrap_or(u32::MAX)).unwrap();
+                let seq_size = ty::SeqSize::Fixed(size);
+                ty::Type::CharN(seq_size)
+            }
             toc_hir::expr::Literal::String(_) => ty::Type::String,
             toc_hir::expr::Literal::Boolean(_) => ty::Type::Boolean,
         };

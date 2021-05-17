@@ -717,6 +717,8 @@ pub enum CharSeqParseError {
     InvalidCaretEscape,
     #[error("missing terminator character")]
     UnterminatedLiteral,
+    #[error("no characters in literal")]
+    EmptySequence,
 }
 
 #[derive(Debug)]

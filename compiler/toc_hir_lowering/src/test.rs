@@ -247,6 +247,8 @@ fn lower_char_literal() {
     assert_lower(r#"a := 'abcd "#);
     // ... or mismatched delimiter
     assert_lower(r#"a := 'abcd""#);
+    // ... or that are completely empty
+    assert_lower(r#"a := ''"#);
 }
 
 #[test]
@@ -254,79 +256,79 @@ fn lower_char_seq_escapes() {
     // All escapes:
     let escapes = vec![
         // Backslash escapes
-        ("'\\\\'", "\\"),
-        ("'\\\''", "\'"),
-        ("'\\\"'", "\""),
-        ("'\\b'", "\x08"),
-        ("'\\d'", "\x7F"),
-        ("'\\e'", "\x1B"),
-        ("'\\f'", "\x0C"),
-        ("'\\r'", "\r"),
-        ("'\\n'", "\n"),
-        ("'\\t'", "\t"),
-        ("'\\^'", "^"),
-        ("'\\B'", "\x08"),
-        ("'\\D'", "\x7F"),
-        ("'\\E'", "\x1B"),
-        ("'\\F'", "\x0C"),
-        ("'\\T'", "\t"),
+        (r#""\\""#, "\\"),
+        (r#""\'""#, "\'"),
+        (r#""\"""#, "\""),
+        (r#""\b""#, "\x08"),
+        (r#""\d""#, "\x7F"),
+        (r#""\e""#, "\x1B"),
+        (r#""\f""#, "\x0C"),
+        (r#""\r""#, "\r"),
+        (r#""\n""#, "\n"),
+        (r#""\t""#, "\t"),
+        (r#""\^""#, "^"),
+        (r#""\B""#, "\x08"),
+        (r#""\D""#, "\x7F"),
+        (r#""\E""#, "\x1B"),
+        (r#""\F""#, "\x0C"),
+        (r#""\T""#, "\t"),
         // Octal escapes
-        ("'\\0o'", "\0o"),
-        ("'\\43O'", "#O"),
-        ("'\\101'", "A"),
-        ("'\\377'", "\u{00FF}"), // Have to use unicode characters
-        ("'\\1011'", "A1"),
+        (r#""\0o""#, "\0o"),
+        (r#""\43O""#, "#O"),
+        (r#""\101""#, "A"),
+        (r#""\377""#, "\u{00FF}"), // Have to use unicode characters
+        (r#""\1011""#, "A1"),
         // Hex escapes (non-hex digits and extra hex digits are ignored)
-        ("'\\x0o'", "\0o"),
-        ("'\\x00'", "\0"),
-        ("'\\x00Ak'", "\0Ak"),
-        ("'\\x20'", " "),
-        ("'\\x20Ar'", " Ar"),
-        ("'\\xfe'", "\u{00FE}"),
+        (r#""\x0o""#, "\0o"),
+        (r#""\x00""#, "\0"),
+        (r#""\x00Ak""#, "\0Ak"),
+        (r#""\x20""#, " "),
+        (r#""\x20Ar""#, " Ar"),
+        (r#""\xfe""#, "\u{00FE}"),
         // Unicode escapes (non-hex digits and extra digits are ignored)
-        ("'\\u8o'", "\x08o"),
-        ("'\\uA7k'", "§k"),
-        ("'\\u394o'", "Δo"),
-        ("'\\u2764r'", "❤r"),
-        ("'\\u1f029t'", "🀩t"),
-        ("'\\u10f029s'", "\u{10F029}s"),
-        ("'\\u10F029i'", "\u{10F029}i"),
-        ("'\\U8O'", "\x08O"),
-        ("'\\Ua7l'", "§l"),
-        ("'\\U394w'", "Δw"),
-        ("'\\U2764X'", "❤X"),
-        ("'\\U1F029z'", "🀩z"),
-        ("'\\U10F029Y'", "\u{10F029}Y"),
-        ("'\\U10F029jY'", "\u{10F029}jY"),
+        (r#""\u8o""#, "\x08o"),
+        (r#""\uA7k""#, "§k"),
+        (r#""\u394o""#, "Δo"),
+        (r#""\u2764r""#, "❤r"),
+        (r#""\u1f029t""#, "🀩t"),
+        (r#""\u10f029s""#, "\u{10F029}s"),
+        (r#""\u10F029i""#, "\u{10F029}i"),
+        (r#""\U8O""#, "\x08O"),
+        (r#""\Ua7l""#, "§l"),
+        (r#""\U394w""#, "Δw"),
+        (r#""\U2764X""#, "❤X"),
+        (r#""\U1F029z""#, "🀩z"),
+        (r#""\U10F029Y""#, "\u{10F029}Y"),
+        (r#""\U10F029jY""#, "\u{10F029}jY"),
         // Caret escapes
-        ("'^J'", "\n"),
-        ("'^M'", "\r"),
-        ("'^?'", "\x7F"),
+        (r#""^J""#, "\n"),
+        (r#""^M""#, "\r"),
+        (r#""^?""#, "\x7F"),
         // Unterminated literal
-        ("'", ""),
+        (r#"""#, ""),
         // Invalid Escapes //
         // Without any following
-        ("'\\", ""),
-        ("'^", ""),
+        (r#""\"#, ""),
+        (r#""^"#, ""),
         // Caret Escaped literals
-        ("'^'", "'"),
+        (r#""^""#, r#"""#),
         // Greater than 255
-        ("'\\777'", "\u{FFFD}"),
+        (r#""\777""#, "\u{FFFD}"),
         // Larger than U+10FFFF
-        ("'\\u200000'", "\u{FFFD}"),
-        ("'\\u3ffffff'", "\u{FFFD}"),
-        ("'\\u3fffffff'", "\u{FFFD}"),
+        (r#""\u200000""#, "\u{FFFD}"),
+        (r#""\u3ffffff""#, "\u{FFFD}"),
+        (r#""\u3fffffff""#, "\u{FFFD}"),
         // Surrogate characters
-        ("'\\uD800'", "\u{FFFD}"),
-        ("'\\UDFfF'", "\u{FFFD}"),
-        ("'\\Ud900'", "\u{FFFD}"),
-        ("'\\udab0'", "\u{FFFD}"),
+        (r#""\uD800""#, "\u{FFFD}"),
+        (r#""\UDFfF""#, "\u{FFFD}"),
+        (r#""\Ud900""#, "\u{FFFD}"),
+        (r#""\udab0""#, "\u{FFFD}"),
         // Incorrect start of escape sequence
-        ("'\\8'", "8"),
-        ("'^~'", "~"),
-        ("'\\x'", "x"),
-        ("'\\u'", "u"),
-        ("'\\U'", "U"),
+        (r#""\8""#, "8"),
+        (r#""^~""#, "~"),
+        (r#""\x""#, "x"),
+        (r#""\u""#, "u"),
+        (r#""\U""#, "U"),
     ];
 
     for (text, expected_value) in escapes.into_iter() {
@@ -334,7 +336,7 @@ fn lower_char_seq_escapes() {
         let lowered = assert_lower(&format!("a := {}", text));
         assert_eq!(
             literal_value(&lowered),
-            &expr::Literal::CharSeq(expected_value.to_string()),
+            &expr::Literal::String(expected_value.to_string()),
             "At \"{}\"",
             stringified_test
         );

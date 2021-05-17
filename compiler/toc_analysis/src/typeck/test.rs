@@ -76,6 +76,8 @@ fn var_decl_type_spec() {
 #[test]
 fn var_decl_inference() {
     assert_typecheck(r#"var k := "oeuf""#);
+    assert_typecheck(r#"var k := 'oe'"#);
+    assert_typecheck(r#"var k := 'o'"#);
 }
 
 #[test]
@@ -111,8 +113,7 @@ fn typecheck_error_prop() {
 }
 
 // Typecheck basic ops
-test_for_each_op! {
-    arithmetic_op,
+test_for_each_op! { arithmetic_op,
     [
         ("+", add),
         ("-", sub),
@@ -150,8 +151,7 @@ test_for_each_op! {
     "#
 }
 
-test_for_each_op! {
-    arithmetic_op_wrong_type,
+test_for_each_op! { arithmetic_op_wrong_type,
     [
         ("+", add),
         ("-", sub),
@@ -183,8 +183,7 @@ test_for_each_op! {
 "#
 }
 
-test_for_each_op! {
-    bitwise_op,
+test_for_each_op! { bitwise_op,
     [
         ("and", and),
         ("or", or),
@@ -211,8 +210,7 @@ test_for_each_op! {
 "#
 }
 
-test_for_each_op! {
-    bitwise_op_wrong_type,
+test_for_each_op! { bitwise_op_wrong_type,
     [
         ("and", and),
         ("or", or),
@@ -241,8 +239,7 @@ test_for_each_op! {
 "#
 }
 
-test_for_each_op! {
-    logical_op,
+test_for_each_op! { logical_op,
     [
         ("and", and),
         ("or", or),
@@ -261,8 +258,7 @@ test_for_each_op! {
 "#
 }
 
-test_for_each_op! {
-    logical_op_wrong_type,
+test_for_each_op! { logical_op_wrong_type,
     [
         ("and", and),
         ("or", or),
@@ -285,8 +281,7 @@ test_for_each_op! {
 }
 
 // Test integer inference for all compatible operators
-test_for_each_op! {
-    integer_inference,
+test_for_each_op! { integer_inference,
     [
         ("+", add),
         ("-", sub),
@@ -328,8 +323,7 @@ test_for_each_op! {
 "#
 }
 
-test_named_group! {
-    sized_char,
+test_named_group! { sized_char,
     [
         literal => r#"var _ : char(1)"#,
         // trip through negatives shouldn't affect anything
@@ -346,8 +340,7 @@ test_named_group! {
     ]
 }
 
-test_named_group! {
-    sized_string,
+test_named_group! { sized_string,
     [
         literal => r#"var _ : string(1)"#,
         // trip through negatives shouldn't affect anything
@@ -365,8 +358,7 @@ test_named_group! {
     ]
 }
 
-test_named_group! {
-    typeck_var,
+test_named_group! { typeck_var,
     [
         compatible => r#"var k : int := 100"#,
         incompatible => r#"var k : char := 20"#,
@@ -377,8 +369,7 @@ test_named_group! {
     ]
 }
 
-test_named_group! {
-    typeck_const,
+test_named_group! { typeck_const,
     [
         compatible => r#"const k : int := 100"#,
         incompatible => r#"const k : char := 20"#,
@@ -389,8 +380,7 @@ test_named_group! {
     ]
 }
 
-test_named_group! {
-    typeck_assignment,
+test_named_group! { typeck_assignment,
     [
         valid => r#"
             const j : int := 2
@@ -415,8 +405,7 @@ test_named_group! {
     ]
 }
 
-test_named_group! {
-    assignability_into,
+test_named_group! { assignability_into,
     [
         boolean => r#"
         var b : boolean

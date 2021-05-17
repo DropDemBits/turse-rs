@@ -36,6 +36,8 @@ pub enum Expr {
 pub enum Literal {
     Integer(u64),
     Real(f64),
+    Char(char),
+    /// Guaranteed to be a string of non-zero length
     CharSeq(String),
     String(String),
     Boolean(bool),

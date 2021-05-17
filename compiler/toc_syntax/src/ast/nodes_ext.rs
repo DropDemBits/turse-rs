@@ -237,8 +237,16 @@ impl LiteralExpr {
 
         if as_str_literal {
             (LiteralValue::String(inner_text), errors)
-        } else {
+        } else if !inner_text.is_empty() {
             (LiteralValue::Char(inner_text), errors)
+        } else {
+            // Zero-length char-seq string
+            // Shouldn't be any previous errors
+            assert!(errors.is_none());
+
+            // Still pass off the empty inner text
+            let err = LiteralParseError::CharError(CharSeqParseError::EmptySequence, 0, 1);
+            (LiteralValue::Char(inner_text), Some(vec![err]))
         }
     }
 }

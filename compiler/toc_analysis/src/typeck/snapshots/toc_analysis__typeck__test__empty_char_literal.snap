@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const k := ''"
+
+---
+ty_nodes:
+def_kinds:
+    DefId(0) Const(TyRef(Error))
+error at 11..13: char literal is empty
