@@ -29,6 +29,8 @@ pub(super) enum ConstOp {
     GreaterEq,
     Equal,
     NotEqual,
+    In,
+    NotIn,
     Imply,
     // Unary operations
     Not,
@@ -291,12 +293,14 @@ impl ConstOp {
                     _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }
             }
-            ConstOp::Less => todo!(),
-            ConstOp::LessEq => todo!(),
-            ConstOp::Greater => todo!(),
-            ConstOp::GreaterEq => todo!(),
-            ConstOp::Equal => todo!(),
-            ConstOp::NotEqual => todo!(),
+            ConstOp::Less
+            | ConstOp::LessEq
+            | ConstOp::Greater
+            | ConstOp::GreaterEq
+            | ConstOp::Equal
+            | ConstOp::NotEqual
+            | ConstOp::In
+            | ConstOp::NotIn => Err(ConstError::without_span(ErrorKind::UnsupportedOp)),
             ConstOp::Imply => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
@@ -365,9 +369,9 @@ impl TryFrom<Spanned<expr::BinaryOp>> for ConstOp {
             expr::BinaryOp::GreaterEq => Self::GreaterEq,
             expr::BinaryOp::Equal => Self::Equal,
             expr::BinaryOp::NotEqual => Self::NotEqual,
+            expr::BinaryOp::In => Self::In,
+            expr::BinaryOp::NotIn => Self::NotIn,
             expr::BinaryOp::Imply => Self::Imply,
-            // Not a compile-time operation
-            _ => return Err(ConstError::new(ErrorKind::NotConstOp, op.span())),
         })
     }
 }

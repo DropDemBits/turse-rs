@@ -86,9 +86,6 @@ pub(super) enum ErrorKind {
     /// Missing expression operand
     #[error("operand is an invalid expression")]
     MissingExpr,
-    /// Not a valid const eval operation
-    #[error("operation cannot be computed at compile-time")]
-    NotConstOp,
     /// No const expr is associated with this identifer.
     /// Provided span is the span of the symbol's definition
     #[error("reference cannot be computed at compile-time")]
@@ -119,4 +116,12 @@ pub(super) enum ErrorKind {
     /// Negative int shift provided during bit shifting
     #[error("bit shifting integer by a negative amount")]
     NegativeIntShift,
+
+    // Unsupported messages
+    /// Currently unsupported const eval value
+    #[error("literal is currently not implemented for compile-time evaluation")]
+    UnsupportedValue,
+    /// Currently unsupported const eval operation
+    #[error("operation is currently not implemented for compile-time evaluation")]
+    UnsupportedOp,
 }

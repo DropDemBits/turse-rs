@@ -498,3 +498,24 @@ fn restrict_assign_type() {
     // Real is assignable into real
     assert_const_eval(r#"const a : real := 1.0"#);
 }
+
+#[test]
+fn unsupported_values() {
+    assert_const_eval(r#"const a := "alphabet""#);
+    assert_const_eval(r#"const a := 'fun times'"#);
+    assert_const_eval(r#"const a := 'e'"#);
+}
+
+#[test]
+fn unsupported_ops() {
+    for_all_const_exprs![
+        "1 > 1"
+        "1 >= 1"
+        "1 < 1"
+        "1 <= 1"
+        "1 = 1"
+        "1 ~= 1"
+        "1 in 1"
+        "1 ~in 1"
+    ];
+}

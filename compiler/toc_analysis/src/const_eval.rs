@@ -316,10 +316,13 @@ impl InnerCtx {
                             ConstValue::Integer(v)
                         }
                         expr::Literal::Real(v) => ConstValue::Real(*v),
-                        expr::Literal::Char(_c) => todo!(),
-                        expr::Literal::CharSeq(_str) => todo!(),
-                        expr::Literal::String(_str) => todo!(),
                         expr::Literal::Boolean(v) => ConstValue::Bool(*v),
+                        expr::Literal::Char(_)
+                        | expr::Literal::CharSeq(_)
+                        | expr::Literal::String(_) => {
+                            // Unsupported const value
+                            return Err(ConstError::new(ErrorKind::UnsupportedValue, expr_span));
+                        }
                     };
 
                     operand_stack.push(operand);
