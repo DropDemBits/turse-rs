@@ -417,6 +417,10 @@ fn lower_put_stmt() {
     assert_lower("put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6");
     // no item
     assert_lower("put");
+    // missing exprs
+    assert_lower("put 1 : 1 :  : 1");
+    assert_lower("put 1 : 1 :  : ");
+    assert_lower("put 1 :  :  : ");
 }
 
 #[test]

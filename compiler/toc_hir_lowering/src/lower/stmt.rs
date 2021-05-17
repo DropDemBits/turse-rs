@@ -121,26 +121,32 @@ impl super::LoweringCtx {
                     Some(stmt::Skippable::Skip)
                 } else if let Some(expr) = item.expr() {
                     let expr = self.lower_expr(expr);
-                    let width = self.try_lower_expr(item.width().and_then(|o| o.expr()));
-                    let precision = self.try_lower_expr(item.fraction().and_then(|o| o.expr()));
-                    let exponent_width =
-                        self.try_lower_expr(item.exp_width().and_then(|o| o.expr()));
 
-                    let opts = match (width, precision, exponent_width) {
-                        (Some(width), Some(precision), Some(exponent_width)) => {
+                    let opts = {
+                        let width = item.width().and_then(|o| o.expr());
+                        let precision = item.fraction().and_then(|o| o.expr());
+                        let exponent_width = item.exp_width().and_then(|o| o.expr());
+
+                        if let Some(exponent_width) = exponent_width {
                             stmt::PutOpts::WithExponentWidth {
-                                width,
-                                precision,
-                                exponent_width,
+                                width: self.lower_required_expr(width),
+                                precision: self.lower_required_expr(precision),
+                                exponent_width: self.lower_required_expr(Some(exponent_width)),
                             }
+                        } else if let Some(precision) = precision {
+                            stmt::PutOpts::WithPrecision {
+                                width: self.lower_required_expr(width),
+                                precision: self.lower_required_expr(Some(precision)),
+                            }
+                        } else if let Some(width) = width {
+                            stmt::PutOpts::WithWidth {
+                                width: self.lower_required_expr(Some(width)),
+                            }
+                        } else {
+                            stmt::PutOpts::None
                         }
-                        (Some(width), Some(precision), None) => {
-                            stmt::PutOpts::WithPrecision { width, precision }
-                        }
-                        (Some(width), None, None) => stmt::PutOpts::WithWidth { width },
-                        (None, None, None) => stmt::PutOpts::None,
-                        _ => unreachable!(), // Invariants are being broken
                     };
+
                     let item = stmt::PutItem { expr, opts };
 
                     Some(stmt::Skippable::Item(item))
