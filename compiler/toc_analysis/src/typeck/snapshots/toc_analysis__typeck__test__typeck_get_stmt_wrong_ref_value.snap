@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var i : int := 1\nget i + i\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+error at 21..26: cannot assign into get item expression
+| note for 21..26: this expression cannot be used as a variable reference

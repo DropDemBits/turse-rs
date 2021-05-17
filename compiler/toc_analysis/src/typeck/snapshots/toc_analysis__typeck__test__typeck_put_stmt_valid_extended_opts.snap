@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var i : int\nvar n : nat\nvar r : real\n\nput i : 0 : 0 : 0\nput n : 0 : 0 : 0\nput r : 0 : 0 : 0\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+    Idx::<Type>(1) TyRef(Nat(Nat))
+    Idx::<Type>(2) TyRef(Real(Real))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Nat(Nat)))
+    DefId(2) Var(TyRef(Real(Real)))

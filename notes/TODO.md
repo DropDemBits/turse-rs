@@ -113,7 +113,9 @@
     - [ ] Open
     - [ ] Close
     - [ ] Put
+      - Waiting on non-put-able items to be lowered
     - [ ] Get
+      - Waiting on non-get-able items to be lowered
     - [ ] Read
     - [ ] Write
     - [ ] Seek
@@ -149,8 +151,14 @@
     - [ ] Nil
     - [ ] SizeOf
     - [ ] Binary
-    - [ ] Unary
-    - [ ] Paren
+      - [x] Arithmetic
+      - [x] Bitwise
+      - [x] Logical
+      - [ ] Comparison
+      - [ ] String concatenation
+      - [ ] Set manipulation
+    - [x] Unary
+    - [x] Paren
     - [ ] Name
     - [ ] Self
     - [ ] Field
@@ -177,7 +185,7 @@
     - [ ] Condition
 - [ ] Const Eval (in `toc_analysis`)
   - [x] Cache evals of `ConstExpr`s
-  - [ ] Deferred eval of `const` vars
+  - [x] Deferred eval of `const` vars
   - [ ] Evaluate all valid const ops
   - [ ] SizeOf structure size computation
 - [ ] HIR Codegen

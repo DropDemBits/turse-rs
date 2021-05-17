@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var w : real\nvar i : int\nget i : w\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Real(Real))
+    Idx::<Type>(1) TyRef(Int(Int))
+def_kinds:
+    DefId(0) Var(TyRef(Real(Real)))
+    DefId(1) Var(TyRef(Int(Int)))
+error at 33..34: mismatched types
+| info: expected integer type

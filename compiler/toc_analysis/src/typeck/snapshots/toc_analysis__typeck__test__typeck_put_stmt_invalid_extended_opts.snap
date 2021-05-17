@@ -1,0 +1,31 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\n%put ef : 0 : 0 : 0\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Char)
+    Idx::<Type>(1) TyRef(CharN(Fixed(4)))
+    Idx::<Type>(2) TyRef(String)
+    Idx::<Type>(3) TyRef(StringN(Fixed(4)))
+def_kinds:
+    DefId(0) Var(TyRef(Char))
+    DefId(1) Var(TyRef(CharN(Fixed(4))))
+    DefId(2) Var(TyRef(String))
+    DefId(3) Var(TyRef(StringN(Fixed(4))))
+error at 177..178: invalid put option
+| info: fraction width can only be specified for numeric put types
+error at 181..182: invalid put option
+| info: exponent width can only be specified for numeric types
+error at 196..197: invalid put option
+| info: fraction width can only be specified for numeric put types
+error at 200..201: invalid put option
+| info: exponent width can only be specified for numeric types
+error at 214..215: invalid put option
+| info: fraction width can only be specified for numeric put types
+error at 218..219: invalid put option
+| info: exponent width can only be specified for numeric types
+error at 233..234: invalid put option
+| info: fraction width can only be specified for numeric put types
+error at 237..238: invalid put option
+| info: exponent width can only be specified for numeric types

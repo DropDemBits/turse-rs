@@ -1,0 +1,21 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar i : int\nvar n : nat\nvar r : real\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nput i : 0\nput n : 0\nput r : 0\nput c : 0\nput cn : 0\nput s : 0\nput sn : 0\n%put ef : 0\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+    Idx::<Type>(1) TyRef(Nat(Nat))
+    Idx::<Type>(2) TyRef(Real(Real))
+    Idx::<Type>(3) TyRef(Char)
+    Idx::<Type>(4) TyRef(CharN(Fixed(4)))
+    Idx::<Type>(5) TyRef(String)
+    Idx::<Type>(6) TyRef(StringN(Fixed(4)))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+    DefId(1) Var(TyRef(Nat(Nat)))
+    DefId(2) Var(TyRef(Real(Real)))
+    DefId(3) Var(TyRef(Char))
+    DefId(4) Var(TyRef(CharN(Fixed(4))))
+    DefId(5) Var(TyRef(String))
+    DefId(6) Var(TyRef(StringN(Fixed(4))))

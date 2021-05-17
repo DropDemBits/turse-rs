@@ -209,70 +209,68 @@ pub enum Skippable<T> {
 }
 
 /// A single put item, as part of a put statement.
-///
-/// If any later optional field is a `Some`, then the earlier fields are
-/// guaranteed to also be a `Some` (e.g. if `precision` was `Some`, then
-/// `width` is also guaranteed to be `Some`, but not `exponent_width`).
-#[non_exhaustive]
 #[derive(Debug)]
 pub struct PutItem {
     /// The expression to be put.
     pub expr: expr::ExprIdx,
-    /// The minimum printing width.
-    pub width: Option<expr::ExprIdx>,
-    /// The amount of decimals put for `real*` types.
-    pub precision: Option<expr::ExprIdx>,
-    /// The minimum printing width for exponents of `real*` types.
-    pub exponent_width: Option<expr::ExprIdx>,
+    /// Extra display options
+    pub opts: PutOpts,
 }
 
-impl PutItem {
-    /// Constructs a new `PutItem` without any optional arguments.
-    pub fn new(expr: expr::ExprIdx) -> Self {
-        Self {
-            expr,
-            width: None,
-            precision: None,
-            exponent_width: None,
-        }
-    }
-
-    /// Constructs a new `PutItem` with the `width` argument.
-    pub fn with_width(expr: expr::ExprIdx, width: expr::ExprIdx) -> Self {
-        Self {
-            expr,
-            width: Some(width),
-            precision: None,
-            exponent_width: None,
-        }
-    }
-
-    /// Constructs a new `PutItem` with the `precision` argument, and any prerequisite arguments.
-    pub fn with_precision(
-        expr: expr::ExprIdx,
+/// Extra display options for `put` items
+///
+/// If any later argument is present, then the earlier fields are
+/// guaranteed to also be present (e.g. if `precision` was specified, then
+/// `width` is also guaranteed to be specified, but not `exponent_width`).
+#[derive(Debug)]
+pub enum PutOpts {
+    // /// `put` item with no args
+    None,
+    /// `put` item with 1 arg
+    WithWidth {
+        /// The minimum printing width.
         width: expr::ExprIdx,
-        precision: expr::ExprIdx,
-    ) -> Self {
-        Self {
-            expr,
-            width: Some(width),
-            precision: Some(precision),
-            exponent_width: None,
-        }
-    }
-
-    /// Constructs a new `PutItem` with the `exponent_width` argument, and any prerequisite arguments.
-    pub fn with_exponent_width(
-        expr: expr::ExprIdx,
+    },
+    /// `put` item with 2 args
+    WithPrecision {
+        /// The minimum printing width.
         width: expr::ExprIdx,
+        /// The amount of decimals put for `real*` types.
         precision: expr::ExprIdx,
+    },
+    /// `put` item with 3 args
+    WithExponentWidth {
+        /// The minimum printing width.
+        width: expr::ExprIdx,
+        /// The amount of decimals put for `real*` types.
+        precision: expr::ExprIdx,
+        /// The minimum printing width for exponents of `real*` types.
         exponent_width: expr::ExprIdx,
-    ) -> Self {
-        Self {
-            expr,
-            width: Some(width),
-            precision: Some(precision),
-            exponent_width: Some(exponent_width),
+    },
+}
+
+impl PutOpts {
+    pub fn width(&self) -> Option<expr::ExprIdx> {
+        match self {
+            PutOpts::None => None,
+            PutOpts::WithWidth { width }
+            | PutOpts::WithPrecision { width, .. }
+            | PutOpts::WithExponentWidth { width, .. } => Some(*width),
+        }
+    }
+
+    pub fn precision(&self) -> Option<expr::ExprIdx> {
+        match self {
+            PutOpts::None | PutOpts::WithWidth { .. } => None,
+            PutOpts::WithPrecision { precision, .. }
+            | PutOpts::WithExponentWidth { precision, .. } => Some(*precision),
+        }
+    }
+
+    pub fn exponent_width(&self) -> Option<expr::ExprIdx> {
+        match self {
+            PutOpts::None | PutOpts::WithWidth { .. } | PutOpts::WithPrecision { .. } => None,
+            PutOpts::WithExponentWidth { exponent_width, .. } => Some(*exponent_width),
         }
     }
 }

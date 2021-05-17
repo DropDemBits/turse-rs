@@ -5,7 +5,7 @@ expression: put a
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..5): Put(Put { stream_num: None, items: [Item(PutItem { expr: Idx::<Expr>(0), width: None, precision: None, exponent_width: None })], append_newline: true })
+Idx::<Stmt>(0) (0..5): Put(Put { stream_num: None, items: [Item(PutItem { expr: Idx::<Expr>(0), opts: None })], append_newline: true })
 
 expr:
 Idx::<Expr>(0) (4..5): Name(Name(UseId(DefId(0), 0)))

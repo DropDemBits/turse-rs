@@ -198,6 +198,158 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
+    fn typeck_put(&mut self, stmt: &stmt::Put) {
+        if let Some(stream) = stmt.stream_num {
+            self.check_stream_num(stream);
+        }
+
+        let items = stmt.items.iter().filter_map(|item| match item {
+            stmt::Skippable::Item(item) => Some(item),
+            _ => None,
+        });
+
+        for item in items {
+            let put_type = self.check_text_io_item(item.expr);
+            if ty::rules::is_error(put_type.item()) {
+                continue;
+            }
+
+            // Only the following are allowed to have precision & exponent options:
+            // - Int
+            // - Nat
+            // - Real
+            if !ty::rules::is_number(put_type.item()) && !ty::rules::is_error(put_type.item()) {
+                if let Some(expr) = item.opts.precision() {
+                    let span = self.unit.database.expr_nodes.spans[&expr];
+
+                    self.reporter
+                        .report_detailed(MessageKind::Error, "invalid put option", span)
+                        .with_info(
+                            "fraction width can only be specified for numeric put types",
+                            None,
+                        )
+                        .finish();
+                }
+
+                if let Some(expr) = item.opts.exponent_width() {
+                    let span = self.unit.database.expr_nodes.spans[&expr];
+
+                    self.reporter
+                        .report_detailed(MessageKind::Error, "invalid put option", span)
+                        .with_info(
+                            "exponent width can only be specified for numeric types",
+                            None,
+                        )
+                        .finish();
+                }
+            }
+
+            // Check that the parameters are all integers
+            if let Some(width) = item.opts.width() {
+                let ty_ref = self.get_ty_ref_from_expr(width);
+                self.check_integer_type(ty_ref);
+            }
+
+            if let Some(precision) = item.opts.precision() {
+                let ty_ref = self.get_ty_ref_from_expr(precision);
+                self.check_integer_type(ty_ref);
+            }
+
+            if let Some(exp_width) = item.opts.exponent_width() {
+                let ty_ref = self.get_ty_ref_from_expr(exp_width);
+                self.check_integer_type(ty_ref);
+            }
+        }
+    }
+
+    fn typeck_get(&mut self, stmt: &stmt::Get) {
+        if let Some(stream) = stmt.stream_num {
+            self.check_stream_num(stream);
+        }
+
+        let items = stmt.items.iter().filter_map(|item| match item {
+            stmt::Skippable::Item(item) => Some(item),
+            _ => None,
+        });
+
+        for item in items {
+            // Item expression must be a variable ref
+            self.check_text_io_item(item.expr);
+            let eval_kind = self.eval_kinds[&item.expr];
+
+            if !matches!(dbg!(eval_kind), EvalKind::Ref(DefKind::Var(_))) {
+                let get_item_span = self.unit.database.expr_nodes.spans[&item.expr];
+
+                // TODO: Stringify item for more clarity on the error location
+                self.reporter
+                    .report_detailed(
+                        MessageKind::Error,
+                        "cannot assign into get item expression",
+                        get_item_span,
+                    )
+                    .with_note(
+                        "this expression cannot be used as a variable reference",
+                        get_item_span,
+                    )
+                    .finish();
+            }
+
+            if let stmt::GetWidth::Chars(expr) = item.width {
+                let ty_ref = self.get_ty_ref_from_expr(expr);
+
+                self.check_integer_type(ty_ref)
+            }
+        }
+    }
+
+    fn check_stream_num(&mut self, id: expr::ExprIdx) {
+        let ty_ref = self.get_ty_ref_from_expr(id);
+
+        self.check_integer_type(ty_ref);
+    }
+
+    fn check_integer_type(&mut self, ty_ref: Spanned<TyRef>) {
+        if !ty::rules::is_integer(ty_ref.item()) && !ty::rules::is_error(ty_ref.item()) {
+            // TODO: Stringify type for more clarity on the error
+            self.reporter
+                .report_detailed(MessageKind::Error, "mismatched types", ty_ref.span())
+                .with_info("expected integer type", None)
+                .finish();
+        }
+    }
+
+    fn check_text_io_item(&mut self, id: expr::ExprIdx) -> Spanned<TyRef> {
+        let ty_ref = self.get_ty_ref_from_expr(id);
+
+        // Must be a valid put/get type
+        // Can be one of the following:
+        // - Int
+        // - Nat
+        // - Real
+        // - Char
+        // - Char(N)
+        // - String
+        // - String(N)
+        // - Boolean
+        // - Enum
+
+        // For now, all lowered types satisfy this condition
+        match &*(*ty_ref.item()) {
+            ty::Type::Error
+            | ty::Type::Boolean
+            | ty::Type::Int(_)
+            | ty::Type::Nat(_)
+            | ty::Type::Real(_)
+            | ty::Type::Integer
+            | ty::Type::Char
+            | ty::Type::String
+            | ty::Type::CharN(_)
+            | ty::Type::StringN(_) => {}
+        }
+
+        ty_ref
+    }
+
     fn typeck_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {
         let ty = match expr {
             toc_hir::expr::Literal::Integer(_) => ty::Type::Integer,
@@ -413,6 +565,14 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 
     fn visit_assign(&mut self, _id: stmt::StmtIdx, stmt: &stmt::Assign) {
         self.typeck_assign(stmt);
+    }
+
+    fn visit_put(&mut self, _id: stmt::StmtIdx, stmt: &stmt::Put) {
+        self.typeck_put(stmt);
+    }
+
+    fn visit_get(&mut self, _id: stmt::StmtIdx, stmt: &stmt::Get) {
+        self.typeck_get(stmt);
     }
 
     fn visit_literal(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Literal) {

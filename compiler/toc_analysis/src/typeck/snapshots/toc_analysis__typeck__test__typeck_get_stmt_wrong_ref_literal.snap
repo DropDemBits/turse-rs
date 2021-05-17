@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "get 1\n"
+
+---
+ty_nodes:
+def_kinds:
+error at 4..5: cannot assign into get item expression
+| note for 4..5: this expression cannot be used as a variable reference

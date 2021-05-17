@@ -175,16 +175,16 @@ impl Walker<'_> {
             if let stmt::Skippable::Item(item) = item {
                 self.walk_expr(item.expr);
 
-                if let Some(expr) = &item.width {
-                    self.walk_expr(*expr);
+                if let Some(expr) = item.opts.width() {
+                    self.walk_expr(expr);
                 }
 
-                if let Some(expr) = &item.precision {
-                    self.walk_expr(*expr);
+                if let Some(expr) = item.opts.precision() {
+                    self.walk_expr(expr);
                 }
 
-                if let Some(expr) = &item.exponent_width {
-                    self.walk_expr(*expr);
+                if let Some(expr) = item.opts.exponent_width() {
+                    self.walk_expr(expr);
                 }
             }
         }

@@ -126,22 +126,22 @@ impl super::LoweringCtx {
                     let exponent_width =
                         self.try_lower_expr(item.exp_width().and_then(|o| o.expr()));
 
-                    let item = match (width, precision, exponent_width) {
+                    let opts = match (width, precision, exponent_width) {
                         (Some(width), Some(precision), Some(exponent_width)) => {
-                            stmt::PutItem::with_exponent_width(
-                                expr,
+                            stmt::PutOpts::WithExponentWidth {
                                 width,
                                 precision,
                                 exponent_width,
-                            )
+                            }
                         }
                         (Some(width), Some(precision), None) => {
-                            stmt::PutItem::with_precision(expr, width, precision)
+                            stmt::PutOpts::WithPrecision { width, precision }
                         }
-                        (Some(width), None, None) => stmt::PutItem::with_width(expr, width),
-                        (None, None, None) => stmt::PutItem::new(expr),
+                        (Some(width), None, None) => stmt::PutOpts::WithWidth { width },
+                        (None, None, None) => stmt::PutOpts::None,
                         _ => unreachable!(), // Invariants are being broken
                     };
+                    let item = stmt::PutItem { expr, opts };
 
                     Some(stmt::Skippable::Item(item))
                 } else {

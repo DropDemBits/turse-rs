@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var s : real\nget : s, skip\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Real(Real))
+def_kinds:
+    DefId(0) Var(TyRef(Real(Real)))
+error at 19..20: mismatched types
+| info: expected integer type

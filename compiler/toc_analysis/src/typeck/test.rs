@@ -649,3 +649,114 @@ test_named_group! {
         "#,
     ]
 }
+
+test_named_group! { typeck_put_stmt,
+    [
+        normal_items => r#"
+        % TODO: Uncomment enum lines once enum types are lowered & checked
+        var i : int
+        var n : nat
+        var r : real
+        var c : char
+        var cn : char(4)
+        var s : string
+        var sn : string(4)
+        %type en: enum(a, b) var ef : en
+
+        put i : 0
+        put n : 0
+        put r : 0
+        put c : 0
+        put cn : 0
+        put s : 0
+        put sn : 0
+        %put ef : 0
+        "#,
+        valid_extended_opts => r#"
+        var i : int
+        var n : nat
+        var r : real
+
+        put i : 0 : 0 : 0
+        put n : 0 : 0 : 0
+        put r : 0 : 0 : 0
+        "#,
+        invalid_extended_opts => r#"
+        % TODO: Uncomment enum lines once enum types are lowered & checked
+        var c : char
+        var cn : char(4)
+        var s : string
+        var sn : string(4)
+        %type en: enum(a, b) var ef : en
+
+        put c : 0 : 0 : 0
+        put cn : 0 : 0 : 0
+        put s : 0 : 0 : 0
+        put sn : 0 : 0 : 0
+        %put ef : 0 : 0 : 0
+        "#,
+        wrong_type_stream => r#"
+        var s : real
+        put : s,  1
+        "#,
+        wrong_type_width => r#"
+        var w : real
+        put 1 : w
+        "#,
+        wrong_type_fract => r#"
+        var f : real
+        put 1 : 0 : f
+        "#,
+        wrong_type_exp_width => r#"
+        var e : real
+        put 1 : 0 : 0 : e
+        "#,
+        // TODO: Add test for non-put-able items once non-primitive types are lowered
+    ]
+}
+
+test_named_group! { typeck_get_stmt,
+    [
+        normal_items => r#"
+        % TODO: Uncomment enum lines once enum types are lowered & checked
+        var i : int
+        var n : nat
+        var r : real
+        var c : char
+        var cn : char(4)
+        var s : string
+        var sn : string(4)
+        %type en: enum(a, b) var ef : en
+
+        get i : 0
+        get n : 0
+        get r : 0
+        get c : 0
+        get cn : 0
+        get s : 0
+        get sn : 0
+        %get ef : 0
+        "#,
+        wrong_type_stream => r#"
+        var s : real
+        get : s, skip
+        "#,
+        wrong_type_width => r#"
+        var w : real
+        var i : int
+        get i : w
+        "#,
+        wrong_ref_const => r#"
+        const i : int := 1
+        get i
+        "#,
+        wrong_ref_value => r#"
+        var i : int := 1
+        get i + i
+        "#,
+        wrong_ref_literal => r#"
+        get 1
+        "#,
+        // TODO: Add test for non-get-able items once non-primitive types are lowered
+    ]
+}
