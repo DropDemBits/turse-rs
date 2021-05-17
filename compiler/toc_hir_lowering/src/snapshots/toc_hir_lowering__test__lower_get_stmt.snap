@@ -1,16 +1,20 @@
 ---
 source: compiler/toc_hir_lowering/src/test.rs
-expression: get a*
+expression: get a
 
 ---
 database:
 stmt:
+Idx::<Stmt>(0) (0..5): Get(Get { stream_num: None, items: [Item(GetItem { expr: Idx::<Expr>(0), width: Token })] })
 
 expr:
+Idx::<Expr>(0) (4..5): Name(Name(UseId(DefId(0), 0)))
 
 ty:
 
 root stmts:
-[]
+[Idx::<Stmt>(0)]
 symtab:
+DefId(0): (4..5, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+UseId(DefId(0), 0): 4..5
 

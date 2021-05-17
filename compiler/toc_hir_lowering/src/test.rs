@@ -89,6 +89,8 @@ fn lower_var_def() {
 #[test]
 fn lower_simple_assignment() {
     assert_lower("a := b");
+    // non-reference lhs
+    assert_lower("1 := 2");
 }
 
 #[test]
@@ -418,9 +420,11 @@ fn lower_put_stmt() {
 #[test]
 fn lower_get_stmt() {
     // single item
-    assert_lower("get a*");
+    assert_lower("get a");
     // many items
     assert_lower("get skip, a, b : 1, c : *");
     // no items
     assert_lower("get");
+    // not a reference
+    assert_lower("get a*a");
 }

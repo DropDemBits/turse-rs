@@ -106,7 +106,7 @@ impl super::LoweringCtx {
             Spanned::new(op_kind, span)
         };
 
-        let lhs = self.lower_expr(stmt.lhs()?.into_expr());
+        let lhs = self.lower_expr(stmt.lhs()?);
         let rhs = self.lower_expr(stmt.rhs()?);
 
         Some(stmt::Stmt::Assign(Assign { lhs, op, rhs }))
@@ -171,8 +171,8 @@ impl super::LoweringCtx {
             .filter_map(|item| {
                 if item.skip_token().is_some() {
                     Some(stmt::Skippable::Skip)
-                } else if let Some(ref_expr) = item.reference() {
-                    let expr = self.lower_expr(ref_expr.into_expr());
+                } else if let Some(ref_expr) = item.expr() {
+                    let expr = self.lower_expr(ref_expr);
                     let width = match item.get_width() {
                         None => stmt::GetWidth::Token,
                         Some(width) if width.star_token().is_some() => stmt::GetWidth::Line,

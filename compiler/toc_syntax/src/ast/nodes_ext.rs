@@ -591,23 +591,6 @@ impl<'a> CharSeqExtractor<'a> {
     }
 }
 
-impl Reference {
-    pub fn into_expr(self) -> Expr {
-        match self {
-            Reference::NameExpr(expr) => Expr::NameExpr(expr),
-            Reference::SelfExpr(expr) => Expr::SelfExpr(expr),
-            Reference::FieldExpr(expr) => Expr::FieldExpr(expr),
-            Reference::DerefExpr(expr) => Expr::DerefExpr(expr),
-            Reference::CheatExpr(expr) => Expr::CheatExpr(expr),
-            Reference::NatCheatExpr(expr) => Expr::NatCheatExpr(expr),
-            Reference::ArrowExpr(expr) => Expr::ArrowExpr(expr),
-            Reference::IndirectExpr(expr) => Expr::IndirectExpr(expr),
-            Reference::BitsExpr(expr) => Expr::BitsExpr(expr),
-            Reference::CallExpr(expr) => Expr::CallExpr(expr),
-        }
-    }
-}
-
 impl IoCap {
     pub fn io_kind(&self) -> Option<IoKind> {
         match self.syntax().first_token()?.kind() {
@@ -660,7 +643,7 @@ impl AsnOp {
 }
 
 impl AssignStmt {
-    pub fn lhs(&self) -> Option<Reference> {
+    pub fn lhs(&self) -> Option<Expr> {
         helper::nodes(self.syntax()).next()
     }
 
@@ -684,7 +667,7 @@ impl PutItem {
 }
 
 impl TagStmt {
-    pub fn tag_ref(&self) -> Option<Reference> {
+    pub fn tag_ref(&self) -> Option<Expr> {
         helper::nodes(self.syntax()).next()
     }
 
@@ -694,7 +677,7 @@ impl TagStmt {
 }
 
 impl WaitStmt {
-    pub fn wait_ref(&self) -> Option<Reference> {
+    pub fn wait_ref(&self) -> Option<Expr> {
         helper::nodes(self.syntax()).next()
     }
 

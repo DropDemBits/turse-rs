@@ -1092,7 +1092,7 @@ impl TellStmt {
     pub fn tell_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTell) }
     pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
-    pub fn tell_to(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn tell_to(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1302,7 +1302,7 @@ impl AstNode for CallStmt {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CallStmt {
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1433,7 +1433,7 @@ impl AstNode for ForkStmt {
 }
 impl ForkStmt {
     pub fn fork_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFork) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
     pub fn fork_status(&self) -> Option<ForkStatus> { helper::node(&self.0) }
     pub fn stack_size(&self) -> Option<StackSize> { helper::node(&self.0) }
@@ -1459,7 +1459,7 @@ impl AstNode for SignalStmt {
 }
 impl SignalStmt {
     pub fn signal_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSignal) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -1761,7 +1761,7 @@ impl BindItem {
     pub fn to_register(&self) -> Option<RegisterAttr> { helper::node(&self.0) }
     pub fn bind_as(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn to_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwTo) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2021,7 +2021,7 @@ impl AstNode for OldOpen {
 }
 impl OldOpen {
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn open_path(&self) -> Option<OpenPath> { helper::node(&self.0) }
     pub fn open_mode(&self) -> Option<OpenMode> { helper::node(&self.0) }
@@ -2047,7 +2047,7 @@ impl AstNode for NewOpen {
 }
 impl NewOpen {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn open_path(&self) -> Option<OpenPath> { helper::node(&self.0) }
     pub fn io_caps(&self) -> impl Iterator<Item = IoCap> + '_ { helper::nodes(&self.0) }
@@ -2133,7 +2133,7 @@ impl AstNode for OldClose {
 }
 impl OldClose {
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2156,7 +2156,7 @@ impl AstNode for NewClose {
 }
 impl NewClose {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2244,7 +2244,7 @@ impl AstNode for GetItem {
 }
 impl GetItem {
     pub fn skip_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSkip) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn get_width(&self) -> Option<GetWidth> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2291,7 +2291,7 @@ impl AstNode for BinaryIO {
 impl BinaryIO {
     pub fn stream_num(&self) -> Option<StreamNum> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn status(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn status(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
     pub fn items(&self) -> impl Iterator<Item = BinaryItem> + '_ { helper::nodes(&self.0) }
 }
@@ -2314,7 +2314,7 @@ impl AstNode for BinaryItem {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl BinaryItem {
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn request_size(&self) -> Option<RequestSize> { helper::node(&self.0) }
     pub fn actual_size(&self) -> Option<ActualSize> { helper::node(&self.0) }
 }
@@ -2360,7 +2360,7 @@ impl AstNode for ActualSize {
 }
 impl ActualSize {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2566,7 +2566,7 @@ impl AstNode for ForkStatus {
 }
 impl ForkStatus {
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2610,7 +2610,7 @@ impl AstNode for ProcessDesc {
 }
 impl ProcessDesc {
     pub fn comma_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Comma) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -2790,7 +2790,7 @@ impl AstNode for ObjClassExpr {
 impl ObjClassExpr {
     pub fn objectclass_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwObjectClass) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2838,7 +2838,7 @@ impl AstNode for NilExpr {
 impl NilExpr {
     pub fn nil_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwNil) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2863,7 +2863,7 @@ impl SizeOfExpr {
     pub fn sizeof_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwSizeOf) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
     pub fn ty_size(&self) -> Option<Type> { helper::node(&self.0) }
-    pub fn ref_size(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn ref_size(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -2988,7 +2988,7 @@ impl AstNode for FieldExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl FieldExpr {
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn dot_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Dot) }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
@@ -3012,7 +3012,7 @@ impl AstNode for DerefExpr {
 }
 impl DerefExpr {
     pub fn caret_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Caret) }
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3082,7 +3082,7 @@ impl AstNode for ArrowExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ArrowExpr {
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn arrow_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Arrow) }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
 }
@@ -3152,7 +3152,7 @@ impl AstNode for CallExpr {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl CallExpr {
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn param_list(&self) -> Option<ParamList> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -3261,7 +3261,7 @@ impl AstNode for NameType {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl NameType {
-    pub fn reference(&self) -> Option<Reference> { helper::node(&self.0) }
+    pub fn expr(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -4302,65 +4302,6 @@ impl AstNode for Expr {
             Self::BinaryExpr(node) => &node.syntax(),
             Self::UnaryExpr(node) => &node.syntax(),
             Self::ParenExpr(node) => &node.syntax(),
-            Self::NameExpr(node) => &node.syntax(),
-            Self::SelfExpr(node) => &node.syntax(),
-            Self::FieldExpr(node) => &node.syntax(),
-            Self::DerefExpr(node) => &node.syntax(),
-            Self::CheatExpr(node) => &node.syntax(),
-            Self::NatCheatExpr(node) => &node.syntax(),
-            Self::ArrowExpr(node) => &node.syntax(),
-            Self::IndirectExpr(node) => &node.syntax(),
-            Self::BitsExpr(node) => &node.syntax(),
-            Self::CallExpr(node) => &node.syntax(),
-        }
-    }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Reference {
-    NameExpr(NameExpr),
-    SelfExpr(SelfExpr),
-    FieldExpr(FieldExpr),
-    DerefExpr(DerefExpr),
-    CheatExpr(CheatExpr),
-    NatCheatExpr(NatCheatExpr),
-    ArrowExpr(ArrowExpr),
-    IndirectExpr(IndirectExpr),
-    BitsExpr(BitsExpr),
-    CallExpr(CallExpr),
-}
-impl AstNode for Reference {
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        match syntax.kind() {
-            SyntaxKind::NameExpr => Some(Self::NameExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::SelfExpr => Some(Self::SelfExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::FieldExpr => Some(Self::FieldExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::DerefExpr => Some(Self::DerefExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::CheatExpr => Some(Self::CheatExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::NatCheatExpr => Some(Self::NatCheatExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::ArrowExpr => Some(Self::ArrowExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::IndirectExpr => Some(Self::IndirectExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::BitsExpr => Some(Self::BitsExpr(AstNode::cast(syntax)?)),
-            SyntaxKind::CallExpr => Some(Self::CallExpr(AstNode::cast(syntax)?)),
-            _ => None,
-        }
-    }
-    fn can_cast(syntax: &SyntaxNode) -> bool {
-        match syntax.kind() {
-            SyntaxKind::NameExpr => true,
-            SyntaxKind::SelfExpr => true,
-            SyntaxKind::FieldExpr => true,
-            SyntaxKind::DerefExpr => true,
-            SyntaxKind::CheatExpr => true,
-            SyntaxKind::NatCheatExpr => true,
-            SyntaxKind::ArrowExpr => true,
-            SyntaxKind::IndirectExpr => true,
-            SyntaxKind::BitsExpr => true,
-            SyntaxKind::CallExpr => true,
-            _ => false,
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        match self {
             Self::NameExpr(node) => &node.syntax(),
             Self::SelfExpr(node) => &node.syntax(),
             Self::FieldExpr(node) => &node.syntax(),

@@ -1,0 +1,19 @@
+---
+source: compiler/toc_hir_lowering/src/test.rs
+expression: "1 := 2"
+
+---
+database:
+stmt:
+Idx::<Stmt>(0) (0..6): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(1) })
+
+expr:
+Idx::<Expr>(0) (0..1): Literal(Integer(1))
+Idx::<Expr>(1) (5..6): Literal(Integer(2))
+
+ty:
+
+root stmts:
+[Idx::<Stmt>(0)]
+symtab:
+

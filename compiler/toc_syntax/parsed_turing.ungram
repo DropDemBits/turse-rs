@@ -186,7 +186,7 @@ BindItem =
   as_var:VarAttr
   to_register:RegisterAttr
   bind_as:Name
-  'to' Reference
+  'to' Expr
   
 ProcDecl =
   ProcHeader
@@ -303,7 +303,7 @@ MonitorDecl =
   EndGroup
 
 AssignStmt =
-  lhs:Reference
+  lhs:Expr
   AsnOp
   rhs:Expr
 
@@ -336,7 +336,7 @@ OpenKind =
 | NewOpen
 
 OldOpen =
-  '(' Reference ',' OpenPath ',' OpenMode ')'
+  '(' Expr ',' OpenPath ',' OpenMode ')'
 
 OpenPath =
   Expr
@@ -345,7 +345,7 @@ OpenMode =
   Expr
 
 NewOpen =
-  ':' Reference ',' OpenPath ',' io_caps:( IoCap ( ',' IoCap )* )
+  ':' Expr ',' OpenPath ',' io_caps:( IoCap ( ',' IoCap )* )
 
 IoCap =
   io_kind:(
@@ -362,10 +362,10 @@ CloseKind =
 | NewClose
 
 OldClose =
-  '(' Reference ')'
+  '(' Expr ')'
 
 NewClose =
-  ':' Reference
+  ':' Expr
 
 PutStmt =
   'put' ( StreamNum ',' )? items:( PutItem ( ',' PutItem )* ) '..'?
@@ -381,10 +381,10 @@ PutOpt =
 GetStmt =
   'get' ( StreamNum ',' )? items:( GetItem ( ',' GetItem )* )
 
-// Propose to change to GetKind alternation, GettItem getting, SkipItem covering both
+// Propose to change to GetKind alternation, GetItem getting, SkipItem covering both
 GetItem =
   'skip'
-| Reference GetWidth?
+| Expr GetWidth?
 
 GetWidth =
   ':' ( Expr | '*' )
@@ -396,22 +396,22 @@ WriteStmt =
   'write' BinaryIO
   
 BinaryIO =
-  StreamNum ( ':' status:Reference )? ',' items:( BinaryItem ( ',' BinaryItem )* )
+  StreamNum ( ':' status:Expr )? ',' items:( BinaryItem ( ',' BinaryItem )* )
 
 BinaryItem =
-  Reference RequestSize? ActualSize? 
+  Expr RequestSize? ActualSize? 
 
 RequestSize =
   ':' Expr
 
 ActualSize =
-  ':' Reference
+  ':' Expr
 
 SeekStmt =
   'seek' StreamNum ',' ( '*' | seek_to:Expr )
 
 TellStmt =
-  'tell' StreamNum ',' tell_to:Reference
+  'tell' StreamNum ',' tell_to:Expr
 
 StreamNum =
   ':' Expr
@@ -473,7 +473,7 @@ AssertStmt =
   'assert' condition:Expr
 
 CallStmt =
-  Reference // CallExpr & bare RefExpr are contained in Reference
+  Expr // CallExpr & bare RefExpr are contained in Expr
 
 ReturnStmt =
   'return'
@@ -488,25 +488,25 @@ FreeStmt =
   'free' ExprList
 
 TagStmt =
-  'tag' tag_ref:Reference ',' tag_val:Expr
+  'tag' tag_ref:Expr ',' tag_val:Expr
 
 ForkStmt =
-  'fork' Reference ParamList? ForkStatus? StackSize? ProcessDesc?
+  'fork' Expr ParamList? ForkStatus? StackSize? ProcessDesc?
 
 ForkStatus =
-  ':' Reference
+  ':' Expr
 
 StackSize =
   ',' Expr
 
 ProcessDesc =
-  ',' Reference
+  ',' Expr
 
 SignalStmt =
-  'signal' Reference
+  'signal' Expr
 
 WaitStmt =
-  'wait' wait_ref:Reference ( ',' wait_arg:Expr )?
+  'wait' wait_ref:Expr ( ',' wait_arg:Expr )?
 
 PauseStmt =
   'pause' Expr
@@ -623,7 +623,7 @@ LiteralExpr =
   )
 
 ObjClassExpr =
-  'objectclass' '(' Reference ')'
+  'objectclass' '(' Expr ')'
 
 InitExpr =
   'init' '('
@@ -632,11 +632,11 @@ InitExpr =
 
 NilExpr =
   'nil' '('
-    Reference
+    Expr
   ')'
 
 SizeOfExpr =
-  'sizeof' '(' ( ty_size:Type | ref_size:Reference ) ')'
+  'sizeof' '(' ( ty_size:Type | ref_size:Expr ) ')'
 
 BinaryExpr =
   lhs:Expr
@@ -673,18 +673,6 @@ ParenExpr =
 // References  //
 //*************//
 
-Reference =
-  NameExpr
-| SelfExpr
-| FieldExpr
-| DerefExpr
-| CheatExpr
-| NatCheatExpr
-| ArrowExpr
-| IndirectExpr
-| BitsExpr
-| CallExpr
-
 NameExpr =
   Name
 
@@ -692,13 +680,13 @@ SelfExpr =
   'self'
 
 FieldExpr =
-  Reference '.' Name
+  Expr '.' Name
 
 ArrowExpr =
-  Reference '->' Name
+  Expr '->' Name
 
 DerefExpr =
-  '^' Reference
+  '^' Expr
 
 // as reference if Expr is a Reference, otherwise as expr
 // Turing: register var refs are not considered as valid lhs exprs
@@ -724,7 +712,7 @@ BitsExpr =
 // Covers Substring, Subscript, FcnCall
 // Covers PointerSpec, SetCons
 CallExpr =
-  Reference ParamList
+  Expr ParamList
 
 ParamList =
   '(' Param* ')'
@@ -793,7 +781,7 @@ SeqLength =
 | '*'
 
 NameType =
-  Reference
+  Expr
 
 RangeType =
   begin:Expr '..' end:EndBound
