@@ -1,7 +1,7 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::expr;
 use toc_reporting::MessageKind;
-use toc_span::Spanned;
+use toc_span::{Spanned, TextRange};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
@@ -30,27 +30,33 @@ impl super::LoweringCtx {
 
         let expr = match expr {
             ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr),
-            ast::Expr::ObjClassExpr(_) => todo!(),
-            ast::Expr::InitExpr(_) => todo!(),
-            ast::Expr::NilExpr(_) => todo!(),
-            ast::Expr::SizeOfExpr(_) => todo!(),
+            ast::Expr::ObjClassExpr(_) => self.unsupported_expr(span),
+            ast::Expr::InitExpr(_) => self.unsupported_expr(span),
+            ast::Expr::NilExpr(_) => self.unsupported_expr(span),
+            ast::Expr::SizeOfExpr(_) => self.unsupported_expr(span),
             ast::Expr::BinaryExpr(expr) => self.lower_binary_expr(expr),
             ast::Expr::UnaryExpr(expr) => self.lower_unary_expr(expr),
             ast::Expr::ParenExpr(expr) => self.lower_paren_expr(expr),
             ast::Expr::NameExpr(expr) => self.lower_name_expr(expr),
-            ast::Expr::SelfExpr(expr) => self.lower_self_expr(expr),
-            ast::Expr::FieldExpr(_) => todo!(),
-            ast::Expr::DerefExpr(_) => todo!(),
-            ast::Expr::CheatExpr(_) => todo!(),
-            ast::Expr::NatCheatExpr(_) => todo!(),
-            ast::Expr::ArrowExpr(_) => todo!(),
-            ast::Expr::IndirectExpr(_) => todo!(),
-            ast::Expr::BitsExpr(_) => todo!(),
-            ast::Expr::CallExpr(_) => todo!(),
+            ast::Expr::SelfExpr(_) => self.unsupported_expr(span),
+            ast::Expr::FieldExpr(_) => self.unsupported_expr(span),
+            ast::Expr::DerefExpr(_) => self.unsupported_expr(span),
+            ast::Expr::CheatExpr(_) => self.unsupported_expr(span),
+            ast::Expr::NatCheatExpr(_) => self.unsupported_expr(span),
+            ast::Expr::ArrowExpr(_) => self.unsupported_expr(span),
+            ast::Expr::IndirectExpr(_) => self.unsupported_expr(span),
+            ast::Expr::BitsExpr(_) => self.unsupported_expr(span),
+            ast::Expr::CallExpr(_) => self.unsupported_expr(span),
         }
         .unwrap_or(expr::Expr::Missing);
 
         self.database.expr_nodes.alloc_spanned(expr, span)
+    }
+
+    fn unsupported_expr(&mut self, span: TextRange) -> Option<expr::Expr> {
+        self.messages
+            .report(MessageKind::Error, "unsupported expression", span);
+        None
     }
 
     fn lower_literal_expr(&mut self, expr: ast::LiteralExpr) -> Option<expr::Expr> {
@@ -106,10 +112,6 @@ impl super::LoweringCtx {
         let name = expr.name()?.identifier_token()?;
         let use_id = self.scopes.use_sym(name.text(), name.text_range());
         Some(expr::Expr::Name(expr::Name::Name(use_id)))
-    }
-
-    fn lower_self_expr(&mut self, _expr: ast::SelfExpr) -> Option<expr::Expr> {
-        Some(expr::Expr::Name(expr::Name::Self_))
     }
 }
 

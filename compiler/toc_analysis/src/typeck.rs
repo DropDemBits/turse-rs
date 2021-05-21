@@ -400,7 +400,9 @@ impl<'a> TypeCheck<'a> {
             toc_hir::expr::Name::Name(use_id) => {
                 (use_id, self.ty_ctx.get_def_id_kind(use_id.as_def()))
             }
-            toc_hir::expr::Name::Self_ => todo!(),
+            toc_hir::expr::Name::Self_ => {
+                todo!()
+            }
         };
 
         let eval_ty = if let Some(ty_ref) = ty_ref {

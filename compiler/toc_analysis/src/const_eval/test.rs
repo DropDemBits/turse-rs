@@ -446,11 +446,14 @@ fn error_no_const_expr() {
     ));
 
     // Referencing `self`
+    // TODO: Uncomment when `self` is lowered again
+    /*
     assert_const_eval(&unindent(
         r#"
     const a := self
     "#,
     ));
+    */
 }
 
 #[test]

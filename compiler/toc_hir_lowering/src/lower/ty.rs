@@ -1,5 +1,7 @@
 //! Lowering into `Type` HIR nodes
 use toc_hir::ty;
+use toc_reporting::MessageKind;
+use toc_span::TextRange;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
@@ -8,21 +10,27 @@ impl super::LoweringCtx {
 
         let ty = match ty {
             ast::Type::PrimType(ty) => self.lower_prim_type(ty),
-            ast::Type::NameType(_) => todo!(),
-            ast::Type::RangeType(_) => todo!(),
-            ast::Type::EnumType(_) => todo!(),
-            ast::Type::ArrayType(_) => todo!(),
-            ast::Type::SetType(_) => todo!(),
-            ast::Type::RecordType(_) => todo!(),
-            ast::Type::UnionType(_) => todo!(),
-            ast::Type::PointerType(_) => todo!(),
-            ast::Type::FcnType(_) => todo!(),
-            ast::Type::ProcType(_) => todo!(),
-            ast::Type::CollectionType(_) => todo!(),
-            ast::Type::ConditionType(_) => todo!(),
+            ast::Type::NameType(_) => self.unsupported_ty(span),
+            ast::Type::RangeType(_) => self.unsupported_ty(span),
+            ast::Type::EnumType(_) => self.unsupported_ty(span),
+            ast::Type::ArrayType(_) => self.unsupported_ty(span),
+            ast::Type::SetType(_) => self.unsupported_ty(span),
+            ast::Type::RecordType(_) => self.unsupported_ty(span),
+            ast::Type::UnionType(_) => self.unsupported_ty(span),
+            ast::Type::PointerType(_) => self.unsupported_ty(span),
+            ast::Type::FcnType(_) => self.unsupported_ty(span),
+            ast::Type::ProcType(_) => self.unsupported_ty(span),
+            ast::Type::CollectionType(_) => self.unsupported_ty(span),
+            ast::Type::ConditionType(_) => self.unsupported_ty(span),
         }?;
 
         Some(self.database.type_nodes.alloc_spanned(ty, span))
+    }
+
+    fn unsupported_ty(&mut self, span: TextRange) -> Option<ty::Type> {
+        self.messages
+            .report(MessageKind::Error, "unsupported type", span);
+        None
     }
 
     fn lower_prim_type(&mut self, ty: ast::PrimType) -> Option<ty::Type> {

@@ -10,6 +10,7 @@ pub struct MismatchedBinaryTypes {
     _lhs: Spanned<TyRef>,
     op: Spanned<expr::BinaryOp>,
     _rhs: Spanned<TyRef>,
+    unsupported: bool,
 }
 
 /// Type for associated mismatch unary operand types
@@ -203,6 +204,20 @@ pub fn check_binary_operands(
             _lhs: lhs_ty_ref,
             op,
             _rhs: rhs_ty_ref,
+            unsupported: false,
+        })
+    }
+
+    fn create_unsupported_binary_op(
+        lhs_ty_ref: Spanned<TyRef>,
+        op: Spanned<expr::BinaryOp>,
+        rhs_ty_ref: Spanned<TyRef>,
+    ) -> Result<Type, MismatchedBinaryTypes> {
+        Err(MismatchedBinaryTypes {
+            _lhs: lhs_ty_ref,
+            op,
+            _rhs: rhs_ty_ref,
+            unsupported: true,
         })
     }
 
@@ -394,20 +409,22 @@ pub fn check_binary_operands(
             }
         }
         // Comparison (a, b => boolean where a, b: Comparable)
-        expr::BinaryOp::Less => todo!(),
-        expr::BinaryOp::LessEq => todo!(),
-        expr::BinaryOp::Greater => todo!(),
-        expr::BinaryOp::GreaterEq => todo!(),
-        expr::BinaryOp::Equal => todo!(),
-        expr::BinaryOp::NotEqual => todo!(),
+        expr::BinaryOp::Less => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
+        expr::BinaryOp::LessEq => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
+        expr::BinaryOp::Greater => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
+        expr::BinaryOp::GreaterEq => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
+        expr::BinaryOp::Equal => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
+        expr::BinaryOp::NotEqual => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
         // Set membership tests (set(a), a => boolean)
-        expr::BinaryOp::In => todo!(),
-        expr::BinaryOp::NotIn => todo!(),
+        expr::BinaryOp::In => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
+        expr::BinaryOp::NotIn => create_unsupported_binary_op(lhs_ty_ref, op, rhs_ty_ref),
     }
 }
 
 pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut MessageSink) {
-    let MismatchedBinaryTypes { op, .. } = err;
+    let MismatchedBinaryTypes {
+        op, unsupported, ..
+    } = err;
     let op_name = match op.item() {
         expr::BinaryOp::Add => "addition",
         expr::BinaryOp::Sub => "subtraction",
@@ -432,6 +449,15 @@ pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut 
         expr::BinaryOp::In => "`in`",
         expr::BinaryOp::NotIn => "`not in`",
     };
+
+    if unsupported {
+        reporter.report(
+            MessageKind::Error,
+            "operation is not type-checked yet",
+            op.span(),
+        );
+        return;
+    }
 
     let msg = reporter.report_detailed(
         MessageKind::Error,

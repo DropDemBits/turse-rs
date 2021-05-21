@@ -1,7 +1,8 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
-use toc_span::Spanned;
+use toc_reporting::MessageKind;
+use toc_span::{Spanned, TextRange};
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
@@ -10,60 +11,66 @@ impl super::LoweringCtx {
 
         let stmt = match stmt {
             ast::Stmt::ConstVarDecl(decl) => self.lower_constvar_decl(decl),
-            ast::Stmt::TypeDecl(_) => todo!(),
-            ast::Stmt::BindDecl(_) => todo!(),
-            ast::Stmt::ProcDecl(_) => todo!(),
-            ast::Stmt::FcnDecl(_) => todo!(),
-            ast::Stmt::ProcessDecl(_) => todo!(),
-            ast::Stmt::ExternalDecl(_) => todo!(),
-            ast::Stmt::ForwardDecl(_) => todo!(),
-            ast::Stmt::DeferredDecl(_) => todo!(),
-            ast::Stmt::BodyDecl(_) => todo!(),
-            ast::Stmt::ModuleDecl(_) => todo!(),
-            ast::Stmt::ClassDecl(_) => todo!(),
-            ast::Stmt::MonitorDecl(_) => todo!(),
+            ast::Stmt::TypeDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::BindDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::FcnDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::ProcessDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::ExternalDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::ForwardDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::DeferredDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::BodyDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::ModuleDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::ClassDecl(_) => self.unsupported_stmt(span),
+            ast::Stmt::MonitorDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::AssignStmt(stmt) => self.lower_assign_stmt(stmt),
-            ast::Stmt::OpenStmt(_) => todo!(),
-            ast::Stmt::CloseStmt(_) => todo!(),
+            ast::Stmt::OpenStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::CloseStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::PutStmt(stmt) => self.lower_put_stmt(stmt),
             ast::Stmt::GetStmt(stmt) => self.lower_get_stmt(stmt),
-            ast::Stmt::ReadStmt(_) => todo!(),
-            ast::Stmt::WriteStmt(_) => todo!(),
-            ast::Stmt::SeekStmt(_) => todo!(),
-            ast::Stmt::TellStmt(_) => todo!(),
-            ast::Stmt::ForStmt(_) => todo!(),
-            ast::Stmt::LoopStmt(_) => todo!(),
-            ast::Stmt::ExitStmt(_) => todo!(),
-            ast::Stmt::IfStmt(_) => todo!(),
-            ast::Stmt::CaseStmt(_) => todo!(),
+            ast::Stmt::ReadStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::WriteStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::SeekStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::TellStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ForStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::LoopStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ExitStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::IfStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::CaseStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::BlockStmt(stmt) => self.lower_block_stmt(stmt),
-            ast::Stmt::InvariantStmt(_) => todo!(),
-            ast::Stmt::AssertStmt(_) => todo!(),
-            ast::Stmt::CallStmt(_) => todo!(),
-            ast::Stmt::ReturnStmt(_) => todo!(),
-            ast::Stmt::ResultStmt(_) => todo!(),
-            ast::Stmt::NewStmt(_) => todo!(),
-            ast::Stmt::FreeStmt(_) => todo!(),
-            ast::Stmt::TagStmt(_) => todo!(),
-            ast::Stmt::ForkStmt(_) => todo!(),
-            ast::Stmt::SignalStmt(_) => todo!(),
-            ast::Stmt::PauseStmt(_) => todo!(),
-            ast::Stmt::QuitStmt(_) => todo!(),
-            ast::Stmt::BreakStmt(_) => todo!(),
-            ast::Stmt::CheckednessStmt(_) => todo!(),
-            ast::Stmt::PreStmt(_) => todo!(),
-            ast::Stmt::InitStmt(_) => todo!(),
-            ast::Stmt::PostStmt(_) => todo!(),
-            ast::Stmt::HandlerStmt(_) => todo!(),
-            ast::Stmt::InheritStmt(_) => todo!(),
-            ast::Stmt::ImplementStmt(_) => todo!(),
-            ast::Stmt::ImplementByStmt(_) => todo!(),
-            ast::Stmt::ImportStmt(_) => todo!(),
-            ast::Stmt::ExportStmt(_) => todo!(),
-            ast::Stmt::PreprocGlob(_) => todo!(),
+            ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::AssertStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::CallStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ReturnStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ResultStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::NewStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::FreeStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::TagStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ForkStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::SignalStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::PauseStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::QuitStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::BreakStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::CheckednessStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::PreStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::InitStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::PostStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::HandlerStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::InheritStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ImplementStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ImplementByStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ImportStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::ExportStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::PreprocGlob(_) => self.unsupported_stmt(span),
         }?;
 
         Some(self.database.stmt_nodes.alloc_spanned(stmt, span))
+    }
+
+    fn unsupported_stmt(&mut self, span: TextRange) -> Option<stmt::Stmt> {
+        self.messages
+            .report(MessageKind::Error, "unsupported statement", span);
+        None
     }
 
     fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<stmt::Stmt> {

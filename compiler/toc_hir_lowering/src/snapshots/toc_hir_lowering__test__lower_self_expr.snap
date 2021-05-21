@@ -9,7 +9,7 @@ Idx::<Stmt>(0) (0..9): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2.
 
 expr:
 Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (5..9): Name(Self_)
+Idx::<Expr>(1) (5..9): Missing
 
 ty:
 
@@ -18,4 +18,5 @@ root stmts:
 symtab:
 DefId(0): (0..1, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
 UseId(DefId(0), 0): 0..1
+error at 5..9: unsupported expression
 

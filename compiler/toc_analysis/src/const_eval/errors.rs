@@ -43,8 +43,8 @@ impl ConstError {
     pub fn report_to(&self, reporter: &mut toc_reporting::MessageSink) {
         use toc_reporting::MessageKind;
 
-        // Ignore already reported messages
-        if matches!(self.kind, ErrorKind::Reported) {
+        // Ignore already reported messages, or for missing expressions
+        if matches!(self.kind, ErrorKind::Reported | ErrorKind::MissingExpr) {
             return;
         }
 
