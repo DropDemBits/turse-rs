@@ -587,6 +587,7 @@ dependencies = [
  "toc_hir_lowering",
  "toc_parser",
  "toc_reporting",
+ "toc_span",
  "toc_syntax",
  "toc_validate",
  "toc_vfs",
@@ -627,6 +628,7 @@ dependencies = [
  "rowan",
  "toc_reporting",
  "toc_scanner",
+ "toc_span",
  "toc_syntax",
 ]
 
@@ -636,6 +638,7 @@ version = "0.1.0"
 dependencies = [
  "drop_bomb",
  "toc_span",
+ "toc_vfs",
 ]
 
 [[package]]
@@ -681,6 +684,9 @@ dependencies = [
 [[package]]
 name = "toc_vfs"
 version = "0.1.0"
+dependencies = [
+ "toc_span",
+]
 
 [[package]]
 name = "ucd-trie"

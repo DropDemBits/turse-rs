@@ -1,12 +1,12 @@
 //! Lowering into `Type` HIR nodes
 use toc_hir::ty;
 use toc_reporting::MessageKind;
-use toc_span::TextRange;
+use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
     pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeIdx> {
-        let span = ty.syntax().text_range();
+        let span = Span::new(self.file, ty.syntax().text_range());
 
         let ty = match ty {
             ast::Type::PrimType(ty) => self.lower_prim_type(ty),
@@ -27,7 +27,7 @@ impl super::LoweringCtx {
         Some(self.database.type_nodes.alloc_spanned(ty, span))
     }
 
-    fn unsupported_ty(&mut self, span: TextRange) -> Option<ty::Type> {
+    fn unsupported_ty(&mut self, span: Span) -> Option<ty::Type> {
         self.messages
             .report(MessageKind::Error, "unsupported type", span);
         None

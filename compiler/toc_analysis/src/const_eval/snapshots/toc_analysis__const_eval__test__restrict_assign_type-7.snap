@@ -7,7 +7,7 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 18..23, state: Error(ConstError { kind: WrongResultType(Bool(false), Real), span: 18..23 }) },
+                EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 18..23 }, state: Error(ConstError { kind: WrongResultType(Bool(false), Real), span: Span { file: None, range: 18..23 } }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -15,7 +15,7 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> ConstError { kind: WrongResultType(Bool(false), Real), span: 18..23 }
+ConstExpr { id: 0 } -> ConstError { kind: WrongResultType(Bool(false), Real), span: Span { file: None, range: 18..23 } }
 
 error at 18..23: wrong type for compile-time expression
 | note for 18..23: expected real value, found boolean value

@@ -8,17 +8,18 @@ mod source;
 use source::Source;
 use toc_reporting::{MessageKind, ReportMessage};
 use toc_scanner::Scanner;
+use toc_span::FileId;
 use toc_syntax::SyntaxNode;
 
 use rowan::GreenNode;
 
 use crate::sink::Sink;
 
-pub fn parse(source: &str) -> ParseResult {
+pub fn parse(file: Option<FileId>, source: &str) -> ParseResult {
     let (tokens, scanner_msgs) = Scanner::new(source).collect_all();
 
     let source = Source::new(&tokens);
-    let parser = parser::Parser::new(source);
+    let parser = parser::Parser::new(file, source);
     let (events, mut parser_msgs) = parser.parse();
     parser_msgs.dedup_shared_ranges();
     let sink = Sink::new(&tokens, events, vec![scanner_msgs, parser_msgs]);
@@ -74,7 +75,7 @@ impl ParseResult {
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
-    let res = parse(source);
+    let res = parse(None, source);
     expected.assert_eq(&res.debug_tree());
 }
 

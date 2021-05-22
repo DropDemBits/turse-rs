@@ -9,19 +9,22 @@ mod ty;
 use toc_hir::stmt::StmtIdx;
 use toc_hir::Database;
 use toc_reporting::MessageSink;
+use toc_span::FileId;
 use toc_syntax::ast;
 
 use crate::scopes;
 
 pub(super) struct LoweringCtx {
+    pub(super) file: Option<FileId>,
     pub(super) database: Database,
     pub(super) messages: MessageSink,
     pub(super) scopes: scopes::ScopeBuilder,
 }
 
 impl LoweringCtx {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(file: Option<FileId>) -> Self {
         Self {
+            file,
             database: Database::new(),
             messages: MessageSink::new(),
             scopes: scopes::ScopeBuilder::new(),

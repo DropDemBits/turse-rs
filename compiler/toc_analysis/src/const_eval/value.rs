@@ -1,6 +1,6 @@
 //! Compile-time values
 
-use toc_span::TextRange;
+use toc_span::Span;
 
 use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt, RestrictType};
 
@@ -22,7 +22,7 @@ impl ConstValue {
     /// ## Returns
     /// If `self` is a `ConstValue::Integer`, returns the corresponding ConstInt value.
     /// Otherwise, returns `ConstError::WrongType`.
-    pub fn into_int(self, span: TextRange) -> Result<ConstInt, ConstError> {
+    pub fn into_int(self, span: Span) -> Result<ConstInt, ConstError> {
         match self {
             ConstValue::Integer(v) => Ok(v),
             _ => Err(ConstError::new(

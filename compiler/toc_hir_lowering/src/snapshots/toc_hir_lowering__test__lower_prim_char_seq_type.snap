@@ -5,16 +5,16 @@ expression: "var _ : char(1)"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..15): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], tail: TypeSpec(Idx::<Type>(0)) })
+Idx::<Stmt>(0) (Span { file: None, range: 0..15 }): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], tail: TypeSpec(Idx::<Type>(0)) })
 
 expr:
-Idx::<Expr>(0) (13..14): Literal(Integer(1))
+Idx::<Expr>(0) (Span { file: None, range: 13..14 }): Literal(Integer(1))
 
 ty:
-Idx::<Type>(0) (8..15): Primitive(SizedChar(Expr(Idx::<Expr>(0))))
+Idx::<Type>(0) (Span { file: None, range: 8..15 }): Primitive(SizedChar(Expr(Idx::<Expr>(0))))
 
 root stmts:
 [Idx::<Stmt>(0)]
 symtab:
-DefId(0): (4..5, Symbol { name: "_", kind: Declared, is_pervasive: false, def_id: DefId(0), next_use: 0 })
+DefId(0): (Span { file: None, range: 4..5 }, Symbol { name: "_", kind: Declared, is_pervasive: false, def_id: DefId(0), next_use: 0 })
 

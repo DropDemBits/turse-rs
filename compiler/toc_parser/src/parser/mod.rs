@@ -5,6 +5,7 @@ pub(crate) mod marker;
 use drop_bomb::DropBomb;
 pub(crate) use error::Expected;
 use toc_reporting::MessageSink;
+use toc_span::{FileId, Span};
 
 use crate::event::Event;
 use crate::grammar;
@@ -99,6 +100,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
 ];
 
 pub(crate) struct Parser<'t, 'src> {
+    file: Option<FileId>,
     source: Source<'t, 'src>,
     events: Vec<Event>,
     msg_sink: MessageSink,
@@ -108,8 +110,9 @@ pub(crate) struct Parser<'t, 'src> {
 }
 
 impl<'t, 'src> Parser<'t, 'src> {
-    pub(crate) fn new(source: Source<'t, 'src>) -> Self {
+    pub(crate) fn new(file: Option<FileId>, source: Source<'t, 'src>) -> Self {
         Self {
+            file,
             source,
             events: vec![],
             msg_sink: MessageSink::new(),
@@ -235,10 +238,12 @@ impl<'t, 'src> Parser<'t, 'src> {
             .map(|tok| (tok.kind, tok.range))
             .expect("warning of alias at end of file");
 
+        let span = Span::new(self.file, range);
+
         self.msg_sink.report(
             toc_reporting::MessageKind::Warning,
             &format!("{} found, assuming it to be {}", found, normal),
-            range,
+            span,
         );
     }
 
@@ -346,6 +351,8 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
             "Extra call to `error_unexpected`"
         );
 
+        let span = Span::new(self.p.file, range);
+
         self.p.msg_sink.report(
             toc_reporting::MessageKind::Error,
             &format!(
@@ -356,7 +363,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
                     found,
                 }
             ),
-            range,
+            span,
         );
 
         // If the cursor is part of the recovery set (and if we're set to respect recovery sets),

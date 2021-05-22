@@ -7,8 +7,8 @@ ConstEvalCtx {
     inner: RwLock {
         data: InnerCtx {
             eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: 11..18, state: Error(ConstError { kind: DivByZero, span: 13..16 }) },
-                EvalInfo { unit_id: UnitId(0), span: 30..31, state: Error(ConstError { kind: Reported, span: 30..31 }) },
+                EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 11..18 }, state: Error(ConstError { kind: DivByZero, span: Span { file: None, range: 13..16 } }) },
+                EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 30..31 }, state: Error(ConstError { kind: Reported, span: Span { file: None, range: 30..31 } }) },
             ],
             var_to_expr: {
                 GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
@@ -17,8 +17,8 @@ ConstEvalCtx {
         },
     },
 }
-ConstExpr { id: 0 } -> ConstError { kind: DivByZero, span: 13..16 }
-ConstExpr { id: 1 } -> ConstError { kind: Reported, span: 30..31 }
+ConstExpr { id: 0 } -> ConstError { kind: DivByZero, span: Span { file: None, range: 13..16 } }
+ConstExpr { id: 1 } -> ConstError { kind: Reported, span: Span { file: None, range: 30..31 } }
 
 error at 13..16: division by zero in compile-time expression
 

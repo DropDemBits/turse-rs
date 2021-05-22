@@ -24,9 +24,9 @@ macro_rules! for_all_const_exprs {
 }
 
 fn do_const_eval(source: &str) -> String {
-    let parsed = toc_parser::parse(&source);
+    let parsed = toc_parser::parse(None, &source);
     let mut unit_map = toc_hir::UnitMapBuilder::new();
-    let hir_res = toc_hir_lowering::lower_ast(parsed.syntax(), &mut unit_map);
+    let hir_res = toc_hir_lowering::lower_ast(None, parsed.syntax(), &mut unit_map);
     let unit_map = Arc::new(unit_map.finish());
 
     let unit = unit_map.get_unit(hir_res.id);

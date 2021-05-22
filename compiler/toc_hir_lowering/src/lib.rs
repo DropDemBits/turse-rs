@@ -22,6 +22,7 @@ mod scopes;
 
 use toc_hir::{UnitId, UnitMapBuilder};
 use toc_reporting::ReportMessage;
+use toc_span::FileId;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxNode,
@@ -45,8 +46,12 @@ impl HirLowerResult {
     }
 }
 
-pub fn lower_ast(root_node: SyntaxNode, unit_map: &mut UnitMapBuilder) -> HirLowerResult {
-    let mut ctx = LoweringCtx::new();
+pub fn lower_ast(
+    file: Option<FileId>,
+    root_node: SyntaxNode,
+    unit_map: &mut UnitMapBuilder,
+) -> HirLowerResult {
+    let mut ctx = LoweringCtx::new(file);
     let root = ast::Source::cast(root_node).unwrap();
 
     let stmts = ctx.lower_root(root);
@@ -54,6 +59,7 @@ pub fn lower_ast(root_node: SyntaxNode, unit_map: &mut UnitMapBuilder) -> HirLow
         database,
         messages,
         scopes,
+        ..
     } = ctx;
     let messages = messages.finish();
 

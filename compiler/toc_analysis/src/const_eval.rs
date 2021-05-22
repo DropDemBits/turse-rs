@@ -260,7 +260,7 @@ impl InnerCtx {
         #[derive(Debug)]
         enum Eval {
             Expr(expr::ExprIdx),
-            Op(ConstOp, toc_span::TextRange),
+            Op(ConstOp, toc_span::Span),
         }
 
         let (unit_id, root_expr, allow_64bit_ops) = {
@@ -447,7 +447,7 @@ struct EvalInfo {
     unit_id: UnitId,
     expr_id: expr::ExprIdx,
     /// Span of the constant expression
-    span: toc_span::TextRange,
+    span: toc_span::Span,
     /// Current evaluation state of the constant expression
     state: State,
     /// If 64-bit operations are allowed in this expression

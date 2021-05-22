@@ -5,17 +5,17 @@ expression: "var a := a"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..10): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], tail: InitExpr(Idx::<Expr>(0)) })
+Idx::<Stmt>(0) (Span { file: None, range: 0..10 }): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], tail: InitExpr(Idx::<Expr>(0)) })
 
 expr:
-Idx::<Expr>(0) (9..10): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(0) (Span { file: None, range: 9..10 }): Name(Name(UseId(DefId(0), 0)))
 
 ty:
 
 root stmts:
 [Idx::<Stmt>(0)]
 symtab:
-DefId(0): (9..10, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-DefId(1): (4..5, Symbol { name: "a", kind: Declared, is_pervasive: false, def_id: DefId(1), next_use: 0 })
-UseId(DefId(0), 0): 9..10
+DefId(0): (Span { file: None, range: 9..10 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+DefId(1): (Span { file: None, range: 4..5 }, Symbol { name: "a", kind: Declared, is_pervasive: false, def_id: DefId(1), next_use: 0 })
+UseId(DefId(0), 0): Span { file: None, range: 9..10 }
 

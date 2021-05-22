@@ -15,3 +15,4 @@ toc_hir = { path = "../toc_hir" }
 toc_hir_lowering = { path = "../toc_hir_lowering" }
 toc_vfs = { path = "../toc_vfs" }
 toc_analysis = { path = "../toc_analysis" }
+toc_span = { path = "../toc_span" }

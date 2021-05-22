@@ -5,7 +5,7 @@ mod test;
 use std::collections::HashMap;
 
 use toc_hir::symbol::{self, SymbolTable};
-use toc_span::TextRange;
+use toc_span::Span;
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -69,7 +69,7 @@ impl ScopeBuilder {
     pub fn def_sym(
         &mut self,
         name: &str,
-        span: TextRange,
+        span: Span,
         kind: symbol::SymbolKind,
         is_pervasive: bool,
     ) -> symbol::DefId {
@@ -83,7 +83,7 @@ impl ScopeBuilder {
         )
     }
 
-    pub fn use_sym(&mut self, name: &str, span: TextRange) -> symbol::UseId {
+    pub fn use_sym(&mut self, name: &str, span: Span) -> symbol::UseId {
         let def_id = self.lookup_def(name).unwrap_or_else(|| {
             // Declare at the import boundary
             let def_id = Self::def_in_scope(
@@ -104,7 +104,7 @@ impl ScopeBuilder {
         symbol_table: &mut SymbolTable,
         scope: &mut Scope,
         name: &str,
-        span: TextRange,
+        span: Span,
         kind: symbol::SymbolKind,
         is_pervasive: bool,
     ) -> symbol::DefId {

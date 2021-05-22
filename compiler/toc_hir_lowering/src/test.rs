@@ -47,8 +47,8 @@ fn stringify_unit(unit: &toc_hir::Unit) -> String {
 
 fn assert_lower(src: &str) -> (HirLowerResult, UnitMap) {
     let mut unit_map = toc_hir::UnitMapBuilder::new();
-    let parse = toc_parser::parse(src);
-    let lowered = crate::lower_ast(parse.syntax(), &mut unit_map);
+    let parse = toc_parser::parse(None, src);
+    let lowered = crate::lower_ast(None, parse.syntax(), &mut unit_map);
     let unit_map = unit_map.finish();
 
     let mut s = stringify_unit(&unit_map.get_unit(lowered.id));

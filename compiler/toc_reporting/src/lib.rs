@@ -1,7 +1,7 @@
 //! Common message reporting for all compiler libraries
 use std::fmt;
 
-use toc_span::TextRange;
+use toc_span::Span;
 
 /// Type of message reported.
 /// Kinds are ordered by severity (from least severe, to most severe).
@@ -26,7 +26,7 @@ pub enum AnnotateKind {
 pub struct ReportMessage {
     kind: MessageKind,
     msg: String,
-    range: TextRange,
+    span: Span,
     annotations: Vec<Annotation>,
 }
 
@@ -41,9 +41,9 @@ impl ReportMessage {
         &self.msg
     }
 
-    /// Gets the range of text the message covers
-    pub fn text_range(&self) -> TextRange {
-        self.range
+    /// Gets the span of text the message covers
+    pub fn span(&self) -> Span {
+        self.span
     }
 
     /// Gets any associated annotations
@@ -54,13 +54,25 @@ impl ReportMessage {
 
 impl fmt::Display for ReportMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (start, end) = (u32::from(self.range.start()), u32::from(self.range.end()));
+        let file_id = self.span.file;
+        let (start, end) = (
+            u32::from(self.span.range.start()),
+            u32::from(self.span.range.end()),
+        );
         let kind = match self.kind() {
             MessageKind::Warning => "warn",
             MessageKind::Error => "error",
         };
 
-        write!(f, "{} at {}..{}: {}", kind, start, end, self.msg)?;
+        if let Some(file_id) = file_id {
+            write!(
+                f,
+                "{} in file {:?} at {}..{}: {}",
+                kind, file_id, start, end, self.msg
+            )?;
+        } else {
+            write!(f, "{} at {}..{}: {}", kind, start, end, self.msg)?;
+        }
 
         // Report any annotations
         for annotation in &self.annotations {
@@ -75,7 +87,7 @@ impl fmt::Display for ReportMessage {
 pub struct Annotation {
     kind: AnnotateKind,
     msg: String,
-    range: Option<TextRange>,
+    span: Option<Span>,
 }
 
 impl Annotation {
@@ -89,10 +101,10 @@ impl Annotation {
         &self.msg
     }
 
-    /// Gets the range of text the message covers.
+    /// Gets the span of text the message covers.
     /// If `None`, no range should be reported either
-    pub fn text_range(&self) -> Option<TextRange> {
-        self.range
+    pub fn span(&self) -> Option<Span> {
+        self.span
     }
 }
 
@@ -103,9 +115,19 @@ impl fmt::Display for Annotation {
             AnnotateKind::Note => "note",
         };
 
-        if let Some(range) = self.range {
-            let (start, end) = (u32::from(range.start()), u32::from(range.end()));
-            write!(f, "{} for {}..{}: {}", kind, start, end, self.msg)
+        if let Some(span) = self.span {
+            let file_id = span.file;
+            let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+
+            if let Some(file_id) = file_id {
+                write!(
+                    f,
+                    "{} in file {:?} for {}..{}: {}",
+                    kind, file_id, start, end, self.msg
+                )
+            } else {
+                write!(f, "{} for {}..{}: {}", kind, start, end, self.msg)
+            }
         } else {
             write!(f, "{}: {}", kind, self.msg)
         }
@@ -131,8 +153,28 @@ impl MessageSink {
     /// Reports a message
     ///
     /// Does not add any annotations to the message
-    pub fn report(&mut self, kind: MessageKind, message: &str, range: TextRange) {
-        MessageBuilder::new(self, kind, message, range).finish();
+    pub fn report(&mut self, kind: MessageKind, message: &str, span: Span) {
+        MessageBuilder::new(self, kind, message, span).finish();
+    }
+
+    /// Reports an error message
+    pub fn error(&mut self, message: &str, span: Span) {
+        self.report(MessageKind::Error, message, span)
+    }
+
+    /// Reports a detailed error message
+    pub fn error_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
+        self.report_detailed(MessageKind::Error, message, span)
+    }
+
+    /// Reports a warning message
+    pub fn warn(&mut self, message: &str, span: Span) {
+        self.report(MessageKind::Warning, message, span)
+    }
+
+    /// Reports a detailed warning message
+    pub fn warn_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
+        self.report_detailed(MessageKind::Warning, message, span)
     }
 
     /// Reports a detailed message
@@ -143,15 +185,15 @@ impl MessageSink {
         &mut self,
         kind: MessageKind,
         message: &str,
-        range: TextRange,
+        span: Span,
     ) -> MessageBuilder {
-        MessageBuilder::new(self, kind, message, range)
+        MessageBuilder::new(self, kind, message, span)
     }
 
     /// Removes any subsequent messages that share the same text range
     pub fn dedup_shared_ranges(&mut self) {
         self.messages
-            .dedup_by(|a, b| a.range == b.range && a.kind == b.kind)
+            .dedup_by(|a, b| a.span == b.span && a.kind == b.kind)
     }
 
     /// Finishes reporting any messages, giving back the final message list
@@ -167,7 +209,7 @@ pub struct MessageBuilder<'a> {
     reporter: &'a mut MessageSink,
     kind: MessageKind,
     message: String,
-    range: TextRange,
+    span: Span,
     annotations: Vec<Annotation>,
 }
 
@@ -176,43 +218,43 @@ impl<'a> MessageBuilder<'a> {
         reporter: &'a mut MessageSink,
         kind: MessageKind,
         message: &str,
-        range: TextRange,
+        span: Span,
     ) -> Self {
         Self {
             drop_bomb: drop_bomb::DropBomb::new("Missing `finish()` for MessageBuilder"),
             reporter,
             kind,
             message: message.to_string(),
-            range,
+            span,
             annotations: vec![],
         }
     }
 
-    pub fn with_annotation<R>(mut self, kind: AnnotateKind, message: &str, range: R) -> Self
+    pub fn with_annotation<R>(mut self, kind: AnnotateKind, message: &str, span: R) -> Self
     where
-        R: Into<Option<TextRange>>,
+        R: Into<Option<Span>>,
     {
         self.annotations.push(Annotation {
             kind,
             msg: message.to_string(),
-            range: range.into(),
+            span: span.into(),
         });
 
         self
     }
 
-    pub fn with_note<R>(self, message: &str, range: R) -> Self
+    pub fn with_note<S>(self, message: &str, span: S) -> Self
     where
-        R: Into<Option<TextRange>>,
+        S: Into<Option<Span>>,
     {
-        self.with_annotation(AnnotateKind::Note, message, range)
+        self.with_annotation(AnnotateKind::Note, message, span)
     }
 
-    pub fn with_info<R>(self, message: &str, range: R) -> Self
+    pub fn with_info<S>(self, message: &str, span: S) -> Self
     where
-        R: Into<Option<TextRange>>,
+        S: Into<Option<Span>>,
     {
-        self.with_annotation(AnnotateKind::Info, message, range)
+        self.with_annotation(AnnotateKind::Info, message, span)
     }
 
     pub fn finish(self) {
@@ -221,7 +263,7 @@ impl<'a> MessageBuilder<'a> {
             reporter,
             kind,
             message,
-            range,
+            span,
             annotations,
         } = self;
 
@@ -231,7 +273,7 @@ impl<'a> MessageBuilder<'a> {
         reporter.messages.push(ReportMessage {
             kind,
             msg: message,
-            range,
+            span,
             annotations,
         });
     }
@@ -239,6 +281,8 @@ impl<'a> MessageBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
+    use toc_span::TextRange;
+
     use super::*;
 
     #[test]
@@ -247,23 +291,23 @@ mod tests {
         sink.report(
             MessageKind::Error,
             "an error message",
-            TextRange::new(1.into(), 3.into()),
+            Span::new(None, TextRange::new(1.into(), 3.into())),
         );
 
         sink.report(
             MessageKind::Warning,
             "a warning message",
-            TextRange::new(3.into(), 5.into()),
+            Span::new(None, TextRange::new(3.into(), 5.into())),
         );
 
         let msgs = sink.finish();
         assert_eq!(
-            (msgs[0].message(), msgs[0].text_range()),
+            (msgs[0].message(), msgs[0].span().range),
             ("an error message", TextRange::new(1.into(), 3.into()))
         );
 
         assert_eq!(
-            (msgs[1].message(), msgs[1].text_range()),
+            (msgs[1].message(), msgs[1].span().range),
             ("a warning message", TextRange::new(3.into(), 5.into()))
         );
     }

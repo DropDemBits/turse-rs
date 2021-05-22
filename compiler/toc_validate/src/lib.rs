@@ -7,7 +7,7 @@ mod stmt;
 mod test;
 
 use toc_reporting::{MessageBuilder, MessageKind, MessageSink, ReportMessage};
-use toc_span::TextRange;
+use toc_span::{FileId, Span, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
     match_ast, SyntaxNode,
@@ -23,8 +23,9 @@ impl ValidateResult {
     }
 }
 
-pub fn validate_ast(root: SyntaxNode) -> ValidateResult {
+pub fn validate_ast(file: Option<FileId>, root: SyntaxNode) -> ValidateResult {
     let mut ctx = ValidateCtx {
+        file,
         sink: MessageSink::new(),
     };
 
@@ -35,16 +36,19 @@ pub fn validate_ast(root: SyntaxNode) -> ValidateResult {
     ctx.finish()
 }
 struct ValidateCtx {
+    file: Option<FileId>,
     sink: MessageSink,
 }
 
 impl ValidateCtx {
     pub(crate) fn push_error(&mut self, msg: &str, range: TextRange) {
-        self.sink.report(MessageKind::Error, msg, range);
+        self.sink
+            .report(MessageKind::Error, msg, Span::new(self.file, range));
     }
 
     pub(crate) fn push_detailed_error(&mut self, msg: &str, range: TextRange) -> MessageBuilder {
-        self.sink.report_detailed(MessageKind::Error, msg, range)
+        self.sink
+            .report_detailed(MessageKind::Error, msg, Span::new(self.file, range))
     }
 
     fn finish(self) -> ValidateResult {
@@ -129,8 +133,8 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
-    let res = toc_parser::parse(source);
-    let validate_res = validate_ast(res.syntax());
+    let res = toc_parser::parse(None, source);
+    let validate_res = validate_ast(None, res.syntax());
 
     let mut buf = String::new();
     for msg in res.messages().iter().chain(validate_res.messages().iter()) {

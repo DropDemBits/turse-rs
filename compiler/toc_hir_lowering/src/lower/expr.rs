@@ -1,7 +1,7 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::expr;
 use toc_reporting::MessageKind;
-use toc_span::{Spanned, TextRange};
+use toc_span::{Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
@@ -26,7 +26,7 @@ impl super::LoweringCtx {
 
     /// Lowers an expr
     pub(super) fn lower_expr(&mut self, expr: ast::Expr) -> expr::ExprIdx {
-        let span = expr.syntax().text_range();
+        let span = Span::new(self.file, expr.syntax().text_range());
 
         let expr = match expr {
             ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr),
@@ -53,7 +53,7 @@ impl super::LoweringCtx {
         self.database.expr_nodes.alloc_spanned(expr, span)
     }
 
-    fn unsupported_expr(&mut self, span: TextRange) -> Option<expr::Expr> {
+    fn unsupported_expr(&mut self, span: Span) -> Option<expr::Expr> {
         self.messages
             .report(MessageKind::Error, "unsupported expression", span);
         None
@@ -63,11 +63,13 @@ impl super::LoweringCtx {
         let (value, errs) = expr.literal()?;
 
         if let Some(errs) = errs {
-            let span = expr.syntax().text_range();
+            let range = expr.syntax().text_range();
 
             // Report errors
             // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
-            for (span, err) in errs.iter().map(|msg| msg.message_at(span)) {
+            for (range, err) in errs.iter().map(|msg| msg.message_at(range)) {
+                let span = Span::new(self.file, range);
+
                 self.messages
                     .report(MessageKind::Error, &err.to_string(), span);
             }
@@ -87,8 +89,9 @@ impl super::LoweringCtx {
     }
 
     fn lower_binary_expr(&mut self, expr: ast::BinaryExpr) -> Option<expr::Expr> {
+        let op_span = toc_span::Span::new(self.file, expr.op_node()?.text_range());
         let op = syntax_to_hir_binary_op(expr.op_kind()?);
-        let op = Spanned::new(op, expr.op_node()?.text_range());
+        let op = Spanned::new(op, op_span);
         let lhs = self.lower_required_expr(expr.lhs());
         let rhs = self.lower_required_expr(expr.rhs());
 
@@ -96,8 +99,9 @@ impl super::LoweringCtx {
     }
 
     fn lower_unary_expr(&mut self, expr: ast::UnaryExpr) -> Option<expr::Expr> {
+        let op_span = toc_span::Span::new(self.file, expr.op_node()?.text_range());
         let op = syntax_to_hir_unary_op(expr.op_kind()?);
-        let op = Spanned::new(op, expr.op_node()?.text_range());
+        let op = Spanned::new(op, op_span);
         let rhs = self.lower_required_expr(expr.rhs());
 
         Some(expr::Expr::Unary(expr::Unary { op, rhs }))
@@ -110,7 +114,8 @@ impl super::LoweringCtx {
 
     fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::Expr> {
         let name = expr.name()?.identifier_token()?;
-        let use_id = self.scopes.use_sym(name.text(), name.text_range());
+        let span = Span::new(self.file, name.text_range());
+        let use_id = self.scopes.use_sym(name.text(), span);
         Some(expr::Expr::Name(expr::Name::Name(use_id)))
     }
 }

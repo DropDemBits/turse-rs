@@ -5,17 +5,17 @@ expression: "a := 1e-999999999"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..17): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, 2..4), rhs: Idx::<Expr>(1) })
+Idx::<Stmt>(0) (Span { file: None, range: 0..17 }): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: Idx::<Expr>(1) })
 
 expr:
-Idx::<Expr>(0) (0..1): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (5..17): Literal(Real(0.0))
+Idx::<Expr>(0) (Span { file: None, range: 0..1 }): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (Span { file: None, range: 5..17 }): Literal(Real(0.0))
 
 ty:
 
 root stmts:
 [Idx::<Stmt>(0)]
 symtab:
-DefId(0): (0..1, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-UseId(DefId(0), 0): 0..1
+DefId(0): (Span { file: None, range: 0..1 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+UseId(DefId(0), 0): Span { file: None, range: 0..1 }
 

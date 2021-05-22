@@ -6,7 +6,7 @@ mod inner {
     pub(crate) fn do_fuzz() {
         afl::fuzz!(|data: &[u8]| {
             if let Ok(s) = std::str::from_utf8(data) {
-                let _ = toc_parser::parse(s);
+                let _ = toc_parser::parse(None, s);
             }
         });
     }

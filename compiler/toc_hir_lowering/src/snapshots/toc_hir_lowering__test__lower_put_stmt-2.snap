@@ -5,28 +5,28 @@ expression: "put skip, a : 1, b : 2 : 3, c : 4 : 5 : 6"
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..41): Put(Put { stream_num: None, items: [Skip, Item(PutItem { expr: Idx::<Expr>(0), opts: WithWidth { width: Idx::<Expr>(1) } }), Item(PutItem { expr: Idx::<Expr>(2), opts: WithPrecision { width: Idx::<Expr>(3), precision: Idx::<Expr>(4) } }), Item(PutItem { expr: Idx::<Expr>(5), opts: WithExponentWidth { width: Idx::<Expr>(6), precision: Idx::<Expr>(7), exponent_width: Idx::<Expr>(8) } })], append_newline: true })
+Idx::<Stmt>(0) (Span { file: None, range: 0..41 }): Put(Put { stream_num: None, items: [Skip, Item(PutItem { expr: Idx::<Expr>(0), opts: WithWidth { width: Idx::<Expr>(1) } }), Item(PutItem { expr: Idx::<Expr>(2), opts: WithPrecision { width: Idx::<Expr>(3), precision: Idx::<Expr>(4) } }), Item(PutItem { expr: Idx::<Expr>(5), opts: WithExponentWidth { width: Idx::<Expr>(6), precision: Idx::<Expr>(7), exponent_width: Idx::<Expr>(8) } })], append_newline: true })
 
 expr:
-Idx::<Expr>(0) (10..11): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (14..15): Literal(Integer(1))
-Idx::<Expr>(2) (17..18): Name(Name(UseId(DefId(1), 0)))
-Idx::<Expr>(3) (21..22): Literal(Integer(2))
-Idx::<Expr>(4) (25..26): Literal(Integer(3))
-Idx::<Expr>(5) (28..29): Name(Name(UseId(DefId(2), 0)))
-Idx::<Expr>(6) (32..33): Literal(Integer(4))
-Idx::<Expr>(7) (36..37): Literal(Integer(5))
-Idx::<Expr>(8) (40..41): Literal(Integer(6))
+Idx::<Expr>(0) (Span { file: None, range: 10..11 }): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(1) (Span { file: None, range: 14..15 }): Literal(Integer(1))
+Idx::<Expr>(2) (Span { file: None, range: 17..18 }): Name(Name(UseId(DefId(1), 0)))
+Idx::<Expr>(3) (Span { file: None, range: 21..22 }): Literal(Integer(2))
+Idx::<Expr>(4) (Span { file: None, range: 25..26 }): Literal(Integer(3))
+Idx::<Expr>(5) (Span { file: None, range: 28..29 }): Name(Name(UseId(DefId(2), 0)))
+Idx::<Expr>(6) (Span { file: None, range: 32..33 }): Literal(Integer(4))
+Idx::<Expr>(7) (Span { file: None, range: 36..37 }): Literal(Integer(5))
+Idx::<Expr>(8) (Span { file: None, range: 40..41 }): Literal(Integer(6))
 
 ty:
 
 root stmts:
 [Idx::<Stmt>(0)]
 symtab:
-DefId(0): (10..11, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-DefId(1): (17..18, Symbol { name: "b", kind: Undeclared, is_pervasive: false, def_id: DefId(1), next_use: 1 })
-DefId(2): (28..29, Symbol { name: "c", kind: Undeclared, is_pervasive: false, def_id: DefId(2), next_use: 1 })
-UseId(DefId(0), 0): 10..11
-UseId(DefId(1), 0): 17..18
-UseId(DefId(2), 0): 28..29
+DefId(0): (Span { file: None, range: 10..11 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+DefId(1): (Span { file: None, range: 17..18 }, Symbol { name: "b", kind: Undeclared, is_pervasive: false, def_id: DefId(1), next_use: 1 })
+DefId(2): (Span { file: None, range: 28..29 }, Symbol { name: "c", kind: Undeclared, is_pervasive: false, def_id: DefId(2), next_use: 1 })
+UseId(DefId(0), 0): Span { file: None, range: 10..11 }
+UseId(DefId(1), 0): Span { file: None, range: 17..18 }
+UseId(DefId(2), 0): Span { file: None, range: 28..29 }
 

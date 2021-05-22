@@ -1,13 +1,12 @@
 //! Abstraction over interfacing the native filesystem
 
+use std::num::NonZeroU32;
 use std::{
     convert::TryFrom,
     sync::{Arc, RwLock},
 };
 
-/// A unique file id
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FileId(u32);
+use toc_span::FileId;
 
 /// Information stored about a file
 pub struct FileInfo {
@@ -33,8 +32,9 @@ impl FileDb {
         // TODO: Dedup paths
         let mut files = self.files.write().unwrap();
 
-        let id = u32::try_from(files.len()).expect("Too many file ids");
-        let id = FileId(id);
+        let id = u32::try_from(files.len() + 1).expect("Too many file ids");
+        let id = NonZeroU32::new(id).unwrap();
+        let id = FileId::new(id);
         files.push(Arc::new(FileInfo {
             path: path.to_owned(),
             source: source.to_owned(),
@@ -44,7 +44,7 @@ impl FileDb {
     }
 
     pub fn get_file(&self, id: FileId) -> Arc<FileInfo> {
-        self.files.read().unwrap()[id.0 as usize].clone()
+        self.files.read().unwrap()[(id.raw_id().get() - 1) as usize].clone()
     }
 }
 

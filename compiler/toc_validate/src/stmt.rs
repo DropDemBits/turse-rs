@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod test;
 
+use toc_span::Span;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxKind,
@@ -47,13 +48,15 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 ty,
                 ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_)
             ) {
+                let span = Span::new(ctx.file, ty.syntax().text_range());
+
                 ctx.push_detailed_error(
                     "‘init’ initializer is not allowed here",
                     init_expr.syntax().text_range(),
                 )
                 .with_info(
                     "‘init’ initializer can only be used with array, record, or union types",
-                    ty.syntax().text_range(),
+                    span,
                 )
                 .finish();
             }
@@ -94,6 +97,8 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 // init expr is required
                 if !matches!(decl.init(), Some(ast::Expr::InitExpr(_))) {
                     // Report at either the initializer expr, or the array type spec
+                    let span = Span::new(ctx.file, array_ty.syntax().text_range());
+
                     let builder = if let Some(init) = decl.init() {
                         let report_here = init.syntax().text_range();
                         ctx.push_detailed_error("‘init’ initializer is required here", report_here)
@@ -106,7 +111,7 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                     };
 
                     builder
-                        .with_note("this is an unbounded array type", array_ty.syntax().text_range())
+                        .with_note("this is an unbounded array type", span)
                         .with_info("unbounded arrays have their upper bounds specified by ‘init’ initializers", None)
                         .finish();
                 }
@@ -296,8 +301,10 @@ pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
 
     if let Some((text_cap, binary_cap)) = text_cap.zip(binary_cap) {
         // Conflicting io pair
+        let span = Span::new(ctx.file, binary_cap.1);
+
         ctx.push_detailed_error("cannot use ‘get’/‘put’ with ‘read’/‘write’", text_cap.1)
-            .with_note("first conflicting binary capability", binary_cap.1)
+            .with_note("first conflicting binary capability", span)
             .finish();
     }
 }
@@ -382,8 +389,7 @@ pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
 
         if let Some((_, extra_arm)) = past_default_arm.next() {
             // At least one extra arm is found
-            assert!(all_arms.last().is_some());
-            let (_, last_arm) = all_arms.last().unwrap();
+            let (_, last_arm) = all_arms.last().expect("last arm always expected");
 
             let full_range = extra_arm.cover(*last_arm);
 
@@ -433,6 +439,8 @@ fn check_matching_names(
 ) {
     if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
         if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
+            let span = Span::new(ctx.file, decl_name.text_range());
+
             if end_name.text() != decl_name.text() {
                 ctx.push_detailed_error(
                     &format!(
@@ -442,7 +450,7 @@ fn check_matching_names(
                     ),
                     end_name.text_range(),
                 )
-                .with_note("defined here", decl_name.text_range())
+                .with_note("defined here", span)
                 .finish();
             }
         }

@@ -4,17 +4,24 @@ pub mod token;
 use logos::Logos;
 use std::ops::Range;
 use toc_reporting::{MessageKind, MessageSink};
+use toc_span::FileId;
 use token::{NumberKind, Token, TokenKind};
 
 #[derive(Debug, Default)]
 pub struct ErrorFerry {
+    file_id: Option<FileId>,
     sink: MessageSink,
 }
 
 impl ErrorFerry {
     pub(crate) fn push_error(&mut self, message: &str, span: Range<usize>) {
-        self.sink
-            .report(MessageKind::Error, message, token::span_to_text_range(span));
+        let range = token::span_to_text_range(span);
+
+        self.sink.report(
+            MessageKind::Error,
+            message,
+            toc_span::Span::new(self.file_id, range),
+        );
     }
 
     pub(crate) fn finish(self) -> MessageSink {
@@ -93,7 +100,7 @@ mod test {
         let mut buf = String::new();
 
         for msg in errors {
-            let at = msg.text_range();
+            let at = msg.span().range;
             let msg = msg.message();
 
             let (start, end): (usize, usize) = (at.start().into(), at.end().into());

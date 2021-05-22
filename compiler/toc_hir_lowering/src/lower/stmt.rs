@@ -2,12 +2,12 @@
 use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
 use toc_reporting::MessageKind;
-use toc_span::{Spanned, TextRange};
+use toc_span::{Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtIdx> {
-        let span = stmt.syntax().text_range();
+        let span = Span::new(self.file, stmt.syntax().text_range());
 
         let stmt = match stmt {
             ast::Stmt::ConstVarDecl(decl) => self.lower_constvar_decl(decl),
@@ -67,7 +67,7 @@ impl super::LoweringCtx {
         Some(self.database.stmt_nodes.alloc_spanned(stmt, span))
     }
 
-    fn unsupported_stmt(&mut self, span: TextRange) -> Option<stmt::Stmt> {
+    fn unsupported_stmt(&mut self, span: Span) -> Option<stmt::Stmt> {
         self.messages
             .report(MessageKind::Error, "unsupported statement", span);
         None
@@ -104,7 +104,7 @@ impl super::LoweringCtx {
         let op = {
             let asn_op = stmt.asn_op()?;
 
-            let span = asn_op.asn_node()?.text_range();
+            let span = Span::new(self.file, asn_op.asn_node()?.text_range());
             let op_kind = asn_op
                 .asn_kind()
                 .map(syntax_to_hir_asn_op)
@@ -238,9 +238,11 @@ impl super::LoweringCtx {
             .names()
             .filter_map(|name| {
                 name.identifier_token().map(|token| {
+                    let span = Span::new(self.file, token.text_range());
+
                     self.scopes.def_sym(
                         token.text(),
-                        token.text_range(),
+                        span,
                         symbol::SymbolKind::Declared,
                         is_pervasive,
                     )

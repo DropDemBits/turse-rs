@@ -5,16 +5,16 @@ expression: get a
 ---
 database:
 stmt:
-Idx::<Stmt>(0) (0..5): Get(Get { stream_num: None, items: [Item(GetItem { expr: Idx::<Expr>(0), width: Token })] })
+Idx::<Stmt>(0) (Span { file: None, range: 0..5 }): Get(Get { stream_num: None, items: [Item(GetItem { expr: Idx::<Expr>(0), width: Token })] })
 
 expr:
-Idx::<Expr>(0) (4..5): Name(Name(UseId(DefId(0), 0)))
+Idx::<Expr>(0) (Span { file: None, range: 4..5 }): Name(Name(UseId(DefId(0), 0)))
 
 ty:
 
 root stmts:
 [Idx::<Stmt>(0)]
 symtab:
-DefId(0): (4..5, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-UseId(DefId(0), 0): 4..5
+DefId(0): (Span { file: None, range: 4..5 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
+UseId(DefId(0), 0): Span { file: None, range: 4..5 }
 

@@ -1,34 +1,34 @@
 //! Errors during constant evaluation
-use toc_span::TextRange;
+use toc_span::Span;
 
 use crate::const_eval::{ConstValue, RestrictType};
 
 #[derive(Debug, Clone)]
 pub struct ConstError {
     kind: ErrorKind,
-    span: TextRange,
+    span: Span,
 }
 
 impl ConstError {
-    pub(super) fn new(kind: ErrorKind, span: TextRange) -> Self {
+    pub(super) fn new(kind: ErrorKind, span: Span) -> Self {
         Self { kind, span }
     }
 
     pub(super) fn without_span(kind: ErrorKind) -> Self {
         Self {
             kind,
-            span: TextRange::default(),
+            span: Span::default(),
         }
     }
 
-    pub(super) fn reported(span: TextRange) -> Self {
+    pub(super) fn reported(span: Span) -> Self {
         Self {
             kind: ErrorKind::Reported,
             span,
         }
     }
 
-    pub(super) fn change_span(self, new_span: TextRange) -> Self {
+    pub(super) fn change_span(self, new_span: Span) -> Self {
         Self {
             kind: self.kind,
             span: new_span,
@@ -89,7 +89,7 @@ pub(super) enum ErrorKind {
     /// No const expr is associated with this identifer.
     /// Provided span is the span of the symbol's definition
     #[error("reference cannot be computed at compile-time")]
-    NoConstExpr(toc_span::TextRange),
+    NoConstExpr(toc_span::Span),
     /// Error is already reported
     #[error("compile-time evaluation error already reported")]
     Reported,

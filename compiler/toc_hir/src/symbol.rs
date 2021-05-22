@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use toc_span::TextRange;
+use toc_span::Span;
 
 use crate::UnitId;
 
@@ -131,8 +131,8 @@ pub enum SymbolKind {
 #[derive(Debug)]
 pub struct SymbolTable {
     defs: HashMap<DefId, Symbol>,
-    def_spans: HashMap<DefId, TextRange>,
-    use_spans: HashMap<UseId, TextRange>,
+    def_spans: HashMap<DefId, Span>,
+    use_spans: HashMap<UseId, Span>,
     next_def: usize,
 }
 
@@ -158,7 +158,7 @@ impl SymbolTable {
     pub fn def_sym(
         &mut self,
         name: &str,
-        span: TextRange,
+        span: Span,
         kind: SymbolKind,
         is_pervasive: bool,
     ) -> DefId {
@@ -183,7 +183,7 @@ impl SymbolTable {
     ///
     /// ## Returns
     /// The UseId associated with the given DefId
-    pub fn use_sym(&mut self, def: DefId, span: TextRange) -> UseId {
+    pub fn use_sym(&mut self, def: DefId, span: Span) -> UseId {
         let symbol = self.defs.get_mut(&def).expect("Missing symbol info");
         let use_id = symbol.new_use();
 
@@ -196,11 +196,11 @@ impl SymbolTable {
         self.defs.get(&def).unwrap()
     }
 
-    pub fn get_def_span(&self, def_id: DefId) -> TextRange {
+    pub fn get_def_span(&self, def_id: DefId) -> Span {
         *self.def_spans.get(&def_id).unwrap()
     }
 
-    pub fn get_use_span(&self, use_id: UseId) -> TextRange {
+    pub fn get_use_span(&self, use_id: UseId) -> Span {
         *self.use_spans.get(&use_id).unwrap()
     }
 
@@ -210,14 +210,14 @@ impl SymbolTable {
         def_id
     }
 
-    pub fn iter_defs(&self) -> impl Iterator<Item = (DefId, TextRange, &Symbol)> {
+    pub fn iter_defs(&self) -> impl Iterator<Item = (DefId, Span, &Symbol)> {
         self.defs.iter().map(move |(k, v)| {
             let span = self.def_spans.get(k).unwrap();
             (*k, *span, v)
         })
     }
 
-    pub fn iter_uses(&self) -> impl Iterator<Item = (UseId, TextRange)> + '_ {
+    pub fn iter_uses(&self) -> impl Iterator<Item = (UseId, Span)> + '_ {
         self.use_spans.iter().map(|(k, v)| (*k, *v))
     }
 }

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::ops;
 
 use la_arena::{Arena, Idx};
-use toc_span::TextRange;
+use toc_span::Span;
 
 use crate::expr::ExprIdx;
 use crate::stmt::StmtIdx;
@@ -96,7 +96,7 @@ impl ops::Index<TypeIdx> for Database {
 #[derive(Debug)]
 pub struct SpannedArena<T> {
     pub arena: Arena<T>,
-    pub spans: HashMap<Idx<T>, TextRange>,
+    pub spans: HashMap<Idx<T>, Span>,
 }
 
 impl<T> SpannedArena<T> {
@@ -107,7 +107,7 @@ impl<T> SpannedArena<T> {
         }
     }
 
-    pub fn alloc_spanned(&mut self, value: T, span: TextRange) -> Idx<T> {
+    pub fn alloc_spanned(&mut self, value: T, span: Span) -> Idx<T> {
         let idx = self.arena.alloc(value);
         self.spans.insert(idx, span);
         idx
