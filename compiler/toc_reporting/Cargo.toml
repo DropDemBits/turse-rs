@@ -8,6 +8,5 @@ edition = "2018"
 
 [dependencies]
 toc_span = { path = "../toc_span" }
-toc_vfs = { path = "../toc_vfs" }
 
 drop_bomb = "0.1.5"

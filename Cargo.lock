@@ -638,7 +638,6 @@ version = "0.1.0"
 dependencies = [
  "drop_bomb",
  "toc_span",
- "toc_vfs",
 ]
 
 [[package]]
