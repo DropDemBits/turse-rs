@@ -26,30 +26,22 @@ fn main() {
     let mut unit_map = toc_hir::UnitMapBuilder::new();
     let hir_res = toc_hir_lowering::lower_ast(parsed.syntax(), &mut unit_map);
 
-    let msgs = parsed
-        .messages()
-        .iter()
-        .chain(validate_res.messages().iter())
-        .chain(hir_res.messages().iter());
-
-    let mut has_errors = false;
-    for msg in msgs {
-        has_errors |= matches!(msg.kind(), toc_reporting::MessageKind::Error);
-        println!("{}", msg);
-    }
-
     let unit_map = Arc::new(unit_map.finish());
     let root_unit = unit_map.get_unit(hir_res.id);
     println!("{:#?}", root_unit);
 
-    if has_errors {
-        std::process::exit(-1);
-    }
-
     let analyze_res = toc_analysis::analyze_unit(hir_res.id, unit_map);
 
+    let msgs = parsed
+        .messages()
+        .iter()
+        .chain(validate_res.messages().iter())
+        .chain(hir_res.messages().iter())
+        .chain(analyze_res.messages().iter());
+
     let mut has_errors = false;
-    for msg in analyze_res.messages().iter() {
+
+    for msg in msgs {
         has_errors |= matches!(msg.kind(), toc_reporting::MessageKind::Error);
         println!("{}", msg);
     }

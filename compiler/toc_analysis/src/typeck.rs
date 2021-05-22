@@ -73,37 +73,48 @@ impl<'a> TypeCheck<'a> {
         if let Some(ty) = eval_kind.as_expr_ty() {
             ty
         } else {
-            // TODO: Report this error once type decls are lowered
+            if let EvalKind::Ref(DefKind::Type(_)) = eval_kind {
+                // TODO: Report this error once type decls are lowered
+            }
+
             self.ty_ctx.add_type(ty::Type::Error)
         }
     }
 
-    fn lookup_eval_kind(&self, expr: expr::ExprIdx) -> (&expr::Expr, EvalKind) {
-        let eval_kind = self
-            .eval_kinds
-            .get(&expr)
-            .expect("Expr is missing eval kind");
-        let expr = &self.unit.database[expr];
-        (expr, *eval_kind)
+    fn get_eval_kind(&self, expr: expr::ExprIdx) -> EvalKind {
+        if let Some(kind) = self.eval_kinds.get(&expr) {
+            *kind
+        } else {
+            EvalKind::Error
+        }
+    }
+
+    fn get_type(&mut self, ty: hir_ty::TypeIdx) -> TyRef {
+        if let Some(ty) = self.ty_ctx.get_type(ty) {
+            ty
+        } else {
+            // Fall back to the error type
+            self.ty_ctx.add_type(ty::Type::Error)
+        }
     }
 
     fn typeck_constvar(&mut self, decl: &stmt::ConstVar) {
         let ty_ref = match &decl.tail {
             stmt::ConstVarTail::Both(ty_spec, _) | stmt::ConstVarTail::TypeSpec(ty_spec) => {
                 // From type_spec
-                self.ty_ctx.get_type(*ty_spec).unwrap()
+                self.get_type(*ty_spec)
             }
             stmt::ConstVarTail::InitExpr(expr) => {
                 // From inferred init expr
-                let eval_kind = *self.eval_kinds.get(expr).unwrap();
+                let eval_kind = self.get_eval_kind(*expr);
                 self.require_expr_ty(eval_kind)
             }
         };
 
         if let stmt::ConstVarTail::Both(ty_spec, init_expr) = &decl.tail {
-            let l_value_ty = self.ty_ctx.get_type(*ty_spec).unwrap();
+            let r_value_eval = self.get_eval_kind(*init_expr);
 
-            let r_value_eval = *self.eval_kinds.get(init_expr).unwrap();
+            let l_value_ty = self.get_type(*ty_spec);
             let r_value_ty = self.require_expr_ty(r_value_eval);
 
             if let Some(false) = ty::rules::is_ty_assignable_to(l_value_ty, r_value_ty) {
@@ -147,8 +158,8 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn typeck_assign(&mut self, stmt: &stmt::Assign) {
-        let (_l_value, l_value_eval) = self.lookup_eval_kind(stmt.lhs);
-        let (_r_value, r_value_eval) = self.lookup_eval_kind(stmt.rhs);
+        let l_value_eval = self.get_eval_kind(stmt.lhs);
+        let r_value_eval = self.get_eval_kind(stmt.rhs);
 
         // Check if we can even assign into the l_value (i.e. is lhs mutable)
         let l_value_ty = if let Some(ty) = l_value_eval.as_mut_ref_ty() {
@@ -276,7 +287,7 @@ impl<'a> TypeCheck<'a> {
         for item in items {
             // Item expression must be a variable ref
             self.check_text_io_item(item.expr);
-            let eval_kind = self.eval_kinds[&item.expr];
+            let eval_kind = self.get_eval_kind(item.expr);
 
             if !matches!(dbg!(eval_kind), EvalKind::Ref(DefKind::Var(_))) {
                 let get_item_span = self.unit.database.expr_nodes.spans[&item.expr];
@@ -389,7 +400,7 @@ impl<'a> TypeCheck<'a> {
 
     fn typeck_paren(&mut self, id: toc_hir::expr::ExprIdx, expr: &toc_hir::expr::Paren) {
         // Same eval kind as the inner
-        let eval_kind = self.eval_kinds[&expr.expr];
+        let eval_kind = self.get_eval_kind(expr.expr);
         self.eval_kinds.insert(id, eval_kind);
     }
 
@@ -523,7 +534,8 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn get_ty_ref_from_expr(&mut self, expr: expr::ExprIdx) -> Spanned<ty::TyRef> {
-        let ty_ref = self.require_expr_ty(self.eval_kinds[&expr]);
+        let eval_kind = self.get_eval_kind(expr);
+        let ty_ref = self.require_expr_ty(eval_kind);
         let span = self.unit.database.expr_nodes.spans[&expr];
         Spanned::new(ty_ref, span)
     }
@@ -612,6 +624,7 @@ impl toc_hir::HirVisitor for TypeCheck<'_> {
 enum EvalKind {
     Ref(DefKind),
     Value(TyRef),
+    Error,
 }
 
 impl EvalKind {
@@ -622,6 +635,7 @@ impl EvalKind {
             | EvalKind::Ref(DefKind::Error(ty))
             | EvalKind::Value(ty) => Some(ty),
             EvalKind::Ref(DefKind::Type(_)) => None,
+            EvalKind::Error => None,
         }
     }
 

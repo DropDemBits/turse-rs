@@ -112,6 +112,12 @@ fn typecheck_error_prop() {
     ));
 }
 
+#[test]
+fn typecheck_missing_exprs() {
+    // Be resilient against missing expressions
+    assert_typecheck("const ke : int := ()");
+}
+
 // Typecheck basic ops
 test_for_each_op! { arithmetic_op,
     [
