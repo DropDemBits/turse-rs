@@ -132,8 +132,9 @@ impl SpanMapper {
     ) -> annotate_snippets::snippet::Snippet<'a> {
         use annotate_snippets::{display_list::FormatOptions, snippet::*};
 
-        // Build snippet slices
+        // Build snippet slices & footers
         let mut slices = vec![];
+        let mut footer = vec![];
 
         let span_into_slice = |annotate_type, span: toc_span::Span, label| {
             let file = span.file.unwrap();
@@ -162,43 +163,45 @@ impl SpanMapper {
             }
         };
 
+        fn annotate_kind_to_type(kind: toc_reporting::AnnotateKind) -> AnnotationType {
+            match kind {
+                toc_reporting::AnnotateKind::Note => AnnotationType::Note,
+                toc_reporting::AnnotateKind::Info => AnnotationType::Info,
+                toc_reporting::AnnotateKind::Warning => AnnotationType::Warning,
+                toc_reporting::AnnotateKind::Error => AnnotationType::Error,
+            }
+        }
+
         // Insert the first slice
         slices.push(span_into_slice(
-            match msg.kind() {
-                toc_reporting::MessageKind::Warning => AnnotationType::Warning,
-                toc_reporting::MessageKind::Error => AnnotationType::Error,
-            },
+            annotate_kind_to_type(msg.kind()),
             msg.span(),
             "", // part of the larger message
         ));
 
-        // for any messages that need to be folded into previous ones
-        let mut last_span_used = msg.span();
-
         for annotate in msg.annotations() {
-            let span = annotate.span().unwrap_or(last_span_used);
-            last_span_used = span;
-
             slices.push(span_into_slice(
-                match annotate.kind() {
-                    toc_reporting::AnnotateKind::Note => AnnotationType::Note,
-                    toc_reporting::AnnotateKind::Info => AnnotationType::Info,
-                },
-                span,
+                annotate_kind_to_type(annotate.kind()),
+                annotate.span(),
                 annotate.message(),
             ));
+        }
+
+        for annotate in msg.footer() {
+            footer.push(Annotation {
+                annotation_type: annotate_kind_to_type(annotate.kind()),
+                id: None,
+                label: Some(annotate.message()),
+            });
         }
 
         let snippet = Snippet {
             title: Some(Annotation {
                 label: Some(msg.message()),
                 id: None,
-                annotation_type: match msg.kind() {
-                    toc_reporting::MessageKind::Warning => AnnotationType::Warning,
-                    toc_reporting::MessageKind::Error => AnnotationType::Error,
-                },
+                annotation_type: annotate_kind_to_type(msg.kind()),
             }),
-            footer: vec![],
+            footer,
             slices,
             opt: FormatOptions {
                 color: true,

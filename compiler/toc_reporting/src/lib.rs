@@ -4,21 +4,8 @@ use std::fmt;
 use toc_span::Span;
 
 /// Type of message reported.
-/// Kinds are ordered by severity (from least severe, to most severe).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MessageKind {
-    Warning,
-    Error,
-}
-
-impl fmt::Display for MessageKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            MessageKind::Warning => "warn",
-            MessageKind::Error => "error",
-        })
-    }
-}
+// Kept here because we want to hide `report` & `report_detailed`
+pub type MessageKind = AnnotateKind;
 
 /// Type of annotation added to a message
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,6 +15,10 @@ pub enum AnnotateKind {
     Note,
     /// More detailed related to the message.
     Info,
+    /// Warning annotation
+    Warning,
+    /// Error annotation
+    Error,
 }
 
 impl fmt::Display for AnnotateKind {
@@ -35,6 +26,8 @@ impl fmt::Display for AnnotateKind {
         f.write_str(match self {
             AnnotateKind::Note => "note",
             AnnotateKind::Info => "info",
+            AnnotateKind::Warning => "warn",
+            AnnotateKind::Error => "error",
         })
     }
 }
@@ -42,35 +35,80 @@ impl fmt::Display for AnnotateKind {
 /// A reported message
 #[derive(Debug)]
 pub struct ReportMessage {
-    kind: MessageKind,
-    msg: String,
-    span: Span,
-    annotations: Vec<Annotation>,
+    header: SourceAnnotation,
+    annotations: Vec<SourceAnnotation>,
+    footer: Vec<Annotation>,
 }
 
 impl ReportMessage {
     /// Gets the kind of message reported
-    pub fn kind(&self) -> MessageKind {
-        self.kind
+    pub fn kind(&self) -> AnnotateKind {
+        self.header.annotation.kind
     }
 
     /// Gets the reported message
     pub fn message(&self) -> &str {
-        &self.msg
+        self.header.annotation.message()
     }
 
     /// Gets the span of text the message covers
     pub fn span(&self) -> Span {
-        self.span
+        self.header.span
     }
 
     /// Gets any associated annotations
-    pub fn annotations(&self) -> &[Annotation] {
+    pub fn annotations(&self) -> &[SourceAnnotation] {
         &self.annotations
+    }
+
+    /// Gets any footer annotations (any annotation without a location in the source)
+    pub fn footer(&self) -> &[Annotation] {
+        &self.footer
     }
 }
 
 impl fmt::Display for ReportMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.header)?;
+
+        // Report any annotations
+        for annotation in &self.annotations {
+            write!(f, "\n| {:#}", annotation)?;
+        }
+
+        // Report any footer messages
+        for annotation in &self.footer {
+            write!(f, "\n| {:#}", annotation)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct SourceAnnotation {
+    annotation: Annotation,
+    span: Span,
+}
+
+impl SourceAnnotation {
+    /// Gets the kind of annotation reported
+    pub fn kind(&self) -> AnnotateKind {
+        self.annotation.kind()
+    }
+
+    /// Gets the annotation's message
+    pub fn message(&self) -> &str {
+        self.annotation.message()
+    }
+
+    /// Gets the span of text the annotation covers.
+    pub fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl fmt::Display for SourceAnnotation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let file_id = self.span.file;
         let (start, end) = (
@@ -84,11 +122,10 @@ impl fmt::Display for ReportMessage {
             write!(f, " in file {:?}", file_id)?;
         }
 
-        write!(f, " at {}..{}: {}", start, end, self.msg)?;
-
-        // Report any annotations
-        for annotation in &self.annotations {
-            write!(f, "\n| {}", annotation)?;
+        if f.alternate() {
+            write!(f, " for {}..{}: {}", start, end, self.message())?;
+        } else {
+            write!(f, " at {}..{}: {}", start, end, self.message())?;
         }
 
         Ok(())
@@ -99,7 +136,6 @@ impl fmt::Display for ReportMessage {
 pub struct Annotation {
     kind: AnnotateKind,
     msg: String,
-    span: Option<Span>,
 }
 
 impl Annotation {
@@ -112,37 +148,11 @@ impl Annotation {
     pub fn message(&self) -> &str {
         &self.msg
     }
-
-    /// Gets the span of text the message covers.
-    /// If `None`, no range should be reported either
-    pub fn span(&self) -> Option<Span> {
-        self.span
-    }
 }
 
 impl fmt::Display for Annotation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let kind = match self.kind() {
-            AnnotateKind::Info => "info",
-            AnnotateKind::Note => "note",
-        };
-
-        if let Some(span) = self.span {
-            let file_id = span.file;
-            let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
-
-            write!(f, "{}", self.kind())?;
-
-            if let Some(file_id) = file_id {
-                write!(f, " in file {:?}", file_id)?;
-            }
-
-            write!(f, " for {}..{}: {}", start, end, self.msg)?;
-
-            Ok(())
-        } else {
-            write!(f, "{}: {}", kind, self.msg)
-        }
+        write!(f, "{}: {}", self.kind(), self.msg)
     }
 }
 
@@ -205,7 +215,7 @@ impl MessageSink {
     /// Removes any subsequent messages that share the same text range
     pub fn dedup_shared_ranges(&mut self) {
         self.messages
-            .dedup_by(|a, b| a.span == b.span && a.kind == b.kind)
+            .dedup_by(|a, b| a.header.span == b.header.span && a.kind() == b.kind())
     }
 
     /// Finishes reporting any messages, giving back the final message list
@@ -219,10 +229,11 @@ impl MessageSink {
 pub struct MessageBuilder<'a> {
     drop_bomb: drop_bomb::DropBomb,
     reporter: &'a mut MessageSink,
-    kind: MessageKind,
+    kind: AnnotateKind,
     message: String,
     span: Span,
-    annotations: Vec<Annotation>,
+    annotations: Vec<SourceAnnotation>,
+    footer: Vec<Annotation>,
 }
 
 impl<'a> MessageBuilder<'a> {
@@ -239,6 +250,7 @@ impl<'a> MessageBuilder<'a> {
             message: message.to_string(),
             span,
             annotations: vec![],
+            footer: vec![],
         }
     }
 
@@ -246,11 +258,19 @@ impl<'a> MessageBuilder<'a> {
     where
         R: Into<Option<Span>>,
     {
-        self.annotations.push(Annotation {
-            kind,
-            msg: message.to_string(),
-            span: span.into(),
-        });
+        match span.into() {
+            Some(span) => self.annotations.push(SourceAnnotation {
+                annotation: Annotation {
+                    kind,
+                    msg: message.to_string(),
+                },
+                span,
+            }),
+            None => self.footer.push(Annotation {
+                kind,
+                msg: message.to_string(),
+            }),
+        }
 
         self
     }
@@ -277,16 +297,19 @@ impl<'a> MessageBuilder<'a> {
             message,
             span,
             annotations,
+            footer,
         } = self;
 
         // Defuse bomb now
         drop_bomb.defuse();
 
         reporter.messages.push(ReportMessage {
-            kind,
-            msg: message,
-            span,
+            header: SourceAnnotation {
+                annotation: Annotation { kind, msg: message },
+                span,
+            },
             annotations,
+            footer,
         });
     }
 }
