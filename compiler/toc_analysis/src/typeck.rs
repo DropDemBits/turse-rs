@@ -235,6 +235,10 @@ impl<'a> TypeCheck<'a> {
 
                     self.reporter
                         .error_detailed("invalid put option", span)
+                        .with_note(
+                            "cannot specify fraction width for this type",
+                            put_type.span(),
+                        )
                         .with_info(
                             "fraction width can only be specified for numeric put types",
                             None,
@@ -247,6 +251,10 @@ impl<'a> TypeCheck<'a> {
 
                     self.reporter
                         .error_detailed("invalid put option", span)
+                        .with_note(
+                            "cannot specify exponent width for this type",
+                            put_type.span(),
+                        )
                         .with_info(
                             "exponent width can only be specified for numeric types",
                             None,
@@ -320,7 +328,7 @@ impl<'a> TypeCheck<'a> {
             // TODO: Stringify type for more clarity on the error
             self.reporter
                 .error_detailed("mismatched types", ty_ref.span())
-                .with_info("expected integer type", None)
+                .with_note("expected integer type", ty_ref.span())
                 .finish();
         }
     }
@@ -654,7 +662,7 @@ impl SeqLenError {
                     .with_note(&format!("computed count is {}", int.item()), int.span())
                     .with_info(
                         &format!("valid sizes are between 1 to {}", size_limit - 1),
-                        int.span(),
+                        None,
                     )
                     .finish();
             }

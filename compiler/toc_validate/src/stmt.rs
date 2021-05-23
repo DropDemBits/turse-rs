@@ -54,9 +54,10 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                     "‘init’ initializer is not allowed here",
                     init_expr.syntax().text_range(),
                 )
+                .with_note("cannot use ‘init’ initializer with this type", span)
                 .with_info(
                     "‘init’ initializer can only be used with array, record, or union types",
-                    span,
+                    None,
                 )
                 .finish();
             }
@@ -439,19 +440,17 @@ fn check_matching_names(
 ) {
     if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
         if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
-            let span = Span::new(ctx.file, decl_name.text_range());
+            let decl_span = Span::new(ctx.file, decl_name.text_range());
+            let end_span = Span::new(ctx.file, end_name.text_range());
 
             if end_name.text() != decl_name.text() {
-                ctx.push_detailed_error(
-                    &format!(
-                        "end identifier ‘{}’ does not match ‘{}’",
-                        end_name.text(),
-                        decl_name.text()
-                    ),
-                    end_name.text_range(),
-                )
-                .with_note("defined here", span)
-                .finish();
+                ctx.push_detailed_error("mismatched identifier names", end_name.text_range())
+                    .with_note(
+                        &format!("‘{}’ does not match...", decl_name.text()),
+                        decl_span,
+                    )
+                    .with_note(&format!("...‘{}’ defined here", end_name.text()), end_span)
+                    .finish();
             }
         }
     }

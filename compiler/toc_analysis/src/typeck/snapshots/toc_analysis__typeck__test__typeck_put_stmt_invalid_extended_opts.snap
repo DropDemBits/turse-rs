@@ -14,18 +14,26 @@ def_kinds:
     DefId(2) Var(TyRef(String))
     DefId(3) Var(TyRef(StringN(Fixed(4))))
 error at 177..178: invalid put option
+| note for 169..170: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error at 181..182: invalid put option
+| note for 169..170: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
 error at 196..197: invalid put option
+| note for 187..189: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error at 200..201: invalid put option
+| note for 187..189: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
 error at 214..215: invalid put option
+| note for 206..207: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error at 218..219: invalid put option
+| note for 206..207: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
 error at 233..234: invalid put option
+| note for 224..226: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error at 237..238: invalid put option
+| note for 224..226: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types

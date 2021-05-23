@@ -8,4 +8,4 @@ ty_nodes:
 def_kinds:
     DefId(0) Var(TyRef(Real(Real)))
 error at 21..22: mismatched types
-| info: expected integer type
+| note for 21..22: expected integer type

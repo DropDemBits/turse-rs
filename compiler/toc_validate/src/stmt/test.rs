@@ -31,8 +31,9 @@ fn report_mismatched_module_names() {
     check(
         "module a end b",
         expect![[r#"
-            error at 13..14: end identifier ‘b’ does not match ‘a’
-            | note for 7..8: defined here"#]],
+            error at 13..14: mismatched identifier names
+            | note for 7..8: ‘a’ does not match...
+            | note for 13..14: ...‘b’ defined here"#]],
     );
 }
 
@@ -41,8 +42,9 @@ fn report_mismatched_class_names() {
     check(
         "class a end b",
         expect![[r#"
-            error at 12..13: end identifier ‘b’ does not match ‘a’
-            | note for 6..7: defined here"#]],
+            error at 12..13: mismatched identifier names
+            | note for 6..7: ‘a’ does not match...
+            | note for 12..13: ...‘b’ defined here"#]],
     );
 }
 
@@ -51,8 +53,9 @@ fn report_mismatched_monitor_names() {
     check(
         "monitor a end b",
         expect![[r#"
-            error at 14..15: end identifier ‘b’ does not match ‘a’
-            | note for 8..9: defined here"#]],
+            error at 14..15: mismatched identifier names
+            | note for 8..9: ‘a’ does not match...
+            | note for 14..15: ...‘b’ defined here"#]],
     );
 }
 
@@ -288,7 +291,8 @@ fn report_init_expr_with_int_ty() {
         "var a : int := init(1)",
         expect![[r#"
             error at 15..22: ‘init’ initializer is not allowed here
-            | info for 8..11: ‘init’ initializer can only be used with array, record, or union types"#]],
+            | note for 8..11: cannot use ‘init’ initializer with this type
+            | info: ‘init’ initializer can only be used with array, record, or union types"#]],
     );
 }
 

@@ -10,4 +10,4 @@ def_kinds:
     DefId(0) Var(TyRef(Real(Real)))
     DefId(1) Var(TyRef(Int(Int)))
 error at 33..34: mismatched types
-| info: expected integer type
+| note for 33..34: expected integer type

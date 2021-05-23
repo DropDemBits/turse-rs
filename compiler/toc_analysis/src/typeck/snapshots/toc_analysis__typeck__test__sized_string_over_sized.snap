@@ -9,4 +9,4 @@ def_kinds:
     DefId(0) Var(TyRef(Error))
 error at 15..18: invalid character count size
 | note for 15..18: computed count is 512
-| info for 15..18: valid sizes are between 1 to 255
+| info: valid sizes are between 1 to 255
