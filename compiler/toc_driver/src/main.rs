@@ -1,7 +1,7 @@
 //! Dummy bin for running the new scanner and parser
 
 use std::collections::HashMap;
-use std::ops::Range;
+use std::ops::RangeInclusive;
 use std::{env, fs, io, sync::Arc};
 
 use toc_vfs::FileDb;
@@ -78,7 +78,7 @@ fn main() {
 }
 
 struct SpanMapper {
-    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<Range<usize>>)>,
+    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<RangeInclusive<usize>>)>,
 }
 
 impl SpanMapper {
@@ -95,21 +95,19 @@ impl SpanMapper {
         Self { files }
     }
 
-    fn build_line_ranges(source: &str) -> Vec<Range<usize>> {
+    fn build_line_ranges(source: &str) -> Vec<RangeInclusive<usize>> {
         let mut line_ranges = vec![];
         let mut line_start = 0;
         let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
 
         for (at_newline, _) in line_ends {
             let line_end = at_newline + 1;
-            line_ranges.push(line_start..line_end);
+            line_ranges.push(line_start..=line_end);
             line_start = line_end;
         }
 
-        if line_ranges.is_empty() {
-            // Use a line span covering the entire file
-            line_ranges.push(0..source.len())
-        }
+        // Use a line span covering the rest of the file
+        line_ranges.push(line_start..=source.len());
 
         line_ranges
     }
@@ -118,7 +116,7 @@ impl SpanMapper {
         &self,
         file: Option<toc_span::FileId>,
         byte_idx: usize,
-    ) -> Option<(usize, Range<usize>)> {
+    ) -> Option<(usize, RangeInclusive<usize>)> {
         self.files.get(file.as_ref()?).and_then(|(_, line_ranges)| {
             line_ranges
                 .iter()
@@ -145,10 +143,10 @@ impl SpanMapper {
             let (end_line, end_range) = self.map_byte_index(span.file, end as usize).unwrap();
 
             let source = &self.files.get(&file).unwrap().0.source;
-            let slice_text = start_range.start..end_range.end;
+            let slice_text = *start_range.start()..*end_range.end();
             let slice_text = &source[slice_text];
 
-            let range_base = start_range.start;
+            let range_base = start_range.start();
             let can_fold = (end_line - start_line) > 10;
 
             Slice {
