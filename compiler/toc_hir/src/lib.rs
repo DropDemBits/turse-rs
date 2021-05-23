@@ -211,7 +211,7 @@ impl Walker<'_> {
     }
 
     fn walk_block(&mut self, id: stmt::StmtIdx, node: &stmt::Block) {
-        for stmt in &self.unit.stmts {
+        for stmt in &node.stmts {
             self.walk_stmt(*stmt)
         }
 

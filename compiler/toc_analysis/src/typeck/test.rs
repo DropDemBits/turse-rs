@@ -87,7 +87,7 @@ fn var_decl_init_typecheck() {
 
 #[test]
 fn bare_var_decl() {
-    // Invariant, to be covered by the parser stage
+    // Invariant, to be covered by the parser & hir stage
     // Should not amount to anything
     assert_typecheck("var k");
 }
@@ -116,6 +116,12 @@ fn typecheck_error_prop() {
 fn typecheck_missing_exprs() {
     // Be resilient against missing expressions
     assert_typecheck("const ke : int := ()");
+}
+
+#[test]
+fn block_stmt_check() {
+    // Check inside block stmts
+    assert_typecheck(r#"begin var k : char := 'baz' end"#);
 }
 
 // Typecheck basic ops
