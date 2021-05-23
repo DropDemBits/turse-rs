@@ -46,6 +46,14 @@ impl FileDb {
     pub fn get_file(&self, id: FileId) -> Arc<FileInfo> {
         self.files.read().unwrap()[(id.raw_id().get() - 1) as usize].clone()
     }
+
+    pub fn files(&self) -> impl Iterator<Item = FileId> {
+        (0..self.files.read().unwrap().len()).map(|i| {
+            let id = u32::try_from(i + 1).ok();
+            let id = id.and_then(NonZeroU32::new).unwrap();
+            FileId::new(id)
+        })
+    }
 }
 
 impl Default for FileDb {

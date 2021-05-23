@@ -1,5 +1,7 @@
 //! Dummy bin for running the new scanner and parser
 
+use std::collections::HashMap;
+use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
 use toc_vfs::FileDb;
@@ -20,19 +22,25 @@ fn main() {
     let mut unit_map = toc_hir::UnitMapBuilder::new();
 
     // Parse root CST
-    let (parsed, validate_res, hir_res) = {
+    let parsed = {
         let info = file_db.get_file(root_file);
         let parsed = toc_parser::parse(Some(root_file), &info.source);
         let dependencies = toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
         // TODO: Gather dependencies from root CST, and parse them
 
         println!("Parsed output: {}", parsed.dump_tree());
-        let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
         println!("Dependencies: {:#?}", dependencies);
 
+        parsed
+    };
+
+    // TODO: Deal with include globs
+
+    let (validate_res, hir_res) = {
+        let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
         let hir_res = toc_hir_lowering::lower_ast(Some(root_file), parsed.syntax(), &mut unit_map);
 
-        (parsed, validate_res, hir_res)
+        (validate_res, hir_res)
     };
 
     let unit_map = Arc::new(unit_map.finish());
@@ -43,19 +51,163 @@ fn main() {
 
     let analyze_res = toc_analysis::analyze_unit(hir_res.id, unit_map);
 
-    let msgs = parsed
+    let mut msgs = parsed
         .messages()
         .iter()
         .chain(validate_res.messages().iter())
         .chain(hir_res.messages().iter())
-        .chain(analyze_res.messages().iter());
+        .chain(analyze_res.messages().iter())
+        .collect::<Vec<_>>();
+
+    // Sort by start order
+    msgs.sort_by_key(|msg| msg.span().range.start());
 
     let mut has_errors = false;
 
+    let span_mapper = SpanMapper::new(&file_db);
+
     for msg in msgs {
         has_errors |= matches!(msg.kind(), toc_reporting::MessageKind::Error);
-        println!("{}", msg);
+        let snippet = span_mapper.message_into_snippet(msg);
+        let display_list = annotate_snippets::display_list::DisplayList::from(snippet);
+
+        println!("{}", display_list);
     }
 
     std::process::exit(if has_errors { -1 } else { 0 });
+}
+
+struct SpanMapper {
+    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<Range<usize>>)>,
+}
+
+impl SpanMapper {
+    fn new(file_db: &toc_vfs::FileDb) -> Self {
+        let mut files = HashMap::new();
+
+        for file in file_db.files() {
+            let info = file_db.get_file(file);
+            let line_ranges = Self::build_line_ranges(&info.source);
+
+            files.insert(file, (info, line_ranges));
+        }
+
+        Self { files }
+    }
+
+    fn build_line_ranges(source: &str) -> Vec<Range<usize>> {
+        let mut line_ranges = vec![];
+        let mut line_start = 0;
+        let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
+
+        for (at_newline, _) in line_ends {
+            let line_end = at_newline + 1;
+            line_ranges.push(line_start..line_end);
+            line_start = line_end;
+        }
+
+        if line_ranges.is_empty() {
+            // Use a line span covering the entire file
+            line_ranges.push(0..source.len())
+        }
+
+        line_ranges
+    }
+
+    fn map_byte_index(
+        &self,
+        file: Option<toc_span::FileId>,
+        byte_idx: usize,
+    ) -> Option<(usize, Range<usize>)> {
+        self.files.get(file.as_ref()?).and_then(|(_, line_ranges)| {
+            line_ranges
+                .iter()
+                .enumerate()
+                .find(|(_line, range)| range.contains(&byte_idx))
+                .map(|(line, range)| (line, range.clone()))
+        })
+    }
+
+    fn message_into_snippet<'a>(
+        &'a self,
+        msg: &'a toc_reporting::ReportMessage,
+    ) -> annotate_snippets::snippet::Snippet<'a> {
+        use annotate_snippets::{display_list::FormatOptions, snippet::*};
+
+        // Build snippet slices
+        let mut slices = vec![];
+
+        let span_into_slice = |annotate_type, span: toc_span::Span, label| {
+            let file = span.file.unwrap();
+
+            let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+            let (start_line, start_range) = self.map_byte_index(span.file, start as usize).unwrap();
+            let (end_line, end_range) = self.map_byte_index(span.file, end as usize).unwrap();
+
+            let source = &self.files.get(&file).unwrap().0.source;
+            let slice_text = start_range.start..end_range.end;
+            let slice_text = &source[slice_text];
+
+            let range_base = start_range.start;
+            let can_fold = (end_line - start_line) > 10;
+
+            Slice {
+                source: slice_text,
+                line_start: start_line + 1,
+                origin: Some(&self.files.get(&file).unwrap().0.path),
+                annotations: vec![SourceAnnotation {
+                    annotation_type: annotate_type,
+                    label,
+                    range: (start as usize - range_base, end as usize - range_base),
+                }],
+                fold: can_fold,
+            }
+        };
+
+        // Insert the first slice
+        slices.push(span_into_slice(
+            match msg.kind() {
+                toc_reporting::MessageKind::Warning => AnnotationType::Warning,
+                toc_reporting::MessageKind::Error => AnnotationType::Error,
+            },
+            msg.span(),
+            "", // part of the larger message
+        ));
+
+        // for any messages that need to be folded into previous ones
+        let mut last_span_used = msg.span();
+
+        for annotate in msg.annotations() {
+            let span = annotate.span().unwrap_or(last_span_used);
+            last_span_used = span;
+
+            slices.push(span_into_slice(
+                match annotate.kind() {
+                    toc_reporting::AnnotateKind::Note => AnnotationType::Note,
+                    toc_reporting::AnnotateKind::Info => AnnotationType::Info,
+                },
+                span,
+                annotate.message(),
+            ));
+        }
+
+        let snippet = Snippet {
+            title: Some(Annotation {
+                label: Some(msg.message()),
+                id: None,
+                annotation_type: match msg.kind() {
+                    toc_reporting::MessageKind::Warning => AnnotationType::Warning,
+                    toc_reporting::MessageKind::Error => AnnotationType::Error,
+                },
+            }),
+            footer: vec![],
+            slices,
+            opt: FormatOptions {
+                color: true,
+                ..Default::default()
+            },
+        };
+
+        snippet
+    }
 }

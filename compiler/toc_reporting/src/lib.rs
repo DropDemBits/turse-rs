@@ -11,6 +11,15 @@ pub enum MessageKind {
     Error,
 }
 
+impl fmt::Display for MessageKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            MessageKind::Warning => "warn",
+            MessageKind::Error => "error",
+        })
+    }
+}
+
 /// Type of annotation added to a message
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnnotateKind {
@@ -19,6 +28,15 @@ pub enum AnnotateKind {
     Note,
     /// More detailed related to the message.
     Info,
+}
+
+impl fmt::Display for AnnotateKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            AnnotateKind::Note => "note",
+            AnnotateKind::Info => "info",
+        })
+    }
 }
 
 /// A reported message
@@ -59,20 +77,14 @@ impl fmt::Display for ReportMessage {
             u32::from(self.span.range.start()),
             u32::from(self.span.range.end()),
         );
-        let kind = match self.kind() {
-            MessageKind::Warning => "warn",
-            MessageKind::Error => "error",
-        };
+
+        write!(f, "{}", self.kind())?;
 
         if let Some(file_id) = file_id {
-            write!(
-                f,
-                "{} in file {:?} at {}..{}: {}",
-                kind, file_id, start, end, self.msg
-            )?;
-        } else {
-            write!(f, "{} at {}..{}: {}", kind, start, end, self.msg)?;
+            write!(f, " in file {:?}", file_id)?;
         }
+
+        write!(f, " at {}..{}: {}", start, end, self.msg)?;
 
         // Report any annotations
         for annotation in &self.annotations {
@@ -119,15 +131,15 @@ impl fmt::Display for Annotation {
             let file_id = span.file;
             let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
 
+            write!(f, "{}", self.kind())?;
+
             if let Some(file_id) = file_id {
-                write!(
-                    f,
-                    "{} in file {:?} for {}..{}: {}",
-                    kind, file_id, start, end, self.msg
-                )
-            } else {
-                write!(f, "{} for {}..{}: {}", kind, start, end, self.msg)
+                write!(f, " in file {:?}", file_id)?;
             }
+
+            write!(f, " for {}..{}: {}", start, end, self.msg)?;
+
+            Ok(())
         } else {
             write!(f, "{}: {}", kind, self.msg)
         }
