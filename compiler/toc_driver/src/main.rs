@@ -67,7 +67,7 @@ fn main() {
     let span_mapper = SpanMapper::new(&file_db);
 
     for msg in msgs {
-        has_errors |= matches!(msg.kind(), toc_reporting::MessageKind::Error);
+        has_errors |= matches!(msg.kind(), toc_reporting::AnnotateKind::Error);
         let snippet = span_mapper.message_into_snippet(msg);
         let display_list = annotate_snippets::display_list::DisplayList::from(snippet);
 
@@ -131,6 +131,13 @@ impl SpanMapper {
         msg: &'a toc_reporting::ReportMessage,
     ) -> annotate_snippets::snippet::Snippet<'a> {
         use annotate_snippets::{display_list::FormatOptions, snippet::*};
+
+        // Build a set of common snippets for consecutive messages
+
+        // Improvements:
+        // Could fold together spans per file
+        // - in a report message, the file id should be the same
+        // - if different files are needed, need to break up into separate reports
 
         // Build snippet slices & footers
         let mut slices = vec![];

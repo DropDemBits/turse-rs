@@ -8,7 +8,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use toc_hir::{expr, stmt, ty as hir_ty};
-use toc_reporting::{MessageKind, MessageSink, ReportMessage};
+use toc_reporting::{MessageSink, ReportMessage};
 use toc_span::Spanned;
 
 use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, RestrictType};
@@ -123,7 +123,7 @@ impl<'a> TypeCheck<'a> {
                 let spec_span = self.unit.database.type_nodes.spans[ty_spec];
 
                 self.reporter
-                    .report_detailed(MessageKind::Error, "mismatched types", init_span)
+                    .error_detailed("mismatched types", init_span)
                     .with_note(
                         "initializer's type is incompatible with this type",
                         spec_span,
@@ -169,8 +169,7 @@ impl<'a> TypeCheck<'a> {
 
             // TODO: Stringify lhs for more clarity on the error location
             self.reporter
-                .report_detailed(
-                    MessageKind::Error,
+                .error_detailed(
                     "cannot assign into expression on left hand side",
                     stmt.op.span(),
                 )
@@ -206,7 +205,7 @@ impl<'a> TypeCheck<'a> {
             // TODO: Report expected type vs found type
             // - Requires type stringification/display impl
             self.reporter
-                .report(MessageKind::Error, "mismatched types", stmt.op.span());
+                .error_detailed("mismatched types", stmt.op.span());
         }
     }
 
@@ -235,7 +234,7 @@ impl<'a> TypeCheck<'a> {
                     let span = self.unit.database.expr_nodes.spans[&expr];
 
                     self.reporter
-                        .report_detailed(MessageKind::Error, "invalid put option", span)
+                        .error_detailed("invalid put option", span)
                         .with_info(
                             "fraction width can only be specified for numeric put types",
                             None,
@@ -247,7 +246,7 @@ impl<'a> TypeCheck<'a> {
                     let span = self.unit.database.expr_nodes.spans[&expr];
 
                     self.reporter
-                        .report_detailed(MessageKind::Error, "invalid put option", span)
+                        .error_detailed("invalid put option", span)
                         .with_info(
                             "exponent width can only be specified for numeric types",
                             None,
@@ -294,11 +293,7 @@ impl<'a> TypeCheck<'a> {
 
                 // TODO: Stringify item for more clarity on the error location
                 self.reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "cannot assign into get item expression",
-                        get_item_span,
-                    )
+                    .error_detailed("cannot assign into get item expression", get_item_span)
                     .with_note(
                         "this expression cannot be used as a variable reference",
                         get_item_span,
@@ -324,7 +319,7 @@ impl<'a> TypeCheck<'a> {
         if !ty::rules::is_integer(ty_ref.item()) && !ty::rules::is_error(ty_ref.item()) {
             // TODO: Stringify type for more clarity on the error
             self.reporter
-                .report_detailed(MessageKind::Error, "mismatched types", ty_ref.span())
+                .error_detailed("mismatched types", ty_ref.span())
                 .with_info("expected integer type", None)
                 .finish();
         }
@@ -424,11 +419,8 @@ impl<'a> TypeCheck<'a> {
             let expr_range = self.unit.database.expr_nodes.spans[&id];
 
             // Not declared, no type provided by any decls
-            self.reporter.report(
-                MessageKind::Error,
-                &format!("`{}` is not declared", sym_name),
-                expr_range,
-            );
+            self.reporter
+                .error(&format!("`{}` is not declared", sym_name), expr_range);
 
             // Build error type
             let err_ref = self.ty_ctx.add_type(ty::Type::Error);
@@ -658,11 +650,7 @@ impl SeqLenError {
             SeqLenError::ConstEval(err) => err.report_to(reporter),
             SeqLenError::WrongSize(int, size_limit) => {
                 reporter
-                    .report_detailed(
-                        MessageKind::Error,
-                        "invalid character count size",
-                        int.span(),
-                    )
+                    .error_detailed("invalid character count size", int.span())
                     .with_note(&format!("computed count is {}", int.item()), int.span())
                     .with_info(
                         &format!("valid sizes are between 1 to {}", size_limit - 1),

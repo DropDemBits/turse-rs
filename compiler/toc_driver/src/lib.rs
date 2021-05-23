@@ -102,7 +102,7 @@ pub fn gather_dependencies(
 
                     for (range, err) in errors.iter().map(|msg| msg.message_at(range)) {
                         let span = Span::new(file, range);
-                        messages.report(toc_reporting::MessageKind::Error, &err.to_string(), span);
+                        messages.error(&err.to_string(), span);
                     }
 
                     None
@@ -140,7 +140,7 @@ pub fn gather_dependencies(
 
                     for (range, err) in errors.iter().map(|msg| msg.message_at(range)) {
                         let span = Span::new(file, range);
-                        messages.report(toc_reporting::MessageKind::Error, &err.to_string(), span);
+                        messages.error(&err.to_string(), span);
                     }
                 } else {
                     // Add dependency

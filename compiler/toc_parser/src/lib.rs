@@ -6,7 +6,7 @@ mod sink;
 mod source;
 
 use source::Source;
-use toc_reporting::{MessageKind, ReportMessage};
+use toc_reporting::ReportMessage;
 use toc_scanner::Scanner;
 use toc_span::FileId;
 use toc_syntax::SyntaxNode;
@@ -35,12 +35,6 @@ pub struct ParseResult {
 impl ParseResult {
     pub fn syntax(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.node.clone())
-    }
-
-    pub fn has_errors(&self) -> bool {
-        self.messages
-            .iter()
-            .any(|msg| msg.kind() == MessageKind::Error)
     }
 
     pub fn messages(&self) -> &[ReportMessage] {

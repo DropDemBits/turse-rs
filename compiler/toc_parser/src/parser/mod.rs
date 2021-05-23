@@ -240,8 +240,7 @@ impl<'t, 'src> Parser<'t, 'src> {
 
         let span = Span::new(self.file, range);
 
-        self.msg_sink.report(
-            toc_reporting::MessageKind::Warning,
+        self.msg_sink.warn(
             &format!("{} found, assuming it to be {}", found, normal),
             span,
         );
@@ -353,8 +352,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
 
         let span = Span::new(self.p.file, range);
 
-        self.p.msg_sink.report(
-            toc_reporting::MessageKind::Error,
+        self.p.msg_sink.error(
             &format!(
                 "{}",
                 ParseMessage::UnexpectedToken {

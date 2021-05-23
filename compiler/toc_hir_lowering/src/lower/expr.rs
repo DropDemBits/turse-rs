@@ -1,6 +1,5 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::expr;
-use toc_reporting::MessageKind;
 use toc_span::{Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
@@ -54,8 +53,7 @@ impl super::LoweringCtx {
     }
 
     fn unsupported_expr(&mut self, span: Span) -> Option<expr::Expr> {
-        self.messages
-            .report(MessageKind::Error, "unsupported expression", span);
+        self.messages.error("unsupported expression", span);
         None
     }
 
@@ -70,8 +68,7 @@ impl super::LoweringCtx {
             for (range, err) in errs.iter().map(|msg| msg.message_at(range)) {
                 let span = Span::new(self.file, range);
 
-                self.messages
-                    .report(MessageKind::Error, &err.to_string(), span);
+                self.messages.error(&err.to_string(), span);
             }
         }
 

@@ -41,16 +41,13 @@ impl ConstError {
 
     /// Reports the detailed version of the `ConstError` to the given reporter
     pub fn report_to(&self, reporter: &mut toc_reporting::MessageSink) {
-        use toc_reporting::MessageKind;
-
         // Ignore already reported messages, or for missing expressions
         if matches!(self.kind, ErrorKind::Reported | ErrorKind::MissingExpr) {
             return;
         }
 
         // Report common message header
-        let msg =
-            reporter.report_detailed(MessageKind::Error, &format!("{}", self.kind), self.span);
+        let msg = reporter.error_detailed(&format!("{}", self.kind), self.span);
 
         // Report extra details
         match &self.kind {

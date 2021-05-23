@@ -1,6 +1,6 @@
 //! Rules for type interactions
 use toc_hir::expr;
-use toc_reporting::{MessageKind, MessageSink};
+use toc_reporting::MessageSink;
 use toc_span::Spanned;
 
 use crate::ty::{SeqSize, TyRef, Type};
@@ -451,19 +451,11 @@ pub fn report_binary_typecheck_error(err: MismatchedBinaryTypes, reporter: &mut 
     };
 
     if unsupported {
-        reporter.report(
-            MessageKind::Error,
-            "operation is not type-checked yet",
-            op.span(),
-        );
+        reporter.error("operation is not type-checked yet", op.span());
         return;
     }
 
-    let msg = reporter.report_detailed(
-        MessageKind::Error,
-        &format!("incompatible types for {}", op_name),
-        op.span(),
-    );
+    let msg = reporter.error_detailed(&format!("incompatible types for {}", op_name), op.span());
     let msg = match op.item() {
         // Arithmetic operators
         expr::BinaryOp::Add => {
@@ -561,11 +553,7 @@ pub fn report_unary_typecheck_error(err: MismatchedUnaryTypes, reporter: &mut Me
         expr::UnaryOp::Negate => "unary `-`",
     };
 
-    let msg = reporter.report_detailed(
-        MessageKind::Error,
-        &format!("incompatible types for {}", op_name),
-        op.span(),
-    );
+    let msg = reporter.error_detailed(&format!("incompatible types for {}", op_name), op.span());
     let msg = match op.item() {
         expr::UnaryOp::Not => msg.with_info("operand must be an integer or boolean", None),
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {

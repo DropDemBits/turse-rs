@@ -1,7 +1,6 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::{Assign, ConstVar};
 use toc_hir::{stmt, symbol};
-use toc_reporting::MessageKind;
 use toc_span::{Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
@@ -68,8 +67,7 @@ impl super::LoweringCtx {
     }
 
     fn unsupported_stmt(&mut self, span: Span) -> Option<stmt::Stmt> {
-        self.messages
-            .report(MessageKind::Error, "unsupported statement", span);
+        self.messages.error("unsupported statement", span);
         None
     }
 

@@ -3,7 +3,7 @@ pub mod token;
 
 use logos::Logos;
 use std::ops::Range;
-use toc_reporting::{MessageKind, MessageSink};
+use toc_reporting::MessageSink;
 use toc_span::FileId;
 use token::{NumberKind, Token, TokenKind};
 
@@ -17,11 +17,8 @@ impl ErrorFerry {
     pub(crate) fn push_error(&mut self, message: &str, span: Range<usize>) {
         let range = token::span_to_text_range(span);
 
-        self.sink.report(
-            MessageKind::Error,
-            message,
-            toc_span::Span::new(self.file_id, range),
-        );
+        self.sink
+            .error(message, toc_span::Span::new(self.file_id, range));
     }
 
     pub(crate) fn finish(self) -> MessageSink {

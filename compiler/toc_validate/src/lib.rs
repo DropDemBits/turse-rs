@@ -6,7 +6,7 @@ mod stmt;
 #[cfg(test)]
 mod test;
 
-use toc_reporting::{MessageBuilder, MessageKind, MessageSink, ReportMessage};
+use toc_reporting::{MessageBuilder, MessageSink, ReportMessage};
 use toc_span::{FileId, Span, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
@@ -42,13 +42,11 @@ struct ValidateCtx {
 
 impl ValidateCtx {
     pub(crate) fn push_error(&mut self, msg: &str, range: TextRange) {
-        self.sink
-            .report(MessageKind::Error, msg, Span::new(self.file, range));
+        self.sink.error(msg, Span::new(self.file, range));
     }
 
     pub(crate) fn push_detailed_error(&mut self, msg: &str, range: TextRange) -> MessageBuilder {
-        self.sink
-            .report_detailed(MessageKind::Error, msg, Span::new(self.file, range))
+        self.sink.error_detailed(msg, Span::new(self.file, range))
     }
 
     fn finish(self) -> ValidateResult {

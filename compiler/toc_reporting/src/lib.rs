@@ -3,10 +3,6 @@ use std::fmt;
 
 use toc_span::Span;
 
-/// Type of message reported.
-// Kept here because we want to hide `report` & `report_detailed`
-pub type MessageKind = AnnotateKind;
-
 /// Type of annotation added to a message
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnnotateKind {
@@ -172,43 +168,38 @@ impl MessageSink {
         Self { messages }
     }
 
-    /// Reports a message
-    ///
-    /// Does not add any annotations to the message
-    pub fn report(&mut self, kind: MessageKind, message: &str, span: Span) {
-        MessageBuilder::new(self, kind, message, span).finish();
-    }
-
     /// Reports an error message
     pub fn error(&mut self, message: &str, span: Span) {
-        self.report(MessageKind::Error, message, span)
+        self.report(AnnotateKind::Error, message, span)
     }
 
     /// Reports a detailed error message
     pub fn error_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
-        self.report_detailed(MessageKind::Error, message, span)
+        self.report_detailed(AnnotateKind::Error, message, span)
     }
 
     /// Reports a warning message
     pub fn warn(&mut self, message: &str, span: Span) {
-        self.report(MessageKind::Warning, message, span)
+        self.report(AnnotateKind::Warning, message, span)
     }
 
     /// Reports a detailed warning message
     pub fn warn_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
-        self.report_detailed(MessageKind::Warning, message, span)
+        self.report_detailed(AnnotateKind::Warning, message, span)
+    }
+
+    /// Reports a message
+    ///
+    /// Does not add any annotations to the message
+    fn report(&mut self, kind: AnnotateKind, message: &str, span: Span) {
+        MessageBuilder::new(self, kind, message, span).finish();
     }
 
     /// Reports a detailed message
     ///
     /// Returns a builder for adding annotations
     #[must_use = "message is not reported until `finish()` is called"]
-    pub fn report_detailed(
-        &mut self,
-        kind: MessageKind,
-        message: &str,
-        span: Span,
-    ) -> MessageBuilder {
+    fn report_detailed(&mut self, kind: AnnotateKind, message: &str, span: Span) -> MessageBuilder {
         MessageBuilder::new(self, kind, message, span)
     }
 
@@ -239,7 +230,7 @@ pub struct MessageBuilder<'a> {
 impl<'a> MessageBuilder<'a> {
     pub fn new(
         reporter: &'a mut MessageSink,
-        kind: MessageKind,
+        kind: AnnotateKind,
         message: &str,
         span: Span,
     ) -> Self {
@@ -254,7 +245,21 @@ impl<'a> MessageBuilder<'a> {
         }
     }
 
-    pub fn with_annotation<R>(mut self, kind: AnnotateKind, message: &str, span: R) -> Self
+    pub fn with_note<S>(self, message: &str, span: S) -> Self
+    where
+        S: Into<Option<Span>>,
+    {
+        self.with_annotation(AnnotateKind::Note, message, span)
+    }
+
+    pub fn with_info<S>(self, message: &str, span: S) -> Self
+    where
+        S: Into<Option<Span>>,
+    {
+        self.with_annotation(AnnotateKind::Info, message, span)
+    }
+
+    fn with_annotation<R>(mut self, kind: AnnotateKind, message: &str, span: R) -> Self
     where
         R: Into<Option<Span>>,
     {
@@ -273,20 +278,6 @@ impl<'a> MessageBuilder<'a> {
         }
 
         self
-    }
-
-    pub fn with_note<S>(self, message: &str, span: S) -> Self
-    where
-        S: Into<Option<Span>>,
-    {
-        self.with_annotation(AnnotateKind::Note, message, span)
-    }
-
-    pub fn with_info<S>(self, message: &str, span: S) -> Self
-    where
-        S: Into<Option<Span>>,
-    {
-        self.with_annotation(AnnotateKind::Info, message, span)
     }
 
     pub fn finish(self) {
@@ -324,13 +315,13 @@ mod tests {
     fn report_message() {
         let mut sink = MessageSink::new();
         sink.report(
-            MessageKind::Error,
+            AnnotateKind::Error,
             "an error message",
             Span::new(None, TextRange::new(1.into(), 3.into())),
         );
 
         sink.report(
-            MessageKind::Warning,
+            AnnotateKind::Warning,
             "a warning message",
             Span::new(None, TextRange::new(3.into(), 5.into())),
         );

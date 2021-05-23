@@ -1,6 +1,5 @@
 //! Lowering into `Type` HIR nodes
 use toc_hir::ty;
-use toc_reporting::MessageKind;
 use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
@@ -28,8 +27,7 @@ impl super::LoweringCtx {
     }
 
     fn unsupported_ty(&mut self, span: Span) -> Option<ty::Type> {
-        self.messages
-            .report(MessageKind::Error, "unsupported type", span);
+        self.messages.error("unsupported type", span);
         None
     }
 
