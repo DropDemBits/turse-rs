@@ -306,9 +306,10 @@ impl ConstInt {
             .try_into()
             .map_err(|_| ConstError::without_span(ErrorKind::IntOverflow))?;
 
-        let value = self.magnitude.checked_pow(exp).ok_or_else(|| {
-            ConstError::without_span(ErrorKind::IntOverflow)
-        })?;
+        let value = self
+            .magnitude
+            .checked_pow(exp)
+            .ok_or_else(|| ConstError::without_span(ErrorKind::IntOverflow))?;
 
         // Adopts the sign of the base
         let new_sign = self.sign;
@@ -411,9 +412,9 @@ impl ConstInt {
         }
 
         let shift_amount: u32 = {
-            let shift_amount = rhs.into_u64().ok_or_else(|| {
-                ConstError::without_span(ErrorKind::IntOverflow)
-            })?;
+            let shift_amount = rhs
+                .into_u64()
+                .ok_or_else(|| ConstError::without_span(ErrorKind::IntOverflow))?;
 
             // Mask the shift amount depending on the effective integer width
             if effective_width == Width::As64 {
@@ -429,9 +430,9 @@ impl ConstInt {
             Width::As64 => self.into_bits(),
         };
 
-        let bits = bits.checked_shl(shift_amount).ok_or_else(|| {
-            ConstError::without_span(ErrorKind::IntOverflow)
-        })?;
+        let bits = bits
+            .checked_shl(shift_amount)
+            .ok_or_else(|| ConstError::without_span(ErrorKind::IntOverflow))?;
 
         // Always an unsigned integer
         let new_sign = Sign::Positive;
@@ -453,9 +454,9 @@ impl ConstInt {
         }
 
         let shift_amount: u32 = {
-            let shift_amount = rhs.into_u64().ok_or_else(|| {
-                ConstError::without_span(ErrorKind::IntOverflow)
-            })?;
+            let shift_amount = rhs
+                .into_u64()
+                .ok_or_else(|| ConstError::without_span(ErrorKind::IntOverflow))?;
 
             // Mask the shift amount depending on the effective integer width
             if effective_width == Width::As64 {
@@ -474,9 +475,9 @@ impl ConstInt {
         // Even though overflow would not occur since we currently mask the shift amount,
         // still do a `checked_shr` since this masking behaviour is very odd and may
         // be disabled by a config option.
-        let bits = bits.checked_shr(shift_amount).ok_or_else(|| {
-            ConstError::without_span(ErrorKind::IntOverflow)
-        })?;
+        let bits = bits
+            .checked_shr(shift_amount)
+            .ok_or_else(|| ConstError::without_span(ErrorKind::IntOverflow))?;
 
         // Always an unsigned integer
         let new_sign = Sign::Positive;
@@ -534,9 +535,8 @@ impl ConstInt {
         effective_width: Width,
     ) -> Result<ConstInt, ConstError> {
         let (magnitude, sign) = {
-            let effective_magnitude = value.ok_or_else(|| {
-                ConstError::without_span(ErrorKind::IntOverflow)
-            })?;
+            let effective_magnitude =
+                value.ok_or_else(|| ConstError::without_span(ErrorKind::IntOverflow))?;
 
             if effective_magnitude == 0 {
                 // `0` is always a "positive" number
