@@ -131,45 +131,61 @@ impl SpanMapper {
         msg: &'a toc_reporting::ReportMessage,
     ) -> annotate_snippets::snippet::Snippet<'a> {
         use annotate_snippets::{display_list::FormatOptions, snippet::*};
+        use std::ops::Range;
 
-        // Build a set of common snippets for consecutive messages
+        // Build a set of common snippets for consecutive annotations
+        struct FileSpan {
+            span: toc_span::Span,
+            source_range: Range<usize>,
+            line_range: Range<usize>,
+        }
 
-        // Improvements:
-        // Could fold together spans per file
-        // - in a report message, the file id should be the same
-        // - if different files are needed, need to break up into separate reports
+        let mut file_spans = vec![FileSpan {
+            span: msg.span(),
+            source_range: 0..0,
+            line_range: 0..0,
+        }];
+
+        // Merge spans together
+        for annotation in msg.annotations() {
+            let span = annotation.span();
+            let FileSpan {
+                span: last_span, ..
+            } = file_spans.last_mut().unwrap();
+
+            if span.file == last_span.file {
+                // Merge spans
+                last_span.range = last_span.range.cover(span.range);
+            } else {
+                // Add a new span
+                file_spans.push(FileSpan {
+                    span,
+                    source_range: 0..0,
+                    line_range: 0..0,
+                });
+            }
+        }
+
+        // Get line spans
+        for file_span in file_spans.iter_mut() {
+            let (start, end) = (
+                u32::from(file_span.span.range.start()),
+                u32::from(file_span.span.range.end()),
+            );
+            let (start_line, start_range) = self
+                .map_byte_index(file_span.span.file, start as usize)
+                .unwrap();
+            let (end_line, end_range) = self
+                .map_byte_index(file_span.span.file, end as usize)
+                .unwrap();
+
+            file_span.source_range = *start_range.start()..*end_range.end();
+            file_span.line_range = start_line..end_line;
+        }
+
+        let file_spans = file_spans;
 
         // Build snippet slices & footers
-        let mut slices = vec![];
-        let mut footer = vec![];
-
-        let span_into_slice = |annotate_type, span: toc_span::Span, label| {
-            let file = span.file.unwrap();
-
-            let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
-            let (start_line, start_range) = self.map_byte_index(span.file, start as usize).unwrap();
-            let (end_line, end_range) = self.map_byte_index(span.file, end as usize).unwrap();
-
-            let source = &self.files.get(&file).unwrap().0.source;
-            let slice_text = *start_range.start()..*end_range.end();
-            let slice_text = &source[slice_text];
-
-            let range_base = start_range.start();
-            let can_fold = (end_line - start_line) > 10;
-
-            Slice {
-                source: slice_text,
-                line_start: start_line + 1,
-                origin: Some(&self.files.get(&file).unwrap().0.path),
-                annotations: vec![SourceAnnotation {
-                    annotation_type: annotate_type,
-                    label,
-                    range: (start as usize - range_base, end as usize - range_base),
-                }],
-                fold: can_fold,
-            }
-        };
-
         fn annotate_kind_to_type(kind: toc_reporting::AnnotateKind) -> AnnotationType {
             match kind {
                 toc_reporting::AnnotateKind::Note => AnnotationType::Note,
@@ -179,19 +195,83 @@ impl SpanMapper {
             }
         }
 
+        fn span_into_annotation<'a, 'b>(
+            annotate_type: AnnotationType,
+            span: toc_span::Span,
+            label: &'a str,
+            file_span: &'b FileSpan,
+        ) -> SourceAnnotation<'a> {
+            let FileSpan { source_range, .. } = file_span;
+            let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+
+            let range_base = source_range.start;
+
+            SourceAnnotation {
+                annotation_type: annotate_type,
+                label,
+                range: (start as usize - range_base, end as usize - range_base),
+            }
+        }
+
+        let create_snippet = |file_span: &FileSpan| {
+            let FileSpan {
+                span,
+                source_range,
+                line_range,
+            } = file_span;
+
+            let file = span.file.unwrap();
+            let source = &self.files.get(&file).unwrap().0.source;
+            let slice_text = &source[source_range.clone()];
+            let can_fold = (line_range.end - line_range.start) > 10;
+
+            Slice {
+                source: slice_text,
+                line_start: line_range.start + 1,
+                origin: Some(&self.files.get(&file).unwrap().0.path),
+                annotations: vec![],
+                fold: can_fold,
+            }
+        };
+
+        let mut slices = vec![];
+        let mut footer = vec![];
+        let mut report_spans = file_spans.iter().peekable();
+
         // Insert the first slice
-        slices.push(span_into_slice(
-            annotate_kind_to_type(msg.kind()),
-            msg.span(),
-            "", // part of the larger message
-        ));
+        let mut current_file = msg.span().file;
+
+        {
+            let annotation = span_into_annotation(
+                annotate_kind_to_type(msg.kind()),
+                msg.span(),
+                "", // part of the larger message
+                report_spans.peek().unwrap(),
+            );
+
+            let mut slice = create_snippet(report_spans.peek().unwrap());
+            slice.annotations.push(annotation);
+            slices.push(slice);
+        }
 
         for annotate in msg.annotations() {
-            slices.push(span_into_slice(
+            let annotation = span_into_annotation(
                 annotate_kind_to_type(annotate.kind()),
                 annotate.span(),
                 annotate.message(),
-            ));
+                report_spans.peek().unwrap(),
+            );
+
+            if current_file != annotate.span().file {
+                current_file = annotate.span().file;
+
+                let mut slice = create_snippet(report_spans.peek().unwrap());
+                slice.annotations.push(annotation);
+                slices.push(slice);
+            } else {
+                let slice = slices.last_mut().unwrap();
+                slice.annotations.push(annotation);
+            }
         }
 
         for annotate in msg.footer() {
