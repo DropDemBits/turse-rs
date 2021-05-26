@@ -53,7 +53,7 @@ impl ConstError {
         match &self.kind {
             ErrorKind::NoConstExpr(def_span) => {
                 // Report at the reference's definition spot
-                msg.with_info("reference declared here", *def_span)
+                msg.with_note("reference declared here", *def_span)
             }
             ErrorKind::WrongResultType(found, expected) => {
                 let expected_name = match expected {
