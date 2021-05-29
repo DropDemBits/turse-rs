@@ -4,7 +4,7 @@
         "name": "DropDemBits"
     },
     "displayName": "Turing Language",
-    "description": "Syntax higlighting & (future) LSP provider for HoltSoft's Turing language",
+    "description": "Syntax highlighting & (future) LSP provider for HoltSoft's Turing language",
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.46.0"
