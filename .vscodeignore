@@ -1,14 +1,11 @@
-.vscode/**
-.vscode-test/**
-.gitignore
-vsc-extension-quickstart.md
-**/*.ts
-**/tsconfig.json
-**/node_modules/*
-Gruntfile.js
-**/*.cson
-
-# client isn't needed since it's just source stuff
-client/*
-syntaxes/*
-package.json
+**
+# Minimal extension files
+!dist/extension.js
+!dist/language-config.json
+!dist/turing.tmLanguage.json
+!server/*
+!package.json
+!package-lock.json
+!README.md
+!CHANGELOG.md
+!NOTICE.md
