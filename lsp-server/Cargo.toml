@@ -1,0 +1,24 @@
+[package]
+name = "lsp-server"
+version = "0.1.0"
+authors = ["DropDemBits <r3usrlnd@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+if_chain = "1.0.1"
+lsp-server = "0.5.1"
+lsp-types = "0.89.1"
+serde_json = "1.0.64"
+
+# Local compiler dependencies
+toc_vfs = {path = "../compiler/toc_vfs"}
+toc_hir = {path = "../compiler/toc_hir"}
+toc_parser = {path = "../compiler/toc_parser"}
+toc_driver = {path = "../compiler/toc_driver"}
+toc_validate = {path = "../compiler/toc_validate"}
+toc_hir_lowering = {path = "../compiler/toc_hir_lowering"}
+toc_analysis = {path = "../compiler/toc_analysis"}
+toc_reporting = {path = "../compiler/toc_reporting"}
+toc_span = {path = "../compiler/toc_span"}
