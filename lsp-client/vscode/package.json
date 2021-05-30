@@ -5,6 +5,10 @@
         "name": "DropDemBits"
     },
     "publisher": "dropdembits",
+    "repository": {
+        "url": "https://github.com/DropDemBits/turse-rs.git",
+        "type": "git"
+    },
     "displayName": "Turing Language Support",
     "description": "Syntax highlighting & LSP provider for HoltSoft's Turing language",
     "engines": {
