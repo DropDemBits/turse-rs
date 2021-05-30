@@ -6,7 +6,7 @@ Portions of this extension incorporates code from third parties
 
 Repository: [language-turing]
 
-`syntaxes/compiled/turing.tmLanguage.json` is generated from `syntaxes/turing.cson`,
+`dist/turing.tmLanguage.json` is generated from `syntaxes/turing.cson`,
 which is derived from `grammars/turing.cson` in the source repository.
 
 Portions of `language-configuration` (notably the indentation rules) are derived from

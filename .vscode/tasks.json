@@ -2,13 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "grunt",
-            "task": "cson",
-            "group": "build",
-            "problemMatcher": [],
-            "label": "grunt: cson",
-        },
-        {
             "type": "npm",
             "script": "watch",
             "problemMatcher": [
@@ -16,7 +9,7 @@
             ],
             "group": "build",
             "label": "npm: watch",
-            "detail": "webpack --watch --config ./build/node-extension.webpack.config.js",
+            "detail": "grunt watch",
             "isBackground": true
         }
     ]
