@@ -32,10 +32,12 @@ pub struct Scanner<'s> {
 }
 
 impl<'s> Scanner<'s> {
-    pub fn new(source: &'s str) -> Self {
-        Self {
-            inner: TokenKind::lexer(source),
-        }
+    pub fn new(file: Option<FileId>, source: &'s str) -> Self {
+        let mut inner = TokenKind::lexer(source);
+        // Set up the file id
+        inner.extras.file_id = file;
+
+        Self { inner }
     }
 
     pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageSink) {
@@ -82,7 +84,7 @@ mod test {
     use expect_test::{expect, Expect};
 
     fn do_scanner(source: &str) -> (Vec<(TokenKind, &str)>, String) {
-        let scanner = Scanner::new(source);
+        let scanner = Scanner::new(None, source);
 
         let (toks, errors) = scanner.collect_all();
         let toks: Vec<(TokenKind, &str)> =
@@ -114,7 +116,7 @@ mod test {
     /// Expects no errors to be produced
     #[track_caller] // Issue isn't here, but from caller
     fn expect(source: &str, kind: &TokenKind) {
-        let mut scanner = Scanner::new(source);
+        let mut scanner = Scanner::new(None, source);
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();
@@ -145,7 +147,7 @@ mod test {
 
     #[track_caller]
     fn expect_with_error(source: &str, kind: &TokenKind, expecting: Expect) {
-        let mut scanner = Scanner::new(source);
+        let mut scanner = Scanner::new(None, source);
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();

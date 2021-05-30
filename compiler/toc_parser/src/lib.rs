@@ -16,7 +16,7 @@ use rowan::GreenNode;
 use crate::sink::Sink;
 
 pub fn parse(file: Option<FileId>, source: &str) -> ParseResult {
-    let (tokens, scanner_msgs) = Scanner::new(source).collect_all();
+    let (tokens, scanner_msgs) = Scanner::new(file, source).collect_all();
 
     let source = Source::new(&tokens);
     let parser = parser::Parser::new(file, source);
