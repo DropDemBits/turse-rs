@@ -118,8 +118,6 @@ fn check_document(
     // Collect diagnostics
     let diagnostics = check_file(&uri, contents);
 
-    eprintln!("built diagnostics {:?}", diagnostics);
-
     connection
         .sender
         .send(Message::Notification(Notification::new(
