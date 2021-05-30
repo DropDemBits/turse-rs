@@ -252,7 +252,7 @@ impl SpanMapper {
         }
 
         // Use a line span covering the rest of the file
-        line_ranges.push(line_start..source.len());
+        line_ranges.push(line_start..source.len() + 1);
 
         line_ranges
     }
@@ -285,12 +285,9 @@ impl SpanMapper {
         let start = self
             .map_byte_index_to_position(span.file, start as usize)
             .unwrap();
-        let mut end = self
-            .map_byte_index_to_position(span.file, end as usize - 1)
+        let end = self
+            .map_byte_index_to_position(span.file, end as usize)
             .unwrap();
-
-        // Adjust to correct for the subtraction
-        end.character += 1;
 
         let (info, _) = self.files.get(&span.file.unwrap()).unwrap();
         let path = Path::new(&info.path);
