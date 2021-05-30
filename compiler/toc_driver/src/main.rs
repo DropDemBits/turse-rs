@@ -1,7 +1,7 @@
 //! Dummy bin for running the new scanner and parser
 
 use std::collections::HashMap;
-use std::ops::RangeInclusive;
+use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
 use toc_vfs::FileDb;
@@ -78,7 +78,7 @@ fn main() {
 }
 
 struct SpanMapper {
-    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<RangeInclusive<usize>>)>,
+    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<Range<usize>>)>,
 }
 
 impl SpanMapper {
@@ -95,19 +95,19 @@ impl SpanMapper {
         Self { files }
     }
 
-    fn build_line_ranges(source: &str) -> Vec<RangeInclusive<usize>> {
+    fn build_line_ranges(source: &str) -> Vec<Range<usize>> {
         let mut line_ranges = vec![];
         let mut line_start = 0;
         let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
 
         for (at_newline, _) in line_ends {
             let line_end = at_newline + 1;
-            line_ranges.push(line_start..=line_end);
+            line_ranges.push(line_start..line_end);
             line_start = line_end;
         }
 
         // Use a line span covering the rest of the file
-        line_ranges.push(line_start..=source.len());
+        line_ranges.push(line_start..source.len());
 
         line_ranges
     }
@@ -116,7 +116,7 @@ impl SpanMapper {
         &self,
         file: Option<toc_span::FileId>,
         byte_idx: usize,
-    ) -> Option<(usize, RangeInclusive<usize>)> {
+    ) -> Option<(usize, Range<usize>)> {
         self.files.get(file.as_ref()?).and_then(|(_, line_ranges)| {
             line_ranges
                 .iter()
@@ -131,19 +131,20 @@ impl SpanMapper {
         msg: &'a toc_reporting::ReportMessage,
     ) -> annotate_snippets::snippet::Snippet<'a> {
         use annotate_snippets::{display_list::FormatOptions, snippet::*};
-        use std::ops::Range;
 
         // Build a set of common snippets for consecutive annotations
-        struct FileSpan {
+        struct FileSpan<'a> {
             span: toc_span::Span,
             source_range: Range<usize>,
             line_range: Range<usize>,
+            source_slice: &'a str,
         }
 
         let mut file_spans = vec![FileSpan {
             span: msg.span(),
             source_range: 0..0,
             line_range: 0..0,
+            source_slice: "",
         }];
 
         // Merge spans together
@@ -162,6 +163,7 @@ impl SpanMapper {
                     span,
                     source_range: 0..0,
                     line_range: 0..0,
+                    source_slice: "",
                 });
             }
         }
@@ -176,11 +178,18 @@ impl SpanMapper {
                 .map_byte_index(file_span.span.file, start as usize)
                 .unwrap();
             let (end_line, end_range) = self
-                .map_byte_index(file_span.span.file, end as usize)
+                .map_byte_index(file_span.span.file, end as usize - 1)
                 .unwrap();
 
-            file_span.source_range = *start_range.start()..*end_range.end();
+            let source = &self
+                .files
+                .get(&file_span.span.file.unwrap())
+                .unwrap()
+                .0
+                .source;
+            file_span.source_range = start_range.start..end_range.end;
             file_span.line_range = start_line..end_line;
+            file_span.source_slice = &source[start_range.start..end_range.end];
         }
 
         let file_spans = file_spans;
@@ -205,11 +214,17 @@ impl SpanMapper {
             let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
 
             let range_base = source_range.start;
+            let real_slice = (start as usize - range_base)..(end as usize - range_base);
+
+            // Get the real start & end, in characters
+            // `annotate-snippets` requires that the range bounds are in characters, not byte indices
+            let real_start = file_span.source_slice[0..real_slice.start].chars().count();
+            let real_end = real_start + file_span.source_slice[real_slice].chars().count();
 
             SourceAnnotation {
                 annotation_type: annotate_type,
                 label,
-                range: (start as usize - range_base, end as usize - range_base),
+                range: (real_start, real_end),
             }
         }
 
@@ -218,6 +233,7 @@ impl SpanMapper {
                 span,
                 source_range,
                 line_range,
+                ..
             } = file_span;
 
             let file = span.file.unwrap();
