@@ -1,0 +1,46 @@
+comments:
+    # symbol used for single line comment.
+    lineComment: "%"
+    # symbols used for start and end a block comment.
+    blockComment: [
+        "/*", "*/"
+    ]
+
+# symbols used as brackets
+brackets: [
+    ["(", ")"]
+]
+
+# symbols that are auto closed when typing
+autoClosingPairs: [
+    [ "(", ")" ]
+    [ '"', '"' ]
+    [ "'", "'" ]
+]
+
+# symbols that can be used to surround a selection
+surroundingPairs: [
+    [ "(", ")" ]
+    [ '"', '"' ]
+    [ "'", "'" ]
+]
+
+# Derived from https://github.com/Alhadis/language-turing/blob/v1.0.2/settings/editor.cson#L4-L12
+indentationRules:
+    increaseIndentPattern: """(?x)
+        ( ^\\s* (?:begin|body|case|class|elsif|if|for|loop|process|function|procedure|proc|fcn|then)\\b
+        |  \\s+ (?:then|:) \\s*$
+        )
+    """
+    decreaseIndentPattern: """(?x)
+        ^ \\s* end \\s+
+        (?:case|elsif|if|for|loop)\\b
+    """
+
+onEnterRules: [
+    {
+        beforeText: """(^\\s*(?:class|module|monitor|case|elsif|elseif|if|for|loop|begin|body|process|function|procedure|proc|fcn).*?:\\s*?$)"""
+        action: indent: "indent"
+    }
+]
+

@@ -1,0 +1,11 @@
+**
+# Minimal extension files
+!dist/extension.js
+!dist/language-config.json
+!dist/turing.tmLanguage.json
+!server/*
+!package.json
+!package-lock.json
+!README.md
+!CHANGELOG.md
+!NOTICE.md
