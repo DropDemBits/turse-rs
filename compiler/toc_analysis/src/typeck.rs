@@ -205,7 +205,8 @@ impl<'a> TypeCheck<'a> {
             // TODO: Report expected type vs found type
             // - Requires type stringification/display impl
             self.reporter
-                .error_detailed("mismatched types", stmt.op.span());
+                .error_detailed("mismatched types", stmt.op.span())
+                .finish();
         }
     }
 
