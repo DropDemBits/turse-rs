@@ -4,8 +4,20 @@
         {
             "type": "grunt",
             "task": "cson",
+            "group": "build",
             "problemMatcher": [],
-            "label": "grunt: cson"
+            "label": "grunt: cson",
+        },
+        {
+            "type": "npm",
+            "script": "watch",
+            "problemMatcher": [
+                "$ts-checker-eslint-webpack-watch"
+            ],
+            "group": "build",
+            "label": "npm: watch",
+            "detail": "webpack --watch --config ./build/node-extension.webpack.config.js",
+            "isBackground": true
         }
     ]
 }

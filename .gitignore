@@ -1,2 +1,5 @@
 node_modules
 *.vsix
+
+# Has to be compiled & acquired from `turse-rs`, since there is no prebuilt lsp binaries yet
+turing-lsp-server*
