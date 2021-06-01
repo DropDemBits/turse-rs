@@ -414,6 +414,10 @@ test_named_group! { typeck_assignment,
             var rhs : boolean
             lhs += rhs
             "#,
+        mismatched_types => r#"
+            var lhs : int
+            lhs := 1 + 1.0
+        "#,
     ]
 }
 

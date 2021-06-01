@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var lhs : int\nlhs := 1 + 1.0\n"
+
+---
+ty_nodes:
+    Idx::<Type>(0) TyRef(Int(Int))
+def_kinds:
+    DefId(0) Var(TyRef(Int(Int)))
+error at 18..20: mismatched types
