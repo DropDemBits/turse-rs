@@ -22,7 +22,7 @@ fn package_server() -> anyhow::Result<()> {
         .join("target/release")
         .join(format!("lsp-server{}", binary_ext()));
     let dest_folder = project_root().join("lsp-client/vscode/server");
-    let dest_file = dest_folder.join("turing-lsp-server");
+    let dest_file = dest_folder.join(format!("turing-lsp-server{}", binary_ext()));
 
     fs::create_dir_all(dest_folder)?;
     fs::copy(binary, dest_file)?;
@@ -33,8 +33,13 @@ fn package_server() -> anyhow::Result<()> {
 fn package_client() -> anyhow::Result<()> {
     let _dir = pushd("./lsp-client/vscode")?;
 
-    cmd!("npm ci").run()?;
-    cmd!("npx vsce package").run()?;
+    if cfg!(target_os = "windows") {
+        cmd!("cmd /c npm ci").run()?;
+        cmd!("cmd /c npx vsce package").run()?;
+    } else {
+        cmd!("npm ci").run()?;
+        cmd!("npx vsce package").run()?;
+    }
 
     Ok(())
 }

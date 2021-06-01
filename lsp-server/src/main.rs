@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::ops::Range;
-use std::path::Path;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
@@ -133,7 +133,7 @@ fn check_document(
 }
 
 fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
-    let path = uri.path();
+    let path = uri.as_str();
     let file_db = toc_vfs::FileDb::new();
 
     // Add the root path to the file db
@@ -288,10 +288,10 @@ impl SpanMapper {
             .unwrap();
 
         let (info, _) = self.files.get(&span.file.unwrap()).unwrap();
-        let path = Path::new(&info.path);
+        let path = &info.path;
 
         Location::new(
-            lsp_types::Url::from_file_path(path).unwrap(),
+            lsp_types::Url::from_str(path).unwrap(),
             lsp_types::Range::new(start, end),
         )
     }
