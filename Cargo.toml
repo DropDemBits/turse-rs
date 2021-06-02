@@ -3,12 +3,14 @@ resolver = "2"
 
 members = [
     "xtask/",
+    "lsp-server/",
     "compiler/toc_driver",
     "fuzzers/parser_fuzz",
 ]
 
 default-members = [
     "compiler/*",
+    "lsp-server/",
 ]
 
 [profile.release]

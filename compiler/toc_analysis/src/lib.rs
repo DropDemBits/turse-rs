@@ -29,8 +29,8 @@ pub fn analyze_unit(unit_id: toc_hir::UnitId, unit_map: Arc<UnitMap>) -> Analyze
 
     let (ty_ctx, messages) = typeck::typecheck_unit(unit, const_eval_ctx.clone());
 
-    println!("{}", ty::pretty_dump_typectx(&ty_ctx));
-    println!("{:#?}", const_eval_ctx);
+    eprintln!("{}", ty::pretty_dump_typectx(&ty_ctx));
+    eprintln!("{:#?}", const_eval_ctx);
 
     AnalyzeResult { messages }
 }
