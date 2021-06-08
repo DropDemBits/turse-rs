@@ -4,7 +4,7 @@ expression: "begin var k : char := 'baz' end"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Char)
 def_kinds:
     DefId(0) Var(TyRef(Char))
 error at 22..27: mismatched types

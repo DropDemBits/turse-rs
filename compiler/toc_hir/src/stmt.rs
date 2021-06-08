@@ -1,10 +1,22 @@
 //! Statement nodes
-use la_arena::Idx;
 use toc_span::Spanned;
 
-use crate::{expr, symbol, ty};
+use crate::{expr, symbol, ty, HirId};
 
-pub type StmtIdx = Idx<Stmt>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StmtId(pub(crate) HirId);
+
+impl From<StmtId> for HirId {
+    fn from(id: StmtId) -> Self {
+        id.0
+    }
+}
+
+impl From<&StmtId> for HirId {
+    fn from(id: &StmtId) -> Self {
+        id.0
+    }
+}
 
 #[derive(Debug)]
 pub enum Stmt {
@@ -80,15 +92,15 @@ pub struct ConstVar {
 #[derive(Debug)]
 pub enum ConstVarTail {
     /// Only the type spec is specified
-    TypeSpec(ty::TypeIdx),
+    TypeSpec(ty::TypeId),
     /// Only the init expr is specified
-    InitExpr(expr::ExprIdx),
+    InitExpr(expr::ExprId),
     /// Both the type spec and init expr are specified
-    Both(ty::TypeIdx, expr::ExprIdx),
+    Both(ty::TypeId, expr::ExprId),
 }
 
 impl ConstVarTail {
-    pub fn type_spec(&self) -> Option<ty::TypeIdx> {
+    pub fn type_spec(&self) -> Option<ty::TypeId> {
         match self {
             ConstVarTail::TypeSpec(ty_spec) => Some(*ty_spec),
             ConstVarTail::InitExpr(_) => None,
@@ -96,7 +108,7 @@ impl ConstVarTail {
         }
     }
 
-    pub fn init_expr(&self) -> Option<expr::ExprIdx> {
+    pub fn init_expr(&self) -> Option<expr::ExprId> {
         match self {
             ConstVarTail::TypeSpec(_) => None,
             ConstVarTail::InitExpr(init_expr) => Some(*init_expr),
@@ -108,18 +120,18 @@ impl ConstVarTail {
 #[derive(Debug)]
 pub struct Assign {
     /// Left hand side of an assignment expression
-    pub lhs: expr::ExprIdx,
+    pub lhs: expr::ExprId,
     /// Operation performed between the arguments before assignment
     pub op: Spanned<AssignOp>,
     /// Right hand side of an assignment expression
-    pub rhs: expr::ExprIdx,
+    pub rhs: expr::ExprId,
 }
 
 #[derive(Debug)]
 pub struct Put {
     /// Stream handle to put the text on.
     /// If absent, should be put on the `stdout` stream.
-    pub stream_num: Option<expr::ExprIdx>,
+    pub stream_num: Option<expr::ExprId>,
     /// The items to put out on the stream.
     pub items: Vec<Skippable<PutItem>>,
     /// If a newline is appended after the all of the put items
@@ -130,14 +142,14 @@ pub struct Put {
 pub struct Get {
     /// Stream handle to get text from.
     /// If absent, should be fetched from the `stdin` stream.
-    pub stream_num: Option<expr::ExprIdx>,
+    pub stream_num: Option<expr::ExprId>,
     /// The items to get from the stream.
     pub items: Vec<Skippable<GetItem>>,
 }
 
 #[derive(Debug)]
 pub struct Block {
-    pub stmts: Vec<StmtIdx>,
+    pub stmts: Vec<StmtId>,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -212,7 +224,7 @@ pub enum Skippable<T> {
 #[derive(Debug)]
 pub struct PutItem {
     /// The expression to be put.
-    pub expr: expr::ExprIdx,
+    pub expr: expr::ExprId,
     /// Extra display options
     pub opts: PutOpts,
 }
@@ -229,28 +241,28 @@ pub enum PutOpts {
     /// `put` item with 1 arg
     WithWidth {
         /// The minimum printing width.
-        width: expr::ExprIdx,
+        width: expr::ExprId,
     },
     /// `put` item with 2 args
     WithPrecision {
         /// The minimum printing width.
-        width: expr::ExprIdx,
+        width: expr::ExprId,
         /// The amount of decimals put for `real*` types.
-        precision: expr::ExprIdx,
+        precision: expr::ExprId,
     },
     /// `put` item with 3 args
     WithExponentWidth {
         /// The minimum printing width.
-        width: expr::ExprIdx,
+        width: expr::ExprId,
         /// The amount of decimals put for `real*` types.
-        precision: expr::ExprIdx,
+        precision: expr::ExprId,
         /// The minimum printing width for exponents of `real*` types.
-        exponent_width: expr::ExprIdx,
+        exponent_width: expr::ExprId,
     },
 }
 
 impl PutOpts {
-    pub fn width(&self) -> Option<expr::ExprIdx> {
+    pub fn width(&self) -> Option<expr::ExprId> {
         match self {
             PutOpts::None => None,
             PutOpts::WithWidth { width }
@@ -259,7 +271,7 @@ impl PutOpts {
         }
     }
 
-    pub fn precision(&self) -> Option<expr::ExprIdx> {
+    pub fn precision(&self) -> Option<expr::ExprId> {
         match self {
             PutOpts::None | PutOpts::WithWidth { .. } => None,
             PutOpts::WithPrecision { precision, .. }
@@ -267,7 +279,7 @@ impl PutOpts {
         }
     }
 
-    pub fn exponent_width(&self) -> Option<expr::ExprIdx> {
+    pub fn exponent_width(&self) -> Option<expr::ExprId> {
         match self {
             PutOpts::None | PutOpts::WithWidth { .. } | PutOpts::WithPrecision { .. } => None,
             PutOpts::WithExponentWidth { exponent_width, .. } => Some(*exponent_width),
@@ -280,7 +292,7 @@ impl PutOpts {
 pub struct GetItem {
     /// The expression to put.
     /// Must be a reference expression.
-    pub expr: expr::ExprIdx,
+    pub expr: expr::ExprId,
     /// The amount of text to extract.
     pub width: GetWidth,
 }
@@ -293,5 +305,5 @@ pub enum GetWidth {
     /// Fetch a newline terminated portion of text.
     Line,
     /// Fetch a specific amount of characters.
-    Chars(expr::ExprIdx),
+    Chars(expr::ExprId),
 }

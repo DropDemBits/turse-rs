@@ -37,7 +37,7 @@ pub enum DefKind {
 /// Typing context for a given unit
 #[derive(Debug)]
 pub struct TyCtx {
-    ty_table: IndexMap<toc_hir::ty::TypeIdx, TyRef>,
+    ty_table: IndexMap<toc_hir::ty::TypeId, TyRef>,
     // Store def id type here since it'll be needed for bytecode gen
     def_type: IndexMap<toc_hir::symbol::DefId, DefKind>,
 }
@@ -54,11 +54,11 @@ impl TyCtx {
         TyRef(internment::Intern::new(ty))
     }
 
-    pub fn map_type(&mut self, id: toc_hir::ty::TypeIdx, ty_ref: TyRef) {
+    pub fn map_type(&mut self, id: toc_hir::ty::TypeId, ty_ref: TyRef) {
         self.ty_table.insert(id, ty_ref);
     }
 
-    pub fn get_type(&self, id: toc_hir::ty::TypeIdx) -> Option<TyRef> {
+    pub fn get_type(&self, id: toc_hir::ty::TypeId) -> Option<TyRef> {
         self.ty_table.get(&id).copied()
     }
 

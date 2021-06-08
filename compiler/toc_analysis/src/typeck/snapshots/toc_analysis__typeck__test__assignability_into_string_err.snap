@@ -4,8 +4,8 @@ expression: "var cmx : char(256)\n\nvar _e00 : string := cmx % [not captured by 
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(CharN(Fixed(256)))
-    Idx::<Type>(1) TyRef(String)
+    TypeId(HirId(Idx::<HirNode>(1))) TyRef(CharN(Fixed(256)))
+    TypeId(HirId(Idx::<HirNode>(3))) TyRef(String)
 def_kinds:
     DefId(0) Var(TyRef(CharN(Fixed(256))))
     DefId(1) Var(TyRef(String))

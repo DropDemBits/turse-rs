@@ -4,16 +4,12 @@ expression: get a
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 0..5 }): Get(Get { stream_num: None, items: [Item(GetItem { expr: Idx::<Expr>(0), width: Token })] })
-
-expr:
-Idx::<Expr>(0) (Span { file: None, range: 4..5 }): Name(Name(UseId(DefId(0), 0)))
-
-ty:
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Name(Name(UseId(DefId(0), 0))))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..5 }): Stmt(Get(Get { stream_num: None, items: [Item(GetItem { expr: ExprId(HirId(Idx::<HirNode>(0))), width: Token })] }))
 
 root stmts:
-[Idx::<Stmt>(0)]
+[StmtId(HirId(Idx::<HirNode>(1)))]
 symtab:
 DefId(0): (Span { file: None, range: 4..5 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
 UseId(DefId(0), 0): Span { file: None, range: 4..5 }

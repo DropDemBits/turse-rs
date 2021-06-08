@@ -4,8 +4,8 @@ expression: "var b : boolean\n\nvar _v00 : boolean := b\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Boolean)
-    Idx::<Type>(1) TyRef(Boolean)
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
+    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Boolean)
 def_kinds:
     DefId(0) Var(TyRef(Boolean))
     DefId(1) Var(TyRef(Boolean))

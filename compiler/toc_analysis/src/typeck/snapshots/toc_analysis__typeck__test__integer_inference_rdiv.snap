@@ -4,9 +4,9 @@ expression: "\n    % Inferred integer types should pass\n    % Decl should be a 
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Real(Real))
-    Idx::<Type>(1) TyRef(Int(Int))
-    Idx::<Type>(2) TyRef(Nat(Nat))
+    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Real(Real))
+    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Int(Int))
+    TypeId(HirId(Idx::<HirNode>(8))) TyRef(Nat(Nat))
 def_kinds:
     DefId(0) Var(TyRef(Real(Real)))
     DefId(1) Var(TyRef(Real(Real)))

@@ -4,21 +4,17 @@ expression: "begin a := b end a := b"
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 6..12 }): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, Span { file: None, range: 8..10 }), rhs: Idx::<Expr>(1) })
-Idx::<Stmt>(1) (Span { file: None, range: 0..16 }): Block(Block { stmts: [Idx::<Stmt>(0)] })
-Idx::<Stmt>(2) (Span { file: None, range: 17..23 }): Assign(Assign { lhs: Idx::<Expr>(2), op: Spanned(None, Span { file: None, range: 19..21 }), rhs: Idx::<Expr>(3) })
-
-expr:
-Idx::<Expr>(0) (Span { file: None, range: 6..7 }): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (Span { file: None, range: 11..12 }): Name(Name(UseId(DefId(1), 0)))
-Idx::<Expr>(2) (Span { file: None, range: 17..18 }): Name(Name(UseId(DefId(0), 1)))
-Idx::<Expr>(3) (Span { file: None, range: 22..23 }): Name(Name(UseId(DefId(1), 1)))
-
-ty:
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 6..7 }): Expr(Name(Name(UseId(DefId(0), 0))))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 11..12 }): Expr(Name(Name(UseId(DefId(1), 0))))
+HirId(Idx::<HirNode>(2)) (Span { file: None, range: 6..12 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(None, Span { file: None, range: 8..10 }), rhs: ExprId(HirId(Idx::<HirNode>(1))) }))
+HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..16 }): Stmt(Block(Block { stmts: [StmtId(HirId(Idx::<HirNode>(2)))] }))
+HirId(Idx::<HirNode>(4)) (Span { file: None, range: 17..18 }): Expr(Name(Name(UseId(DefId(0), 1))))
+HirId(Idx::<HirNode>(5)) (Span { file: None, range: 22..23 }): Expr(Name(Name(UseId(DefId(1), 1))))
+HirId(Idx::<HirNode>(6)) (Span { file: None, range: 17..23 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(4))), op: Spanned(None, Span { file: None, range: 19..21 }), rhs: ExprId(HirId(Idx::<HirNode>(5))) }))
 
 root stmts:
-[Idx::<Stmt>(1), Idx::<Stmt>(2)]
+[StmtId(HirId(Idx::<HirNode>(3))), StmtId(HirId(Idx::<HirNode>(6)))]
 symtab:
 DefId(0): (Span { file: None, range: 6..7 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 2 })
 DefId(1): (Span { file: None, range: 11..12 }, Symbol { name: "b", kind: Undeclared, is_pervasive: false, def_id: DefId(1), next_use: 2 })

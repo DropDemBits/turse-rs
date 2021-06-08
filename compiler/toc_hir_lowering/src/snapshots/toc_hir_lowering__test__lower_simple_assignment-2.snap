@@ -4,16 +4,12 @@ expression: "1 := 2"
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 0..6 }): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: Idx::<Expr>(1) })
-
-expr:
-Idx::<Expr>(0) (Span { file: None, range: 0..1 }): Literal(Integer(1))
-Idx::<Expr>(1) (Span { file: None, range: 5..6 }): Literal(Integer(2))
-
-ty:
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..1 }): Expr(Literal(Integer(1)))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 5..6 }): Expr(Literal(Integer(2)))
+HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..6 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: ExprId(HirId(Idx::<HirNode>(1))) }))
 
 root stmts:
-[Idx::<Stmt>(0)]
+[StmtId(HirId(Idx::<HirNode>(2)))]
 symtab:
 

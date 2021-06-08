@@ -4,7 +4,7 @@ expression: "\n    var b : boolean\n    var _b := + b\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Boolean)
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
 def_kinds:
     DefId(0) Var(TyRef(Boolean))
     DefId(1) Var(TyRef(Error))

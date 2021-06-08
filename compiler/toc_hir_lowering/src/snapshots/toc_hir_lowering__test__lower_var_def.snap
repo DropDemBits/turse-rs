@@ -4,16 +4,12 @@ expression: "var a := b"
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 0..10 }): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], tail: InitExpr(Idx::<Expr>(0)) })
-
-expr:
-Idx::<Expr>(0) (Span { file: None, range: 9..10 }): Name(Name(UseId(DefId(0), 0)))
-
-ty:
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 9..10 }): Expr(Name(Name(UseId(DefId(0), 0))))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..10 }): Stmt(ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], tail: InitExpr(ExprId(HirId(Idx::<HirNode>(0)))) }))
 
 root stmts:
-[Idx::<Stmt>(0)]
+[StmtId(HirId(Idx::<HirNode>(1)))]
 symtab:
 DefId(0): (Span { file: None, range: 9..10 }, Symbol { name: "b", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
 DefId(1): (Span { file: None, range: 4..5 }, Symbol { name: "a", kind: Declared, is_pervasive: false, def_id: DefId(1), next_use: 0 })

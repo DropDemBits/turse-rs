@@ -4,10 +4,10 @@ expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Char)
-    Idx::<Type>(1) TyRef(CharN(Fixed(4)))
-    Idx::<Type>(2) TyRef(String)
-    Idx::<Type>(3) TyRef(StringN(Fixed(4)))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(3))) TyRef(CharN(Fixed(4)))
+    TypeId(HirId(Idx::<HirNode>(5))) TyRef(String)
+    TypeId(HirId(Idx::<HirNode>(8))) TyRef(StringN(Fixed(4)))
 def_kinds:
     DefId(0) Var(TyRef(Char))
     DefId(1) Var(TyRef(CharN(Fixed(4))))

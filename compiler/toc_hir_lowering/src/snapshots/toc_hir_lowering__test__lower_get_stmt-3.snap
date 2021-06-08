@@ -4,11 +4,7 @@ expression: get
 
 ---
 database:
-stmt:
-
-expr:
-
-ty:
+nodes:
 
 root stmts:
 []

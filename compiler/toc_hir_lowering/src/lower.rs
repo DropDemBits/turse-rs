@@ -6,7 +6,7 @@ mod expr;
 mod stmt;
 mod ty;
 
-use toc_hir::stmt::StmtIdx;
+use toc_hir::stmt::StmtId;
 use toc_hir::Database;
 use toc_reporting::MessageSink;
 use toc_span::FileId;
@@ -31,7 +31,7 @@ impl LoweringCtx {
         }
     }
 
-    pub(super) fn lower_root(&mut self, root: ast::Source) -> Vec<StmtIdx> {
+    pub(super) fn lower_root(&mut self, root: ast::Source) -> Vec<StmtId> {
         // TODO: deal with root import statement (i.e. build up import info)
         let _is_child_unit = root.unit_token().is_some();
 

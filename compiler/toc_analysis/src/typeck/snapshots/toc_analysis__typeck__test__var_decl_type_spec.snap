@@ -4,6 +4,6 @@ expression: "var k : string"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(String)
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(String)
 def_kinds:
     DefId(0) Var(TyRef(String))

@@ -4,8 +4,8 @@ expression: "var w : real\nvar i : int\nget i : w\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Real(Real))
-    Idx::<Type>(1) TyRef(Int(Int))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
+    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Int(Int))
 def_kinds:
     DefId(0) Var(TyRef(Real(Real)))
     DefId(1) Var(TyRef(Int(Int)))

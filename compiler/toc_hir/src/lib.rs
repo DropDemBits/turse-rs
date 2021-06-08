@@ -4,15 +4,11 @@
 //! prefix, e.g. `expr::Name` instead of importing the node directly
 
 use std::collections::HashMap;
-use std::ops;
 
 use la_arena::{Arena, Idx};
 use toc_span::Span;
 
-use crate::expr::ExprIdx;
-use crate::stmt::StmtIdx;
 use crate::symbol::SymbolTable;
-use crate::ty::TypeIdx;
 pub mod expr;
 pub mod stmt;
 pub mod symbol;
@@ -20,6 +16,42 @@ pub mod ty;
 mod unit_map;
 
 pub use unit_map::{UnitId, UnitMap, UnitMapBuilder};
+
+#[derive(Debug)]
+pub enum HirNode {
+    /// Expression node
+    Expr(expr::Expr),
+    /// Type node
+    Type(ty::Type),
+    /// Statement node
+    Stmt(stmt::Stmt),
+}
+
+impl HirNode {
+    fn as_expr(&self) -> Option<&expr::Expr> {
+        match self {
+            HirNode::Expr(node) => Some(node),
+            _ => None,
+        }
+    }
+
+    fn as_type(&self) -> Option<&ty::Type> {
+        match self {
+            HirNode::Type(node) => Some(node),
+            _ => None,
+        }
+    }
+
+    fn as_stmt(&self) -> Option<&stmt::Stmt> {
+        match self {
+            HirNode::Stmt(node) => Some(node),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct HirId(Idx<HirNode>);
 
 /// Code Unit
 #[derive(Debug)]
@@ -29,7 +61,7 @@ pub struct Unit {
     /// All nodes associated with the unit
     pub database: Database,
     /// Top level statements in the unit
-    pub stmts: Vec<stmt::StmtIdx>,
+    pub stmts: Vec<stmt::StmtId>,
     /// Unit-local symbol table
     pub symbol_table: SymbolTable,
 }
@@ -48,58 +80,11 @@ impl Unit {
 /// Aggregate HIR structure
 #[derive(Debug)]
 pub struct Database {
-    pub stmt_nodes: SpannedArena<stmt::Stmt>,
-    pub expr_nodes: SpannedArena<expr::Expr>,
-    pub type_nodes: SpannedArena<ty::Type>,
+    arena: Arena<HirNode>,
+    spans: HashMap<Idx<HirNode>, Span>,
 }
 
 impl Database {
-    pub fn new() -> Self {
-        Self {
-            stmt_nodes: SpannedArena::new(),
-            expr_nodes: SpannedArena::new(),
-            type_nodes: SpannedArena::new(),
-        }
-    }
-}
-
-impl Default for Database {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ops::Index<StmtIdx> for Database {
-    type Output = stmt::Stmt;
-
-    fn index(&self, index: StmtIdx) -> &Self::Output {
-        &self.stmt_nodes.arena[index]
-    }
-}
-
-impl ops::Index<ExprIdx> for Database {
-    type Output = expr::Expr;
-
-    fn index(&self, index: ExprIdx) -> &Self::Output {
-        &self.expr_nodes.arena[index]
-    }
-}
-
-impl ops::Index<TypeIdx> for Database {
-    type Output = ty::Type;
-
-    fn index(&self, index: TypeIdx) -> &Self::Output {
-        &self.type_nodes.arena[index]
-    }
-}
-
-#[derive(Debug)]
-pub struct SpannedArena<T> {
-    pub arena: Arena<T>,
-    pub spans: HashMap<Idx<T>, Span>,
-}
-
-impl<T> SpannedArena<T> {
     pub fn new() -> Self {
         Self {
             arena: Arena::new(),
@@ -107,14 +92,50 @@ impl<T> SpannedArena<T> {
         }
     }
 
-    pub fn alloc_spanned(&mut self, value: T, span: Span) -> Idx<T> {
-        let idx = self.arena.alloc(value);
+    pub fn add_expr(&mut self, node: expr::Expr, span: Span) -> expr::ExprId {
+        let idx = self.arena.alloc(HirNode::Expr(node));
         self.spans.insert(idx, span);
-        idx
+        expr::ExprId(HirId(idx))
+    }
+
+    pub fn add_type(&mut self, node: ty::Type, span: Span) -> ty::TypeId {
+        let idx = self.arena.alloc(HirNode::Type(node));
+        self.spans.insert(idx, span);
+        ty::TypeId(HirId(idx))
+    }
+
+    pub fn add_stmt(&mut self, node: stmt::Stmt, span: Span) -> stmt::StmtId {
+        let idx = self.arena.alloc(HirNode::Stmt(node));
+        self.spans.insert(idx, span);
+        stmt::StmtId(HirId(idx))
+    }
+
+    pub fn get_span(&self, id: HirId) -> Span {
+        self.spans.get(&id.0).copied().unwrap()
+    }
+
+    pub fn get_node(&self, id: HirId) -> &HirNode {
+        &self.arena[id.0]
+    }
+
+    pub fn get_expr(&self, id: expr::ExprId) -> &expr::Expr {
+        self.get_node(id.into()).as_expr().unwrap()
+    }
+
+    pub fn get_type(&self, id: ty::TypeId) -> &ty::Type {
+        self.get_node(id.into()).as_type().unwrap()
+    }
+
+    pub fn get_stmt(&self, id: stmt::StmtId) -> &stmt::Stmt {
+        self.get_node(id.into()).as_stmt().unwrap()
+    }
+
+    pub fn nodes(&self) -> impl Iterator<Item = (HirId, &HirNode)> {
+        self.arena.iter().map(|(id, node)| (HirId(id), node))
     }
 }
 
-impl<T> Default for SpannedArena<T> {
+impl Default for Database {
     fn default() -> Self {
         Self::new()
     }
@@ -135,8 +156,8 @@ impl Walker<'_> {
         }
     }
 
-    fn walk_stmt(&mut self, id: stmt::StmtIdx) {
-        let stmt = &self.unit.database[id];
+    fn walk_stmt(&mut self, id: stmt::StmtId) {
+        let stmt = self.unit.database.get_stmt(id);
 
         match stmt {
             stmt::Stmt::ConstVar(decl) => self.walk_constvar(id, decl),
@@ -147,7 +168,7 @@ impl Walker<'_> {
         }
     }
 
-    fn walk_constvar(&mut self, id: stmt::StmtIdx, node: &stmt::ConstVar) {
+    fn walk_constvar(&mut self, id: stmt::StmtId, node: &stmt::ConstVar) {
         if let Some(ty) = &node.tail.type_spec() {
             self.walk_type(*ty);
         }
@@ -159,14 +180,14 @@ impl Walker<'_> {
         self.visitor.visit_constvar(id, node);
     }
 
-    fn walk_assign(&mut self, id: stmt::StmtIdx, node: &stmt::Assign) {
+    fn walk_assign(&mut self, id: stmt::StmtId, node: &stmt::Assign) {
         self.walk_expr(node.lhs);
         self.walk_expr(node.rhs);
 
         self.visitor.visit_assign(id, node);
     }
 
-    fn walk_put(&mut self, id: stmt::StmtIdx, node: &stmt::Put) {
+    fn walk_put(&mut self, id: stmt::StmtId, node: &stmt::Put) {
         if let Some(expr) = &node.stream_num {
             self.walk_expr(*expr);
         }
@@ -192,7 +213,7 @@ impl Walker<'_> {
         self.visitor.visit_put(id, node);
     }
 
-    fn walk_get(&mut self, id: stmt::StmtIdx, node: &stmt::Get) {
+    fn walk_get(&mut self, id: stmt::StmtId, node: &stmt::Get) {
         if let Some(expr) = &node.stream_num {
             self.walk_expr(*expr);
         }
@@ -210,7 +231,7 @@ impl Walker<'_> {
         self.visitor.visit_get(id, node);
     }
 
-    fn walk_block(&mut self, id: stmt::StmtIdx, node: &stmt::Block) {
+    fn walk_block(&mut self, id: stmt::StmtId, node: &stmt::Block) {
         for stmt in &node.stmts {
             self.walk_stmt(*stmt)
         }
@@ -218,8 +239,9 @@ impl Walker<'_> {
         self.visitor.visit_block(id, node);
     }
 
-    fn walk_expr(&mut self, id: expr::ExprIdx) {
-        let node = &self.unit.database[id];
+    fn walk_expr(&mut self, id: expr::ExprId) {
+        let node = self.unit.database.get_expr(id);
+
         match node {
             expr::Expr::Missing => {}
             expr::Expr::Literal(expr) => self.walk_literal(id, expr),
@@ -230,42 +252,43 @@ impl Walker<'_> {
         }
     }
 
-    fn walk_literal(&mut self, id: expr::ExprIdx, node: &expr::Literal) {
+    fn walk_literal(&mut self, id: expr::ExprId, node: &expr::Literal) {
         self.visitor.visit_literal(id, node);
     }
 
-    fn walk_binary(&mut self, id: expr::ExprIdx, node: &expr::Binary) {
+    fn walk_binary(&mut self, id: expr::ExprId, node: &expr::Binary) {
         self.walk_expr(node.lhs);
         self.walk_expr(node.rhs);
 
         self.visitor.visit_binary(id, node);
     }
 
-    fn walk_unary(&mut self, id: expr::ExprIdx, node: &expr::Unary) {
+    fn walk_unary(&mut self, id: expr::ExprId, node: &expr::Unary) {
         self.walk_expr(node.rhs);
 
         self.visitor.visit_unary(id, node);
     }
 
-    fn walk_paren(&mut self, id: expr::ExprIdx, node: &expr::Paren) {
+    fn walk_paren(&mut self, id: expr::ExprId, node: &expr::Paren) {
         self.walk_expr(node.expr);
 
         self.visitor.visit_paren(id, node);
     }
 
-    fn walk_name(&mut self, id: expr::ExprIdx, node: &expr::Name) {
+    fn walk_name(&mut self, id: expr::ExprId, node: &expr::Name) {
         self.visitor.visit_name(id, node);
     }
 
-    fn walk_type(&mut self, id: ty::TypeIdx) {
-        let node = &self.unit.database[id];
+    fn walk_type(&mut self, id: ty::TypeId) {
+        let node = self.unit.database.get_type(id);
+
         match node {
             ty::Type::Missing => {}
             ty::Type::Primitive(ty) => self.walk_primitive(id, ty),
         }
     }
 
-    fn walk_primitive(&mut self, id: ty::TypeIdx, node: &ty::Primitive) {
+    fn walk_primitive(&mut self, id: ty::TypeId, node: &ty::Primitive) {
         match node {
             ty::Primitive::SizedChar(ty::SeqLength::Expr(expr))
             | ty::Primitive::SizedString(ty::SeqLength::Expr(expr)) => self.walk_expr(*expr),
@@ -281,18 +304,18 @@ impl Walker<'_> {
 pub trait HirVisitor {
     fn visit_unit(&mut self, unit: &Unit) {}
     // Decls
-    fn visit_constvar(&mut self, id: stmt::StmtIdx, decl: &stmt::ConstVar) {}
+    fn visit_constvar(&mut self, id: stmt::StmtId, decl: &stmt::ConstVar) {}
     // Stmts
-    fn visit_assign(&mut self, id: stmt::StmtIdx, stmt: &stmt::Assign) {}
-    fn visit_put(&mut self, id: stmt::StmtIdx, stmt: &stmt::Put) {}
-    fn visit_get(&mut self, id: stmt::StmtIdx, stmt: &stmt::Get) {}
-    fn visit_block(&mut self, id: stmt::StmtIdx, stmt: &stmt::Block) {}
+    fn visit_assign(&mut self, id: stmt::StmtId, stmt: &stmt::Assign) {}
+    fn visit_put(&mut self, id: stmt::StmtId, stmt: &stmt::Put) {}
+    fn visit_get(&mut self, id: stmt::StmtId, stmt: &stmt::Get) {}
+    fn visit_block(&mut self, id: stmt::StmtId, stmt: &stmt::Block) {}
     // Exprs
-    fn visit_literal(&mut self, id: expr::ExprIdx, expr: &expr::Literal) {}
-    fn visit_binary(&mut self, id: expr::ExprIdx, expr: &expr::Binary) {}
-    fn visit_unary(&mut self, id: expr::ExprIdx, expr: &expr::Unary) {}
-    fn visit_paren(&mut self, id: expr::ExprIdx, expr: &expr::Paren) {}
-    fn visit_name(&mut self, id: expr::ExprIdx, expr: &expr::Name) {}
+    fn visit_literal(&mut self, id: expr::ExprId, expr: &expr::Literal) {}
+    fn visit_binary(&mut self, id: expr::ExprId, expr: &expr::Binary) {}
+    fn visit_unary(&mut self, id: expr::ExprId, expr: &expr::Unary) {}
+    fn visit_paren(&mut self, id: expr::ExprId, expr: &expr::Paren) {}
+    fn visit_name(&mut self, id: expr::ExprId, expr: &expr::Name) {}
     // Types
-    fn visit_primitive(&mut self, id: ty::TypeIdx, ty: &ty::Primitive) {}
+    fn visit_primitive(&mut self, id: ty::TypeId, ty: &ty::Primitive) {}
 }

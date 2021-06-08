@@ -4,7 +4,7 @@ expression: "\n    var r : real\n    var _r := not r\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Real(Real))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
 def_kinds:
     DefId(0) Var(TyRef(Real(Real)))
     DefId(1) Var(TyRef(Error))

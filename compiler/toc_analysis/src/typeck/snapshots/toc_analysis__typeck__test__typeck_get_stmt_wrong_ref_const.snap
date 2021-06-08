@@ -4,7 +4,7 @@ expression: "const i : int := 1\nget i\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Int(Int))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
 def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
 error at 23..24: cannot assign into get item expression

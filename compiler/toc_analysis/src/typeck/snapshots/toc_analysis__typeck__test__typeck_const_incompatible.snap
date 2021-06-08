@@ -4,7 +4,7 @@ expression: "const k : char := 20"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Char)
 def_kinds:
     DefId(0) Const(TyRef(Char))
 error at 18..20: mismatched types

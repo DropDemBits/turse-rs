@@ -4,7 +4,7 @@ expression: "var k := 20 + false\nvar l : int := k   % Nothing reported here\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Int(Int))
+    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Int(Int))
 def_kinds:
     DefId(0) Var(TyRef(Error))
     DefId(1) Var(TyRef(Int(Int)))

@@ -4,10 +4,10 @@ expression: "var b : boolean\nvar r : real\n\nvar _e00 : nat := b\nvar _e01 : na
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Boolean)
-    Idx::<Type>(1) TyRef(Real(Real))
-    Idx::<Type>(2) TyRef(Nat(Nat))
-    Idx::<Type>(3) TyRef(Nat(Nat))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
+    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Real(Real))
+    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Nat(Nat))
+    TypeId(HirId(Idx::<HirNode>(7))) TyRef(Nat(Nat))
 def_kinds:
     DefId(0) Var(TyRef(Boolean))
     DefId(1) Var(TyRef(Real(Real)))

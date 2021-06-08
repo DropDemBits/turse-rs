@@ -4,7 +4,7 @@ use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
-    pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeIdx> {
+    pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeId> {
         let span = Span::new(self.file, ty.syntax().text_range());
 
         let ty = match ty {
@@ -23,7 +23,7 @@ impl super::LoweringCtx {
             ast::Type::ConditionType(_) => self.unsupported_ty(span),
         }?;
 
-        Some(self.database.type_nodes.alloc_spanned(ty, span))
+        Some(self.database.add_type(ty, span))
     }
 
     fn unsupported_ty(&mut self, span: Span) -> Option<ty::Type> {

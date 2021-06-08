@@ -1,19 +1,19 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : string(N) := c\nvar _v01 : string(N) := c1\nvar _v02 : string(N) := s1\nvar _v03 : string(N) := s % runtime checked\nvar _v04 : string(N) := s5 % rutime checked\n"
+expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : string(N) := c\nvar _v01 : string(N) := c1\nvar _v02 : string(N) := s1\nvar _v03 : string(N) := s % runtime checked\nvar _v04 : string(N) := s5 % runtime checked\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Char)
-    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
-    Idx::<Type>(2) TyRef(String)
-    Idx::<Type>(3) TyRef(StringN(Fixed(1)))
-    Idx::<Type>(4) TyRef(StringN(Fixed(5)))
-    Idx::<Type>(5) TyRef(StringN(Fixed(1)))
-    Idx::<Type>(6) TyRef(StringN(Fixed(1)))
-    Idx::<Type>(7) TyRef(StringN(Fixed(1)))
-    Idx::<Type>(8) TyRef(StringN(Fixed(1)))
-    Idx::<Type>(9) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(5))) TyRef(CharN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(7))) TyRef(String)
+    TypeId(HirId(Idx::<HirNode>(10))) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(13))) TyRef(StringN(Fixed(5)))
+    TypeId(HirId(Idx::<HirNode>(16))) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(20))) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(24))) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(28))) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(32))) TyRef(StringN(Fixed(1)))
 def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
     DefId(1) Var(TyRef(Char))

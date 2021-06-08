@@ -6,25 +6,24 @@ use toc_syntax::LiteralValue;
 
 impl super::LoweringCtx {
     /// Lowers a required expr. If not present, constructs a `Expr::Missing` node in-place
-    pub(super) fn lower_required_expr(&mut self, expr: Option<ast::Expr>) -> expr::ExprIdx {
+    pub(super) fn lower_required_expr(&mut self, expr: Option<ast::Expr>) -> expr::ExprId {
         if let Some(expr) = expr {
             self.lower_expr(expr)
         } else {
             // Allocate a generic span
             self.database
-                .expr_nodes
-                .alloc_spanned(expr::Expr::Missing, Default::default())
+                .add_expr(expr::Expr::Missing, Default::default())
         }
     }
 
     /// Lowers an optional expr.
     /// Effectively a mapping function
-    pub(super) fn try_lower_expr(&mut self, expr: Option<ast::Expr>) -> Option<expr::ExprIdx> {
+    pub(super) fn try_lower_expr(&mut self, expr: Option<ast::Expr>) -> Option<expr::ExprId> {
         expr.map(|expr| self.lower_expr(expr))
     }
 
     /// Lowers an expr
-    pub(super) fn lower_expr(&mut self, expr: ast::Expr) -> expr::ExprIdx {
+    pub(super) fn lower_expr(&mut self, expr: ast::Expr) -> expr::ExprId {
         let span = Span::new(self.file, expr.syntax().text_range());
 
         let expr = match expr {
@@ -49,7 +48,7 @@ impl super::LoweringCtx {
         }
         .unwrap_or(expr::Expr::Missing);
 
-        self.database.expr_nodes.alloc_spanned(expr, span)
+        self.database.add_expr(expr, span)
     }
 
     fn unsupported_expr(&mut self, span: Span) -> Option<expr::Expr> {

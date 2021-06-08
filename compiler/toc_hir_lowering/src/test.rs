@@ -7,13 +7,10 @@ use crate::HirLowerResult;
 fn stringify_unit(unit: &toc_hir::Unit) -> String {
     let mut s = String::new();
 
-    fn dump_spanned_arena<T>(s: &mut String, name: &str, arena: &toc_hir::SpannedArena<T>)
-    where
-        T: std::fmt::Debug,
-    {
+    fn dump_spanned_arena(s: &mut String, name: &str, node_db: &toc_hir::Database) {
         s.push_str(&format!("{}:\n", name));
-        for (id, node) in arena.arena.iter() {
-            let span = arena.spans.get(&id).unwrap();
+        for (id, node) in node_db.nodes() {
+            let span = node_db.get_span(id);
             s.push_str(&format!("{:?} ({:?}): {:?}\n", id, span, node));
         }
         s.push('\n');
@@ -21,9 +18,7 @@ fn stringify_unit(unit: &toc_hir::Unit) -> String {
 
     // Dump node database
     s.push_str("database:\n");
-    dump_spanned_arena(&mut s, "stmt", &unit.database.stmt_nodes);
-    dump_spanned_arena(&mut s, "expr", &unit.database.expr_nodes);
-    dump_spanned_arena(&mut s, "ty", &unit.database.type_nodes);
+    dump_spanned_arena(&mut s, "nodes", &unit.database);
 
     // List
     s.push_str("root stmts:\n");
@@ -64,8 +59,8 @@ fn assert_lower(src: &str) -> (HirLowerResult, UnitMap) {
 fn literal_value((lowered, units): &(HirLowerResult, UnitMap)) -> &expr::Literal {
     if_chain! {
         let unit = &units[lowered.id];
-        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = &unit.database[unit.stmts[0]];
-        if let expr::Expr::Literal(value) = &unit.database[*rhs];
+        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = unit.database.get_stmt(unit.stmts[0]);
+        if let expr::Expr::Literal(value) = unit.database.get_expr(*rhs);
         then {
             value
         } else {

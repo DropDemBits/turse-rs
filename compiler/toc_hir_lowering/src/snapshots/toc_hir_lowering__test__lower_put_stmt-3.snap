@@ -4,11 +4,7 @@ expression: put
 
 ---
 database:
-stmt:
-
-expr:
-
-ty:
+nodes:
 
 root stmts:
 []

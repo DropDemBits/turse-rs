@@ -1,10 +1,22 @@
 //! Expression nodes
-use la_arena::Idx;
 use toc_span::Spanned;
 
-use crate::symbol;
+use crate::{symbol, HirId};
 
-pub type ExprIdx = Idx<Expr>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExprId(pub(crate) HirId);
+
+impl From<ExprId> for HirId {
+    fn from(id: ExprId) -> Self {
+        id.0
+    }
+}
+
+impl From<&ExprId> for HirId {
+    fn from(id: &ExprId) -> Self {
+        id.0
+    }
+}
 
 /// Expressions
 #[derive(Debug)]
@@ -45,9 +57,9 @@ pub enum Literal {
 
 #[derive(Debug)]
 pub struct Binary {
-    pub lhs: ExprIdx,
+    pub lhs: ExprId,
     pub op: Spanned<BinaryOp>,
-    pub rhs: ExprIdx,
+    pub rhs: ExprId,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -101,7 +113,7 @@ pub enum BinaryOp {
 #[derive(Debug)]
 pub struct Unary {
     pub op: Spanned<UnaryOp>,
-    pub rhs: ExprIdx,
+    pub rhs: ExprId,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -116,7 +128,7 @@ pub enum UnaryOp {
 
 #[derive(Debug)]
 pub struct Paren {
-    pub expr: ExprIdx,
+    pub expr: ExprId,
 }
 
 /// Name expression

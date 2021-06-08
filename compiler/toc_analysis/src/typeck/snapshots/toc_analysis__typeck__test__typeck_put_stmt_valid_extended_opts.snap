@@ -4,9 +4,9 @@ expression: "var i : int\nvar n : nat\nvar r : real\n\nput i : 0 : 0 : 0\nput n 
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Int(Int))
-    Idx::<Type>(1) TyRef(Nat(Nat))
-    Idx::<Type>(2) TyRef(Real(Real))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
+    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Nat(Nat))
+    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Real(Real))
 def_kinds:
     DefId(0) Var(TyRef(Int(Int)))
     DefId(1) Var(TyRef(Nat(Nat)))

@@ -4,16 +4,12 @@ expression: "var _ : nat2"
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 0..12 }): ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], tail: TypeSpec(Idx::<Type>(0)) })
-
-expr:
-
-ty:
-Idx::<Type>(0) (Span { file: None, range: 8..12 }): Primitive(Nat2)
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 8..12 }): Type(Primitive(Nat2))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..12 }): Stmt(ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], tail: TypeSpec(TypeId(HirId(Idx::<HirNode>(0)))) }))
 
 root stmts:
-[Idx::<Stmt>(0)]
+[StmtId(HirId(Idx::<HirNode>(1)))]
 symtab:
 DefId(0): (Span { file: None, range: 4..5 }, Symbol { name: "_", kind: Declared, is_pervasive: false, def_id: DefId(0), next_use: 0 })
 

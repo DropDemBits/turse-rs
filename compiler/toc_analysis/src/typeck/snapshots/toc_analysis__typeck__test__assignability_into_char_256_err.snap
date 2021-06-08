@@ -4,14 +4,14 @@ expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Char)
-    Idx::<Type>(1) TyRef(CharN(Fixed(5)))
-    Idx::<Type>(2) TyRef(CharN(Fixed(257)))
-    Idx::<Type>(3) TyRef(StringN(Fixed(5)))
-    Idx::<Type>(4) TyRef(CharN(Fixed(256)))
-    Idx::<Type>(5) TyRef(CharN(Fixed(256)))
-    Idx::<Type>(6) TyRef(CharN(Fixed(256)))
-    Idx::<Type>(7) TyRef(CharN(Fixed(256)))
+    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(5))) TyRef(CharN(Fixed(5)))
+    TypeId(HirId(Idx::<HirNode>(8))) TyRef(CharN(Fixed(257)))
+    TypeId(HirId(Idx::<HirNode>(11))) TyRef(StringN(Fixed(5)))
+    TypeId(HirId(Idx::<HirNode>(14))) TyRef(CharN(Fixed(256)))
+    TypeId(HirId(Idx::<HirNode>(18))) TyRef(CharN(Fixed(256)))
+    TypeId(HirId(Idx::<HirNode>(22))) TyRef(CharN(Fixed(256)))
+    TypeId(HirId(Idx::<HirNode>(26))) TyRef(CharN(Fixed(256)))
 def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
     DefId(1) Var(TyRef(Char))

@@ -5,7 +5,7 @@ use toc_span::{Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 impl super::LoweringCtx {
-    pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtIdx> {
+    pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtId> {
         let span = Span::new(self.file, stmt.syntax().text_range());
 
         let stmt = match stmt {
@@ -63,7 +63,7 @@ impl super::LoweringCtx {
             ast::Stmt::PreprocGlob(_) => self.unsupported_stmt(span),
         }?;
 
-        Some(self.database.stmt_nodes.alloc_spanned(stmt, span))
+        Some(self.database.add_stmt(stmt, span))
     }
 
     fn unsupported_stmt(&mut self, span: Span) -> Option<stmt::Stmt> {

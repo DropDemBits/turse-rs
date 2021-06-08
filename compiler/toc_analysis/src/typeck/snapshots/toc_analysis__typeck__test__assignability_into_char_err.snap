@@ -4,10 +4,10 @@ expression: "var c5 : char(5)\nvar s5 : string(5)\n\nvar _e00 : char := s5\nvar 
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(CharN(Fixed(5)))
-    Idx::<Type>(1) TyRef(StringN(Fixed(5)))
-    Idx::<Type>(2) TyRef(Char)
-    Idx::<Type>(3) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(1))) TyRef(CharN(Fixed(5)))
+    TypeId(HirId(Idx::<HirNode>(4))) TyRef(StringN(Fixed(5)))
+    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Char)
+    TypeId(HirId(Idx::<HirNode>(9))) TyRef(Char)
 def_kinds:
     DefId(0) Var(TyRef(CharN(Fixed(5))))
     DefId(1) Var(TyRef(StringN(Fixed(5))))

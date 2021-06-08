@@ -4,6 +4,6 @@ expression: "const ke : int := ()"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Int(Int))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
 def_kinds:
     DefId(0) Const(TyRef(Int(Int)))

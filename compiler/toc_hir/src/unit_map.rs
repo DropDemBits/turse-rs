@@ -31,7 +31,7 @@ impl UnitMapBuilder {
     pub fn add_unit(
         &mut self,
         database: Database,
-        stmts: Vec<stmt::StmtIdx>,
+        stmts: Vec<stmt::StmtId>,
         symbol_table: SymbolTable,
     ) -> UnitId {
         let id = UnitId(self.units.len());

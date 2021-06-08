@@ -4,6 +4,6 @@ expression: "var _ : string(1 - 1 * 1 + 2)"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(StringN(Fixed(2)))
+    TypeId(HirId(Idx::<HirNode>(7))) TyRef(StringN(Fixed(2)))
 def_kinds:
     DefId(0) Var(TyRef(StringN(Fixed(2))))

@@ -4,7 +4,7 @@ expression: "var f : real\nput 1 : 0 : f\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Real(Real))
+    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
 def_kinds:
     DefId(0) Var(TyRef(Real(Real)))
 error at 25..26: mismatched types

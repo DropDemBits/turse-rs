@@ -4,8 +4,8 @@ expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : char(N) := c5\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(CharN(Fixed(5)))
-    Idx::<Type>(1) TyRef(CharN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(3))) TyRef(CharN(Fixed(5)))
+    TypeId(HirId(Idx::<HirNode>(6))) TyRef(CharN(Fixed(1)))
 def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
     DefId(1) Var(TyRef(CharN(Fixed(5))))

@@ -1,10 +1,21 @@
 //! Type related HIR nodes
 
-use la_arena::Idx;
+use crate::{expr, HirId};
 
-use crate::expr;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TypeId(pub(crate) HirId);
 
-pub type TypeIdx = Idx<Type>;
+impl From<TypeId> for HirId {
+    fn from(id: TypeId) -> Self {
+        id.0
+    }
+}
+
+impl From<&TypeId> for HirId {
+    fn from(id: &TypeId) -> Self {
+        id.0
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum Type {
@@ -38,5 +49,5 @@ pub enum Primitive {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SeqLength {
     Dynamic,
-    Expr(expr::ExprIdx),
+    Expr(expr::ExprId),
 }

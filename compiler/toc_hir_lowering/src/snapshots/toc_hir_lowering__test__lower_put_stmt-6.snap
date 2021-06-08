@@ -4,15 +4,11 @@ expression: "put 1 :  :  : "
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 0..13 }): Put(Put { stream_num: None, items: [Item(PutItem { expr: Idx::<Expr>(0), opts: None })], append_newline: true })
-
-expr:
-Idx::<Expr>(0) (Span { file: None, range: 4..5 }): Literal(Integer(1))
-
-ty:
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Literal(Integer(1)))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..13 }): Stmt(Put(Put { stream_num: None, items: [Item(PutItem { expr: ExprId(HirId(Idx::<HirNode>(0))), opts: None })], append_newline: true }))
 
 root stmts:
-[Idx::<Stmt>(0)]
+[StmtId(HirId(Idx::<HirNode>(1)))]
 symtab:
 

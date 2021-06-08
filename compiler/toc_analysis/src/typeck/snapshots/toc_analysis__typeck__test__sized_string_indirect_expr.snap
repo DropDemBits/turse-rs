@@ -4,7 +4,7 @@ expression: "const N := 1\nvar _ : string(N)\n"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(StringN(Fixed(1)))
+    TypeId(HirId(Idx::<HirNode>(3))) TyRef(StringN(Fixed(1)))
 def_kinds:
     DefId(0) Const(TyRef(Int(Int)))
     DefId(1) Var(TyRef(StringN(Fixed(1))))

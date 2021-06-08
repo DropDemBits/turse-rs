@@ -4,7 +4,7 @@ expression: "var _ : string(256)"
 
 ---
 ty_nodes:
-    Idx::<Type>(0) TyRef(Error)
+    TypeId(HirId(Idx::<HirNode>(1))) TyRef(Error)
 def_kinds:
     DefId(0) Var(TyRef(Error))
 error at 15..18: invalid character count size

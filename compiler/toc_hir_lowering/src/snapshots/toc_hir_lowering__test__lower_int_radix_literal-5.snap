@@ -4,17 +4,13 @@ expression: "a := 37#asda"
 
 ---
 database:
-stmt:
-Idx::<Stmt>(0) (Span { file: None, range: 0..12 }): Assign(Assign { lhs: Idx::<Expr>(0), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: Idx::<Expr>(1) })
-
-expr:
-Idx::<Expr>(0) (Span { file: None, range: 0..1 }): Name(Name(UseId(DefId(0), 0)))
-Idx::<Expr>(1) (Span { file: None, range: 5..12 }): Literal(Integer(0))
-
-ty:
+nodes:
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..1 }): Expr(Name(Name(UseId(DefId(0), 0))))
+HirId(Idx::<HirNode>(1)) (Span { file: None, range: 5..12 }): Expr(Literal(Integer(0)))
+HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..12 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: ExprId(HirId(Idx::<HirNode>(1))) }))
 
 root stmts:
-[Idx::<Stmt>(0)]
+[StmtId(HirId(Idx::<HirNode>(2)))]
 symtab:
 DefId(0): (Span { file: None, range: 0..1 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
 UseId(DefId(0), 0): Span { file: None, range: 0..1 }
