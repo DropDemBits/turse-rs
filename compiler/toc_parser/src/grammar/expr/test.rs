@@ -471,7 +471,7 @@ fn parse_char_literal() {
                   AsnOp@1..3
                     Assign@1..3 ":="
                   LiteralExpr@3..10
-                    CharLiteral@3..10 "\'hello\'""#]],
+                    CharLiteral@3..10 "'hello'""#]],
     );
 }
 

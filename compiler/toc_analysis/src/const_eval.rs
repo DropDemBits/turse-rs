@@ -103,7 +103,6 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
 }
 
 /// Constant evaluation context
-#[derive(Debug)]
 pub struct ConstEvalCtx {
     inner: RwLock<InnerCtx>,
 }
@@ -143,6 +142,14 @@ impl ConstEvalCtx {
 
         let mut inner = self.inner.write().unwrap();
         inner.eval_expr(expr)
+    }
+}
+
+impl fmt::Debug for ConstEvalCtx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Peek through the RwLock
+        let inner = &*self.inner.read().unwrap();
+        inner.fmt(f)
     }
 }
 

@@ -763,23 +763,23 @@ fn close_stmt(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    if p.at(TokenKind::LeftParen) {
-        // old close
+    {
         let m = p.start();
-        p.bump();
 
-        p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+        if p.eat(TokenKind::LeftParen) {
+            // old close
+            p.with_extra_recovery(&[TokenKind::RightParen], |p| {
+                expr::expect_expr(p);
+            });
+
+            p.expect_punct(TokenKind::RightParen);
+            m.complete(p, SyntaxKind::OldClose);
+        } else {
+            // new close
+            p.expect_punct(TokenKind::Colon);
             expr::expect_expr(p);
-        });
-
-        p.expect_punct(TokenKind::RightParen);
-        m.complete(p, SyntaxKind::OldClose);
-    } else {
-        // new close
-        let m = p.start();
-        p.expect_punct(TokenKind::Colon);
-        expr::expect_expr(p);
-        m.complete(p, SyntaxKind::NewClose);
+            m.complete(p, SyntaxKind::NewClose);
+        }
     }
 
     Some(m.complete(p, SyntaxKind::CloseStmt))
@@ -813,7 +813,7 @@ fn put_item(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     if p.eat(TokenKind::Skip) {
-        Some(m.complete(p, SyntaxKind::PutItem))
+        // already a complete put item
     } else {
         p.with_extra_recovery(&[TokenKind::Colon], |p| {
             expr::expect_expr(p);
@@ -824,9 +824,9 @@ fn put_item(p: &mut Parser) -> Option<CompletedMarker> {
         });
         // exp_width
         put_opt(p);
-
-        Some(m.complete(p, SyntaxKind::PutItem))
     }
+
+    Some(m.complete(p, SyntaxKind::PutItem))
 }
 
 fn put_opt(p: &mut Parser) -> Option<CompletedMarker> {
@@ -1151,11 +1151,10 @@ fn elseif_stmt(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
     if p.at(TokenKind::Elseif) || p.at_hidden(TokenKind::Elif) {
         // `elsif` is canonical version
         p.warn_alias("‘elsif’");
-        p.bump();
-    } else {
-        // nom `elsif`
-        p.bump();
     }
+
+    // Nom keyword
+    p.bump();
 
     if_body(p);
 

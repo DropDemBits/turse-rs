@@ -3,16 +3,12 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: 0 xor -1
 
 ---
-ConstEvalCtx {
-    inner: RwLock {
-        data: InnerCtx {
-            eval_infos: [
-                EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 11..19 }, state: Value(Integer(ConstInt { magnitude: 4294967295, sign: Positive, width: As32 })) },
-            ],
-            var_to_expr: {
-                GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
-            },
-        },
+InnerCtx {
+    eval_infos: [
+        EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 11..19 }, state: Value(Integer(ConstInt { magnitude: 4294967295, sign: Positive, width: As32 })) },
+    ],
+    var_to_expr: {
+        GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
     },
 }
 ConstExpr { id: 0 } -> Integer(ConstInt { magnitude: 4294967295, sign: Positive, width: As32 })
