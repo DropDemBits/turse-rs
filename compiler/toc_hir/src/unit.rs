@@ -4,23 +4,7 @@ use crate::symbol::SymbolTable;
 use crate::visitor::HirVisitor;
 use crate::{db, stmt};
 
-/// Id of a unit
-///
-/// This is only constructed inside of a `UnitMapBuilder`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct UnitId(pub(crate) db::HirId);
-
-impl From<UnitId> for db::HirId {
-    fn from(id: UnitId) -> Self {
-        id.0
-    }
-}
-
-impl From<&UnitId> for db::HirId {
-    fn from(id: &UnitId) -> Self {
-        id.0
-    }
-}
+crate::hir_id_wrapper!(UnitId);
 
 /// Code Unit
 #[derive(Debug)]

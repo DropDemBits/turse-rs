@@ -1,8 +1,8 @@
 //! HIR Database related structures
 
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use indexmap::IndexMap;
 use la_arena::{Arena, Idx};
 use toc_span::Span;
 
@@ -19,7 +19,7 @@ pub struct HirBuilder {
 #[derive(Debug, Default)]
 struct Inner {
     arena: Arena<HirNode>,
-    spans: HashMap<Idx<HirNode>, Span>,
+    spans: IndexMap<Idx<HirNode>, Span>,
 }
 
 impl HirBuilder {
@@ -125,6 +125,10 @@ impl HirDb {
 }
 
 #[derive(Debug)]
+#[allow(
+    // Already stored inside of an arena, which absorbs the cost of a large variant
+    clippy::large_enum_variant
+)]
 pub enum HirNode {
     /// Placeholder node. Should not be observable outside of the node's construction
     Empty,
