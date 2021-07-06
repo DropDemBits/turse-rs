@@ -1,21 +1,8 @@
 //! Type related HIR nodes
 
-use crate::{expr, HirId};
+use crate::expr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TypeId(pub(crate) HirId);
-
-impl From<TypeId> for HirId {
-    fn from(id: TypeId) -> Self {
-        id.0
-    }
-}
-
-impl From<&TypeId> for HirId {
-    fn from(id: &TypeId) -> Self {
-        id.0
-    }
-}
+crate::hir_id_wrapper!(TypeId);
 
 #[derive(Debug, PartialEq)]
 pub enum Type {

@@ -1,22 +1,9 @@
 //! Statement nodes
 use toc_span::Spanned;
 
-use crate::{db, expr, symbol, ty};
+use crate::{expr, symbol, ty};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StmtId(pub(crate) db::HirId);
-
-impl From<StmtId> for db::HirId {
-    fn from(id: StmtId) -> Self {
-        id.0
-    }
-}
-
-impl From<&StmtId> for db::HirId {
-    fn from(id: &StmtId) -> Self {
-        id.0
-    }
-}
+crate::hir_id_wrapper!(StmtId);
 
 #[derive(Debug)]
 pub enum Stmt {
