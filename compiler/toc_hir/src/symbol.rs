@@ -6,7 +6,7 @@ use std::fmt;
 
 use toc_span::Span;
 
-use crate::UnitId;
+use crate::unit::UnitId;
 
 /// Definition of an identifier within a unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -47,7 +47,7 @@ impl UseId {
 }
 
 /// Definition of an identifier in a specific unit.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlobalDefId(UnitId, DefId);
 
 impl GlobalDefId {
@@ -67,7 +67,7 @@ impl fmt::Debug for GlobalDefId {
 }
 
 /// Use of an identifier in a specific unit
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlobalUseId(UnitId, UseId);
 
 impl GlobalUseId {

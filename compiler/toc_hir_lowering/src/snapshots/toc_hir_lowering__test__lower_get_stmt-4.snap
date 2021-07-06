@@ -9,6 +9,7 @@ HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Name(Name(UseI
 HirId(Idx::<HirNode>(1)) (Span { file: None, range: 6..7 }): Expr(Name(Name(UseId(DefId(0), 1))))
 HirId(Idx::<HirNode>(2)) (Span { file: None, range: 4..7 }): Expr(Binary(Binary { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(Mul, Span { file: None, range: 5..6 }), rhs: ExprId(HirId(Idx::<HirNode>(1))) }))
 HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..7 }): Stmt(Get(Get { stream_num: None, items: [Item(GetItem { expr: ExprId(HirId(Idx::<HirNode>(2))), width: Token })] }))
+HirId(Idx::<HirNode>(4)) (Span { file: None, range: 0..7 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(4))), stmts: [StmtId(HirId(Idx::<HirNode>(3)))], symbol_table: SymbolTable { defs: {DefId(0): Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 2 }}, def_spans: {DefId(0): Span { file: None, range: 4..5 }}, use_spans: {UseId(DefId(0), 0): Span { file: None, range: 4..5 }, UseId(DefId(0), 1): Span { file: None, range: 6..7 }}, next_def: 1 } })
 
 root stmts:
 [StmtId(HirId(Idx::<HirNode>(3)))]

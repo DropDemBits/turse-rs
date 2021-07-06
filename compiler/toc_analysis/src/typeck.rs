@@ -2,12 +2,13 @@
 #[cfg(test)]
 mod test;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use toc_hir::{expr, stmt, ty as hir_ty};
+use toc_hir::{db, expr, stmt, ty as hir_ty, unit};
 use toc_reporting::{MessageSink, ReportMessage};
 use toc_span::Spanned;
 
@@ -28,35 +29,63 @@ use crate::ty::{self, DefKind, TyCtx, TyRef};
 // The only place that DefId's types are required is when performing const eval
 // Type building also needs to be aware of external DefId's, and the export attributes (e.g. if it's `opaque`)
 // ???: What about mutability of exports?
-// - Mutability in general falls under responsibility of assignability
+// - Mutability in general falls under responsibility of assignability (so by extension, typeck is responsible)
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
 pub fn typecheck_unit(
-    unit: &toc_hir::Unit,
+    hir_db: db::HirDb,
+    unit: &unit::Unit,
     const_eval: Arc<ConstEvalCtx>,
 ) -> (TyCtx, Vec<ReportMessage>) {
-    TypeCheck::check_unit(unit, const_eval)
+    TypeCheck::check_unit(hir_db, unit, const_eval)
 }
 
 struct TypeCheck<'a> {
-    unit: &'a toc_hir::Unit,
+    // Shared state
+    hir_db: db::HirDb,
+    unit: &'a unit::Unit,
+    const_eval: Arc<ConstEvalCtx>,
+
+    // Main mutable state
+    state: RefCell<TypeCheckState>,
+}
+
+/// Inner typecheck state
+///
+/// Now stored in a `RefCell` in `TypeCheck`, since before borrows into the HIR tree
+/// were sourced indirectly through a shared reference to `unit::Unit`. borrowck was
+/// able to reason that the `&mut self` and `&HirNode` refs were independent, and could
+/// coexist.
+///
+/// With the borrows now being sourced from a `db::HirDb` field, the `&mut self` and
+/// `&HirNode` borrows overlapped and calling any `&mut self` would trigger a borrowck error.
+///
+/// Hence the move to `&self` receiver combined with a `RefCell`.
+struct TypeCheckState {
     ty_ctx: TyCtx,
     cached_expr_evals: HashMap<expr::ExprId, EvalKind>,
-    const_eval: Arc<ConstEvalCtx>,
     reporter: toc_reporting::MessageSink,
 }
 
 impl<'a> TypeCheck<'a> {
     fn check_unit(
-        unit: &'a toc_hir::Unit,
+        hir_db: db::HirDb,
+        unit: &'a unit::Unit,
         const_eval: Arc<ConstEvalCtx>,
     ) -> (TyCtx, Vec<ReportMessage>) {
-        let mut typeck = Self {
-            unit,
+        let state = TypeCheckState {
             ty_ctx: TyCtx::new(),
             cached_expr_evals: HashMap::new(),
-            const_eval,
             reporter: toc_reporting::MessageSink::new(),
+        };
+        let state = RefCell::new(state);
+
+        let typeck = Self {
+            hir_db,
+            unit,
+            const_eval,
+
+            state,
         };
 
         // Check root stmts
@@ -64,15 +93,21 @@ impl<'a> TypeCheck<'a> {
             typeck.typeck_stmt(*stmt);
         }
 
-        let Self {
+        let state = typeck.state.into_inner();
+
+        let TypeCheckState {
             ty_ctx, reporter, ..
-        } = typeck;
+        } = state;
 
         (ty_ctx, reporter.finish())
     }
 
-    fn typeck_stmt(&mut self, id: stmt::StmtId) {
-        match self.unit.database.get_stmt(id) {
+    fn state(&self) -> std::cell::RefMut<TypeCheckState> {
+        self.state.borrow_mut()
+    }
+
+    fn typeck_stmt(&self, id: stmt::StmtId) {
+        match self.hir_db.get_stmt(id) {
             stmt::Stmt::ConstVar(decl) => self.typeck_constvar(decl),
             stmt::Stmt::Assign(stmt) => self.typeck_assign(stmt),
             stmt::Stmt::Put(stmt) => self.typeck_put(stmt),
@@ -81,56 +116,61 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn typeck_expr(&mut self, id: expr::ExprId) -> EvalKind {
-        if let Some(cached_eval) = self.cached_expr_evals.get(&id) {
-            // Fetch a cached eval
-            *cached_eval
-        } else {
-            // Walk through new the expression
-            let eval_kind = match self.unit.database.get_expr(id) {
-                expr::Expr::Missing => {
-                    // Missing, treat as an error type
-                    let err = self.ty_ctx.add_type(ty::Type::Error);
-                    EvalKind::Error(err)
-                }
-                expr::Expr::Literal(expr) => self.typeck_literal(expr),
-                expr::Expr::Binary(expr) => self.typeck_binary(expr),
-                expr::Expr::Unary(expr) => self.typeck_unary(expr),
-                expr::Expr::Paren(expr) => self.typeck_paren(expr),
-                expr::Expr::Name(expr) => self.typeck_name(expr),
-            };
-
-            // Cache the result
-            self.cached_expr_evals.insert(id, eval_kind);
-
-            eval_kind
+    fn typeck_expr(&self, id: expr::ExprId) -> EvalKind {
+        // Contain the mut borrow of the state stuff
+        {
+            if let Some(cached_eval) = self.state().cached_expr_evals.get(&id) {
+                return *cached_eval;
+            }
         }
+
+        // Walk through new the expression
+        let eval_kind = match self.hir_db.get_expr(id) {
+            expr::Expr::Missing => {
+                // Missing, treat as an error type
+                let err = self.state().ty_ctx.add_type(ty::Type::Error);
+                EvalKind::Error(err)
+            }
+            expr::Expr::Literal(expr) => self.typeck_literal(expr),
+            expr::Expr::Binary(expr) => self.typeck_binary(expr),
+            expr::Expr::Unary(expr) => self.typeck_unary(expr),
+            expr::Expr::Paren(expr) => self.typeck_paren(expr),
+            expr::Expr::Name(expr) => self.typeck_name(expr),
+        };
+
+        // Cache the result
+        self.state().cached_expr_evals.insert(id, eval_kind);
+
+        eval_kind
     }
 
-    fn lower_type(&mut self, id: hir_ty::TypeId) -> TyRef {
-        if let Some(cached_lower) = self.ty_ctx.get_type(id) {
-            cached_lower
-        } else {
-            let ty = match self.unit.database.get_type(id) {
-                // Missing => treat as an error type
-                hir_ty::Type::Missing => ty::Type::Error,
-                hir_ty::Type::Primitive(ty) => self.typeck_primitive(ty),
-            };
-
-            // Add to ty_ctx cache
-            let ty_ref = self.ty_ctx.add_type(ty);
-            self.ty_ctx.map_type(id, ty_ref);
-            ty_ref
+    fn lower_type(&self, id: hir_ty::TypeId) -> TyRef {
+        // Contain the mut borrow of the state stuff
+        {
+            if let Some(cached_lower) = self.state().ty_ctx.get_type(id) {
+                return cached_lower;
+            }
         }
+
+        let ty = match self.hir_db.get_type(id) {
+            // Missing => treat as an error type
+            hir_ty::Type::Missing => ty::Type::Error,
+            hir_ty::Type::Primitive(ty) => self.typeck_primitive(ty),
+        };
+
+        // Add to ty_ctx cache
+        let ty_ref = self.state().ty_ctx.add_type(ty);
+        self.state().ty_ctx.map_type(id, ty_ref);
+        ty_ref
     }
 
-    fn get_spanned_expr_ty_ref(&mut self, id: expr::ExprId) -> Spanned<TyRef> {
+    fn get_spanned_expr_ty_ref(&self, id: expr::ExprId) -> Spanned<TyRef> {
         let ty_ref = self.typeck_expr(id).as_ty_ref();
-        let span = self.unit.database.get_span(id.into());
+        let span = self.hir_db.get_span(id.into());
         Spanned::new(ty_ref, span)
     }
 
-    fn require_constvar_ref(&mut self, def_kind: DefKind) -> EvalKind {
+    fn require_constvar_ref(&self, def_kind: DefKind) -> EvalKind {
         match def_kind {
             DefKind::Const(ty) => EvalKind::ConstRef(ty),
             DefKind::Var(ty) => EvalKind::VarRef(ty),
@@ -138,13 +178,13 @@ impl<'a> TypeCheck<'a> {
             DefKind::Type(_) => {
                 // TODO: Report this error once type decls are lowered
 
-                let err = self.ty_ctx.add_type(ty::Type::Error);
+                let err = self.state().ty_ctx.add_type(ty::Type::Error);
                 EvalKind::Error(err)
             }
         }
     }
 
-    fn typeck_constvar(&mut self, decl: &stmt::ConstVar) {
+    fn typeck_constvar(&self, decl: &stmt::ConstVar) {
         // extract type for declared identifiers
         // if both are present, then typecheck as assignment
         let ty_ref = match &decl.tail {
@@ -164,10 +204,11 @@ impl<'a> TypeCheck<'a> {
 
             if let Some(false) = ty::rules::is_ty_assignable_to(l_value_ty, r_value_ty) {
                 // Incompatible, report it
-                let init_span = self.unit.database.get_span(init_expr.into());
-                let spec_span = self.unit.database.get_span(ty_spec.into());
+                let init_span = self.hir_db.get_span(init_expr.into());
+                let spec_span = self.hir_db.get_span(ty_spec.into());
 
-                self.reporter
+                self.state()
+                    .reporter
                     .error_detailed("mismatched types", init_span)
                     .with_note(
                         "initializer's type is incompatible with this type",
@@ -185,7 +226,9 @@ impl<'a> TypeCheck<'a> {
         // Make the type concrete
         let ty_ref = if *ty_ref == ty::Type::Integer {
             // Integer decomposes into a normal `int`
-            self.ty_ctx.add_type(ty::Type::Int(ty::IntSize::Int))
+            self.state()
+                .ty_ctx
+                .add_type(ty::Type::Int(ty::IntSize::Int))
         } else {
             ty_ref
         };
@@ -198,11 +241,11 @@ impl<'a> TypeCheck<'a> {
         };
 
         for def in &decl.names {
-            self.ty_ctx.map_def_id(*def, def_kind);
+            self.state().ty_ctx.map_def_id(*def, def_kind);
         }
     }
 
-    fn typeck_assign(&mut self, stmt: &stmt::Assign) {
+    fn typeck_assign(&self, stmt: &stmt::Assign) {
         let l_value_eval = self.typeck_expr(stmt.lhs);
         let r_value_eval = self.typeck_expr(stmt.rhs);
 
@@ -210,10 +253,11 @@ impl<'a> TypeCheck<'a> {
         let l_value_ty = if let Some(ty) = l_value_eval.as_mut_ty_ref() {
             ty
         } else {
-            let l_value_span = self.unit.database.get_span(stmt.lhs.into());
+            let l_value_span = self.hir_db.get_span(stmt.lhs.into());
 
             // TODO: Stringify lhs for more clarity on the error location
-            self.reporter
+            self.state()
+                .reporter
                 .error_detailed(
                     "cannot assign into expression on left hand side",
                     stmt.op.span(),
@@ -230,14 +274,14 @@ impl<'a> TypeCheck<'a> {
         let r_value_ty = {
             let r_value_ty = r_value_eval.as_ty_ref();
 
+            // Check binary op if present
             if let Some(bin_op) = stmt.op.item().as_binary_op() {
-                // Typecheck binary operands
                 let new_ty = self.type_check_binary_op(
                     stmt.lhs,
                     Spanned::new(bin_op, stmt.op.span()),
                     stmt.rhs,
                 );
-                self.ty_ctx.add_type(new_ty)
+                self.state().ty_ctx.add_type(new_ty)
             } else {
                 r_value_ty
             }
@@ -249,13 +293,14 @@ impl<'a> TypeCheck<'a> {
         if !asn_able.unwrap_or(true) {
             // TODO: Report expected type vs found type
             // - Requires type stringification/display impl
-            self.reporter
+            self.state()
+                .reporter
                 .error_detailed("mismatched types", stmt.op.span())
                 .finish();
         }
     }
 
-    fn typeck_put(&mut self, stmt: &stmt::Put) {
+    fn typeck_put(&self, stmt: &stmt::Put) {
         if let Some(stream) = stmt.stream_num {
             self.check_text_io_arg(stream);
         }
@@ -277,9 +322,10 @@ impl<'a> TypeCheck<'a> {
             // - Real
             if !ty::rules::is_number(put_type.item()) && !ty::rules::is_error(put_type.item()) {
                 if let Some(expr) = item.opts.precision() {
-                    let span = self.unit.database.get_span(expr.into());
+                    let span = self.hir_db.get_span(expr.into());
 
-                    self.reporter
+                    self.state()
+                        .reporter
                         .error_detailed("invalid put option", span)
                         .with_note(
                             "cannot specify fraction width for this type",
@@ -293,9 +339,10 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 if let Some(expr) = item.opts.exponent_width() {
-                    let span = self.unit.database.get_span(expr.into());
+                    let span = self.hir_db.get_span(expr.into());
 
-                    self.reporter
+                    self.state()
+                        .reporter
                         .error_detailed("invalid put option", span)
                         .with_note(
                             "cannot specify exponent width for this type",
@@ -324,7 +371,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn typeck_get(&mut self, stmt: &stmt::Get) {
+    fn typeck_get(&self, stmt: &stmt::Get) {
         if let Some(stream) = stmt.stream_num {
             self.check_text_io_arg(stream);
         }
@@ -340,10 +387,11 @@ impl<'a> TypeCheck<'a> {
             let eval_kind = self.typeck_expr(item.expr);
 
             if !matches!(eval_kind, EvalKind::VarRef(_)) {
-                let get_item_span = self.unit.database.get_span(item.expr.into());
+                let get_item_span = self.hir_db.get_span(item.expr.into());
 
                 // TODO: Stringify item for more clarity on the error location
-                self.reporter
+                self.state()
+                    .reporter
                     .error_detailed("cannot assign into get item expression", get_item_span)
                     .with_note(
                         "this expression cannot be used as a variable reference",
@@ -358,23 +406,24 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_text_io_arg(&mut self, id: expr::ExprId) {
+    fn check_text_io_arg(&self, id: expr::ExprId) {
         let ty_ref = self.get_spanned_expr_ty_ref(id);
 
         self.check_integer_type(ty_ref);
     }
 
-    fn check_integer_type(&mut self, ty_ref: Spanned<TyRef>) {
+    fn check_integer_type(&self, ty_ref: Spanned<TyRef>) {
         if !ty::rules::is_integer(ty_ref.item()) && !ty::rules::is_error(ty_ref.item()) {
             // TODO: Stringify type for more clarity on the error
-            self.reporter
+            self.state()
+                .reporter
                 .error_detailed("mismatched types", ty_ref.span())
                 .with_note("expected integer type", ty_ref.span())
                 .finish();
         }
     }
 
-    fn check_text_io_item(&mut self, id: expr::ExprId) -> Spanned<TyRef> {
+    fn check_text_io_item(&self, id: expr::ExprId) -> Spanned<TyRef> {
         let ty_ref = self.get_spanned_expr_ty_ref(id);
 
         // Must be a valid put/get type
@@ -406,13 +455,13 @@ impl<'a> TypeCheck<'a> {
         ty_ref
     }
 
-    fn typeck_block(&mut self, stmt: &stmt::Block) {
+    fn typeck_block(&self, stmt: &stmt::Block) {
         for stmt in &stmt.stmts {
             self.typeck_stmt(*stmt)
         }
     }
 
-    fn typeck_literal(&mut self, expr: &toc_hir::expr::Literal) -> EvalKind {
+    fn typeck_literal(&self, expr: &toc_hir::expr::Literal) -> EvalKind {
         let ty = match expr {
             toc_hir::expr::Literal::Integer(_) => ty::Type::Integer,
             toc_hir::expr::Literal::Real(_) => ty::Type::Real(ty::RealSize::Real),
@@ -427,35 +476,35 @@ impl<'a> TypeCheck<'a> {
         };
 
         // Evaluates to a value
-        EvalKind::Value(self.ty_ctx.add_type(ty))
+        EvalKind::Value(self.state().ty_ctx.add_type(ty))
     }
 
-    fn typeck_binary(&mut self, expr: &toc_hir::expr::Binary) -> EvalKind {
+    fn typeck_binary(&self, expr: &toc_hir::expr::Binary) -> EvalKind {
         // TODO: do full binexpr typechecks
         let ty = self.type_check_binary_op(expr.lhs, expr.op, expr.rhs);
 
         // Evaluates to a value
-        EvalKind::Value(self.ty_ctx.add_type(ty))
+        EvalKind::Value(self.state().ty_ctx.add_type(ty))
     }
 
-    fn typeck_unary(&mut self, expr: &toc_hir::expr::Unary) -> EvalKind {
+    fn typeck_unary(&self, expr: &toc_hir::expr::Unary) -> EvalKind {
         let ty = self.type_check_unary_op(expr.op, expr.rhs);
 
         // Evaluates to a value
-        EvalKind::Value(self.ty_ctx.add_type(ty))
+        EvalKind::Value(self.state().ty_ctx.add_type(ty))
     }
 
-    fn typeck_paren(&mut self, expr: &toc_hir::expr::Paren) -> EvalKind {
+    fn typeck_paren(&self, expr: &toc_hir::expr::Paren) -> EvalKind {
         // Same eval kind as the inner
         self.typeck_expr(expr.expr)
     }
 
-    fn typeck_name(&mut self, expr: &toc_hir::expr::Name) -> EvalKind {
+    fn typeck_name(&self, expr: &toc_hir::expr::Name) -> EvalKind {
         // If def-id, fetch type from def id map
         // If self, then fetch type from provided class def id?
         let (use_id, ty_ref) = match expr {
             toc_hir::expr::Name::Name(use_id) => {
-                (use_id, self.ty_ctx.get_def_id_kind(use_id.as_def()))
+                (use_id, self.state().ty_ctx.get_def_id_kind(use_id.as_def()))
             }
             toc_hir::expr::Name::Self_ => {
                 todo!()
@@ -470,13 +519,14 @@ impl<'a> TypeCheck<'a> {
             let expr_range = self.unit.symbol_table.get_use_span(*use_id);
 
             // Not declared, no type provided by any decls
-            self.reporter
+            self.state()
+                .reporter
                 .error(&format!("`{}` is not declared", sym_name), expr_range);
 
             // Build error type
-            let err_ref = self.ty_ctx.add_type(ty::Type::Error);
+            let err_ref = self.state().ty_ctx.add_type(ty::Type::Error);
             let def_kind = DefKind::Error(err_ref);
-            self.ty_ctx.map_def_id(use_id.as_def(), def_kind);
+            self.state().ty_ctx.map_def_id(use_id.as_def(), def_kind);
 
             def_kind
         };
@@ -484,7 +534,7 @@ impl<'a> TypeCheck<'a> {
         self.require_constvar_ref(name_def)
     }
 
-    fn typeck_primitive(&mut self, ty: &hir_ty::Primitive) -> ty::Type {
+    fn typeck_primitive(&self, ty: &hir_ty::Primitive) -> ty::Type {
         // Create the correct type based off of the base primitive type
         match ty {
             hir_ty::Primitive::Int => ty::Type::Int(ty::IntSize::Int),
@@ -510,7 +560,7 @@ impl<'a> TypeCheck<'a> {
                 match self.lower_seq_len(*len, size_limit) {
                     Ok(len) => ty::Type::CharN(len),
                     Err(err) => {
-                        err.report_to(&mut self.reporter);
+                        err.report_to(&mut self.state().reporter);
                         ty::Type::Error
                     }
                 }
@@ -525,7 +575,7 @@ impl<'a> TypeCheck<'a> {
                 match self.lower_seq_len(*len, size_limit) {
                     Ok(len) => ty::Type::StringN(len),
                     Err(err) => {
-                        err.report_to(&mut self.reporter);
+                        err.report_to(&mut self.state().reporter);
                         ty::Type::Error
                     }
                 }
@@ -534,7 +584,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn lower_seq_len(
-        &mut self,
+        &self,
         seq_len: toc_hir::ty::SeqLength,
         size_limit: u32,
     ) -> Result<ty::SeqSize, SeqLenError> {
@@ -555,7 +605,7 @@ impl<'a> TypeCheck<'a> {
             .eval_expr(const_expr)
             .map_err(SeqLenError::ConstEval)?;
 
-        let span = self.unit.database.get_span(expr.into());
+        let span = self.hir_db.get_span(expr.into());
 
         // Check that the value is actually the correct type, and in the correct value range.
         // Size can only be in (0, 32768)
@@ -572,7 +622,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn type_check_binary_op(
-        &mut self,
+        &self,
         lhs_id: expr::ExprId,
         op: Spanned<expr::BinaryOp>,
         rhs_id: expr::ExprId,
@@ -583,23 +633,19 @@ impl<'a> TypeCheck<'a> {
         match ty::rules::check_binary_operands(lhs_ty_ref, op, rhs_ty_ref) {
             Ok(ty) => ty,
             Err(err) => {
-                ty::rules::report_binary_typecheck_error(err, &mut self.reporter);
+                ty::rules::report_binary_typecheck_error(err, &mut self.state().reporter);
                 ty::Type::Error
             }
         }
     }
 
-    fn type_check_unary_op(
-        &mut self,
-        op: Spanned<expr::UnaryOp>,
-        rhs_id: expr::ExprId,
-    ) -> ty::Type {
+    fn type_check_unary_op(&self, op: Spanned<expr::UnaryOp>, rhs_id: expr::ExprId) -> ty::Type {
         let rhs_ty_ref = self.get_spanned_expr_ty_ref(rhs_id);
 
         match ty::rules::check_unary_operands(op, rhs_ty_ref) {
             Ok(ty) => ty,
             Err(err) => {
-                ty::rules::report_unary_typecheck_error(err, &mut self.reporter);
+                ty::rules::report_unary_typecheck_error(err, &mut self.state().reporter);
                 ty::Type::Error
             }
         }

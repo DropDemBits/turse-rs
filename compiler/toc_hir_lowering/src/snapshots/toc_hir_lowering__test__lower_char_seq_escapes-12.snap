@@ -8,6 +8,7 @@ nodes:
 HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..1 }): Expr(Name(Name(UseId(DefId(0), 0))))
 HirId(Idx::<HirNode>(1)) (Span { file: None, range: 5..9 }): Expr(Literal(String("\u{8}")))
 HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..9 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: ExprId(HirId(Idx::<HirNode>(1))) }))
+HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..9 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(3))), stmts: [StmtId(HirId(Idx::<HirNode>(2)))], symbol_table: SymbolTable { defs: {DefId(0): Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 }}, def_spans: {DefId(0): Span { file: None, range: 0..1 }}, use_spans: {UseId(DefId(0), 0): Span { file: None, range: 0..1 }}, next_def: 1 } })
 
 root stmts:
 [StmtId(HirId(Idx::<HirNode>(2)))]

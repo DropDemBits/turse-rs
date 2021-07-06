@@ -1,13 +1,18 @@
 //! Tests for lowering
 use if_chain::if_chain;
-use toc_hir::{expr, stmt, UnitMap};
+use toc_hir::{db, expr, stmt, unit};
 
 use crate::HirLowerResult;
 
-fn stringify_unit(unit: &toc_hir::Unit) -> String {
+struct LowerResult {
+    hir_result: HirLowerResult,
+    hir_db: db::HirDb,
+}
+
+fn stringify_unit(db: &db::HirDb, unit: &unit::Unit) -> String {
     let mut s = String::new();
 
-    fn dump_spanned_arena(s: &mut String, name: &str, node_db: &toc_hir::Database) {
+    fn dump_spanned_arena(s: &mut String, name: &str, node_db: &db::HirDb) {
         s.push_str(&format!("{}:\n", name));
         for (id, node) in node_db.nodes() {
             let span = node_db.get_span(id);
@@ -18,7 +23,7 @@ fn stringify_unit(unit: &toc_hir::Unit) -> String {
 
     // Dump node database
     s.push_str("database:\n");
-    dump_spanned_arena(&mut s, "nodes", &unit.database);
+    dump_spanned_arena(&mut s, "nodes", db);
 
     // List
     s.push_str("root stmts:\n");
@@ -40,27 +45,39 @@ fn stringify_unit(unit: &toc_hir::Unit) -> String {
     s
 }
 
-fn assert_lower(src: &str) -> (HirLowerResult, UnitMap) {
-    let mut unit_map = toc_hir::UnitMapBuilder::new();
-    let parse = toc_parser::parse(None, src);
-    let lowered = crate::lower_ast(None, parse.syntax(), &mut unit_map);
-    let unit_map = unit_map.finish();
+fn assert_lower(src: &str) -> LowerResult {
+    let (hir_db, lowered) = {
+        let parsed = toc_parser::parse(None, &src);
+        let hir_db = db::HirBuilder::new();
+        let hir_res = crate::lower_ast(hir_db.clone(), None, parsed.syntax());
+        let hir_db = hir_db.finish();
 
-    let mut s = stringify_unit(&unit_map.get_unit(lowered.id));
+        (hir_db, hir_res)
+    };
+
+    let mut s = stringify_unit(&hir_db, hir_db.get_unit(lowered.id));
     for err in &lowered.messages {
         s.push_str(&format!("{}\n", err));
     }
 
     insta::assert_snapshot!(insta::internals::AutoName, s, src);
 
-    (lowered, unit_map)
+    LowerResult {
+        hir_result: lowered,
+        hir_db,
+    }
 }
 
-fn literal_value((lowered, units): &(HirLowerResult, UnitMap)) -> &expr::Literal {
+fn literal_value(lower_result: &LowerResult) -> &expr::Literal {
+    let LowerResult {
+        hir_result,
+        hir_db: db,
+    } = &lower_result;
+
     if_chain! {
-        let unit = &units[lowered.id];
-        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = unit.database.get_stmt(unit.stmts[0]);
-        if let expr::Expr::Literal(value) = unit.database.get_expr(*rhs);
+        let unit = db.get_unit(hir_result.id);
+        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = db.get_stmt(unit.stmts[0]);
+        if let expr::Expr::Literal(value) = db.get_expr(*rhs);
         then {
             value
         } else {

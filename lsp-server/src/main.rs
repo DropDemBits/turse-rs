@@ -11,6 +11,7 @@ use lsp_types::{
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
+use toc_hir::db;
 
 type DynError = Box<dyn Error + Sync + Send>;
 
@@ -138,7 +139,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
 
     // Add the root path to the file db
     let root_file = file_db.add_file(path, contents);
-    let mut unit_map = toc_hir::UnitMapBuilder::new();
+    let hir_db = db::HirBuilder::new();
 
     // Parse root CST
     let (parsed, dep_messages) = {
@@ -154,15 +155,15 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
 
     let (validate_res, hir_res) = {
         let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
-        let hir_res = toc_hir_lowering::lower_ast(Some(root_file), parsed.syntax(), &mut unit_map);
+        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
 
         (validate_res, hir_res)
     };
 
     eprintln!("finished CST validate & lower @ {:?}", uri.as_str());
 
-    let unit_map = Arc::new(unit_map.finish());
-    let analyze_res = toc_analysis::analyze_unit(hir_res.id, unit_map);
+    let hir_db = hir_db.finish();
+    let analyze_res = toc_analysis::analyze_unit(hir_db, hir_res.id);
 
     eprintln!("finished analysis @ {:?}", uri.as_str());
 

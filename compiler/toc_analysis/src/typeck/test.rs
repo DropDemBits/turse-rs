@@ -1,6 +1,7 @@
 //! Type check tests
 use std::sync::Arc;
 
+use toc_hir::db;
 use toc_reporting::ReportMessage;
 use unindent::unindent;
 
@@ -39,15 +40,21 @@ fn assert_typecheck(source: &str) {
 }
 
 fn do_typecheck(source: &str) -> String {
-    let parsed = toc_parser::parse(None, &source);
-    let mut unit_map = toc_hir::UnitMapBuilder::new();
-    let hir_res = toc_hir_lowering::lower_ast(None, parsed.syntax(), &mut unit_map);
-    let unit_map = Arc::new(unit_map.finish());
+    let (hir_db, root_unit) = {
+        let parsed = toc_parser::parse(None, &source);
+        let hir_db = db::HirBuilder::new();
+        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
 
-    let unit = unit_map.get_unit(hir_res.id);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
-    crate::const_eval::collect_const_vars(unit, const_eval_ctx.clone());
-    let (ty_ctx, typeck_messages) = crate::typeck::typecheck_unit(unit, const_eval_ctx);
+        let hir_db = hir_db.finish();
+
+        (hir_db, hir_res.id)
+    };
+
+    let unit = hir_db.get_unit(root_unit);
+    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
+    crate::const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
+    let (ty_ctx, typeck_messages) =
+        crate::typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx);
 
     stringify_typeck_results(&ty_ctx, &typeck_messages)
 }

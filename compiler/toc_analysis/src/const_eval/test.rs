@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use toc_hir::db;
 use toc_reporting::{MessageSink, ReportMessage};
 use unindent::unindent;
 
@@ -24,14 +25,18 @@ macro_rules! for_all_const_exprs {
 }
 
 fn do_const_eval(source: &str) -> String {
-    let parsed = toc_parser::parse(None, &source);
-    let mut unit_map = toc_hir::UnitMapBuilder::new();
-    let hir_res = toc_hir_lowering::lower_ast(None, parsed.syntax(), &mut unit_map);
-    let unit_map = Arc::new(unit_map.finish());
+    let (hir_db, root_unit) = {
+        let parsed = toc_parser::parse(None, &source);
+        let hir_db = db::HirBuilder::new();
+        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
+        let hir_db = hir_db.finish();
 
-    let unit = unit_map.get_unit(hir_res.id);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
-    super::collect_const_vars(unit, const_eval_ctx.clone());
+        (hir_db, hir_res.id)
+    };
+
+    let unit = hir_db.get_unit(root_unit);
+    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
+    super::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
 
     let mut results_str = String::new();
     let mut reporter = MessageSink::new();
