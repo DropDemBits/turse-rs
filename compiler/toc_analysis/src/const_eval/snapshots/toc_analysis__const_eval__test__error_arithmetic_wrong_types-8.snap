@@ -5,10 +5,10 @@ expression: false div 1
 ---
 InnerCtx {
     eval_infos: [
-        EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 11..22 }, state: Error(ConstError { kind: WrongOperandType, span: Span { file: None, range: 17..20 } }) },
+        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(4))), span: Span { file: None, range: 11..22 }, state: Error(ConstError { kind: WrongOperandType, span: Span { file: None, range: 17..20 } }) },
     ],
     var_to_expr: {
-        GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
+        GlobalDefId(UnitId(HirId(Idx::<HirNode>(4))), DefId(0)): ConstExpr { id: 0 },
     },
 }
 ConstExpr { id: 0 } -> ConstError { kind: WrongOperandType, span: Span { file: None, range: 17..20 } }

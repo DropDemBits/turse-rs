@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
+use toc_hir::db;
 use toc_vfs::FileDb;
 
 fn load_contents(path: &str) -> io::Result<String> {
@@ -19,7 +20,7 @@ fn main() {
 
     // Add the root path to the file db
     let root_file = file_db.add_file(&path, &contents);
-    let mut unit_map = toc_hir::UnitMapBuilder::new();
+    let hir_db = db::HirBuilder::new();
 
     // Parse root CST
     let parsed = {
@@ -38,18 +39,18 @@ fn main() {
 
     let (validate_res, hir_res) = {
         let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
-        let hir_res = toc_hir_lowering::lower_ast(Some(root_file), parsed.syntax(), &mut unit_map);
+        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
 
         (validate_res, hir_res)
     };
 
-    let unit_map = Arc::new(unit_map.finish());
-    let root_unit = unit_map.get_unit(hir_res.id);
+    let hir_db = hir_db.finish();
+    let root_unit = hir_db.get_unit(hir_res.id);
     println!("{:#?}", root_unit);
 
     // TODO: resolve imports between units
 
-    let analyze_res = toc_analysis::analyze_unit(hir_res.id, unit_map);
+    let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), hir_res.id);
 
     let mut msgs = parsed
         .messages()

@@ -1,22 +1,9 @@
 //! Expression nodes
 use toc_span::Spanned;
 
-use crate::{symbol, HirId};
+use crate::symbol;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ExprId(pub(crate) HirId);
-
-impl From<ExprId> for HirId {
-    fn from(id: ExprId) -> Self {
-        id.0
-    }
-}
-
-impl From<&ExprId> for HirId {
-    fn from(id: &ExprId) -> Self {
-        id.0
-    }
-}
+crate::hir_id_wrapper!(ExprId);
 
 /// Expressions
 #[derive(Debug)]

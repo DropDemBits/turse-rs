@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use toc_hir::UnitMap;
+use toc_hir::{db, unit};
 use toc_reporting::ReportMessage;
 
 use crate::const_eval::ConstEvalCtx;
@@ -21,13 +21,13 @@ impl AnalyzeResult {
     }
 }
 
-pub fn analyze_unit(unit_id: toc_hir::UnitId, unit_map: Arc<UnitMap>) -> AnalyzeResult {
-    let unit = unit_map.get_unit(unit_id);
+pub fn analyze_unit(hir_db: db::HirDb, unit_id: unit::UnitId) -> AnalyzeResult {
+    let unit = hir_db.get_unit(unit_id);
 
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(unit_map.clone()));
-    const_eval::collect_const_vars(unit, const_eval_ctx.clone());
+    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
+    const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
 
-    let (ty_ctx, messages) = typeck::typecheck_unit(unit, const_eval_ctx.clone());
+    let (ty_ctx, messages) = typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx.clone());
 
     eprintln!("{}", ty::pretty_dump_typectx(&ty_ctx));
     eprintln!("{:#?}", const_eval_ctx);

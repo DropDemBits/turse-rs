@@ -13,8 +13,7 @@ use std::{
 };
 
 use indexmap::IndexMap;
-use toc_hir::Unit;
-use toc_hir::{expr, symbol::GlobalDefId, UnitId, UnitMap};
+use toc_hir::{db, expr, symbol::GlobalDefId, unit};
 
 pub use errors::ConstError;
 pub use integer::ConstInt;
@@ -27,16 +26,17 @@ use ops::ConstOp;
 pub type ConstResult<T> = Result<T, ConstError>;
 
 /// Collects all `const` definitions from the unit into the given `ConstEvalCtx`
-pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
-    use toc_hir::{stmt, HirVisitor};
+pub fn collect_const_vars(hir_db: db::HirDb, unit: &unit::Unit, const_eval: Arc<ConstEvalCtx>) {
+    use toc_hir::{stmt, visitor::HirVisitor};
 
     struct Visitor<'u> {
-        unit: &'u Unit,
+        hir_db: db::HirDb,
+        unit: &'u unit::Unit,
         const_eval: Arc<ConstEvalCtx>,
     }
 
     impl HirVisitor for Visitor<'_> {
-        fn visit_constvar(&mut self, _id: stmt::StmtId, decl: &stmt::ConstVar) {
+        fn visit_constvar(&self, _id: stmt::StmtId, decl: &stmt::ConstVar) {
             if decl.is_const {
                 if let Some(init_expr) = decl.tail.init_expr() {
                     // TODO: Infer 64-bit restrictions once 64-bit types are impl'd & lowered
@@ -53,7 +53,7 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
                     let allow_64bit_ops = false;
 
                     let restrict_to = if let Some(ty) = decl.tail.type_spec() {
-                        let ty = &self.unit.database.get_type(ty);
+                        let ty = &self.hir_db.get_type(ty);
 
                         match ty {
                             toc_hir::ty::Type::Primitive(prim_ty) => match prim_ty {
@@ -97,9 +97,13 @@ pub fn collect_const_vars(unit: &Unit, const_eval: Arc<ConstEvalCtx>) {
         // TODO: Visit type stmt for ConstVar & ConstValue of set and enum
     }
 
-    let mut visitor = Visitor { unit, const_eval };
+    let visitor = Visitor {
+        hir_db: hir_db.clone(),
+        unit,
+        const_eval,
+    };
 
-    unit.walk_nodes(&mut visitor);
+    unit.walk_nodes(hir_db, &visitor);
 }
 
 /// Constant evaluation context
@@ -108,9 +112,9 @@ pub struct ConstEvalCtx {
 }
 
 impl ConstEvalCtx {
-    pub(crate) fn new(unit_map: Arc<UnitMap>) -> Self {
+    pub(crate) fn new(hir_db: db::HirDb) -> Self {
         Self {
-            inner: RwLock::new(InnerCtx::new(unit_map)),
+            inner: RwLock::new(InnerCtx::new(hir_db)),
         }
     }
 
@@ -118,7 +122,7 @@ impl ConstEvalCtx {
     /// for later evaluation
     pub fn defer_expr(
         &self,
-        unit_id: UnitId,
+        unit_id: unit::UnitId,
         expr: expr::ExprId,
         allow_64bit_ops: bool,
         restrict_to: RestrictType,
@@ -154,8 +158,8 @@ impl fmt::Debug for ConstEvalCtx {
 }
 
 struct InnerCtx {
-    /// Mapping for all of the units
-    unit_map: Arc<UnitMap>,
+    /// Global HIR database
+    hir_db: db::HirDb,
     /// Evaluation info of constant exprs
     eval_infos: Vec<EvalInfo>,
     /// Mapping GlobalDefId's into the corresponding ConstExpr
@@ -163,9 +167,9 @@ struct InnerCtx {
 }
 
 impl InnerCtx {
-    fn new(unit_map: Arc<UnitMap>) -> Self {
+    fn new(hir_db: db::HirDb) -> Self {
         Self {
-            unit_map,
+            hir_db,
             eval_infos: Vec::new(),
             var_to_expr: IndexMap::new(),
         }
@@ -173,7 +177,7 @@ impl InnerCtx {
 
     fn defer_expr(
         &mut self,
-        unit_id: UnitId,
+        unit_id: unit::UnitId,
         expr: expr::ExprId,
         allow_64bit_ops: bool,
         restrict_to: RestrictType,
@@ -182,11 +186,7 @@ impl InnerCtx {
             id: self.eval_infos.len(),
         };
 
-        let span = self
-            .unit_map
-            .get_unit(unit_id)
-            .database
-            .get_span(expr.into());
+        let span = self.hir_db.get_span(expr.into());
 
         let info = EvalInfo {
             unit_id,
@@ -256,7 +256,7 @@ impl InnerCtx {
             let (unit_id, def_id) = (var.unit_id(), var.as_local());
 
             let span = self
-                .unit_map
+                .hir_db
                 .get_unit(unit_id)
                 .symbol_table
                 .get_def_span(def_id);
@@ -302,14 +302,12 @@ impl InnerCtx {
             };
 
             // Fetch here to deal with borrowck
-            // Always reacquire the new unit
-            let unit = &self.unit_map[unit_id];
-            let expr_span = unit.database.get_span(local_expr.into());
+            let expr_span = self.hir_db.get_span(local_expr.into());
 
             // ???: How to deal with enum field accesses?
             // We don't have access to a TyCtx
             // - type with enum decl could add a const expr containing the entire enum def
-            match unit.database.get_expr(local_expr) {
+            match self.hir_db.get_expr(local_expr) {
                 expr::Expr::Missing => {
                     // Bail out
                     return Err(ConstError::new(ErrorKind::MissingExpr, expr_span));
@@ -455,7 +453,7 @@ impl fmt::Debug for ConstExpr {
 
 /// Associated info for a constant expression
 struct EvalInfo {
-    unit_id: UnitId,
+    unit_id: unit::UnitId,
     expr_id: expr::ExprId,
     /// Span of the constant expression
     span: toc_span::Span,

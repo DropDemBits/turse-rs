@@ -1,12 +1,12 @@
 //! Everything related to symbols.
 //! `SymbolTable` construction with respect to scoping rules occurs in `toc_hir_lowering`.
 
-use std::collections::HashMap;
 use std::fmt;
 
+use indexmap::IndexMap;
 use toc_span::Span;
 
-use crate::UnitId;
+use crate::unit::UnitId;
 
 /// Definition of an identifier within a unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -47,7 +47,7 @@ impl UseId {
 }
 
 /// Definition of an identifier in a specific unit.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlobalDefId(UnitId, DefId);
 
 impl GlobalDefId {
@@ -67,7 +67,7 @@ impl fmt::Debug for GlobalDefId {
 }
 
 /// Use of an identifier in a specific unit
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlobalUseId(UnitId, UseId);
 
 impl GlobalUseId {
@@ -130,18 +130,18 @@ pub enum SymbolKind {
 /// Does not take care of symbol scoping rules.
 #[derive(Debug)]
 pub struct SymbolTable {
-    defs: HashMap<DefId, Symbol>,
-    def_spans: HashMap<DefId, Span>,
-    use_spans: HashMap<UseId, Span>,
+    defs: IndexMap<DefId, Symbol>,
+    def_spans: IndexMap<DefId, Span>,
+    use_spans: IndexMap<UseId, Span>,
     next_def: usize,
 }
 
 impl SymbolTable {
     pub fn new() -> Self {
         Self {
-            defs: HashMap::new(),
-            def_spans: HashMap::new(),
-            use_spans: HashMap::new(),
+            defs: IndexMap::new(),
+            def_spans: IndexMap::new(),
+            use_spans: IndexMap::new(),
             next_def: 0,
         }
     }

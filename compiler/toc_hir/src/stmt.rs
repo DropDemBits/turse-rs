@@ -1,22 +1,9 @@
 //! Statement nodes
 use toc_span::Spanned;
 
-use crate::{expr, symbol, ty, HirId};
+use crate::{expr, symbol, ty};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StmtId(pub(crate) HirId);
-
-impl From<StmtId> for HirId {
-    fn from(id: StmtId) -> Self {
-        id.0
-    }
-}
-
-impl From<&StmtId> for HirId {
-    fn from(id: &StmtId) -> Self {
-        id.0
-    }
-}
+crate::hir_id_wrapper!(StmtId);
 
 #[derive(Debug)]
 pub enum Stmt {
@@ -74,6 +61,7 @@ pub enum Stmt {
     // Post { .. }
     // Handler { .. }
     // ???: Should the below be real stmts?
+    // Likely not, since this info can be encoded inside of the associated defined type
     // Inherit { .. }
     // Implement { .. }
     // ImplementBy { .. }

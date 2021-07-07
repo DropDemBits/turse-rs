@@ -6,8 +6,8 @@ mod expr;
 mod stmt;
 mod ty;
 
+use toc_hir::db::{self};
 use toc_hir::stmt::StmtId;
-use toc_hir::Database;
 use toc_reporting::MessageSink;
 use toc_span::FileId;
 use toc_syntax::ast;
@@ -16,16 +16,16 @@ use crate::scopes;
 
 pub(super) struct LoweringCtx {
     pub(super) file: Option<FileId>,
-    pub(super) database: Database,
+    pub(super) database: db::HirBuilder,
     pub(super) messages: MessageSink,
     pub(super) scopes: scopes::ScopeBuilder,
 }
 
 impl LoweringCtx {
-    pub(super) fn new(file: Option<FileId>) -> Self {
+    pub(super) fn new(database: db::HirBuilder, file: Option<FileId>) -> Self {
         Self {
             file,
-            database: Database::new(),
+            database,
             messages: MessageSink::new(),
             scopes: scopes::ScopeBuilder::new(),
         }

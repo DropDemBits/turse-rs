@@ -8,7 +8,7 @@ node restrictions.
 ## Definitions
 
 - Top-level block: The main block, or any module-kind block (includes class, monitor, and module blocks)
-- Progam level: The main block
+- Program level: The main block
 - module-like block: Blocks that are similar to modules (includes class, monitor, and module blocks)
 
 ## Nodes
@@ -730,6 +730,7 @@ node restrictions.
 - Only allowed in a var decl if:
   - `'flexible'` is present
   - Any range in `ranges` has a `'*'` bound
+- Not allowed in `RecordField` if `flexible` is present
 
 ### `RangeList`
 

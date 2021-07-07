@@ -5,10 +5,10 @@ expression: 1 or 0
 ---
 InnerCtx {
     eval_infos: [
-        EvalInfo { unit_id: UnitId(0), span: Span { file: None, range: 11..17 }, state: Value(Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })) },
+        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(4))), span: Span { file: None, range: 11..17 }, state: Value(Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })) },
     ],
     var_to_expr: {
-        GlobalDefId(UnitId(0), DefId(0)): ConstExpr { id: 0 },
+        GlobalDefId(UnitId(HirId(Idx::<HirNode>(4))), DefId(0)): ConstExpr { id: 0 },
     },
 }
 ConstExpr { id: 0 } -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
