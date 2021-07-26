@@ -6,11 +6,11 @@ use crate::fs_impl::{FsBackend, LoadError};
 
 /// Artificial file system backend, used for testing
 #[derive(Debug)]
-pub struct MemoryFS {
+pub struct MemoryFs {
     inner: Arc<MemoryFiles>,
 }
 
-impl MemoryFS {
+impl MemoryFs {
     pub fn new() -> Self {
         Self {
             inner: Arc::new(MemoryFiles::new()),
@@ -23,13 +23,13 @@ impl MemoryFS {
     }
 }
 
-impl Default for MemoryFS {
+impl Default for MemoryFs {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl FsBackend for MemoryFS {
+impl FsBackend for MemoryFs {
     fn normalize_path(&self, path: std::path::PathBuf) -> std::path::PathBuf {
         // No path normalization
         path
