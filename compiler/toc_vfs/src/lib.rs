@@ -1,66 +1,23 @@
 //! Abstraction over interfacing the native filesystem
 
-use std::num::NonZeroU32;
-use std::{
-    convert::TryFrom,
-    sync::{Arc, RwLock},
-};
+/*
+Design:
+FileSystem
+|
+| HasVFS
+TargetDatabase
+| VfsBackend
+|
+- Memory
+- Storage
+- LSP (need to bubble up updates to FileSystem)
+*/
 
-use toc_span::FileId;
+pub mod file_db;
+pub mod fs_impl;
+pub mod query;
 
-/// Information stored about a file
-pub struct FileInfo {
-    /// The full path to the file
-    pub path: String,
-    /// The source text for the file
-    pub source: String,
-}
-
-/// File database, holding a mapping between `FileId`s and `FileInfo`s
-pub struct FileDb {
-    files: RwLock<Vec<Arc<FileInfo>>>,
-}
-
-impl FileDb {
-    pub fn new() -> Self {
-        Self {
-            files: RwLock::new(Vec::new()),
-        }
-    }
-
-    pub fn add_file(&self, path: &str, source: &str) -> FileId {
-        // TODO: Dedup paths
-        let mut files = self.files.write().unwrap();
-
-        let id = u32::try_from(files.len() + 1).expect("Too many file ids");
-        let id = NonZeroU32::new(id).unwrap();
-        let id = FileId::new(id);
-        files.push(Arc::new(FileInfo {
-            path: path.to_owned(),
-            source: source.to_owned(),
-        }));
-
-        id
-    }
-
-    pub fn get_file(&self, id: FileId) -> Arc<FileInfo> {
-        self.files.read().unwrap()[(id.raw_id().get() - 1) as usize].clone()
-    }
-
-    pub fn files(&self) -> impl Iterator<Item = FileId> {
-        (0..self.files.read().unwrap().len()).map(|i| {
-            let id = u32::try_from(i + 1).ok();
-            let id = id.and_then(NonZeroU32::new).unwrap();
-            FileId::new(id)
-        })
-    }
-}
-
-impl Default for FileDb {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub use file_db::{FileDb, FileInfo};
 
 // ???: Where do we map paths?
 // - Need to be able to lookup paths from special root paths
@@ -69,12 +26,100 @@ impl Default for FileDb {
 //   - `%job`: Path with an unknown purpose (in current Turing editor, this is not set)
 //   - `%help`: Alias of "%oot/help"
 //   - `%tmp`: Generated temporary directory
+//
+// -> We store mapped paths as inputs in the `FileSystemDatabase`
 
-#[test]
-fn test_mut_across_file_add() {
-    let db = FileDb::new();
-    let first_file = db.add_file("some/path/to/there", "the_raw_text_source");
-    let first_text = &db.get_file(first_file).source;
-    let _second_file = db.add_file("some/path/to/elsewhere", "other_source");
-    let _later_use = first_text;
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use crate::{
+        fs_impl::{memory::MemoryFS, FsBackend},
+        query::{FileSystem, FileSystemStorage, HasVFS, PathInternStorage},
+    };
+
+    #[salsa::database(FileSystemStorage, PathInternStorage)]
+    struct VfsTestDB {
+        storage: salsa::Storage<Self>,
+        vfs: Arc<dyn FsBackend>,
+    }
+
+    impl salsa::Database for VfsTestDB {}
+
+    impl HasVFS for VfsTestDB {
+        fn get_vfs(&self) -> &dyn FsBackend {
+            &*self.vfs
+        }
+    }
+
+    impl VfsTestDB {
+        fn new(backing_vfs: Arc<dyn FsBackend>) -> Self {
+            Self {
+                storage: Default::default(),
+                vfs: backing_vfs,
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_retrieval() {
+        const FILE_SOURCE: &str = r#"put "yee""#;
+
+        let mut backend = MemoryFS::new();
+        backend.add_file("src/main.t", FILE_SOURCE);
+
+        let backing_vfs = Arc::new(backend);
+        let mut database = VfsTestDB::new(backing_vfs);
+
+        database.set_root_file_path("src/main.t".into());
+        let root_file = database.root_file();
+
+        let res = database.file_source(root_file);
+        let (source, _load_error) = &*res;
+
+        assert_eq!(source, FILE_SOURCE);
+    }
+
+    #[test]
+    fn test_relative_path_resolve() {
+        const FILE_SOURCES: &[&str] = &[r#"put "yee""#, r#"put "bam bam""#, r#"put "ye ye""#];
+
+        let mut backend = MemoryFS::new();
+        backend.add_file("src/main.t", FILE_SOURCES[0]);
+        backend.add_file("src/foo/bar.t", FILE_SOURCES[1]);
+        backend.add_file("src/foo/bap.t", FILE_SOURCES[2]);
+
+        let backing_vfs = Arc::new(backend);
+        let mut database = VfsTestDB::new(backing_vfs);
+
+        database.set_root_file_path("src/main.t".into());
+
+        // Lookup root file source
+        {
+            let root_file = database.root_file();
+            let res = database.file_source(root_file);
+            let (source, _load_error) = &*res;
+
+            assert_eq!(source, FILE_SOURCES[0]);
+        }
+
+        // Lookup bar.t file source
+        let bar_t = {
+            let bar_t = database.resolve_path(database.root_file(), "foo/bar.t");
+            let res = database.file_source(bar_t);
+            let (source, _load_error) = &*res;
+
+            assert_eq!(source, FILE_SOURCES[1]);
+            bar_t
+        };
+
+        // Lookup bap.t from bar.t
+        {
+            let bap_t = database.resolve_path(bar_t, "bap.t");
+            let res = database.file_source(bap_t);
+            let (source, _load_error) = &*res;
+
+            assert_eq!(source, FILE_SOURCES[2]);
+        };
+    }
 }
