@@ -1,9 +1,15 @@
 //! `FsBackend` Implementations
 
+pub mod file;
 pub mod memory;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct LoadError {}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum LoadError {
+    /// File was not found
+    NotFound,
+    /// Other loading error
+    Other(String),
+}
 
 /// File system backend.
 /// Deals with file loading and path normalization.

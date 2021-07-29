@@ -39,7 +39,7 @@ impl FsBackend for MemoryFs {
         if let Some(source) = self.inner.path_maps.get(file.to_string_lossy().as_ref()) {
             Ok(source.clone())
         } else {
-            Err(LoadError {})
+            Err(LoadError::NotFound)
         }
     }
 }

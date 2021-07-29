@@ -28,6 +28,12 @@ impl salsa::InternKey for InternedFileId {
     }
 }
 
+/// Trait providing the query system access to the virtual file system.
+pub trait HasVFS {
+    /// Get access to the underlying VFS (filesystem backend).
+    fn get_vfs(&self) -> &dyn FsBackend;
+}
+
 /// Query interface into the virtual file system, backed by `toc_vfs::HasVFS`.
 #[salsa::query_group(FileSystemStorage)]
 pub trait FileSystem: Database + HasVFS + PathInterner {
@@ -143,10 +149,4 @@ fn expand_path(db: &dyn FileSystem, path: impl AsRef<Path>) -> PathBuf {
     }
 
     inner(db, path.as_ref())
-}
-
-/// Trait providing the query system access to the virtual file system.
-pub trait HasVFS {
-    /// Get access to the underlying VFS (filesystem backend).
-    fn get_vfs(&self) -> &dyn FsBackend;
 }
