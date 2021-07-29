@@ -47,7 +47,7 @@ fn stringify_unit(db: &db::HirDb, unit: &unit::Unit) -> String {
 
 fn assert_lower(src: &str) -> LowerResult {
     let (hir_db, lowered) = {
-        let parsed = toc_parser::parse(None, &src);
+        let parsed = toc_parser::parse(None, src);
         let hir_db = db::HirBuilder::new();
         let hir_res = crate::lower_ast(hir_db.clone(), None, parsed.syntax());
         let hir_db = hir_db.finish();

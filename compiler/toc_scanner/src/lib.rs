@@ -43,18 +43,14 @@ impl<'s> Scanner<'s> {
     pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageSink) {
         let mut toks = vec![];
 
-        while let Some(token) = self.next() {
+        for token in &mut self {
             toks.push(token)
         }
 
         (toks, self.inner.extras.finish())
     }
-}
 
-impl<'s> std::iter::Iterator for Scanner<'s> {
-    type Item = Token<'s>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_token(&mut self) -> Option<Token<'s>> {
         let kind = match self.inner.next()? {
             TokenKind::NumberLiteral(number_kind) => match number_kind {
                 NumberKind::Int => TokenKind::IntLiteral,
@@ -75,6 +71,14 @@ impl<'s> std::iter::Iterator for Scanner<'s> {
         let range = token::span_to_text_range(self.inner.span());
 
         Some(Token::new(kind, text, range))
+    }
+}
+
+impl<'s> std::iter::Iterator for Scanner<'s> {
+    type Item = Token<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_token()
     }
 }
 

@@ -8,6 +8,8 @@ use lowering::LoweredGrammar;
 use quote::{format_ident, quote};
 use xshell::cmd;
 
+use crate::codegen::lowering::Variant;
+
 use super::project_root;
 use lowering::ChildKind;
 
@@ -39,7 +41,7 @@ pub fn do_codegen() -> Result<()> {
         .as_bytes(),
     );
 
-    // Append header to the rest of the file
+    // Prepend header to the rest of the file
     let aggregate = {
         let mut formatted = formatted;
         let mut aggregate = header;
@@ -57,16 +59,17 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
         // as an enum
         let name = format_ident!("{}", group.name);
 
-        let (variants, nodes, kinds): (Vec<_>, Vec<_>, Vec<_>) = group
+        let nodes = group
+            .variants
+            .iter()
+            .map(|child| format_ident!("{}", child.variant));
+
+        let variants: Vec<_> = group
             .variants
             .iter()
             .map(|child| {
                 if lowered.is_group(&child.variant) {
-                    // match using a guard
-                    let name = format_ident!("{}", child.variant);
-                    let node = format_ident!("{}", child.variant);
-                    let cast_to = name.clone();
-                    (name, node, quote! {_ if #cast_to::can_cast(&syntax)})
+                    format_ident!("{}", child.variant)
                 } else {
                     let name = if let Some(other_name) = &child.provided_name {
                         other_name
@@ -74,18 +77,31 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                         &child.variant
                     };
 
-                    let name = format_ident!("{}", name);
-                    let node = format_ident!("{}", child.variant);
-                    let sykind_name = format_ident!("{}", child.variant);
-                    (name, node, quote! {SyntaxKind::#sykind_name})
+                    format_ident!("{}", name)
                 }
             })
-            .fold((vec![], vec![], vec![]), |mut acc, thing| {
-                acc.0.push(thing.0);
-                acc.1.push(thing.1);
-                acc.2.push(thing.2);
-                acc
-            });
+            .collect();
+
+        let make_match_kinds = |as_ref: bool| {
+            move |child: &Variant| {
+                if lowered.is_group(&child.variant) {
+                    // match using a guard
+                    let cast_to = format_ident!("{}", child.variant);
+
+                    if as_ref {
+                        quote! { _ if #cast_to::can_cast(&syntax)}
+                    } else {
+                        quote! { _ if #cast_to::can_cast(syntax)}
+                    }
+                } else {
+                    let variant_name = format_ident!("{}", child.variant);
+                    quote! { SyntaxKind::#variant_name }
+                }
+            }
+        };
+
+        let kinds_as_ref = group.variants.iter().map(make_match_kinds(true));
+        let kinds = group.variants.iter().map(make_match_kinds(false));
 
         quote! {
             #[derive(Debug, PartialEq, Eq, Hash)]
@@ -95,7 +111,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
             impl AstNode for #name {
                 fn cast(syntax: SyntaxNode) -> Option<Self> {
                     match syntax.kind() {
-                        #(#kinds => Some(Self::#variants(AstNode::cast(syntax)?)),)*
+                        #(#kinds_as_ref => Some(Self::#variants(AstNode::cast(syntax)?)),)*
                         _ => None
                     }
                 }
@@ -109,7 +125,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
 
                 fn syntax(&self) -> &SyntaxNode {
                     match self {
-                        #(Self::#variants(node) => &node.syntax()),*
+                        #(Self::#variants(node) => node.syntax()),*
                     }
                 }
             }

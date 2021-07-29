@@ -41,7 +41,7 @@ fn assert_typecheck(source: &str) {
 
 fn do_typecheck(source: &str) -> String {
     let (hir_db, root_unit) = {
-        let parsed = toc_parser::parse(None, &source);
+        let parsed = toc_parser::parse(None, source);
         let hir_db = db::HirBuilder::new();
         let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
 

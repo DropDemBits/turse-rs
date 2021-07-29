@@ -15,7 +15,7 @@ toc_span = { path = "../toc_span" }
 [dev-dependencies]
 toc_parser = { path = "../toc_parser" }
 if_chain = "1.0"
-approx = "0.4"
+approx = "0.5"
 
 insta = "1.7"
 unindent = "0.1.7"

@@ -225,7 +225,7 @@ pub fn check_binary_operands(
 
     // Short circuit for error types
     // Don't duplicate errors
-    if is_error(&lhs_ty) || is_error(&rhs_ty) {
+    if is_error(lhs_ty) || is_error(rhs_ty) {
         return Ok(Type::Error);
     }
 
@@ -237,7 +237,7 @@ pub fn check_binary_operands(
             // x Set union (set, set => set)
             // - Addition (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_arithmetic_operands(lhs_ty, rhs_ty) {
                 // Addition
                 Ok(result_ty)
             } else {
@@ -250,7 +250,7 @@ pub fn check_binary_operands(
             // x Set difference (set, set => set)
             // - Subtraction (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_arithmetic_operands(lhs_ty, rhs_ty) {
                 // Subtraction
                 Ok(result_ty)
             } else {
@@ -262,7 +262,7 @@ pub fn check_binary_operands(
             // x Set intersection (set, set => set)
             // - Multiplication (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_arithmetic_operands(lhs_ty, rhs_ty) {
                 // Multiplication
                 Ok(result_ty)
             } else {
@@ -287,7 +287,7 @@ pub fn check_binary_operands(
             // Operations:
             // - Floating point division (number, number => real)
 
-            if is_number(&lhs_ty) && is_number(&rhs_ty) {
+            if is_number(lhs_ty) && is_number(rhs_ty) {
                 Ok(Type::Real(RealSize::Real))
             } else {
                 create_binary_type_error(lhs_ty_ref, op, rhs_ty_ref)
@@ -297,7 +297,7 @@ pub fn check_binary_operands(
             // Operations:
             // - Modulo (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_arithmetic_operands(lhs_ty, rhs_ty) {
                 // Modulo
                 Ok(result_ty)
             } else {
@@ -308,7 +308,7 @@ pub fn check_binary_operands(
             // Operations:
             // - Remainder (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_arithmetic_operands(lhs_ty, rhs_ty) {
                 // Remainder
                 Ok(result_ty)
             } else {
@@ -319,7 +319,7 @@ pub fn check_binary_operands(
             // Operations:
             // - Exponentiation (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_arithmetic_operands(lhs_ty, rhs_ty) {
                 // Exponentiation
                 Ok(result_ty)
             } else {
@@ -333,7 +333,7 @@ pub fn check_binary_operands(
             // - Bitwise And (integer, integer => nat)
             // - Logical And (boolean, boolean => boolean)
 
-            if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_bitwise_operands(lhs_ty, rhs_ty) {
                 // Bitwise And
                 Ok(result_ty)
             } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
@@ -348,7 +348,7 @@ pub fn check_binary_operands(
             // - Bitwise Or (integer, integer => nat)
             // - Logical Or (boolean, boolean => boolean)
 
-            if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_bitwise_operands(lhs_ty, rhs_ty) {
                 // Bitwise Or
                 Ok(result_ty)
             } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
@@ -363,7 +363,7 @@ pub fn check_binary_operands(
             // - Bitwise Xor (integer, integer => nat)
             // - Logical Xor (boolean, boolean => boolean)
 
-            if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_bitwise_operands(lhs_ty, rhs_ty) {
                 // Bitwise Xor
                 Ok(result_ty)
             } else if let (Type::Boolean, Type::Boolean) = (&lhs_ty, &rhs_ty) {
@@ -378,7 +378,7 @@ pub fn check_binary_operands(
             // Operations:
             // - Bitwise Shl (integer, integer => nat)
 
-            if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_bitwise_operands(lhs_ty, rhs_ty) {
                 // Bitwise Shl
                 Ok(result_ty)
             } else {
@@ -389,7 +389,7 @@ pub fn check_binary_operands(
             // Operations:
             // - Bitwise Shr (integer, integer => nat)
 
-            if let Some(result_ty) = check_bitwise_operands(&lhs_ty, &rhs_ty) {
+            if let Some(result_ty) = check_bitwise_operands(lhs_ty, rhs_ty) {
                 // Bitwise Shr
                 Ok(result_ty)
             } else {
@@ -514,7 +514,7 @@ pub fn check_unary_operands(
 
     // Short circuit for error types
     // Don't duplicate errors
-    if is_error(&rhs_ty) {
+    if is_error(rhs_ty) {
         return Ok(Type::Error);
     }
 

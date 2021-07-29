@@ -105,7 +105,7 @@ fn handle_notify(connection: &Connection, notify: Notification) -> Result<(), Dy
         let text = &params.content_changes.pop().unwrap().text;
 
         eprintln!("change, sending diagnostics @ {:?}", uri.as_str());
-        check_document(connection, uri, &text)?;
+        check_document(connection, uri, text)?;
     }
 
     Ok(())

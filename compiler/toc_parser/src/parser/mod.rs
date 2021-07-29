@@ -367,7 +367,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
         // If the cursor is part of the recovery set (and if we're set to respect recovery sets),
         // error node does not need to be built
         let should_eat = matches!(self.eat_behaviour, EatBehaviour::Forced)
-            || !(self.p.at_set(&STMT_START_RECOVERY_SET)
+            || !(self.p.at_set(STMT_START_RECOVERY_SET)
                 || self.p.at_set(&self.p.extra_recovery.clone().borrow())); // just cloning the Rc & reborrowing the contents
 
         // Never build a marker if we're at the end of the file, or behaviour is set to never eat

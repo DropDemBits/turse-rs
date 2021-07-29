@@ -15,7 +15,7 @@ fn assert_const_eval(source: &str) {
 #[track_caller]
 fn assert_const_eval_expr(expr: &str) {
     let source = format!("const _ := {}", expr);
-    insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(&source), &expr);
+    insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(&source), expr);
 }
 
 macro_rules! for_all_const_exprs {
@@ -26,7 +26,7 @@ macro_rules! for_all_const_exprs {
 
 fn do_const_eval(source: &str) -> String {
     let (hir_db, root_unit) = {
-        let parsed = toc_parser::parse(None, &source);
+        let parsed = toc_parser::parse(None, source);
         let hir_db = db::HirBuilder::new();
         let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
         let hir_db = hir_db.finish();

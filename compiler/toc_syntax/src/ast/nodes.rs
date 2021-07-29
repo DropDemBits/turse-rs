@@ -3856,11 +3856,11 @@ impl AstNode for PreprocKind {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::PPInclude(node) => &node.syntax(),
-            Self::PPIf(node) => &node.syntax(),
-            Self::PPElseif(node) => &node.syntax(),
-            Self::PPElse(node) => &node.syntax(),
-            Self::PPEndIf(node) => &node.syntax(),
+            Self::PPInclude(node) => node.syntax(),
+            Self::PPIf(node) => node.syntax(),
+            Self::PPElseif(node) => node.syntax(),
+            Self::PPElse(node) => node.syntax(),
+            Self::PPEndIf(node) => node.syntax(),
         }
     }
 }
@@ -3892,10 +3892,10 @@ impl AstNode for PPExpr {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::PPBinaryExpr(node) => &node.syntax(),
-            Self::PPUnaryExpr(node) => &node.syntax(),
-            Self::PPNameExpr(node) => &node.syntax(),
-            Self::PPParenExpr(node) => &node.syntax(),
+            Self::PPBinaryExpr(node) => node.syntax(),
+            Self::PPUnaryExpr(node) => node.syntax(),
+            Self::PPNameExpr(node) => node.syntax(),
+            Self::PPParenExpr(node) => node.syntax(),
         }
     }
 }
@@ -3921,8 +3921,8 @@ impl AstNode for PPFalseBranch {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::PPElseif(node) => &node.syntax(),
-            Self::PPElse(node) => &node.syntax(),
+            Self::PPElseif(node) => node.syntax(),
+            Self::PPElse(node) => node.syntax(),
         }
     }
 }
@@ -4098,58 +4098,58 @@ impl AstNode for Stmt {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::ConstVarDecl(node) => &node.syntax(),
-            Self::TypeDecl(node) => &node.syntax(),
-            Self::BindDecl(node) => &node.syntax(),
-            Self::ProcDecl(node) => &node.syntax(),
-            Self::FcnDecl(node) => &node.syntax(),
-            Self::ProcessDecl(node) => &node.syntax(),
-            Self::ExternalDecl(node) => &node.syntax(),
-            Self::ForwardDecl(node) => &node.syntax(),
-            Self::DeferredDecl(node) => &node.syntax(),
-            Self::BodyDecl(node) => &node.syntax(),
-            Self::ModuleDecl(node) => &node.syntax(),
-            Self::ClassDecl(node) => &node.syntax(),
-            Self::MonitorDecl(node) => &node.syntax(),
-            Self::AssignStmt(node) => &node.syntax(),
-            Self::OpenStmt(node) => &node.syntax(),
-            Self::CloseStmt(node) => &node.syntax(),
-            Self::PutStmt(node) => &node.syntax(),
-            Self::GetStmt(node) => &node.syntax(),
-            Self::ReadStmt(node) => &node.syntax(),
-            Self::WriteStmt(node) => &node.syntax(),
-            Self::SeekStmt(node) => &node.syntax(),
-            Self::TellStmt(node) => &node.syntax(),
-            Self::ForStmt(node) => &node.syntax(),
-            Self::LoopStmt(node) => &node.syntax(),
-            Self::ExitStmt(node) => &node.syntax(),
-            Self::IfStmt(node) => &node.syntax(),
-            Self::CaseStmt(node) => &node.syntax(),
-            Self::BlockStmt(node) => &node.syntax(),
-            Self::InvariantStmt(node) => &node.syntax(),
-            Self::AssertStmt(node) => &node.syntax(),
-            Self::CallStmt(node) => &node.syntax(),
-            Self::ReturnStmt(node) => &node.syntax(),
-            Self::ResultStmt(node) => &node.syntax(),
-            Self::NewStmt(node) => &node.syntax(),
-            Self::FreeStmt(node) => &node.syntax(),
-            Self::TagStmt(node) => &node.syntax(),
-            Self::ForkStmt(node) => &node.syntax(),
-            Self::SignalStmt(node) => &node.syntax(),
-            Self::PauseStmt(node) => &node.syntax(),
-            Self::QuitStmt(node) => &node.syntax(),
-            Self::BreakStmt(node) => &node.syntax(),
-            Self::CheckednessStmt(node) => &node.syntax(),
-            Self::PreStmt(node) => &node.syntax(),
-            Self::InitStmt(node) => &node.syntax(),
-            Self::PostStmt(node) => &node.syntax(),
-            Self::HandlerStmt(node) => &node.syntax(),
-            Self::InheritStmt(node) => &node.syntax(),
-            Self::ImplementStmt(node) => &node.syntax(),
-            Self::ImplementByStmt(node) => &node.syntax(),
-            Self::ImportStmt(node) => &node.syntax(),
-            Self::ExportStmt(node) => &node.syntax(),
-            Self::PreprocGlob(node) => &node.syntax(),
+            Self::ConstVarDecl(node) => node.syntax(),
+            Self::TypeDecl(node) => node.syntax(),
+            Self::BindDecl(node) => node.syntax(),
+            Self::ProcDecl(node) => node.syntax(),
+            Self::FcnDecl(node) => node.syntax(),
+            Self::ProcessDecl(node) => node.syntax(),
+            Self::ExternalDecl(node) => node.syntax(),
+            Self::ForwardDecl(node) => node.syntax(),
+            Self::DeferredDecl(node) => node.syntax(),
+            Self::BodyDecl(node) => node.syntax(),
+            Self::ModuleDecl(node) => node.syntax(),
+            Self::ClassDecl(node) => node.syntax(),
+            Self::MonitorDecl(node) => node.syntax(),
+            Self::AssignStmt(node) => node.syntax(),
+            Self::OpenStmt(node) => node.syntax(),
+            Self::CloseStmt(node) => node.syntax(),
+            Self::PutStmt(node) => node.syntax(),
+            Self::GetStmt(node) => node.syntax(),
+            Self::ReadStmt(node) => node.syntax(),
+            Self::WriteStmt(node) => node.syntax(),
+            Self::SeekStmt(node) => node.syntax(),
+            Self::TellStmt(node) => node.syntax(),
+            Self::ForStmt(node) => node.syntax(),
+            Self::LoopStmt(node) => node.syntax(),
+            Self::ExitStmt(node) => node.syntax(),
+            Self::IfStmt(node) => node.syntax(),
+            Self::CaseStmt(node) => node.syntax(),
+            Self::BlockStmt(node) => node.syntax(),
+            Self::InvariantStmt(node) => node.syntax(),
+            Self::AssertStmt(node) => node.syntax(),
+            Self::CallStmt(node) => node.syntax(),
+            Self::ReturnStmt(node) => node.syntax(),
+            Self::ResultStmt(node) => node.syntax(),
+            Self::NewStmt(node) => node.syntax(),
+            Self::FreeStmt(node) => node.syntax(),
+            Self::TagStmt(node) => node.syntax(),
+            Self::ForkStmt(node) => node.syntax(),
+            Self::SignalStmt(node) => node.syntax(),
+            Self::PauseStmt(node) => node.syntax(),
+            Self::QuitStmt(node) => node.syntax(),
+            Self::BreakStmt(node) => node.syntax(),
+            Self::CheckednessStmt(node) => node.syntax(),
+            Self::PreStmt(node) => node.syntax(),
+            Self::InitStmt(node) => node.syntax(),
+            Self::PostStmt(node) => node.syntax(),
+            Self::HandlerStmt(node) => node.syntax(),
+            Self::InheritStmt(node) => node.syntax(),
+            Self::ImplementStmt(node) => node.syntax(),
+            Self::ImplementByStmt(node) => node.syntax(),
+            Self::ImportStmt(node) => node.syntax(),
+            Self::ExportStmt(node) => node.syntax(),
+            Self::PreprocGlob(node) => node.syntax(),
         }
     }
 }
@@ -4208,19 +4208,19 @@ impl AstNode for Type {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::PrimType(node) => &node.syntax(),
-            Self::NameType(node) => &node.syntax(),
-            Self::RangeType(node) => &node.syntax(),
-            Self::EnumType(node) => &node.syntax(),
-            Self::ArrayType(node) => &node.syntax(),
-            Self::SetType(node) => &node.syntax(),
-            Self::RecordType(node) => &node.syntax(),
-            Self::UnionType(node) => &node.syntax(),
-            Self::PointerType(node) => &node.syntax(),
-            Self::FcnType(node) => &node.syntax(),
-            Self::ProcType(node) => &node.syntax(),
-            Self::CollectionType(node) => &node.syntax(),
-            Self::ConditionType(node) => &node.syntax(),
+            Self::PrimType(node) => node.syntax(),
+            Self::NameType(node) => node.syntax(),
+            Self::RangeType(node) => node.syntax(),
+            Self::EnumType(node) => node.syntax(),
+            Self::ArrayType(node) => node.syntax(),
+            Self::SetType(node) => node.syntax(),
+            Self::RecordType(node) => node.syntax(),
+            Self::UnionType(node) => node.syntax(),
+            Self::PointerType(node) => node.syntax(),
+            Self::FcnType(node) => node.syntax(),
+            Self::ProcType(node) => node.syntax(),
+            Self::CollectionType(node) => node.syntax(),
+            Self::ConditionType(node) => node.syntax(),
         }
     }
 }
@@ -4294,24 +4294,24 @@ impl AstNode for Expr {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::LiteralExpr(node) => &node.syntax(),
-            Self::ObjClassExpr(node) => &node.syntax(),
-            Self::InitExpr(node) => &node.syntax(),
-            Self::NilExpr(node) => &node.syntax(),
-            Self::SizeOfExpr(node) => &node.syntax(),
-            Self::BinaryExpr(node) => &node.syntax(),
-            Self::UnaryExpr(node) => &node.syntax(),
-            Self::ParenExpr(node) => &node.syntax(),
-            Self::NameExpr(node) => &node.syntax(),
-            Self::SelfExpr(node) => &node.syntax(),
-            Self::FieldExpr(node) => &node.syntax(),
-            Self::DerefExpr(node) => &node.syntax(),
-            Self::CheatExpr(node) => &node.syntax(),
-            Self::NatCheatExpr(node) => &node.syntax(),
-            Self::ArrowExpr(node) => &node.syntax(),
-            Self::IndirectExpr(node) => &node.syntax(),
-            Self::BitsExpr(node) => &node.syntax(),
-            Self::CallExpr(node) => &node.syntax(),
+            Self::LiteralExpr(node) => node.syntax(),
+            Self::ObjClassExpr(node) => node.syntax(),
+            Self::InitExpr(node) => node.syntax(),
+            Self::NilExpr(node) => node.syntax(),
+            Self::SizeOfExpr(node) => node.syntax(),
+            Self::BinaryExpr(node) => node.syntax(),
+            Self::UnaryExpr(node) => node.syntax(),
+            Self::ParenExpr(node) => node.syntax(),
+            Self::NameExpr(node) => node.syntax(),
+            Self::SelfExpr(node) => node.syntax(),
+            Self::FieldExpr(node) => node.syntax(),
+            Self::DerefExpr(node) => node.syntax(),
+            Self::CheatExpr(node) => node.syntax(),
+            Self::NatCheatExpr(node) => node.syntax(),
+            Self::ArrowExpr(node) => node.syntax(),
+            Self::IndirectExpr(node) => node.syntax(),
+            Self::BitsExpr(node) => node.syntax(),
+            Self::CallExpr(node) => node.syntax(),
         }
     }
 }
@@ -4337,8 +4337,8 @@ impl AstNode for SubprogHeader {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::ProcHeader(node) => &node.syntax(),
-            Self::FcnHeader(node) => &node.syntax(),
+            Self::ProcHeader(node) => node.syntax(),
+            Self::FcnHeader(node) => node.syntax(),
         }
     }
 }
@@ -4367,9 +4367,9 @@ impl AstNode for BodyKind {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::PlainHeader(node) => &node.syntax(),
-            Self::ProcHeader(node) => &node.syntax(),
-            Self::FcnHeader(node) => &node.syntax(),
+            Self::PlainHeader(node) => node.syntax(),
+            Self::ProcHeader(node) => node.syntax(),
+            Self::FcnHeader(node) => node.syntax(),
         }
     }
 }
@@ -4398,9 +4398,9 @@ impl AstNode for ExternalKind {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::ExternalFcn(node) => &node.syntax(),
-            Self::ExternalProc(node) => &node.syntax(),
-            Self::ExternalVar(node) => &node.syntax(),
+            Self::ExternalFcn(node) => node.syntax(),
+            Self::ExternalProc(node) => node.syntax(),
+            Self::ExternalVar(node) => node.syntax(),
         }
     }
 }
@@ -4426,8 +4426,8 @@ impl AstNode for OpenKind {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::OldOpen(node) => &node.syntax(),
-            Self::NewOpen(node) => &node.syntax(),
+            Self::OldOpen(node) => node.syntax(),
+            Self::NewOpen(node) => node.syntax(),
         }
     }
 }
@@ -4453,8 +4453,8 @@ impl AstNode for CloseKind {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::OldClose(node) => &node.syntax(),
-            Self::NewClose(node) => &node.syntax(),
+            Self::OldClose(node) => node.syntax(),
+            Self::NewClose(node) => node.syntax(),
         }
     }
 }
@@ -4480,8 +4480,8 @@ impl AstNode for FalseBranch {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::ElseifStmt(node) => &node.syntax(),
-            Self::ElseStmt(node) => &node.syntax(),
+            Self::ElseifStmt(node) => node.syntax(),
+            Self::ElseStmt(node) => node.syntax(),
         }
     }
 }
@@ -4510,9 +4510,9 @@ impl AstNode for ImportAttr {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::VarAttr(node) => &node.syntax(),
-            Self::ConstAttr(node) => &node.syntax(),
-            Self::ForwardAttr(node) => &node.syntax(),
+            Self::VarAttr(node) => node.syntax(),
+            Self::ConstAttr(node) => node.syntax(),
+            Self::ForwardAttr(node) => node.syntax(),
         }
     }
 }
@@ -4544,10 +4544,10 @@ impl AstNode for ExportAttr {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::VarAttr(node) => &node.syntax(),
-            Self::UnqualifiedAttr(node) => &node.syntax(),
-            Self::PervasiveAttr(node) => &node.syntax(),
-            Self::OpaqueAttr(node) => &node.syntax(),
+            Self::VarAttr(node) => node.syntax(),
+            Self::UnqualifiedAttr(node) => node.syntax(),
+            Self::PervasiveAttr(node) => node.syntax(),
+            Self::OpaqueAttr(node) => node.syntax(),
         }
     }
 }
@@ -4573,8 +4573,8 @@ impl AstNode for IndirectTy {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::PrimType(node) => &node.syntax(),
-            Self::NameType(node) => &node.syntax(),
+            Self::PrimType(node) => node.syntax(),
+            Self::NameType(node) => node.syntax(),
         }
     }
 }
@@ -4597,15 +4597,15 @@ impl AstNode for ParamKind {
         match syntax.kind() {
             SyntaxKind::AllItem => true,
             SyntaxKind::RangeItem => true,
-            _ if Expr::can_cast(&syntax) => true,
+            _ if Expr::can_cast(syntax) => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::AllItem(node) => &node.syntax(),
-            Self::RangeItem(node) => &node.syntax(),
-            Self::Expr(node) => &node.syntax(),
+            Self::AllItem(node) => node.syntax(),
+            Self::RangeItem(node) => node.syntax(),
+            Self::Expr(node) => node.syntax(),
         }
     }
 }
@@ -4625,14 +4625,14 @@ impl AstNode for RangeBound {
     fn can_cast(syntax: &SyntaxNode) -> bool {
         match syntax.kind() {
             SyntaxKind::RelativeBound => true,
-            _ if Expr::can_cast(&syntax) => true,
+            _ if Expr::can_cast(syntax) => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::RelativeBound(node) => &node.syntax(),
-            Self::Expr(node) => &node.syntax(),
+            Self::RelativeBound(node) => node.syntax(),
+            Self::Expr(node) => node.syntax(),
         }
     }
 }
@@ -4652,14 +4652,14 @@ impl AstNode for EndBound {
     fn can_cast(syntax: &SyntaxNode) -> bool {
         match syntax.kind() {
             SyntaxKind::UnsizedBound => true,
-            _ if Expr::can_cast(&syntax) => true,
+            _ if Expr::can_cast(syntax) => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::UnsizedBound(node) => &node.syntax(),
-            Self::Expr(node) => &node.syntax(),
+            Self::UnsizedBound(node) => node.syntax(),
+            Self::Expr(node) => node.syntax(),
         }
     }
 }
@@ -4685,8 +4685,8 @@ impl AstNode for SubprogType {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::FcnType(node) => &node.syntax(),
-            Self::ProcType(node) => &node.syntax(),
+            Self::FcnType(node) => node.syntax(),
+            Self::ProcType(node) => node.syntax(),
         }
     }
 }
@@ -4706,14 +4706,14 @@ impl AstNode for ParamDecl {
     fn can_cast(syntax: &SyntaxNode) -> bool {
         match syntax.kind() {
             SyntaxKind::ConstVarParam => true,
-            _ if SubprogType::can_cast(&syntax) => true,
+            _ if SubprogType::can_cast(syntax) => true,
             _ => false,
         }
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            Self::ConstVarParam(node) => &node.syntax(),
-            Self::SubprogType(node) => &node.syntax(),
+            Self::ConstVarParam(node) => node.syntax(),
+            Self::SubprogType(node) => node.syntax(),
         }
     }
 }
