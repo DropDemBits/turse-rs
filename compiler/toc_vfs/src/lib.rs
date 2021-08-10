@@ -23,7 +23,6 @@
 // TODO: Flesh out documentation using VFS Interface.md
 
 pub mod file_db;
-pub mod fs_impl;
 pub mod query;
 
 use std::convert::TryFrom;
