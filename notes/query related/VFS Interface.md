@@ -52,6 +52,20 @@ the string path and pass it to the VFS, and not specifically the VFS itself.
 Percent prefix expansion (e.g. paths starting with "%oot" or "%home") are an issue that the VFS needs to handle, since the
 compiler should not need to store what these prefixes expand to.
 
+### Path case sensitivity
+
+Windows, macOS, and Unix derivatives treat  treats paths as case-insensitive, while Linux is case-sensitive / case-blind.
+A real world example of this difference is the provided GUI library in "%oot/support/lib/GUI", which references
+a folder named "guiclass", but is actually named "GUIClass".
+
+#### Options for dealing with case sensitivity
+
+- Uniform behaviour
+  - Case insensitive
+  - Case sensitive (via ASCII case folding)
+- Per-OS behaviour
+  - Would need to warn about paths that don't match the case on the file system
+
 ### Path normalization
 
 `std::fs::canonicalize` currently canonicalizes paths in UNC form on Windows.
