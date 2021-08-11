@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::error::Error;
 use std::ops::Range;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
@@ -12,6 +10,7 @@ use lsp_types::{
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
 use toc_hir::db;
+use toc_vfs::query::{FileSystem, VfsDatabaseExt};
 
 type DynError = Box<dyn Error + Sync + Send>;
 
@@ -134,17 +133,19 @@ fn check_document(
 }
 
 fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
-    let path = uri.as_str();
-    let file_db = toc_vfs::FileDb::new();
+    let path = uri.path();
+    let mut db = LspDatabase::default();
 
     // Add the root path to the file db
-    let root_file = file_db.add_file(path, contents);
+    let root_file = db.vfs.intern_path(path.into());
+    db.update_file(root_file, Some(contents.into()));
+
     let hir_db = db::HirBuilder::new();
 
     // Parse root CST
     let (parsed, dep_messages) = {
-        let info = file_db.get_file(root_file);
-        let parsed = toc_parser::parse(Some(root_file), &info.source);
+        let source = &db.file_source(root_file).0;
+        let parsed = toc_parser::parse(Some(root_file), source);
         let (_dependencies, messages) =
             toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
 
@@ -181,8 +182,6 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
 
     eprintln!("finished compile @ {:?}", uri.as_str());
 
-    let span_mapper = SpanMapper::new(&file_db);
-
     fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
         use toc_reporting::AnnotateKind;
 
@@ -197,13 +196,13 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     // Convert into `Diagnostic`s
     msgs.iter()
         .map(|msg| {
-            let range = span_mapper.map_span_to_location(msg.span()).range;
+            let range = db.map_span_to_location(msg.span()).range;
             let severity = to_diag_level(msg.kind());
             let annotations = msg
                 .annotations()
                 .iter()
                 .map(|annotate| DiagnosticRelatedInformation {
-                    location: span_mapper.map_span_to_location(annotate.span()),
+                    location: db.map_span_to_location(annotate.span()),
                     message: annotate.message().to_string(),
                 })
                 .collect();
@@ -221,79 +220,103 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
         .collect()
 }
 
-struct SpanMapper {
-    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<Range<usize>>)>,
-}
+#[salsa::query_group(SpanMappingStorage)]
+trait SpanMapping: toc_vfs::query::FileSystem {
+    fn line_ranges(&self, file_id: toc_span::FileId) -> Arc<Vec<Range<usize>>>;
 
-impl SpanMapper {
-    fn new(file_db: &toc_vfs::FileDb) -> Self {
-        let mut files = HashMap::new();
+    fn file_path(&self, file_id: toc_span::FileId) -> Arc<String>;
 
-        for file in file_db.files() {
-            let info = file_db.get_file(file);
-            let line_ranges = Self::build_line_ranges(&info.source);
-
-            files.insert(file, (info, line_ranges));
-        }
-
-        Self { files }
-    }
-
-    fn build_line_ranges(source: &str) -> Vec<Range<usize>> {
-        let mut line_ranges = vec![];
-        let mut line_start = 0;
-        let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
-
-        for (at_newline, _) in line_ends {
-            let line_end = at_newline + 1;
-            line_ranges.push(line_start..line_end);
-            line_start = line_end;
-        }
-
-        // Use a line span covering the rest of the file
-        line_ranges.push(line_start..source.len() + 1);
-
-        line_ranges
-    }
+    fn map_byte_index(
+        &self,
+        file: toc_span::FileId,
+        byte_idx: usize,
+    ) -> Option<(usize, Range<usize>)>;
 
     fn map_byte_index_to_position(
         &self,
-        file: Option<toc_span::FileId>,
+        file: toc_span::FileId,
         byte_idx: usize,
-    ) -> Option<Position> {
-        let (info, line_ranges) = self.files.get(&file?)?;
+    ) -> Option<Position>;
 
-        let (line, slice) = line_ranges
-            .iter()
-            .enumerate()
-            .find(|(_line, range)| range.contains(&byte_idx))
-            .map(|(line, range)| (line, range.clone()))
-            .unwrap();
+    fn map_span_to_location(&self, span: toc_span::Span) -> Location;
+}
 
-        let source_slice = &info.source[slice.start..byte_idx];
+fn line_ranges(db: &dyn SpanMapping, file_id: toc_span::FileId) -> Arc<Vec<Range<usize>>> {
+    let source = &db.file_source(file_id).0;
+    let mut line_ranges = vec![];
+    let mut line_start = 0;
+    let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
 
-        // Get character count in UTF-16 chars
-        let column_offset = source_slice.encode_utf16().count();
-
-        Some(Position::new(line as u32, column_offset as u32))
+    for (at_newline, _) in line_ends {
+        let line_end = at_newline + 1;
+        line_ranges.push(line_start..line_end);
+        line_start = line_end;
     }
 
-    fn map_span_to_location(&self, span: toc_span::Span) -> Location {
-        let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+    // Use a line span covering the rest of the file
+    line_ranges.push(line_start..source.len() + 1);
 
-        let start = self
-            .map_byte_index_to_position(span.file, start as usize)
-            .unwrap();
-        let end = self
-            .map_byte_index_to_position(span.file, end as usize)
-            .unwrap();
+    Arc::new(line_ranges)
+}
 
-        let (info, _) = self.files.get(&span.file.unwrap()).unwrap();
-        let path = &info.path;
+fn file_path(db: &dyn SpanMapping, file_id: toc_span::FileId) -> Arc<String> {
+    Arc::new(db.get_vfs().lookup_path(file_id).display().to_string())
+}
 
-        Location::new(
-            lsp_types::Url::from_str(path).unwrap(),
-            lsp_types::Range::new(start, end),
-        )
+fn map_byte_index(
+    db: &dyn SpanMapping,
+    file_id: toc_span::FileId,
+    byte_idx: usize,
+) -> Option<(usize, Range<usize>)> {
+    db.line_ranges(file_id)
+        .iter()
+        .enumerate()
+        .find(|(_line, range)| range.contains(&byte_idx))
+        .map(|(line, range)| (line, range.clone()))
+}
+
+fn map_byte_index_to_position(
+    db: &dyn SpanMapping,
+    file_id: toc_span::FileId,
+    byte_idx: usize,
+) -> Option<Position> {
+    let (line, slice) = db.map_byte_index(file_id, byte_idx).unwrap();
+
+    let source_slice = &db.file_source(file_id).0[slice.start..byte_idx];
+
+    // Get character count in UTF-16 chars
+    let column_offset = source_slice.encode_utf16().count();
+
+    Some(Position::new(line as u32, column_offset as u32))
+}
+
+fn map_span_to_location(db: &dyn SpanMapping, span: toc_span::Span) -> Location {
+    let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+
+    let file = span.file.unwrap();
+
+    let start = db.map_byte_index_to_position(file, start as usize).unwrap();
+    let end = db.map_byte_index_to_position(file, end as usize).unwrap();
+
+    let path = &db.file_path(file);
+
+    Location::new(
+        lsp_types::Url::from_file_path(path.as_str()).unwrap(),
+        lsp_types::Range::new(start, end),
+    )
+}
+
+#[salsa::database(toc_vfs::query::FileSystemStorage, SpanMappingStorage)]
+#[derive(Default)]
+struct LspDatabase {
+    storage: salsa::Storage<Self>,
+    vfs: toc_vfs::Vfs,
+}
+
+impl salsa::Database for LspDatabase {}
+
+impl toc_vfs::HasVfs for LspDatabase {
+    fn get_vfs(&self) -> &toc_vfs::Vfs {
+        &self.vfs
     }
 }

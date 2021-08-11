@@ -11,6 +11,7 @@ if_chain = "1.0.1"
 lsp-server = "0.5.1"
 lsp-types = "0.89.1"
 serde_json = "1.0.64"
+salsa = "0.16.1"
 
 # Local compiler dependencies
 toc_vfs = {path = "../compiler/toc_vfs"}

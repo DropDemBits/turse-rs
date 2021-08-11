@@ -402,6 +402,7 @@ dependencies = [
  "if_chain",
  "lsp-server 0.5.2",
  "lsp-types",
+ "salsa",
  "serde_json",
  "toc_analysis",
  "toc_driver",
@@ -841,6 +842,7 @@ name = "toc_driver"
 version = "0.1.0"
 dependencies = [
  "annotate-snippets",
+ "salsa",
  "toc_analysis",
  "toc_hir",
  "toc_hir_lowering",

@@ -17,3 +17,4 @@ toc_vfs = { path = "../toc_vfs" }
 toc_analysis = { path = "../toc_analysis" }
 toc_span = { path = "../toc_span" }
 annotate-snippets = { version = "0.9.0", features = ["color"] }
+salsa = "0.16.1"

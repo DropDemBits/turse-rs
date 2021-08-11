@@ -22,13 +22,13 @@
 
 // TODO: Flesh out documentation using VFS Interface.md
 
-pub mod file_db;
 pub mod query;
 
 use std::convert::TryFrom;
 use std::fmt;
 
-pub use file_db::{FileDb, FileInfo};
+// TODO: migrate into here
+pub use query::{HasVfs, Vfs};
 
 /// Built-in prefixes for paths.
 ///
@@ -96,12 +96,12 @@ pub enum LoadError {
 
 #[cfg(test)]
 mod test {
-    use crate::LoadError;
     use crate::query::VfsDatabaseExt;
     use crate::{
-        query::{FileSystem, FileSystemStorage, HasVfs, Vfs},
+        query::{FileSystem, FileSystemStorage},
         BuiltinPrefix,
     };
+    use crate::{HasVfs, LoadError, Vfs};
 
     #[salsa::database(FileSystemStorage)]
     struct VfsTestDB {
@@ -268,10 +268,7 @@ mod test {
 
     #[test]
     fn file_update() {
-        const FILE_SOURCES: &[&str] = &[
-            r#"var tee : int := 1"#,
-            r#"var shoe : int := 2"#,
-        ];
+        const FILE_SOURCES: &[&str] = &[r#"var tee : int := 1"#, r#"var shoe : int := 2"#];
 
         let mut db = make_test_db();
         let file = db.vfs.insert_file("/main.t", FILE_SOURCES[0]);

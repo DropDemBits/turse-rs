@@ -85,7 +85,7 @@ where
         let result = if let Some(byte_source) = new_source {
             // FIXME: Deal with different character encodings (per `VFS Interface.md`)
             // This is likely the place where we'd do it
-            
+
             // Try converting the file into UTF-8
             let source = String::from_utf8_lossy(&byte_source);
 
@@ -93,11 +93,11 @@ where
                 Cow::Borrowed(_source) => {
                     // Steal memory from the cloning process
                     (String::from_utf8(byte_source).unwrap(), None)
-                },
+                }
                 Cow::Owned(invalid) => {
                     // Non UTF-8 encoded characters
                     (invalid, Some(LoadError::InvalidEncoding))
-                },
+                }
             }
         } else {
             // File does not exist, or was removed
@@ -247,9 +247,22 @@ impl Vfs {
             .insert(prefix, expansion.as_ref().to_path_buf());
     }
 
-    /// Interns a path
+    /// Interns the given path into the corresponding [`FileId`]
+    ///
+    /// ## Panics
+    ///
+    /// Panics if there are too many paths that are interned
+    ///
+    /// ## Returns
+    ///
+    /// The corresponding [`FileId`] for the path
     pub fn intern_path(&mut self, path: PathBuf) -> FileId {
         self.path_interner.intern_path(path)
+    }
+
+    /// Looks up the path corresponding to the given [`FileId`]
+    pub fn lookup_path(&self, file_id: FileId) -> &std::path::Path {
+        self.path_interner.lookup_path(file_id)
     }
 
     /// Inserts a file, producing a file id
