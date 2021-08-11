@@ -9,6 +9,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
 use salsa::Database;
+use toc_salsa::salsa;
 use toc_span::FileId;
 
 use crate::{BuiltinPrefix, LoadError};

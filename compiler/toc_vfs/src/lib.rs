@@ -96,6 +96,8 @@ pub enum LoadError {
 
 #[cfg(test)]
 mod test {
+    use toc_salsa::salsa;
+
     use crate::query::VfsDatabaseExt;
     use crate::{
         query::{FileSystem, FileSystemStorage},

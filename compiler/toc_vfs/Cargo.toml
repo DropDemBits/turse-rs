@@ -10,5 +10,5 @@ edition = "2018"
 if_chain = "1.0.1"
 indexmap = "1.7.0"
 normpath = "0.3.0"
-salsa = "0.16.1"
+toc_salsa = { path =  "../toc_salsa" }
 toc_span = { path =  "../toc_span" }

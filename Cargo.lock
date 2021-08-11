@@ -402,14 +402,15 @@ dependencies = [
  "if_chain",
  "lsp-server 0.5.2",
  "lsp-types",
- "salsa",
  "serde_json",
  "toc_analysis",
+ "toc_common_db",
  "toc_driver",
  "toc_hir",
  "toc_hir_lowering",
  "toc_parser",
  "toc_reporting",
+ "toc_salsa",
  "toc_span",
  "toc_validate",
  "toc_vfs",
@@ -838,16 +839,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "toc_common_db"
+version = "0.1.0"
+dependencies = [
+ "toc_salsa",
+ "toc_span",
+ "toc_vfs",
+]
+
+[[package]]
 name = "toc_driver"
 version = "0.1.0"
 dependencies = [
  "annotate-snippets",
- "salsa",
  "toc_analysis",
+ "toc_common_db",
  "toc_hir",
  "toc_hir_lowering",
  "toc_parser",
  "toc_reporting",
+ "toc_salsa",
  "toc_span",
  "toc_syntax",
  "toc_validate",
@@ -903,6 +914,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "toc_salsa"
+version = "0.1.0"
+dependencies = [
+ "salsa",
+]
+
+[[package]]
 name = "toc_scanner"
 version = "0.1.0"
 dependencies = [
@@ -949,7 +967,7 @@ dependencies = [
  "if_chain",
  "indexmap",
  "normpath",
- "salsa",
+ "toc_salsa",
  "toc_span",
 ]
 

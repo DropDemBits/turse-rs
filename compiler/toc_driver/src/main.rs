@@ -3,7 +3,9 @@
 use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
+use toc_common_db::SpanMapping;
 use toc_hir::db;
+use toc_salsa::salsa;
 use toc_vfs::query::{FileSystem, VfsDatabaseExt};
 
 fn load_contents(path: &str) -> io::Result<String> {
@@ -76,7 +78,7 @@ fn main() {
     std::process::exit(if has_errors { -1 } else { 0 });
 }
 
-fn message_into_string(db: &dyn SpanMapping, msg: &toc_reporting::ReportMessage) -> String {
+fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) -> String {
     use annotate_snippets::{
         display_list::{DisplayList, FormatOptions},
         snippet::*,
@@ -113,18 +115,18 @@ fn message_into_string(db: &dyn SpanMapping, msg: &toc_reporting::ReportMessage)
             let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
 
             let file_id = span.file.unwrap();
-            let (start_line, start_range) = db.map_byte_index(file_id, start as usize).unwrap();
-            let (end_line, end_range) = db.map_byte_index(file_id, end as usize - 1).unwrap();
+            let start_info = db.map_byte_index(file_id, start as usize).unwrap();
+            let end_info = db.map_byte_index(file_id, end as usize).unwrap();
 
             let source = db.file_source(file_id);
-            let source_range = start_range.start..end_range.end;
+            let source_range = start_info.line_span.start..end_info.line_span.end;
             let path = db.file_path(file_id);
 
             FileSpan {
                 path,
                 source,
                 source_range,
-                line_range: start_line..end_line,
+                line_range: start_info.line..end_info.line,
             }
         })
         .collect();
@@ -254,54 +256,7 @@ fn message_into_string(db: &dyn SpanMapping, msg: &toc_reporting::ReportMessage)
     DisplayList::from(snippet).to_string()
 }
 
-#[salsa::query_group(SpanMappingStorage)]
-trait SpanMapping: toc_vfs::query::FileSystem {
-    fn line_ranges(&self, file_id: toc_span::FileId) -> Arc<Vec<Range<usize>>>;
-
-    fn file_path(&self, file_id: toc_span::FileId) -> Arc<String>;
-
-    fn map_byte_index(
-        &self,
-        file: toc_span::FileId,
-        byte_idx: usize,
-    ) -> Option<(usize, Range<usize>)>;
-}
-
-fn line_ranges(db: &dyn SpanMapping, file_id: toc_span::FileId) -> Arc<Vec<Range<usize>>> {
-    let source = &db.file_source(file_id).0;
-    let mut line_ranges = vec![];
-    let mut line_start = 0;
-    let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
-
-    for (at_newline, _) in line_ends {
-        let line_end = at_newline + 1;
-        line_ranges.push(line_start..line_end);
-        line_start = line_end;
-    }
-
-    // Use a line span covering the rest of the file
-    line_ranges.push(line_start..source.len());
-
-    Arc::new(line_ranges)
-}
-
-fn file_path(db: &dyn SpanMapping, file_id: toc_span::FileId) -> Arc<String> {
-    Arc::new(db.get_vfs().lookup_path(file_id).display().to_string())
-}
-
-fn map_byte_index(
-    db: &dyn SpanMapping,
-    file_id: toc_span::FileId,
-    byte_idx: usize,
-) -> Option<(usize, Range<usize>)> {
-    db.line_ranges(file_id)
-        .iter()
-        .enumerate()
-        .find(|(_line, range)| range.contains(&byte_idx))
-        .map(|(line, range)| (line, range.clone()))
-}
-
-#[salsa::database(toc_vfs::query::FileSystemStorage, SpanMappingStorage)]
+#[salsa::database(toc_vfs::query::FileSystemStorage, toc_common_db::SpanMappingStorage)]
 #[derive(Default)]
 struct MainDatabase {
     storage: salsa::Storage<Self>,
