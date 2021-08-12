@@ -27,6 +27,7 @@ pub fn parse(file: Option<FileId>, source: &str) -> ParseResult {
     sink.finish()
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct ParseResult {
     node: GreenNode,
     messages: Vec<ReportMessage>,
@@ -39,6 +40,10 @@ impl ParseResult {
 
     pub fn messages(&self) -> &[ReportMessage] {
         &self.messages
+    }
+
+    pub fn copy_messages(&self, dest: &mut Vec<ReportMessage>) {
+        dest.extend_from_slice(&self.messages);
     }
 
     pub fn dump_tree(&self) -> String {

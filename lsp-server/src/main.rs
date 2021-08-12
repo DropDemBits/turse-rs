@@ -7,10 +7,11 @@ use lsp_types::{
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
-use toc_common_db::SpanMapping;
+use toc_common_db::source::SourceParser;
+use toc_common_db::span::SpanMapping;
 use toc_hir::db;
 use toc_salsa::salsa;
-use toc_vfs::query::{FileSystem, VfsDatabaseExt};
+use toc_vfs::query::VfsDatabaseExt;
 
 type DynError = Box<dyn Error + Sync + Send>;
 
@@ -144,8 +145,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
 
     // Parse root CST
     let (parsed, dep_messages) = {
-        let source = &db.file_source(root_file).0;
-        let parsed = toc_parser::parse(Some(root_file), source);
+        let parsed = db.parse_file(root_file);
         let (_dependencies, messages) =
             toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
 
@@ -155,7 +155,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     eprintln!("finished parse @ {:?}", uri.as_str());
 
     let (validate_res, hir_res) = {
-        let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
+        let validate_res = db.validate_file(root_file);
         let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
 
         (validate_res, hir_res)
@@ -240,13 +240,17 @@ trait IntoPosition {
     fn into_position(self) -> Position;
 }
 
-impl IntoPosition for toc_common_db::LspPosition {
+impl IntoPosition for toc_common_db::span::LspPosition {
     fn into_position(self) -> Position {
         Position::new(self.line, self.column)
     }
 }
 
-#[salsa::database(toc_vfs::query::FileSystemStorage, toc_common_db::SpanMappingStorage)]
+#[salsa::database(
+    toc_vfs::query::FileSystemStorage,
+    toc_common_db::span::SpanMappingStorage,
+    toc_common_db::source::SourceParserStorage
+)]
 #[derive(Default)]
 struct LspDatabase {
     storage: salsa::Storage<Self>,

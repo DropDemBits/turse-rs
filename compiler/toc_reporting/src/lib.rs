@@ -3,6 +3,8 @@ use std::fmt;
 
 use toc_span::Span;
 
+// TODO: Create a common compiler message bundle
+
 /// Type of annotation added to a message
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnnotateKind {
@@ -29,7 +31,7 @@ impl fmt::Display for AnnotateKind {
 }
 
 /// A reported message
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReportMessage {
     header: SourceAnnotation,
     annotations: Vec<SourceAnnotation>,
@@ -81,7 +83,7 @@ impl fmt::Display for ReportMessage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceAnnotation {
     annotation: Annotation,
     span: Span,
@@ -128,7 +130,7 @@ impl fmt::Display for SourceAnnotation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Annotation {
     kind: AnnotateKind,
     msg: String,

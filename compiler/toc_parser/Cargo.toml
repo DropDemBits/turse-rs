@@ -10,6 +10,7 @@ edition = "2018"
 toc_reporting = { path = "../toc_reporting" }
 toc_scanner = { path = "../toc_scanner" }
 toc_syntax = { path = "../toc_syntax" }
+toc_salsa = { path = "../toc_salsa" }
 toc_span = { path = "../toc_span" }
 
 rowan = "0.12"

@@ -13,6 +13,7 @@ use toc_syntax::{
     match_ast, SyntaxNode,
 };
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct ValidateResult {
     messages: Vec<ReportMessage>,
 }

@@ -3,7 +3,8 @@
 use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
-use toc_common_db::SpanMapping;
+use toc_common_db::source::SourceParser;
+use toc_common_db::span::SpanMapping;
 use toc_hir::db;
 use toc_salsa::salsa;
 use toc_vfs::query::{FileSystem, VfsDatabaseExt};
@@ -27,8 +28,7 @@ fn main() {
 
     // Parse root CST
     let parsed = {
-        let source = db.file_source(root_file);
-        let parsed = toc_parser::parse(Some(root_file), &source.0);
+        let parsed = db.parse_file(root_file);
         let dependencies = toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
         // TODO: Gather dependencies from root CST, and parse them
 
@@ -41,7 +41,7 @@ fn main() {
     // TODO: Deal with include globs
 
     let (validate_res, hir_res) = {
-        let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
+        let validate_res = db.validate_file(root_file);
         let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
 
         (validate_res, hir_res)
@@ -256,7 +256,11 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
     DisplayList::from(snippet).to_string()
 }
 
-#[salsa::database(toc_vfs::query::FileSystemStorage, toc_common_db::SpanMappingStorage)]
+#[salsa::database(
+    toc_vfs::query::FileSystemStorage,
+    toc_common_db::span::SpanMappingStorage,
+    toc_common_db::source::SourceParserStorage
+)]
 #[derive(Default)]
 struct MainDatabase {
     storage: salsa::Storage<Self>,

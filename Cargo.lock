@@ -408,11 +408,9 @@ dependencies = [
  "toc_driver",
  "toc_hir",
  "toc_hir_lowering",
- "toc_parser",
  "toc_reporting",
  "toc_salsa",
  "toc_span",
- "toc_validate",
  "toc_vfs",
 ]
 
@@ -842,8 +840,10 @@ dependencies = [
 name = "toc_common_db"
 version = "0.1.0"
 dependencies = [
+ "toc_parser",
  "toc_salsa",
  "toc_span",
+ "toc_validate",
  "toc_vfs",
 ]
 
@@ -861,7 +861,6 @@ dependencies = [
  "toc_salsa",
  "toc_span",
  "toc_syntax",
- "toc_validate",
  "toc_vfs",
 ]
 
@@ -900,6 +899,7 @@ dependencies = [
  "num-traits",
  "rowan",
  "toc_reporting",
+ "toc_salsa",
  "toc_scanner",
  "toc_span",
  "toc_syntax",

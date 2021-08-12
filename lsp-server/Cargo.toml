@@ -13,14 +13,12 @@ lsp-types = "0.89.1"
 serde_json = "1.0.64"
 
 # Local compiler dependencies
-toc_vfs = {path = "../compiler/toc_vfs"}
-toc_hir = {path = "../compiler/toc_hir"}
-toc_parser = {path = "../compiler/toc_parser"}
 toc_driver = {path = "../compiler/toc_driver"}
-toc_validate = {path = "../compiler/toc_validate"}
+toc_hir = {path = "../compiler/toc_hir"}
 toc_hir_lowering = {path = "../compiler/toc_hir_lowering"}
 toc_analysis = {path = "../compiler/toc_analysis"}
+toc_common_db = {path = "../compiler/toc_common_db"}
 toc_reporting = {path = "../compiler/toc_reporting"}
 toc_span = {path = "../compiler/toc_span"}
-toc_common_db = {path = "../compiler/toc_common_db"}
+toc_vfs = {path = "../compiler/toc_vfs"}
 toc_salsa = { path = "../compiler/toc_salsa" }
