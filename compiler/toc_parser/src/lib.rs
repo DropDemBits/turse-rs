@@ -1,4 +1,5 @@
 //! Parser for building the initial Concrete Syntax Tree
+mod depends;
 mod event;
 mod grammar;
 mod parser;
@@ -15,6 +16,9 @@ use rowan::GreenNode;
 
 use crate::sink::Sink;
 
+pub use depends::{Dependency, FileDepends};
+
+/// Parse a regular file into a [`ParseTree`]
 pub fn parse(file: Option<FileId>, source: &str) -> CompileResult<ParseTree> {
     let (tokens, scanner_msgs) = Scanner::new(file, source).collect_all();
 
@@ -25,6 +29,11 @@ pub fn parse(file: Option<FileId>, source: &str) -> CompileResult<ParseTree> {
     let sink = Sink::new(&tokens, events, vec![scanner_msgs, parser_msgs]);
 
     sink.finish()
+}
+
+/// Parse the dependencies of a file
+pub fn parse_depends(file: Option<FileId>, syntax: SyntaxNode) -> CompileResult<FileDepends> {
+    depends::gather_dependencies(file, syntax)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

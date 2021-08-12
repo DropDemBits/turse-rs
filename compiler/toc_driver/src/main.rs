@@ -30,11 +30,11 @@ fn main() {
     let parsed = {
         let parsed = db.parse_file(root_file);
         let tree = parsed.result();
-        let dependencies = toc_driver::gather_dependencies(Some(root_file), tree.syntax());
+        let dependencies = db.parse_depends(root_file);
         // TODO: Gather dependencies from root CST, and parse them
 
         println!("Parsed output: {}", tree.dump_tree());
-        println!("Dependencies: {:#?}", dependencies);
+        println!("Dependencies: {:#?}", dependencies.result());
 
         parsed
     };

@@ -1,6 +1,28 @@
+//! File dependencies extracted from a file
+use std::sync::Arc;
+
+use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 use toc_syntax::ast::AstNode;
 use toc_syntax::{ast, match_ast, SyntaxNode};
+
+/// What other file sources a given file depends on
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileDepends {
+    depends: Arc<Vec<Dependency>>,
+}
+
+impl FileDepends {
+    pub fn dependencies(&self) -> &[Dependency] {
+        &self.depends
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dependency {
+    pub kind: DependencyKind,
+    pub relative_path: String,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DependencyKind {
@@ -12,16 +34,10 @@ pub enum DependencyKind {
     Import,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Dependency {
-    pub kind: DependencyKind,
-    pub relative_path: String,
-}
-
-pub fn gather_dependencies(
+pub(crate) fn gather_dependencies(
     file: Option<FileId>,
     syntax: SyntaxNode,
-) -> (Vec<Dependency>, toc_reporting::MessageSink) {
+) -> CompileResult<FileDepends> {
     fn external_item<T: ast::AstNode>(node: Option<T>) -> Option<ast::ExternalItem> {
         let node = node?;
         let syntax = node.syntax();
@@ -153,19 +169,24 @@ pub fn gather_dependencies(
         }
     }
 
-    (dependencies, messages)
+    let dependencies = FileDepends {
+        depends: Arc::new(dependencies),
+    };
+
+    CompileResult::new(dependencies, messages.finish())
 }
 
 #[test]
 fn gather_no_deps() {
-    let parsed = toc_parser::parse(None, r#"moot"#);
-    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
+    let parsed = super::parse(None, r#"moot"#);
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
     assert!(dependencies.is_empty());
 }
 
 #[test]
 fn gather_includes() {
-    let parsed = toc_parser::parse(
+    let parsed = super::parse(
         None,
         r#"
     include "\uD2\u77\uD3_whats_this"
@@ -173,7 +194,8 @@ fn gather_includes() {
     include 'bad!' % Invalid include stmt
     "#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -195,13 +217,14 @@ fn gather_includes() {
 
 #[test]
 fn gather_main_imports() {
-    let parsed = toc_parser::parse(
+    let parsed = super::parse(
         None,
         r#"
     import "a", name, and_ in "external_place"
     "#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -230,15 +253,16 @@ fn gather_main_imports() {
 #[test]
 fn gather_no_deps_with_module() {
     // Module is not the root module
-    let parsed = toc_parser::parse(None, r#"module b import c end b"#);
-    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
+    let parsed = super::parse(None, r#"module b import c end b"#);
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
     assert!(dependencies.is_empty());
 }
 
 #[test]
 fn gather_deps_child_class() {
     // Module is not the root module
-    let parsed = toc_parser::parse(
+    let parsed = super::parse(
         None,
         r#"
     unit class b
@@ -249,7 +273,8 @@ fn gather_deps_child_class() {
         export e
     end b"#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
 
     assert_eq!(
         dependencies[0],
@@ -284,14 +309,15 @@ fn gather_deps_child_class() {
 
 #[test]
 fn gather_main_mixed_deps() {
-    let parsed = toc_parser::parse(
+    let parsed = super::parse(
         None,
         r#"
     import "a", name, and_ in "external_place"
     include "bob"
     "#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -326,15 +352,16 @@ fn gather_main_mixed_deps() {
 
 #[test]
 fn gather_bad_paths() {
-    let parsed = toc_parser::parse(
+    let parsed = super::parse(
         None,
         r#"
     import "a^"
     include "k\!"
     "#,
     );
-    let (dependencies, messages) = gather_dependencies(None, parsed.result().syntax());
+    let depend_res = gather_dependencies(None, parsed.result().syntax());
+    let dependencies = depend_res.result().dependencies();
 
     assert!(dependencies.is_empty(), "{:?}", dependencies);
-    eprintln!("{:?}", messages.finish())
+    eprintln!("{:?}", depend_res.messages())
 }

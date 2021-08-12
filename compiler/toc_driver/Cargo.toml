@@ -17,6 +17,3 @@ toc_span = { path = "../toc_span" }
 toc_common_db = { path = "../toc_common_db" }
 annotate-snippets = { version = "0.9.0", features = ["color"] }
 toc_salsa = { path = "../toc_salsa" }
-
-[dev-dependencies]
-toc_parser = { path = "../toc_parser" }

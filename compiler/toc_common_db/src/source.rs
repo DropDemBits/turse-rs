@@ -13,7 +13,8 @@ pub trait SourceParser: FileSystem {
     /// Validates the file according to grammar validation rules
     fn validate_file(&self, file_id: FileId) -> CompileResult<()>;
 
-    // TODO: Add dependency extraction query (take code from toc_driver)
+    /// Parse out the dependencies of a file
+    fn parse_depends(&self, file_id: FileId) -> CompileResult<toc_parser::FileDepends>;
 }
 
 fn parse_file(db: &dyn SourceParser, file_id: FileId) -> CompileResult<toc_parser::ParseTree> {
@@ -25,4 +26,9 @@ fn parse_file(db: &dyn SourceParser, file_id: FileId) -> CompileResult<toc_parse
 fn validate_file(db: &dyn SourceParser, file_id: FileId) -> CompileResult<()> {
     let cst = db.parse_file(file_id);
     toc_validate::validate_ast(Some(file_id), cst.result().syntax())
+}
+
+fn parse_depends(db: &dyn SourceParser, file_id: FileId) -> CompileResult<toc_parser::FileDepends> {
+    let cst = db.parse_file(file_id);
+    toc_parser::parse_depends(Some(file_id), cst.result().syntax())
 }

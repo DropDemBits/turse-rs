@@ -13,7 +13,6 @@ lsp-types = "0.89.1"
 serde_json = "1.0.64"
 
 # Local compiler dependencies
-toc_driver = {path = "../compiler/toc_driver"}
 toc_hir = {path = "../compiler/toc_hir"}
 toc_hir_lowering = {path = "../compiler/toc_hir_lowering"}
 toc_analysis = {path = "../compiler/toc_analysis"}

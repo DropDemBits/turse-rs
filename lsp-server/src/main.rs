@@ -144,12 +144,11 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     let hir_db = db::HirBuilder::new();
 
     // Parse root CST
-    let (parsed, dep_messages) = {
+    let (parsed, depend_res) = {
         let parsed = db.parse_file(root_file);
-        let (_dependencies, messages) =
-            toc_driver::gather_dependencies(Some(root_file), parsed.result().syntax());
+        let depend_res = db.parse_depends(root_file);
 
-        (parsed, messages.finish())
+        (parsed, depend_res)
     };
 
     eprintln!("finished parse @ {:?}", uri.as_str());
@@ -172,7 +171,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     let mut msgs = parsed
         .messages()
         .iter()
-        .chain(dep_messages.iter())
+        .chain(depend_res.messages().iter())
         .chain(validate_res.messages().iter())
         .chain(hir_res.messages().iter())
         .chain(analyze_res.messages().iter())
