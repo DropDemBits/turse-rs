@@ -11,3 +11,4 @@ toc_span = { path = "../toc_span" }
 toc_vfs = { path = "../toc_vfs" }
 toc_parser = { path = "../toc_parser" }
 toc_validate = { path = "../toc_validate" }
+toc_reporting = { path = "../toc_reporting" }

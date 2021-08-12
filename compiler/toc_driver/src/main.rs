@@ -29,10 +29,11 @@ fn main() {
     // Parse root CST
     let parsed = {
         let parsed = db.parse_file(root_file);
-        let dependencies = toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
+        let tree = parsed.result();
+        let dependencies = toc_driver::gather_dependencies(Some(root_file), tree.syntax());
         // TODO: Gather dependencies from root CST, and parse them
 
-        println!("Parsed output: {}", parsed.dump_tree());
+        println!("Parsed output: {}", tree.dump_tree());
         println!("Dependencies: {:#?}", dependencies);
 
         parsed
@@ -42,18 +43,19 @@ fn main() {
 
     let (validate_res, hir_res) = {
         let validate_res = db.validate_file(root_file);
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
+        let hir_res =
+            toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.result().syntax());
 
         (validate_res, hir_res)
     };
 
     let hir_db = hir_db.finish();
-    let root_unit = hir_db.get_unit(hir_res.id);
+    let root_unit = hir_db.get_unit(*hir_res.result());
     println!("{:#?}", root_unit);
 
     // TODO: resolve imports between units
 
-    let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), hir_res.id);
+    let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), *hir_res.result());
 
     let mut msgs = parsed
         .messages()

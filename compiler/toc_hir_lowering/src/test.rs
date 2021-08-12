@@ -1,11 +1,10 @@
 //! Tests for lowering
 use if_chain::if_chain;
 use toc_hir::{db, expr, stmt, unit};
-
-use crate::HirLowerResult;
+use toc_reporting::CompileResult;
 
 struct LowerResult {
-    hir_result: HirLowerResult,
+    hir_result: CompileResult<unit::UnitId>,
     hir_db: db::HirDb,
 }
 
@@ -49,14 +48,14 @@ fn assert_lower(src: &str) -> LowerResult {
     let (hir_db, lowered) = {
         let parsed = toc_parser::parse(None, src);
         let hir_db = db::HirBuilder::new();
-        let hir_res = crate::lower_ast(hir_db.clone(), None, parsed.syntax());
+        let hir_res = crate::lower_ast(hir_db.clone(), None, parsed.result().syntax());
         let hir_db = hir_db.finish();
 
         (hir_db, hir_res)
     };
 
-    let mut s = stringify_unit(&hir_db, hir_db.get_unit(lowered.id));
-    for err in &lowered.messages {
+    let mut s = stringify_unit(&hir_db, hir_db.get_unit(*lowered.result()));
+    for err in lowered.messages() {
         s.push_str(&format!("{}\n", err));
     }
 
@@ -75,7 +74,7 @@ fn literal_value(lower_result: &LowerResult) -> &expr::Literal {
     } = &lower_result;
 
     if_chain! {
-        let unit = db.get_unit(hir_result.id);
+        let unit = db.get_unit(*hir_result.result());
         if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = db.get_stmt(unit.stmts[0]);
         if let expr::Expr::Literal(value) = db.get_expr(*rhs);
         then {

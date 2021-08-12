@@ -159,7 +159,7 @@ pub fn gather_dependencies(
 #[test]
 fn gather_no_deps() {
     let parsed = toc_parser::parse(None, r#"moot"#);
-    let (dependencies, _messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
     assert!(dependencies.is_empty());
 }
 
@@ -173,7 +173,7 @@ fn gather_includes() {
     include 'bad!' % Invalid include stmt
     "#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -201,7 +201,7 @@ fn gather_main_imports() {
     import "a", name, and_ in "external_place"
     "#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -231,7 +231,7 @@ fn gather_main_imports() {
 fn gather_no_deps_with_module() {
     // Module is not the root module
     let parsed = toc_parser::parse(None, r#"module b import c end b"#);
-    let (dependencies, _messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
     assert!(dependencies.is_empty());
 }
 
@@ -249,7 +249,7 @@ fn gather_deps_child_class() {
         export e
     end b"#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
 
     assert_eq!(
         dependencies[0],
@@ -291,7 +291,7 @@ fn gather_main_mixed_deps() {
     include "bob"
     "#,
     );
-    let (dependencies, _messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, _messages) = gather_dependencies(None, parsed.result().syntax());
 
     assert!(!dependencies.is_empty());
     assert_eq!(
@@ -333,7 +333,7 @@ fn gather_bad_paths() {
     include "k\!"
     "#,
     );
-    let (dependencies, messages) = gather_dependencies(None, parsed.syntax());
+    let (dependencies, messages) = gather_dependencies(None, parsed.result().syntax());
 
     assert!(dependencies.is_empty(), "{:?}", dependencies);
     eprintln!("{:?}", messages.finish())

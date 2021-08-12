@@ -1,10 +1,10 @@
 //! Sink for events
 use crate::event::Event;
-use crate::ParseResult;
+use crate::ParseTree;
 
 use rowan::GreenNodeBuilder;
 use std::mem;
-use toc_reporting::{MessageSink, ReportMessage};
+use toc_reporting::{CompileResult, MessageSink, ReportMessage};
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
@@ -39,7 +39,7 @@ impl<'t, 'src> Sink<'t, 'src> {
         }
     }
 
-    pub(super) fn finish(mut self) -> ParseResult {
+    pub(super) fn finish(mut self) -> CompileResult<ParseTree> {
         for idx in 0..self.events.len() {
             match mem::take(&mut self.events[idx]) {
                 Event::StartNode {
@@ -96,10 +96,11 @@ impl<'t, 'src> Sink<'t, 'src> {
             }
         }
 
-        ParseResult {
+        let tree = ParseTree {
             node: self.builder.finish(),
-            messages: self.messages,
-        }
+        };
+
+        CompileResult::new(tree, self.messages)
     }
 
     fn token(&mut self) {

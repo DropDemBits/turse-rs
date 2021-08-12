@@ -147,7 +147,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     let (parsed, dep_messages) = {
         let parsed = db.parse_file(root_file);
         let (_dependencies, messages) =
-            toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
+            toc_driver::gather_dependencies(Some(root_file), parsed.result().syntax());
 
         (parsed, messages.finish())
     };
@@ -156,7 +156,8 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
 
     let (validate_res, hir_res) = {
         let validate_res = db.validate_file(root_file);
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
+        let hir_res =
+            toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.result().syntax());
 
         (validate_res, hir_res)
     };
@@ -164,7 +165,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     eprintln!("finished CST validate & lower @ {:?}", uri.as_str());
 
     let hir_db = hir_db.finish();
-    let analyze_res = toc_analysis::analyze_unit(hir_db, hir_res.id);
+    let analyze_res = toc_analysis::analyze_unit(hir_db, *hir_res.result());
 
     eprintln!("finished analysis @ {:?}", uri.as_str());
 

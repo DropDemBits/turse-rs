@@ -22,7 +22,7 @@ mod scopes;
 
 use toc_hir::db::HirBuilder;
 use toc_hir::unit;
-use toc_reporting::ReportMessage;
+use toc_reporting::CompileResult;
 use toc_span::FileId;
 use toc_syntax::{
     ast::{self, AstNode},
@@ -34,24 +34,16 @@ use crate::lower::LoweringCtx;
 #[cfg(test)]
 mod test;
 
-#[derive(Debug)]
-pub struct HirLowerResult {
-    /// Id of the newly lowered unit
-    pub id: unit::UnitId,
-    messages: Vec<ReportMessage>,
-}
-
-impl HirLowerResult {
-    pub fn messages(&self) -> &[ReportMessage] {
-        &self.messages
-    }
-}
-
+/// Lowers the AST into the HIR representation
+///
+/// ## Returns
+///
+/// Returns the [`UnitId`] of the newly lowered unit.
 pub fn lower_ast(
     hir_db: HirBuilder,
     file: Option<FileId>,
     root_node: SyntaxNode,
-) -> HirLowerResult {
+) -> CompileResult<unit::UnitId> {
     let mut ctx = LoweringCtx::new(hir_db, file);
     let root = ast::Source::cast(root_node).unwrap();
     let unit_span = toc_span::Span::new(file, root.syntax().text_range());
@@ -77,5 +69,5 @@ pub fn lower_ast(
         unit_span,
     );
 
-    HirLowerResult { id: unit, messages }
+    CompileResult::new(unit, messages)
 }

@@ -28,10 +28,10 @@ fn do_const_eval(source: &str) -> String {
     let (hir_db, root_unit) = {
         let parsed = toc_parser::parse(None, source);
         let hir_db = db::HirBuilder::new();
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
+        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.result().syntax());
         let hir_db = hir_db.finish();
 
-        (hir_db, hir_res.id)
+        (hir_db, *hir_res.result())
     };
 
     let unit = hir_db.get_unit(root_unit);

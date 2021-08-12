@@ -43,20 +43,19 @@ fn do_typecheck(source: &str) -> String {
     let (hir_db, root_unit) = {
         let parsed = toc_parser::parse(None, source);
         let hir_db = db::HirBuilder::new();
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
+        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.result().syntax());
 
         let hir_db = hir_db.finish();
 
-        (hir_db, hir_res.id)
+        (hir_db, *hir_res.result())
     };
 
     let unit = hir_db.get_unit(root_unit);
     let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
     crate::const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
-    let (ty_ctx, typeck_messages) =
-        crate::typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx);
+    let typeck_res = crate::typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx);
 
-    stringify_typeck_results(&ty_ctx, &typeck_messages)
+    stringify_typeck_results(typeck_res.result(), typeck_res.messages())
 }
 
 fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> String {

@@ -9,7 +9,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use toc_hir::{db, expr, stmt, ty as hir_ty, unit};
-use toc_reporting::{MessageSink, ReportMessage};
+use toc_reporting::{CompileResult, MessageSink};
 use toc_span::Spanned;
 
 use crate::const_eval::{ConstError, ConstEvalCtx, ConstInt, RestrictType};
@@ -36,7 +36,7 @@ pub fn typecheck_unit(
     hir_db: db::HirDb,
     unit: &unit::Unit,
     const_eval: Arc<ConstEvalCtx>,
-) -> (TyCtx, Vec<ReportMessage>) {
+) -> CompileResult<TyCtx> {
     TypeCheck::check_unit(hir_db, unit, const_eval)
 }
 
@@ -72,7 +72,7 @@ impl<'a> TypeCheck<'a> {
         hir_db: db::HirDb,
         unit: &'a unit::Unit,
         const_eval: Arc<ConstEvalCtx>,
-    ) -> (TyCtx, Vec<ReportMessage>) {
+    ) -> CompileResult<TyCtx> {
         let state = TypeCheckState {
             ty_ctx: TyCtx::new(),
             cached_expr_evals: HashMap::new(),
@@ -99,7 +99,7 @@ impl<'a> TypeCheck<'a> {
             ty_ctx, reporter, ..
         } = state;
 
-        (ty_ctx, reporter.finish())
+        CompileResult::new(ty_ctx, reporter.finish())
     }
 
     fn state(&self) -> std::cell::RefMut<TypeCheckState> {

@@ -1,32 +1,36 @@
 //! Common message reporting for all compiler libraries
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 use toc_span::Span;
 
-// TODO: Create a common compiler message bundle
-
-/// Type of annotation added to a message
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AnnotateKind {
-    /// Information related to the main message.
-    /// May be context specific.
-    Note,
-    /// More detailed related to the message.
-    Info,
-    /// Warning annotation
-    Warning,
-    /// Error annotation
-    Error,
+/// A compilation result, including a bundle of associated messages
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompileResult<T> {
+    result: T,
+    messages: Arc<Vec<ReportMessage>>,
 }
 
-impl fmt::Display for AnnotateKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            AnnotateKind::Note => "note",
-            AnnotateKind::Info => "info",
-            AnnotateKind::Warning => "warn",
-            AnnotateKind::Error => "error",
-        })
+impl<T> CompileResult<T> {
+    pub fn new(result: T, messages: Vec<ReportMessage>) -> Self {
+        Self {
+            result,
+            messages: Arc::new(messages),
+        }
+    }
+
+    /// Gets the produced item.
+    pub fn result(&self) -> &T {
+        &self.result
+    }
+
+    /// Gets the associated messages.
+    pub fn messages(&self) -> &[ReportMessage] {
+        &self.messages
+    }
+
+    /// Extracts messages from this result into a destination sink.
+    pub fn bundle_messages(&self, dest: &mut Vec<ReportMessage>) {
+        dest.extend_from_slice(&self.messages);
     }
 }
 
@@ -80,6 +84,31 @@ impl fmt::Display for ReportMessage {
         }
 
         Ok(())
+    }
+}
+
+/// Type of annotation added to a message
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnnotateKind {
+    /// Information related to the main message.
+    /// May be context specific.
+    Note,
+    /// More detailed related to the message.
+    Info,
+    /// Warning annotation
+    Warning,
+    /// Error annotation
+    Error,
+}
+
+impl fmt::Display for AnnotateKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            AnnotateKind::Note => "note",
+            AnnotateKind::Info => "info",
+            AnnotateKind::Warning => "warn",
+            AnnotateKind::Error => "error",
+        })
     }
 }
 
