@@ -7,8 +7,8 @@ use lsp_types::{
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
-use toc_common_db::source::SourceParser;
-use toc_common_db::span::SpanMapping;
+use toc_ast_db::source::SourceParser;
+use toc_ast_db::span::SpanMapping;
 use toc_hir::db;
 use toc_salsa::salsa;
 use toc_vfs::query::VfsDatabaseExt;
@@ -240,7 +240,7 @@ trait IntoPosition {
     fn into_position(self) -> Position;
 }
 
-impl IntoPosition for toc_common_db::span::LspPosition {
+impl IntoPosition for toc_ast_db::span::LspPosition {
     fn into_position(self) -> Position {
         Position::new(self.line, self.column)
     }
@@ -248,8 +248,8 @@ impl IntoPosition for toc_common_db::span::LspPosition {
 
 #[salsa::database(
     toc_vfs::query::FileSystemStorage,
-    toc_common_db::span::SpanMappingStorage,
-    toc_common_db::source::SourceParserStorage
+    toc_ast_db::span::SpanMappingStorage,
+    toc_ast_db::source::SourceParserStorage
 )]
 #[derive(Default)]
 struct LspDatabase {

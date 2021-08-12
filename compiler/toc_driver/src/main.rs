@@ -3,8 +3,8 @@
 use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
-use toc_common_db::source::SourceParser;
-use toc_common_db::span::SpanMapping;
+use toc_ast_db::source::SourceParser;
+use toc_ast_db::span::SpanMapping;
 use toc_hir::db;
 use toc_salsa::salsa;
 use toc_vfs::query::{FileSystem, VfsDatabaseExt};
@@ -260,8 +260,8 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
 
 #[salsa::database(
     toc_vfs::query::FileSystemStorage,
-    toc_common_db::span::SpanMappingStorage,
-    toc_common_db::source::SourceParserStorage
+    toc_ast_db::span::SpanMappingStorage,
+    toc_ast_db::source::SourceParserStorage
 )]
 #[derive(Default)]
 struct MainDatabase {

@@ -14,6 +14,6 @@ toc_hir_lowering = { path = "../toc_hir_lowering" }
 toc_vfs = { path = "../toc_vfs" }
 toc_analysis = { path = "../toc_analysis" }
 toc_span = { path = "../toc_span" }
-toc_common_db = { path = "../toc_common_db" }
+toc_ast_db = { path = "../toc_ast_db" }
 annotate-snippets = { version = "0.9.0", features = ["color"] }
 toc_salsa = { path = "../toc_salsa" }

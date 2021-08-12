@@ -1,5 +1,5 @@
 [package]
-name = "toc_common_db"
+name = "toc_ast_db"
 version = "0.1.0"
 edition = "2018"
 

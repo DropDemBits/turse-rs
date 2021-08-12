@@ -404,7 +404,7 @@ dependencies = [
  "lsp-types",
  "serde_json",
  "toc_analysis",
- "toc_common_db",
+ "toc_ast_db",
  "toc_hir",
  "toc_hir_lowering",
  "toc_reporting",
@@ -836,7 +836,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "toc_common_db"
+name = "toc_ast_db"
 version = "0.1.0"
 dependencies = [
  "toc_parser",
@@ -853,7 +853,7 @@ version = "0.1.0"
 dependencies = [
  "annotate-snippets",
  "toc_analysis",
- "toc_common_db",
+ "toc_ast_db",
  "toc_hir",
  "toc_hir_lowering",
  "toc_reporting",
