@@ -8,7 +8,7 @@ InnerCtx {
         EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(7))), span: Span { file: None, range: 11..28 }, state: Error(ConstError { kind: RealOverflow, span: Span { file: None, range: 18..19 } }) },
     ],
     var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(7))), DefId(0)): ConstExpr { id: 0 },
+        DefId(0): ConstExpr { id: 0 },
     },
 }
 ConstExpr { id: 0 } -> ConstError { kind: RealOverflow, span: Span { file: None, range: 18..19 } }

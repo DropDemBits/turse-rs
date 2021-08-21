@@ -13,7 +13,7 @@ use std::{
 };
 
 use indexmap::IndexMap;
-use toc_hir::{db, expr, symbol::GlobalDefId, unit};
+use toc_hir::{db, expr, symbol::DefId, unit};
 
 pub use errors::ConstError;
 pub use integer::ConstInt;
@@ -87,8 +87,7 @@ pub fn collect_const_vars(hir_db: db::HirDb, unit: &unit::Unit, const_eval: Arc<
 
                     // Add mappings
                     for def in &decl.names {
-                        self.const_eval
-                            .add_var(def.into_global(self.unit.id), const_expr);
+                        self.const_eval.add_var(*def, const_expr);
                     }
                 }
             };
@@ -135,7 +134,7 @@ impl ConstEvalCtx {
     ///
     /// The `init_expr` expression must be assignable with respect to the
     /// constant's type spec (excluding bounded value restrictions).
-    pub fn add_var(&self, def_id: GlobalDefId, init_expr: ConstExpr) {
+    pub fn add_var(&self, def_id: DefId, init_expr: ConstExpr) {
         let mut inner = self.inner.write().unwrap();
         inner.add_var(def_id, init_expr);
     }
@@ -162,8 +161,8 @@ struct InnerCtx {
     hir_db: db::HirDb,
     /// Evaluation info of constant exprs
     eval_infos: Vec<EvalInfo>,
-    /// Mapping GlobalDefId's into the corresponding ConstExpr
-    var_to_expr: IndexMap<GlobalDefId, ConstExpr>,
+    /// Mapping DefId's into the corresponding ConstExpr
+    var_to_expr: IndexMap<DefId, ConstExpr>,
 }
 
 impl InnerCtx {
@@ -201,7 +200,7 @@ impl InnerCtx {
         v
     }
 
-    fn add_var(&mut self, def_id: GlobalDefId, init_expr: ConstExpr) {
+    fn add_var(&mut self, def_id: DefId, init_expr: ConstExpr) {
         // Map the def to the const expr
         self.var_to_expr.insert(def_id, init_expr);
     }
@@ -249,13 +248,11 @@ impl InnerCtx {
         }
     }
 
-    fn eval_var(&mut self, var: GlobalDefId) -> ConstResult<ConstValue> {
+    fn eval_var(&mut self, var: DefId) -> ConstResult<ConstValue> {
         // Evaluation restrictions are passed off to the const exprs themselves
         let const_expr = *self.var_to_expr.get(&var).ok_or_else(|| {
             // Fetch the span of the declaration
-            let def_id = var.as_local();
-
-            let span = self.hir_db.get_def_span(def_id);
+            let span = self.hir_db.get_def_span(var);
 
             ConstError::new(ErrorKind::NoConstExpr(span), span)
         })?;
@@ -270,9 +267,9 @@ impl InnerCtx {
             Op(ConstOp, toc_span::Span),
         }
 
-        let (unit_id, root_expr, allow_64bit_ops) = {
+        let (root_expr, allow_64bit_ops) = {
             let info = &self.eval_infos[const_expr.id];
-            (info.unit_id, info.expr_id, info.allow_64bit_ops)
+            (info.expr_id, info.allow_64bit_ops)
         };
 
         // Unevaluated, evaluate the expression
@@ -356,11 +353,11 @@ impl InnerCtx {
                             // Lookup var
                             // ???: How to lookup identifiers imported from different units
                             // - `Unit` should have an import table mapping local `UseId`s to
-                            //   `GlobalDefId`'s
-                            let global_def = use_id.as_def().into_global(unit_id);
+                            //   the canonical`DefId`'s
+                            let var_def = use_id.as_def();
 
                             // Eval var
-                            let value = self.eval_var(global_def).map_err(|err| {
+                            let value = self.eval_var(var_def).map_err(|err| {
                                 if let ErrorKind::NoConstExpr(_) = err.kind() {
                                     // Change the span to reflect the use
                                     err.change_span(expr_span)

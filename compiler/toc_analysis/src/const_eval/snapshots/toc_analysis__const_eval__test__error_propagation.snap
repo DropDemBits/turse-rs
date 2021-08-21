@@ -9,8 +9,8 @@ InnerCtx {
         EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(6))), span: Span { file: None, range: 30..31 }, state: Error(ConstError { kind: Reported, span: Span { file: None, range: 30..31 } }) },
     ],
     var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(6))), DefId(0)): ConstExpr { id: 0 },
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(6))), DefId(1)): ConstExpr { id: 1 },
+        DefId(0): ConstExpr { id: 0 },
+        DefId(1): ConstExpr { id: 1 },
     },
 }
 ConstExpr { id: 0 } -> ConstError { kind: DivByZero, span: Span { file: None, range: 13..16 } }

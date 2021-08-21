@@ -8,7 +8,7 @@ InnerCtx {
         EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(3))), span: Span { file: None, range: 11..17 }, state: Error(ConstError { kind: WrongOperandType, span: Span { file: None, range: 11..12 } }) },
     ],
     var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(3))), DefId(0)): ConstExpr { id: 0 },
+        DefId(0): ConstExpr { id: 0 },
     },
 }
 ConstExpr { id: 0 } -> ConstError { kind: WrongOperandType, span: Span { file: None, range: 11..12 } }

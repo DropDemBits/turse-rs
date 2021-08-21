@@ -6,17 +6,11 @@ use std::fmt;
 use indexmap::IndexMap;
 use toc_span::Span;
 
-use crate::unit::UnitId;
-
 /// Definition of an identifier within a unit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DefId(usize);
 
 impl DefId {
-    pub fn into_global(self, unit: UnitId) -> GlobalDefId {
-        GlobalDefId(unit, self)
-    }
-
     /// Creates a new `DefId`
     ///
     /// Only to be used in testing
@@ -25,17 +19,19 @@ impl DefId {
     }
 }
 
+impl fmt::Debug for DefId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("DefId({:?})", self.0))
+    }
+}
+
 /// Use of an identifier within a unit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UseId(DefId, usize);
 
 impl UseId {
     pub fn as_def(self) -> DefId {
         self.0
-    }
-
-    pub fn into_global(self, unit: UnitId) -> GlobalUseId {
-        GlobalUseId(unit, self)
     }
 
     /// Creates a new `UseId`
@@ -46,43 +42,9 @@ impl UseId {
     }
 }
 
-/// Definition of an identifier in a specific unit.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GlobalDefId(UnitId, DefId);
-
-impl GlobalDefId {
-    pub fn unit_id(self) -> UnitId {
-        self.0
-    }
-
-    pub fn as_local(self) -> DefId {
-        self.1
-    }
-}
-
-impl fmt::Debug for GlobalDefId {
+impl fmt::Debug for UseId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("GlobalDefId({:?}, {:?})", self.0, self.1))
-    }
-}
-
-/// Use of an identifier in a specific unit
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GlobalUseId(UnitId, UseId);
-
-impl GlobalUseId {
-    pub fn unit_id(self) -> UnitId {
-        self.0
-    }
-
-    pub fn as_local(self) -> UseId {
-        self.1
-    }
-}
-
-impl fmt::Debug for GlobalUseId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("GlobalUseId({:?}, {:?})", self.0, self.1))
+        f.write_fmt(format_args!("UseId({:?}, {:?})", self.0, self.1))
     }
 }
 
