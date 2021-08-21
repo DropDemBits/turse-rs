@@ -4,7 +4,10 @@ mod test;
 
 use std::collections::HashMap;
 
-use toc_hir::symbol::{self, SymbolTable};
+use toc_hir::{
+    db,
+    symbol::{self},
+};
 use toc_span::Span;
 
 #[derive(Debug)]
@@ -25,24 +28,32 @@ impl Scope {
             is_import_boundary,
         }
     }
+
+    fn def_in(&mut self, name: &str, def_id: symbol::DefId) {
+        self.symbols.insert(name.to_string(), def_id);
+    }
 }
 
 #[derive(Debug)]
 pub(crate) struct ScopeBuilder {
-    symbol_table: SymbolTable,
+    hir_db: db::HirBuilder,
+    tracked_defs: Vec<symbol::DefId>,
+    tracked_uses: Vec<symbol::UseId>,
     scopes: Vec<Scope>,
 }
 
 impl ScopeBuilder {
-    pub fn new() -> Self {
+    pub fn new(hir_db: db::HirBuilder) -> Self {
         Self {
-            symbol_table: SymbolTable::new(),
+            hir_db,
+            tracked_defs: vec![],
+            tracked_uses: vec![],
             scopes: vec![Scope::new(true)],
         }
     }
 
-    pub fn finish(self) -> SymbolTable {
-        self.symbol_table
+    pub fn finish(self) -> (Vec<symbol::DefId>, Vec<symbol::UseId>) {
+        (self.tracked_defs, self.tracked_uses)
     }
 
     /// Wraps symbol definitions inside of a new scope
@@ -73,44 +84,26 @@ impl ScopeBuilder {
         kind: symbol::SymbolKind,
         is_pervasive: bool,
     ) -> symbol::DefId {
-        Self::def_in_scope(
-            &mut self.symbol_table,
-            self.scopes.last_mut().unwrap(),
-            name,
-            span,
-            kind,
-            is_pervasive,
-        )
+        let def_id = self.hir_db.def_sym(name, span, kind, is_pervasive);
+        self.tracked_defs.push(def_id);
+        self.scopes.last_mut().unwrap().def_in(name, def_id);
+        def_id
     }
 
     pub fn use_sym(&mut self, name: &str, span: Span) -> symbol::UseId {
         let def_id = self.lookup_def(name).unwrap_or_else(|| {
             // Declare at the import boundary
-            let def_id = Self::def_in_scope(
-                &mut self.symbol_table,
-                Self::boundary_scope(&mut self.scopes),
-                name,
-                span,
-                symbol::SymbolKind::Undeclared,
-                false,
-            );
+            let def_id = self
+                .hir_db
+                .def_sym(name, span, symbol::SymbolKind::Undeclared, false);
+            self.tracked_defs.push(def_id);
+            Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
             def_id
         });
 
-        self.symbol_table.use_sym(def_id, span)
-    }
-
-    fn def_in_scope(
-        symbol_table: &mut SymbolTable,
-        scope: &mut Scope,
-        name: &str,
-        span: Span,
-        kind: symbol::SymbolKind,
-        is_pervasive: bool,
-    ) -> symbol::DefId {
-        let def_id = symbol_table.def_sym(name, span, kind, is_pervasive);
-        scope.symbols.insert(name.to_string(), def_id);
-        def_id
+        let use_id = self.hir_db.use_sym(def_id, span);
+        self.tracked_uses.push(use_id);
+        use_id
     }
 
     /// Looks up a DefId, with respect to scoping rules
@@ -125,7 +118,7 @@ impl ScopeBuilder {
                 // Only allow an identifier to be fetched if we haven't
                 // restricted our search to pervasive identifiers, or any
                 // pervasive identifiers
-                if !restrict_to_pervasive || self.symbol_table.get_symbol(def_id).is_pervasive {
+                if !restrict_to_pervasive || self.hir_db.is_pervasive(def_id) {
                     return Some(def_id);
                 }
             }

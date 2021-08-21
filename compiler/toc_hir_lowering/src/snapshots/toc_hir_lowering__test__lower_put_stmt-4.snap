@@ -10,7 +10,7 @@ HirId(Idx::<HirNode>(1)) (Span { file: None, range: 8..9 }): Expr(Literal(Intege
 HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..0 }): Expr(Missing)
 HirId(Idx::<HirNode>(3)) (Span { file: None, range: 15..16 }): Expr(Literal(Integer(1)))
 HirId(Idx::<HirNode>(4)) (Span { file: None, range: 0..16 }): Stmt(Put(Put { stream_num: None, items: [Item(PutItem { expr: ExprId(HirId(Idx::<HirNode>(0))), opts: WithExponentWidth { width: ExprId(HirId(Idx::<HirNode>(1))), precision: ExprId(HirId(Idx::<HirNode>(2))), exponent_width: ExprId(HirId(Idx::<HirNode>(3))) } })], append_newline: true }))
-HirId(Idx::<HirNode>(5)) (Span { file: None, range: 0..16 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(5))), stmts: [StmtId(HirId(Idx::<HirNode>(4)))], symbol_table: SymbolTable { defs: {}, def_spans: {}, use_spans: {}, next_def: 0 } })
+HirId(Idx::<HirNode>(5)) (Span { file: None, range: 0..16 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(5))), stmts: [StmtId(HirId(Idx::<HirNode>(4)))], tracked_defs: [], tracked_uses: [] })
 
 root stmts:
 [StmtId(HirId(Idx::<HirNode>(4)))]

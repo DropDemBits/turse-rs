@@ -25,9 +25,9 @@ impl LoweringCtx {
     pub(super) fn new(database: db::HirBuilder, file: Option<FileId>) -> Self {
         Self {
             file,
-            database,
+            database: database.clone(),
             messages: MessageSink::new(),
-            scopes: scopes::ScopeBuilder::new(),
+            scopes: scopes::ScopeBuilder::new(database),
         }
     }
 

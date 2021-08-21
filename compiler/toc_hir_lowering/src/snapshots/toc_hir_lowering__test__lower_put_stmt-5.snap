@@ -8,7 +8,7 @@ nodes:
 HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Literal(Integer(1)))
 HirId(Idx::<HirNode>(1)) (Span { file: None, range: 8..9 }): Expr(Literal(Integer(1)))
 HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..14 }): Stmt(Put(Put { stream_num: None, items: [Item(PutItem { expr: ExprId(HirId(Idx::<HirNode>(0))), opts: WithWidth { width: ExprId(HirId(Idx::<HirNode>(1))) } })], append_newline: true }))
-HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..15 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(3))), stmts: [StmtId(HirId(Idx::<HirNode>(2)))], symbol_table: SymbolTable { defs: {}, def_spans: {}, use_spans: {}, next_def: 0 } })
+HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..15 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(3))), stmts: [StmtId(HirId(Idx::<HirNode>(2)))], tracked_defs: [], tracked_uses: [] })
 
 root stmts:
 [StmtId(HirId(Idx::<HirNode>(2)))]

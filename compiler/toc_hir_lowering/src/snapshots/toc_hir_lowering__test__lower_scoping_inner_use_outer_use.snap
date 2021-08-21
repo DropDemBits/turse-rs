@@ -12,7 +12,7 @@ HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..16 }): Stmt(Block(Block {
 HirId(Idx::<HirNode>(4)) (Span { file: None, range: 17..18 }): Expr(Name(Name(UseId(DefId(0), 1))))
 HirId(Idx::<HirNode>(5)) (Span { file: None, range: 22..23 }): Expr(Name(Name(UseId(DefId(1), 1))))
 HirId(Idx::<HirNode>(6)) (Span { file: None, range: 17..23 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(4))), op: Spanned(None, Span { file: None, range: 19..21 }), rhs: ExprId(HirId(Idx::<HirNode>(5))) }))
-HirId(Idx::<HirNode>(7)) (Span { file: None, range: 0..23 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(7))), stmts: [StmtId(HirId(Idx::<HirNode>(3))), StmtId(HirId(Idx::<HirNode>(6)))], symbol_table: SymbolTable { defs: {DefId(0): Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 2 }, DefId(1): Symbol { name: "b", kind: Undeclared, is_pervasive: false, def_id: DefId(1), next_use: 2 }}, def_spans: {DefId(0): Span { file: None, range: 6..7 }, DefId(1): Span { file: None, range: 11..12 }}, use_spans: {UseId(DefId(0), 0): Span { file: None, range: 6..7 }, UseId(DefId(1), 0): Span { file: None, range: 11..12 }, UseId(DefId(0), 1): Span { file: None, range: 17..18 }, UseId(DefId(1), 1): Span { file: None, range: 22..23 }}, next_def: 2 } })
+HirId(Idx::<HirNode>(7)) (Span { file: None, range: 0..23 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(7))), stmts: [StmtId(HirId(Idx::<HirNode>(3))), StmtId(HirId(Idx::<HirNode>(6)))], tracked_defs: [DefId(0), DefId(1)], tracked_uses: [UseId(DefId(0), 0), UseId(DefId(1), 0), UseId(DefId(0), 1), UseId(DefId(1), 1)] })
 
 root stmts:
 [StmtId(HirId(Idx::<HirNode>(3))), StmtId(HirId(Idx::<HirNode>(6)))]

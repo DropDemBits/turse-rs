@@ -253,13 +253,9 @@ impl InnerCtx {
         // Evaluation restrictions are passed off to the const exprs themselves
         let const_expr = *self.var_to_expr.get(&var).ok_or_else(|| {
             // Fetch the span of the declaration
-            let (unit_id, def_id) = (var.unit_id(), var.as_local());
+            let def_id = var.as_local();
 
-            let span = self
-                .hir_db
-                .get_unit(unit_id)
-                .symbol_table
-                .get_def_span(def_id);
+            let span = self.hir_db.get_def_span(def_id);
 
             ConstError::new(ErrorKind::NoConstExpr(span), span)
         })?;

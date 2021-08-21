@@ -515,8 +515,8 @@ impl<'a> TypeCheck<'a> {
             ty_ref
         } else {
             // Nab symbol info
-            let sym_name = &self.unit.symbol_table.get_symbol(use_id.as_def()).name;
-            let expr_range = self.unit.symbol_table.get_use_span(*use_id);
+            let sym_name = &self.hir_db.get_symbol(use_id.as_def()).name;
+            let expr_range = self.hir_db.get_use_span(*use_id);
 
             // Not declared, no type provided by any decls
             self.state()

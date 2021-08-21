@@ -1,12 +1,12 @@
 //! Scope testing
-use toc_hir::symbol::SymbolKind;
+use toc_hir::{db::HirBuilder, symbol::SymbolKind};
 
 use super::ScopeBuilder;
 
 #[test]
 fn test_ident_declare_use() {
     // declare | usage
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     let def_id = scopes.def_sym("a", Default::default(), SymbolKind::Declared, false);
     let use_id = scopes.use_sym("a", Default::default());
@@ -16,7 +16,7 @@ fn test_ident_declare_use() {
 
 #[test]
 fn test_ident_redeclare() {
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     // First decl, pass
     let initial_id = scopes.def_sym("a", Default::default(), SymbolKind::Declared, false);
@@ -30,7 +30,7 @@ fn test_ident_redeclare() {
 #[test]
 fn test_ident_declare_shadow() {
     // Identifier shadowing is not allow within inner scopes, but is detected later on
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     // Outer declare
     let outer_def = scopes.def_sym("a", Default::default(), SymbolKind::Declared, false);
@@ -52,7 +52,7 @@ fn test_ident_declare_shadow() {
 #[test]
 fn test_ident_declare_no_shadow() {
     // Declaring outer after inner scopes should not cause issues
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     // Inner declare
     let (shadow_def, shadow_use) = scopes.with_scope(false, |scopes| {
@@ -75,10 +75,16 @@ fn test_ident_declare_no_shadow() {
 
 #[test]
 fn test_use_undefined() {
-    let mut scopes = ScopeBuilder::new();
+    let builder = HirBuilder::new();
+    let mut scopes = ScopeBuilder::new(builder.clone());
 
     let use_id = scopes.use_sym("a", Default::default());
-    let info = scopes.symbol_table.get_symbol(use_id.as_def());
+
+    // Convert into a hir db
+    let _ = scopes.finish();
+    let hir_db = builder.finish();
+
+    let info = hir_db.get_symbol(use_id.as_def());
     // Should be undeclared
     assert_eq!(info.kind, SymbolKind::Undeclared);
 }
@@ -86,7 +92,7 @@ fn test_use_undefined() {
 #[test]
 fn test_use_shared_undefined() {
     // Undeclared identifiers should be hoisted to the top-most import boundary
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     // Don't contaminate root scope
     let inner_id = scopes.with_scope(true, |scopes| {
@@ -116,7 +122,7 @@ fn test_use_shared_undefined() {
 #[test]
 fn test_use_import() {
     // External identifiers should be imported into the current scope (i.e share the same IdentId)
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     // Root declare
     let declare_id = scopes.def_sym("a", Default::default(), SymbolKind::Declared, false);
@@ -132,7 +138,7 @@ fn test_use_import() {
 
 #[test]
 fn test_import_boundaries() {
-    let mut scopes = ScopeBuilder::new();
+    let mut scopes = ScopeBuilder::new(HirBuilder::new());
 
     // Declare some external identifiers
     let non_pervasive = scopes.def_sym(

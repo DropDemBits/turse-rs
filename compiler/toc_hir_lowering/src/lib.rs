@@ -59,11 +59,12 @@ pub fn lower_ast(
 
     let unit = hir_db.add_unit_with(
         move |id| {
-            let symbol_table = scopes.finish();
+            let (tracked_defs, tracked_uses) = scopes.finish();
             unit::Unit {
                 id,
                 stmts,
-                symbol_table,
+                tracked_defs,
+                tracked_uses,
             }
         },
         unit_span,

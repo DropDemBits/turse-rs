@@ -29,15 +29,18 @@ fn stringify_unit(db: &db::HirDb, unit: &unit::Unit) -> String {
     s.push_str(&format!("{:?}\n", unit.stmts));
     // Show
     s.push_str("symtab:\n");
-    let mut defs = unit.symbol_table.iter_defs().collect::<Vec<_>>();
-    defs.sort_by_key(|(id, _, _)| *id);
-    for (id, span, sym) in defs {
+    let mut defs = unit.tracked_defs.clone();
+    defs.sort();
+    for id in defs {
+        let sym = db.get_symbol(id);
+        let span = db.get_def_span(id);
         s.push_str(&format!("{:?}: ({:?}, {:?})\n", id, span, sym));
     }
 
-    let mut uses = unit.symbol_table.iter_uses().collect::<Vec<_>>();
-    uses.sort_by_key(|(id, _)| *id);
-    for (id, span) in uses {
+    let mut uses = unit.tracked_uses.clone();
+    uses.sort();
+    for id in uses {
+        let span = db.get_use_span(id);
         s.push_str(&format!("{:?}: {:?}\n", id, span));
     }
 

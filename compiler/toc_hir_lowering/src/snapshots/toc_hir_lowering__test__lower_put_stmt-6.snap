@@ -7,7 +7,7 @@ database:
 nodes:
 HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Literal(Integer(1)))
 HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..13 }): Stmt(Put(Put { stream_num: None, items: [Item(PutItem { expr: ExprId(HirId(Idx::<HirNode>(0))), opts: None })], append_newline: true }))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..14 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(2))), stmts: [StmtId(HirId(Idx::<HirNode>(1)))], symbol_table: SymbolTable { defs: {}, def_spans: {}, use_spans: {}, next_def: 0 } })
+HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..14 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(2))), stmts: [StmtId(HirId(Idx::<HirNode>(1)))], tracked_defs: [], tracked_uses: [] })
 
 root stmts:
 [StmtId(HirId(Idx::<HirNode>(1)))]

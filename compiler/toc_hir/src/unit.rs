@@ -1,6 +1,6 @@
 //! Code unit stuff
 
-use crate::symbol::SymbolTable;
+use crate::symbol::{DefId, UseId};
 use crate::visitor::HirVisitor;
 use crate::{db, stmt};
 
@@ -13,8 +13,8 @@ pub struct Unit {
     pub id: UnitId,
     /// Top level statements in the unit
     pub stmts: Vec<stmt::StmtId>,
-    /// Unit-local symbol table
-    pub symbol_table: SymbolTable,
+    pub tracked_defs: Vec<DefId>,
+    pub tracked_uses: Vec<UseId>,
 }
 
 impl Unit {

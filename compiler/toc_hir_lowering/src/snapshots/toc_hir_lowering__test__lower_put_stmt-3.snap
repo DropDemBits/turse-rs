@@ -5,7 +5,7 @@ expression: put
 ---
 database:
 nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..3 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(0))), stmts: [], symbol_table: SymbolTable { defs: {}, def_spans: {}, use_spans: {}, next_def: 0 } })
+HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..3 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(0))), stmts: [], tracked_defs: [], tracked_uses: [] })
 
 root stmts:
 []

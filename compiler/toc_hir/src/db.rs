@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use la_arena::{Arena, Idx};
 use toc_span::Span;
 
-use crate::{expr, stmt, ty, unit};
+use crate::{expr, stmt, symbol, ty, unit};
 
 /// HIR Database Builder
 ///
@@ -18,6 +18,7 @@ pub struct HirBuilder {
 
 #[derive(Debug, Default)]
 struct Inner {
+    symbol_table: symbol::SymbolTable,
     arena: Arena<HirNode>,
     spans: IndexMap<Idx<HirNode>, Span>,
 }
@@ -71,6 +72,41 @@ impl HirBuilder {
         unit::UnitId(HirId(idx))
     }
 
+    pub fn def_sym(
+        &self,
+        name: &str,
+        span: Span,
+        kind: symbol::SymbolKind,
+        is_pervasive: bool,
+    ) -> symbol::DefId {
+        self.inner
+            .lock()
+            .unwrap()
+            .symbol_table
+            .def_sym(name, span, kind, is_pervasive)
+    }
+
+    pub fn use_sym(&self, def: symbol::DefId, span: Span) -> symbol::UseId {
+        self.inner.lock().unwrap().symbol_table.use_sym(def, span)
+    }
+
+    pub fn is_pervasive(&self, def: symbol::DefId) -> bool {
+        self.inner
+            .lock()
+            .unwrap()
+            .symbol_table
+            .get_symbol(def)
+            .is_pervasive
+    }
+
+    pub fn get_def_span(&self, def_id: symbol::DefId) -> Span {
+        self.inner.lock().unwrap().symbol_table.get_def_span(def_id)
+    }
+
+    pub fn get_use_span(&self, use_id: symbol::UseId) -> Span {
+        self.inner.lock().unwrap().symbol_table.get_use_span(use_id)
+    }
+
     pub fn finish(self) -> HirDb {
         // Transpose inner state into another `Arc`
         let inner_state =
@@ -121,6 +157,18 @@ impl HirDb {
 
     pub fn nodes(&self) -> impl Iterator<Item = (HirId, &HirNode)> {
         self.inner.arena.iter().map(|(id, node)| (HirId(id), node))
+    }
+
+    pub fn get_symbol(&self, def: symbol::DefId) -> &symbol::Symbol {
+        self.inner.symbol_table.get_symbol(def)
+    }
+
+    pub fn get_def_span(&self, def_id: symbol::DefId) -> Span {
+        self.inner.symbol_table.get_def_span(def_id)
+    }
+
+    pub fn get_use_span(&self, use_id: symbol::UseId) -> Span {
+        self.inner.symbol_table.get_use_span(use_id)
     }
 }
 
