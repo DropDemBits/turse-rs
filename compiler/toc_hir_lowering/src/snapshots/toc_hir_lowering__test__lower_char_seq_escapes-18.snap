@@ -3,16 +3,11 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: "a := \"\\43O\""
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..1 }): Expr(Name(Name(UseId(DefId(0), 0))))
-HirId(Idx::<HirNode>(1)) (Span { file: None, range: 5..11 }): Expr(Literal(String("#O")))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..11 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: ExprId(HirId(Idx::<HirNode>(1))) }))
-HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..11 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(3))), stmts: [StmtId(HirId(Idx::<HirNode>(2)))], tracked_defs: [DefId(0)], tracked_uses: [UseId(DefId(0), 0)] })
-
-root stmts:
-[StmtId(HirId(Idx::<HirNode>(2)))]
-symtab:
-DefId(0): (Span { file: None, range: 0..1 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-UseId(DefId(0), 0): Span { file: None, range: 0..1 }
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..11): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..11): []
+        Assign@(FileId(1), 0..11): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..11): String("#O")
 

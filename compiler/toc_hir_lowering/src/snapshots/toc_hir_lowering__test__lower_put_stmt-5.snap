@@ -3,14 +3,13 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: "put 1 : 1 :  : "
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Literal(Integer(1)))
-HirId(Idx::<HirNode>(1)) (Span { file: None, range: 8..9 }): Expr(Literal(Integer(1)))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..14 }): Stmt(Put(Put { stream_num: None, items: [Item(PutItem { expr: ExprId(HirId(Idx::<HirNode>(0))), opts: WithWidth { width: ExprId(HirId(Idx::<HirNode>(1))) } })], append_newline: true }))
-HirId(Idx::<HirNode>(3)) (Span { file: None, range: 0..15 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(3))), stmts: [StmtId(HirId(Idx::<HirNode>(2)))], tracked_defs: [], tracked_uses: [] })
-
-root stmts:
-[StmtId(HirId(Idx::<HirNode>(2)))]
-symtab:
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..15): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..14): []
+        Put@(FileId(1), 0..14): newline
+          Literal@(FileId(1), 4..5): Integer(1)
+          Literal@(FileId(1), 8..9): Integer(1)
+error in file FileId(1) at 13..14: expected expression, but found ‘:’
+error in file FileId(1) at 14..15: expected expression after here
 

@@ -3,14 +3,11 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: "var _ : boolean"
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 8..15 }): Type(Primitive(Boolean))
-HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..15 }): Stmt(ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(0)], tail: TypeSpec(TypeId(HirId(Idx::<HirNode>(0)))) }))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..15 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(2))), stmts: [StmtId(HirId(Idx::<HirNode>(1)))], tracked_defs: [DefId(0)], tracked_uses: [] })
-
-root stmts:
-[StmtId(HirId(Idx::<HirNode>(1)))]
-symtab:
-DefId(0): (Span { file: None, range: 4..5 }, Symbol { name: "_", kind: Declared, is_pervasive: false, def_id: DefId(0), next_use: 0 })
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..15): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..15): []
+        StmtItem@(FileId(1), 0..15): ItemId(0)
+          ConstVar@(FileId(1), 0..15): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..15): Boolean
 

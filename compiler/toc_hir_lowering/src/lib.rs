@@ -20,55 +20,26 @@
 mod lower;
 mod scopes;
 
-use toc_hir::db::HirBuilder;
-use toc_hir::unit;
+use toc_hir::library;
 use toc_reporting::CompileResult;
-use toc_span::FileId;
-use toc_syntax::{
-    ast::{self, AstNode},
-    SyntaxNode,
-};
+use toc_span::{FileId, SpanTable};
 
-use crate::lower::LoweringCtx;
+use crate::lower::{LoweringCtx, LoweringDb};
 
 #[cfg(test)]
 mod test;
 
-/// Lowers the AST into the HIR representation
+/// Lowers the given file as the root of a HIR library.
 ///
 /// ## Returns
 ///
-/// Returns the [`UnitId`] of the newly lowered unit.
-pub fn lower_ast(
-    hir_db: HirBuilder,
-    file: Option<FileId>,
-    root_node: SyntaxNode,
-) -> CompileResult<unit::UnitId> {
-    let mut ctx = LoweringCtx::new(hir_db, file);
-    let root = ast::Source::cast(root_node).unwrap();
-    let unit_span = toc_span::Span::new(file, root.syntax().text_range());
-
-    let stmts = ctx.lower_root(root);
-    let LoweringCtx {
-        database: hir_db,
-        messages,
-        scopes,
-        ..
-    } = ctx;
-    let messages = messages.finish();
-
-    let unit = hir_db.add_unit_with(
-        move |id| {
-            let (tracked_defs, tracked_uses) = scopes.finish();
-            unit::Unit {
-                id,
-                stmts,
-                tracked_defs,
-                tracked_uses,
-            }
-        },
-        unit_span,
-    );
-
-    CompileResult::new(unit, messages)
+/// Returns the [`Library`] of the newly lowered HIR tree, along with a
+/// [`SpanTable`] containing the interned spans.
+///
+/// [`Library`]: library::Library
+pub fn lower_library(
+    ast_db: &dyn LoweringDb,
+    file: FileId,
+) -> CompileResult<(library::Library, SpanTable)> {
+    LoweringCtx::new(ast_db).lower_library(file)
 }

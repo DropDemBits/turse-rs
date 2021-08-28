@@ -1,13 +1,24 @@
 //! Expression nodes
-use toc_span::Spanned;
+use toc_span::{SpanId, Spanned};
 
 use crate::symbol;
 
-crate::hir_id_wrapper!(ExprId);
+crate::arena_id_wrapper!(
+    /// A [`Body`] local reference to an expression.
+    ///
+    /// [`Body`]: crate::body::Body
+    pub struct ExprId(Expr);
+);
+
+#[derive(Debug)]
+pub struct Expr {
+    pub kind: ExprKind,
+    pub span: SpanId,
+}
 
 /// Expressions
 #[derive(Debug)]
-pub enum Expr {
+pub enum ExprKind {
     /// Error expression, only used to represent invalid code
     Missing,
     /// Literal values
@@ -122,7 +133,7 @@ pub struct Paren {
 #[derive(Debug)]
 pub enum Name {
     /// Normal identifier reference
-    Name(symbol::UseId),
+    Name(symbol::LocalDefId),
     /// Reference to `self`
     // TODO: Link a use-id to the appropriate class DefId
     Self_,

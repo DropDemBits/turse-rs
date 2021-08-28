@@ -3,20 +3,14 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: "a := (((a)))"
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..1 }): Expr(Name(Name(UseId(DefId(0), 0))))
-HirId(Idx::<HirNode>(1)) (Span { file: None, range: 8..9 }): Expr(Name(Name(UseId(DefId(0), 1))))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 7..10 }): Expr(Paren(Paren { expr: ExprId(HirId(Idx::<HirNode>(1))) }))
-HirId(Idx::<HirNode>(3)) (Span { file: None, range: 6..11 }): Expr(Paren(Paren { expr: ExprId(HirId(Idx::<HirNode>(2))) }))
-HirId(Idx::<HirNode>(4)) (Span { file: None, range: 5..12 }): Expr(Paren(Paren { expr: ExprId(HirId(Idx::<HirNode>(3))) }))
-HirId(Idx::<HirNode>(5)) (Span { file: None, range: 0..12 }): Stmt(Assign(Assign { lhs: ExprId(HirId(Idx::<HirNode>(0))), op: Spanned(None, Span { file: None, range: 2..4 }), rhs: ExprId(HirId(Idx::<HirNode>(4))) }))
-HirId(Idx::<HirNode>(6)) (Span { file: None, range: 0..12 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(6))), stmts: [StmtId(HirId(Idx::<HirNode>(5)))], tracked_defs: [DefId(0)], tracked_uses: [UseId(DefId(0), 0), UseId(DefId(0), 1)] })
-
-root stmts:
-[StmtId(HirId(Idx::<HirNode>(5)))]
-symtab:
-DefId(0): (Span { file: None, range: 0..1 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 2 })
-UseId(DefId(0), 0): Span { file: None, range: 0..1 }
-UseId(DefId(0), 1): Span { file: None, range: 8..9 }
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..12): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..12): []
+        Assign@(FileId(1), 0..12): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Paren@(FileId(1), 5..12)
+            Paren@(FileId(1), 6..11)
+              Paren@(FileId(1), 7..10)
+                Name@(FileId(1), 8..9): "a"@(FileId(1), 0..1), undeclared
 

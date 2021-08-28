@@ -3,15 +3,10 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: put a
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 4..5 }): Expr(Name(Name(UseId(DefId(0), 0))))
-HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..5 }): Stmt(Put(Put { stream_num: None, items: [Item(PutItem { expr: ExprId(HirId(Idx::<HirNode>(0))), opts: None })], append_newline: true }))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..5 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(2))), stmts: [StmtId(HirId(Idx::<HirNode>(1)))], tracked_defs: [DefId(0)], tracked_uses: [UseId(DefId(0), 0)] })
-
-root stmts:
-[StmtId(HirId(Idx::<HirNode>(1)))]
-symtab:
-DefId(0): (Span { file: None, range: 4..5 }, Symbol { name: "a", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-UseId(DefId(0), 0): Span { file: None, range: 4..5 }
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..5): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..5): []
+        Put@(FileId(1), 0..5): newline
+          Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
 

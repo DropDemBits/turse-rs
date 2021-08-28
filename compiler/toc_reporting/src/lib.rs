@@ -32,6 +32,16 @@ impl<T> CompileResult<T> {
     pub fn bundle_messages(&self, dest: &mut Vec<ReportMessage>) {
         dest.extend_from_slice(&self.messages);
     }
+
+    /// Destructures the result into its component parts
+    ///
+    /// There must not be any other clones to self
+    pub fn take(mut self) -> (T, Vec<ReportMessage>) {
+        let messages =
+            Arc::get_mut(&mut self.messages).expect("other clones of CompileResult exists");
+        let messages = std::mem::take(messages);
+        (self.result, messages)
+    }
 }
 
 /// A reported message

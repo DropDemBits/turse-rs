@@ -3,16 +3,12 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: "var a := b"
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 9..10 }): Expr(Name(Name(UseId(DefId(0), 0))))
-HirId(Idx::<HirNode>(1)) (Span { file: None, range: 0..10 }): Stmt(ConstVar(ConstVar { is_register: false, is_const: false, names: [DefId(1)], tail: InitExpr(ExprId(HirId(Idx::<HirNode>(0)))) }))
-HirId(Idx::<HirNode>(2)) (Span { file: None, range: 0..10 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(2))), stmts: [StmtId(HirId(Idx::<HirNode>(1)))], tracked_defs: [DefId(0), DefId(1)], tracked_uses: [UseId(DefId(0), 0)] })
-
-root stmts:
-[StmtId(HirId(Idx::<HirNode>(1)))]
-symtab:
-DefId(0): (Span { file: None, range: 9..10 }, Symbol { name: "b", kind: Undeclared, is_pervasive: false, def_id: DefId(0), next_use: 1 })
-DefId(1): (Span { file: None, range: 4..5 }, Symbol { name: "a", kind: Declared, is_pervasive: false, def_id: DefId(1), next_use: 0 })
-UseId(DefId(0), 0): Span { file: None, range: 9..10 }
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..10): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..10): []
+        StmtItem@(FileId(1), 0..10): ItemId(0)
+          ConstVar@(FileId(1), 0..10): var "a"@(FileId(1), 4..5)
+            ExprBody@(FileId(1), 9..10)
+              Name@(FileId(1), 9..10): "b"@(FileId(1), 9..10), undeclared
 

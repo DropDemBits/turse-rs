@@ -1,63 +1,71 @@
 //! Tests for lowering
-use if_chain::if_chain;
-use toc_hir::{db, expr, stmt, unit};
-use toc_reporting::CompileResult;
+use std::sync::Arc;
 
-struct LowerResult {
-    hir_result: CompileResult<unit::UnitId>,
-    hir_db: db::HirDb,
+use if_chain::if_chain;
+use toc_hir::{body, expr, item, library, stmt, ty};
+use toc_reporting::CompileResult;
+use toc_salsa::salsa;
+use toc_span::{FileId, SpanTable};
+use toc_vfs::query::VfsDatabaseExt;
+
+mod pretty_print;
+
+#[salsa::database(
+    InternedTypeStorage,
+    toc_vfs::query::FileSystemStorage,
+    toc_ast_db::source::SourceParserStorage
+)]
+#[derive(Default)]
+struct TestHirDb {
+    storage: salsa::Storage<Self>,
+    vfs: toc_vfs::Vfs,
 }
 
-fn stringify_unit(db: &db::HirDb, unit: &unit::Unit) -> String {
-    let mut s = String::new();
+impl salsa::Database for TestHirDb {}
 
-    fn dump_spanned_arena(s: &mut String, name: &str, node_db: &db::HirDb) {
-        s.push_str(&format!("{}:\n", name));
-        for (id, node) in node_db.nodes() {
-            let span = node_db.get_span(id);
-            s.push_str(&format!("{:?} ({:?}): {:?}\n", id, span, node));
-        }
-        s.push('\n');
+impl toc_vfs::HasVfs for TestHirDb {
+    fn get_vfs(&self) -> &toc_vfs::Vfs {
+        &self.vfs
+    }
+}
+
+impl ty::TypeInterner for TestHirDb {
+    fn intern_type(&self, ty: ty::Type) -> ty::TypeId {
+        use std::num::NonZeroU32;
+        let ty = Arc::new(ty);
+        let raw = <Self as InternedType>::intern_type(self, ty).as_u32();
+        let raw = NonZeroU32::new(raw.wrapping_add(1)).expect("too many ids");
+        ty::TypeId(raw)
     }
 
-    // Dump node database
-    s.push_str("database:\n");
-    dump_spanned_arena(&mut s, "nodes", db);
+    fn lookup_type(&self, type_id: ty::TypeId) -> Arc<ty::Type> {
+        let raw = type_id.0.get().wrapping_sub(1);
+        let interned = salsa::InternId::from(raw);
 
-    // List
-    s.push_str("root stmts:\n");
-    s.push_str(&format!("{:?}\n", unit.stmts));
-    // Show
-    s.push_str("symtab:\n");
-    let mut defs = unit.tracked_defs.clone();
-    defs.sort();
-    for id in defs {
-        let sym = db.get_symbol(id);
-        let span = db.get_def_span(id);
-        s.push_str(&format!("{:?}: ({:?}, {:?})\n", id, span, sym));
+        <Self as InternedType>::lookup_intern_type(self, interned)
     }
+}
 
-    let mut uses = unit.tracked_uses.clone();
-    uses.sort();
-    for id in uses {
-        let span = db.get_use_span(id);
-        s.push_str(&format!("{:?}: {:?}\n", id, span));
-    }
+/// Salsa-backed type interner
+#[salsa::query_group(InternedTypeStorage)]
+trait InternedType {
+    #[salsa::interned]
+    fn intern_type(&self, ty: Arc<ty::Type>) -> salsa::InternId;
+}
 
-    s
+struct LowerResult {
+    root_file: FileId,
+    hir_result: CompileResult<(library::Library, SpanTable)>,
 }
 
 fn assert_lower(src: &str) -> LowerResult {
-    let (hir_db, lowered) = {
-        let parsed = toc_parser::parse(None, src);
-        let hir_db = db::HirBuilder::new();
-        let hir_res = crate::lower_ast(hir_db.clone(), None, parsed.result().syntax());
-        let hir_db = hir_db.finish();
+    let mut db = TestHirDb::default();
+    let root_file = db.vfs.insert_file("src/main.t", src);
+    db.invalidate_files();
 
-        (hir_db, hir_res)
-    };
+    let lowered = crate::lower_library(&db, root_file);
 
-    let mut s = stringify_unit(&hir_db, hir_db.get_unit(*lowered.result()));
+    let mut s = pretty_print::pretty_print_tree(&db, lowered.result());
     for err in lowered.messages() {
         s.push_str(&format!("{}\n", err));
     }
@@ -65,23 +73,56 @@ fn assert_lower(src: &str) -> LowerResult {
     insta::assert_snapshot!(insta::internals::AutoName, s, src);
 
     LowerResult {
+        root_file,
         hir_result: lowered,
-        hir_db,
     }
 }
 
 fn literal_value(lower_result: &LowerResult) -> &expr::Literal {
     let LowerResult {
+        root_file,
         hir_result,
-        hir_db: db,
     } = &lower_result;
 
+    let library = &hir_result.result().0;
+    let root_item = library.item(library.root_items[root_file]);
+
     if_chain! {
-        let unit = db.get_unit(*hir_result.result());
-        if let stmt::Stmt::Assign(stmt::Assign { rhs, .. }) = db.get_stmt(unit.stmts[0]);
-        if let expr::Expr::Literal(value) = db.get_expr(*rhs);
+        if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
+        let body = library.body(*body);
+        if let body::BodyKind::Stmts(stmts, _) = &body.kind;
+        if let Some(first_stmt) = stmts.first();
+        if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*first_stmt).kind;
+        if let expr::ExprKind::Literal(value) = &body.expr(*rhs).kind;
         then {
             value
+        } else {
+            unreachable!();
+        }
+    }
+}
+
+#[test]
+fn item_gathering() {
+    // Check that item groups are also included in item gathering
+    let res = assert_lower(
+        "
+    var a, b, c := 0
+    const d := 1
+",
+    );
+
+    let LowerResult {
+        root_file,
+        hir_result,
+    } = res;
+    let library = &hir_result.result().0;
+    let root_item = library.item(library.root_items[&root_file]);
+
+    if_chain! {
+        if let item::ItemKind::Module(item::Module { declares, .. }) = &root_item.kind;
+        then {
+            assert_eq!(declares.len(), 4);
         } else {
             unreachable!();
         }
@@ -98,6 +139,10 @@ fn lower_var_def() {
     assert_lower("var");
     // check that no def-use cycles are created
     assert_lower("var a := a");
+    // just defs
+    assert_lower("var a");
+    // multiple var defs
+    assert_lower("var a, b, c := 0");
 }
 
 #[test]
@@ -447,4 +492,19 @@ fn lower_get_stmt() {
     assert_lower("get");
     // not a reference
     assert_lower("get a*a");
+}
+
+#[test]
+fn lower_block_stmt_multiple() {
+    assert_lower("begin _ := a _ := b _ := c end");
+}
+
+#[test]
+fn lower_multiple_stmts() {
+    assert_lower("_ := a _ := b _ := c");
+}
+
+#[test]
+fn expression_order() {
+    assert_lower("_ := 1 + 2 * 3 + 4");
 }

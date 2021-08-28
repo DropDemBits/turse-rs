@@ -878,13 +878,16 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "if_chain",
+ "indexmap",
  "insta",
  "paste",
+ "toc_ast_db",
  "toc_hir",
- "toc_parser",
  "toc_reporting",
+ "toc_salsa",
  "toc_span",
  "toc_syntax",
+ "toc_vfs",
  "unindent",
 ]
 
@@ -933,6 +936,7 @@ dependencies = [
 name = "toc_span"
 version = "0.1.0"
 dependencies = [
+ "indexmap",
  "text-size",
 ]
 

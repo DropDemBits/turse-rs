@@ -1,27 +1,25 @@
 //! Statement nodes
-use toc_span::Spanned;
+use toc_span::{SpanId, Spanned};
 
-use crate::{expr, symbol, ty};
+use crate::{expr, item, symbol, ty};
 
-crate::hir_id_wrapper!(StmtId);
+crate::arena_id_wrapper!(
+    /// A [`Body`] local reference to a statement.
+    ///
+    /// [`Body`]: crate::body::Body
+    pub struct StmtId(Stmt);
+);
 
 #[derive(Debug)]
-pub enum Stmt {
-    /// Combined representation for `const` and `var` declarations
-    /// (disambiguated by `is_const`)
-    ConstVar(ConstVar),
-    // Type { .. },
-    // Bind { .. },
-    // Proc { .. },
-    // Fcn { .. },
-    // Process { .. },
-    // External { .. },
-    // Forward { .. },
-    // Deferred { .. },
-    // Body { .. },
-    // Module { .. },
-    // Class { .. },
-    // Monitor { .. },
+pub struct Stmt {
+    pub kind: StmtKind,
+    pub span: SpanId,
+}
+
+#[derive(Debug)]
+pub enum StmtKind {
+    /// An item declared in statement position
+    Item(item::ItemId),
     /// Assignment statement
     /// (also includes compound assignments)
     Assign(Assign),
@@ -137,7 +135,19 @@ pub struct Get {
 
 #[derive(Debug)]
 pub struct Block {
+    pub kind: BlockKind,
     pub stmts: Vec<StmtId>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlockKind {
+    /// A regular block statement (`begin ... end`).
+    Normal,
+    /// Multiple declarations wrapped up into one statement.
+    /// This is only used for [`ConstVar`] items with multiple declarations.
+    ///
+    /// [`ConstVar`]: crate::item::ConstVar
+    ItemGroup,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

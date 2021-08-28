@@ -3,11 +3,9 @@ source: compiler/toc_hir_lowering/src/test.rs
 expression: var
 
 ---
-database:
-nodes:
-HirId(Idx::<HirNode>(0)) (Span { file: None, range: 0..3 }): Unit(Unit { id: UnitId(HirId(Idx::<HirNode>(0))), stmts: [], tracked_defs: [], tracked_uses: [] })
-
-root stmts:
-[]
-symtab:
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..3): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..3): []
+error in file FileId(1) at 0..3: expected identifier after here
 

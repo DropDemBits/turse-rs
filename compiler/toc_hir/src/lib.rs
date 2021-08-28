@@ -4,36 +4,50 @@
 //! prefix, e.g. `expr::Name` instead of importing the node directly
 
 pub(crate) mod internals {
-    /// Helper for creating wrapper types of `db::HirId`.
+    /// Helper for creating wrapper types of [`la_arena::Idx`].
     ///
     /// Only to be used inside of this crate.
     #[macro_export]
-    macro_rules! hir_id_wrapper {
-        ($id:ident) => {
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-            pub struct $id(pub(crate) $crate::db::HirId);
+    macro_rules! arena_id_wrapper {
+        (
+            $(#[$attrs:meta])*
+            $visi:vis struct $id:ident($wrap:path);
+        ) => {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+            #[repr(transparent)]
+            $(#[$attrs])*
+            $visi struct $id(pub(crate) ::la_arena::Idx<$wrap>);
 
-            impl From<$id> for $crate::db::HirId {
+            impl From<$id> for ::la_arena::Idx<$wrap> {
                 fn from(id: $id) -> Self {
                     id.0
                 }
             }
 
-            impl From<&$id> for $crate::db::HirId {
+            impl From<&$id> for ::la_arena::Idx<$wrap> {
                 fn from(id: &$id) -> Self {
                     id.0
+                }
+            }
+
+            impl ::std::fmt::Debug for $id {
+                fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                    let raw: u32 = self.0.into_raw().into();
+                    f.debug_tuple(stringify!($id))
+                        .field(&raw)
+                        .finish()
                 }
             }
         };
     }
 }
 
-pub mod db;
+pub mod body;
+pub mod builder;
 pub mod expr;
+pub mod item;
+pub mod library;
 pub mod stmt;
 pub mod symbol;
 pub mod ty;
-pub mod unit;
 pub mod visitor;
-
-pub use db::HirId;
