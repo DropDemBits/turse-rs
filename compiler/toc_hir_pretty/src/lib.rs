@@ -1,4 +1,4 @@
-//! Tree Pretty printer for HIR lowering
+//! Pretty printer(s) for HIR trees
 
 use std::{
     cell::{Cell, RefCell},

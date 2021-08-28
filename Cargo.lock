@@ -883,12 +883,21 @@ dependencies = [
  "paste",
  "toc_ast_db",
  "toc_hir",
+ "toc_hir_pretty",
  "toc_reporting",
  "toc_salsa",
  "toc_span",
  "toc_syntax",
  "toc_vfs",
  "unindent",
+]
+
+[[package]]
+name = "toc_hir_pretty"
+version = "0.1.0"
+dependencies = [
+ "toc_hir",
+ "toc_span",
 ]
 
 [[package]]

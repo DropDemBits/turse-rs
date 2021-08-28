@@ -8,8 +8,6 @@ use toc_salsa::salsa;
 use toc_span::{FileId, SpanTable};
 use toc_vfs::query::VfsDatabaseExt;
 
-mod pretty_print;
-
 #[salsa::database(
     InternedTypeStorage,
     toc_vfs::query::FileSystemStorage,
@@ -65,7 +63,7 @@ fn assert_lower(src: &str) -> LowerResult {
 
     let lowered = crate::lower_library(&db, root_file);
 
-    let mut s = pretty_print::pretty_print_tree(&db, lowered.result());
+    let mut s = toc_hir_pretty::pretty_print_tree(&db, lowered.result());
     for err in lowered.messages() {
         s.push_str(&format!("{}\n", err));
     }
