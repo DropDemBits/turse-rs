@@ -1,0 +1,13 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "1 := 2"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..6): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..6): []
+        Assign@(FileId(1), 0..6): None
+          Literal@(FileId(1), 0..1): Integer(1)
+          Literal@(FileId(1), 5..6): Integer(2)
+

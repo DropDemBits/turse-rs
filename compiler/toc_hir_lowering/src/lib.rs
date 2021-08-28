@@ -26,9 +26,6 @@ use toc_span::{FileId, SpanTable};
 
 use crate::lower::{LoweringCtx, LoweringDb};
 
-#[cfg(test)]
-mod test;
-
 /// Lowers the given file as the root of a HIR library.
 ///
 /// ## Returns

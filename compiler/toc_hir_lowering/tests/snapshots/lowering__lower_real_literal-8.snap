@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := 1e"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..7): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..7): []
+        Assign@(FileId(1), 0..7): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..7): Real(0.0)
+error in file FileId(1) at 5..7: real literal is missing exponent digits
+

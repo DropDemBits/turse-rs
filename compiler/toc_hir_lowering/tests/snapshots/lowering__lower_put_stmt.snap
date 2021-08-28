@@ -1,0 +1,12 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: put a
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..5): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..5): []
+        Put@(FileId(1), 0..5): newline
+          Name@(FileId(1), 4..5): "a"@(FileId(1), 4..5), undeclared
+

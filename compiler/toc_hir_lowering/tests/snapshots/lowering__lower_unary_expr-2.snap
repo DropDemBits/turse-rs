@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := +"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..6): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..6): []
+        Assign@(FileId(1), 0..6): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Unary@(FileId(1), 5..6): Identity
+error in file FileId(1) at 5..6: expected expression after here
+

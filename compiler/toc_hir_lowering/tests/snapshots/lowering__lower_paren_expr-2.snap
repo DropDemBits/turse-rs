@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := (((a)))"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..12): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..12): []
+        Assign@(FileId(1), 0..12): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Paren@(FileId(1), 5..12)
+            Paren@(FileId(1), 6..11)
+              Paren@(FileId(1), 7..10)
+                Name@(FileId(1), 8..9): "a"@(FileId(1), 0..1), undeclared
+

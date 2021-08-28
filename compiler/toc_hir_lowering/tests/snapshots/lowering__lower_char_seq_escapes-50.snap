@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := \"\\u200000\""
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..15): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..15): []
+        Assign@(FileId(1), 0..15): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..15): String("�")
+error in file FileId(1) at 6..14: invalid string literal: unicode codepoint value is greater than U+10FFFF
+

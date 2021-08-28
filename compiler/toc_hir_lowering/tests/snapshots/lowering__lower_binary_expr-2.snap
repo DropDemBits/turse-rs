@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := () + "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..10): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..9): []
+        Assign@(FileId(1), 0..9): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Binary@(FileId(1), 5..9): Add
+            Paren@(FileId(1), 5..7)
+error in file FileId(1) at 6..7: expected expression, but found ‘)’
+error in file FileId(1) at 8..9: expected ‘)’, but found ‘+’
+error in file FileId(1) at 9..10: expected expression after here
+

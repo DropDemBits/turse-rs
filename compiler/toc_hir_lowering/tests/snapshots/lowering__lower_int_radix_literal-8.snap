@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := 18446744073709551616#0000"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..30): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..30): []
+        Assign@(FileId(1), 0..30): None
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..30): Integer(0)
+error in file FileId(1) at 5..30: base for explicit int literal is not between 2 - 36
+

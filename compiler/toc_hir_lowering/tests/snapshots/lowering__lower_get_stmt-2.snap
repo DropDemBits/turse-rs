@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "get skip, a, b : 1, c : *"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..25): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..25): []
+        Get@(FileId(1), 0..25)
+          Name@(FileId(1), 10..11): "a"@(FileId(1), 10..11), undeclared
+          Name@(FileId(1), 13..14): "b"@(FileId(1), 13..14), undeclared
+          Literal@(FileId(1), 17..18): Integer(1)
+          Name@(FileId(1), 20..21): "c"@(FileId(1), 20..21), undeclared
+
