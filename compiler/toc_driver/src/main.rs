@@ -28,8 +28,9 @@ fn main() {
     let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
     db.set_source_roots(source_roots);
 
-    // Parse root CST
-    let parsed = {
+    // Parse root CST & dump output
+    // Note: this is only for temporary parse tree dumping
+    {
         let parsed = db.parse_file(root_file);
         let tree = parsed.result();
         let dependencies = db.parse_depends(root_file);
@@ -37,9 +38,7 @@ fn main() {
 
         println!("Parsed output: {}", tree.dump_tree());
         println!("Dependencies: {:#?}", dependencies.result());
-
-        parsed
-    };
+    }
 
     // TODO(toc_hir_lowering): Deal with include globs
 
@@ -60,10 +59,9 @@ fn main() {
     // TODO: resolve imports between units
     //let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), *hir_res.result());
 
-    let mut msgs = parsed
+    let mut msgs = lower_res
         .messages()
         .iter()
-        .chain(lower_res.messages().iter())
         //.chain(analyze_res.messages().iter())
         .collect::<Vec<_>>();
 
