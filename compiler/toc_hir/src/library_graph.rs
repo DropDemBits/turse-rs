@@ -29,6 +29,11 @@ impl LibraryGraph {
 }
 
 /// Builder for constructing a library graph
+// This is not a real dependency graph, and will never be until we expose
+// creating library roots in some form (either in syntax,
+// or a project description)
+// FIXME: Actually make this a dependency graph builder
+// once user specifiable library roots are implemented#[derive(Default)]
 #[derive(Default)]
 pub struct GraphBuilder {
     graph_data: GraphData,

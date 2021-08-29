@@ -6,8 +6,8 @@ use std::{
 };
 
 use toc_hir::{
-    body, expr, item, library,
-    library::SpannedLibrary,
+    body, expr, item,
+    library::{self, SpannedLibrary},
     stmt,
     symbol::LocalDefId,
     ty,

@@ -33,6 +33,7 @@ pub trait LoweringDb: toc_ast_db::source::SourceParser + toc_hir::ty::TypeIntern
     /// Returns the [`Library`] of the newly lowered HIR tree, along with a
     /// [`SpanTable`] containing the interned spans.
     ///
-    /// [`Library`]: library::Library
+    /// [`Library`]: toc_hir::library::Library
+    /// [`SpanTable`]: toc_span::SpanTable
     fn lower_library(&self, file: FileId) -> CompileResult<SpannedLibrary>;
 }
