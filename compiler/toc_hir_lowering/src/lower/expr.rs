@@ -4,7 +4,7 @@ use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
-impl super::BodyLowering<'_, '_, '_> {
+impl super::BodyLowering<'_, '_> {
     /// Lowers a required expr. If not present, constructs a `Expr::Missing` node in-place
     pub(super) fn lower_required_expr(&mut self, expr: Option<ast::Expr>) -> expr::ExprId {
         if let Some(expr) = expr {
@@ -13,7 +13,7 @@ impl super::BodyLowering<'_, '_, '_> {
             // Allocate a generic span
             let missing = expr::Expr {
                 kind: expr::ExprKind::Missing,
-                span: self.ctx.interns.span.dummy_span(),
+                span: self.ctx.library.span_map.dummy_span(),
             };
             self.body.add_expr(missing)
         }
@@ -65,7 +65,7 @@ impl super::BodyLowering<'_, '_, '_> {
     }
 
     fn unsupported_expr(&mut self, span: SpanId) -> Option<expr::ExprKind> {
-        let span = self.ctx.interns.span.lookup_span(span);
+        let span = self.ctx.library.lookup_span(span);
         self.ctx.messages.error("unsupported expression", span);
         None
     }
@@ -129,12 +129,12 @@ impl super::BodyLowering<'_, '_, '_> {
         // Split borrows
         // FIXME: Simplify once new closure capture rules are stabilized
         let scopes = &mut self.ctx.scopes;
-        let interns = &mut self.ctx.interns;
+        let library = &mut self.ctx.library;
 
         let def_id = scopes.use_sym(name.text(), || {
             // make an undeclared
-            let span = interns.span.intern_span(span);
-            interns.add_def(name.text(), span, symbol::SymbolKind::Undeclared)
+            let span = library.intern_span(span);
+            library.add_def(name.text(), span, symbol::SymbolKind::Undeclared)
         });
         Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
     }

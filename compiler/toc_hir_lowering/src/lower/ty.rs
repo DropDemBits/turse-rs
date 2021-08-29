@@ -3,7 +3,7 @@ use toc_hir::ty;
 use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
-impl super::BodyLowering<'_, '_, '_> {
+impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeId> {
         let span = self.ctx.mk_span(ty.syntax().text_range());
 
@@ -23,9 +23,9 @@ impl super::BodyLowering<'_, '_, '_> {
             ast::Type::ConditionType(_) => self.unsupported_ty(span),
         }?;
 
-        let span = self.ctx.interns.span.intern_span(span);
+        let span = self.ctx.library.intern_span(span);
         let ty = ty::Type { kind, span };
-        Some(self.ctx.db.intern_type(ty))
+        Some(self.ctx.library.intern_type(ty))
     }
 
     fn unsupported_ty(&mut self, span: Span) -> Option<ty::TypeKind> {

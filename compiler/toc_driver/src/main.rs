@@ -50,12 +50,10 @@ fn main() {
     let library_graph = lower_res.result();
 
     for (file, lib) in library_graph.library_roots() {
-        let ty_interner = (&db) as &dyn toc_hir::ty::TypeInterner;
-
         println!(
             "{:?}: {}",
             file,
-            toc_hir_pretty::pretty_print_tree(ty_interner, library_graph.library(lib))
+            toc_hir_pretty::pretty_print_tree(library_graph.library(lib))
         );
     }
 
@@ -274,8 +272,6 @@ struct MainDatabase {
     storage: salsa::Storage<Self>,
     vfs: toc_vfs::Vfs,
 }
-
-toc_hir_db::impl_hir_type_interner!(MainDatabase);
 
 impl salsa::Database for MainDatabase {}
 

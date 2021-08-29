@@ -5,7 +5,7 @@ use toc_reporting::CompileResult;
 
 use crate::HirDatabase;
 
-pub fn hir_library_graph(db: &dyn HirDatabase) -> CompileResult<LibraryGraph> {
+pub fn library_graph_query(db: &dyn HirDatabase) -> CompileResult<LibraryGraph> {
     let mut messages = vec![];
     let source_roots = db.source_roots();
     let mut graph = GraphBuilder::new();

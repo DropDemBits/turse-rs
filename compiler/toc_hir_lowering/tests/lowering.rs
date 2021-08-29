@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use if_chain::if_chain;
-use toc_hir::{body, expr, item, library::SpannedLibrary, stmt, ty};
+use toc_hir::{body, expr, item, library::LoweredLibrary, stmt, ty};
 use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
@@ -28,23 +28,6 @@ impl toc_vfs::HasVfs for TestHirDb {
     }
 }
 
-impl ty::TypeInterner for TestHirDb {
-    fn intern_type(&self, ty: ty::Type) -> ty::TypeId {
-        use std::num::NonZeroU32;
-        let ty = Arc::new(ty);
-        let raw = <Self as InternedType>::intern_type(self, ty).as_u32();
-        let raw = NonZeroU32::new(raw.wrapping_add(1)).expect("too many ids");
-        ty::TypeId(raw)
-    }
-
-    fn lookup_type(&self, type_id: ty::TypeId) -> Arc<ty::Type> {
-        let raw = type_id.0.get().wrapping_sub(1);
-        let interned = salsa::InternId::from(raw);
-
-        <Self as InternedType>::lookup_intern_type(self, interned)
-    }
-}
-
 /// Salsa-backed type interner
 #[salsa::query_group(InternedTypeStorage)]
 trait InternedType {
@@ -54,7 +37,7 @@ trait InternedType {
 
 struct LowerResult {
     root_file: FileId,
-    hir_result: CompileResult<SpannedLibrary>,
+    hir_result: CompileResult<LoweredLibrary>,
 }
 
 fn assert_lower(src: &str) -> LowerResult {
@@ -64,7 +47,7 @@ fn assert_lower(src: &str) -> LowerResult {
 
     let lowered = db.lower_library(root_file);
 
-    let mut s = toc_hir_pretty::pretty_print_tree(&db, lowered.result());
+    let mut s = toc_hir_pretty::pretty_print_tree(lowered.result());
     for err in lowered.messages() {
         s.push_str(&format!("{}\n", err));
     }
@@ -83,7 +66,7 @@ fn literal_value(lower_result: &LowerResult) -> &expr::Literal {
         hir_result,
     } = &lower_result;
 
-    let library = hir_result.result().library();
+    let library = hir_result.result();
     let root_item = library.item(library.root_items[root_file]);
 
     if_chain! {
@@ -115,7 +98,7 @@ fn item_gathering() {
         root_file,
         hir_result,
     } = res;
-    let library = hir_result.result().library();
+    let library = hir_result.result();
     let root_item = library.item(library.root_items[&root_file]);
 
     if_chain! {

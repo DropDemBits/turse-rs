@@ -7,24 +7,19 @@ use std::{
 
 use toc_hir::{
     body, expr, item,
-    library::{self, SpannedLibrary},
+    library::{self, LoweredLibrary},
     stmt,
     symbol::LocalDefId,
     ty,
     visitor::{BodyExpr, BodyStmt, HirVisitor, WalkEvent, Walker},
 };
-use toc_span::{SpanId, SpanTable};
+use toc_span::SpanId;
 
-pub fn pretty_print_tree(ty_intern: &dyn ty::TypeInterner, lowered: &SpannedLibrary) -> String {
+pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
     let mut output = String::new();
-    let mut walker = Walker::new(lowered.library(), ty_intern);
+    let mut walker = Walker::new(lowered);
 
-    let pretty = PrettyVisitor::new(
-        &mut output,
-        lowered.library(),
-        lowered.span_map(),
-        ty_intern,
-    );
+    let pretty = PrettyVisitor::new(&mut output, lowered);
 
     while let Some(event) = walker.next_event() {
         match event {
@@ -45,23 +40,14 @@ struct PrettyVisitor<'out, 'hir> {
     out: RefCell<&'out mut dyn fmt::Write>,
     indent_level: Cell<usize>,
     library: &'hir library::Library,
-    span_map: &'hir SpanTable,
-    ty_intern: &'hir dyn ty::TypeInterner,
 }
 
 impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
-    fn new(
-        out: &'out mut dyn fmt::Write,
-        library: &'hir library::Library,
-        span_map: &'hir SpanTable,
-        ty_intern: &'hir dyn ty::TypeInterner,
-    ) -> Self {
+    fn new(out: &'out mut dyn fmt::Write, library: &'hir library::Library) -> Self {
         Self {
             out: RefCell::new(out),
             indent_level: Cell::new(0),
             library,
-            span_map,
-            ty_intern,
         }
     }
 
@@ -95,7 +81,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_span(&self, span: SpanId) -> String {
-        let span = self.span_map.lookup_span(span);
+        let span = self.library.span_map.lookup_span(span);
 
         if let Some(file_id) = span.file {
             format!("({:?}, {:?})", file_id, span.range)
@@ -127,7 +113,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn type_span(&self, id: ty::TypeId) -> SpanId {
-        self.ty_intern.lookup_type(id).span
+        self.library.lookup_type(id).span
     }
 
     fn def_of(&self, item: item::ItemId) -> LocalDefId {
@@ -149,13 +135,13 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_library(&self, _library: &library::Library) {
-        self.emit_node("Library", self.span_map.dummy_span(), None);
+        self.emit_node("Library", self.library.span_map.dummy_span(), None);
     }
 
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {
         self.emit_node(
             "Root",
-            self.span_map.dummy_span(),
+            self.library.span_map.dummy_span(),
             Some(format_args!("{:?} -> {:?}", file, id)),
         );
     }

@@ -1,18 +1,15 @@
 //! Helper builders for creating the HIR tree
 
 use la_arena::Arena;
-use toc_span::{FileId, SpanId};
+use toc_span::{FileId, Span, SpanId, Spanned};
 
-use crate::{body, expr, item, library, stmt, symbol};
+use crate::{body, expr, item, library, stmt, symbol, ty};
 
 /// Builder for constructing a [`Library`]
 ///
 /// [`Library`]: library::Library
-#[derive(Default)]
 pub struct LibraryBuilder {
-    items: Arena<item::Item>,
-    defs: Arena<symbol::DefInfo>,
-    bodies: Arena<body::Body>,
+    library: library::Library,
 }
 
 impl LibraryBuilder {
@@ -25,7 +22,25 @@ impl LibraryBuilder {
         item::ItemId(index)
     }
 
-    pub fn add_def(&mut self, def: symbol::DefInfo) -> symbol::LocalDefId {
+    /// Helper for declaring a new symbol.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the symbol to define
+    /// - `span`: The text span of the definition
+    /// - `kind`: The kind of symbol to define
+    ///
+    /// ## Returns
+    /// The [`LocalDefId`] associated with the definition
+    pub fn add_def(
+        &mut self,
+        name: &str,
+        span: SpanId,
+        kind: symbol::SymbolKind,
+    ) -> symbol::LocalDefId {
+        let def = symbol::DefInfo {
+            name: Spanned::new(name.to_string(), span),
+            kind,
+        };
         let index = self.defs.alloc(def);
         symbol::LocalDefId(index)
     }
@@ -35,16 +50,12 @@ impl LibraryBuilder {
         body::BodyId(index)
     }
 
-    pub fn body(&self, body_id: body::BodyId) -> &body::Body {
-        &self.bodies[body_id.into()]
+    pub fn intern_type(&mut self, ty: ty::Type) -> ty::TypeId {
+        self.type_map.intern_type(ty)
     }
 
-    pub fn item(&self, item_id: item::ItemId) -> &item::Item {
-        &self.items[item_id.into()]
-    }
-
-    pub fn local_def(&self, def_id: symbol::LocalDefId) -> &symbol::DefInfo {
-        &self.defs[def_id.into()]
+    pub fn intern_span(&mut self, span: Span) -> SpanId {
+        self.span_map.intern_span(span)
     }
 
     pub fn make_body_with(
@@ -56,18 +67,41 @@ impl LibraryBuilder {
     }
 
     pub fn finish(self, root_items: Vec<(FileId, item::ItemId)>) -> library::Library {
-        let Self {
-            items,
-            defs,
-            bodies,
-        } = self;
+        let Self { library } = self;
 
         library::Library {
             root_items: root_items.into_iter().collect(),
-            items,
-            defs,
-            bodies,
+            ..library
         }
+    }
+}
+
+impl Default for LibraryBuilder {
+    fn default() -> Self {
+        Self {
+            library: library::Library {
+                root_items: Default::default(),
+                items: Default::default(),
+                defs: Default::default(),
+                bodies: Default::default(),
+                type_map: Default::default(),
+                span_map: Default::default(),
+            },
+        }
+    }
+}
+
+impl std::ops::Deref for LibraryBuilder {
+    type Target = library::Library;
+
+    fn deref(&self) -> &Self::Target {
+        &self.library
+    }
+}
+
+impl std::ops::DerefMut for LibraryBuilder {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.library
     }
 }
 

@@ -20,12 +20,12 @@
 mod lower;
 mod scopes;
 
-use toc_hir::library::SpannedLibrary;
+use toc_hir::library::LoweredLibrary;
 use toc_reporting::CompileResult;
 use toc_span::FileId;
 
 /// Trait representing a database that can store a lowered HIR tree
-pub trait LoweringDb: toc_ast_db::source::SourceParser + toc_hir::ty::TypeInterner {
+pub trait LoweringDb: toc_ast_db::source::SourceParser {
     /// Lowers the given file as the root of a HIR library.
     ///
     /// ## Returns
@@ -35,5 +35,5 @@ pub trait LoweringDb: toc_ast_db::source::SourceParser + toc_hir::ty::TypeIntern
     ///
     /// [`Library`]: toc_hir::library::Library
     /// [`SpanTable`]: toc_span::SpanTable
-    fn lower_library(&self, file: FileId) -> CompileResult<SpannedLibrary>;
+    fn lower_library(&self, file: FileId) -> CompileResult<LoweredLibrary>;
 }

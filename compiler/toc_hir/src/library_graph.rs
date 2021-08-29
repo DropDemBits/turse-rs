@@ -5,7 +5,7 @@ use std::{convert::TryInto, sync::Arc};
 use indexmap::IndexMap;
 use toc_span::FileId;
 
-use crate::library::{self, LibraryId, SpannedLibrary};
+use crate::library::{self, LibraryId, LoweredLibrary};
 
 /// Graph of all libraries
 #[derive(Debug, Clone)]
@@ -14,12 +14,12 @@ pub struct LibraryGraph {
 }
 
 impl LibraryGraph {
-    pub fn of_file(&self, file: FileId) -> &SpannedLibrary {
+    pub fn of_file(&self, file: FileId) -> &LoweredLibrary {
         let id = *self.graph_data.root_map.get(&file).unwrap();
         self.library(id)
     }
 
-    pub fn library(&self, id: LibraryId) -> &SpannedLibrary {
+    pub fn library(&self, id: LibraryId) -> &LoweredLibrary {
         &self.graph_data.libraries[id.0 as usize]
     }
 
@@ -44,7 +44,7 @@ impl GraphBuilder {
         Self::default()
     }
 
-    pub fn add_library(&mut self, root: FileId, library: SpannedLibrary) {
+    pub fn add_library(&mut self, root: FileId, library: LoweredLibrary) {
         let raw: library::LibraryIndex = self
             .graph_data
             .libraries
@@ -66,6 +66,6 @@ impl GraphBuilder {
 
 #[derive(Debug, Default)]
 struct GraphData {
-    libraries: Vec<SpannedLibrary>,
+    libraries: Vec<LoweredLibrary>,
     root_map: IndexMap<FileId, LibraryId>,
 }

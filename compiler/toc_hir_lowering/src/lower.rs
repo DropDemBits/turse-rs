@@ -20,7 +20,7 @@ mod expr;
 mod stmt;
 mod ty;
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::Arc};
 
 use indexmap::IndexSet;
 use toc_ast_db::source::SourceParser;
@@ -31,20 +31,19 @@ use toc_hir::{
     item,
     stmt::{Block, BlockKind, Stmt, StmtId, StmtKind},
     symbol::{self, LocalDefId},
-    ty::TypeInterner,
 };
 use toc_reporting::{CompileResult, MessageSink};
-use toc_span::{FileId, Span, SpanId, SpanTable, Spanned};
+use toc_span::{FileId, Span, SpanId};
 use toc_syntax::ast::{self, AstNode};
 
-use crate::{scopes, LoweringDb, SpannedLibrary};
+use crate::{scopes, LoweredLibrary, LoweringDb};
 
-// Implement for anything that can intern types and provides an AST source.
+// Implement for anything that can provide an AST source.
 impl<T> LoweringDb for T
 where
-    T: SourceParser + TypeInterner,
+    T: SourceParser,
 {
-    fn lower_library(&self, library_root: FileId) -> CompileResult<SpannedLibrary> {
+    fn lower_library(&self, library_root: FileId) -> CompileResult<LoweredLibrary> {
         let db = self;
 
         // Gather all files reachable from the library root
@@ -64,79 +63,48 @@ where
         // Lower them all
         let mut root_items = vec![];
         let mut messages = vec![];
-        let mut interners = Interners::default();
+        let mut library = builder::LibraryBuilder::default();
 
         for file in reachable_files {
-            let (item, mut msgs) = FileLowering::lower_file(db, &mut interners, file).take();
+            let (item, mut msgs) = FileLowering::lower_file(db, &mut library, file).take();
             root_items.push((file, item));
             messages.append(&mut msgs);
         }
 
-        let Interners { library, span, .. } = interners;
-        let lib = SpannedLibrary::new(library.finish(root_items), span);
+        let lib = library.finish(root_items);
 
-        CompileResult::new(lib, messages)
+        CompileResult::new(Arc::new(lib), messages)
     }
 }
 
-/// Interners that are shared between library files and aren't part of the database.
-///
-/// Contains delegated methods to ease use.
-#[derive(Default)]
-struct Interners {
-    library: builder::LibraryBuilder,
-    span: SpanTable,
-}
-
-impl Interners {
-    /// Helper for declaring a new symbol.
-    ///
-    /// ## Parameters
-    /// - `name`: The name of the symbol to define
-    /// - `span`: The text span of the definition
-    /// - `kind`: The kind of symbol to define
-    ///
-    /// ## Returns
-    /// The [`LocalDefId`] associated with the definition
-    pub fn add_def(&mut self, name: &str, span: SpanId, kind: symbol::SymbolKind) -> LocalDefId {
-        self.library.add_def(symbol::DefInfo {
-            name: Spanned::new(name.to_string(), span),
-            kind,
-        })
-    }
-}
-
-struct FileLowering<'db, 'ctx> {
+struct FileLowering<'ctx> {
     file: FileId,
-    db: &'db dyn LoweringDb,
-    interns: &'ctx mut Interners,
+    library: &'ctx mut builder::LibraryBuilder,
     scopes: scopes::ScopeTracker,
     messages: MessageSink,
 }
 
-impl<'db, 'ctx> FileLowering<'db, 'ctx> {
-    fn new(file: FileId, db: &'db dyn LoweringDb, interners: &'ctx mut Interners) -> Self {
+impl<'ctx> FileLowering<'ctx> {
+    fn new(file: FileId, library: &'ctx mut builder::LibraryBuilder) -> Self {
         Self {
             file,
-            db,
-            interns: interners,
+            library,
             messages: MessageSink::new(),
             scopes: scopes::ScopeTracker::new(),
         }
     }
 
     fn lower_file(
-        db: &'db dyn LoweringDb,
-        interners: &'ctx mut Interners,
+        db: &dyn LoweringDb,
+        library: &'ctx mut builder::LibraryBuilder,
         file: FileId,
     ) -> CompileResult<item::ItemId> {
-        let mut ctx = Self::new(file, db, interners);
-
         // Parse & validate file
         let parse_res = db.parse_file(file);
         let validate_res = db.validate_file(file);
 
         // Enter the actual lowering
+        let mut ctx = Self::new(file, library);
         let root = ast::Source::cast(parse_res.result().syntax()).unwrap();
         let root_item = ctx.lower_root(root);
 
@@ -156,14 +124,13 @@ impl<'db, 'ctx> FileLowering<'db, 'ctx> {
 
         let (body, declared_items) = self.lower_stmt_body(root.stmt_list().unwrap(), vec![]);
 
-        let module_def = self.interns.add_def(
+        let module_def = self.library.add_def(
             "<root>",
-            self.interns.span.dummy_span(),
+            self.library.span_map.dummy_span(),
             symbol::SymbolKind::Declared,
         );
         let module_span = self
-            .interns
-            .span
+            .library
             .intern_span(Span::new(Some(self.file), root.syntax().text_range()));
         let module = item::Module {
             as_monitor: false,
@@ -171,7 +138,7 @@ impl<'db, 'ctx> FileLowering<'db, 'ctx> {
             body,
         };
 
-        self.interns.library.add_item(item::Item {
+        self.library.add_item(item::Item {
             kind: item::ItemKind::Module(module),
             def_id: module_def,
             span: module_span,
@@ -187,11 +154,6 @@ impl<'db, 'ctx> FileLowering<'db, 'ctx> {
         let span = stmt_list.syntax().text_range();
         let mut body = builder::BodyBuilder::default();
         let body_stmts = BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list);
-
-        let Interners {
-            library,
-            span: span_interner,
-        } = &mut self.interns;
 
         // Collect declared items
         let declared_items = {
@@ -220,10 +182,10 @@ impl<'db, 'ctx> FileLowering<'db, 'ctx> {
         };
 
         // Actually make the body
-        let span = span_interner.intern_span(Span::new(Some(self.file), span));
+        let span = self.library.intern_span(Span::new(Some(self.file), span));
 
         let body = body.finish_stmts(body_stmts, param_defs, span);
-        let body = library.add_body(body);
+        let body = self.library.add_body(body);
 
         (body, declared_items)
     }
@@ -235,21 +197,21 @@ impl<'db, 'ctx> FileLowering<'db, 'ctx> {
 
         // Actually make the body
         let body = body.finish_expr(root_expr);
-        self.interns.library.add_body(body)
+        self.library.add_body(body)
     }
 
     fn lower_empty_expr_body(&mut self) -> body::BodyId {
         // Lower expr
         let expr = Expr {
             kind: ExprKind::Missing,
-            span: self.interns.span.dummy_span(),
+            span: self.library.span_map.dummy_span(),
         };
         let mut body = builder::BodyBuilder::default();
         let root_expr = body.add_expr(expr);
 
         // Actually make the body
         let body = body.finish_expr(root_expr);
-        self.interns.library.add_body(body)
+        self.library.add_body(body)
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
@@ -258,18 +220,18 @@ impl<'db, 'ctx> FileLowering<'db, 'ctx> {
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {
         let span = self.mk_span(range);
-        self.interns.span.intern_span(span)
+        self.library.intern_span(span)
     }
 }
 
 /// For lowering things within a body
-struct BodyLowering<'db, 'ctx: 'body, 'body> {
-    ctx: &'body mut FileLowering<'db, 'ctx>,
+struct BodyLowering<'ctx: 'body, 'body> {
+    ctx: &'body mut FileLowering<'ctx>,
     body: &'body mut BodyBuilder,
 }
 
-impl<'db, 'ctx: 'body, 'body> BodyLowering<'db, 'ctx, 'body> {
-    fn new(ctx: &'body mut FileLowering<'db, 'ctx>, body: &'body mut BodyBuilder) -> Self {
+impl<'ctx: 'body, 'body> BodyLowering<'ctx, 'body> {
+    fn new(ctx: &'body mut FileLowering<'ctx>, body: &'body mut BodyBuilder) -> Self {
         Self { ctx, body }
     }
 
@@ -288,8 +250,7 @@ impl<'db, 'ctx: 'body, 'body> BodyLowering<'db, 'ctx, 'body> {
 
             let span = self
                 .ctx
-                .interns
-                .span
+                .library
                 .intern_span(Span::new(Some(self.ctx.file), range));
             let id = self.body.add_stmt(Stmt { kind, span });
             stmts.push(id);

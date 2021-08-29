@@ -1,7 +1,8 @@
 //! Type related HIR nodes
 
-use std::num::NonZeroU32;
+use std::{convert::TryInto, num::NonZeroU32};
 
+use indexmap::IndexSet;
 use toc_span::SpanId;
 
 use crate::body;
@@ -9,14 +10,32 @@ use crate::body;
 /// An interned reference to a type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct TypeId(pub TypeIndex);
+pub struct TypeId(TypeIndex);
 pub type TypeIndex = NonZeroU32;
 
 /// An interner for HIR types
-pub trait TypeInterner {
-    fn intern_type(&self, ty: Type) -> TypeId;
+#[derive(Debug, Default)]
+pub struct TypeTable {
+    types: IndexSet<Type>,
+}
 
-    fn lookup_type(&self, type_id: TypeId) -> std::sync::Arc<Type>;
+impl TypeTable {
+    /// Interns the given type
+    pub(crate) fn intern_type(&mut self, ty: Type) -> TypeId {
+        let id = self.types.insert_full(ty).0;
+        let raw = id
+            .wrapping_add(1)
+            .try_into()
+            .ok()
+            .and_then(NonZeroU32::new)
+            .expect("too many types");
+        TypeId(raw)
+    }
+
+    /// Looks up the given type
+    pub(crate) fn lookup_type(&self, type_id: TypeId) -> &Type {
+        self.types.get_index(type_id.0.get() as usize - 1).unwrap()
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

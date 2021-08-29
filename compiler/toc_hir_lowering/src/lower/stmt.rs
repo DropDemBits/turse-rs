@@ -4,7 +4,7 @@ use toc_hir::{item, stmt, symbol};
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
-impl super::BodyLowering<'_, '_, '_> {
+impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtKind> {
         let span = self.ctx.intern_range(stmt.syntax().text_range());
 
@@ -65,7 +65,7 @@ impl super::BodyLowering<'_, '_, '_> {
     }
 
     fn unsupported_stmt(&mut self, span: SpanId) -> Option<stmt::StmtKind> {
-        let span = self.ctx.interns.span.lookup_span(span);
+        let span = self.ctx.library.lookup_span(span);
         self.ctx.messages.error("unsupported statement", span);
         None
     }
@@ -90,7 +90,7 @@ impl super::BodyLowering<'_, '_, '_> {
 
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
-        let span = self.ctx.interns.span.intern_span(span);
+        let span = self.ctx.library.intern_span(span);
 
         let item_group: Vec<_> = names
             .into_iter()
@@ -105,7 +105,7 @@ impl super::BodyLowering<'_, '_, '_> {
                     tail: tail.clone(),
                 };
 
-                self.ctx.interns.library.add_item(item::Item {
+                self.ctx.library.add_item(item::Item {
                     kind: item::ItemKind::ConstVar(const_var),
                     def_id,
                     span,
@@ -272,7 +272,7 @@ impl super::BodyLowering<'_, '_, '_> {
                     let span = self.ctx.intern_range(token.text_range());
                     let def_id =
                         self.ctx
-                            .interns
+                            .library
                             .add_def(token.text(), span, symbol::SymbolKind::Declared);
                     self.ctx.scopes.def_sym(token.text(), def_id, is_pervasive)
                 })

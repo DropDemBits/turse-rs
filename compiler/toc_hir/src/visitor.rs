@@ -1,6 +1,6 @@
 //! HIR Tree visiting related structures
 
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 use toc_span::FileId;
 
@@ -15,12 +15,8 @@ pub struct BodyStmt(pub body::BodyId, pub stmt::StmtId);
 pub struct BodyExpr(pub body::BodyId, pub expr::ExprId);
 
 /// Visits the library in postorder
-pub fn postorder_visit_library(
-    lib: &library::Library,
-    ty_interner: &dyn ty::TypeInterner,
-    visitor: &dyn HirVisitor,
-) {
-    let mut walker = Walker::new(lib, ty_interner);
+pub fn postorder_visit_library(lib: &library::Library, visitor: &dyn HirVisitor) {
+    let mut walker = Walker::new(lib);
 
     while let Some(event) = walker.next_event() {
         let node = match event {
@@ -33,12 +29,8 @@ pub fn postorder_visit_library(
 }
 
 /// Visits the library in preorder
-pub fn preorder_visit_library(
-    lib: &library::Library,
-    ty_interner: &dyn ty::TypeInterner,
-    visitor: &dyn HirVisitor,
-) {
-    let mut walker = Walker::new(lib, ty_interner);
+pub fn preorder_visit_library(lib: &library::Library, visitor: &dyn HirVisitor) {
+    let mut walker = Walker::new(lib);
 
     while let Some(event) = walker.next_event() {
         let node = match event {
@@ -139,7 +131,7 @@ pub enum WalkNode<'hir> {
     Body(body::BodyId, &'hir body::Body),
     Stmt(BodyStmt, &'hir stmt::Stmt),
     Expr(BodyExpr, &'hir expr::Expr),
-    Type(ty::TypeId, Arc<ty::Type>),
+    Type(ty::TypeId, &'hir ty::Type),
 }
 
 impl WalkNode<'_> {
@@ -151,26 +143,24 @@ impl WalkNode<'_> {
             WalkNode::Body(id, body) => visitor.visit_body(*id, body),
             WalkNode::Stmt(id, stmt) => visitor.visit_stmt(*id, stmt),
             WalkNode::Expr(id, expr) => visitor.visit_expr(*id, expr),
-            WalkNode::Type(id, ty) => visitor.visit_type(*id, ty.as_ref()),
+            WalkNode::Type(id, ty) => visitor.visit_type(*id, ty),
         }
     }
 }
 
 /// Walker for traversing the HIR tree, generating [`WalkEvent`]s
-pub struct Walker<'hir, 'ty: 'hir> {
+pub struct Walker<'hir> {
     lib: &'hir library::Library,
-    ty_interner: &'ty dyn ty::TypeInterner,
     // Events awaiting to be inserted
     pending: VecDeque<WalkEvent<'hir>>,
     // Events to process
     process: VecDeque<WalkEvent<'hir>>,
 }
 
-impl<'hir, 'ty: 'hir> Walker<'hir, 'ty> {
-    pub fn new(lib: &'hir library::Library, ty_interner: &'ty dyn ty::TypeInterner) -> Self {
+impl<'hir> Walker<'hir> {
+    pub fn new(lib: &'hir library::Library) -> Self {
         Self {
             lib,
-            ty_interner,
             pending: vec![].into(),
             process: vec![WalkEvent::Enter(WalkNode::Library(lib))].into(),
         }
@@ -191,7 +181,7 @@ impl<'hir, 'ty: 'hir> Walker<'hir, 'ty> {
                 WalkNode::Body(id, body) => self.walk_body(*id, body),
                 WalkNode::Stmt(id, stmt) => self.walk_stmt(id.0, stmt),
                 WalkNode::Expr(id, expr) => self.walk_expr(id.0, expr),
-                WalkNode::Type(_, ty) => self.walk_type(ty.as_ref()),
+                WalkNode::Type(_, ty) => self.walk_type(ty),
             }
 
             // Insert pending in reversed order
@@ -232,7 +222,7 @@ impl<'hir, 'ty: 'hir> Walker<'hir, 'ty> {
             .push_back(WalkEvent::Enter(WalkNode::Expr(id, expr)));
     }
 
-    fn enter_type(&mut self, id: ty::TypeId, ty: Arc<ty::Type>) {
+    fn enter_type(&mut self, id: ty::TypeId, ty: &'hir ty::Type) {
         self.pending
             .push_back(WalkEvent::Enter(WalkNode::Type(id, ty)));
     }
@@ -267,7 +257,7 @@ impl<'hir, 'ty: 'hir> Walker<'hir, 'ty> {
 
     fn walk_constvar(&mut self, node: &item::ConstVar) {
         if let Some(ty) = node.tail.type_spec() {
-            self.enter_type(ty, self.ty_interner.lookup_type(ty));
+            self.enter_type(ty, self.lib.lookup_type(ty));
         }
 
         if let Some(id) = node.tail.init_expr() {
