@@ -5,7 +5,7 @@ use std::{env, fs, io, sync::Arc};
 
 use toc_ast_db::source::SourceParser;
 use toc_ast_db::span::SpanMapping;
-use toc_hir::db;
+use toc_hir_db::HirDatabase;
 use toc_salsa::salsa;
 use toc_vfs::query::{FileSystem, VfsDatabaseExt};
 
@@ -24,14 +24,16 @@ fn main() {
     let root_file = db.vfs.intern_path(path.into());
     db.update_file(root_file, Some(contents.into_bytes()));
 
-    let hir_db = db::HirBuilder::new();
+    // Set the source root
+    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
+    db.set_source_roots(source_roots);
 
     // Parse root CST
     let parsed = {
         let parsed = db.parse_file(root_file);
         let tree = parsed.result();
         let dependencies = db.parse_depends(root_file);
-        // TODO: Gather dependencies from root CST, and parse them
+        // TODO(toc_ast_db): Add tests for parsing dependencies
 
         println!("Parsed output: {}", tree.dump_tree());
         println!("Dependencies: {:#?}", dependencies.result());
@@ -39,30 +41,32 @@ fn main() {
         parsed
     };
 
-    // TODO: Deal with include globs
+    // TODO(toc_hir_lowering): Deal with include globs
 
-    let (validate_res, hir_res) = {
-        let validate_res = db.validate_file(root_file);
-        let hir_res =
-            toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.result().syntax());
+    let lower_res = db.library_graph();
 
-        (validate_res, hir_res)
-    };
+    // Dump library graph
+    println!("Libraries:");
+    let library_graph = lower_res.result();
 
-    let hir_db = hir_db.finish();
-    let root_unit = hir_db.get_unit(*hir_res.result());
-    println!("{:#?}", root_unit);
+    for (file, lib) in library_graph.library_roots() {
+        let ty_interner = (&db) as &dyn toc_hir::ty::TypeInterner;
+
+        println!(
+            "{:?}: {}",
+            file,
+            toc_hir_pretty::pretty_print_tree(ty_interner, library_graph.library(lib))
+        );
+    }
 
     // TODO: resolve imports between units
-
-    let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), *hir_res.result());
+    //let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), *hir_res.result());
 
     let mut msgs = parsed
         .messages()
         .iter()
-        .chain(validate_res.messages().iter())
-        .chain(hir_res.messages().iter())
-        .chain(analyze_res.messages().iter())
+        .chain(lower_res.messages().iter())
+        //.chain(analyze_res.messages().iter())
         .collect::<Vec<_>>();
 
     // Sort by start order
@@ -261,13 +265,17 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
 #[salsa::database(
     toc_vfs::query::FileSystemStorage,
     toc_ast_db::span::SpanMappingStorage,
-    toc_ast_db::source::SourceParserStorage
+    toc_ast_db::source::SourceParserStorage,
+    toc_hir_db::HirDatabaseStorage,
+    toc_hir_db::InternedTypeStorage
 )]
 #[derive(Default)]
 struct MainDatabase {
     storage: salsa::Storage<Self>,
     vfs: toc_vfs::Vfs,
 }
+
+toc_hir_db::impl_hir_type_interner!(MainDatabase);
 
 impl salsa::Database for MainDatabase {}
 

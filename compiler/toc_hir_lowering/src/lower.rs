@@ -28,7 +28,7 @@ use toc_hir::{
     body,
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
-    item, library,
+    item,
     stmt::{Block, BlockKind, Stmt, StmtId, StmtKind},
     symbol::{self, LocalDefId},
     ty::TypeInterner,
@@ -37,27 +37,16 @@ use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, Span, SpanId, SpanTable, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
-use crate::scopes;
-
-/// Trait representing a database that can store a lowered HIR tree
-pub trait LoweringDb: SourceParser + TypeInterner {}
+use crate::{scopes, LoweringDb, SpannedLibrary};
 
 // Implement for anything that can intern types and provides an AST source.
-impl<T> LoweringDb for T where T: SourceParser + TypeInterner {}
+impl<T> LoweringDb for T
+where
+    T: SourceParser + TypeInterner,
+{
+    fn lower_library(&self, library_root: FileId) -> CompileResult<SpannedLibrary> {
+        let db = self;
 
-pub(super) struct LoweringCtx<'db> {
-    db: &'db dyn LoweringDb,
-}
-
-impl<'db> LoweringCtx<'db> {
-    pub(super) fn new(db: &'db dyn LoweringDb) -> Self {
-        Self { db }
-    }
-
-    pub(super) fn lower_library(
-        self,
-        library_root: FileId,
-    ) -> CompileResult<(library::Library, SpanTable)> {
         // Gather all files reachable from the library root
         let mut reachable_files = IndexSet::new();
 
@@ -65,9 +54,9 @@ impl<'db> LoweringCtx<'db> {
         while let Some(current_file) = pending_files.pop_front() {
             reachable_files.insert(current_file);
 
-            let deps = self.db.parse_depends(current_file);
+            let deps = db.parse_depends(current_file);
             for dep in deps.result().dependencies() {
-                let child = self.db.resolve_path(current_file, &dep.relative_path);
+                let child = db.resolve_path(current_file, &dep.relative_path);
                 pending_files.push_back(child);
             }
         }
@@ -78,14 +67,15 @@ impl<'db> LoweringCtx<'db> {
         let mut interners = Interners::default();
 
         for file in reachable_files {
-            let (item, mut msgs) = FileLowering::lower_file(self.db, &mut interners, file).take();
+            let (item, mut msgs) = FileLowering::lower_file(db, &mut interners, file).take();
             root_items.push((file, item));
             messages.append(&mut msgs);
         }
 
         let Interners { library, span, .. } = interners;
+        let lib = SpannedLibrary::new(library.finish(root_items), span);
 
-        CompileResult::new((library.finish(root_items), span), messages)
+        CompileResult::new(lib, messages)
     }
 }
 

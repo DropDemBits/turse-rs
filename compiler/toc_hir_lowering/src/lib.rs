@@ -20,23 +20,19 @@
 mod lower;
 mod scopes;
 
-use toc_hir::library;
+use toc_hir::library::SpannedLibrary;
 use toc_reporting::CompileResult;
-use toc_span::{FileId, SpanTable};
+use toc_span::FileId;
 
-use crate::lower::{LoweringCtx, LoweringDb};
-
-/// Lowers the given file as the root of a HIR library.
-///
-/// ## Returns
-///
-/// Returns the [`Library`] of the newly lowered HIR tree, along with a
-/// [`SpanTable`] containing the interned spans.
-///
-/// [`Library`]: library::Library
-pub fn lower_library(
-    ast_db: &dyn LoweringDb,
-    file: FileId,
-) -> CompileResult<(library::Library, SpanTable)> {
-    LoweringCtx::new(ast_db).lower_library(file)
+/// Trait representing a database that can store a lowered HIR tree
+pub trait LoweringDb: toc_ast_db::source::SourceParser + toc_hir::ty::TypeInterner {
+    /// Lowers the given file as the root of a HIR library.
+    ///
+    /// ## Returns
+    ///
+    /// Returns the [`Library`] of the newly lowered HIR tree, along with a
+    /// [`SpanTable`] containing the interned spans.
+    ///
+    /// [`Library`]: library::Library
+    fn lower_library(&self, file: FileId) -> CompileResult<SpannedLibrary>;
 }

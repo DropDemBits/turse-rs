@@ -6,21 +6,25 @@ use std::{
 };
 
 use toc_hir::{
-    body, expr, item, library, stmt,
+    body, expr, item, library,
+    library::SpannedLibrary,
+    stmt,
     symbol::LocalDefId,
     ty,
     visitor::{BodyExpr, BodyStmt, HirVisitor, WalkEvent, Walker},
 };
 use toc_span::{SpanId, SpanTable};
 
-pub fn pretty_print_tree(
-    ty_intern: &dyn ty::TypeInterner,
-    (library, span_map): &(library::Library, SpanTable),
-) -> String {
+pub fn pretty_print_tree(ty_intern: &dyn ty::TypeInterner, lowered: &SpannedLibrary) -> String {
     let mut output = String::new();
-    let mut walker = Walker::new(library, ty_intern);
+    let mut walker = Walker::new(lowered.library(), ty_intern);
 
-    let pretty = PrettyVisitor::new(&mut output, library, span_map, ty_intern);
+    let pretty = PrettyVisitor::new(
+        &mut output,
+        lowered.library(),
+        lowered.span_map(),
+        ty_intern,
+    );
 
     while let Some(event) = walker.next_event() {
         match event {

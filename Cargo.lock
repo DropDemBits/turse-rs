@@ -852,10 +852,10 @@ name = "toc_driver"
 version = "0.1.0"
 dependencies = [
  "annotate-snippets",
- "toc_analysis",
  "toc_ast_db",
  "toc_hir",
- "toc_hir_lowering",
+ "toc_hir_db",
+ "toc_hir_pretty",
  "toc_reporting",
  "toc_salsa",
  "toc_span",
@@ -870,6 +870,19 @@ dependencies = [
  "indexmap",
  "la-arena",
  "toc_span",
+]
+
+[[package]]
+name = "toc_hir_db"
+version = "0.1.0"
+dependencies = [
+ "toc_ast_db",
+ "toc_hir",
+ "toc_hir_lowering",
+ "toc_reporting",
+ "toc_salsa",
+ "toc_span",
+ "toc_vfs",
 ]
 
 [[package]]

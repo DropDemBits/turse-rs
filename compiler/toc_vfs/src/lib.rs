@@ -21,6 +21,7 @@
 //! [`FileId`]: toc_span::FileId
 
 // TODO: Flesh out documentation using VFS Interface.md
+// TODO: Generate a test fixture VFS tree from a given source string
 
 pub mod query;
 

@@ -1,5 +1,7 @@
 //! Source file interpretation queries
 
+use std::sync::Arc;
+
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_span::FileId;
@@ -7,6 +9,10 @@ use toc_vfs::query::FileSystem;
 
 #[salsa::query_group(SourceParserStorage)]
 pub trait SourceParser: FileSystem {
+    /// Source roots for all of the libraries
+    #[salsa::input]
+    fn source_roots(&self) -> SourceRoots;
+
     /// Parses the given file
     fn parse_file(&self, file_id: FileId) -> CompileResult<toc_parser::ParseTree>;
 
@@ -31,4 +37,23 @@ fn validate_file(db: &dyn SourceParser, file_id: FileId) -> CompileResult<()> {
 fn parse_depends(db: &dyn SourceParser, file_id: FileId) -> CompileResult<toc_parser::FileDepends> {
     let cst = db.parse_file(file_id);
     toc_parser::parse_depends(Some(file_id), cst.result().syntax())
+}
+
+/// Library source roots
+#[derive(Debug, Clone)]
+pub struct SourceRoots {
+    roots: Arc<Vec<FileId>>,
+}
+
+impl SourceRoots {
+    pub fn new(roots: Vec<FileId>) -> Self {
+        Self {
+            roots: Arc::new(roots),
+        }
+    }
+
+    /// Iterates over the source roots, from the bottom of the dependency graph and up
+    pub fn roots(&self) -> impl Iterator<Item = FileId> + '_ {
+        self.roots.iter().copied()
+    }
 }

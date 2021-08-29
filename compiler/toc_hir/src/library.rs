@@ -1,15 +1,17 @@
 //! Library structure definitions
 
+use std::sync::Arc;
+
 use indexmap::IndexMap;
 use la_arena::Arena;
-use toc_span::FileId;
+use toc_span::{FileId, SpanTable};
 
 use crate::{body, item, symbol};
 
 /// A reference to a library in the library graph
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct LibraryId(LibraryIndex);
+pub struct LibraryId(pub(crate) LibraryIndex);
 pub(crate) type LibraryIndex = u32;
 
 /// A `Library` represents a logical collection of files.
@@ -50,5 +52,31 @@ impl Library {
 
     pub fn local_def(&self, def_id: symbol::LocalDefId) -> &symbol::DefInfo {
         &self.defs[def_id.into()]
+    }
+}
+
+/// [`Library`] combined with the associated span map.
+///
+/// Data is wrapped inside of an [`Arc`], so it is trivially cloneable.
+///
+/// [`Library`]: crate::library::Library
+#[derive(Debug, Clone)]
+pub struct SpannedLibrary {
+    res: Arc<(Library, SpanTable)>,
+}
+
+impl SpannedLibrary {
+    pub fn new(library: Library, span: SpanTable) -> SpannedLibrary {
+        Self {
+            res: Arc::new((library, span)),
+        }
+    }
+
+    pub fn library(&self) -> &Library {
+        &self.res.0
+    }
+
+    pub fn span_map(&self) -> &SpanTable {
+        &self.res.1
     }
 }
