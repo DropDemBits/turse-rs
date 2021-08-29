@@ -4,15 +4,13 @@ use std::collections::VecDeque;
 
 use toc_span::FileId;
 
-use crate::{body, expr, item, library, stmt, ty};
-
-/// Uniquely identifies a statement within a library
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BodyStmt(pub body::BodyId, pub stmt::StmtId);
-
-/// Uniquely identifies an expression within a library
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BodyExpr(pub body::BodyId, pub expr::ExprId);
+use crate::{
+    body,
+    expr::{self, BodyExpr},
+    item, library,
+    stmt::{self, BodyStmt},
+    ty,
+};
 
 /// Visits the library in postorder
 pub fn postorder_visit_library(lib: &library::Library, visitor: &dyn HirVisitor) {

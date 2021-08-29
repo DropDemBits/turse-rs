@@ -6,12 +6,14 @@ use std::{
 };
 
 use toc_hir::{
-    body, expr, item,
+    body,
+    expr::{self, BodyExpr},
+    item,
     library::{self, LoweredLibrary},
-    stmt,
+    stmt::{self, BodyStmt},
     symbol::LocalDefId,
     ty,
-    visitor::{BodyExpr, BodyStmt, HirVisitor, WalkEvent, Walker},
+    visitor::{HirVisitor, WalkEvent, Walker},
 };
 use toc_span::SpanId;
 

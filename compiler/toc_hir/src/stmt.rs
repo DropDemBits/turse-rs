@@ -1,7 +1,7 @@
 //! Statement nodes
 use toc_span::{SpanId, Spanned};
 
-use crate::{expr, item, symbol, ty};
+use crate::{body, expr, item, symbol, ty};
 
 crate::arena_id_wrapper!(
     /// A [`Body`] local reference to a statement.
@@ -9,6 +9,16 @@ crate::arena_id_wrapper!(
     /// [`Body`]: crate::body::Body
     pub struct StmtId(Stmt);
 );
+
+impl StmtId {
+    pub fn in_body(self, body: body::BodyId) -> BodyStmt {
+        BodyStmt(body, self)
+    }
+}
+
+/// Uniquely identifies a statement within a library
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BodyStmt(pub body::BodyId, pub StmtId);
 
 #[derive(Debug)]
 pub struct Stmt {
