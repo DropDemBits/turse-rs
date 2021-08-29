@@ -18,7 +18,7 @@ crate::arena_id_wrapper!(
 /// group.
 ///
 /// [`LocalDefId`]: symbol::LocalDefId
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Item {
     pub kind: ItemKind,
     /// Associated definition info
@@ -28,7 +28,7 @@ pub struct Item {
     // ...
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ItemKind {
     // const + var decl, since both can be accessed during ctce
     // Contains body
@@ -60,20 +60,20 @@ pub enum ItemKind {
     Module(Module),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mutability {
     Var,
     Const,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ConstVar {
     pub is_register: bool,
     pub mutability: Mutability,
     pub tail: ConstVarTail,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstVarTail {
     /// Only the type spec is specified
     TypeSpec(ty::TypeId),
@@ -101,7 +101,7 @@ impl ConstVarTail {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Module {
     pub as_monitor: bool,
     pub declares: Vec<ItemId>,

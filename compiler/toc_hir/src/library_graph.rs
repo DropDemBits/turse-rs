@@ -2,25 +2,30 @@
 
 use std::{convert::TryInto, sync::Arc};
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use toc_span::FileId;
 
-use crate::library::{self, LibraryId, LoweredLibrary};
+use crate::library::LibraryId;
 
-/// Graph of all libraries
-#[derive(Debug, Clone)]
+/// Graph of all library, represented by [`LibraryId`]s
+///
+/// Provides a bijective mapping between [`LibraryId`]s and [`FileId`]s
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryGraph {
     graph_data: Arc<GraphData>,
 }
 
 impl LibraryGraph {
-    pub fn of_file(&self, file: FileId) -> &LoweredLibrary {
-        let id = *self.graph_data.root_map.get(&file).unwrap();
-        self.library(id)
+    pub fn library_of(&self, file: FileId) -> LibraryId {
+        *self.graph_data.root_map.get(&file).unwrap()
     }
 
-    pub fn library(&self, id: LibraryId) -> &LoweredLibrary {
-        &self.graph_data.libraries[id.0 as usize]
+    pub fn file_of(&self, library: LibraryId) -> FileId {
+        *self
+            .graph_data
+            .lib_files
+            .get_index(library.0 as usize)
+            .unwrap()
     }
 
     pub fn library_roots(&self) -> impl Iterator<Item = (FileId, LibraryId)> + '_ {
@@ -44,16 +49,10 @@ impl GraphBuilder {
         Self::default()
     }
 
-    pub fn add_library(&mut self, root: FileId, library: LoweredLibrary) {
-        let raw: library::LibraryIndex = self
-            .graph_data
-            .libraries
-            .len()
-            .try_into()
-            .expect("too many libraries");
+    pub fn add_library(&mut self, root: FileId) {
+        let idx = self.graph_data.lib_files.insert_full(root).0;
+        let raw = idx.try_into().expect("too many libraries");
         let id = LibraryId(raw);
-
-        self.graph_data.libraries.push(library);
         self.graph_data.root_map.insert(root, id);
     }
 
@@ -64,8 +63,8 @@ impl GraphBuilder {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct GraphData {
-    libraries: Vec<LoweredLibrary>,
     root_map: IndexMap<FileId, LibraryId>,
+    lib_files: IndexSet<FileId>,
 }

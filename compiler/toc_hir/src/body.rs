@@ -15,6 +15,7 @@ crate::arena_id_wrapper!(
 /// A bundle of executable code.
 /// Represents either a statement group (fn body),
 /// or an expression group (constvar init or type expr).
+#[derive(PartialEq, Eq)]
 pub struct Body {
     pub kind: BodyKind,
     /// Span covering the whole body
@@ -47,7 +48,7 @@ impl Body {
 // ra bug: `extract struct from enum variant` does not pull in surrounding comments (woops)
 // ^ addendum: does not preserve extra comments
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BodyKind {
     /// Bundle of statements, with the given statement list and parameter definition list.
     /// (e.g. for module initializers, or function bodies).

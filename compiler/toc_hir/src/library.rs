@@ -1,7 +1,7 @@
 //! Library structure definitions
 
 use indexmap::IndexMap;
-use la_arena::Arena;
+use la_arena::{Arena, ArenaMap};
 use toc_span::{FileId, Span, SpanId, SpanTable};
 
 use crate::{body, item, symbol, ty};
@@ -11,6 +11,10 @@ use crate::{body, item, symbol, ty};
 #[repr(transparent)]
 pub struct LibraryId(pub(crate) LibraryIndex);
 pub(crate) type LibraryIndex = u32;
+
+/// A reference to a library node in a specific library
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct InLibrary<T>(pub LibraryId, pub T);
 
 /// A `Library` represents a logical collection of files.
 ///
@@ -23,11 +27,14 @@ pub(crate) type LibraryIndex = u32;
 /// (`Item`, `Body`, `DefInfo`, and `Type`).
 /// `Library` also stores a mapping between the library files, and the
 /// associated root `ItemId`s.
+#[derive(PartialEq, Eq)]
 pub struct Library {
     /// Map between library files and root items
     pub root_items: IndexMap<FileId, item::ItemId>,
     /// Table of all interned spans
     pub span_map: SpanTable,
+    /// Mapping from definitions to `DefId`s
+    pub item_defs: ArenaMap<symbol::LocalDefIndex, item::ItemId>,
     /// Table of all interened types
     pub(crate) type_map: ty::TypeTable,
     pub(crate) items: Arena<item::Item>,
@@ -52,6 +59,10 @@ impl Library {
         &self.items[item_id.into()]
     }
 
+    pub fn item_of(&self, def_id: symbol::LocalDefId) -> Option<item::ItemId> {
+        self.item_defs.get(def_id.0).copied()
+    }
+
     pub fn local_def(&self, def_id: symbol::LocalDefId) -> &symbol::DefInfo {
         &self.defs[def_id.into()]
     }
@@ -71,32 +82,3 @@ impl Library {
 ///
 /// [`Library`]: crate::library::Library
 pub type LoweredLibrary = std::sync::Arc<Library>;
-/*#[derive(Debug, Clone)]
-pub struct SpannedLibrary {
-    res: Arc<(Library, SpanTable)>,
-}
-
-impl std::ops::Deref for SpannedLibrary {
-    type Target = Library;
-
-    fn deref(&self) -> &Self::Target {
-        &self.res.0
-    }
-}
-
-impl SpannedLibrary {
-    pub fn new(library: Library, span: SpanTable) -> SpannedLibrary {
-        Self {
-            res: Arc::new((library, span)),
-        }
-    }
-
-    pub fn library(&self) -> &Library {
-        &self.res.0
-    }
-
-    pub fn span_map(&self) -> &SpanTable {
-        &self.res.1
-    }
-}
-*/

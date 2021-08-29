@@ -14,7 +14,7 @@ pub struct TypeId(TypeIndex);
 pub type TypeIndex = NonZeroU32;
 
 /// An interner for HIR types
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct TypeTable {
     types: IndexSet<Type>,
 }

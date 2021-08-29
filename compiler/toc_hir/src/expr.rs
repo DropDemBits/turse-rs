@@ -20,14 +20,14 @@ impl ExprId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BodyExpr(pub body::BodyId, pub ExprId);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Expr {
     pub kind: ExprKind,
     pub span: SpanId,
 }
 
 /// Expressions
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExprKind {
     /// Error expression, only used to represent invalid code
     Missing,
@@ -52,7 +52,13 @@ pub enum ExprKind {
     //Call(Call),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// Literal expression
+///
+/// Note: While this does implement `Eq`, equality testing for reals
+/// treats `NaN`s of the same bitwise representation as equal.
+/// This equality relation is primarily used for memoizing HIR trees in the
+/// salsa db.
+#[derive(Debug, Clone)]
 pub enum Literal {
     Integer(u64),
     Real(f64),
@@ -63,7 +69,28 @@ pub enum Literal {
     Boolean(bool),
 }
 
-#[derive(Debug)]
+impl PartialEq for Literal {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            // Bitwise compare for real literals
+            (Self::Real(l0), Self::Real(r0)) => l0.to_bits() == r0.to_bits(),
+            // Simple equality for everything else
+            (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
+            (Self::Char(l0), Self::Char(r0)) => l0 == r0,
+            (Self::CharSeq(l0), Self::CharSeq(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::Boolean(l0), Self::Boolean(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
+
+// Literal::Real satisfies the requirements for `Eq` by comparing
+// the raw bit representations
+impl Eq for Literal {}
+
+/// Binary operator expression
+#[derive(Debug, PartialEq, Eq)]
 pub struct Binary {
     pub lhs: ExprId,
     pub op: Spanned<BinaryOp>,
@@ -118,7 +145,8 @@ pub enum BinaryOp {
     Imply,
 }
 
-#[derive(Debug)]
+// Unary operator expression
+#[derive(Debug, PartialEq, Eq)]
 pub struct Unary {
     pub op: Spanned<UnaryOp>,
     pub rhs: ExprId,
@@ -134,13 +162,13 @@ pub enum UnaryOp {
     Negate,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Paren {
     pub expr: ExprId,
 }
 
 /// Name expression
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Name {
     /// Normal identifier reference
     Name(symbol::LocalDefId),

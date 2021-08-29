@@ -20,13 +20,13 @@ impl StmtId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BodyStmt(pub body::BodyId, pub StmtId);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Stmt {
     pub kind: StmtKind,
     pub span: SpanId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum StmtKind {
     /// An item declared in statement position
     Item(item::ItemId),
@@ -113,7 +113,7 @@ impl ConstVarTail {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Assign {
     /// Left hand side of an assignment expression
     pub lhs: expr::ExprId,
@@ -123,7 +123,7 @@ pub struct Assign {
     pub rhs: expr::ExprId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Put {
     /// Stream handle to put the text on.
     /// If absent, should be put on the `stdout` stream.
@@ -134,7 +134,7 @@ pub struct Put {
     pub append_newline: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Get {
     /// Stream handle to get text from.
     /// If absent, should be fetched from the `stdin` stream.
@@ -143,7 +143,7 @@ pub struct Get {
     pub items: Vec<Skippable<GetItem>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Block {
     pub kind: BlockKind,
     pub stmts: Vec<StmtId>,
@@ -220,7 +220,7 @@ impl AssignOp {
 
 /// A generic type representing anything skippable.
 /// Only used for text I/O statements (`PutStmt` & `GetStmt`).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Skippable<T> {
     /// This I/O item is skipped.
     Skip,
@@ -229,7 +229,7 @@ pub enum Skippable<T> {
 }
 
 /// A single put item, as part of a put statement.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PutItem {
     /// The expression to be put.
     pub expr: expr::ExprId,
@@ -242,7 +242,7 @@ pub struct PutItem {
 /// If any later argument is present, then the earlier fields are
 /// guaranteed to also be present (e.g. if `precision` was specified, then
 /// `width` is also guaranteed to be specified, but not `exponent_width`).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PutOpts {
     // /// `put` item with no args
     None,
@@ -296,7 +296,7 @@ impl PutOpts {
 }
 
 /// A get item.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct GetItem {
     /// The expression to put.
     /// Must be a reference expression.
@@ -306,7 +306,7 @@ pub struct GetItem {
 }
 
 /// The fetch width of a get item.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GetWidth {
     /// Fetch a space delimited portion of text.
     Token,

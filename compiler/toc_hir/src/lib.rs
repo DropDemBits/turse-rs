@@ -1,7 +1,12 @@
 //! Crate containing all of the HIR node representations
 //!
-//! Note: All `expr`, `stmt`, and `ty` nodes are to be used with the module's
-//! prefix, e.g. `expr::Name` instead of importing the node directly
+//! All `expr`, `stmt`, `item`, `ty`, and `body` entities are to be used with
+//! the module's prefix, e.g. `expr::Name` instead of importing the node
+//! directly.
+//!
+//! While all HIR entities implement `PartialEq` and `Eq`, they are only used
+//! to see if the bit representation actually changed, which may diverge from
+//! the actual equality semantics (e.g. see [`expr::Literal`] for such a case).
 
 pub(crate) mod internals {
     /// Helper for creating wrapper types of [`la_arena::Idx`].
@@ -9,6 +14,7 @@ pub(crate) mod internals {
     /// Only to be used inside of this crate.
     #[macro_export]
     macro_rules! arena_id_wrapper {
+        // Just a newtype for the index
         (
             $(#[$attrs:meta])*
             $visi:vis struct $id:ident($wrap:path);
@@ -18,6 +24,29 @@ pub(crate) mod internals {
             $(#[$attrs])*
             $visi struct $id(pub(crate) ::la_arena::Idx<$wrap>);
 
+            $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
+        };
+        // Newtype + type alias for the index
+        (
+            $(#[$attrs_wrap:meta])*
+            $visi_wrap:vis struct $id:ident($wrap:path);
+            $(#[$attrs_alias:meta])*
+            $visi_alias:vis type $index_alias:ident = Index;
+        ) => {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+            #[repr(transparent)]
+            $(#[$attrs_wrap])*
+            $visi_wrap struct $id(pub(crate) $index_alias);
+
+            $(#[$attrs_alias])*
+            $visi_alias type $index_alias = ::la_arena::Idx<$wrap>;
+
+            $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
+        };
+        // Other impls
+        (
+            @impl_rest, $id:ident, $wrap:path
+        ) => {
             impl From<$id> for ::la_arena::Idx<$wrap> {
                 fn from(id: $id) -> Self {
                     id.0

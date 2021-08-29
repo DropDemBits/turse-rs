@@ -10,6 +10,8 @@ use crate::library;
 crate::arena_id_wrapper!(
     /// A library local reference to a definition.
     pub struct LocalDefId(DefInfo);
+    /// Alias for the definition arena index
+    pub(crate) type LocalDefIndex = Index;
 );
 
 impl LocalDefId {
@@ -23,7 +25,7 @@ impl LocalDefId {
 }
 
 /// Information associated with a `LocalDefId` or `DefId`.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DefInfo {
     /// The name of the definition, along with the span of the identifer.
     pub name: Spanned<String>,

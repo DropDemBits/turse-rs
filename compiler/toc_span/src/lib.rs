@@ -44,7 +44,7 @@ impl Default for Span {
 }
 
 /// An item with an associated text span
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spanned<T>(T, SpanId);
 
 impl<T> Spanned<T> {
@@ -66,10 +66,19 @@ impl<T> Spanned<T> {
 #[repr(transparent)]
 pub struct SpanId(NonZeroU32);
 
+impl SpanId {
+    /// Looks up the span in the given span table
+    ///
+    /// Infix/postfix version of using the span table
+    pub fn lookup_in(self, span_table: &SpanTable) -> Span {
+        span_table.lookup_span(self)
+    }
+}
+
 /// An interner for interning [`Span`]s.
 ///
 /// Produces [`SpanId`]s
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SpanTable {
     spans: IndexSet<Span>,
     dummy_span: SpanId,

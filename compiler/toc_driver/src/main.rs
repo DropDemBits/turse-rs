@@ -53,7 +53,7 @@ fn main() {
         println!(
             "{:?}: {}",
             file,
-            toc_hir_pretty::pretty_print_tree(library_graph.library(lib))
+            toc_hir_pretty::pretty_print_tree(&db.library(lib))
         );
     }
 
