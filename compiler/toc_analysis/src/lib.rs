@@ -1,29 +1,33 @@
 //! General code analysis, including type checking and dead code reporting
 
-use std::sync::Arc;
-
-use toc_hir::{db, unit};
+use toc_hir::library::LibraryId;
 use toc_reporting::CompileResult;
+use toc_salsa::salsa;
 
-use crate::const_eval::ConstEvalCtx;
-pub mod ty;
-
-mod const_eval;
+//mod const_eval; // TEMPORARY, uncomment when porting this stage
+mod query;
 mod typeck;
 
-pub fn analyze_unit(hir_db: db::HirDb, unit_id: unit::UnitId) -> CompileResult<()> {
-    let unit = hir_db.get_unit(unit_id);
+pub mod db;
+pub mod ty;
 
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
-    const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
+// TODO: Mock-up what exactly needs to be done to port to the query system
+//
+// General idea is to split typeck from type collection & HIR constant evaluation
+//
+// See also:
+// - `notes/typeck queryfy/End to end typeck description.md`
+// - `notes/query related/Queryfication Plan.mdnotes/query related/Queryfication Plan.md`
 
-    let typecheck_res = typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx.clone());
+/// HIR Analysis queries
+#[salsa::query_group(HirAnalysisStorage)]
+pub trait HirAnalysis: db::TypeDatabase {
+    /// Performs analysis passes on all libraries
+    #[salsa::invoke(query::analyze_libraries)]
+    fn analyze_libraries(&self) -> CompileResult<()>;
 
-    eprintln!("{}", ty::pretty_dump_typectx(typecheck_res.result()));
-    eprintln!("{:#?}", const_eval_ctx);
-
-    let mut messages = vec![];
-    typecheck_res.bundle_messages(&mut messages);
-
-    CompileResult::new((), messages)
+    /// Checks the given library to ensure that all type rules are followed,
+    /// and that all types are well-formed.
+    #[salsa::invoke(typeck::typecheck_library)]
+    fn typecheck_library(&self, library: LibraryId) -> CompileResult<()>;
 }

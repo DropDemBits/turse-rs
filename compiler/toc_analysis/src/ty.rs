@@ -1,11 +1,49 @@
 //! Representation of Turing types
-pub mod rules;
+pub mod rules; // too many errors right now
 
 use std::fmt::{self, Debug};
-use std::num::NonZeroU32;
 use std::ops::Deref;
+use std::sync::Arc;
 
 use indexmap::IndexMap;
+
+use crate::db;
+
+mod lower;
+pub(crate) mod query;
+
+toc_salsa::create_intern_key!(
+    /// Id referencing an interned type.
+    pub TypeId;
+);
+
+impl TypeId {
+    /// Looks up the interned data in the given database
+    pub fn lookup_in(self, db: &dyn db::TypeDatabase) -> TypeData {
+        db.lookup_intern_type(self)
+    }
+}
+
+/// Interened type data
+// ???(ra bug): Can't rename
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeData {
+    data: Arc<Type>,
+}
+
+impl std::ops::Deref for TypeData {
+    type Target = Type;
+
+    fn deref(&self) -> &Self::Target {
+        self.data.deref()
+    }
+}
+
+impl From<Type> for TypeData {
+    fn from(ty: Type) -> Self {
+        Self { data: Arc::new(ty) }
+    }
+}
 
 /// A type reference, for each unique type
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -95,35 +133,66 @@ pub(crate) fn pretty_dump_typectx(ty_ctx: &TyCtx) -> String {
     s
 }
 
+// Constructible vs Well-formed (valid)
+//
+// Constructible, Well-formed  => Type itself is real, and all dependencies of it are real
+// Constructible, ill-formed   => Type itself is real, but maybe not its dependencies
+//                                e.g. `char(<invalid expr>)`, `set of <error>`
+// Unconstructible, ill-formed => A type cannot be reified
+//                                e.g. `<error>`, or from a TyKind::Missing
+
 /// General concrete type
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Type {
-    /// Type Error, produced so that errors aren't duplicated
+pub struct Type {
+    kind: TypeKind,
+}
+
+impl Type {
+    pub fn kind(&self) -> &TypeKind {
+        &self.kind
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum TypeKind {
+    /// Unconstructable type.
+    /// Produced so that errors aren't duplicated.
     Error,
-    /// Boolean type
+    /// Boolean type.
     Boolean,
     /// Signed integer types (e.g. `int4`, `int`).
     Int(IntSize),
     /// Unsigned integer types (e.g. `nat4`, `nat`).
-    /// Also includes `addressint`, with the size being dependent on the target
+    /// Also includes `addressint`, with the size being dependent on the target.
     /// machine.
     Nat(NatSize),
-    /// Floating point types (e.g. `real8`, `real`)
+    /// Floating point types (e.g. `real8`, `real`).
     Real(RealSize),
     /// General integer type. Infers to adjacent concrete types (in the case of
     /// binary expressions) or to `int`.
     Integer,
-    /// Single character type
+    /// Single character type.
     Char,
-    /// Simple string type
+    /// Simple string type.
     String,
-    /// Fixed-size character type
+    /// Fixed-size character type.
     CharN(SeqSize),
-    /// Fixed-size string type
+    /// Fixed-size string type.
     StringN(SeqSize),
+    /// Reference type.
+    ///
+    /// This type does not appear in syntax (except for parameter binding),
+    /// and is an implementation detail.
+    Ref(Mutability, TypeId),
 }
 
-/// Size variant of an Int
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Mutability {
+    Const,
+    Var,
+}
+
+/// Size variant of an `Int`.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum IntSize {
     Int1,
@@ -160,5 +229,5 @@ pub enum SeqSize {
     /// Runtime sized (only accepted for parameters)
     Dynamic,
     /// Fixed, compile-time size
-    Fixed(NonZeroU32),
+    Fixed(toc_hir::body::BodyId),
 }

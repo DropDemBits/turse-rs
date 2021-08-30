@@ -13,7 +13,7 @@ toc_hir = { path = "../toc_hir" }
 toc_hir_db = { path = "../toc_hir_db" }
 toc_hir_pretty = { path = "../toc_hir_pretty" }
 toc_vfs = { path = "../toc_vfs" }
-#toc_analysis = { path = "../toc_analysis" } # TEMPORARY, remember to enable once fixed
+toc_analysis = { path = "../toc_analysis" }
 toc_span = { path = "../toc_span" }
 toc_ast_db = { path = "../toc_ast_db" }
 annotate-snippets = { version = "0.9.0", features = ["color"] }

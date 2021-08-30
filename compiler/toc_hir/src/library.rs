@@ -16,6 +16,30 @@ pub(crate) type LibraryIndex = u32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InLibrary<T>(pub LibraryId, pub T);
 
+impl<T> InLibrary<T> {
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> InLibrary<U> {
+        InLibrary(self.0, f(self.1))
+    }
+}
+
+pub trait WrapInLibrary: Copy {
+    type Output: Copy;
+
+    /// Wraps self in the context of a library
+    fn in_library(self, library: LibraryId) -> InLibrary<Self::Output>;
+}
+
+impl<T> WrapInLibrary for &T
+where
+    T: Copy,
+{
+    type Output = T;
+
+    fn in_library(self, library: LibraryId) -> InLibrary<Self::Output> {
+        InLibrary(library, *self)
+    }
+}
+
 /// A `Library` represents a logical collection of files.
 ///
 /// It is a conceptual group of files / units that are accesible from a

@@ -62,8 +62,8 @@ pub enum ItemKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mutability {
-    Var,
     Const,
+    Var,
 }
 
 #[derive(Debug, PartialEq, Eq)]

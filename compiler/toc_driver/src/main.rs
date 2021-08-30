@@ -3,6 +3,7 @@
 use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
+use toc_analysis::HirAnalysis;
 use toc_ast_db::source::SourceParser;
 use toc_ast_db::span::SpanMapping;
 use toc_hir_db::HirDatabase;
@@ -42,10 +43,9 @@ fn main() {
 
     // TODO(toc_hir_lowering): Deal with include globs
 
-    let lower_res = db.library_graph();
-
     // Dump library graph
     println!("Libraries:");
+    let lower_res = db.library_graph();
     let library_graph = lower_res.result();
 
     for (file, lib) in library_graph.library_roots() {
@@ -57,13 +57,10 @@ fn main() {
     }
 
     // TODO: resolve imports between units
-    //let analyze_res = toc_analysis::analyze_unit(hir_db.clone(), *hir_res.result());
+    let analyze_res = db.analyze_libraries();
 
-    let mut msgs = lower_res
-        .messages()
-        .iter()
-        //.chain(analyze_res.messages().iter())
-        .collect::<Vec<_>>();
+    // We only need to get the messages for the queries at the end of the chain
+    let mut msgs = analyze_res.messages().iter().collect::<Vec<_>>();
 
     // Sort by start order
     msgs.sort_by_key(|msg| msg.span().range.start());
@@ -263,7 +260,10 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
     toc_ast_db::span::SpanMappingStorage,
     toc_ast_db::source::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
-    toc_hir_db::InternedTypeStorage
+    toc_hir_db::InternedTypeStorage,
+    toc_analysis::db::TypeInternStorage,
+    toc_analysis::db::TypeDatabaseStorage,
+    toc_analysis::HirAnalysisStorage
 )]
 #[derive(Default)]
 struct MainDatabase {

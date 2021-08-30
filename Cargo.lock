@@ -827,11 +827,10 @@ dependencies = [
  "paste",
  "thiserror",
  "toc_hir",
- "toc_hir_lowering",
- "toc_parser",
+ "toc_hir_db",
  "toc_reporting",
+ "toc_salsa",
  "toc_span",
- "toc_validate",
  "unindent",
 ]
 
@@ -852,6 +851,7 @@ name = "toc_driver"
 version = "0.1.0"
 dependencies = [
  "annotate-snippets",
+ "toc_analysis",
  "toc_ast_db",
  "toc_hir",
  "toc_hir_db",

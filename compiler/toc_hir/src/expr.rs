@@ -97,7 +97,7 @@ pub struct Binary {
     pub rhs: ExprId,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum BinaryOp {
     /// Addition / Set Union / String Concatenation (`+`)
     Add,
@@ -152,7 +152,7 @@ pub struct Unary {
     pub rhs: ExprId,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum UnaryOp {
     /// Binary/boolean negation operator (`not`)
     Not,
