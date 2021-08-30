@@ -7,7 +7,7 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..28): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..28): []
-        Assign@(FileId(1), 0..28): None
+        Assign@(FileId(1), 0..28)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..28): Integer(0)
 error in file FileId(1) at 5..28: explicit int literal is too large

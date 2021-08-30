@@ -8,13 +8,13 @@ Library@(dummy)
     Module@(FileId(1), 0..30): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..30): []
         Block@(FileId(1), 0..30): Normal
-          Assign@(FileId(1), 6..12): None
+          Assign@(FileId(1), 6..12)
             Name@(FileId(1), 6..7): "_"@(FileId(1), 6..7), undeclared
             Name@(FileId(1), 11..12): "a"@(FileId(1), 11..12), undeclared
-          Assign@(FileId(1), 13..19): None
+          Assign@(FileId(1), 13..19)
             Name@(FileId(1), 13..14): "_"@(FileId(1), 6..7), undeclared
             Name@(FileId(1), 18..19): "b"@(FileId(1), 18..19), undeclared
-          Assign@(FileId(1), 20..26): None
+          Assign@(FileId(1), 20..26)
             Name@(FileId(1), 20..21): "_"@(FileId(1), 6..7), undeclared
             Name@(FileId(1), 25..26): "c"@(FileId(1), 25..26), undeclared
 

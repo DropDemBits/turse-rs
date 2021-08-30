@@ -1,6 +1,6 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::Assign;
-use toc_hir::{item, stmt, symbol};
+use toc_hir::{expr, item, stmt, symbol};
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
@@ -136,22 +136,33 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {
-        let op = {
+        let (op, asn_span) = {
             let asn_op = stmt.asn_op()?;
             let span = self.ctx.intern_range(asn_op.asn_node()?.text_range());
 
-            let op_kind = asn_op
-                .asn_kind()
-                .map(syntax_to_hir_asn_op)
-                .unwrap_or(stmt::AssignOp::None);
-
-            Spanned::new(op_kind, span)
+            (asn_op.asn_kind().and_then(asn_to_bin_op), span)
         };
 
         let lhs = self.lower_expr(stmt.lhs()?);
         let rhs = self.lower_expr(stmt.rhs()?);
 
-        Some(stmt::StmtKind::Assign(Assign { lhs, op, rhs }))
+        let rhs = if let Some(op) = op {
+            // Insert binary expression
+            let op = Spanned::new(op, asn_span);
+            let kind = expr::ExprKind::Binary(expr::Binary { lhs, op, rhs });
+            // Take the span of the assignment stmt
+            let span = self.ctx.intern_range(stmt.syntax().text_range());
+
+            self.body.add_expr(expr::Expr { kind, span })
+        } else {
+            rhs
+        };
+
+        Some(stmt::StmtKind::Assign(Assign {
+            lhs,
+            asn: asn_span,
+            rhs,
+        }))
     }
 
     fn lower_put_stmt(&mut self, stmt: ast::PutStmt) -> Option<stmt::StmtKind> {
@@ -284,22 +295,22 @@ impl super::BodyLowering<'_, '_> {
     }
 }
 
-fn syntax_to_hir_asn_op(op: toc_syntax::AssignOp) -> stmt::AssignOp {
-    match op {
-        toc_syntax::AssignOp::None => stmt::AssignOp::None,
-        toc_syntax::AssignOp::Add => stmt::AssignOp::Add,
-        toc_syntax::AssignOp::Sub => stmt::AssignOp::Sub,
-        toc_syntax::AssignOp::Mul => stmt::AssignOp::Mul,
-        toc_syntax::AssignOp::Div => stmt::AssignOp::Div,
-        toc_syntax::AssignOp::RealDiv => stmt::AssignOp::RealDiv,
-        toc_syntax::AssignOp::Mod => stmt::AssignOp::Mod,
-        toc_syntax::AssignOp::Rem => stmt::AssignOp::Rem,
-        toc_syntax::AssignOp::Exp => stmt::AssignOp::Exp,
-        toc_syntax::AssignOp::And => stmt::AssignOp::And,
-        toc_syntax::AssignOp::Or => stmt::AssignOp::Or,
-        toc_syntax::AssignOp::Xor => stmt::AssignOp::Xor,
-        toc_syntax::AssignOp::Shl => stmt::AssignOp::Shl,
-        toc_syntax::AssignOp::Shr => stmt::AssignOp::Shr,
-        toc_syntax::AssignOp::Imply => stmt::AssignOp::Imply,
-    }
+fn asn_to_bin_op(op: toc_syntax::AssignOp) -> Option<expr::BinaryOp> {
+    Some(match op {
+        toc_syntax::AssignOp::None => return None,
+        toc_syntax::AssignOp::Add => expr::BinaryOp::Add,
+        toc_syntax::AssignOp::Sub => expr::BinaryOp::Sub,
+        toc_syntax::AssignOp::Mul => expr::BinaryOp::Mul,
+        toc_syntax::AssignOp::Div => expr::BinaryOp::Div,
+        toc_syntax::AssignOp::RealDiv => expr::BinaryOp::RealDiv,
+        toc_syntax::AssignOp::Mod => expr::BinaryOp::Mod,
+        toc_syntax::AssignOp::Rem => expr::BinaryOp::Rem,
+        toc_syntax::AssignOp::Exp => expr::BinaryOp::Exp,
+        toc_syntax::AssignOp::And => expr::BinaryOp::And,
+        toc_syntax::AssignOp::Or => expr::BinaryOp::Or,
+        toc_syntax::AssignOp::Xor => expr::BinaryOp::Xor,
+        toc_syntax::AssignOp::Shl => expr::BinaryOp::Shl,
+        toc_syntax::AssignOp::Shr => expr::BinaryOp::Shr,
+        toc_syntax::AssignOp::Imply => expr::BinaryOp::Imply,
+    })
 }

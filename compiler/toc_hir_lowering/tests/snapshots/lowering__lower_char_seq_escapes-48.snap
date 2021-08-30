@@ -7,7 +7,7 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..8): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..8): []
-        Assign@(FileId(1), 0..8): None
+        Assign@(FileId(1), 0..8)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..8): String("\"")
 error in file FileId(1) at 6..8: invalid string literal: unknown caret escape

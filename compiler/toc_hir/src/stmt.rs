@@ -1,5 +1,5 @@
 //! Statement nodes
-use toc_span::{SpanId, Spanned};
+use toc_span::SpanId;
 
 use crate::{body, expr, item, symbol, ty};
 
@@ -117,8 +117,8 @@ impl ConstVarTail {
 pub struct Assign {
     /// Left hand side of an assignment expression
     pub lhs: expr::ExprId,
-    /// Operation performed between the arguments before assignment
-    pub op: Spanned<AssignOp>,
+    /// Span of the assignment operator
+    pub asn: SpanId,
     /// Right hand side of an assignment expression
     pub rhs: expr::ExprId,
 }
@@ -158,64 +158,6 @@ pub enum BlockKind {
     ///
     /// [`ConstVar`]: crate::item::ConstVar
     ItemGroup,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum AssignOp {
-    /// Plain assignment
-    None,
-    /// Addition / Set Union / String Concatenation (`+`)
-    Add,
-    /// Subtraction / Set Subtraction (`-`)
-    Sub,
-    /// Multiplication / Set Intersection (`*`)
-    Mul,
-    /// Integer Division (`div`)
-    Div,
-    /// Real Division (`/`)
-    RealDiv,
-    /// Modulo (`mod`)
-    Mod,
-    /// Remainder (`rem`)
-    Rem,
-    /// Exponentiation (`**`)
-    Exp,
-    /// Bitwise/boolean And (`and`)
-    And,
-    /// Bitwise/boolean Or (`or`)
-    Or,
-    /// Bitwise/boolean Exclusive-Or (`xor`)
-    Xor,
-    /// Logical Shift Left (`shl`)
-    Shl,
-    /// Logical Shift Right (`shr`)
-    Shr,
-    /// Material Implication (`=>`)
-    Imply,
-}
-
-impl AssignOp {
-    pub fn as_binary_op(self) -> Option<expr::BinaryOp> {
-        let op = match self {
-            AssignOp::Add => expr::BinaryOp::Add,
-            AssignOp::Sub => expr::BinaryOp::Sub,
-            AssignOp::Mul => expr::BinaryOp::Mul,
-            AssignOp::Div => expr::BinaryOp::Div,
-            AssignOp::RealDiv => expr::BinaryOp::RealDiv,
-            AssignOp::Mod => expr::BinaryOp::Mod,
-            AssignOp::Rem => expr::BinaryOp::Rem,
-            AssignOp::Exp => expr::BinaryOp::Exp,
-            AssignOp::And => expr::BinaryOp::And,
-            AssignOp::Or => expr::BinaryOp::Or,
-            AssignOp::Xor => expr::BinaryOp::Xor,
-            AssignOp::Shl => expr::BinaryOp::Shl,
-            AssignOp::Shr => expr::BinaryOp::Shr,
-            AssignOp::Imply => expr::BinaryOp::Imply,
-            _ => return None,
-        };
-
-        Some(op)
-    }
 }
 
 /// A generic type representing anything skippable.

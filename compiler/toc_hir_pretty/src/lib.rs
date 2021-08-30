@@ -208,9 +208,9 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("StmtItem", span, Some(format_args!("{:?}", item)))
     }
-    fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
+    fn visit_assign(&self, id: BodyStmt, _stmt: &stmt::Assign) {
         let span = self.stmt_span(id);
-        self.emit_node("Assign", span, Some(format_args!("{:?}", stmt.op.item())))
+        self.emit_node("Assign", span, None)
     }
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {
         let span = self.stmt_span(id);

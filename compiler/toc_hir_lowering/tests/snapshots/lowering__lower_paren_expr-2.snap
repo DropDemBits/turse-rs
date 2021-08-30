@@ -7,7 +7,7 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..12): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..12): []
-        Assign@(FileId(1), 0..12): None
+        Assign@(FileId(1), 0..12)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Paren@(FileId(1), 5..12)
             Paren@(FileId(1), 6..11)

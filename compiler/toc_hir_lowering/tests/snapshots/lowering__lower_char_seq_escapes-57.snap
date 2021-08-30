@@ -7,7 +7,7 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..9): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..9): []
-        Assign@(FileId(1), 0..9): None
+        Assign@(FileId(1), 0..9)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..9): String("8")
 error in file FileId(1) at 6..8: invalid string literal: unknown backslash escape
