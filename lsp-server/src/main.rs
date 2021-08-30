@@ -7,9 +7,8 @@ use lsp_types::{
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
-use toc_ast_db::source::SourceParser;
+use toc_analysis::HirAnalysis;
 use toc_ast_db::span::SpanMapping;
-use toc_hir::db;
 use toc_salsa::salsa;
 use toc_vfs::query::VfsDatabaseExt;
 
@@ -141,46 +140,15 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     let root_file = db.vfs.intern_path(path.into());
     db.update_file(root_file, Some(contents.into()));
 
-    let hir_db = db::HirBuilder::new();
+    // TODO: Recursively load in files
 
-    // Parse root CST
-    let (parsed, depend_res) = {
-        let parsed = db.parse_file(root_file);
-        let depend_res = db.parse_depends(root_file);
-
-        (parsed, depend_res)
-    };
-
-    eprintln!("finished parse @ {:?}", uri.as_str());
-
-    let (validate_res, hir_res) = {
-        let validate_res = db.validate_file(root_file);
-        let hir_res =
-            toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.result().syntax());
-
-        (validate_res, hir_res)
-    };
-
-    eprintln!("finished CST validate & lower @ {:?}", uri.as_str());
-
-    let hir_db = hir_db.finish();
-    let analyze_res = toc_analysis::analyze_unit(hir_db, *hir_res.result());
-
-    eprintln!("finished analysis @ {:?}", uri.as_str());
-
-    let mut msgs = parsed
-        .messages()
-        .iter()
-        .chain(depend_res.messages().iter())
-        .chain(validate_res.messages().iter())
-        .chain(hir_res.messages().iter())
-        .chain(analyze_res.messages().iter())
-        .collect::<Vec<_>>();
+    let mut msgs = vec![];
+    db.analyze_libraries().bundle_messages(&mut msgs);
 
     // Sort by start order
     msgs.sort_by_key(|msg| msg.span().range.start());
 
-    eprintln!("finished compile @ {:?}", uri.as_str());
+    eprintln!("finished analysis @ {:?}", uri.as_str());
 
     fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
         use toc_reporting::AnnotateKind;
@@ -249,7 +217,12 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
 #[salsa::database(
     toc_vfs::query::FileSystemStorage,
     toc_ast_db::span::SpanMappingStorage,
-    toc_ast_db::source::SourceParserStorage
+    toc_ast_db::source::SourceParserStorage,
+    toc_hir_db::HirDatabaseStorage,
+    toc_hir_db::InternedTypeStorage,
+    toc_analysis::db::TypeInternStorage,
+    toc_analysis::db::TypeDatabaseStorage,
+    toc_analysis::HirAnalysisStorage
 )]
 #[derive(Default)]
 struct LspDatabase {

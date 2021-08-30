@@ -14,7 +14,7 @@ serde_json = "1.0.64"
 
 # Local compiler dependencies
 toc_hir = {path = "../compiler/toc_hir"}
-toc_hir_lowering = {path = "../compiler/toc_hir_lowering"}
+toc_hir_db = {path = "../compiler/toc_hir_db"}
 toc_analysis = {path = "../compiler/toc_analysis"}
 toc_ast_db = {path = "../compiler/toc_ast_db"}
 toc_reporting = {path = "../compiler/toc_reporting"}
