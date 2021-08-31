@@ -1,5 +1,4 @@
 //! Representation of Turing types
-pub mod rules; // too many errors right now
 
 use std::fmt::{self, Debug};
 use std::ops::Deref;
@@ -11,6 +10,7 @@ use crate::db;
 
 mod lower;
 pub(crate) mod query;
+pub mod rules;
 
 toc_salsa::create_intern_key!(
     /// Id referencing an interned type.
@@ -19,7 +19,10 @@ toc_salsa::create_intern_key!(
 
 impl TypeId {
     /// Looks up the interned data in the given database
-    pub fn lookup_in(self, db: &dyn db::TypeDatabase) -> TypeData {
+    pub fn lookup<DB>(self, db: &DB) -> TypeData
+    where
+        DB: ?Sized + db::TypeDatabase,
+    {
         db.lookup_intern_type(self)
     }
 }

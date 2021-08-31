@@ -16,7 +16,15 @@ pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTyp
     lower::ty_from_hir_ty(db, type_id)
 }
 
-pub(crate) fn type_of(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
+pub(crate) fn type_of(db: &dyn db::TypeDatabase, source: db::TypeSource) -> TypeId {
+    match source {
+        db::TypeSource::Def(def_id) => ty_of_item(db, def_id),
+        db::TypeSource::BodyExpr(id, expr) => ty_of_expr(db, InLibrary(id, expr)),
+        db::TypeSource::Body(id, body) => ty_of_body(db, InLibrary(id, body)),
+    }
+}
+
+fn ty_of_item(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
     // Lookup the corresponding item
     let item_id = if let Some(item) = db.item_of(def_id) {
         item
@@ -33,7 +41,7 @@ pub(crate) fn type_of(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
     lower::ty_from_item(db, item_id)
 }
 
-pub(crate) fn eval_ty_of(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -> TypeId {
+fn ty_of_expr(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -> TypeId {
     let InLibrary(lib_id, BodyExpr(body_id, expr_id)) = expr;
 
     let library = db.library(lib_id);
@@ -42,13 +50,13 @@ pub(crate) fn eval_ty_of(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -
     lower::ty_from_expr(db, body.in_library(lib_id), expr_id)
 }
 
-pub(crate) fn eval_ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
+fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
     let library = db.library(body_id.0);
     let body = library.body(body_id.1);
 
     match &body.kind {
-        toc_hir::body::BodyKind::Stmts(_, _) => db.mk_error(), // This is where we'd evaluate a const value
-        toc_hir::body::BodyKind::Exprs(expr) => db.eval_ty_of(body_id.map(|id| expr.in_body(id))),
+        toc_hir::body::BodyKind::Stmts(_, _) => db.mk_error(), // This is where we'd evaluate a const fn
+        toc_hir::body::BodyKind::Exprs(expr) => db.type_of((body_id.0, body_id.1, *expr).into()),
     }
 }
 

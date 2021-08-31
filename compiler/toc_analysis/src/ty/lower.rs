@@ -1,14 +1,11 @@
 //! Lowering HIR entities into anaylsis types
 
-use std::convert::TryInto;
-use std::num::NonZeroU32;
-
 use toc_hir::library::WrapInLibrary;
 use toc_hir::{body, expr};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
 use crate::db::TypeDatabase;
-use crate::ty::{Type, TypeId, TypeKind};
+use crate::ty::{self, Type, TypeId, TypeKind};
 
 use super::{IntSize, Mutability, NatSize, RealSize, SeqSize};
 
@@ -152,12 +149,12 @@ fn constvar_ty(
         }
         item::ConstVarTail::InitExpr(expr) => {
             // From inferred init expr
-            db.eval_ty_of_body(expr.in_library(item_id.0))
+            db.type_of((item_id.0, *expr).into())
         }
     };
 
     // Make the type concrete
-    let ty_ref = if db.lookup_intern_type(item_ty).kind() == &TypeKind::Integer {
+    let ty_ref = if item_ty.lookup(db).kind() == &TypeKind::Integer {
         // Integer decomposes into a normal `int`
         db.intern_type(
             Type {
@@ -229,15 +226,13 @@ fn binary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::B
     let left = ty_from_expr(db, body, expr.lhs);
     let right = ty_from_expr(db, body, expr.rhs);
 
-    db.check_binary_op(left, *expr.op.item(), right)
-        .unwrap_or_else(|_| db.mk_error())
+    ty::rules::check_binary_op(db, left, *expr.op.item(), right).unwrap_or_else(|_| db.mk_error())
 }
 
 fn unary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Unary) -> TypeId {
     let right = ty_from_expr(db, body, expr.rhs);
 
-    db.check_unary_op(*expr.op.item(), right)
-        .unwrap_or_else(|_| db.mk_error())
+    ty::rules::check_unary_op(db, *expr.op.item(), right).unwrap_or_else(|_| db.mk_error())
 }
 
 fn paren_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Paren) -> TypeId {
@@ -252,42 +247,10 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
         expr::Name::Name(def_id) => {
             let def_id = DefId(body.0, *def_id);
             // TODO: Perform name resolution
-            db.type_of(def_id)
+            db.type_of(def_id.into())
         }
         expr::Name::Self_ => {
             todo!()
         }
     }
 }
-
-/*
-fn type_check_binary_op(
-    &self,
-    lhs_id: expr::ExprId,
-    op: Spanned<expr::BinaryOp>,
-    rhs_id: expr::ExprId,
-) -> ty::Type {
-    let lhs_ty_ref = self.get_spanned_expr_ty_ref(lhs_id);
-    let rhs_ty_ref = self.get_spanned_expr_ty_ref(rhs_id);
-
-    match ty::rules::check_binary_operands(lhs_ty_ref, op, rhs_ty_ref) {
-        Ok(ty) => ty,
-        Err(err) => {
-            ty::rules::report_binary_typecheck_error(err, &mut self.state().reporter);
-            ty::Type::Error
-        }
-    }
-}
-
-fn type_check_unary_op(&self, op: Spanned<expr::UnaryOp>, rhs_id: expr::ExprId) -> ty::Type {
-    let rhs_ty_ref = self.get_spanned_expr_ty_ref(rhs_id);
-
-    match ty::rules::check_unary_operands(op, rhs_ty_ref) {
-        Ok(ty) => ty,
-        Err(err) => {
-            ty::rules::report_unary_typecheck_error(err, &mut self.state().reporter);
-            ty::Type::Error
-        }
-    }
-}
-*/

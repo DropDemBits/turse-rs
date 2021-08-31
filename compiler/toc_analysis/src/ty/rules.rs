@@ -8,13 +8,10 @@ use crate::{
     ty::{Mutability, SeqSize, Type, TypeId, TypeKind},
 };
 
-// Actual type used for conversions
-type TyDb<'a> = (dyn crate::HirAnalysis + 'a);
-
 // Conversions of type
 impl Type {
     /// Applies a deref transformation, requiring var mutability
-    pub fn try_deref_mut(&self) -> Option<TypeId> {
+    fn try_deref_mut(&self) -> Option<TypeId> {
         if let TypeKind::Ref(Mutability::Var, ty) = self.kind() {
             Some(*ty)
         } else {
@@ -23,7 +20,7 @@ impl Type {
     }
 
     /// Applies a deref transformation
-    pub fn try_deref(&self) -> Option<TypeId> {
+    fn try_deref(&self) -> Option<TypeId> {
         if let TypeKind::Ref(_, ty) = self.kind() {
             Some(*ty)
         } else {
@@ -56,6 +53,32 @@ impl TypeKind {
     }
 }
 
+impl TypeId {
+    pub fn as_deref<T: db::TypeDatabase + ?Sized>(self, db: &T) -> Option<Self> {
+        self.lookup(db).try_deref()
+    }
+
+    pub fn as_deref_mut<T: db::TypeDatabase + ?Sized>(self, db: &T) -> Option<Self> {
+        self.lookup(db).try_deref_mut()
+    }
+
+    /// Returns the type id pointed to by a ref, or itself if it's not a type
+    ///
+    /// ## Example
+    ///
+    /// ```text
+    /// Boolean -> Boolean
+    /// Ref(Var, Boolean) -> Boolean
+    /// Ref(Const, Ref(Const, Boolean)) -> Ref(Const, Boolean)
+    /// ```
+    pub fn peel_ref<T: db::TypeDatabase + ?Sized>(self, db: &T) -> Self {
+        match self.as_deref(db) {
+            Some(to) => to,
+            None => self,
+        }
+    }
+}
+
 /// Type for associated mismatch binary operand types
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InvalidBinaryOp {
@@ -76,7 +99,15 @@ pub struct InvalidUnaryOp {
 /// `ignore_mut` is only to be used during initializers
 ///
 /// l_value should be left as a ref it is one.
-pub fn is_assignable(db: &TyDb, left: &Type, right: &Type, ignore_mut: bool) -> Option<bool> {
+pub fn is_assignable<T: ?Sized + crate::HirAnalysis>(
+    db: &T,
+    left: TypeId,
+    right: TypeId,
+    ignore_mut: bool,
+) -> Option<bool> {
+    let left = left.lookup(db);
+    let right = right.lookup(db);
+
     if left.kind().is_error() || right.kind().is_error() {
         return Some(true);
     }
@@ -84,8 +115,8 @@ pub fn is_assignable(db: &TyDb, left: &Type, right: &Type, ignore_mut: bool) -> 
         left.try_deref()?
     } else {
         left.try_deref_mut()?
-    };
-    let left = db.lookup_intern_type(left);
+    }
+    .lookup(db);
 
     /// Maximum length of a `string`
     const MAX_STRING_LEN: u32 = 256;
@@ -197,21 +228,9 @@ pub fn is_assignable(db: &TyDb, left: &Type, right: &Type, ignore_mut: bool) -> 
     Some(is_assignable)
 }
 
-/// Optionally apply the deref operation, returning the original type
-/// if it wasn't a ref type.
-fn opt_apply_deref(db: &dyn db::TypeDatabase, ty: TypeId) -> TypeId {
-    match ty.lookup_in(db).try_deref() {
-        Some(to) => to,
-        None => ty,
-    }
-}
-
-/// Implemented as a query in `TypeDatabase`
-/// ???: Do we want to impl the rest of the ty rules as type db queries?
-/// We also reuse this code during typeck via the query though, so it could be moved
-/// into ty::lower
-pub fn check_binary_op(
-    db: &dyn db::TypeDatabase,
+/// Gets the type produced by the given binary operation
+pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
+    db: &T,
     left: TypeId,
     op: expr::BinaryOp,
     right: TypeId,
@@ -231,8 +250,8 @@ pub fn check_binary_op(
     // nat - nat => nat
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    fn check_arithmetic_operands(
-        db: &dyn db::TypeDatabase,
+    fn check_arithmetic_operands<T: ?Sized + db::TypeDatabase>(
+        db: &T,
         left: &TypeKind,
         right: &TypeKind,
     ) -> Option<TypeId> {
@@ -254,8 +273,8 @@ pub fn check_binary_op(
         }
     }
 
-    fn check_bitwise_operands(
-        db: &dyn db::TypeDatabase,
+    fn check_bitwise_operands<T: ?Sized + db::TypeDatabase>(
+        db: &T,
         left: &TypeKind,
         right: &TypeKind,
     ) -> Option<TypeId> {
@@ -295,10 +314,7 @@ pub fn check_binary_op(
         })
     }
 
-    let (left_ty, right_ty) = (
-        opt_apply_deref(db, left).lookup_in(db),
-        opt_apply_deref(db, right).lookup_in(db),
-    );
+    let (left_ty, right_ty) = (left.peel_ref(db).lookup(db), right.peel_ref(db).lookup(db));
     let (lhs_kind, rhs_kind) = (left_ty.kind(), right_ty.kind());
 
     // Short circuit for error types
@@ -573,8 +589,8 @@ pub fn report_invalid_bin_op(err: InvalidBinaryOp, op_span: Span, reporter: &mut
 }
 
 /// Implemented as a query in TypeDatabase
-pub fn check_unary_op(
-    db: &dyn db::TypeDatabase,
+pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
+    db: &T,
     op: expr::UnaryOp,
     right: TypeId,
 ) -> Result<TypeId, InvalidUnaryOp> {
@@ -584,7 +600,7 @@ pub fn check_unary_op(
         Err(InvalidUnaryOp { op, _rhs: right })
     }
 
-    let right_ty = opt_apply_deref(db, right).lookup_in(db);
+    let right_ty = right.peel_ref(db).lookup(db);
     let rhs_kind = right_ty.kind();
 
     // Short circuit for error types

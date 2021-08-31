@@ -2,8 +2,8 @@
 
 use toc_hir::{
     body::BodyId,
-    expr::{self, BodyExpr},
-    library::InLibrary,
+    expr::{BodyExpr, ExprId},
+    library::{InLibrary, LibraryId},
     symbol::DefId,
     ty::TypeId as HirTypeId,
 };
@@ -25,34 +25,9 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     #[salsa::invoke(ty::query::from_hir_type)]
     fn from_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
 
-    /// Gets the type of the given definition.
+    /// Gets the type of the given type source.
     #[salsa::invoke(ty::query::type_of)]
-    fn type_of(&self, def_id: DefId) -> ty::TypeId;
-
-    /// Gets the type produced by the given expression.
-    #[salsa::invoke(ty::query::eval_ty_of)]
-    fn eval_ty_of(&self, expr: InLibrary<BodyExpr>) -> ty::TypeId;
-
-    /// Gets the type produced by the expression body.
-    #[salsa::invoke(ty::query::eval_ty_of_body)]
-    fn eval_ty_of_body(&self, body: InLibrary<BodyId>) -> ty::TypeId;
-
-    /// Checks if the binary op can be applied with the given types
-    #[salsa::invoke(ty::rules::check_binary_op)]
-    fn check_binary_op(
-        &self,
-        left: ty::TypeId,
-        op: expr::BinaryOp,
-        right: ty::TypeId,
-    ) -> Result<ty::TypeId, ty::rules::InvalidBinaryOp>;
-
-    /// Checks if the unary op can be applied with the given types
-    #[salsa::invoke(ty::rules::check_unary_op)]
-    fn check_unary_op(
-        &self,
-        op: expr::UnaryOp,
-        right: ty::TypeId,
-    ) -> Result<ty::TypeId, ty::rules::InvalidUnaryOp>;
+    fn type_of(&self, source: TypeSource) -> ty::TypeId;
 }
 
 /// Helpers for working with the type interner
@@ -69,4 +44,48 @@ pub trait TypeInternExt {
     fn mk_char_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_ref(&self, mutability: ty::Mutability, to: ty::TypeId) -> ty::TypeId;
+}
+
+/// Anything which can produce a type
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TypeSource {
+    Def(DefId),
+    BodyExpr(LibraryId, BodyExpr),
+    Body(LibraryId, BodyId),
+}
+
+impl From<DefId> for TypeSource {
+    fn from(id: DefId) -> Self {
+        Self::Def(id)
+    }
+}
+
+impl From<InLibrary<BodyExpr>> for TypeSource {
+    fn from(id: InLibrary<BodyExpr>) -> Self {
+        Self::BodyExpr(id.0, id.1)
+    }
+}
+
+impl From<InLibrary<BodyId>> for TypeSource {
+    fn from(id: InLibrary<BodyId>) -> Self {
+        Self::Body(id.0, id.1)
+    }
+}
+
+impl From<(LibraryId, BodyExpr)> for TypeSource {
+    fn from(id: (LibraryId, BodyExpr)) -> Self {
+        Self::BodyExpr(id.0, id.1)
+    }
+}
+
+impl From<(LibraryId, BodyId, ExprId)> for TypeSource {
+    fn from(id: (LibraryId, BodyId, ExprId)) -> Self {
+        Self::BodyExpr(id.0, BodyExpr(id.1, id.2))
+    }
+}
+
+impl From<(LibraryId, BodyId)> for TypeSource {
+    fn from(id: (LibraryId, BodyId)) -> Self {
+        Self::Body(id.0, id.1)
+    }
 }
