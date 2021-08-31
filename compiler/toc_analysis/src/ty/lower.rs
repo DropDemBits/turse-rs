@@ -154,7 +154,7 @@ fn constvar_ty(
     };
 
     // Make the type concrete
-    let ty_ref = if item_ty.lookup(db).kind() == &TypeKind::Integer {
+    let ty_ref = if *item_ty.in_db(db).kind() == TypeKind::Integer {
         // Integer decomposes into a normal `int`
         db.intern_type(
             Type {

@@ -235,7 +235,7 @@ impl TypeCheck<'_> {
                 continue;
             }
 
-            let put_ty = put_ty.lookup(self.db);
+            let put_ty = put_ty.in_db(self.db);
             let put_kind = put_ty.kind();
             // Only the following are allowed to have precision & exponent options:
             // - Int
@@ -303,13 +303,13 @@ impl TypeCheck<'_> {
         for item in items {
             // Item expression must be a variable ref
             let body_expr = item.expr.in_body(body_id);
-            let ty = db.type_of((self.library_id, body_expr).into());
+            let ty = db.type_of((self.library_id, body_expr).into()).in_db(db);
 
-            if !self.is_text_io_item(ty) {
+            if !self.is_text_io_item(ty.id()) {
                 continue;
             }
 
-            if ty.as_deref_mut(db).is_none() {
+            if ty.as_deref_mut().is_none() {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 // TODO: Stringify item for more clarity on the error location
@@ -337,9 +337,10 @@ impl TypeCheck<'_> {
     }
 
     fn check_integer_type(&self, ty: ty::TypeId, span: SpanId) {
-        let ty = ty.lookup(self.db);
+        let ty = ty.in_db(self.db);
+        let ty_kind = ty.kind();
 
-        if !ty.kind().is_integer() && !ty.kind().is_error() {
+        if !ty_kind.is_integer() && !ty_kind.is_error() {
             let ty_span = span.lookup_in(&self.library.span_map);
 
             // TODO: Stringify type for more clarity on the error
@@ -353,7 +354,7 @@ impl TypeCheck<'_> {
 
     fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
         let db = self.db;
-        let ty_dat = ty.peel_ref(db).lookup(db);
+        let ty_dat = ty.in_db(db).peel_ref();
 
         // Must be a valid put/get type
         // Can be one of the following:
@@ -368,7 +369,7 @@ impl TypeCheck<'_> {
         // - Enum
 
         // For now, all lowered types satisfy this condition
-        match ty_dat.kind() {
+        match &*ty_dat.kind() {
             ty::TypeKind::Error
             | ty::TypeKind::Boolean
             | ty::TypeKind::Int(_)

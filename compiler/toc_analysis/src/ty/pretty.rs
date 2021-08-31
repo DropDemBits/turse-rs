@@ -18,9 +18,10 @@ pub(super) fn debug_ty(db: &dyn db::TypeDatabase, type_id: TypeId) -> String {
 }
 
 fn emit_ty(db: &dyn db::TypeDatabase, out: &mut dyn fmt::Write, type_id: TypeId) -> fmt::Result {
-    let ty_dat = type_id.lookup(db);
+    let ty = type_id.in_db(db);
+    let ty_kind = &*ty.kind();
 
-    let prefix = match ty_dat.kind() {
+    let prefix = match ty_kind {
         TypeKind::Error => "<error>",
         TypeKind::Boolean => "boolean",
         TypeKind::Int(IntSize::Int) => "int",
@@ -47,7 +48,7 @@ fn emit_ty(db: &dyn db::TypeDatabase, out: &mut dyn fmt::Write, type_id: TypeId)
     out.write_str(prefix)?;
 
     // Extra bits
-    match ty_dat.kind() {
+    match ty_kind {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_fmt(format_args!(" {:?}", seq))?
         }

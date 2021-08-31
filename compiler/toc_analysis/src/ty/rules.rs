@@ -5,29 +5,10 @@ use toc_span::Span;
 
 use crate::{
     db,
-    ty::{Mutability, SeqSize, Type, TypeId, TypeKind},
+    ty::{Mutability, SeqSize, TypeId, TypeKind},
 };
 
-// Conversions of type
-impl Type {
-    /// Applies a deref transformation, requiring var mutability
-    fn try_deref_mut(&self) -> Option<TypeId> {
-        if let TypeKind::Ref(Mutability::Var, ty) = self.kind() {
-            Some(*ty)
-        } else {
-            None
-        }
-    }
-
-    /// Applies a deref transformation
-    fn try_deref(&self) -> Option<TypeId> {
-        if let TypeKind::Ref(_, ty) = self.kind() {
-            Some(*ty)
-        } else {
-            None
-        }
-    }
-}
+use super::{TyRef, TyRefKind, TypeData};
 
 impl TypeKind {
     pub fn is_number(&self) -> bool {
@@ -53,13 +34,25 @@ impl TypeKind {
     }
 }
 
-impl TypeId {
-    pub fn as_deref<T: db::TypeDatabase + ?Sized>(self, db: &T) -> Option<Self> {
-        self.lookup(db).try_deref()
+// Conversions of type
+impl<'db, DB> TyRef<'db, DB>
+where
+    DB: db::TypeDatabase + ?Sized + 'db,
+{
+    /// Applies a deref transformation
+    pub fn as_deref(self) -> Option<Self> {
+        match *self.kind() {
+            TypeKind::Ref(_, ty) => Some(ty.in_db(self.db)),
+            _ => None,
+        }
     }
 
-    pub fn as_deref_mut<T: db::TypeDatabase + ?Sized>(self, db: &T) -> Option<Self> {
-        self.lookup(db).try_deref_mut()
+    /// Applies a deref transformation, requiring var mutability
+    pub fn as_deref_mut(self) -> Option<Self> {
+        match *self.kind() {
+            TypeKind::Ref(Mutability::Var, ty) => Some(ty.in_db(self.db)),
+            _ => None,
+        }
     }
 
     /// Returns the type id pointed to by a ref, or itself if it's not a type
@@ -71,20 +64,30 @@ impl TypeId {
     /// Ref(Var, Boolean) -> Boolean
     /// Ref(Const, Ref(Const, Boolean)) -> Ref(Const, Boolean)
     /// ```
-    pub fn peel_ref<T: db::TypeDatabase + ?Sized>(self, db: &T) -> Self {
-        match self.as_deref(db) {
+    pub fn peel_ref(self) -> Self {
+        match self.as_deref() {
             Some(to) => to,
             None => self,
         }
+    }
+
+    pub fn data(self) -> TypeData {
+        self.db.lookup_intern_type(self.id)
+    }
+
+    pub fn kind(self) -> TyRefKind {
+        TyRefKind(self.data())
+    }
+
+    pub fn id(self) -> TypeId {
+        self.id
     }
 }
 
 /// Type for associated mismatch binary operand types
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InvalidBinaryOp {
-    _lhs: TypeId,
     op: expr::BinaryOp,
-    _rhs: TypeId,
     unsupported: bool,
 }
 
@@ -92,7 +95,6 @@ pub struct InvalidBinaryOp {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InvalidUnaryOp {
     op: expr::UnaryOp,
-    _rhs: TypeId,
 }
 
 /// Returns `Some(is_assignable)`, or `None` if the the l_value is not deref'able.
@@ -105,22 +107,6 @@ pub fn is_assignable<T: ?Sized + crate::HirAnalysis>(
     right: TypeId,
     ignore_mut: bool,
 ) -> Option<bool> {
-    let left = left.lookup(db);
-    let right = right.lookup(db);
-
-    if left.kind().is_error() || right.kind().is_error() {
-        return Some(true);
-    }
-    let left = if ignore_mut {
-        left.try_deref()?
-    } else {
-        left.try_deref_mut()?
-    }
-    .lookup(db);
-
-    /// Maximum length of a `string`
-    const MAX_STRING_LEN: u32 = 256;
-
     // Current assignability rules:
     // boolean :=
     //   boolean
@@ -166,7 +152,23 @@ pub fn is_assignable<T: ?Sized + crate::HirAnalysis>(
     // | String [runtime checked]
     //
 
-    let is_assignable = match (left.kind(), right.kind()) {
+    /// Maximum length of a `string`
+    const MAX_STRING_LEN: u32 = 256;
+
+    let left = left.in_db(db);
+    let right = right.in_db(db);
+
+    if left.kind().is_error() || right.kind().is_error() {
+        return Some(true);
+    }
+
+    let left = if ignore_mut {
+        left.as_deref()?
+    } else {
+        left.as_deref_mut()?
+    };
+
+    let is_assignable = match (&*left.kind(), &*right.kind()) {
         // Short-circuiting error types
         (TypeKind::Error, _) | (_, TypeKind::Error) => return None,
 
@@ -288,34 +290,25 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    fn create_binary_type_error(
-        left: TypeId,
-        op: expr::BinaryOp,
-        right: TypeId,
-    ) -> Result<TypeId, InvalidBinaryOp> {
+    fn create_binary_type_error(op: expr::BinaryOp) -> Result<TypeId, InvalidBinaryOp> {
         Err(InvalidBinaryOp {
-            _lhs: left,
             op,
-            _rhs: right,
             unsupported: false,
         })
     }
 
-    fn create_unsupported_binary_op(
-        left: TypeId,
-        op: expr::BinaryOp,
-        right: TypeId,
-    ) -> Result<TypeId, InvalidBinaryOp> {
+    fn create_unsupported_binary_op(op: expr::BinaryOp) -> Result<TypeId, InvalidBinaryOp> {
         Err(InvalidBinaryOp {
-            _lhs: left,
             op,
-            _rhs: right,
             unsupported: true,
         })
     }
 
-    let (left_ty, right_ty) = (left.peel_ref(db).lookup(db), right.peel_ref(db).lookup(db));
-    let (lhs_kind, rhs_kind) = (left_ty.kind(), right_ty.kind());
+    let left = left.in_db(db);
+    let right = right.in_db(db);
+
+    let (left_ty, right_ty) = (left.peel_ref(), right.peel_ref());
+    let (lhs_kind, rhs_kind) = (&*left_ty.kind(), &*right_ty.kind());
 
     // Short circuit for error types
     // Don't duplicate errors
@@ -336,7 +329,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 Ok(result_ty)
             } else {
                 // Type error
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Sub => {
@@ -348,7 +341,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Subtraction
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Mul => {
@@ -360,7 +353,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Multiplication
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Div => {
@@ -374,7 +367,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                     Ok(db.mk_nat(NatSize::Nat))
                 }
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_int(IntSize::Int)),
-                _ => create_binary_type_error(left, op, right),
+                _ => create_binary_type_error(op),
             }
         }
         expr::BinaryOp::RealDiv => {
@@ -384,7 +377,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             if lhs_kind.is_number() && rhs_kind.is_number() {
                 Ok(db.mk_real(RealSize::Real))
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Mod => {
@@ -395,7 +388,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Modulo
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Rem => {
@@ -406,7 +399,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Remainder
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Exp => {
@@ -417,7 +410,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Exponentiation
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         // Bitwise operators (integer, integer => nat)
@@ -434,7 +427,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical And
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Or => {
@@ -449,7 +442,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Or
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Xor => {
@@ -464,7 +457,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         // Pure bitwise operators
@@ -476,7 +469,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Bitwise Shl
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         expr::BinaryOp::Shr => {
@@ -487,7 +480,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Bitwise Shr
                 Ok(result_ty)
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         // Pure logical operator
@@ -499,19 +492,19 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(left, op, right)
+                create_binary_type_error(op)
             }
         }
         // Comparison (a, b => boolean where a, b: Comparable)
-        expr::BinaryOp::Less => create_unsupported_binary_op(left, op, right),
-        expr::BinaryOp::LessEq => create_unsupported_binary_op(left, op, right),
-        expr::BinaryOp::Greater => create_unsupported_binary_op(left, op, right),
-        expr::BinaryOp::GreaterEq => create_unsupported_binary_op(left, op, right),
-        expr::BinaryOp::Equal => create_unsupported_binary_op(left, op, right),
-        expr::BinaryOp::NotEqual => create_unsupported_binary_op(left, op, right),
+        expr::BinaryOp::Less => create_unsupported_binary_op(op),
+        expr::BinaryOp::LessEq => create_unsupported_binary_op(op),
+        expr::BinaryOp::Greater => create_unsupported_binary_op(op),
+        expr::BinaryOp::GreaterEq => create_unsupported_binary_op(op),
+        expr::BinaryOp::Equal => create_unsupported_binary_op(op),
+        expr::BinaryOp::NotEqual => create_unsupported_binary_op(op),
         // Set membership tests (set(a), a => boolean)
-        expr::BinaryOp::In => create_unsupported_binary_op(left, op, right),
-        expr::BinaryOp::NotIn => create_unsupported_binary_op(left, op, right),
+        expr::BinaryOp::In => create_unsupported_binary_op(op),
+        expr::BinaryOp::NotIn => create_unsupported_binary_op(op),
     }
 }
 
@@ -596,12 +589,12 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
 ) -> Result<TypeId, InvalidUnaryOp> {
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    fn create_unary_type_error(op: expr::UnaryOp, right: TypeId) -> Result<TypeId, InvalidUnaryOp> {
-        Err(InvalidUnaryOp { op, _rhs: right })
+    fn create_unary_type_error(op: expr::UnaryOp) -> Result<TypeId, InvalidUnaryOp> {
+        Err(InvalidUnaryOp { op })
     }
 
-    let right_ty = right.peel_ref(db).lookup(db);
-    let rhs_kind = right_ty.kind();
+    let right_ty = right.in_db(db).peel_ref();
+    let rhs_kind = &*right_ty.kind();
 
     // Short circuit for error types
     // Don't duplicate errors
@@ -618,7 +611,7 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Not
                 Ok(db.mk_boolean())
             } else {
-                create_unary_type_error(op, right)
+                create_unary_type_error(op)
             }
         }
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
@@ -630,7 +623,7 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
                 TypeKind::Real(_) => Ok(db.mk_real(RealSize::Real)),
                 TypeKind::Int(_) => Ok(db.mk_int(IntSize::Int)),
                 TypeKind::Nat(_) => Ok(db.mk_nat(NatSize::Nat)),
-                _ => create_unary_type_error(op, right),
+                _ => create_unary_type_error(op),
             }
         }
     }

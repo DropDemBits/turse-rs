@@ -16,12 +16,11 @@ toc_salsa::create_intern_key!(
 );
 
 impl TypeId {
-    /// Looks up the interned data in the given database
-    pub fn lookup<DB>(self, db: &DB) -> TypeData
+    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
     where
-        DB: ?Sized + db::TypeDatabase,
+        DB: db::TypeDatabase + ?Sized + 'db,
     {
-        db.lookup_intern_type(self)
+        TyRef { db, id: self }
     }
 }
 
@@ -43,6 +42,36 @@ impl std::ops::Deref for TypeData {
 impl From<Type> for TypeData {
     fn from(ty: Type) -> Self {
         Self { data: Arc::new(ty) }
+    }
+}
+
+/// Wrapper type for making it easier to work with TypeIds
+#[derive(Debug, PartialEq, Eq)]
+pub struct TyRef<'db, DB: ?Sized + 'db> {
+    db: &'db DB,
+    id: TypeId,
+}
+
+impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
+    fn clone(&self) -> Self {
+        Self {
+            db: self.db,
+            id: self.id,
+        }
+    }
+}
+
+impl<'db, DB: ?Sized + 'db> Copy for TyRef<'db, DB> {}
+
+/// Wrapper type for getting a [`TypeKind`] from a [`TyRef`]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TyRefKind(TypeData);
+
+impl std::ops::Deref for TyRefKind {
+    type Target = TypeKind;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.kind()
     }
 }
 
