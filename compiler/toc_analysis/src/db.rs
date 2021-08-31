@@ -1,5 +1,7 @@
 //! Analysis query system definitions
 
+use std::sync::Arc;
+
 use toc_hir::{
     body::BodyId,
     expr::{BodyExpr, ExprId},
@@ -28,6 +30,10 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     /// Gets the type of the given type source.
     #[salsa::invoke(ty::query::type_of)]
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
+
+    /// Produces a `Debug` formatted string of the given type
+    #[salsa::invoke(ty::query::debug_ty)]
+    fn debug_ty(&self, type_id: ty::TypeId) -> Arc<String>;
 }
 
 /// Helpers for working with the type interner

@@ -349,12 +349,12 @@ impl InnerCtx {
                 expr::Expr::Name(name) => {
                     // May or may not reference a constant expression
                     match name {
-                        expr::Name::Name(use_id) => {
+                        expr::Name::Name(def_id) => {
                             // Lookup var
                             // ???: How to lookup identifiers imported from different units
                             // - `Unit` should have an import table mapping local `UseId`s to
                             //   the canonical`DefId`'s
-                            let var_def = use_id.as_def();
+                            let var_def = *def_id;
 
                             // Eval var
                             let value = self.eval_var(var_def).map_err(|err| {

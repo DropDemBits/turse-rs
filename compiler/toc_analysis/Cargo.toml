@@ -18,6 +18,9 @@ internment = "0.5.0"
 thiserror = "1.0.24"
 
 [dev-dependencies]
+toc_ast_db = { path = "../toc_ast_db" }
+toc_vfs = { path = "../toc_vfs" }
+
 insta = "1.7"
 unindent = "0.1.7"
 paste = "1.0.5"

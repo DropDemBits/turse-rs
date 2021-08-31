@@ -1,11 +1,15 @@
 //! Type check tests
-use std::sync::Arc;
 
-use toc_hir::db;
+use toc_ast_db::source::SourceParser;
+use toc_hir::symbol::DefId;
+use toc_hir_db::HirDatabase;
 use toc_reporting::ReportMessage;
+use toc_salsa::salsa;
+use toc_vfs::query::VfsDatabaseExt;
 use unindent::unindent;
 
-use crate::{const_eval::ConstEvalCtx, ty::TyCtx};
+use crate::db::TypeDatabase;
+use crate::HirAnalysis;
 
 macro_rules! test_for_each_op {
     ($top_level_name:ident, $([$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal),+ $(,)?) => {
@@ -40,31 +44,40 @@ fn assert_typecheck(source: &str) {
 }
 
 fn do_typecheck(source: &str) -> String {
-    let (hir_db, root_unit) = {
-        let parsed = toc_parser::parse(None, source);
-        let hir_db = db::HirBuilder::new();
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.result().syntax());
+    let mut db = TestDb::default();
+    let root_file = db.vfs.intern_path("src/main.t".into());
+    db.update_file(root_file, Some(source.into()));
 
-        let hir_db = hir_db.finish();
+    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
+    db.set_source_roots(source_roots);
 
-        (hir_db, *hir_res.result())
-    };
+    let lib = db.library_graph().result().library_of(root_file);
+    let typeck_res = db.typecheck_library(lib);
 
-    let unit = hir_db.get_unit(root_unit);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
-    crate::const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
-    let typeck_res = crate::typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx);
-
-    stringify_typeck_results(typeck_res.result(), typeck_res.messages())
+    stringify_typeck_results(&db, lib, typeck_res.messages())
 }
 
-fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> String {
+fn stringify_typeck_results(
+    db: &TestDb,
+    lib: toc_hir::library::LibraryId,
+    messages: &[ReportMessage],
+) -> String {
     let mut s = String::new();
     // Pretty print typectx
-    let mut pretty_ty_ctx = crate::ty::pretty_dump_typectx(ty_ctx);
-    // Trim trailing newline
-    pretty_ty_ctx.pop();
-    s.push_str(&pretty_ty_ctx);
+    // Want: `type_of` all reachable DefIds
+    // - Printed type nodes because we wanted to see the full type
+    let library = db.library(lib);
+    for did in library.local_defs() {
+        let def_info = library.local_def(did);
+        let name = def_info.name.item();
+        let name_span = library.lookup_span(def_info.name.span());
+        let ty = db.type_of(DefId(lib, did).into());
+        let name_fmt = format!("{:?}@{:?} [{:?}]: ", name, name_span, def_info.kind);
+
+        s.push_str(&name_fmt);
+        s.push_str(&db.debug_ty(ty));
+        s.push('\n');
+    }
 
     // Pretty print the messages
     for err in messages.iter() {
@@ -72,6 +85,28 @@ fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> Strin
     }
 
     s
+}
+
+#[salsa::database(
+    toc_vfs::query::FileSystemStorage,
+    toc_ast_db::source::SourceParserStorage,
+    toc_hir_db::HirDatabaseStorage,
+    crate::db::TypeInternStorage,
+    crate::db::TypeDatabaseStorage,
+    crate::HirAnalysisStorage
+)]
+#[derive(Default)]
+struct TestDb {
+    storage: salsa::Storage<Self>,
+    vfs: toc_vfs::Vfs,
+}
+
+impl salsa::Database for TestDb {}
+
+impl toc_vfs::HasVfs for TestDb {
+    fn get_vfs(&self) -> &toc_vfs::Vfs {
+        &self.vfs
+    }
 }
 
 #[test]

@@ -130,7 +130,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
 
     match &item.kind {
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
-        item::ItemKind::Module(_) => todo!("we don't lower module decls yet"),
+        item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
     }
 }
 

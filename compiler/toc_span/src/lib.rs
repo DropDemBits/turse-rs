@@ -1,7 +1,7 @@
 //! Re-exports of `text_size` structs, as well as providing report location helpers.
 //! Keeps a common `text_size` version between dependents.
 
-use std::num::NonZeroU32;
+use std::{fmt, num::NonZeroU32};
 
 use indexmap::IndexSet;
 pub use text_size::{TextRange, TextSize};
@@ -25,7 +25,7 @@ impl FileId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
     pub file: Option<FileId>,
     pub range: TextRange,
@@ -40,6 +40,16 @@ impl Span {
 impl Default for Span {
     fn default() -> Self {
         Span::new(None, TextRange::default())
+    }
+}
+
+impl fmt::Debug for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(file) = self.file {
+            f.write_fmt(format_args!("({:?}, {:?})", file, self.range))
+        } else {
+            f.write_str("(dummy)")
+        }
     }
 }
 

@@ -826,11 +826,13 @@ dependencies = [
  "internment",
  "paste",
  "thiserror",
+ "toc_ast_db",
  "toc_hir",
  "toc_hir_db",
  "toc_reporting",
  "toc_salsa",
  "toc_span",
+ "toc_vfs",
  "unindent",
 ]
 

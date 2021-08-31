@@ -8,6 +8,7 @@ use lsp_types::{
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
 use toc_analysis::HirAnalysis;
+use toc_ast_db::source::SourceParser;
 use toc_ast_db::span::SpanMapping;
 use toc_salsa::salsa;
 use toc_vfs::query::VfsDatabaseExt;
@@ -139,6 +140,10 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     // Add the root path to the file db
     let root_file = db.vfs.intern_path(path.into());
     db.update_file(root_file, Some(contents.into()));
+
+    // Setup source roots
+    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
+    db.set_source_roots(source_roots);
 
     // TODO: Recursively load in files
 

@@ -1,8 +1,7 @@
 //! Type checking
 
-// Needs to use common analysis database
-//#[cfg(test)]
-//mod test;
+#[cfg(test)]
+mod test;
 
 use std::cell::RefCell;
 
@@ -14,7 +13,7 @@ use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::SpanId;
 
-use crate::ty::{self, TyCtx};
+use crate::ty;
 use crate::HirAnalysis;
 
 // ???: Can we build up a type ctx without doing type propagation?
@@ -35,33 +34,6 @@ use crate::HirAnalysis;
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
 pub(crate) fn typecheck_library(db: &dyn HirAnalysis, library: LibraryId) -> CompileResult<()> {
-    let res = TypeCheck::check_unit(db, library);
-    CompileResult::new((), res.messages().to_owned())
-}
-
-/*
-use std::sync::Arc;
-use crate::const_eval::ConstEvalCtx;
-
-pub fn analyze_unit(hir_db: db::HirDb, unit_id: unit::UnitId) -> CompileResult<()> {
-    let unit = hir_db.get_unit(unit_id);
-
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
-    const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
-
-    let typecheck_res = typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx.clone());
-
-    eprintln!("{}", ty::pretty_dump_typectx(typecheck_res.result()));
-    eprintln!("{:#?}", const_eval_ctx);
-
-    let mut messages = vec![];
-    typecheck_res.bundle_messages(&mut messages);
-
-    CompileResult::new((), messages)
-}
-*/
-
-pub fn typecheck_unit(db: &dyn HirAnalysis, library: LibraryId) -> CompileResult<TyCtx> {
     TypeCheck::check_unit(db, library)
 }
 
@@ -87,14 +59,12 @@ struct TypeCheck<'db> {
 ///
 /// Hence the move to `&self` receiver combined with a `RefCell`.
 struct TypeCheckState {
-    ty_ctx: TyCtx,
     reporter: toc_reporting::MessageSink,
 }
 
 impl<'db> TypeCheck<'db> {
-    fn check_unit(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<TyCtx> {
+    fn check_unit(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<()> {
         let state = TypeCheckState {
-            ty_ctx: TyCtx::new(),
             reporter: toc_reporting::MessageSink::new(),
         };
         let state = RefCell::new(state);
@@ -114,11 +84,9 @@ impl<'db> TypeCheck<'db> {
 
         let state = typeck.state.into_inner();
 
-        let TypeCheckState {
-            ty_ctx, reporter, ..
-        } = state;
+        let TypeCheckState { reporter, .. } = state;
 
-        CompileResult::new(ty_ctx, reporter.finish())
+        CompileResult::new((), reporter.finish())
     }
 
     fn state(&self) -> std::cell::RefMut<TypeCheckState> {

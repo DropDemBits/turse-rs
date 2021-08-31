@@ -71,6 +71,8 @@ fn stringify_const_eval_results(
     const_eval: &ConstEvalCtx,
 ) -> String {
     // Pretty print const eval ctx
+    // Want:
+    // - Evaluation state of all accessible DefIds
     let mut s = format!("{:#?}\n{}\n", const_eval, results);
 
     // Pretty print the messages

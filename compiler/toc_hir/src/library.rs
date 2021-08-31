@@ -98,6 +98,10 @@ impl Library {
     pub fn lookup_span(&self, span_id: SpanId) -> Span {
         self.span_map.lookup_span(span_id)
     }
+
+    pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {
+        self.defs.iter().map(|(id, _)| symbol::LocalDefId(id))
+    }
 }
 
 /// Lowered [`Library`].
