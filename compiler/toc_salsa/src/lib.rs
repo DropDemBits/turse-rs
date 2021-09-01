@@ -6,10 +6,11 @@ pub use salsa;
 /// # Example
 ///
 /// ```rust
+/// # use toc_salsa::create_intern_key;
 /// create_intern_key!(
 ///     /// Doc comments are propogated!
 ///     pub Interned;   
-/// )
+/// );
 /// ```
 #[macro_export]
 macro_rules! create_intern_key {
