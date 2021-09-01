@@ -17,29 +17,29 @@ pub(crate) mod internals {
         // Just a newtype for the index
         (
             $(#[$attrs:meta])*
-            $visi:vis struct $id:ident($wrap:path);
+            $vis:vis struct $id:ident($wrap:path);
         ) => {
             #[derive(Clone, Copy, PartialEq, Eq, Hash)]
             #[repr(transparent)]
             $(#[$attrs])*
-            $visi struct $id(pub(crate) ::la_arena::Idx<$wrap>);
+            $vis struct $id(pub(crate) ::la_arena::Idx<$wrap>);
 
             $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
         };
         // Newtype + type alias for the index
         (
             $(#[$attrs_wrap:meta])*
-            $visi_wrap:vis struct $id:ident($wrap:path);
+            $vis_wrap:vis struct $id:ident($wrap:path);
             $(#[$attrs_alias:meta])*
-            $visi_alias:vis type $index_alias:ident = Index;
+            $vis_alias:vis type $index_alias:ident = Index;
         ) => {
             #[derive(Clone, Copy, PartialEq, Eq, Hash)]
             #[repr(transparent)]
             $(#[$attrs_wrap])*
-            $visi_wrap struct $id(pub(crate) $index_alias);
+            $vis_wrap struct $id(pub(crate) $index_alias);
 
             $(#[$attrs_alias])*
-            $visi_alias type $index_alias = ::la_arena::Idx<$wrap>;
+            $vis_alias type $index_alias = ::la_arena::Idx<$wrap>;
 
             $crate::arena_id_wrapper!(@impl_rest, $id, $wrap);
         };
@@ -74,6 +74,7 @@ pub(crate) mod internals {
 pub mod body;
 pub mod builder;
 pub mod expr;
+pub mod ids;
 pub mod item;
 pub mod library;
 pub mod library_graph;

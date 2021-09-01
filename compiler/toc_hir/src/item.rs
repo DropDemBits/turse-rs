@@ -4,10 +4,7 @@ use toc_span::SpanId;
 
 use crate::{body, symbol, ty};
 
-crate::arena_id_wrapper!(
-    /// A library local reference to an item.
-    pub struct ItemId(Item);
-);
+pub use crate::ids::ItemId;
 
 /// An entity representing a declaration.
 ///

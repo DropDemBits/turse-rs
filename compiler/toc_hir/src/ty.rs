@@ -1,17 +1,14 @@
 //! Type related HIR nodes
 
-use std::{convert::TryInto, num::NonZeroU32};
+use std::convert::TryInto;
 
 use indexmap::IndexSet;
 use toc_span::SpanId;
 
-use crate::body;
+pub use crate::ids::TypeId;
 
-/// An interned reference to a type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[repr(transparent)]
-pub struct TypeId(TypeIndex);
-pub type TypeIndex = NonZeroU32;
+use crate::body;
+use crate::ids::TypeIndex;
 
 /// An interner for HIR types
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -27,7 +24,7 @@ impl TypeTable {
             .wrapping_add(1)
             .try_into()
             .ok()
-            .and_then(NonZeroU32::new)
+            .and_then(TypeIndex::new)
             .expect("too many types");
         TypeId(raw)
     }

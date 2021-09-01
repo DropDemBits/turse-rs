@@ -7,9 +7,10 @@ use toc_span::FileId;
 
 use crate::library::LibraryId;
 
-/// Graph of all library, represented by [`LibraryId`]s
+/// Graph of all library dependencies, represented by [`LibraryId`]s.
+/// Provides a bijective mapping between [`LibraryId`]s and [`FileId`]s.
 ///
-/// Provides a bijective mapping between [`LibraryId`]s and [`FileId`]s
+/// Data is wrapped in an [`Arc`], so cloning is trivially cloneable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryGraph {
     graph_data: Arc<GraphData>,

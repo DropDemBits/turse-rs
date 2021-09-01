@@ -4,13 +4,10 @@ use indexmap::IndexMap;
 use la_arena::{Arena, ArenaMap};
 use toc_span::{FileId, Span, SpanId, SpanTable};
 
+use crate::ids::LocalDefIndex;
 use crate::{body, item, symbol, ty};
 
-/// A reference to a library in the library graph
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct LibraryId(pub(crate) LibraryIndex);
-pub(crate) type LibraryIndex = u32;
+pub use crate::ids::LibraryId;
 
 /// A reference to a library node in a specific library
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -58,7 +55,7 @@ pub struct Library {
     /// Table of all interned spans
     pub span_map: SpanTable,
     /// Mapping from definitions to `DefId`s
-    pub item_defs: ArenaMap<symbol::LocalDefIndex, item::ItemId>,
+    pub item_defs: ArenaMap<LocalDefIndex, item::ItemId>,
     /// Table of all interened types
     pub(crate) type_map: ty::TypeTable,
     pub(crate) items: Arena<item::Item>,

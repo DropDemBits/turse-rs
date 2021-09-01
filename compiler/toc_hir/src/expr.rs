@@ -1,24 +1,9 @@
 //! Expression nodes
 use toc_span::{SpanId, Spanned};
 
-use crate::{body, symbol};
+use crate::symbol;
 
-crate::arena_id_wrapper!(
-    /// A [`Body`] local reference to an expression.
-    ///
-    /// [`Body`]: crate::body::Body
-    pub struct ExprId(Expr);
-);
-
-impl ExprId {
-    pub fn in_body(self, body: body::BodyId) -> BodyExpr {
-        BodyExpr(body, self)
-    }
-}
-
-/// Uniquely identifies an expression within a library
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BodyExpr(pub body::BodyId, pub ExprId);
+pub use crate::ids::{BodyExpr, ExprId};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Expr {

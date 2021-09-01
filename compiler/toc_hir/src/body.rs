@@ -7,10 +7,7 @@ use toc_span::SpanId;
 
 use crate::{expr, stmt, symbol::LocalDefId};
 
-crate::arena_id_wrapper!(
-    /// A library local reference to a body.
-    pub struct BodyId(Body);
-);
+pub use crate::ids::BodyId;
 
 /// A bundle of executable code.
 /// Represents either a statement group (fn body),
