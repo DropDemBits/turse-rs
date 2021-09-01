@@ -520,8 +520,8 @@ test_named_group! { assignability_into,
 
         var _v00 : char(N) := c
         var _v01 : char(N) := c1
-        var _v02 : char(N) := s1
-        var _v03 : char(N) := s % runtime checked
+        var _v02 : char(N) := s % runtime checked
+        var _v03 : char(N) := s1
         var _v04 : char(N) := s5 % runtime checked
         "#,
         r#char_1_err => r#"
@@ -533,13 +533,13 @@ test_named_group! { assignability_into,
         r#char_3 => r#"
         const N := 3
         var c3 : char(3)
-        var s3 : string(3)
         var s : string
+        var s3 : string(3)
         var s5 : string(5)
 
         var _v00 : char(N) := c3
-        var _v01 : char(N) := s3
-        var _v02 : char(N) := s % runtime checked
+        var _v01 : char(N) := s % runtime checked
+        var _v02 : char(N) := s3
         var _v03 : char(N) := s5 % runtime checked
         "#,
         r#char_3_err => r#"
@@ -577,18 +577,19 @@ test_named_group! { assignability_into,
         r#string => r#"
         var c : char
         var c1 : char(1)
-        var s1 : string(1)
         var c5 : char(5)
         var c255 : char(255)
         var s : string
+        var s1 : string(1)
         var s5 : string(5)
 
         var _v00 : string := c
         var _v01 : string := c1
         var _v02 : string := c5
-        var _v05 : string := c255
-        var _v03 : string := s1
-        var _v04 : string := s5
+        var _v03 : string := c255
+        var _v04 : string := s
+        var _v05 : string := s1
+        var _v06 : string := s5
         "#,
         r#string_err => r#"
         var cmx : char(256)
@@ -605,8 +606,8 @@ test_named_group! { assignability_into,
 
         var _v00 : string(N) := c
         var _v01 : string(N) := c1
-        var _v02 : string(N) := s1
-        var _v03 : string(N) := s % runtime checked
+        var _v02 : string(N) := s % runtime checked
+        var _v03 : string(N) := s1
         var _v04 : string(N) := s5 % runtime checked
         "#,
         r#string_1_err => r#"
@@ -627,10 +628,10 @@ test_named_group! { assignability_into,
 
         var _v00 : string(N) := c
         var _v01 : string(N) := c1
-        var _v02 : string(N) := s1
         var _v03 : string(N) := c3
-        var _v04 : string(N) := s3
         var _v05 : string(N) := s % runtime checked
+        var _v02 : string(N) := s1
+        var _v04 : string(N) := s3
         var _v06 : string(N) := s5 % runtime checked
         "#,
         r#string_3_err => r#"
@@ -650,16 +651,95 @@ test_named_group! { assignability_into,
 
         var _v00 : string(N) := c
         var _v01 : string(N) := c1
-        var _v02 : string(N) := s1
-        var _v03 : string(N) := c255
-        var _v04 : string(N) := s255
-        var _v05 : string(N) := s % runtime checked, always good
+        var _v02 : string(N) := c255
+        var _v03 : string(N) := s % runtime checked, always good
+        var _v04 : string(N) := s1
+        var _v05 : string(N) := s255
         "#,
         r#string_255_err => r#"
         const N := 255
         var c256 : char(256)
 
         var _e00 : string(N) := c256 % [not captured by ctc]
+        "#,
+        r#string_dyn_lhs => r#"
+        % all runtime checked
+        var c : char
+        var c1 : char(1)
+        var c5 : char(5)
+        var c255 : char(255)
+        var c_dyn : char(*)
+        var s : string
+        var s1 : string(1)
+        var s5 : string(5)
+        var s_dyn : string(*)
+
+        var _v00 : string(*) := c
+        var _v01 : string(*) := c1
+        var _v02 : string(*) := c5
+        var _v03 : string(*) := c255
+        var _v04 : string(*) := c_dyn
+        var _v05 : string(*) := s
+        var _v06 : string(*) := s1
+        var _v07 : string(*) := s5
+        var _v08 : string(*) := s_dyn
+        "#,
+        r#string_err_lhs => r#"
+        var cmx : char(256)
+
+        var _e00 : string(*) := cmx % [not captured by ctc]
+        "#,
+        r#string_dyn_rhs => r#"
+        % all runtime checked
+        var s_dyn : string(*)
+
+        var _v00 : char := s_dyn
+        var _v01 : char(1) := s_dyn
+        var _v02 : char(5) := s_dyn
+        var _v03 : char(255) := s_dyn
+        var _v04 : char(256) := s_dyn
+        var _v05 : char(*) := s_dyn
+        var _v06 : string := s_dyn
+        var _v07 : string(1) := s_dyn
+        var _v08 : string(5) := s_dyn
+        var _v09 : string(*) := s_dyn
+        "#,
+        r#char_dyn_lhs => r#"
+        % all runtime checked
+        var c : char
+        var c1 : char(1)
+        var c5 : char(5)
+        var c255 : char(255)
+        var c_dyn : char(*)
+        var s : string
+        var s1 : string(1)
+        var s5 : string(5)
+        var s_dyn : string(*)
+
+        var _v00 : char(*) := c
+        var _v01 : char(*) := c1
+        var _v02 : char(*) := c5
+        var _v03 : char(*) := c255
+        var _v04 : char(*) := c_dyn
+        var _v05 : char(*) := s
+        var _v06 : char(*) := s1
+        var _v07 : char(*) := s5
+        var _v08 : char(*) := s_dyn
+        "#,
+        r#char_dyn_rhs => r#"
+        % all runtime checked
+        var c_dyn : string(*)
+
+        var _v00 : char := c_dyn
+        var _v01 : char(1) := c_dyn
+        var _v02 : char(5) := c_dyn
+        var _v03 : char(255) := c_dyn
+        var _v04 : char(256) := c_dyn
+        var _v05 : char(*) := c_dyn
+        var _v06 : string := c_dyn
+        var _v07 : string(1) := c_dyn
+        var _v08 : string(5) := c_dyn
+        var _v09 : string(*) := c_dyn
         "#,
     ]
 }

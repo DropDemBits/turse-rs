@@ -1,6 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : char(N) := c\nvar _v01 : char(N) := c1\nvar _v02 : char(N) := s1\nvar _v03 : char(N) := s % runtime checked\nvar _v04 : char(N) := s5 % runtime checked\n"
+expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : char(N) := c\nvar _v01 : char(N) := c1\nvar _v02 : char(N) := s % runtime checked\nvar _v03 : char(N) := s1\nvar _v04 : char(N) := s5 % runtime checked\n"
 
 ---
 "N"@(FileId(1), 6..7) [Declared]: ref int
@@ -12,7 +12,7 @@ expression: "const N := 1\nvar c : char\nvar c1 : char(1)\nvar s : string\nvar s
 "_v00"@(FileId(1), 101..105) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
 "_v01"@(FileId(1), 125..129) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
 "_v02"@(FileId(1), 150..154) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
-"_v03"@(FileId(1), 175..179) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
+"_v03"@(FileId(1), 192..196) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
 "_v04"@(FileId(1), 217..221) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(12)))
 "<root>"@(dummy) [Declared]: <error>
 

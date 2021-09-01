@@ -43,7 +43,7 @@ where
     /// Applies a deref transformation
     pub fn as_deref(self) -> Option<Self> {
         match *self.kind() {
-            TypeKind::Error => Some(self), // Propogate error
+            TypeKind::Error => Some(self), // Propagate error
             TypeKind::Ref(_, ty) => Some(ty.in_db(self.db)),
             _ => None,
         }
@@ -52,7 +52,7 @@ where
     /// Applies a deref transformation, requiring var mutability
     pub fn as_deref_mut(self) -> Option<Self> {
         match *self.kind() {
-            TypeKind::Error => Some(self), // Propogate error
+            TypeKind::Error => Some(self), // Propagate error
             TypeKind::Ref(Mutability::Var, ty) => Some(ty.in_db(self.db)),
             _ => None,
         }
@@ -154,24 +154,32 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     // | Char(1)
     // | String(1)
     // | String [runtime checked]
+    // | Char(*) [runtime checked]
+    // | String(*) [runtime checked]
     //
-    // Char(N) :=
-    //   Char if N = 1
+    // Char(N | *) :=
+    //   Char where N = 1
     // | Char(M) where N = M
     // | String(M) where N = M
     // | String [runtime checked]
+    // | Char(*) [runtime checked]
+    // | String(*) [runtime checked]
     //
     // String :=
     //   Char
     // | String
     // | Char(N) where N < 256
     // | String(N)
+    // | Char(*) [runtime checked]
+    // | String(*)
     //
-    // String(N) :=
+    // String(N | *) :=
     //   String(M) where N >= M
     // | Char(M) where N >= M and M < 256
     // | Char
     // | String [runtime checked]
+    // | Char(*) [runtime checked]
+    // | String(*) [runtime checked]
     //
 
     /// Maximum length of a `string`
@@ -189,7 +197,7 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
 
     /// Gets a sequence size suitable for assignment checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
-    fn get_seq_size<T: db::ConstEval + ?Sized>(db: &T, seq_size: &SeqSize) -> Option<u32> {
+    fn seq_size<T: db::ConstEval + ?Sized>(db: &T, seq_size: &SeqSize) -> Option<u32> {
         match seq_size.fixed_len(db, Default::default()) {
             Ok(Some(v)) => {
                 // if overflow or zero, it's silently ignored (reported in typeck)
@@ -213,67 +221,83 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         (TypeKind::Int(_), other) | (other, TypeKind::Int(_)) if other.is_integer() => true,
 
         // All numeric types are assignable into a real
-        (TypeKind::Real(_), rhs) if rhs.is_number() => dbg!(true),
+        (TypeKind::Real(_), rhs) if rhs.is_number() => true,
 
         // Char rules:
         // - String(1), Char(1), and Char are assignable into Char
         // - String is assignable into Char, but checked at runtime
-        // FIXME(needs test): - String(*) and Char(*) is assignable into Char, but checked at runtime
-        (TypeKind::Char, TypeKind::Char) => true,
-        (TypeKind::Char, TypeKind::StringN(seq_size))
-        | (TypeKind::Char, TypeKind::CharN(seq_size)) => {
-            get_seq_size(db, seq_size).map(|n| n == 1).unwrap_or(true)
+        // - String(*) and Char(*) is assignable into Char, but checked at runtime
+        (TypeKind::Char, TypeKind::Char | TypeKind::String) => true,
+        (TypeKind::Char, TypeKind::StringN(size)) | (TypeKind::Char, TypeKind::CharN(size)) => {
+            seq_size(db, size).map(|n| n == 1).unwrap_or(true)
         }
-        (TypeKind::Char, TypeKind::String) => true,
 
         // Char(N) rules:
         // - Char is assignable into Char(N) if N = 1
         // - Char(M) is assignable into Char(N) if N = M
         // - String(M) is assignable into Char(N) if N <= M, but double checked at runtime
         // - String is assignable into Char(N), but checked at runtime
-        // FIXME(needs test): - All of these are assignable into Char(*), but checked at runtime
-        (TypeKind::CharN(left_size), rhs) => {
-            if let Some(n) = get_seq_size(db, left_size) {
-                match rhs {
-                    TypeKind::Char => Some(n == 1),
-                    TypeKind::CharN(right_size) => get_seq_size(db, right_size).map(|m| n == m),
-                    TypeKind::StringN(right_size) => get_seq_size(db, right_size).map(|m| n <= m),
-                    TypeKind::String => Some(true),
-                    _ => Some(false),
-                }
-                .unwrap_or(true)
-            } else {
-                // Errors are silently ignored
-                true
+        // - All of these are assignable into Char(*), but checked at runtime
+        (TypeKind::CharN(left), rhs) => match (seq_size(db, left), rhs) {
+            // Char(N) := Char where N = 1
+            (Some(n), TypeKind::Char) => n == 1,
+            // Char(N) := Char(* | M) where N = M
+            (Some(n), TypeKind::CharN(right)) => {
+                seq_size(db, right).map(|m| n == m).unwrap_or(true)
             }
-        }
+            // Char(N) := String(* | M) where N <= M [also runtime checked]
+            (Some(n), TypeKind::StringN(right)) => {
+                seq_size(db, right).map(|m| n <= m).unwrap_or(true)
+            }
+            // Char(N) := String [runtime checked]
+            (Some(_n), TypeKind::String) => true,
+            // Char(*) := [runtime checked]
+            //   Char
+            // | Char(* | N)
+            // | String
+            // | String(* | N)
+            (
+                None,
+                TypeKind::Char | TypeKind::CharN(_) | TypeKind::String | TypeKind::StringN(_),
+            ) => true,
+            (_, _) => false,
+        },
 
         // String rules:
-        // - Char, String(N) and String are assignable into String
+        // - Char, String(N), String(*) and String are assignable into String
         // - Char(N) is assignable into String if N < `MAX_STRING_LEN`
-        // FIXME(needs test): - Char(*) is assignable into String, but is checked at runtime
-        (TypeKind::String, TypeKind::String) => true,
-        (TypeKind::String, TypeKind::StringN(SeqSize::Fixed(_))) => true,
-        (TypeKind::String, TypeKind::Char) => true,
-        (TypeKind::String, TypeKind::CharN(size)) => get_seq_size(db, size)
-            .map(|n| n < MAX_STRING_LEN)
-            .unwrap_or(true),
+        // - Char(*) is assignable into String, but is checked at runtime
 
         // String(N) rules:
-        // - Char is assignable into String(N)
-        // - String is assignable into String(N), but checked at runtime
-        // - String(M) is assignable into String(N), but is double checked at runtime
-        // - Char(M) is assignable into String(N) if n >= m and m < `MAX_STRING_LEN`
-        // FIXME(needs test): - All of these are assignable into String(*), but checked at runtime
-        (TypeKind::StringN(_), TypeKind::Char) => true,
-        (TypeKind::StringN(_), TypeKind::String) => true,
-        (TypeKind::StringN(_), TypeKind::StringN(_)) => true,
-        (TypeKind::StringN(left_size), TypeKind::CharN(right_size)) => {
-            if let Some((n, m)) = get_seq_size(db, left_size).zip(get_seq_size(db, right_size)) {
-                n >= m && m < MAX_STRING_LEN
-            } else {
-                // Errors are silently ignored
-                true
+        // - Char is assignable into String(N) and String(*)
+        // - String is assignable into String(N) and String(*), but checked at runtime
+        // - String(M) is assignable into String(N) and String(*), but String(N) is double checked at runtime
+        // - Char(M) is assignable into String(N) and String(*) if n >= m and m < `MAX_STRING_LEN`
+
+        // String | String(* | N) :=
+        //   Char
+        // | String
+        // | String(* | N)
+        (
+            TypeKind::String | TypeKind::StringN(_),
+            TypeKind::Char | TypeKind::StringN(_) | TypeKind::String,
+        ) => true,
+        (TypeKind::String, TypeKind::CharN(size)) => match seq_size(db, size) {
+            // String := Char(N) if N < `MAX_STRING_LEN`
+            Some(n) => n < MAX_STRING_LEN,
+            // String := Char(*) [runtime checked]
+            None => true,
+        },
+        (TypeKind::StringN(left), TypeKind::CharN(right)) => {
+            match (seq_size(db, left), seq_size(db, right)) {
+                // String(N) := Char(M) if M in [N..MAX_STRING_LEN)
+                (Some(n), Some(m)) => n >= m && m < MAX_STRING_LEN,
+                // String(*) := Char(N) if M < MAX_STRING_LEN
+                (None, Some(m)) => m < MAX_STRING_LEN,
+                // String(N) := Char(*) [runtime checked]
+                (Some(_n), None) => true,
+                // String(*) := Char(*) [runtime checked]
+                (None, None) => true,
             }
         }
 
