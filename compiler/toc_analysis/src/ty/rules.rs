@@ -43,6 +43,7 @@ where
     /// Applies a deref transformation
     pub fn as_deref(self) -> Option<Self> {
         match *self.kind() {
+            TypeKind::Error => Some(self), // Propogate error
             TypeKind::Ref(_, ty) => Some(ty.in_db(self.db)),
             _ => None,
         }
@@ -51,6 +52,7 @@ where
     /// Applies a deref transformation, requiring var mutability
     pub fn as_deref_mut(self) -> Option<Self> {
         match *self.kind() {
+            TypeKind::Error => Some(self), // Propogate error
             TypeKind::Ref(Mutability::Var, ty) => Some(ty.in_db(self.db)),
             _ => None,
         }
@@ -178,10 +180,6 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     let left = left.in_db(db);
     let right = right.in_db(db);
 
-    if left.kind().is_error() || right.kind().is_error() {
-        return Some(true);
-    }
-
     let left = if ignore_mut {
         left.as_deref()?
     } else {
@@ -204,7 +202,8 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
 
     let is_assignable = match (&*left.kind(), &*right.kind()) {
         // Short-circuiting error types
-        (TypeKind::Error, _) | (_, TypeKind::Error) => return None,
+        // Always pass
+        (TypeKind::Error, _) | (_, TypeKind::Error) => return Some(true),
 
         // Boolean types are assignable to each other
         (TypeKind::Boolean, TypeKind::Boolean) => true,

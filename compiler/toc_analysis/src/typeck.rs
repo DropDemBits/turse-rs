@@ -144,7 +144,6 @@ impl TypeCheck<'_> {
 
         // Ignore mutability because we're checking an initializer
         let valid_asn = ty::rules::is_assignable(self.db, left, right, true);
-        dbg!(valid_asn);
         if !valid_asn.expect("lhs ty not from reference") {
             // Incompatible, report it
             let init_span = self
