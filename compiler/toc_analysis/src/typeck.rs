@@ -232,19 +232,20 @@ impl TypeCheck<'_> {
         for item in items {
             let put_ty = self
                 .db
-                .type_of((self.library_id, body_id, item.expr).into());
+                .type_of((self.library_id, body_id, item.expr).into())
+                .in_db(self.db)
+                .peel_ref();
+            let put_kind = put_ty.kind();
 
-            if !self.is_text_io_item(put_ty) {
+            if !self.is_text_io_item(put_ty.id()) {
                 continue;
             }
 
-            let put_ty = put_ty.in_db(self.db);
-            let put_kind = put_ty.kind();
             // Only the following are allowed to have precision & exponent options:
             // - Int
             // - Nat
             // - Real
-            if !put_kind.is_number() && !put_kind.is_error() {
+            if !put_kind.is_number() {
                 let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
                 if let Some(expr) = item.opts.precision() {
                     let span = body.expr(expr).span.lookup_in(&self.library.span_map);
@@ -477,7 +478,7 @@ impl TypeCheck<'_> {
         };
 
         // Convert into a size, checking if it's within the given limit
-        if int
+        if !int
             .into_u32()
             .map(|size| (1..size_limit).contains(&size))
             .unwrap_or(false)

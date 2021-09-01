@@ -814,5 +814,6 @@ test_named_group! { peel_ref,
         in_inferred_ty => r#"var a : int var k := a"#,
         in_binary_expr => r#"var a : int var k := a + a"#,
         in_unary_expr => r#"var a : int var k := -a"#,
+        in_put_stmt => r#"var a : int put a : 0 : 0 : 0"#,
     ]
 }
