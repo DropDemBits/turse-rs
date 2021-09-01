@@ -13,8 +13,8 @@ use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::SpanId;
 
+use crate::db::HirAnalysis;
 use crate::ty;
-use crate::HirAnalysis;
 
 // ???: Can we build up a type ctx without doing type propagation?
 // Type propagation is inferring of types from inputs

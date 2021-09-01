@@ -7,7 +7,7 @@ use lsp_types::{
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
-use toc_analysis::HirAnalysis;
+use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::{SourceParser, SpanMapping};
 use toc_ast_db::SourceRoots;
 use toc_salsa::salsa;
@@ -223,12 +223,12 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
     toc_vfs::db::FileSystemStorage,
     toc_ast_db::db::SpanMappingStorage,
     toc_ast_db::db::SourceParserStorage,
-    toc_hir_db::HirDatabaseStorage,
-    toc_hir_db::InternedTypeStorage,
+    toc_hir_db::db::HirDatabaseStorage,
+    toc_hir_db::db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,
     toc_analysis::db::TypeDatabaseStorage,
     toc_analysis::db::ConstEvalStorage,
-    toc_analysis::HirAnalysisStorage
+    toc_analysis::db::HirAnalysisStorage
 )]
 #[derive(Default)]
 struct LspDatabase {

@@ -3,18 +3,18 @@
 use toc_ast_db::db::SourceParser;
 use toc_ast_db::SourceRoots;
 use toc_hir::library::LibraryId;
-use toc_hir_db::HirDatabase;
+use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_vfs::db::VfsDatabaseExt;
 
 #[salsa::database(
     toc_vfs::db::FileSystemStorage,
     toc_ast_db::db::SourceParserStorage,
-    toc_hir_db::HirDatabaseStorage,
+    toc_hir_db::db::HirDatabaseStorage,
     crate::db::TypeInternStorage,
     crate::db::TypeDatabaseStorage,
     crate::db::ConstEvalStorage,
-    crate::HirAnalysisStorage
+    crate::db::HirAnalysisStorage
 )]
 #[derive(Default)]
 pub(crate) struct TestDb {

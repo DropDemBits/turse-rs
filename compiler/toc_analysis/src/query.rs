@@ -2,7 +2,7 @@
 
 use toc_reporting::CompileResult;
 
-pub(crate) fn analyze_libraries(db: &dyn crate::HirAnalysis) -> CompileResult<()> {
+pub(crate) fn analyze_libraries(db: &dyn crate::db::HirAnalysis) -> CompileResult<()> {
     let mut messages = vec![];
 
     let res = db.library_graph();

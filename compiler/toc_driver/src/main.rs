@@ -3,11 +3,11 @@
 use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
-use toc_analysis::HirAnalysis;
+use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::SourceParser;
 use toc_ast_db::db::SpanMapping;
 use toc_ast_db::SourceRoots;
-use toc_hir_db::HirDatabase;
+use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_vfs::db::{FileSystem, VfsDatabaseExt};
 
@@ -260,12 +260,12 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
     toc_vfs::db::FileSystemStorage,
     toc_ast_db::db::SpanMappingStorage,
     toc_ast_db::db::SourceParserStorage,
-    toc_hir_db::HirDatabaseStorage,
-    toc_hir_db::InternedTypeStorage,
+    toc_hir_db::db::HirDatabaseStorage,
+    toc_hir_db::db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,
     toc_analysis::db::TypeDatabaseStorage,
     toc_analysis::db::ConstEvalStorage,
-    toc_analysis::HirAnalysisStorage
+    toc_analysis::db::HirAnalysisStorage
 )]
 #[derive(Default)]
 struct MainDatabase {

@@ -1,13 +1,13 @@
 //! Type check tests
 
 use toc_hir::symbol::DefId;
-use toc_hir_db::HirDatabase;
+use toc_hir_db::db::HirDatabase;
 use toc_reporting::ReportMessage;
 use unindent::unindent;
 
+use crate::db::HirAnalysis;
 use crate::db::TypeDatabase;
 use crate::test_db::TestDb;
-use crate::HirAnalysis;
 
 macro_rules! test_for_each_op {
     ($top_level_name:ident, $([$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal),+ $(,)?) => {

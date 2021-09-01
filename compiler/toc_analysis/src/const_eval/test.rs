@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use toc_hir::library::{LibraryId, LoweredLibrary};
-use toc_hir_db::HirDatabase;
+use toc_hir_db::db::HirDatabase;
 use toc_reporting::{MessageSink, ReportMessage};
 use unindent::unindent;
 

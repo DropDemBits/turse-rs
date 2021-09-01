@@ -1,4 +1,4 @@
-//! Query implementions
+//! Query implementations
 
 use toc_hir::{
     item,
@@ -8,7 +8,7 @@ use toc_hir::{
 };
 use toc_reporting::CompileResult;
 
-use crate::HirDatabase;
+use crate::db::HirDatabase;
 
 pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary {
     let lib_graph = db.library_graph();

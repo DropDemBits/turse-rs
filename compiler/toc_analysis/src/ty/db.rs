@@ -14,7 +14,7 @@ use toc_salsa::salsa;
 use crate::ty;
 
 #[salsa::query_group(TypeInternStorage)]
-pub trait TypeIntern: toc_hir_db::HirDatabase {
+pub trait TypeIntern: toc_hir_db::db::HirDatabase {
     /// Interns the given type.
     #[salsa::interned]
     fn intern_type(&self, ty: ty::TypeData) -> ty::TypeId;
