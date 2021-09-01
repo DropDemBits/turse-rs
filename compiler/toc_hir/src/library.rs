@@ -26,20 +26,20 @@ pub trait WrapInLibrary: Copy {
     fn in_library(self, library: LibraryId) -> InLibrary<Self::Output>;
 }
 
-impl<T> WrapInLibrary for &T
+impl<T> WrapInLibrary for T
 where
     T: Copy,
 {
     type Output = T;
 
     fn in_library(self, library: LibraryId) -> InLibrary<Self::Output> {
-        InLibrary(library, *self)
+        InLibrary(library, self)
     }
 }
 
 /// A `Library` represents a logical collection of files.
 ///
-/// It is a conceptual group of files / units that are accesible from a
+/// It is a conceptual group of files / units that are accessible from a
 /// specific root file. For example, all of the standard library files are
 /// grouped together under one `Library`. Similarly, the file provided during
 /// compilation serves as a root for a `Library`.
@@ -56,7 +56,7 @@ pub struct Library {
     pub span_map: SpanTable,
     /// Mapping from definitions to `DefId`s
     pub item_defs: ArenaMap<LocalDefIndex, item::ItemId>,
-    /// Table of all interened types
+    /// Table of all interned types
     pub(crate) type_map: ty::TypeTable,
     pub(crate) items: Arena<item::Item>,
     pub(crate) defs: Arena<symbol::DefInfo>,

@@ -70,7 +70,7 @@ pub struct ConstVar {
     pub tail: ConstVarTail,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConstVarTail {
     /// Only the type spec is specified
     TypeSpec(ty::TypeId),
@@ -81,19 +81,19 @@ pub enum ConstVarTail {
 }
 
 impl ConstVarTail {
-    pub fn type_spec(&self) -> Option<ty::TypeId> {
+    pub fn type_spec(self) -> Option<ty::TypeId> {
         match self {
-            ConstVarTail::TypeSpec(ty_spec) => Some(*ty_spec),
+            ConstVarTail::TypeSpec(ty_spec) => Some(ty_spec),
             ConstVarTail::InitExpr(_) => None,
-            ConstVarTail::Both(ty_spec, _) => Some(*ty_spec),
+            ConstVarTail::Both(ty_spec, _) => Some(ty_spec),
         }
     }
 
-    pub fn init_expr(&self) -> Option<body::BodyId> {
+    pub fn init_expr(self) -> Option<body::BodyId> {
         match self {
             ConstVarTail::TypeSpec(_) => None,
-            ConstVarTail::InitExpr(init_expr) => Some(*init_expr),
-            ConstVarTail::Both(_, init_expr) => Some(*init_expr),
+            ConstVarTail::InitExpr(init_expr) => Some(init_expr),
+            ConstVarTail::Both(_, init_expr) => Some(init_expr),
         }
     }
 }

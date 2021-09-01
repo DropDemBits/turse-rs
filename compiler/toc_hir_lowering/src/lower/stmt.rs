@@ -91,18 +91,19 @@ impl super::BodyLowering<'_, '_> {
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
         let span = self.ctx.library.intern_span(span);
+        let mutability = if is_const {
+            item::Mutability::Const
+        } else {
+            item::Mutability::Var
+        };
 
         let item_group: Vec<_> = names
             .into_iter()
             .map(|def_id| {
                 let const_var = item::ConstVar {
-                    mutability: if is_const {
-                        item::Mutability::Const
-                    } else {
-                        item::Mutability::Var
-                    },
+                    mutability,
                     is_register,
-                    tail: tail.clone(),
+                    tail,
                 };
 
                 self.ctx.library.add_item(item::Item {

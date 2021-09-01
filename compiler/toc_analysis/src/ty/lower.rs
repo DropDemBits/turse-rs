@@ -74,7 +74,7 @@ fn constvar_ty(
     // type_collect
     // extract type for declared identifiers
     // if both are present, then typecheck as assignment
-    let item_ty = match &item.tail {
+    let item_ty = match item.tail {
         item::ConstVarTail::Both(ty_spec, _) | item::ConstVarTail::TypeSpec(ty_spec) => {
             // From type_spec
             db.from_hir_type(ty_spec.in_library(item_id.0)).in_db(db)
@@ -82,7 +82,7 @@ fn constvar_ty(
         item::ConstVarTail::InitExpr(expr) => {
             // From inferred init expr
             // Peel any refs
-            db.type_of((item_id.0, *expr).into()).in_db(db).peel_ref()
+            db.type_of((item_id.0, expr).into()).in_db(db).peel_ref()
         }
     };
 
