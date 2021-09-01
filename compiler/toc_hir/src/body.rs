@@ -40,11 +40,6 @@ impl Body {
     }
 }
 
-// ra bug: replace qualified path with use does not work for path tails in enum tuple variants
-// ra bug: completion for fixing an import does not work in enum struct/tuple variants
-// ra bug: `extract struct from enum variant` does not pull in surrounding comments (woops)
-// ^ addendum: does not preserve extra comments
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum BodyKind {
     /// Bundle of statements, with the given statement list and parameter definition list.

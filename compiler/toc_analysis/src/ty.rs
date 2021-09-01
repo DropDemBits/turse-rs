@@ -25,8 +25,7 @@ impl TypeId {
     }
 }
 
-/// Interened type data
-// ???(ra bug): Can't rename
+/// Interned type data
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeData {
     data: Arc<Type>,
