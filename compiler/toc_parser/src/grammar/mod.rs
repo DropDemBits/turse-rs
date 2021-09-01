@@ -365,4 +365,27 @@ mod test {
                 error at 11..12: invalid character"#]],
         );
     }
+
+    #[test]
+    fn last_non_trivia_token() {
+        check(
+            "var i := /* some trivia */     % and more trivia",
+            expect![[r#"
+                Source@0..48
+                  StmtList@0..8
+                    ConstVarDecl@0..8
+                      KwVar@0..3 "var"
+                      Whitespace@3..4 " "
+                      NameList@4..5
+                        Name@4..5
+                          Identifier@4..5 "i"
+                      Whitespace@5..6 " "
+                      Assign@6..8 ":="
+                  Whitespace@8..9 " "
+                  Comment@9..26 "/* some trivia */"
+                  Whitespace@26..31 "     "
+                  Comment@31..48 "% and more trivia"
+                error at 6..8: expected expression after here"#]],
+        );
+    }
 }

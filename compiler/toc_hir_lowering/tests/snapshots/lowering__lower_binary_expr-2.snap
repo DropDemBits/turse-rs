@@ -13,5 +13,4 @@ Library@(dummy)
             Paren@(FileId(1), 5..7)
 error in file FileId(1) at 6..7: expected expression, but found ‘)’
 error in file FileId(1) at 8..9: expected ‘)’, but found ‘+’
-error in file FileId(1) at 9..10: expected expression after here
 

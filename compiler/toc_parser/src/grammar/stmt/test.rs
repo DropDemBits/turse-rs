@@ -1450,7 +1450,7 @@ fn recover_type_decl_missing_type() {
                   Whitespace@6..7 " "
                   Colon@7..8 ":"
               Whitespace@8..9 " "
-            error at 8..9: expected type specifier after here"#]],
+            error at 7..8: expected type specifier after here"#]],
     );
 }
 
@@ -5353,7 +5353,7 @@ fn recover_quit_stmt_missing_code_expr() {
                   Whitespace@4..5 " "
                   Colon@5..6 ":"
               Whitespace@6..7 " "
-            error at 6..7: expected expression after here"#]],
+            error at 5..6: expected expression after here"#]],
     );
 }
 
@@ -5420,7 +5420,7 @@ fn recover_tag_stmt_missing_tag_val() {
                       Identifier@4..5 "a"
                   Comma@5..6 ","
               Whitespace@6..7 " "
-            error at 6..7: expected expression after here"#]],
+            error at 5..6: expected expression after here"#]],
     );
 }
 
@@ -5684,7 +5684,7 @@ fn recover_fork_stmt_process_ref_missing_ref() {
                   Comma@17..18 ","
                   Whitespace@18..19 " "
                   ProcessDesc@19..19
-            error at 18..19: expected expression after here"#]],
+            error at 17..18: expected expression after here"#]],
     );
 }
 
@@ -9244,7 +9244,7 @@ fn recover_tell_stmt_missing_tell_dest() {
                         Identifier@7..8 "a"
                   Comma@8..9 ","
               Whitespace@9..10 " "
-            error at 9..10: expected expression after here"#]],
+            error at 8..9: expected expression after here"#]],
     );
 }
 
@@ -9387,7 +9387,7 @@ fn recover_seek_stmt_missing_to_expr() {
                         Identifier@7..8 "a"
                   Comma@8..9 ","
               Whitespace@9..10 " "
-            error at 9..10: expected expression after here"#]],
+            error at 8..9: expected expression after here"#]],
     );
 }
 
@@ -10560,7 +10560,7 @@ fn recover_new_open_missing_mode() {
                           Identifier@13..19 "a_path"
                     Comma@19..20 ","
               Whitespace@20..21 " "
-            error at 20..21: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’ after here"#]],
+            error at 19..20: expected ‘get’, ‘put’, ‘read’, ‘write’, ‘seek’ or ‘mod’ after here"#]],
     );
 }
 
@@ -10775,7 +10775,7 @@ fn recover_old_close_missing_right_paren() {
                       Name@8..16
                         Identifier@8..16 "some_ref"
               Whitespace@16..17 " "
-            error at 16..17: expected ‘)’ after here"#]],
+            error at 8..16: expected ‘)’ after here"#]],
     );
 }
 
@@ -10851,7 +10851,7 @@ fn recover_new_close_missing_file_ref() {
                   NewClose@6..7
                     Colon@6..7 ":"
               Whitespace@7..8 " "
-            error at 7..8: expected expression after here"#]],
+            error at 6..7: expected expression after here"#]],
     );
 }
 
@@ -11418,7 +11418,7 @@ fn recover_get_stmt_missing_width_expr() {
                     GetWidth@14..15
                       Colon@14..15 ":"
               Whitespace@15..16 " "
-            error at 15..16: expected expression after here"#]],
+            error at 14..15: expected expression after here"#]],
     );
 }
 
@@ -11707,7 +11707,7 @@ fn recover_wait_stmt_missing_opt_arg_expr() {
                       Identifier@5..6 "a"
                   Comma@6..7 ","
               Whitespace@7..8 " "
-            error at 7..8: expected expression after here"#]],
+            error at 6..7: expected expression after here"#]],
     );
 }
 

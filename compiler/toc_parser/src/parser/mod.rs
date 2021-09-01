@@ -341,7 +341,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
 
         let (found, range) = match current {
             Some(token) => (Some(token.kind), token.range),
-            None => (None, self.p.source.last_token_range().unwrap()), // Last token always exists in a non-empty file
+            None => (None, self.p.source.last_non_trivia_token_range().unwrap()), // Last token always exists in a non-empty file
         };
 
         // push error

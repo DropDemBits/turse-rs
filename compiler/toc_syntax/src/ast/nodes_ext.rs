@@ -619,7 +619,7 @@ impl IoCap {
 
 impl AsnOp {
     pub fn asn_kind(&self) -> Option<AssignOp> {
-        let op = self.asn_node()?;
+        let op = self.asn_op()?;
 
         let kind = match op.kind() {
             SyntaxKind::Assign => AssignOp::None,
@@ -645,7 +645,7 @@ impl AsnOp {
         Some(kind)
     }
 
-    pub fn asn_node(&self) -> Option<SyntaxElement> {
+    pub fn asn_op(&self) -> Option<SyntaxElement> {
         self.syntax().children_with_tokens().next()
     }
 }

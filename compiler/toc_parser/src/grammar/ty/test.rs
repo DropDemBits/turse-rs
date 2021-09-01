@@ -3143,7 +3143,7 @@ fn recover_just_packed() {
                   Error@9..15
                     KwPacked@9..15 "packed"
               Whitespace@15..16 " "
-            error at 15..16: expected ‘record’ or ‘union’ after here"#]],
+            error at 9..15: expected ‘record’ or ‘union’ after here"#]],
     );
 }
 

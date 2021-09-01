@@ -173,7 +173,7 @@ mod cond {
                             EndGroup@42..45
                               KwEnd@42..45 "end"
                   Whitespace@45..50 "\n    "
-                error at 45..50: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’ after here"##]],
+                error at 42..45: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’ after here"##]],
         );
     }
 

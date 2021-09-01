@@ -139,7 +139,7 @@ impl super::BodyLowering<'_, '_> {
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {
         let (op, asn_span) = {
             let asn_op = stmt.asn_op()?;
-            let span = self.ctx.intern_range(asn_op.asn_node()?.text_range());
+            let span = self.ctx.intern_range(asn_op.syntax().text_range());
 
             (asn_op.asn_kind().and_then(asn_to_bin_op), span)
         };

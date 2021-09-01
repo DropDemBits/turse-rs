@@ -32,8 +32,14 @@ impl<'t, 'src> Source<'t, 'src> {
         self.token_at(self.cursor)
     }
 
-    pub(crate) fn last_token_range(&self) -> Option<TokenRange> {
-        self.tokens.last().map(|Token { range, .. }| *range)
+    /// Gets the last non-trivia token, or looks up the last token
+    pub(crate) fn last_non_trivia_token_range(&self) -> Option<TokenRange> {
+        self.tokens
+            .iter()
+            .rev()
+            .find(|tok| !tok.kind.is_trivia())
+            .or_else(|| self.tokens.last())
+            .map(|Token { range, .. }| *range)
     }
 
     fn token_kind_at(&self, cursor: usize) -> Option<TokenKind> {
