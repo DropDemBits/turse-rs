@@ -341,7 +341,7 @@ impl TypeCheck<'_> {
     }
 
     fn check_integer_type(&self, ty: ty::TypeId, span: SpanId) {
-        let ty = ty.in_db(self.db);
+        let ty = ty.in_db(self.db).peel_ref();
         let ty_kind = ty.kind();
 
         if !ty_kind.is_integer() && !ty_kind.is_error() {

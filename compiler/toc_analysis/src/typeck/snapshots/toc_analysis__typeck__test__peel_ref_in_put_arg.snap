@@ -1,0 +1,8 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var a : int put a : a : a : a"
+
+---
+"a"@(FileId(1), 4..5) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+
