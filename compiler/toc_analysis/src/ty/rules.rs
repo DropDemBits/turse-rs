@@ -187,6 +187,7 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     } else {
         left.as_deref_mut()?
     };
+    let right = right.peel_ref();
 
     /// Gets a sequence size suitable for assignment checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.

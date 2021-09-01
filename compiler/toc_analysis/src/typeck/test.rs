@@ -807,3 +807,12 @@ test_named_group! { typeck_get_stmt,
         // TODO: Add test for non-get-able items once non-primitive types are lowered
     ]
 }
+
+test_named_group! { peel_ref,
+    [
+        in_assign => r#"var a : int var k : int := a"#,
+        in_inferred_ty => r#"var a : int var k := a"#,
+        in_binary_expr => r#"var a : int var k := a + a"#,
+        in_unary_expr => r#"var a : int var k := -a"#,
+    ]
+}

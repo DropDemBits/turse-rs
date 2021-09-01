@@ -8,7 +8,7 @@ use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
 use crate::const_eval::{Const, ConstInt};
 use crate::db::TypeDatabase;
-use crate::ty::{self, Type, TypeId, TypeKind};
+use crate::ty::{self, TypeId, TypeKind};
 
 use super::{IntSize, Mutability, NatSize, RealSize, SeqSize};
 
@@ -77,23 +77,19 @@ fn constvar_ty(
     let item_ty = match &item.tail {
         item::ConstVarTail::Both(ty_spec, _) | item::ConstVarTail::TypeSpec(ty_spec) => {
             // From type_spec
-            db.from_hir_type(ty_spec.in_library(item_id.0))
+            db.from_hir_type(ty_spec.in_library(item_id.0)).in_db(db)
         }
         item::ConstVarTail::InitExpr(expr) => {
             // From inferred init expr
-            db.type_of((item_id.0, *expr).into())
+            // Peel any refs
+            db.type_of((item_id.0, *expr).into()).in_db(db).peel_ref()
         }
     };
 
     // Make the type concrete
-    let ty_ref = if *item_ty.in_db(db).kind() == TypeKind::Integer {
+    let item_ty = if *item_ty.kind() == TypeKind::Integer {
         // Integer decomposes into a normal `int`
-        db.intern_type(
-            Type {
-                kind: TypeKind::Int(IntSize::Int),
-            }
-            .into(),
-        )
+        db.mk_int(IntSize::Int).in_db(db)
     } else {
         item_ty
     };
@@ -104,12 +100,7 @@ fn constvar_ty(
         item::Mutability::Var => Mutability::Var,
     };
 
-    db.intern_type(
-        Type {
-            kind: TypeKind::Ref(mutability, ty_ref),
-        }
-        .into(),
-    )
+    db.mk_ref(mutability, item_ty.id())
 }
 
 pub(crate) fn ty_from_expr(
