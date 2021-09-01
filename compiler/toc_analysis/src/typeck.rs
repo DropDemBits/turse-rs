@@ -472,7 +472,7 @@ impl TypeCheck<'_> {
             Ok(Some(v)) => v,
             Ok(None) => return, // dynamic, doesn't need checking
             Err(err) => {
-                err.report_to(&mut self.state().reporter);
+                err.report_to(self.db, &mut self.state().reporter);
                 return;
             }
         };

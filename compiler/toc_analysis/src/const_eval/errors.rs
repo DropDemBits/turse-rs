@@ -1,5 +1,8 @@
 //! Errors during constant evaluation
+use toc_hir::symbol::DefId;
 use toc_span::Span;
+
+use crate::const_eval::db;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ConstError {
@@ -27,22 +30,32 @@ impl ConstError {
     }
 
     /// Reports the detailed version of the `ConstError` to the given reporter
-    pub fn report_to(&self, reporter: &mut toc_reporting::MessageSink) {
+    pub fn report_to<DB: db::ConstEval + ?Sized>(
+        &self,
+        db: &DB,
+        reporter: &mut toc_reporting::MessageSink,
+    ) {
         // Ignore already reported messages, or for missing expressions
         if matches!(self.kind, ErrorKind::Reported | ErrorKind::MissingExpr) {
             return;
         }
 
         // Report common message header
-        let msg = reporter.error_detailed(&format!("{}", self.kind), self.span);
-
-        // Report extra details
         match &self.kind {
-            ErrorKind::NoConstExpr(def_span) => {
+            ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
-                msg.with_note("reference declared here", *def_span)
+                let library = db.library(def_id.0);
+                let def_info = library.local_def(def_id.1);
+                let def_span = def_info.name.span().lookup_in(&library.span_map);
+
+                reporter
+                    .error_detailed("reference cannot be computed at compile-time", self.span)
+                    .with_note(
+                        &format!("`{}` declared here", def_info.name.item()),
+                        def_span,
+                    )
             }
-            _ => msg,
+            _ => reporter.error_detailed(&format!("{}", self.kind), self.span),
         }
         .finish();
     }
@@ -58,13 +71,14 @@ pub(super) enum ErrorKind {
     /// Missing expression operand
     #[error("operand is an invalid expression")]
     MissingExpr,
-    /// Missing expression operand
-    #[error("operand cannot be computed at compile time")]
-    NotCompileEvaluable,
-    /// No const expr is associated with this identifer.
-    /// Provided span is the span of the symbol's definition
-    #[error("reference cannot be computed at compile-time")]
-    NoConstExpr(toc_span::Span),
+    /// Not a compile-time expression,
+    ///
+    /// If the expression comes from an identifier, then the provided [`DefId`]
+    /// points to the symbol's definition location,
+    // TODO: Add tests for the non-reference version
+    // We don't generate the non-reference kind yet since we haven't lowered all exprs
+    #[error("expression cannot be computed at compile-time")]
+    NotConstExpr(Option<DefId>),
     /// Error is already reported
     #[allow(dead_code)] // TODO: Figure out how we can dedup errors
     #[error("compile-time evaluation error already reported")]

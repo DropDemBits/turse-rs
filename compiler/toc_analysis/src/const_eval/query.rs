@@ -35,7 +35,7 @@ pub(crate) fn evaluate_const(
     let root_expr = match &body.kind {
         toc_hir::body::BodyKind::Stmts(_, _) => {
             return Err(ConstError::new(
-                ErrorKind::NotCompileEvaluable,
+                ErrorKind::NotConstExpr(None),
                 body.span.lookup_in(span_map),
             ))
         }
@@ -136,14 +136,8 @@ pub(crate) fn evaluate_const(
                             Some(body) => body,
                             None => {
                                 // Not a const expr
-                                let def_span = library
-                                    .local_def(def_id)
-                                    .name
-                                    .span()
-                                    .lookup_in(&library.span_map);
-
                                 return Err(ConstError::new(
-                                    ErrorKind::NoConstExpr(def_span),
+                                    ErrorKind::NotConstExpr(Some(DefId(library_id, def_id))),
                                     expr_span,
                                 ));
                             }
@@ -173,7 +167,7 @@ pub(crate) fn evaluate_const(
                         // Never a const expr
                         // TODO: Use the self's associated def_id
                         return Err(ConstError::new(
-                            ErrorKind::NoConstExpr(Default::default()),
+                            ErrorKind::NotConstExpr(Default::default()),
                             expr_span,
                         ));
                     }
