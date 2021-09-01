@@ -4,6 +4,7 @@ use toc_reporting::MessageSink;
 use toc_span::Span;
 
 use crate::{
+    const_eval::{ConstInt, ConstResult},
     db,
     ty::{Mutability, SeqSize, TypeId, TypeKind},
 };
@@ -81,6 +82,25 @@ where
 
     pub fn id(self) -> TypeId {
         self.id
+    }
+}
+
+impl SeqSize {
+    pub fn fixed_len<T: db::ConstEval + ?Sized>(
+        &self,
+        db: &T,
+        span: Span,
+    ) -> ConstResult<Option<ConstInt>> {
+        let size = match self {
+            SeqSize::Dynamic => return Ok(None),
+            SeqSize::Fixed(size) => size,
+        };
+
+        // Always eagerly evaluate the expr
+        // Never allow 64-bit ops (size is always less than 2^32)
+        db.evaluate_const(size.clone(), Default::default())
+            .and_then(|v| v.into_int(span))
+            .map(Some)
     }
 }
 
@@ -168,6 +188,19 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         left.as_deref_mut()?
     };
 
+    /// Gets a sequence size suitable for assignment checking.
+    /// All errors (overflow, other const error) and dynamic sizes are ignored.
+    fn get_seq_size<T: db::ConstEval + ?Sized>(db: &T, seq_size: &SeqSize) -> Option<u32> {
+        match seq_size.fixed_len(db, Default::default()) {
+            Ok(Some(v)) => {
+                // if overflow or zero, it's silently ignored (reported in typeck)
+                v.into_u32().filter(|v| *v != 0)
+            }
+            Ok(None) => None, // dynamic, runtime checked
+            Err(_) => None,   // silently hide, gets reported in typeck
+        }
+    }
+
     let is_assignable = match (&*left.kind(), &*right.kind()) {
         // Short-circuiting error types
         (TypeKind::Error, _) | (_, TypeKind::Error) => return None,
@@ -185,10 +218,12 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         // Char rules:
         // - String(1), Char(1), and Char are assignable into Char
         // - String is assignable into Char, but checked at runtime
+        // FIXME(needs test): - String(*) and Char(*) is assignable into Char, but checked at runtime
         (TypeKind::Char, TypeKind::Char) => true,
-        // We're not evaluating consts yet
-        //(TypeKind::Char, TypeKind::CharN(SeqSize::Fixed(size))) if size.get() == 1 => true,
-        //(TypeKind::Char, TypeKind::StringN(SeqSize::Fixed(size))) if size.get() == 1 => true,
+        (TypeKind::Char, TypeKind::StringN(seq_size))
+        | (TypeKind::Char, TypeKind::CharN(seq_size)) => {
+            get_seq_size(db, seq_size).map(|n| n == 1).unwrap_or(true)
+        }
         (TypeKind::Char, TypeKind::String) => true,
 
         // Char(N) rules:
@@ -196,31 +231,50 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         // - Char(M) is assignable into Char(N) if N = M
         // - String(M) is assignable into Char(N) if N <= M, but double checked at runtime
         // - String is assignable into Char(N), but checked at runtime
-        // We're not evaluating consts yet
-        //(TypeKind::CharN(SeqSize::Fixed(n)), TypeKind::Char) => n.get() == 1,
-        //(TypeKind::CharN(SeqSize::Fixed(n)), TypeKind::CharN(SeqSize::Fixed(m))) => n == m,
-        //(TypeKind::CharN(SeqSize::Fixed(n)), TypeKind::StringN(SeqSize::Fixed(m))) => n <= m,
-        (TypeKind::CharN(SeqSize::Fixed(_)), TypeKind::String) => true,
+        // FIXME(needs test): - All of these are assignable into Char(*), but checked at runtime
+        (TypeKind::CharN(left_size), rhs) => {
+            if let Some(n) = get_seq_size(db, left_size) {
+                match rhs {
+                    TypeKind::Char => Some(n == 1),
+                    TypeKind::CharN(right_size) => get_seq_size(db, right_size).map(|m| n == m),
+                    TypeKind::StringN(right_size) => get_seq_size(db, right_size).map(|m| n <= m),
+                    TypeKind::String => Some(true),
+                    _ => Some(false),
+                }
+                .unwrap_or(true)
+            } else {
+                // Errors are silently ignored
+                true
+            }
+        }
 
         // String rules:
         // - Char, String(N) and String are assignable into String
         // - Char(N) is assignable into String if N < `MAX_STRING_LEN`
+        // FIXME(needs test): - Char(*) is assignable into String, but is checked at runtime
         (TypeKind::String, TypeKind::String) => true,
         (TypeKind::String, TypeKind::StringN(SeqSize::Fixed(_))) => true,
         (TypeKind::String, TypeKind::Char) => true,
-        // We're not evaluating consts yet
-        //(TypeKind::String, TypeKind::CharN(SeqSize::Fixed(n))) => n.get() < MAX_STRING_LEN,
+        (TypeKind::String, TypeKind::CharN(size)) => get_seq_size(db, size)
+            .map(|n| n < MAX_STRING_LEN)
+            .unwrap_or(true),
 
         // String(N) rules:
         // - Char is assignable into String(N)
         // - String is assignable into String(N), but checked at runtime
         // - String(M) is assignable into String(N), but is double checked at runtime
         // - Char(M) is assignable into String(N) if n >= m and m < `MAX_STRING_LEN`
-        (TypeKind::StringN(SeqSize::Fixed(_)), TypeKind::Char) => true,
-        (TypeKind::StringN(SeqSize::Fixed(_)), TypeKind::String) => true,
-        (TypeKind::StringN(SeqSize::Fixed(_)), TypeKind::StringN(SeqSize::Fixed(_))) => true,
-        (TypeKind::StringN(SeqSize::Fixed(n)), TypeKind::CharN(SeqSize::Fixed(m))) => {
-            todo!("we're not evaluating consts yet") //n >= m && m.get() < MAX_STRING_LEN
+        // FIXME(needs test): - All of these are assignable into String(*), but checked at runtime
+        (TypeKind::StringN(_), TypeKind::Char) => true,
+        (TypeKind::StringN(_), TypeKind::String) => true,
+        (TypeKind::StringN(_), TypeKind::StringN(_)) => true,
+        (TypeKind::StringN(left_size), TypeKind::CharN(right_size)) => {
+            if let Some((n, m)) = get_seq_size(db, left_size).zip(get_seq_size(db, right_size)) {
+                n >= m && m < MAX_STRING_LEN
+            } else {
+                // Errors are silently ignored
+                true
+            }
         }
 
         // Not assignable otherwise

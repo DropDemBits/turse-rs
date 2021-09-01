@@ -451,34 +451,26 @@ impl TypeCheck<'_> {
             _ => return,
         };
 
-        // Check constvar value
-        let (size, size_limit) = match ty_kind {
-            ty::TypeKind::CharN(ty::SeqSize::Fixed(size)) => {
+        let (seq_size, size_limit) = match ty_kind {
+            ty::TypeKind::CharN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
                 // ???: Do we want to add a config/feature option to change this?
-                (size, 32768)
+                (seq_size, 32768)
             }
-            ty::TypeKind::StringN(ty::SeqSize::Fixed(size)) => {
+            ty::TypeKind::StringN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // 256 is the maximum defined limit for the length on `n` for string(N),
                 // so no option of changing that (unless we have control over the interpreter code).
                 // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
                 //   so we can't change it yet unless we use a new interpreter.
-                (size, 256)
+                (seq_size, 256)
             }
             // because of hir disambiguation above
             _ => unreachable!(),
         };
 
-        // Always eagerly evaluate the expr
-        // Never allow 64-bit ops (size is always less than 2^32)
-        let value = self.db.evaluate_const(size.clone(), Default::default());
-
-        // Check that the value is actually the correct type, and in the correct value range.
-        // Size can only be in (0, 32768)
-        let value = value.and_then(|v| v.into_int(expr_span));
-
-        let int = match value {
-            Ok(v) => v,
+        let int = match seq_size.fixed_len(self.db, expr_span) {
+            Ok(Some(v)) => v,
+            Ok(None) => return, // dynamic, doesn't need checking
             Err(err) => {
                 err.report_to(&mut self.state().reporter);
                 return;

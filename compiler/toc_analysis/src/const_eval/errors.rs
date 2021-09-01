@@ -19,22 +19,11 @@ impl ConstError {
         }
     }
 
-    pub(super) fn reported(span: Span) -> Self {
-        Self {
-            kind: ErrorKind::Reported,
-            span,
-        }
-    }
-
     pub(super) fn change_span(self, new_span: Span) -> Self {
         Self {
             kind: self.kind,
             span: new_span,
         }
-    }
-
-    pub(super) fn kind(&self) -> &ErrorKind {
-        &self.kind
     }
 
     /// Reports the detailed version of the `ConstError` to the given reporter
