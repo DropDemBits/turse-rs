@@ -2,7 +2,7 @@
 
 use std::convert::TryInto;
 
-use toc_hir::{expr, symbol::DefId, item::Mutability};
+use toc_hir::{expr, item::Mutability, symbol::DefId};
 
 use crate::{
     const_eval::{errors::ErrorKind, ops::ConstOp, ConstError, ConstInt},
@@ -123,7 +123,11 @@ pub(crate) fn evaluate_const(
 
                         let body = library.item_of(def_id).and_then(|item| {
                             match &library.item(item).kind {
-                                toc_hir::item::ItemKind::ConstVar(cv) if matches!(cv.mutability, Mutability::Const) => cv.tail.init_expr(),
+                                toc_hir::item::ItemKind::ConstVar(cv)
+                                    if matches!(cv.mutability, Mutability::Const) =>
+                                {
+                                    cv.tail.init_expr()
+                                }
                                 _ => None,
                             }
                         });
