@@ -1,10 +1,14 @@
-use std::sync::Arc;
+use std::cell::RefCell;
 
-use toc_hir::db;
+use toc_ast_db::source::SourceParser;
+use toc_hir::library::{LibraryId, LoweredLibrary};
+use toc_hir_db::HirDatabase;
 use toc_reporting::{MessageSink, ReportMessage};
+use toc_salsa::salsa;
+use toc_vfs::query::VfsDatabaseExt;
 use unindent::unindent;
 
-use crate::const_eval::ConstEvalCtx;
+use crate::{const_eval::Const, db::ConstEval};
 
 #[track_caller]
 fn assert_const_eval(source: &str) {
@@ -25,55 +29,85 @@ macro_rules! for_all_const_exprs {
 }
 
 fn do_const_eval(source: &str) -> String {
-    let (hir_db, root_unit) = {
-        let parsed = toc_parser::parse(None, source);
-        let hir_db = db::HirBuilder::new();
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.result().syntax());
-        let hir_db = hir_db.finish();
+    let mut db = TestDb::default();
+    let root_file = db.vfs.intern_path("src/main.t".into());
+    db.update_file(root_file, Some(source.into()));
 
-        (hir_db, *hir_res.result())
+    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
+    db.set_source_roots(source_roots);
+
+    let library_id = db.library_graph().result().library_of(root_file);
+    let library = db.library(library_id);
+
+    // Eagerly evaluate all of the available const vars
+    let const_evaluator = ConstEvaluator {
+        db: &db,
+        library_id,
+        library: library.clone(),
+        reporter: Default::default(),
+        results: Default::default(),
     };
 
-    let unit = hir_db.get_unit(root_unit);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
-    super::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
+    toc_hir::visitor::preorder_visit_library(&library, &const_evaluator);
 
-    let mut results_str = String::new();
-    let mut reporter = MessageSink::new();
+    struct ConstEvaluator<'db> {
+        db: &'db TestDb,
+        library_id: LibraryId,
+        library: LoweredLibrary,
+        reporter: RefCell<MessageSink>,
+        results: RefCell<String>,
+    }
 
-    // Need access to the inner state of the ConstEvalCtx, which is behind a lock
-    {
-        // Eagerly evaluate all of the available const vars
-        let mut inner = const_eval_ctx.inner.write().unwrap();
-        let const_exprs = inner.var_to_expr.values().copied().collect::<Vec<_>>();
+    impl toc_hir::visitor::HirVisitor for ConstEvaluator<'_> {
+        fn visit_constvar(&self, id: toc_hir::item::ItemId, item: &toc_hir::item::ConstVar) {
+            let def_id = self.library.item(id).def_id;
+            let body = if let Some(body) = item.tail.init_expr() {
+                body
+            } else {
+                return;
+            };
 
-        for expr in const_exprs {
-            let results = match inner.eval_expr(expr) {
-                Ok(v) => format!("{:?} -> {:?}\n", expr, v),
+            let eval_res = self
+                .db
+                .evaluate_const(Const::from_body(self.library_id, body), Default::default());
+
+            let name = {
+                let def_info = self.library.local_def(def_id);
+                format!(
+                    "{:?}@{:?}",
+                    def_info.name.item(),
+                    def_info.name.span().lookup_in(&self.library.span_map)
+                )
+            };
+
+            let results = match eval_res {
+                Ok(v) => format!("{} -> {:?}\n", name, v),
                 Err(err) => {
-                    let text = format!("{:?} -> {:?}\n", expr, err);
-                    err.report_to(&mut reporter);
+                    let text = format!("{} -> {:?}\n", name, err);
+                    err.report_to(&mut *self.reporter.borrow_mut());
                     text
                 }
             };
 
-            results_str.push_str(&results);
+            self.results.borrow_mut().push_str(&results);
         }
     }
 
+    let ConstEvaluator {
+        reporter, results, ..
+    } = const_evaluator;
+    let reporter = reporter.into_inner();
+    let results = results.into_inner();
+
     // Errors are bundled into the const error context
-    stringify_const_eval_results(&results_str, &reporter.finish(), &const_eval_ctx)
+    stringify_const_eval_results(&results, &reporter.finish())
 }
 
-fn stringify_const_eval_results(
-    results: &str,
-    messages: &[ReportMessage],
-    const_eval: &ConstEvalCtx,
-) -> String {
+fn stringify_const_eval_results(results: &str, messages: &[ReportMessage]) -> String {
     // Pretty print const eval ctx
     // Want:
     // - Evaluation state of all accessible DefIds
-    let mut s = format!("{:#?}\n{}\n", const_eval, results);
+    let mut s = format!("{}\n", results);
 
     // Pretty print the messages
     for err in messages.iter() {
@@ -81,6 +115,29 @@ fn stringify_const_eval_results(
     }
 
     s
+}
+
+#[salsa::database(
+    toc_vfs::query::FileSystemStorage,
+    toc_ast_db::source::SourceParserStorage,
+    toc_hir_db::HirDatabaseStorage,
+    crate::db::TypeInternStorage,
+    crate::db::TypeDatabaseStorage,
+    crate::db::ConstEvalStorage,
+    crate::HirAnalysisStorage
+)]
+#[derive(Default)]
+struct TestDb {
+    storage: salsa::Storage<Self>,
+    vfs: toc_vfs::Vfs,
+}
+
+impl salsa::Database for TestDb {}
+
+impl toc_vfs::HasVfs for TestDb {
+    fn get_vfs(&self) -> &toc_vfs::Vfs {
+        &self.vfs
+    }
 }
 
 #[test]

@@ -1,9 +1,12 @@
 //! Lowering HIR entities into anaylsis types
 
-use toc_hir::library::WrapInLibrary;
+use std::convert::TryInto;
+
+use toc_hir::library::{LibraryId, WrapInLibrary};
 use toc_hir::{body, expr};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
+use crate::const_eval::{Const, ConstInt};
 use crate::db::TypeDatabase;
 use crate::ty::{self, Type, TypeId, TypeKind};
 
@@ -21,7 +24,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
 
 fn primitive_ty(
     db: &dyn TypeDatabase,
-    _hir_id: InLibrary<hir_ty::TypeId>,
+    hir_id: InLibrary<hir_ty::TypeId>,
     ty: &hir_ty::Primitive,
 ) -> TypeId {
     // Create the correct type based off of the base primitive type
@@ -41,89 +44,18 @@ fn primitive_ty(
         hir_ty::Primitive::AddressInt => db.mk_nat(NatSize::AddressInt),
         hir_ty::Primitive::Char => db.mk_char(),
         hir_ty::Primitive::String => db.mk_string(),
-        hir_ty::Primitive::SizedChar(len) => db.mk_char_n(lower_seq_len(*len)),
-        hir_ty::Primitive::SizedString(len) => db.mk_string_n(lower_seq_len(*len)),
-        // TODO: Migrate this code to the appropriate place
-        // We don't eagerly create constants from bodies
-        /*hir_ty::Primitive::SizedChar(len) => {
-            // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
-            // ???: Do we want to add a config/feature option to change this?
-            let size_limit = 32768;
-
-            match self.lower_seq_len(*len, size_limit) {
-                Ok(len) => ty::Type::CharN(len),
-                Err(err) => {
-                    err.report_to(&mut self.state().reporter);
-                    ty::Type::Error
-                }
-            }
-        }
-        hir_ty::Primitive::SizedString(len) => {
-            // 256 is the maximum defined limit for the length on `n` for string(N),
-            // so no option of changing that (unless we have control over the interpreter code).
-            // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
-            //   so we can't change it yet unless we use a new interpreter.
-            let size_limit = 256;
-
-            match self.lower_seq_len(*len, size_limit) {
-                Ok(len) => ty::Type::StringN(len),
-                Err(err) => {
-                    err.report_to(&mut self.state().reporter);
-                    ty::Type::Error
-                }
-            }
-        }*/
+        hir_ty::Primitive::SizedChar(len) => db.mk_char_n(lower_seq_len(hir_id.0, *len)),
+        hir_ty::Primitive::SizedString(len) => db.mk_string_n(lower_seq_len(hir_id.0, *len)),
     }
 }
 
-fn lower_seq_len(seq_len: hir_ty::SeqLength) -> SeqSize {
+fn lower_seq_len(library: LibraryId, seq_len: hir_ty::SeqLength) -> SeqSize {
     match seq_len {
         hir_ty::SeqLength::Dynamic => SeqSize::Dynamic,
-        hir_ty::SeqLength::Expr(body) => SeqSize::Fixed(body),
+        hir_ty::SeqLength::Expr(body) => SeqSize::Fixed(Const::from_body(library, body)),
     }
 }
 
-/*
-fn lower_seq_len(
-    &self,
-    seq_len: toc_hir::ty::SeqLength,
-    size_limit: u32,
-) -> Result<ty::SeqSize, SeqLenError> {
-    let expr = match seq_len {
-        hir_ty::SeqLength::Dynamic => return Ok(ty::SeqSize::Dynamic),
-        hir_ty::SeqLength::Expr(expr) => expr,
-    };
-
-    // TODO: Migrate this code to the appropriate place
-
-    // Never allow 64-bit ops (size is always less than 2^32)
-    // Restrict to no type since we handle it here too
-    let const_expr = self
-        .const_eval
-        .defer_expr(self.unit.id, expr, false, RestrictType::None);
-
-    // Always eagerly evaluate the expr
-    let value = self
-        .const_eval
-        .eval_expr(const_expr)
-        .map_err(SeqLenError::ConstEval)?;
-
-    let span = self.db.get_span(expr.into());
-
-    // Check that the value is actually the correct type, and in the correct value range.
-    // Size can only be in (0, 32768)
-    let int = value.into_int(span).map_err(SeqLenError::ConstEval)?;
-
-    // Convert into a size, within the given limit
-    let size = int
-        .into_u32()
-        .and_then(NonZeroU32::new)
-        .filter(|size| size.get() < size_limit)
-        .ok_or_else(|| SeqLenError::WrongSize(Spanned::new(int, span), size_limit))?;
-
-    Ok(ty::SeqSize::Fixed(size))
-}
-*/
 pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemId>) -> TypeId {
     let library = db.library(item_id.0);
     let item = library.item(item_id.1);
@@ -207,12 +139,11 @@ fn literal_ty(
         expr::Literal::Integer(_) => db.mk_integer(),
         expr::Literal::Real(_) => db.mk_real(RealSize::Real),
         expr::Literal::Char(_) => db.mk_char(),
-        expr::Literal::CharSeq(_s) => {
-            // TODO: Shove in eagerly evaluated constant
-            todo!()
-            //let size = NonZeroU32::new(s.len().try_into().unwrap_or(u32::MAX)).unwrap();
-            //let seq_size = ty::SeqSize::Fixed(size);
-            //ty::Type::CharN(seq_size)
+        expr::Literal::CharSeq(s) => {
+            let size = s.len().try_into().unwrap_or(u64::MAX);
+            let size = ConstInt::from_unsigned(size, false);
+            let seq_size = ty::SeqSize::Fixed(size.into());
+            db.mk_char_n(seq_size)
         }
         expr::Literal::String(_) => db.mk_string(),
         expr::Literal::Boolean(_) => db.mk_boolean(),

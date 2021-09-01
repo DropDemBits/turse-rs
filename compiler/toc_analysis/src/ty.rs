@@ -3,8 +3,9 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use crate::db;
+use crate::const_eval::Const;
 
+pub(crate) mod db;
 mod lower;
 mod pretty;
 pub(crate) mod query;
@@ -171,5 +172,5 @@ pub enum SeqSize {
     /// Runtime sized (only accepted for parameters)
     Dynamic,
     /// Fixed, compile-time size
-    Fixed(toc_hir::body::BodyId),
+    Fixed(Const),
 }

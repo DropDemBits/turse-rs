@@ -57,7 +57,7 @@ where
 
     /// Returns the type id pointed to by a ref, or itself if it's not a type
     ///
-    /// ## Example
+    /// # Example
     ///
     /// ```text
     /// Boolean -> Boolean
@@ -101,7 +101,7 @@ pub struct InvalidUnaryOp {
 /// `ignore_mut` is only to be used during initializers
 ///
 /// l_value should be left as a ref it is one.
-pub fn is_assignable<T: ?Sized + crate::HirAnalysis>(
+pub fn is_assignable<T: db::ConstEval + ?Sized>(
     db: &T,
     left: TypeId,
     right: TypeId,

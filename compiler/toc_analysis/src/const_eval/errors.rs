@@ -1,9 +1,7 @@
 //! Errors during constant evaluation
 use toc_span::Span;
 
-use crate::const_eval::{ConstValue, RestrictType};
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ConstError {
     kind: ErrorKind,
     span: Span,
@@ -55,39 +53,31 @@ impl ConstError {
                 // Report at the reference's definition spot
                 msg.with_note("reference declared here", *def_span)
             }
-            ErrorKind::WrongResultType(found, expected) => {
-                let expected_name = match expected {
-                    RestrictType::None => panic!("Wrong result type on no restriction"),
-                    RestrictType::Integer => "integer value",
-                    RestrictType::Real => "real value",
-                    RestrictType::Boolean => "boolean value",
-                };
-
-                msg.with_note(
-                    &format!("expected {}, found {}", expected_name, found.type_name()),
-                    self.span,
-                )
-            }
             _ => msg,
         }
         .finish();
     }
 }
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, PartialEq, Eq, Hash)]
 pub(super) enum ErrorKind {
     // Traversal errors
     /// Encountered an evaluation cycle
+    #[allow(dead_code)] // TODO: add cycle fixup when we can generate cycles
     #[error("detected a compile-time evaluation cycle")]
     EvalCycle,
     /// Missing expression operand
     #[error("operand is an invalid expression")]
     MissingExpr,
+    /// Missing expression operand
+    #[error("operand cannot be computed at compile time")]
+    NotCompileEvaluable,
     /// No const expr is associated with this identifer.
     /// Provided span is the span of the symbol's definition
     #[error("reference cannot be computed at compile-time")]
     NoConstExpr(toc_span::Span),
     /// Error is already reported
+    #[allow(dead_code)] // TODO: Figure out how we can dedup errors
     #[error("compile-time evaluation error already reported")]
     Reported,
 
@@ -97,7 +87,7 @@ pub(super) enum ErrorKind {
     WrongOperandType,
     /// Wrong resultant type in eval expression
     #[error("wrong type for compile-time expression")]
-    WrongResultType(ConstValue, RestrictType),
+    WrongResultType,
     /// Integer overflow
     #[error("integer overflow in compile-time expression")]
     IntOverflow,

@@ -2,6 +2,15 @@
 pub use salsa;
 
 /// Creates a key for interning in a salsa database
+///
+/// # Example
+///
+/// ```rust
+/// create_intern_key!(
+///     /// Doc comments are propogated!
+///     pub Interned;   
+/// )
+/// ```
 #[macro_export]
 macro_rules! create_intern_key {
     ($(#[$attr:meta])* $visi:vis $key:ident;) => {

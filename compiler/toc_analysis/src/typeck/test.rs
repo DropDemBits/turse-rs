@@ -93,6 +93,7 @@ fn stringify_typeck_results(
     toc_hir_db::HirDatabaseStorage,
     crate::db::TypeInternStorage,
     crate::db::TypeDatabaseStorage,
+    crate::db::ConstEvalStorage,
     crate::HirAnalysisStorage
 )]
 #[derive(Default)]

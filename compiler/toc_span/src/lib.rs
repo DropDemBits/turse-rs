@@ -80,8 +80,8 @@ impl SpanId {
     /// Looks up the span in the given span table
     ///
     /// Infix/postfix version of using the span table
-    pub fn lookup_in(self, span_table: &SpanTable) -> Span {
-        span_table.lookup_span(self)
+    pub fn lookup_in(self, span_map: &SpanTable) -> Span {
+        span_map.lookup_span(self)
     }
 }
 

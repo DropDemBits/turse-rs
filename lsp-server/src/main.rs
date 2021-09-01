@@ -227,6 +227,7 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
     toc_hir_db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,
     toc_analysis::db::TypeDatabaseStorage,
+    toc_analysis::db::ConstEvalStorage,
     toc_analysis::HirAnalysisStorage
 )]
 #[derive(Default)]

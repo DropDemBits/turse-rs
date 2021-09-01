@@ -27,8 +27,8 @@ pub fn postorder_visit_library(lib: &library::Library, visitor: &dyn HirVisitor)
 }
 
 /// Visits the library in preorder
-pub fn preorder_visit_library(lib: &library::Library, visitor: &dyn HirVisitor) {
-    let mut walker = Walker::new(lib);
+pub fn preorder_visit_library(library: &library::Library, visitor: &dyn HirVisitor) {
+    let mut walker = Walker::new(library);
 
     while let Some(event) = walker.next_event() {
         let node = match event {

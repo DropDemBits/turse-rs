@@ -263,6 +263,7 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
     toc_hir_db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,
     toc_analysis::db::TypeDatabaseStorage,
+    toc_analysis::db::ConstEvalStorage,
     toc_analysis::HirAnalysisStorage
 )]
 #[derive(Default)]

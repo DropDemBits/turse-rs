@@ -4,7 +4,7 @@ use toc_hir::library::LibraryId;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 
-//mod const_eval; // TEMPORARY, uncomment when porting this stage
+mod const_eval;
 mod query;
 mod typeck;
 
@@ -21,7 +21,7 @@ pub mod ty;
 
 /// HIR Analysis queries
 #[salsa::query_group(HirAnalysisStorage)]
-pub trait HirAnalysis: db::TypeDatabase {
+pub trait HirAnalysis: db::TypeDatabase + db::ConstEval {
     /// Performs analysis passes on all libraries
     #[salsa::invoke(query::analyze_libraries)]
     fn analyze_libraries(&self) -> CompileResult<()>;

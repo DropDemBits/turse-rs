@@ -6,7 +6,7 @@ mod test;
 use std::cell::RefCell;
 
 use toc_hir::expr::{self, BodyExpr};
-use toc_hir::library::{self, LibraryId};
+use toc_hir::library::{self, LibraryId, WrapInLibrary};
 use toc_hir::stmt::BodyStmt;
 use toc_hir::symbol::DefId;
 use toc_hir::{body, item, stmt};
@@ -120,7 +120,7 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
     }
 
     fn visit_primitive(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Primitive) {
-        // TODO: Check types for charN and stringN (this is where we'd report those errors)
+        self.typeck_primitive(id, ty);
     }
 }
 
@@ -407,30 +407,73 @@ impl TypeCheck<'_> {
             ty::rules::report_invalid_unary_op(err, op_span, &mut self.state().reporter);
         }
     }
-}
 
-// We don't check seq lengths yet
-/*
-enum SeqLenError {
-    ConstEval(ConstError),
-    WrongSize(Spanned<ConstInt>, u32),
-}
+    fn typeck_primitive(&self, id: toc_hir::ty::TypeId, ty_node: &toc_hir::ty::Primitive) {
+        let ty = self
+            .db
+            .from_hir_type(id.in_library(self.library_id))
+            .in_db(self.db);
+        let ty_kind = &*ty.kind();
 
-impl SeqLenError {
-    fn report_to(&self, reporter: &mut MessageSink) {
-        match self {
-            SeqLenError::ConstEval(err) => err.report_to(reporter),
-            SeqLenError::WrongSize(int, size_limit) => {
-                reporter
-                    .error_detailed("invalid character count size", int.span())
-                    .with_note(&format!("computed count is {}", int.item()), int.span())
-                    .with_info(
-                        &format!("valid sizes are between 1 to {}", size_limit - 1),
-                        None,
-                    )
-                    .finish();
+        let expr_span = match ty_node {
+            toc_hir::ty::Primitive::SizedChar(toc_hir::ty::SeqLength::Expr(body))
+            | toc_hir::ty::Primitive::SizedString(toc_hir::ty::SeqLength::Expr(body)) => self
+                .library
+                .body(*body)
+                .span
+                .lookup_in(&self.library.span_map),
+            _ => return,
+        };
+
+        // Check constvar value
+        let (size, size_limit) = match ty_kind {
+            ty::TypeKind::CharN(ty::SeqSize::Fixed(size)) => {
+                // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
+                // ???: Do we want to add a config/feature option to change this?
+                (size, 32768)
             }
+            ty::TypeKind::StringN(ty::SeqSize::Fixed(size)) => {
+                // 256 is the maximum defined limit for the length on `n` for string(N),
+                // so no option of changing that (unless we have control over the interpreter code).
+                // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
+                //   so we can't change it yet unless we use a new interpreter.
+                (size, 256)
+            }
+            // because of hir disambiguation above
+            _ => unreachable!(),
+        };
+
+        // Always eagerly evaluate the expr
+        // Never allow 64-bit ops (size is always less than 2^32)
+        let value = self.db.evaluate_const(size.clone(), Default::default());
+
+        // Check that the value is actually the correct type, and in the correct value range.
+        // Size can only be in (0, 32768)
+        let value = value.and_then(|v| v.into_int(expr_span));
+
+        let int = match value {
+            Ok(v) => v,
+            Err(err) => {
+                err.report_to(&mut self.state().reporter);
+                return;
+            }
+        };
+
+        // Convert into a size, checking if it's within the given limit
+        if int
+            .into_u32()
+            .map(|size| (1..size_limit).contains(&size))
+            .unwrap_or(false)
+        {
+            self.state()
+                .reporter
+                .error_detailed("invalid character count size", expr_span)
+                .with_note(&format!("computed count is {}", int), expr_span)
+                .with_info(
+                    &format!("valid sizes are between 1 to {}", size_limit - 1),
+                    None,
+                )
+                .finish();
         }
     }
 }
-*/

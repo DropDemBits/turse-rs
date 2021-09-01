@@ -6,7 +6,12 @@ use std::fmt;
 use crate::const_eval::{errors::ErrorKind, ConstError};
 
 /// Constant Integer representation
-#[derive(Debug, Clone, Copy)]
+///
+/// # Note
+///
+/// `PartialEq` and `Eq` only test for bitwise equality of the structure,
+/// and not sign + magnitude equality.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConstInt {
     /// invariant: must be representable with the given `sign` and `magnitude`
     magnitude: u64,
@@ -591,14 +596,14 @@ impl fmt::Display for ConstInt {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Width {
     As32,
     As64,
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Sign {
     Positive,
     Negative,
