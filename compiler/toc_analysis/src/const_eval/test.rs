@@ -544,26 +544,27 @@ fn error_negative_int_shift() {
 
 #[test]
 fn restrict_assign_type() {
+    // Assignment type restriction is only checked on const use (for eval only)
     // Boolean is assignable into boolean
-    assert_const_eval(r#"const a : boolean := false"#);
+    assert_const_eval(r#"const a : boolean := false const _:=a"#);
     // Integer is not assignable into boolean
-    assert_const_eval(r#"const a : boolean := 1"#);
+    assert_const_eval(r#"const a : boolean := 1 const _:=a"#);
     // Real is not assignable into boolean
-    assert_const_eval(r#"const a : boolean := 1.0"#);
+    assert_const_eval(r#"const a : boolean := 1.0 const _:=a"#);
 
     // Boolean is not assignable into integers
-    assert_const_eval(r#"const a : int := false"#);
+    assert_const_eval(r#"const a : int := false const _:=a"#);
     // Integer is assignable into integer
-    assert_const_eval(r#"const a : int := 1"#);
+    assert_const_eval(r#"const a : int := 1 const _:=a"#);
     // Real is not assignable into integers
-    assert_const_eval(r#"const a : int := 1.0"#);
+    assert_const_eval(r#"const a : int := 1.0 const _:=a"#);
 
     // Boolean is not assignable into real
-    assert_const_eval(r#"const a : real := false"#);
+    assert_const_eval(r#"const a : real := false const _:=a"#);
     // Integers are assignable into reals (promoted)
-    assert_const_eval(r#"const a : real := 1"#);
+    assert_const_eval(r#"const a : real := 1 const _:=a"#);
     // Real is assignable into real
-    assert_const_eval(r#"const a : real := 1.0"#);
+    assert_const_eval(r#"const a : real := 1.0 const _:=a"#);
 }
 
 #[test]

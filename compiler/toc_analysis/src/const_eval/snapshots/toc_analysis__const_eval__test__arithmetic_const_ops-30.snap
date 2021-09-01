@@ -3,14 +3,6 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: " 3.0 mod -10.5   % -7.5"
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(5))), span: Span { file: None, range: 12..25 }, state: Value(Real(-7.5)) },
-    ],
-    var_to_expr: {
-        DefId(0): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> Real(-7.5)
+"_"@(FileId(1), 6..7) -> Real(-7.5)
 
 

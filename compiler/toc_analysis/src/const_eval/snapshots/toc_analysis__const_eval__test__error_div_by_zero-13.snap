@@ -3,15 +3,7 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: 1 rem 0
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(4))), span: Span { file: None, range: 11..18 }, state: Error(ConstError { kind: DivByZero, span: Span { file: None, range: 13..16 } }) },
-    ],
-    var_to_expr: {
-        DefId(0): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> ConstError { kind: DivByZero, span: Span { file: None, range: 13..16 } }
+"_"@(FileId(1), 6..7) -> ConstError { kind: DivByZero, span: (FileId(1), 13..16) }
 
-error at 13..16: division by zero in compile-time expression
+error in file FileId(1) at 13..16: division by zero in compile-time expression
 

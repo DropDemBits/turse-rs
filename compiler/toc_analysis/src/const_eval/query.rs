@@ -2,7 +2,7 @@
 
 use std::convert::TryInto;
 
-use toc_hir::{expr, symbol::DefId};
+use toc_hir::{expr, symbol::DefId, item::Mutability};
 
 use crate::{
     const_eval::{errors::ErrorKind, ops::ConstOp, ConstError, ConstInt},
@@ -123,7 +123,7 @@ pub(crate) fn evaluate_const(
 
                         let body = library.item_of(def_id).and_then(|item| {
                             match &library.item(item).kind {
-                                toc_hir::item::ItemKind::ConstVar(cv) => cv.tail.init_expr(),
+                                toc_hir::item::ItemKind::ConstVar(cv) if matches!(cv.mutability, Mutability::Const) => cv.tail.init_expr(),
                                 _ => None,
                             }
                         });
@@ -132,8 +132,6 @@ pub(crate) fn evaluate_const(
                             Some(body) => body,
                             None => {
                                 // Not a const expr
-                                // FIXME: This should already be reported in the parsing stage,
-                                // so we don't want to report this error
                                 let def_span = library
                                     .local_def(def_id)
                                     .name
@@ -158,7 +156,8 @@ pub(crate) fn evaluate_const(
                             .expect("ignores mutability")
                         {
                             // Wrong types
-                            return Err(ConstError::new(ErrorKind::WrongResultType, expr_span));
+                            let span = library.body(body).span.lookup_in(&library.span_map);
+                            return Err(ConstError::new(ErrorKind::WrongResultType, span));
                         }
 
                         // TODO: If `left` is a range type, check if `right` is in the range

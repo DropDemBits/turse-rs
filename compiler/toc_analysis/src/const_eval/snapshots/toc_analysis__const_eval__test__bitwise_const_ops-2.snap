@@ -3,14 +3,6 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: 0 and 1
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(4))), span: Span { file: None, range: 11..18 }, state: Value(Integer(ConstInt { magnitude: 0, sign: Positive, width: As32 })) },
-    ],
-    var_to_expr: {
-        DefId(0): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> Integer(ConstInt { magnitude: 0, sign: Positive, width: As32 })
+"_"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 0, sign: Positive, width: As32 })
 
 

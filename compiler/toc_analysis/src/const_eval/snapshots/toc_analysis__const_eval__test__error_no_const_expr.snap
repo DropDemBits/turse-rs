@@ -3,16 +3,9 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: "var a := 1\nconst b := a\n"
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(4))), span: Span { file: None, range: 22..23 }, state: Error(ConstError { kind: NoConstExpr(Span { file: None, range: 4..5 }), span: Span { file: None, range: 22..23 } }) },
-    ],
-    var_to_expr: {
-        DefId(1): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> ConstError { kind: NoConstExpr(Span { file: None, range: 4..5 }), span: Span { file: None, range: 22..23 } }
+"a"@(FileId(1), 4..5) -> Integer(ConstInt { magnitude: 1, sign: Positive, width: As32 })
+"b"@(FileId(1), 17..18) -> ConstError { kind: NoConstExpr((FileId(1), 4..5)), span: (FileId(1), 22..23) }
 
-error at 22..23: reference cannot be computed at compile-time
-| note for 4..5: reference declared here
+error in file FileId(1) at 22..23: reference cannot be computed at compile-time
+| note in file FileId(1) for 4..5: reference declared here
 

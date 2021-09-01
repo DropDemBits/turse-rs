@@ -3,15 +3,7 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: "-1e308 / 0.1"
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(5))), span: Span { file: None, range: 11..23 }, state: Error(ConstError { kind: RealOverflow, span: Span { file: None, range: 18..19 } }) },
-    ],
-    var_to_expr: {
-        DefId(0): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> ConstError { kind: RealOverflow, span: Span { file: None, range: 18..19 } }
+"_"@(FileId(1), 6..7) -> ConstError { kind: RealOverflow, span: (FileId(1), 18..19) }
 
-error at 18..19: real overflow in compile-time expression
+error in file FileId(1) at 18..19: real overflow in compile-time expression
 
