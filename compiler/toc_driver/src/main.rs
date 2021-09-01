@@ -4,8 +4,9 @@ use std::ops::Range;
 use std::{env, fs, io, sync::Arc};
 
 use toc_analysis::HirAnalysis;
-use toc_ast_db::source::SourceParser;
-use toc_ast_db::span::SpanMapping;
+use toc_ast_db::db::SourceParser;
+use toc_ast_db::db::SpanMapping;
+use toc_ast_db::SourceRoots;
 use toc_hir_db::HirDatabase;
 use toc_salsa::salsa;
 use toc_vfs::db::{FileSystem, VfsDatabaseExt};
@@ -26,7 +27,7 @@ fn main() {
     db.update_file(root_file, Some(contents.into_bytes()));
 
     // Set the source root
-    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
+    let source_roots = SourceRoots::new(vec![root_file]);
     db.set_source_roots(source_roots);
 
     // Parse root CST & dump output
@@ -257,8 +258,8 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
 
 #[salsa::database(
     toc_vfs::db::FileSystemStorage,
-    toc_ast_db::span::SpanMappingStorage,
-    toc_ast_db::source::SourceParserStorage,
+    toc_ast_db::db::SpanMappingStorage,
+    toc_ast_db::db::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
     toc_hir_db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,

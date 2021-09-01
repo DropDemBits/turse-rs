@@ -1,14 +1,11 @@
 use std::cell::RefCell;
 
-use toc_ast_db::source::SourceParser;
 use toc_hir::library::{LibraryId, LoweredLibrary};
 use toc_hir_db::HirDatabase;
 use toc_reporting::{MessageSink, ReportMessage};
-use toc_salsa::salsa;
-use toc_vfs::db::VfsDatabaseExt;
 use unindent::unindent;
 
-use crate::{const_eval::Const, db::ConstEval};
+use crate::{const_eval::Const, db::ConstEval, test_db::TestDb};
 
 #[track_caller]
 fn assert_const_eval(source: &str) {
@@ -29,14 +26,7 @@ macro_rules! for_all_const_exprs {
 }
 
 fn do_const_eval(source: &str) -> String {
-    let mut db = TestDb::default();
-    let root_file = db.vfs.intern_path("src/main.t".into());
-    db.update_file(root_file, Some(source.into()));
-
-    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
-    db.set_source_roots(source_roots);
-
-    let library_id = db.library_graph().result().library_of(root_file);
+    let (db, library_id) = TestDb::from_source(source);
     let library = db.library(library_id);
 
     // Eagerly evaluate all of the available const vars
@@ -116,25 +106,6 @@ fn stringify_const_eval_results(results: &str, messages: &[ReportMessage]) -> St
 
     s
 }
-
-#[salsa::database(
-    toc_vfs::db::FileSystemStorage,
-    toc_ast_db::source::SourceParserStorage,
-    toc_hir_db::HirDatabaseStorage,
-    crate::db::TypeInternStorage,
-    crate::db::TypeDatabaseStorage,
-    crate::db::ConstEvalStorage,
-    crate::HirAnalysisStorage
-)]
-#[derive(Default)]
-struct TestDb {
-    storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
-}
-
-impl salsa::Database for TestDb {}
-
-toc_vfs::impl_has_vfs!(TestDb, vfs);
 
 #[test]
 fn complex_arithmetic_expr() {

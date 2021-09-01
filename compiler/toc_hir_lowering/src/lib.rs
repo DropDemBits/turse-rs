@@ -25,7 +25,7 @@ use toc_reporting::CompileResult;
 use toc_span::FileId;
 
 /// Trait representing a database that can store a lowered HIR tree
-pub trait LoweringDb: toc_ast_db::source::SourceParser {
+pub trait LoweringDb: toc_ast_db::db::SourceParser {
     /// Lowers the given file as the root of a HIR library.
     ///
     /// ## Returns

@@ -8,8 +8,8 @@ use lsp_types::{
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
 use toc_analysis::HirAnalysis;
-use toc_ast_db::source::SourceParser;
-use toc_ast_db::span::SpanMapping;
+use toc_ast_db::db::{SourceParser, SpanMapping};
+use toc_ast_db::SourceRoots;
 use toc_salsa::salsa;
 use toc_vfs::db::VfsDatabaseExt;
 
@@ -142,7 +142,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     db.update_file(root_file, Some(contents.into()));
 
     // Setup source roots
-    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
+    let source_roots = SourceRoots::new(vec![root_file]);
     db.set_source_roots(source_roots);
 
     // TODO: Recursively load in files
@@ -221,8 +221,8 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
 
 #[salsa::database(
     toc_vfs::db::FileSystemStorage,
-    toc_ast_db::span::SpanMappingStorage,
-    toc_ast_db::source::SourceParserStorage,
+    toc_ast_db::db::SpanMappingStorage,
+    toc_ast_db::db::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
     toc_hir_db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,

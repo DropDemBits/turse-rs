@@ -1,14 +1,12 @@
 //! Type check tests
 
-use toc_ast_db::source::SourceParser;
 use toc_hir::symbol::DefId;
 use toc_hir_db::HirDatabase;
 use toc_reporting::ReportMessage;
-use toc_salsa::salsa;
-use toc_vfs::db::VfsDatabaseExt;
 use unindent::unindent;
 
 use crate::db::TypeDatabase;
+use crate::test_db::TestDb;
 use crate::HirAnalysis;
 
 macro_rules! test_for_each_op {
@@ -44,14 +42,7 @@ fn assert_typecheck(source: &str) {
 }
 
 fn do_typecheck(source: &str) -> String {
-    let mut db = TestDb::default();
-    let root_file = db.vfs.intern_path("src/main.t".into());
-    db.update_file(root_file, Some(source.into()));
-
-    let source_roots = toc_ast_db::source::SourceRoots::new(vec![root_file]);
-    db.set_source_roots(source_roots);
-
-    let lib = db.library_graph().result().library_of(root_file);
+    let (db, lib) = TestDb::from_source(source);
     let typeck_res = db.typecheck_library(lib);
 
     stringify_typeck_results(&db, lib, typeck_res.messages())
@@ -86,26 +77,6 @@ fn stringify_typeck_results(
 
     s
 }
-
-#[salsa::database(
-    toc_vfs::db::FileSystemStorage,
-    toc_ast_db::source::SourceParserStorage,
-    toc_hir_db::HirDatabaseStorage,
-    crate::db::TypeInternStorage,
-    crate::db::TypeDatabaseStorage,
-    crate::db::ConstEvalStorage,
-    crate::HirAnalysisStorage
-)]
-#[derive(Default)]
-struct TestDb {
-    storage: salsa::Storage<Self>,
-    vfs: toc_vfs::Vfs,
-}
-
-impl salsa::Database for TestDb {}
-
-toc_vfs::impl_has_vfs!(TestDb, vfs);
-
 #[test]
 fn var_decl_type_spec() {
     assert_typecheck(r#"var k : string"#);

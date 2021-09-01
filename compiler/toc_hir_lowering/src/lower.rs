@@ -23,7 +23,7 @@ mod ty;
 use std::{collections::VecDeque, sync::Arc};
 
 use indexmap::IndexSet;
-use toc_ast_db::source::SourceParser;
+use toc_ast_db::db::SourceParser;
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},

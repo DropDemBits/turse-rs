@@ -12,7 +12,7 @@ use toc_vfs::db::VfsDatabaseExt;
 #[salsa::database(
     InternedTypeStorage,
     toc_vfs::db::FileSystemStorage,
-    toc_ast_db::source::SourceParserStorage
+    toc_ast_db::db::SourceParserStorage
 )]
 #[derive(Default)]
 struct TestHirDb {

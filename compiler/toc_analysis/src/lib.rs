@@ -11,13 +11,8 @@ mod typeck;
 pub mod db;
 pub mod ty;
 
-// TODO: Mock-up what exactly needs to be done to port to the query system
-//
-// General idea is to split typeck from type collection & HIR constant evaluation
-//
-// See also:
-// - `notes/typeck queryfy/End to end typeck description.md`
-// - `notes/query related/Queryfication Plan.mdnotes/query related/Queryfication Plan.md`
+#[cfg(test)]
+mod test_db;
 
 /// HIR Analysis queries
 #[salsa::query_group(HirAnalysisStorage)]
