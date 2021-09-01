@@ -7,11 +7,11 @@ use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_span::FileId;
-use toc_vfs::query::VfsDatabaseExt;
+use toc_vfs::db::VfsDatabaseExt;
 
 #[salsa::database(
     InternedTypeStorage,
-    toc_vfs::query::FileSystemStorage,
+    toc_vfs::db::FileSystemStorage,
     toc_ast_db::source::SourceParserStorage
 )]
 #[derive(Default)]
@@ -22,11 +22,7 @@ struct TestHirDb {
 
 impl salsa::Database for TestHirDb {}
 
-impl toc_vfs::HasVfs for TestHirDb {
-    fn get_vfs(&self) -> &toc_vfs::Vfs {
-        &self.vfs
-    }
-}
+toc_vfs::impl_has_vfs!(TestHirDb, vfs);
 
 /// Salsa-backed type interner
 #[salsa::query_group(InternedTypeStorage)]

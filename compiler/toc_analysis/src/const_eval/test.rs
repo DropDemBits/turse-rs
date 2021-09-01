@@ -5,7 +5,7 @@ use toc_hir::library::{LibraryId, LoweredLibrary};
 use toc_hir_db::HirDatabase;
 use toc_reporting::{MessageSink, ReportMessage};
 use toc_salsa::salsa;
-use toc_vfs::query::VfsDatabaseExt;
+use toc_vfs::db::VfsDatabaseExt;
 use unindent::unindent;
 
 use crate::{const_eval::Const, db::ConstEval};
@@ -118,7 +118,7 @@ fn stringify_const_eval_results(results: &str, messages: &[ReportMessage]) -> St
 }
 
 #[salsa::database(
-    toc_vfs::query::FileSystemStorage,
+    toc_vfs::db::FileSystemStorage,
     toc_ast_db::source::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
     crate::db::TypeInternStorage,
@@ -134,11 +134,7 @@ struct TestDb {
 
 impl salsa::Database for TestDb {}
 
-impl toc_vfs::HasVfs for TestDb {
-    fn get_vfs(&self) -> &toc_vfs::Vfs {
-        &self.vfs
-    }
-}
+toc_vfs::impl_has_vfs!(TestDb, vfs);
 
 #[test]
 fn complex_arithmetic_expr() {

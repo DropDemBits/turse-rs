@@ -8,7 +8,7 @@ use toc_ast_db::source::SourceParser;
 use toc_ast_db::span::SpanMapping;
 use toc_hir_db::HirDatabase;
 use toc_salsa::salsa;
-use toc_vfs::query::{FileSystem, VfsDatabaseExt};
+use toc_vfs::db::{FileSystem, VfsDatabaseExt};
 
 fn load_contents(path: &str) -> io::Result<String> {
     let contents = fs::read(path)?;
@@ -256,7 +256,7 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
 }
 
 #[salsa::database(
-    toc_vfs::query::FileSystemStorage,
+    toc_vfs::db::FileSystemStorage,
     toc_ast_db::span::SpanMappingStorage,
     toc_ast_db::source::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
@@ -274,8 +274,4 @@ struct MainDatabase {
 
 impl salsa::Database for MainDatabase {}
 
-impl toc_vfs::HasVfs for MainDatabase {
-    fn get_vfs(&self) -> &toc_vfs::Vfs {
-        &self.vfs
-    }
-}
+toc_vfs::impl_has_vfs!(MainDatabase, vfs);

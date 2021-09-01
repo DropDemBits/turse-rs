@@ -5,7 +5,7 @@ use toc_hir::symbol::DefId;
 use toc_hir_db::HirDatabase;
 use toc_reporting::ReportMessage;
 use toc_salsa::salsa;
-use toc_vfs::query::VfsDatabaseExt;
+use toc_vfs::db::VfsDatabaseExt;
 use unindent::unindent;
 
 use crate::db::TypeDatabase;
@@ -88,7 +88,7 @@ fn stringify_typeck_results(
 }
 
 #[salsa::database(
-    toc_vfs::query::FileSystemStorage,
+    toc_vfs::db::FileSystemStorage,
     toc_ast_db::source::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
     crate::db::TypeInternStorage,
@@ -104,11 +104,7 @@ struct TestDb {
 
 impl salsa::Database for TestDb {}
 
-impl toc_vfs::HasVfs for TestDb {
-    fn get_vfs(&self) -> &toc_vfs::Vfs {
-        &self.vfs
-    }
-}
+toc_vfs::impl_has_vfs!(TestDb, vfs);
 
 #[test]
 fn var_decl_type_spec() {

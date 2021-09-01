@@ -11,7 +11,7 @@ use toc_analysis::HirAnalysis;
 use toc_ast_db::source::SourceParser;
 use toc_ast_db::span::SpanMapping;
 use toc_salsa::salsa;
-use toc_vfs::query::VfsDatabaseExt;
+use toc_vfs::db::VfsDatabaseExt;
 
 type DynError = Box<dyn Error + Sync + Send>;
 
@@ -220,7 +220,7 @@ impl IntoPosition for toc_ast_db::span::LspPosition {
 }
 
 #[salsa::database(
-    toc_vfs::query::FileSystemStorage,
+    toc_vfs::db::FileSystemStorage,
     toc_ast_db::span::SpanMappingStorage,
     toc_ast_db::source::SourceParserStorage,
     toc_hir_db::HirDatabaseStorage,
@@ -238,8 +238,4 @@ struct LspDatabase {
 
 impl salsa::Database for LspDatabase {}
 
-impl toc_vfs::HasVfs for LspDatabase {
-    fn get_vfs(&self) -> &toc_vfs::Vfs {
-        &self.vfs
-    }
-}
+toc_vfs::impl_has_vfs!(LspDatabase, vfs);

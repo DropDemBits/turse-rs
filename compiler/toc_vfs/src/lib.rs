@@ -23,13 +23,27 @@
 // TODO: Flesh out documentation using VFS Interface.md
 // TODO: Generate a test fixture VFS tree from a given source string
 
-pub mod query;
+pub mod db;
+mod intern;
+mod query;
+mod vfs;
 
 use std::convert::TryFrom;
 use std::fmt;
 
-// TODO: migrate into here
-pub use query::{HasVfs, Vfs};
+pub use vfs::{HasVfs, Vfs};
+
+/// Helper for implementing the [`HasVfs`] trait.
+#[macro_export]
+macro_rules! impl_has_vfs {
+    ($db:path, $vfs:ident) => {
+        impl $crate::HasVfs for $db {
+            fn get_vfs(&self) -> &$crate::Vfs {
+                &self.$vfs
+            }
+        }
+    };
+}
 
 /// Built-in prefixes for paths.
 ///
@@ -99,12 +113,8 @@ pub enum LoadError {
 mod test {
     use toc_salsa::salsa;
 
-    use crate::query::VfsDatabaseExt;
-    use crate::{
-        query::{FileSystem, FileSystemStorage},
-        BuiltinPrefix,
-    };
-    use crate::{HasVfs, LoadError, Vfs};
+    use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
+    use crate::{BuiltinPrefix, HasVfs, LoadError, Vfs};
 
     #[salsa::database(FileSystemStorage)]
     struct VfsTestDB {

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_span::FileId;
-use toc_vfs::query::FileSystem;
+use toc_vfs::db::FileSystem;
 
 #[salsa::query_group(SourceParserStorage)]
 pub trait SourceParser: FileSystem {

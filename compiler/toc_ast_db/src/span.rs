@@ -23,7 +23,7 @@ pub struct LineInfo {
 }
 
 #[salsa::query_group(SpanMappingStorage)]
-pub trait SpanMapping: toc_vfs::query::FileSystem {
+pub trait SpanMapping: toc_vfs::db::FileSystem {
     fn line_ranges(&self, file_id: toc_span::FileId) -> Arc<Vec<Range<usize>>>;
 
     fn file_path(&self, file_id: toc_span::FileId) -> Arc<String>;
