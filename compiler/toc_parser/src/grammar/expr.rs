@@ -124,23 +124,27 @@ fn expr_binding_power(p: &mut Parser, min_binding_power: u8) -> Option<Completed
             lhs = indirect_expr_tail(p, lhs);
         }
 
-        let op = if let Some(op) = infix_op(p, min_binding_power) {
-            op
-        } else {
-            // Not an infix operator, so let the caller decide the outcome
-
-            if p.at_hidden(TokenKind::At) {
-                // can't chain indirect expr tails
-                // outcome has been decided
-                p.error_unexpected()
-                    .with_category(Expected::InfixOp)
-                    .report();
-            } else {
-                // It's probably the end of an expression, so dropped the acquired expected tokens
-                p.reset_expected_tokens();
+        let op = match infix_op(p, min_binding_power) {
+            Ok(op) => op,
+            Err(NoInfixOp::NotRecovery) => {
+                // Tried to eat a not as an infix operator, treat it as if we did eat a valid operator
+                InfixOp::NotEqual
             }
+            Err(_) => {
+                // Not an infix operator, so let the caller decide the outcome
+                if p.at_hidden(TokenKind::At) {
+                    // can't chain indirect expr tails
+                    // outcome has been decided
+                    p.error_unexpected()
+                        .with_category(Expected::InfixOp)
+                        .report();
+                } else {
+                    // It's probably the end of an expression, so dropped the acquired expected tokens
+                    p.reset_expected_tokens();
+                }
 
-            break;
+                break;
+            }
         };
 
         let (left_bind_power, right_bind_power) = op.binding_power();
@@ -505,12 +509,12 @@ fn prefix_op(p: &mut Parser, only_primaries: bool) -> Option<PrefixOp> {
     })
 }
 
-fn infix_op(p: &mut Parser, min_infix_power: u8) -> Option<InfixOp> {
+fn infix_op(p: &mut Parser, min_infix_power: u8) -> Result<InfixOp, NoInfixOp> {
     let ref_infix_ops = match_token!(|p| match {
-        TokenKind::Dot => Some(InfixOp::Dot),
-        TokenKind::Arrow => Some(InfixOp::Arrow),
-        TokenKind::LeftParen => Some(InfixOp::Call),
-        _ => None
+        TokenKind::Dot => Ok(InfixOp::Dot),
+        TokenKind::Arrow => Ok(InfixOp::Arrow),
+        TokenKind::LeftParen => Ok(InfixOp::Call),
+        _ => Err(NoInfixOp::LowerPrecedence)
     });
 
     if min_infix_power >= toc_syntax::MIN_REF_BINDING_POWER {
@@ -519,8 +523,8 @@ fn infix_op(p: &mut Parser, min_infix_power: u8) -> Option<InfixOp> {
         return ref_infix_ops;
     }
 
-    ref_infix_ops.or_else(|| {
-        Some(match_token! {
+    ref_infix_ops.or_else(|_| {
+        Ok(match_token! {
             |p| match {
                 TokenKind::Imply => InfixOp::Imply,
                 TokenKind::Pipe,
@@ -548,19 +552,19 @@ fn infix_op(p: &mut Parser, min_infix_power: u8) -> Option<InfixOp> {
                 TokenKind::Exp => InfixOp::Exp,
                 _ => {
                     // Not an infix operator
-                    return None;
+                    return Err(NoInfixOp::NotInfixOp);
                 }
             }
         })
     })
 }
 
-pub(super) fn maybe_composite_not_op(p: &mut Parser, min_infix_power: u8) -> Option<InfixOp> {
+fn maybe_composite_not_op(p: &mut Parser, min_infix_power: u8) -> Result<InfixOp, NoInfixOp> {
     debug_assert!(p.at(TokenKind::Not) || p.at(TokenKind::Tilde));
 
     if InfixOp::NotIn.binding_power().0 < min_infix_power {
         // can't parse it right now, leave it for later
-        return None;
+        return Err(NoInfixOp::LowerPrecedence);
     }
 
     let m = p.start();
@@ -568,23 +572,35 @@ pub(super) fn maybe_composite_not_op(p: &mut Parser, min_infix_power: u8) -> Opt
     // bump to only leave "in" and "=" in expected token set
     p.bump(); // bump "not" or "~"
 
-    Some(match_token!(|p| match {
+    match_token!(|p| match {
         TokenKind::In => {
             p.bump(); // consume "in"
             m.complete(p, SyntaxKind::NotIn); // make NotIn node
-            InfixOp::NotIn
+            Ok(InfixOp::NotIn)
         }
         TokenKind::Equ => {
             p.bump(); // consume "="
             m.complete(p, SyntaxKind::NotEq); // make NotEq node
-            InfixOp::NotEqual
+            Ok(InfixOp::NotEqual)
         }
         _ => {
             // "not" / "~" is not allowed as an infix operator
+            // don't eat the next token since it may be part of the rhs
             p.error_unexpected()
                 .with_marker(m)
+                .dont_eat()
                 .report();
-            return None;
+
+            Err(NoInfixOp::NotRecovery)
         }
-    }))
+    })
+}
+
+enum NoInfixOp {
+    /// Encountered a lower precedence op
+    LowerPrecedence,
+    /// `~` or `not` as infix operator recovery
+    NotRecovery,
+    /// Not an infix op
+    NotInfixOp,
 }

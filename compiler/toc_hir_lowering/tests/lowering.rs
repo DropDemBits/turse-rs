@@ -407,6 +407,8 @@ fn lower_binary_expr() {
     assert_lower("a := a + a");
     // missing operand, should still be present
     assert_lower("a := () + ");
+    // invalid infix, okay to be missing
+    assert_lower("a := 1 not 1 ");
 }
 
 #[test]

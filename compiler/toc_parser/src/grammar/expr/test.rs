@@ -1397,13 +1397,15 @@ fn recover_tilde_as_infix() {
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  LiteralExpr@3..4
-                    IntLiteral@3..4 "1"
-                  Whitespace@4..5 " "
-                  Error@5..8
-                    Tilde@5..6 "~"
+                  BinaryExpr@3..8
+                    LiteralExpr@3..4
+                      IntLiteral@3..4 "1"
+                    Whitespace@4..5 " "
+                    Error@5..6
+                      Tilde@5..6 "~"
                     Whitespace@6..7 " "
-                    IntLiteral@7..8 "2"
+                    LiteralExpr@7..8
+                      IntLiteral@7..8 "2"
             error at 7..8: expected ‘in’ or ‘=’, but found int literal"#]],
     );
 }
@@ -1421,13 +1423,15 @@ fn recover_not_as_infix() {
                       Identifier@0..1 "_"
                   AsnOp@1..3
                     Assign@1..3 ":="
-                  LiteralExpr@3..4
-                    IntLiteral@3..4 "1"
-                  Whitespace@4..5 " "
-                  Error@5..10
-                    KwNot@5..8 "not"
+                  BinaryExpr@3..10
+                    LiteralExpr@3..4
+                      IntLiteral@3..4 "1"
+                    Whitespace@4..5 " "
+                    Error@5..8
+                      KwNot@5..8 "not"
                     Whitespace@8..9 " "
-                    IntLiteral@9..10 "2"
+                    LiteralExpr@9..10
+                      IntLiteral@9..10 "2"
             error at 9..10: expected ‘in’ or ‘=’, but found int literal"#]],
     );
 }
@@ -4974,4 +4978,60 @@ fn parse_not_eq_after_higher_precedence_op() {
                     LiteralExpr@16..17
                       IntLiteral@16..17 "0""#]],
     );
+}
+
+#[test]
+fn parse_invalid_tilde_before_indirect() {
+    check("_:=A~B@()", expect![[r#"
+        Source@0..9
+          StmtList@0..9
+            AssignStmt@0..9
+              NameExpr@0..1
+                Name@0..1
+                  Identifier@0..1 "_"
+              AsnOp@1..3
+                Assign@1..3 ":="
+              BinaryExpr@3..9
+                NameExpr@3..4
+                  Name@3..4
+                    Identifier@3..4 "A"
+                Error@4..5
+                  Tilde@4..5 "~"
+                IndirectExpr@5..9
+                  NameExpr@5..6
+                    Name@5..6
+                      Identifier@5..6 "B"
+                  At@6..7 "@"
+                  LeftParen@7..8 "("
+                  RightParen@8..9 ")"
+        error at 5..6: expected ‘in’ or ‘=’, but found identifier"#]]);
+}
+
+#[test]
+fn parse_invalid_not_before_indirect() {
+    check("_:=A not B@()", expect![[r#"
+        Source@0..13
+          StmtList@0..13
+            AssignStmt@0..13
+              NameExpr@0..1
+                Name@0..1
+                  Identifier@0..1 "_"
+              AsnOp@1..3
+                Assign@1..3 ":="
+              BinaryExpr@3..13
+                NameExpr@3..4
+                  Name@3..4
+                    Identifier@3..4 "A"
+                Whitespace@4..5 " "
+                Error@5..8
+                  KwNot@5..8 "not"
+                Whitespace@8..9 " "
+                IndirectExpr@9..13
+                  NameExpr@9..10
+                    Name@9..10
+                      Identifier@9..10 "B"
+                  At@10..11 "@"
+                  LeftParen@11..12 "("
+                  RightParen@12..13 ")"
+        error at 9..10: expected ‘in’ or ‘=’, but found identifier"#]]);
 }
