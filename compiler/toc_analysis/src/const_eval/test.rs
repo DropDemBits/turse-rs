@@ -1,10 +1,11 @@
-use std::sync::Arc;
+use std::cell::RefCell;
 
-use toc_hir::db;
+use toc_hir::library::{LibraryId, LoweredLibrary};
+use toc_hir_db::db::HirDatabase;
 use toc_reporting::{MessageSink, ReportMessage};
 use unindent::unindent;
 
-use crate::const_eval::ConstEvalCtx;
+use crate::{const_eval::Const, db::ConstEval, test_db::TestDb};
 
 #[track_caller]
 fn assert_const_eval(source: &str) {
@@ -25,53 +26,78 @@ macro_rules! for_all_const_exprs {
 }
 
 fn do_const_eval(source: &str) -> String {
-    let (hir_db, root_unit) = {
-        let parsed = toc_parser::parse(None, source);
-        let hir_db = db::HirBuilder::new();
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
-        let hir_db = hir_db.finish();
+    let (db, library_id) = TestDb::from_source(source);
+    let library = db.library(library_id);
 
-        (hir_db, hir_res.id)
+    // Eagerly evaluate all of the available const vars
+    let const_evaluator = ConstEvaluator {
+        db: &db,
+        library_id,
+        library: library.clone(),
+        reporter: Default::default(),
+        results: Default::default(),
     };
 
-    let unit = hir_db.get_unit(root_unit);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
-    super::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
+    toc_hir::visitor::preorder_visit_library(&library, &const_evaluator);
 
-    let mut results_str = String::new();
-    let mut reporter = MessageSink::new();
+    struct ConstEvaluator<'db> {
+        db: &'db TestDb,
+        library_id: LibraryId,
+        library: LoweredLibrary,
+        reporter: RefCell<MessageSink>,
+        results: RefCell<String>,
+    }
 
-    // Need access to the inner state of the ConstEvalCtx, which is behind a lock
-    {
-        // Eagerly evaluate all of the available const vars
-        let mut inner = const_eval_ctx.inner.write().unwrap();
-        let const_exprs = inner.var_to_expr.values().copied().collect::<Vec<_>>();
+    impl toc_hir::visitor::HirVisitor for ConstEvaluator<'_> {
+        fn visit_constvar(&self, id: toc_hir::item::ItemId, item: &toc_hir::item::ConstVar) {
+            let def_id = self.library.item(id).def_id;
+            let body = if let Some(body) = item.tail.init_expr() {
+                body
+            } else {
+                return;
+            };
 
-        for expr in const_exprs {
-            let results = match inner.eval_expr(expr) {
-                Ok(v) => format!("{:?} -> {:?}\n", expr, v),
+            let eval_res = self
+                .db
+                .evaluate_const(Const::from_body(self.library_id, body), Default::default());
+
+            let name = {
+                let def_info = self.library.local_def(def_id);
+                format!(
+                    "{:?}@{:?}",
+                    def_info.name.item(),
+                    def_info.name.span().lookup_in(&self.library.span_map)
+                )
+            };
+
+            let results = match eval_res {
+                Ok(v) => format!("{} -> {:?}\n", name, v),
                 Err(err) => {
-                    let text = format!("{:?} -> {:?}\n", expr, err);
-                    err.report_to(&mut reporter);
+                    let text = format!("{} -> {:?}\n", name, err);
+                    err.report_to(self.db, &mut *self.reporter.borrow_mut());
                     text
                 }
             };
 
-            results_str.push_str(&results);
+            self.results.borrow_mut().push_str(&results);
         }
     }
 
+    let ConstEvaluator {
+        reporter, results, ..
+    } = const_evaluator;
+    let reporter = reporter.into_inner();
+    let results = results.into_inner();
+
     // Errors are bundled into the const error context
-    stringify_const_eval_results(&results_str, &reporter.finish(), &const_eval_ctx)
+    stringify_const_eval_results(&results, &reporter.finish())
 }
 
-fn stringify_const_eval_results(
-    results: &str,
-    messages: &[ReportMessage],
-    const_eval: &ConstEvalCtx,
-) -> String {
+fn stringify_const_eval_results(results: &str, messages: &[ReportMessage]) -> String {
     // Pretty print const eval ctx
-    let mut s = format!("{:#?}\n{}\n", const_eval, results);
+    // Want:
+    // - Evaluation state of all accessible DefIds
+    let mut s = format!("{}\n", results);
 
     // Pretty print the messages
     for err in messages.iter() {
@@ -485,26 +511,27 @@ fn error_negative_int_shift() {
 
 #[test]
 fn restrict_assign_type() {
+    // Assignment type restriction is only checked on const use (for eval only)
     // Boolean is assignable into boolean
-    assert_const_eval(r#"const a : boolean := false"#);
+    assert_const_eval(r#"const a : boolean := false const _:=a"#);
     // Integer is not assignable into boolean
-    assert_const_eval(r#"const a : boolean := 1"#);
+    assert_const_eval(r#"const a : boolean := 1 const _:=a"#);
     // Real is not assignable into boolean
-    assert_const_eval(r#"const a : boolean := 1.0"#);
+    assert_const_eval(r#"const a : boolean := 1.0 const _:=a"#);
 
     // Boolean is not assignable into integers
-    assert_const_eval(r#"const a : int := false"#);
+    assert_const_eval(r#"const a : int := false const _:=a"#);
     // Integer is assignable into integer
-    assert_const_eval(r#"const a : int := 1"#);
+    assert_const_eval(r#"const a : int := 1 const _:=a"#);
     // Real is not assignable into integers
-    assert_const_eval(r#"const a : int := 1.0"#);
+    assert_const_eval(r#"const a : int := 1.0 const _:=a"#);
 
     // Boolean is not assignable into real
-    assert_const_eval(r#"const a : real := false"#);
+    assert_const_eval(r#"const a : real := false const _:=a"#);
     // Integers are assignable into reals (promoted)
-    assert_const_eval(r#"const a : real := 1"#);
+    assert_const_eval(r#"const a : real := 1 const _:=a"#);
     // Real is assignable into real
-    assert_const_eval(r#"const a : real := 1.0"#);
+    assert_const_eval(r#"const a : real := 1.0 const _:=a"#);
 }
 
 #[test]

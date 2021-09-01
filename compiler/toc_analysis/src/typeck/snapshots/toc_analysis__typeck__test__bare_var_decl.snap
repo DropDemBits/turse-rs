@@ -3,5 +3,5 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: var k
 
 ---
-ty_nodes:
-def_kinds:
+"<root>"@(dummy) [Declared]: <error>
+

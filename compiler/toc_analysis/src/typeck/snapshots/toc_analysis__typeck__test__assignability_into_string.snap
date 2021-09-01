@@ -1,33 +1,21 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "var c : char\nvar c1 : char(1)\nvar s1 : string(1)\nvar c5 : char(5)\nvar c255 : char(255)\nvar s : string\nvar s5 : string(5)\n\nvar _v00 : string := c\nvar _v01 : string := c1\nvar _v02 : string := c5\nvar _v05 : string := c255\nvar _v03 : string := s1\nvar _v04 : string := s5\n"
+expression: "var c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar c255 : char(255)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\nvar _v00 : string := c\nvar _v01 : string := c1\nvar _v02 : string := c5\nvar _v03 : string := c255\nvar _v04 : string := s\nvar _v05 : string := s1\nvar _v06 : string := s5\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Char)
-    TypeId(HirId(Idx::<HirNode>(3))) TyRef(CharN(Fixed(1)))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(StringN(Fixed(1)))
-    TypeId(HirId(Idx::<HirNode>(9))) TyRef(CharN(Fixed(5)))
-    TypeId(HirId(Idx::<HirNode>(12))) TyRef(CharN(Fixed(255)))
-    TypeId(HirId(Idx::<HirNode>(14))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(17))) TyRef(StringN(Fixed(5)))
-    TypeId(HirId(Idx::<HirNode>(19))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(22))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(25))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(28))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(31))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(34))) TyRef(String)
-def_kinds:
-    DefId(0) Var(TyRef(Char))
-    DefId(1) Var(TyRef(CharN(Fixed(1))))
-    DefId(2) Var(TyRef(StringN(Fixed(1))))
-    DefId(3) Var(TyRef(CharN(Fixed(5))))
-    DefId(4) Var(TyRef(CharN(Fixed(255))))
-    DefId(5) Var(TyRef(String))
-    DefId(6) Var(TyRef(StringN(Fixed(5))))
-    DefId(7) Var(TyRef(String))
-    DefId(8) Var(TyRef(String))
-    DefId(9) Var(TyRef(String))
-    DefId(10) Var(TyRef(String))
-    DefId(11) Var(TyRef(String))
-    DefId(12) Var(TyRef(String))
+"c"@(FileId(1), 4..5) [Declared]: ref_mut char
+"c1"@(FileId(1), 17..19) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"c5"@(FileId(1), 34..36) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c255"@(FileId(1), 51..55) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s"@(FileId(1), 72..73) [Declared]: ref_mut string
+"s1"@(FileId(1), 87..89) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"s5"@(FileId(1), 106..108) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_v00"@(FileId(1), 126..130) [Declared]: ref_mut string
+"_v01"@(FileId(1), 149..153) [Declared]: ref_mut string
+"_v02"@(FileId(1), 173..177) [Declared]: ref_mut string
+"_v03"@(FileId(1), 197..201) [Declared]: ref_mut string
+"_v04"@(FileId(1), 223..227) [Declared]: ref_mut string
+"_v05"@(FileId(1), 246..250) [Declared]: ref_mut string
+"_v06"@(FileId(1), 270..274) [Declared]: ref_mut string
+"<root>"@(dummy) [Declared]: <error>
+

@@ -1,18 +1,29 @@
 //! Lowering into `Expr` HIR nodes
-use toc_hir::expr;
-use toc_span::{Span, Spanned};
+use toc_hir::{body, expr, symbol};
+use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
-impl super::LoweringCtx {
+impl super::BodyLowering<'_, '_> {
     /// Lowers a required expr. If not present, constructs a `Expr::Missing` node in-place
     pub(super) fn lower_required_expr(&mut self, expr: Option<ast::Expr>) -> expr::ExprId {
         if let Some(expr) = expr {
             self.lower_expr(expr)
         } else {
             // Allocate a generic span
-            self.database
-                .add_expr(expr::Expr::Missing, Default::default())
+            let missing = expr::Expr {
+                kind: expr::ExprKind::Missing,
+                span: self.ctx.library.span_map.dummy_span(),
+            };
+            self.body.add_expr(missing)
+        }
+    }
+
+    /// Lowers a required expr body. If not present, constructs an empty expression body
+    pub(super) fn lower_required_expr_body(&mut self, expr: Option<ast::Expr>) -> body::BodyId {
+        match expr {
+            Some(expr) => self.ctx.lower_expr_body(expr),
+            None => self.ctx.lower_empty_expr_body(),
         }
     }
 
@@ -24,9 +35,9 @@ impl super::LoweringCtx {
 
     /// Lowers an expr
     pub(super) fn lower_expr(&mut self, expr: ast::Expr) -> expr::ExprId {
-        let span = Span::new(self.file, expr.syntax().text_range());
+        let span = self.ctx.intern_range(expr.syntax().text_range());
 
-        let expr = match expr {
+        let kind = match expr {
             ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr),
             ast::Expr::ObjClassExpr(_) => self.unsupported_expr(span),
             ast::Expr::InitExpr(_) => self.unsupported_expr(span),
@@ -46,17 +57,20 @@ impl super::LoweringCtx {
             ast::Expr::BitsExpr(_) => self.unsupported_expr(span),
             ast::Expr::CallExpr(_) => self.unsupported_expr(span),
         }
-        .unwrap_or(expr::Expr::Missing);
+        .unwrap_or(expr::ExprKind::Missing);
 
-        self.database.add_expr(expr, span)
+        let expr = expr::Expr { kind, span };
+
+        self.body.add_expr(expr)
     }
 
-    fn unsupported_expr(&mut self, span: Span) -> Option<expr::Expr> {
-        self.messages.error("unsupported expression", span);
+    fn unsupported_expr(&mut self, span: SpanId) -> Option<expr::ExprKind> {
+        let span = self.ctx.library.lookup_span(span);
+        self.ctx.messages.error("unsupported expression", span);
         None
     }
 
-    fn lower_literal_expr(&mut self, expr: ast::LiteralExpr) -> Option<expr::Expr> {
+    fn lower_literal_expr(&mut self, expr: ast::LiteralExpr) -> Option<expr::ExprKind> {
         let (value, errs) = expr.literal()?;
 
         if let Some(errs) = errs {
@@ -65,9 +79,9 @@ impl super::LoweringCtx {
             // Report errors
             // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
             for (range, err) in errs.iter().map(|msg| msg.message_at(range)) {
-                let span = Span::new(self.file, range);
+                let span = self.ctx.mk_span(range);
 
-                self.messages.error(&err.to_string(), span);
+                self.ctx.messages.error(&err.to_string(), span);
             }
         }
 
@@ -81,38 +95,48 @@ impl super::LoweringCtx {
             LiteralValue::Boolean(v) => expr::Literal::Boolean(v),
         };
 
-        Some(expr::Expr::Literal(value))
+        Some(expr::ExprKind::Literal(value))
     }
 
-    fn lower_binary_expr(&mut self, expr: ast::BinaryExpr) -> Option<expr::Expr> {
-        let op_span = toc_span::Span::new(self.file, expr.op_node()?.text_range());
+    fn lower_binary_expr(&mut self, expr: ast::BinaryExpr) -> Option<expr::ExprKind> {
         let op = syntax_to_hir_binary_op(expr.op_kind()?);
+        let op_span = self.ctx.intern_range(expr.op_node()?.text_range());
         let op = Spanned::new(op, op_span);
         let lhs = self.lower_required_expr(expr.lhs());
         let rhs = self.lower_required_expr(expr.rhs());
 
-        Some(expr::Expr::Binary(expr::Binary { lhs, op, rhs }))
+        Some(expr::ExprKind::Binary(expr::Binary { lhs, op, rhs }))
     }
 
-    fn lower_unary_expr(&mut self, expr: ast::UnaryExpr) -> Option<expr::Expr> {
-        let op_span = toc_span::Span::new(self.file, expr.op_node()?.text_range());
+    fn lower_unary_expr(&mut self, expr: ast::UnaryExpr) -> Option<expr::ExprKind> {
         let op = syntax_to_hir_unary_op(expr.op_kind()?);
+        let op_span = self.ctx.intern_range(expr.op_node()?.text_range());
         let op = Spanned::new(op, op_span);
         let rhs = self.lower_required_expr(expr.rhs());
 
-        Some(expr::Expr::Unary(expr::Unary { op, rhs }))
+        Some(expr::ExprKind::Unary(expr::Unary { op, rhs }))
     }
 
-    fn lower_paren_expr(&mut self, expr: ast::ParenExpr) -> Option<expr::Expr> {
+    fn lower_paren_expr(&mut self, expr: ast::ParenExpr) -> Option<expr::ExprKind> {
         let expr = self.lower_required_expr(expr.expr());
-        Some(expr::Expr::Paren(expr::Paren { expr }))
+        Some(expr::ExprKind::Paren(expr::Paren { expr }))
     }
 
-    fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::Expr> {
+    fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::ExprKind> {
         let name = expr.name()?.identifier_token()?;
-        let span = Span::new(self.file, name.text_range());
-        let use_id = self.scopes.use_sym(name.text(), span);
-        Some(expr::Expr::Name(expr::Name::Name(use_id)))
+        let span = self.ctx.mk_span(name.text_range());
+
+        // Split borrows
+        // FIXME: Simplify once new closure capture rules are stabilized
+        let scopes = &mut self.ctx.scopes;
+        let library = &mut self.ctx.library;
+
+        let def_id = scopes.use_sym(name.text(), || {
+            // make an undeclared
+            let span = library.intern_span(span);
+            library.add_def(name.text(), span, symbol::SymbolKind::Undeclared)
+        });
+        Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
     }
 }
 

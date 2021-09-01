@@ -3,18 +3,15 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    % Inferred integer types should pass\n    % Decl should be a concrete type\n    var a := 1 * 1\n    % Types of operands should make the type concrete\n    var r : real\n    var i : int\n    var n : nat\n    var _r0 := 1 * r\n    var _r1 := r * 1\n    var _i0 := 1 * i\n    var _i1 := i * 1\n    var _n0 := 1 * n\n    var _n1 := n * 1\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(8))) TyRef(Nat(Nat))
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Real(Real)))
-    DefId(2) Var(TyRef(Int(Int)))
-    DefId(3) Var(TyRef(Nat(Nat)))
-    DefId(4) Var(TyRef(Real(Real)))
-    DefId(5) Var(TyRef(Real(Real)))
-    DefId(6) Var(TyRef(Int(Int)))
-    DefId(7) Var(TyRef(Int(Int)))
-    DefId(8) Var(TyRef(Nat(Nat)))
-    DefId(9) Var(TyRef(Nat(Nat)))
+"a"@(FileId(1), 87..88) [Declared]: ref_mut int
+"r"@(FileId(1), 160..161) [Declared]: ref_mut real
+"i"@(FileId(1), 177..178) [Declared]: ref_mut int
+"n"@(FileId(1), 193..194) [Declared]: ref_mut nat
+"_r0"@(FileId(1), 209..212) [Declared]: ref_mut real
+"_r1"@(FileId(1), 230..233) [Declared]: ref_mut real
+"_i0"@(FileId(1), 251..254) [Declared]: ref_mut int
+"_i1"@(FileId(1), 272..275) [Declared]: ref_mut int
+"_n0"@(FileId(1), 293..296) [Declared]: ref_mut nat
+"_n1"@(FileId(1), 314..317) [Declared]: ref_mut nat
+"<root>"@(dummy) [Declared]: <error>
+

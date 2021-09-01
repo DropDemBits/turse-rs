@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "put 1 : 1 :  : "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..15): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..14): []
+        Put@(FileId(1), 0..14): newline
+          Literal@(FileId(1), 4..5): Integer(1)
+          Literal@(FileId(1), 8..9): Integer(1)
+error in file FileId(1) at 13..14: expected expression, but found ‘:’
+error in file FileId(1) at 14..15: expected expression after here
+

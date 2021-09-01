@@ -3,11 +3,11 @@ use toc_hir::ty;
 use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
-impl super::LoweringCtx {
+impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeId> {
-        let span = Span::new(self.file, ty.syntax().text_range());
+        let span = self.ctx.mk_span(ty.syntax().text_range());
 
-        let ty = match ty {
+        let kind = match ty {
             ast::Type::PrimType(ty) => self.lower_prim_type(ty),
             ast::Type::NameType(_) => self.unsupported_ty(span),
             ast::Type::RangeType(_) => self.unsupported_ty(span),
@@ -23,15 +23,17 @@ impl super::LoweringCtx {
             ast::Type::ConditionType(_) => self.unsupported_ty(span),
         }?;
 
-        Some(self.database.add_type(ty, span))
+        let span = self.ctx.library.intern_span(span);
+        let ty = ty::Type { kind, span };
+        Some(self.ctx.library.intern_type(ty))
     }
 
-    fn unsupported_ty(&mut self, span: Span) -> Option<ty::Type> {
-        self.messages.error("unsupported type", span);
+    fn unsupported_ty(&mut self, span: Span) -> Option<ty::TypeKind> {
+        self.ctx.messages.error("unsupported type", span);
         None
     }
 
-    fn lower_prim_type(&mut self, ty: ast::PrimType) -> Option<ty::Type> {
+    fn lower_prim_type(&mut self, ty: ast::PrimType) -> Option<ty::TypeKind> {
         let kind = match ty.prim()? {
             toc_syntax::PrimitiveKind::Int => ty::Primitive::Int,
             toc_syntax::PrimitiveKind::Int1 => ty::Primitive::Int1,
@@ -56,16 +58,16 @@ impl super::LoweringCtx {
             }
         };
 
-        Some(ty::Type::Primitive(kind))
+        Some(ty::TypeKind::Primitive(kind))
     }
 
     fn lower_seq_length(&mut self, node: Option<ast::SeqLength>) -> ty::SeqLength {
         match node {
             Some(node) if node.star_token().is_some() => ty::SeqLength::Dynamic,
-            Some(node) => ty::SeqLength::Expr(self.lower_required_expr(node.expr())),
-            None => {
-                // Missing expression
-                ty::SeqLength::Expr(self.lower_required_expr(None))
+            seq_length => {
+                let expr = seq_length.and_then(|node| node.expr());
+                let body = self.lower_required_expr_body(expr);
+                ty::SeqLength::Expr(body)
             }
         }
     }

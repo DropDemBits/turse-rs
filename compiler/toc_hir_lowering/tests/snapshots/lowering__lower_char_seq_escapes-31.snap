@@ -1,0 +1,13 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := \"\\u2764r\""
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..14): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..14): []
+        Assign@(FileId(1), 0..14)
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..14): String("❤r")
+

@@ -3,11 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var lhs : real\nvar rhs : boolean\nlhs += rhs\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Boolean)
-def_kinds:
-    DefId(0) Var(TyRef(Real(Real)))
-    DefId(1) Var(TyRef(Boolean))
-error at 37..38: incompatible types for addition
+"lhs"@(FileId(1), 4..7) [Declared]: ref_mut real
+"rhs"@(FileId(1), 19..22) [Declared]: ref_mut boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 37..38: incompatible types for addition
 | info: operands must both be numbers, strings, or sets

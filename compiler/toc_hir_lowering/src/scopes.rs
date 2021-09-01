@@ -1,16 +1,19 @@
 //! Scope building
+//!
+//! Only keeps track of [`LocalDefId`]s
+//!
+//! [`LocalDefId`]: symbol::LocalDefId
 #[cfg(test)]
 mod test;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, SymbolTable};
-use toc_span::Span;
+use toc_hir::symbol;
 
 #[derive(Debug)]
 pub(crate) struct Scope {
     /// All symbols declared in a scope.
-    symbols: HashMap<String, symbol::DefId>,
+    symbols: HashMap<String, symbol::LocalDefId>,
     /// If the scope is an import boundary.
     ///
     /// An import boundary only allows pervasive identifiers to be implicitly
@@ -25,24 +28,30 @@ impl Scope {
             is_import_boundary,
         }
     }
+
+    fn def_in(&mut self, name: &str, def_id: symbol::LocalDefId) {
+        self.symbols.insert(name.to_string(), def_id);
+    }
 }
 
-#[derive(Debug)]
-pub(crate) struct ScopeBuilder {
-    symbol_table: SymbolTable,
+pub(crate) struct ScopeTracker {
     scopes: Vec<Scope>,
+    /// Keeps track of what symbols had pervasive attributes
+    pervasive_tracker: HashSet<symbol::LocalDefId>,
 }
 
-impl ScopeBuilder {
+impl std::fmt::Debug for ScopeTracker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ScopeTracker").finish_non_exhaustive()
+    }
+}
+
+impl ScopeTracker {
     pub fn new() -> Self {
         Self {
-            symbol_table: SymbolTable::new(),
             scopes: vec![Scope::new(true)],
+            pervasive_tracker: HashSet::default(),
         }
-    }
-
-    pub fn finish(self) -> SymbolTable {
-        self.symbol_table
     }
 
     /// Wraps symbol definitions inside of a new scope
@@ -69,52 +78,33 @@ impl ScopeBuilder {
     pub fn def_sym(
         &mut self,
         name: &str,
-        span: Span,
-        kind: symbol::SymbolKind,
+        def_id: symbol::LocalDefId,
         is_pervasive: bool,
-    ) -> symbol::DefId {
-        Self::def_in_scope(
-            &mut self.symbol_table,
-            self.scopes.last_mut().unwrap(),
-            name,
-            span,
-            kind,
-            is_pervasive,
-        )
-    }
+    ) -> symbol::LocalDefId {
+        self.scopes.last_mut().unwrap().def_in(name, def_id);
 
-    pub fn use_sym(&mut self, name: &str, span: Span) -> symbol::UseId {
-        let def_id = self.lookup_def(name).unwrap_or_else(|| {
-            // Declare at the import boundary
-            let def_id = Self::def_in_scope(
-                &mut self.symbol_table,
-                Self::boundary_scope(&mut self.scopes),
-                name,
-                span,
-                symbol::SymbolKind::Undeclared,
-                false,
-            );
-            def_id
-        });
+        if is_pervasive {
+            self.pervasive_tracker.insert(def_id);
+        }
 
-        self.symbol_table.use_sym(def_id, span)
-    }
-
-    fn def_in_scope(
-        symbol_table: &mut SymbolTable,
-        scope: &mut Scope,
-        name: &str,
-        span: Span,
-        kind: symbol::SymbolKind,
-        is_pervasive: bool,
-    ) -> symbol::DefId {
-        let def_id = symbol_table.def_sym(name, span, kind, is_pervasive);
-        scope.symbols.insert(name.to_string(), def_id);
         def_id
     }
 
+    pub fn use_sym(
+        &mut self,
+        name: &str,
+        or_undeclared: impl FnOnce() -> symbol::LocalDefId,
+    ) -> symbol::LocalDefId {
+        self.lookup_def(name).unwrap_or_else(|| {
+            // Declare at the import boundary
+            let def_id = or_undeclared();
+            Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
+            def_id
+        })
+    }
+
     /// Looks up a DefId, with respect to scoping rules
-    fn lookup_def(&self, name: &str) -> Option<symbol::DefId> {
+    fn lookup_def(&self, name: &str) -> Option<symbol::LocalDefId> {
         // Top-down search through all scopes for a DefId
         let mut restrict_to_pervasive = false;
 
@@ -125,7 +115,7 @@ impl ScopeBuilder {
                 // Only allow an identifier to be fetched if we haven't
                 // restricted our search to pervasive identifiers, or any
                 // pervasive identifiers
-                if !restrict_to_pervasive || self.symbol_table.get_symbol(def_id).is_pervasive {
+                if !restrict_to_pervasive || self.pervasive_tracker.contains(&def_id) {
                     return Some(def_id);
                 }
             }
@@ -150,5 +140,11 @@ impl ScopeBuilder {
 
         // Root scope is always an import boundary
         unreachable!();
+    }
+}
+
+impl Default for ScopeTracker {
+    fn default() -> Self {
+        Self::new()
     }
 }

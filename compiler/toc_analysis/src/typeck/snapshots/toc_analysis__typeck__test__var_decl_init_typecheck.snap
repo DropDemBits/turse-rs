@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var k : string := \"oeuf\""
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(String)
-def_kinds:
-    DefId(0) Var(TyRef(String))
+"k"@(FileId(1), 4..5) [Declared]: ref_mut string
+"<root>"@(dummy) [Declared]: <error>
+

@@ -1,35 +1,51 @@
 //! Common message reporting for all compiler libraries
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 use toc_span::Span;
 
-/// Type of annotation added to a message
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AnnotateKind {
-    /// Information related to the main message.
-    /// May be context specific.
-    Note,
-    /// More detailed related to the message.
-    Info,
-    /// Warning annotation
-    Warning,
-    /// Error annotation
-    Error,
+/// A compilation result, including a bundle of associated messages
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompileResult<T> {
+    result: T,
+    messages: Arc<Vec<ReportMessage>>,
 }
 
-impl fmt::Display for AnnotateKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            AnnotateKind::Note => "note",
-            AnnotateKind::Info => "info",
-            AnnotateKind::Warning => "warn",
-            AnnotateKind::Error => "error",
-        })
+impl<T> CompileResult<T> {
+    pub fn new(result: T, messages: Vec<ReportMessage>) -> Self {
+        Self {
+            result,
+            messages: Arc::new(messages),
+        }
+    }
+
+    /// Gets the produced item.
+    pub fn result(&self) -> &T {
+        &self.result
+    }
+
+    /// Gets the associated messages.
+    pub fn messages(&self) -> &[ReportMessage] {
+        &self.messages
+    }
+
+    /// Extracts messages from this result into a destination sink.
+    pub fn bundle_messages(&self, dest: &mut Vec<ReportMessage>) {
+        dest.extend_from_slice(&self.messages);
+    }
+
+    /// Destructures the result into its component parts
+    ///
+    /// There must not be any other clones to self
+    pub fn take(mut self) -> (T, Vec<ReportMessage>) {
+        let messages =
+            Arc::get_mut(&mut self.messages).expect("other clones of CompileResult exists");
+        let messages = std::mem::take(messages);
+        (self.result, messages)
     }
 }
 
 /// A reported message
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReportMessage {
     header: SourceAnnotation,
     annotations: Vec<SourceAnnotation>,
@@ -81,7 +97,32 @@ impl fmt::Display for ReportMessage {
     }
 }
 
-#[derive(Debug)]
+/// Type of annotation added to a message
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnnotateKind {
+    /// Information related to the main message.
+    /// May be context specific.
+    Note,
+    /// More detailed related to the message.
+    Info,
+    /// Warning annotation
+    Warning,
+    /// Error annotation
+    Error,
+}
+
+impl fmt::Display for AnnotateKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            AnnotateKind::Note => "note",
+            AnnotateKind::Info => "info",
+            AnnotateKind::Warning => "warn",
+            AnnotateKind::Error => "error",
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceAnnotation {
     annotation: Annotation,
     span: Span,
@@ -128,7 +169,7 @@ impl fmt::Display for SourceAnnotation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Annotation {
     kind: AnnotateKind,
     msg: String,

@@ -3,15 +3,7 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: +true
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(3))), span: Span { file: None, range: 11..16 }, state: Error(ConstError { kind: WrongOperandType, span: Span { file: None, range: 11..12 } }) },
-    ],
-    var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(3))), DefId(0)): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> ConstError { kind: WrongOperandType, span: Span { file: None, range: 11..12 } }
+"_"@(FileId(1), 6..7) -> ConstError { kind: WrongOperandType, span: (FileId(1), 11..12) }
 
-error at 11..12: wrong type for compile-time expression
+error in file FileId(1) at 11..12: wrong type for compile-time expression
 

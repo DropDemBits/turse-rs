@@ -3,9 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const j : int := 2\nvar k : int := 1\nk := j\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(3))) TyRef(Int(Int))
-def_kinds:
-    DefId(0) Const(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Int(Int)))
+"j"@(FileId(1), 6..7) [Declared]: ref int
+"k"@(FileId(1), 23..24) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+

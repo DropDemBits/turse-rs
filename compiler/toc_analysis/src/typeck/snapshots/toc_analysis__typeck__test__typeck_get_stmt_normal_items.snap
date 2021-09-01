@@ -3,19 +3,12 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar i : int\nvar n : nat\nvar r : real\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget cn : 0\nget s : 0\nget sn : 0\n%get ef : 0\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Char)
-    TypeId(HirId(Idx::<HirNode>(9))) TyRef(CharN(Fixed(4)))
-    TypeId(HirId(Idx::<HirNode>(11))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(14))) TyRef(StringN(Fixed(4)))
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Nat(Nat)))
-    DefId(2) Var(TyRef(Real(Real)))
-    DefId(3) Var(TyRef(Char))
-    DefId(4) Var(TyRef(CharN(Fixed(4))))
-    DefId(5) Var(TyRef(String))
-    DefId(6) Var(TyRef(StringN(Fixed(4))))
+"i"@(FileId(1), 71..72) [Declared]: ref_mut int
+"n"@(FileId(1), 83..84) [Declared]: ref_mut nat
+"r"@(FileId(1), 95..96) [Declared]: ref_mut real
+"c"@(FileId(1), 108..109) [Declared]: ref_mut char
+"cn"@(FileId(1), 121..123) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 138..139) [Declared]: ref_mut string
+"sn"@(FileId(1), 153..155) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"<root>"@(dummy) [Declared]: <error>
+

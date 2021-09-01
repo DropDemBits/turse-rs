@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := \"\\udab0\""
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..13): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..13): []
+        Assign@(FileId(1), 0..13)
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..13): String("�")
+error in file FileId(1) at 6..12: invalid string literal: surrogate chars are not allowed in char sequences
+

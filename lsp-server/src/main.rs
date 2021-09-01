@@ -1,8 +1,4 @@
-use std::collections::HashMap;
 use std::error::Error;
-use std::ops::Range;
-use std::str::FromStr;
-use std::sync::Arc;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
 use lsp_types::notification::{DidChangeTextDocument, DidOpenTextDocument};
@@ -11,7 +7,11 @@ use lsp_types::{
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
-use toc_hir::db;
+use toc_analysis::db::HirAnalysis;
+use toc_ast_db::db::{SourceParser, SpanMapping};
+use toc_ast_db::SourceRoots;
+use toc_salsa::salsa;
+use toc_vfs::db::VfsDatabaseExt;
 
 type DynError = Box<dyn Error + Sync + Send>;
 
@@ -134,54 +134,26 @@ fn check_document(
 }
 
 fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
-    let path = uri.as_str();
-    let file_db = toc_vfs::FileDb::new();
+    let path = uri.path();
+    let mut db = LspDatabase::default();
 
     // Add the root path to the file db
-    let root_file = file_db.add_file(path, contents);
-    let hir_db = db::HirBuilder::new();
+    let root_file = db.vfs.intern_path(path.into());
+    db.update_file(root_file, Some(contents.into()));
 
-    // Parse root CST
-    let (parsed, dep_messages) = {
-        let info = file_db.get_file(root_file);
-        let parsed = toc_parser::parse(Some(root_file), &info.source);
-        let (_dependencies, messages) =
-            toc_driver::gather_dependencies(Some(root_file), parsed.syntax());
+    // Setup source roots
+    let source_roots = SourceRoots::new(vec![root_file]);
+    db.set_source_roots(source_roots);
 
-        (parsed, messages.finish())
-    };
+    // TODO: Recursively load in files
 
-    eprintln!("finished parse @ {:?}", uri.as_str());
-
-    let (validate_res, hir_res) = {
-        let validate_res = toc_validate::validate_ast(Some(root_file), parsed.syntax());
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), Some(root_file), parsed.syntax());
-
-        (validate_res, hir_res)
-    };
-
-    eprintln!("finished CST validate & lower @ {:?}", uri.as_str());
-
-    let hir_db = hir_db.finish();
-    let analyze_res = toc_analysis::analyze_unit(hir_db, hir_res.id);
-
-    eprintln!("finished analysis @ {:?}", uri.as_str());
-
-    let mut msgs = parsed
-        .messages()
-        .iter()
-        .chain(dep_messages.iter())
-        .chain(validate_res.messages().iter())
-        .chain(hir_res.messages().iter())
-        .chain(analyze_res.messages().iter())
-        .collect::<Vec<_>>();
+    let mut msgs = vec![];
+    db.analyze_libraries().bundle_messages(&mut msgs);
 
     // Sort by start order
     msgs.sort_by_key(|msg| msg.span().range.start());
 
-    eprintln!("finished compile @ {:?}", uri.as_str());
-
-    let span_mapper = SpanMapper::new(&file_db);
+    eprintln!("finished analysis @ {:?}", uri.as_str());
 
     fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
         use toc_reporting::AnnotateKind;
@@ -197,13 +169,13 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     // Convert into `Diagnostic`s
     msgs.iter()
         .map(|msg| {
-            let range = span_mapper.map_span_to_location(msg.span()).range;
+            let range = map_span_to_location(&db, msg.span()).range;
             let severity = to_diag_level(msg.kind());
             let annotations = msg
                 .annotations()
                 .iter()
                 .map(|annotate| DiagnosticRelatedInformation {
-                    location: span_mapper.map_span_to_location(annotate.span()),
+                    location: map_span_to_location(&db, annotate.span()),
                     message: annotate.message().to_string(),
                 })
                 .collect();
@@ -221,79 +193,49 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
         .collect()
 }
 
-struct SpanMapper {
-    files: HashMap<toc_span::FileId, (Arc<toc_vfs::FileInfo>, Vec<Range<usize>>)>,
+fn map_span_to_location(db: &LspDatabase, span: toc_span::Span) -> Location {
+    let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+
+    let file = span.file.unwrap();
+
+    let start = db.map_byte_index_to_position(file, start as usize).unwrap();
+    let end = db.map_byte_index_to_position(file, end as usize).unwrap();
+
+    let path = &db.file_path(file);
+
+    Location::new(
+        lsp_types::Url::from_file_path(path.as_str()).unwrap(),
+        lsp_types::Range::new(start.into_position(), end.into_position()),
+    )
 }
 
-impl SpanMapper {
-    fn new(file_db: &toc_vfs::FileDb) -> Self {
-        let mut files = HashMap::new();
+trait IntoPosition {
+    fn into_position(self) -> Position;
+}
 
-        for file in file_db.files() {
-            let info = file_db.get_file(file);
-            let line_ranges = Self::build_line_ranges(&info.source);
-
-            files.insert(file, (info, line_ranges));
-        }
-
-        Self { files }
-    }
-
-    fn build_line_ranges(source: &str) -> Vec<Range<usize>> {
-        let mut line_ranges = vec![];
-        let mut line_start = 0;
-        let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
-
-        for (at_newline, _) in line_ends {
-            let line_end = at_newline + 1;
-            line_ranges.push(line_start..line_end);
-            line_start = line_end;
-        }
-
-        // Use a line span covering the rest of the file
-        line_ranges.push(line_start..source.len() + 1);
-
-        line_ranges
-    }
-
-    fn map_byte_index_to_position(
-        &self,
-        file: Option<toc_span::FileId>,
-        byte_idx: usize,
-    ) -> Option<Position> {
-        let (info, line_ranges) = self.files.get(&file?)?;
-
-        let (line, slice) = line_ranges
-            .iter()
-            .enumerate()
-            .find(|(_line, range)| range.contains(&byte_idx))
-            .map(|(line, range)| (line, range.clone()))
-            .unwrap();
-
-        let source_slice = &info.source[slice.start..byte_idx];
-
-        // Get character count in UTF-16 chars
-        let column_offset = source_slice.encode_utf16().count();
-
-        Some(Position::new(line as u32, column_offset as u32))
-    }
-
-    fn map_span_to_location(&self, span: toc_span::Span) -> Location {
-        let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
-
-        let start = self
-            .map_byte_index_to_position(span.file, start as usize)
-            .unwrap();
-        let end = self
-            .map_byte_index_to_position(span.file, end as usize)
-            .unwrap();
-
-        let (info, _) = self.files.get(&span.file.unwrap()).unwrap();
-        let path = &info.path;
-
-        Location::new(
-            lsp_types::Url::from_str(path).unwrap(),
-            lsp_types::Range::new(start, end),
-        )
+impl IntoPosition for toc_ast_db::span::LspPosition {
+    fn into_position(self) -> Position {
+        Position::new(self.line, self.column)
     }
 }
+
+#[salsa::database(
+    toc_vfs::db::FileSystemStorage,
+    toc_ast_db::db::SpanMappingStorage,
+    toc_ast_db::db::SourceParserStorage,
+    toc_hir_db::db::HirDatabaseStorage,
+    toc_hir_db::db::InternedTypeStorage,
+    toc_analysis::db::TypeInternStorage,
+    toc_analysis::db::TypeDatabaseStorage,
+    toc_analysis::db::ConstEvalStorage,
+    toc_analysis::db::HirAnalysisStorage
+)]
+#[derive(Default)]
+struct LspDatabase {
+    storage: salsa::Storage<Self>,
+    vfs: toc_vfs::Vfs,
+}
+
+impl salsa::Database for LspDatabase {}
+
+toc_vfs::impl_has_vfs!(LspDatabase, vfs);

@@ -1,0 +1,14 @@
+[package]
+name = "toc_ast_db"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+toc_salsa = { path = "../toc_salsa" }
+toc_span = { path = "../toc_span" }
+toc_vfs = { path = "../toc_vfs" }
+toc_parser = { path = "../toc_parser" }
+toc_validate = { path = "../toc_validate" }
+toc_reporting = { path = "../toc_reporting" }

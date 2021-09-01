@@ -1,9 +1,10 @@
 //! Errors during constant evaluation
+use toc_hir::symbol::DefId;
 use toc_span::Span;
 
-use crate::const_eval::{ConstValue, RestrictType};
+use crate::const_eval::db;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ConstError {
     kind: ErrorKind,
     span: Span,
@@ -21,13 +22,6 @@ impl ConstError {
         }
     }
 
-    pub(super) fn reported(span: Span) -> Self {
-        Self {
-            kind: ErrorKind::Reported,
-            span,
-        }
-    }
-
     pub(super) fn change_span(self, new_span: Span) -> Self {
         Self {
             kind: self.kind,
@@ -35,59 +29,58 @@ impl ConstError {
         }
     }
 
-    pub(super) fn kind(&self) -> &ErrorKind {
-        &self.kind
-    }
-
     /// Reports the detailed version of the `ConstError` to the given reporter
-    pub fn report_to(&self, reporter: &mut toc_reporting::MessageSink) {
+    pub fn report_to<DB: db::ConstEval + ?Sized>(
+        &self,
+        db: &DB,
+        reporter: &mut toc_reporting::MessageSink,
+    ) {
         // Ignore already reported messages, or for missing expressions
         if matches!(self.kind, ErrorKind::Reported | ErrorKind::MissingExpr) {
             return;
         }
 
         // Report common message header
-        let msg = reporter.error_detailed(&format!("{}", self.kind), self.span);
-
-        // Report extra details
         match &self.kind {
-            ErrorKind::NoConstExpr(def_span) => {
+            ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
-                msg.with_note("reference declared here", *def_span)
-            }
-            ErrorKind::WrongResultType(found, expected) => {
-                let expected_name = match expected {
-                    RestrictType::None => panic!("Wrong result type on no restriction"),
-                    RestrictType::Integer => "integer value",
-                    RestrictType::Real => "real value",
-                    RestrictType::Boolean => "boolean value",
-                };
+                let library = db.library(def_id.0);
+                let def_info = library.local_def(def_id.1);
+                let def_span = def_info.name.span().lookup_in(&library.span_map);
 
-                msg.with_note(
-                    &format!("expected {}, found {}", expected_name, found.type_name()),
-                    self.span,
-                )
+                reporter
+                    .error_detailed("reference cannot be computed at compile-time", self.span)
+                    .with_note(
+                        &format!("`{}` declared here", def_info.name.item()),
+                        def_span,
+                    )
             }
-            _ => msg,
+            _ => reporter.error_detailed(&format!("{}", self.kind), self.span),
         }
         .finish();
     }
 }
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, PartialEq, Eq, Hash)]
 pub(super) enum ErrorKind {
     // Traversal errors
     /// Encountered an evaluation cycle
+    #[allow(dead_code)] // TODO: add cycle fixup when we can generate cycles
     #[error("detected a compile-time evaluation cycle")]
     EvalCycle,
     /// Missing expression operand
     #[error("operand is an invalid expression")]
     MissingExpr,
-    /// No const expr is associated with this identifer.
-    /// Provided span is the span of the symbol's definition
-    #[error("reference cannot be computed at compile-time")]
-    NoConstExpr(toc_span::Span),
+    /// Not a compile-time expression,
+    ///
+    /// If the expression comes from an identifier, then the provided [`DefId`]
+    /// points to the symbol's definition location,
+    // TODO: Add tests for the non-reference version
+    // We don't generate the non-reference kind yet since we haven't lowered all exprs
+    #[error("expression cannot be computed at compile-time")]
+    NotConstExpr(Option<DefId>),
     /// Error is already reported
+    #[allow(dead_code)] // TODO: Figure out how we can dedup errors
     #[error("compile-time evaluation error already reported")]
     Reported,
 
@@ -97,7 +90,7 @@ pub(super) enum ErrorKind {
     WrongOperandType,
     /// Wrong resultant type in eval expression
     #[error("wrong type for compile-time expression")]
-    WrongResultType(ConstValue, RestrictType),
+    WrongResultType,
     /// Integer overflow
     #[error("integer overflow in compile-time expression")]
     IntOverflow,

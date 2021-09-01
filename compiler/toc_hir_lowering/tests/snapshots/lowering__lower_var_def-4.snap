@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "var a := a"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..10): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..10): []
+        StmtItem@(FileId(1), 0..10): ItemId(0)
+          ConstVar@(FileId(1), 0..10): var "a"@(FileId(1), 4..5)
+            ExprBody@(FileId(1), 9..10)
+              Name@(FileId(1), 9..10): "a"@(FileId(1), 9..10), undeclared
+

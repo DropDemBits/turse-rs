@@ -1,0 +1,11 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: get
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..3): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..3): []
+error in file FileId(1) at 0..3: expected expression after here
+

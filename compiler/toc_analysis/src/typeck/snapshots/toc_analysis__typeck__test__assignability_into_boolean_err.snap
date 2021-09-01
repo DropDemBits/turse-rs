@@ -3,27 +3,20 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\nvar _e01 : boolean := i\nvar _e02 : boolean := n\nvar _e03 : boolean := r\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(9))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(12))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(15))) TyRef(Boolean)
-def_kinds:
-    DefId(0) Var(TyRef(Real(Real)))
-    DefId(1) Var(TyRef(Int(Int)))
-    DefId(2) Var(TyRef(Nat(Nat)))
-    DefId(3) Var(TyRef(Boolean))
-    DefId(4) Var(TyRef(Boolean))
-    DefId(5) Var(TyRef(Boolean))
-    DefId(6) Var(TyRef(Boolean))
-error at 60..61: mismatched types
-| note for 49..56: initializer's type is incompatible with this type
-error at 84..85: mismatched types
-| note for 73..80: initializer's type is incompatible with this type
-error at 108..109: mismatched types
-| note for 97..104: initializer's type is incompatible with this type
-error at 132..133: mismatched types
-| note for 121..128: initializer's type is incompatible with this type
+"r"@(FileId(1), 4..5) [Declared]: ref_mut real
+"i"@(FileId(1), 17..18) [Declared]: ref_mut int
+"n"@(FileId(1), 29..30) [Declared]: ref_mut nat
+"_e00"@(FileId(1), 42..46) [Declared]: ref_mut boolean
+"_e01"@(FileId(1), 66..70) [Declared]: ref_mut boolean
+"_e02"@(FileId(1), 90..94) [Declared]: ref_mut boolean
+"_e03"@(FileId(1), 114..118) [Declared]: ref_mut boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 60..61: mismatched types
+| note in file FileId(1) for 49..56: initializer's type is incompatible with this type
+error in file FileId(1) at 84..85: mismatched types
+| note in file FileId(1) for 73..80: initializer's type is incompatible with this type
+error in file FileId(1) at 108..109: mismatched types
+| note in file FileId(1) for 97..104: initializer's type is incompatible with this type
+error in file FileId(1) at 132..133: mismatched types
+| note in file FileId(1) for 121..128: initializer's type is incompatible with this type

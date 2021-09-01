@@ -3,11 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const j : int := 2\nconst k : int := 3\nk := j\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(3))) TyRef(Int(Int))
-def_kinds:
-    DefId(0) Const(TyRef(Int(Int)))
-    DefId(1) Const(TyRef(Int(Int)))
-error at 40..42: cannot assign into expression on left hand side
-| note for 38..39: this expression cannot be used as a variable reference
+"j"@(FileId(1), 6..7) [Declared]: ref int
+"k"@(FileId(1), 25..26) [Declared]: ref int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 40..42: cannot assign into expression on left hand side
+| note in file FileId(1) for 38..39: this expression cannot be used as a variable reference

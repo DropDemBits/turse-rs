@@ -1,27 +1,20 @@
 //! Statement nodes
-use toc_span::Spanned;
+use toc_span::SpanId;
 
-use crate::{expr, symbol, ty};
+use crate::{expr, item, symbol, ty};
 
-crate::hir_id_wrapper!(StmtId);
+pub use crate::ids::{BodyStmt, StmtId};
 
-#[derive(Debug)]
-pub enum Stmt {
-    /// Combined representation for `const` and `var` declarations
-    /// (disambiguated by `is_const`)
-    ConstVar(ConstVar),
-    // Type { .. },
-    // Bind { .. },
-    // Proc { .. },
-    // Fcn { .. },
-    // Process { .. },
-    // External { .. },
-    // Forward { .. },
-    // Deferred { .. },
-    // Body { .. },
-    // Module { .. },
-    // Class { .. },
-    // Monitor { .. },
+#[derive(Debug, PartialEq, Eq)]
+pub struct Stmt {
+    pub kind: StmtKind,
+    pub span: SpanId,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum StmtKind {
+    /// An item declared in statement position
+    Item(item::ItemId),
     /// Assignment statement
     /// (also includes compound assignments)
     Assign(Assign),
@@ -105,17 +98,17 @@ impl ConstVarTail {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Assign {
     /// Left hand side of an assignment expression
     pub lhs: expr::ExprId,
-    /// Operation performed between the arguments before assignment
-    pub op: Spanned<AssignOp>,
+    /// Span of the assignment operator
+    pub asn: SpanId,
     /// Right hand side of an assignment expression
     pub rhs: expr::ExprId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Put {
     /// Stream handle to put the text on.
     /// If absent, should be put on the `stdout` stream.
@@ -126,7 +119,7 @@ pub struct Put {
     pub append_newline: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Get {
     /// Stream handle to get text from.
     /// If absent, should be fetched from the `stdin` stream.
@@ -135,72 +128,26 @@ pub struct Get {
     pub items: Vec<Skippable<GetItem>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Block {
+    pub kind: BlockKind,
     pub stmts: Vec<StmtId>,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum AssignOp {
-    /// Plain assignment
-    None,
-    /// Addition / Set Union / String Concatenation (`+`)
-    Add,
-    /// Subtraction / Set Subtraction (`-`)
-    Sub,
-    /// Multiplication / Set Intersection (`*`)
-    Mul,
-    /// Integer Division (`div`)
-    Div,
-    /// Real Division (`/`)
-    RealDiv,
-    /// Modulo (`mod`)
-    Mod,
-    /// Remainder (`rem`)
-    Rem,
-    /// Exponentiation (`**`)
-    Exp,
-    /// Bitwise/boolean And (`and`)
-    And,
-    /// Bitwise/boolean Or (`or`)
-    Or,
-    /// Bitwise/boolean Exclusive-Or (`xor`)
-    Xor,
-    /// Logical Shift Left (`shl`)
-    Shl,
-    /// Logical Shift Right (`shr`)
-    Shr,
-    /// Material Implication (`=>`)
-    Imply,
-}
-
-impl AssignOp {
-    pub fn as_binary_op(self) -> Option<expr::BinaryOp> {
-        let op = match self {
-            AssignOp::Add => expr::BinaryOp::Add,
-            AssignOp::Sub => expr::BinaryOp::Sub,
-            AssignOp::Mul => expr::BinaryOp::Mul,
-            AssignOp::Div => expr::BinaryOp::Div,
-            AssignOp::RealDiv => expr::BinaryOp::RealDiv,
-            AssignOp::Mod => expr::BinaryOp::Mod,
-            AssignOp::Rem => expr::BinaryOp::Rem,
-            AssignOp::Exp => expr::BinaryOp::Exp,
-            AssignOp::And => expr::BinaryOp::And,
-            AssignOp::Or => expr::BinaryOp::Or,
-            AssignOp::Xor => expr::BinaryOp::Xor,
-            AssignOp::Shl => expr::BinaryOp::Shl,
-            AssignOp::Shr => expr::BinaryOp::Shr,
-            AssignOp::Imply => expr::BinaryOp::Imply,
-            _ => return None,
-        };
-
-        Some(op)
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlockKind {
+    /// A regular block statement (`begin ... end`).
+    Normal,
+    /// Multiple declarations wrapped up into one statement.
+    /// This is only used for [`ConstVar`] items with multiple declarations.
+    ///
+    /// [`ConstVar`]: crate::item::ConstVar
+    ItemGroup,
 }
 
 /// A generic type representing anything skippable.
 /// Only used for text I/O statements (`PutStmt` & `GetStmt`).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Skippable<T> {
     /// This I/O item is skipped.
     Skip,
@@ -209,7 +156,7 @@ pub enum Skippable<T> {
 }
 
 /// A single put item, as part of a put statement.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PutItem {
     /// The expression to be put.
     pub expr: expr::ExprId,
@@ -222,7 +169,7 @@ pub struct PutItem {
 /// If any later argument is present, then the earlier fields are
 /// guaranteed to also be present (e.g. if `precision` was specified, then
 /// `width` is also guaranteed to be specified, but not `exponent_width`).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PutOpts {
     // /// `put` item with no args
     None,
@@ -276,7 +223,7 @@ impl PutOpts {
 }
 
 /// A get item.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct GetItem {
     /// The expression to put.
     /// Must be a reference expression.
@@ -286,7 +233,7 @@ pub struct GetItem {
 }
 
 /// The fetch width of a get item.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GetWidth {
     /// Fetch a space delimited portion of text.
     Token,

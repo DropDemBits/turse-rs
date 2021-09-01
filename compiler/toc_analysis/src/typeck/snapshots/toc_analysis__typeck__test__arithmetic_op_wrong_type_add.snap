@@ -3,34 +3,30 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b + r\n    var _bi := b + i\n    var _bn := b + n\n    var _rb := r + b\n    var _ib := i + b\n    var _nb := n + b\n    var _bb := b + b\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Nat(Nat))
-def_kinds:
-    DefId(0) Var(TyRef(Boolean))
-    DefId(1) Var(TyRef(Real(Real)))
-    DefId(2) Var(TyRef(Int(Int)))
-    DefId(3) Var(TyRef(Nat(Nat)))
-    DefId(4) Var(TyRef(Error))
-    DefId(5) Var(TyRef(Error))
-    DefId(6) Var(TyRef(Error))
-    DefId(7) Var(TyRef(Error))
-    DefId(8) Var(TyRef(Error))
-    DefId(9) Var(TyRef(Error))
-    DefId(10) Var(TyRef(Error))
-error at 87..88: incompatible types for addition
+"b"@(FileId(1), 9..10) [Declared]: ref_mut boolean
+"r"@(FileId(1), 29..30) [Declared]: ref_mut real
+"i"@(FileId(1), 46..47) [Declared]: ref_mut int
+"n"@(FileId(1), 62..63) [Declared]: ref_mut nat
+"_br"@(FileId(1), 78..81) [Declared]: ref_mut <error>
+"_bi"@(FileId(1), 99..102) [Declared]: ref_mut <error>
+"_bn"@(FileId(1), 120..123) [Declared]: ref_mut <error>
+"_rb"@(FileId(1), 141..144) [Declared]: ref_mut <error>
+"_ib"@(FileId(1), 162..165) [Declared]: ref_mut <error>
+"_nb"@(FileId(1), 183..186) [Declared]: ref_mut <error>
+"_bb"@(FileId(1), 204..207) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 87..88: incompatible types for addition
 | info: operands must both be numbers, strings, or sets
-error at 108..109: incompatible types for addition
+error in file FileId(1) at 108..109: incompatible types for addition
 | info: operands must both be numbers, strings, or sets
-error at 129..130: incompatible types for addition
+error in file FileId(1) at 129..130: incompatible types for addition
 | info: operands must both be numbers, strings, or sets
-error at 150..151: incompatible types for addition
+error in file FileId(1) at 150..151: incompatible types for addition
 | info: operands must both be numbers, strings, or sets
-error at 171..172: incompatible types for addition
+error in file FileId(1) at 171..172: incompatible types for addition
 | info: operands must both be numbers, strings, or sets
-error at 192..193: incompatible types for addition
+error in file FileId(1) at 192..193: incompatible types for addition
 | info: operands must both be numbers, strings, or sets
-error at 213..214: incompatible types for addition
+error in file FileId(1) at 213..214: incompatible types for addition
 | info: operands must both be numbers, strings, or sets

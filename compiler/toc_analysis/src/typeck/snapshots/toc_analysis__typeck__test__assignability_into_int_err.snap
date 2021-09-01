@@ -3,17 +3,13 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var b : boolean\nvar r : real\n\nvar _e00 : int := b\nvar _e01 : int := r\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(7))) TyRef(Int(Int))
-def_kinds:
-    DefId(0) Var(TyRef(Boolean))
-    DefId(1) Var(TyRef(Real(Real)))
-    DefId(2) Var(TyRef(Int(Int)))
-    DefId(3) Var(TyRef(Int(Int)))
-error at 48..49: mismatched types
-| note for 41..44: initializer's type is incompatible with this type
-error at 68..69: mismatched types
-| note for 61..64: initializer's type is incompatible with this type
+"b"@(FileId(1), 4..5) [Declared]: ref_mut boolean
+"r"@(FileId(1), 20..21) [Declared]: ref_mut real
+"_e00"@(FileId(1), 34..38) [Declared]: ref_mut int
+"_e01"@(FileId(1), 54..58) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 48..49: mismatched types
+| note in file FileId(1) for 41..44: initializer's type is incompatible with this type
+error in file FileId(1) at 68..69: mismatched types
+| note in file FileId(1) for 61..64: initializer's type is incompatible with this type

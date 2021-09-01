@@ -3,9 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var _ : string(1.0)"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(1))) TyRef(Error)
-def_kinds:
-    DefId(0) Var(TyRef(Error))
-error at 15..18: wrong type for compile-time expression
-| note for 15..18: expected integer value, found real value
+"_"@(FileId(1), 4..5) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 15..18: wrong type for compile-time expression

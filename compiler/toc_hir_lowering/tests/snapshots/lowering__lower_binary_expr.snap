@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := a + a"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..10): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..10): []
+        Assign@(FileId(1), 0..10)
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Binary@(FileId(1), 5..10): Add
+            Name@(FileId(1), 5..6): "a"@(FileId(1), 0..1), undeclared
+            Name@(FileId(1), 9..10): "a"@(FileId(1), 0..1), undeclared
+

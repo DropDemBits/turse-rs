@@ -1,0 +1,25 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "% all runtime checked\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar c255 : char(255)\nvar c_dyn : char(*)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\nvar s_dyn : string(*)\n\nvar _v00 : char(*) := c\nvar _v01 : char(*) := c1\nvar _v02 : char(*) := c5\nvar _v03 : char(*) := c255\nvar _v04 : char(*) := c_dyn\nvar _v05 : char(*) := s\nvar _v06 : char(*) := s1\nvar _v07 : char(*) := s5\nvar _v08 : char(*) := s_dyn\n"
+
+---
+"c"@(FileId(1), 26..27) [Declared]: ref_mut char
+"c1"@(FileId(1), 39..41) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"c5"@(FileId(1), 56..58) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c255"@(FileId(1), 73..77) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"c_dyn"@(FileId(1), 94..99) [Declared]: ref_mut char_n Dynamic
+"s"@(FileId(1), 114..115) [Declared]: ref_mut string
+"s1"@(FileId(1), 129..131) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"s5"@(FileId(1), 148..150) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"s_dyn"@(FileId(1), 167..172) [Declared]: ref_mut string_n Dynamic
+"_v00"@(FileId(1), 190..194) [Declared]: ref_mut char_n Dynamic
+"_v01"@(FileId(1), 214..218) [Declared]: ref_mut char_n Dynamic
+"_v02"@(FileId(1), 239..243) [Declared]: ref_mut char_n Dynamic
+"_v03"@(FileId(1), 264..268) [Declared]: ref_mut char_n Dynamic
+"_v04"@(FileId(1), 291..295) [Declared]: ref_mut char_n Dynamic
+"_v05"@(FileId(1), 319..323) [Declared]: ref_mut char_n Dynamic
+"_v06"@(FileId(1), 343..347) [Declared]: ref_mut char_n Dynamic
+"_v07"@(FileId(1), 368..372) [Declared]: ref_mut char_n Dynamic
+"_v08"@(FileId(1), 393..397) [Declared]: ref_mut char_n Dynamic
+"<root>"@(dummy) [Declared]: <error>
+

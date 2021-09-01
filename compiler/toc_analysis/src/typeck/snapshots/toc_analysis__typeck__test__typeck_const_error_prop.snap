@@ -3,10 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const k := 20 + false\nconst l : int := k   % Nothing reported here\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Int(Int))
-def_kinds:
-    DefId(0) Const(TyRef(Error))
-    DefId(1) Const(TyRef(Int(Int)))
-error at 14..15: incompatible types for addition
+"k"@(FileId(1), 6..7) [Declared]: ref <error>
+"l"@(FileId(1), 28..29) [Declared]: ref int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 14..15: incompatible types for addition
 | info: operands must both be numbers, strings, or sets

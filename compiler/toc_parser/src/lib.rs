@@ -1,4 +1,5 @@
 //! Parser for building the initial Concrete Syntax Tree
+mod depends;
 mod event;
 mod grammar;
 mod parser;
@@ -6,7 +7,7 @@ mod sink;
 mod source;
 
 use source::Source;
-use toc_reporting::ReportMessage;
+use toc_reporting::CompileResult;
 use toc_scanner::Scanner;
 use toc_span::FileId;
 use toc_syntax::SyntaxNode;
@@ -15,7 +16,10 @@ use rowan::GreenNode;
 
 use crate::sink::Sink;
 
-pub fn parse(file: Option<FileId>, source: &str) -> ParseResult {
+pub use depends::{Dependency, FileDepends};
+
+/// Parse a regular file into a [`ParseTree`]
+pub fn parse(file: Option<FileId>, source: &str) -> CompileResult<ParseTree> {
     let (tokens, scanner_msgs) = Scanner::new(file, source).collect_all();
 
     let source = Source::new(&tokens);
@@ -27,18 +31,19 @@ pub fn parse(file: Option<FileId>, source: &str) -> ParseResult {
     sink.finish()
 }
 
-pub struct ParseResult {
-    node: GreenNode,
-    messages: Vec<ReportMessage>,
+/// Parse the dependencies of a file
+pub fn parse_depends(file: Option<FileId>, syntax: SyntaxNode) -> CompileResult<FileDepends> {
+    depends::gather_dependencies(file, syntax)
 }
 
-impl ParseResult {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseTree {
+    node: GreenNode,
+}
+
+impl ParseTree {
     pub fn syntax(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.node.clone())
-    }
-
-    pub fn messages(&self) -> &[ReportMessage] {
-        &self.messages
     }
 
     pub fn dump_tree(&self) -> String {
@@ -51,26 +56,23 @@ impl ParseResult {
 
         s
     }
-
-    pub fn debug_tree(&self) -> String {
-        let mut s = self.dump_tree();
-
-        // trim trailing newline
-        s.pop();
-
-        for err in &self.messages {
-            s.push_str(&format!("\n{}", err));
-        }
-
-        s
-    }
 }
 
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     let res = parse(None, source);
-    expected.assert_eq(&res.debug_tree());
+
+    let mut debug_tree = res.result().dump_tree();
+
+    // trim trailing newline
+    debug_tree.pop();
+
+    for err in res.messages() {
+        debug_tree.push_str(&format!("\n{}", err));
+    }
+
+    expected.assert_eq(&debug_tree);
 }
 
 // Updating tests? Set `UPDATE_EXPECT=1` before running `cargo test`

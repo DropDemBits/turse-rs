@@ -3,19 +3,12 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _v00 : real := 1\nvar _v01 : real := i\nvar _v02 : real := n\nvar _v03 : real := r\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(9))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(12))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(15))) TyRef(Real(Real))
-def_kinds:
-    DefId(0) Var(TyRef(Real(Real)))
-    DefId(1) Var(TyRef(Int(Int)))
-    DefId(2) Var(TyRef(Nat(Nat)))
-    DefId(3) Var(TyRef(Real(Real)))
-    DefId(4) Var(TyRef(Real(Real)))
-    DefId(5) Var(TyRef(Real(Real)))
-    DefId(6) Var(TyRef(Real(Real)))
+"r"@(FileId(1), 4..5) [Declared]: ref_mut real
+"i"@(FileId(1), 17..18) [Declared]: ref_mut int
+"n"@(FileId(1), 29..30) [Declared]: ref_mut nat
+"_v00"@(FileId(1), 42..46) [Declared]: ref_mut real
+"_v01"@(FileId(1), 63..67) [Declared]: ref_mut real
+"_v02"@(FileId(1), 84..88) [Declared]: ref_mut real
+"_v03"@(FileId(1), 105..109) [Declared]: ref_mut real
+"<root>"@(dummy) [Declared]: <error>
+

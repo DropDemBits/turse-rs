@@ -3,10 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var _b := - b\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
-def_kinds:
-    DefId(0) Var(TyRef(Boolean))
-    DefId(1) Var(TyRef(Error))
-error at 35..36: incompatible types for unary `-`
+"b"@(FileId(1), 9..10) [Declared]: ref_mut boolean
+"_b"@(FileId(1), 29..31) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 35..36: incompatible types for unary `-`
 | info: operand must be a number

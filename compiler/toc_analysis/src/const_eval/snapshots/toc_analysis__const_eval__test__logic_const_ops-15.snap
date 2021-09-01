@@ -3,14 +3,6 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: true => false
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(4))), span: Span { file: None, range: 11..24 }, state: Value(Bool(false)) },
-    ],
-    var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(4))), DefId(0)): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> Bool(false)
+"_"@(FileId(1), 6..7) -> Bool(false)
 
 

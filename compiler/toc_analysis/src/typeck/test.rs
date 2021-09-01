@@ -1,11 +1,13 @@
 //! Type check tests
-use std::sync::Arc;
 
-use toc_hir::db;
+use toc_hir::symbol::DefId;
+use toc_hir_db::db::HirDatabase;
 use toc_reporting::ReportMessage;
 use unindent::unindent;
 
-use crate::{const_eval::ConstEvalCtx, ty::TyCtx};
+use crate::db::HirAnalysis;
+use crate::db::TypeDatabase;
+use crate::test_db::TestDb;
 
 macro_rules! test_for_each_op {
     ($top_level_name:ident, $([$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal),+ $(,)?) => {
@@ -40,32 +42,33 @@ fn assert_typecheck(source: &str) {
 }
 
 fn do_typecheck(source: &str) -> String {
-    let (hir_db, root_unit) = {
-        let parsed = toc_parser::parse(None, source);
-        let hir_db = db::HirBuilder::new();
-        let hir_res = toc_hir_lowering::lower_ast(hir_db.clone(), None, parsed.syntax());
+    let (db, lib) = TestDb::from_source(source);
+    let typeck_res = db.typecheck_library(lib);
 
-        let hir_db = hir_db.finish();
-
-        (hir_db, hir_res.id)
-    };
-
-    let unit = hir_db.get_unit(root_unit);
-    let const_eval_ctx = Arc::new(ConstEvalCtx::new(hir_db.clone()));
-    crate::const_eval::collect_const_vars(hir_db.clone(), unit, const_eval_ctx.clone());
-    let (ty_ctx, typeck_messages) =
-        crate::typeck::typecheck_unit(hir_db.clone(), unit, const_eval_ctx);
-
-    stringify_typeck_results(&ty_ctx, &typeck_messages)
+    stringify_typeck_results(&db, lib, typeck_res.messages())
 }
 
-fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> String {
+fn stringify_typeck_results(
+    db: &TestDb,
+    lib: toc_hir::library::LibraryId,
+    messages: &[ReportMessage],
+) -> String {
     let mut s = String::new();
     // Pretty print typectx
-    let mut pretty_ty_ctx = crate::ty::pretty_dump_typectx(ty_ctx);
-    // Trim trailing newline
-    pretty_ty_ctx.pop();
-    s.push_str(&pretty_ty_ctx);
+    // Want: `type_of` all reachable DefIds
+    // - Printed type nodes because we wanted to see the full type
+    let library = db.library(lib);
+    for did in library.local_defs() {
+        let def_info = library.local_def(did);
+        let name = def_info.name.item();
+        let name_span = library.lookup_span(def_info.name.span());
+        let ty = db.type_of(DefId(lib, did).into());
+        let name_fmt = format!("{:?}@{:?} [{:?}]: ", name, name_span, def_info.kind);
+
+        s.push_str(&name_fmt);
+        s.push_str(&db.debug_ty(ty));
+        s.push('\n');
+    }
 
     // Pretty print the messages
     for err in messages.iter() {
@@ -74,7 +77,6 @@ fn stringify_typeck_results(ty_ctx: &TyCtx, messages: &[ReportMessage]) -> Strin
 
     s
 }
-
 #[test]
 fn var_decl_type_spec() {
     assert_typecheck(r#"var k : string"#);
@@ -518,8 +520,8 @@ test_named_group! { assignability_into,
 
         var _v00 : char(N) := c
         var _v01 : char(N) := c1
-        var _v02 : char(N) := s1
-        var _v03 : char(N) := s % runtime checked
+        var _v02 : char(N) := s % runtime checked
+        var _v03 : char(N) := s1
         var _v04 : char(N) := s5 % runtime checked
         "#,
         r#char_1_err => r#"
@@ -531,13 +533,13 @@ test_named_group! { assignability_into,
         r#char_3 => r#"
         const N := 3
         var c3 : char(3)
-        var s3 : string(3)
         var s : string
+        var s3 : string(3)
         var s5 : string(5)
 
         var _v00 : char(N) := c3
-        var _v01 : char(N) := s3
-        var _v02 : char(N) := s % runtime checked
+        var _v01 : char(N) := s % runtime checked
+        var _v02 : char(N) := s3
         var _v03 : char(N) := s5 % runtime checked
         "#,
         r#char_3_err => r#"
@@ -575,18 +577,19 @@ test_named_group! { assignability_into,
         r#string => r#"
         var c : char
         var c1 : char(1)
-        var s1 : string(1)
         var c5 : char(5)
         var c255 : char(255)
         var s : string
+        var s1 : string(1)
         var s5 : string(5)
 
         var _v00 : string := c
         var _v01 : string := c1
         var _v02 : string := c5
-        var _v05 : string := c255
-        var _v03 : string := s1
-        var _v04 : string := s5
+        var _v03 : string := c255
+        var _v04 : string := s
+        var _v05 : string := s1
+        var _v06 : string := s5
         "#,
         r#string_err => r#"
         var cmx : char(256)
@@ -603,8 +606,8 @@ test_named_group! { assignability_into,
 
         var _v00 : string(N) := c
         var _v01 : string(N) := c1
-        var _v02 : string(N) := s1
-        var _v03 : string(N) := s % runtime checked
+        var _v02 : string(N) := s % runtime checked
+        var _v03 : string(N) := s1
         var _v04 : string(N) := s5 % runtime checked
         "#,
         r#string_1_err => r#"
@@ -625,10 +628,10 @@ test_named_group! { assignability_into,
 
         var _v00 : string(N) := c
         var _v01 : string(N) := c1
-        var _v02 : string(N) := s1
         var _v03 : string(N) := c3
-        var _v04 : string(N) := s3
         var _v05 : string(N) := s % runtime checked
+        var _v02 : string(N) := s1
+        var _v04 : string(N) := s3
         var _v06 : string(N) := s5 % runtime checked
         "#,
         r#string_3_err => r#"
@@ -648,16 +651,95 @@ test_named_group! { assignability_into,
 
         var _v00 : string(N) := c
         var _v01 : string(N) := c1
-        var _v02 : string(N) := s1
-        var _v03 : string(N) := c255
-        var _v04 : string(N) := s255
-        var _v05 : string(N) := s % runtime checked, always good
+        var _v02 : string(N) := c255
+        var _v03 : string(N) := s % runtime checked, always good
+        var _v04 : string(N) := s1
+        var _v05 : string(N) := s255
         "#,
         r#string_255_err => r#"
         const N := 255
         var c256 : char(256)
 
         var _e00 : string(N) := c256 % [not captured by ctc]
+        "#,
+        r#string_dyn_lhs => r#"
+        % all runtime checked
+        var c : char
+        var c1 : char(1)
+        var c5 : char(5)
+        var c255 : char(255)
+        var c_dyn : char(*)
+        var s : string
+        var s1 : string(1)
+        var s5 : string(5)
+        var s_dyn : string(*)
+
+        var _v00 : string(*) := c
+        var _v01 : string(*) := c1
+        var _v02 : string(*) := c5
+        var _v03 : string(*) := c255
+        var _v04 : string(*) := c_dyn
+        var _v05 : string(*) := s
+        var _v06 : string(*) := s1
+        var _v07 : string(*) := s5
+        var _v08 : string(*) := s_dyn
+        "#,
+        r#string_err_lhs => r#"
+        var cmx : char(256)
+
+        var _e00 : string(*) := cmx % [not captured by ctc]
+        "#,
+        r#string_dyn_rhs => r#"
+        % all runtime checked
+        var s_dyn : string(*)
+
+        var _v00 : char := s_dyn
+        var _v01 : char(1) := s_dyn
+        var _v02 : char(5) := s_dyn
+        var _v03 : char(255) := s_dyn
+        var _v04 : char(256) := s_dyn
+        var _v05 : char(*) := s_dyn
+        var _v06 : string := s_dyn
+        var _v07 : string(1) := s_dyn
+        var _v08 : string(5) := s_dyn
+        var _v09 : string(*) := s_dyn
+        "#,
+        r#char_dyn_lhs => r#"
+        % all runtime checked
+        var c : char
+        var c1 : char(1)
+        var c5 : char(5)
+        var c255 : char(255)
+        var c_dyn : char(*)
+        var s : string
+        var s1 : string(1)
+        var s5 : string(5)
+        var s_dyn : string(*)
+
+        var _v00 : char(*) := c
+        var _v01 : char(*) := c1
+        var _v02 : char(*) := c5
+        var _v03 : char(*) := c255
+        var _v04 : char(*) := c_dyn
+        var _v05 : char(*) := s
+        var _v06 : char(*) := s1
+        var _v07 : char(*) := s5
+        var _v08 : char(*) := s_dyn
+        "#,
+        r#char_dyn_rhs => r#"
+        % all runtime checked
+        var c_dyn : string(*)
+
+        var _v00 : char := c_dyn
+        var _v01 : char(1) := c_dyn
+        var _v02 : char(5) := c_dyn
+        var _v03 : char(255) := c_dyn
+        var _v04 : char(256) := c_dyn
+        var _v05 : char(*) := c_dyn
+        var _v06 : string := c_dyn
+        var _v07 : string(1) := c_dyn
+        var _v08 : string(5) := c_dyn
+        var _v09 : string(*) := c_dyn
         "#,
     ]
 }
@@ -770,5 +852,17 @@ test_named_group! { typeck_get_stmt,
         get 1
         "#,
         // TODO: Add test for non-get-able items once non-primitive types are lowered
+    ]
+}
+
+test_named_group! { peel_ref,
+    [
+        in_assign => r#"var a : int var k : int := a"#,
+        in_inferred_ty => r#"var a : int var k := a"#,
+        in_binary_expr => r#"var a : int var k := a + a"#,
+        in_unary_expr => r#"var a : int var k := -a"#,
+        in_put_stmt => r#"var a : int put a : 0 : 0 : 0"#,
+        in_put_arg => r#"var a : int put a : a : a : a"#,
+        in_get_arg => r#"var a : int get a : a"#,
     ]
 }

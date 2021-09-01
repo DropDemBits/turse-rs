@@ -3,8 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var _ : string(1.0 div 0.0)"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(3))) TyRef(Error)
-def_kinds:
-    DefId(0) Var(TyRef(Error))
-error at 19..22: division by zero in compile-time expression
+"_"@(FileId(1), 4..5) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 19..22: division by zero in compile-time expression

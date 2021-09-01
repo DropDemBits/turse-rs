@@ -3,15 +3,7 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: "16#ffffffff - (-1)"
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(6))), span: Span { file: None, range: 11..29 }, state: Error(ConstError { kind: IntOverflow, span: Span { file: None, range: 23..24 } }) },
-    ],
-    var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(6))), DefId(0)): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> ConstError { kind: IntOverflow, span: Span { file: None, range: 23..24 } }
+"_"@(FileId(1), 6..7) -> ConstError { kind: IntOverflow, span: (FileId(1), 23..24) }
 
-error at 23..24: integer overflow in compile-time expression
+error in file FileId(1) at 23..24: integer overflow in compile-time expression
 

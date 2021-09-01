@@ -3,8 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var a := a"
 
 ---
-ty_nodes:
-def_kinds:
-    DefId(0) Error(TyRef(Error))
-    DefId(1) Var(TyRef(Error))
-error at 9..10: `a` is not declared
+"a"@(FileId(1), 9..10) [Undeclared]: <error>
+"a"@(FileId(1), 4..5) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 9..10: `a` is not declared

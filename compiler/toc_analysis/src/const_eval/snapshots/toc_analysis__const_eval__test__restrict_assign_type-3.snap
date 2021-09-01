@@ -1,18 +1,10 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
-expression: "const a : boolean := 1.0"
+expression: "const a : boolean := 1.0 const _:=a"
 
 ---
-InnerCtx {
-    eval_infos: [
-        EvalInfo { unit_id: UnitId(HirId(Idx::<HirNode>(3))), span: Span { file: None, range: 21..24 }, state: Error(ConstError { kind: WrongResultType(Real(1.0), Boolean), span: Span { file: None, range: 21..24 } }) },
-    ],
-    var_to_expr: {
-        GlobalDefId(UnitId(HirId(Idx::<HirNode>(3))), DefId(0)): ConstExpr { id: 0 },
-    },
-}
-ConstExpr { id: 0 } -> ConstError { kind: WrongResultType(Real(1.0), Boolean), span: Span { file: None, range: 21..24 } }
+"a"@(FileId(1), 6..7) -> Real(1.0)
+"_"@(FileId(1), 31..32) -> ConstError { kind: WrongResultType, span: (FileId(1), 21..24) }
 
-error at 21..24: wrong type for compile-time expression
-| note for 21..24: expected boolean value, found real value
+error in file FileId(1) at 21..24: wrong type for compile-time expression
 

@@ -3,30 +3,22 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257)\nvar s5 : string(5)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c5\nvar _e01 : char(N) := c257\nvar _e02 : char(N) := s5 % [not captured by ctc]\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Char)
-    TypeId(HirId(Idx::<HirNode>(5))) TyRef(CharN(Fixed(5)))
-    TypeId(HirId(Idx::<HirNode>(8))) TyRef(CharN(Fixed(257)))
-    TypeId(HirId(Idx::<HirNode>(11))) TyRef(StringN(Fixed(5)))
-    TypeId(HirId(Idx::<HirNode>(14))) TyRef(CharN(Fixed(256)))
-    TypeId(HirId(Idx::<HirNode>(18))) TyRef(CharN(Fixed(256)))
-    TypeId(HirId(Idx::<HirNode>(22))) TyRef(CharN(Fixed(256)))
-    TypeId(HirId(Idx::<HirNode>(26))) TyRef(CharN(Fixed(256)))
-def_kinds:
-    DefId(0) Const(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Char))
-    DefId(2) Var(TyRef(CharN(Fixed(5))))
-    DefId(3) Var(TyRef(CharN(Fixed(257))))
-    DefId(4) Var(TyRef(StringN(Fixed(5))))
-    DefId(5) Var(TyRef(CharN(Fixed(256))))
-    DefId(6) Var(TyRef(CharN(Fixed(256))))
-    DefId(7) Var(TyRef(CharN(Fixed(256))))
-    DefId(8) Var(TyRef(CharN(Fixed(256))))
-error at 108..109: mismatched types
-| note for 97..104: initializer's type is incompatible with this type
-error at 132..134: mismatched types
-| note for 121..128: initializer's type is incompatible with this type
-error at 157..161: mismatched types
-| note for 146..153: initializer's type is incompatible with this type
-error at 184..186: mismatched types
-| note for 173..180: initializer's type is incompatible with this type
+"N"@(FileId(1), 6..7) [Declared]: ref int
+"c"@(FileId(1), 19..20) [Declared]: ref_mut char
+"c5"@(FileId(1), 32..34) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c257"@(FileId(1), 49..53) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s5"@(FileId(1), 70..72) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"_e00"@(FileId(1), 90..94) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_e01"@(FileId(1), 114..118) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
+"_e01"@(FileId(1), 139..143) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
+"_e02"@(FileId(1), 166..170) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 108..109: mismatched types
+| note in file FileId(1) for 97..104: initializer's type is incompatible with this type
+error in file FileId(1) at 132..134: mismatched types
+| note in file FileId(1) for 121..128: initializer's type is incompatible with this type
+error in file FileId(1) at 157..161: mismatched types
+| note in file FileId(1) for 146..153: initializer's type is incompatible with this type
+error in file FileId(1) at 184..186: mismatched types
+| note in file FileId(1) for 173..180: initializer's type is incompatible with this type

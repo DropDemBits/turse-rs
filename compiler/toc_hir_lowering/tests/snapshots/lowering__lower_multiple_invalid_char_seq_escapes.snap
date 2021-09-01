@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := '\\777\\ud800\\!'"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..19): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..19): []
+        Assign@(FileId(1), 0..19)
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Literal@(FileId(1), 5..19): CharSeq("��!")
+error in file FileId(1) at 6..10: invalid char literal: octal character value is greater than \377 (decimal 255)
+error in file FileId(1) at 10..16: invalid char literal: surrogate chars are not allowed in char sequences
+error in file FileId(1) at 16..18: invalid char literal: unknown backslash escape
+
