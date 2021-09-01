@@ -84,18 +84,17 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
 
         let make_match_kinds = |as_ref: bool| {
             move |child: &Variant| {
+                let variant = format_ident!("{}", child.variant);
+
                 if lowered.is_group(&child.variant) {
                     // match using a guard
-                    let cast_to = format_ident!("{}", child.variant);
-
                     if as_ref {
-                        quote! { _ if #cast_to::can_cast(&syntax)}
+                        quote! { _ if #variant::can_cast(&syntax)}
                     } else {
-                        quote! { _ if #cast_to::can_cast(syntax)}
+                        quote! { _ if #variant::can_cast(syntax)}
                     }
                 } else {
-                    let variant_name = format_ident!("{}", child.variant);
-                    quote! { SyntaxKind::#variant_name }
+                    quote! { SyntaxKind::#variant }
                 }
             }
         };
@@ -151,7 +150,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                     lowering::NodeOrToken::Token(token) => {
                         let name =
                             format_ident!("{}_token", thing_to_method_name(token).to_snake_case());
-                        let syname = format_ident!("{}", token_to_syntax_name(&token));
+                        let syname = format_ident!("{}", token_to_syntax_name(token));
                         let body = quote! { helper::token(&self.0, SyntaxKind::#syname) };
                         let res = quote! { Option<SyntaxToken> };
                         (name, body, res)

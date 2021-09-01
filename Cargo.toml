@@ -9,6 +9,7 @@ members = [
 ]
 
 default-members = [
+    "xtask/",
     "compiler/*",
     "lsp-server/",
 ]
