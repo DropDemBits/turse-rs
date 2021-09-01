@@ -3,20 +3,17 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with all variant of numbers\n    var r : real\n    var i : int\n    var n : nat\n    var _rr := r rem r\n    var _ri := r rem i\n    var _ir := i rem r\n    var _rn := r rem n\n    var _nr := n rem r\n    var _ii := i rem i\n    var _in := i rem n\n    var _ni := n rem i\n    var _nn := n rem n\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Nat(Nat))
-def_kinds:
-    DefId(0) Var(TyRef(Real(Real)))
-    DefId(1) Var(TyRef(Int(Int)))
-    DefId(2) Var(TyRef(Nat(Nat)))
-    DefId(3) Var(TyRef(Real(Real)))
-    DefId(4) Var(TyRef(Real(Real)))
-    DefId(5) Var(TyRef(Real(Real)))
-    DefId(6) Var(TyRef(Real(Real)))
-    DefId(7) Var(TyRef(Real(Real)))
-    DefId(8) Var(TyRef(Int(Int)))
-    DefId(9) Var(TyRef(Int(Int)))
-    DefId(10) Var(TyRef(Int(Int)))
-    DefId(11) Var(TyRef(Nat(Nat)))
+"r"@(FileId(1), 57..58) [Declared]: ref_mut real
+"i"@(FileId(1), 74..75) [Declared]: ref_mut int
+"n"@(FileId(1), 90..91) [Declared]: ref_mut nat
+"_rr"@(FileId(1), 106..109) [Declared]: ref_mut real
+"_ri"@(FileId(1), 129..132) [Declared]: ref_mut real
+"_ir"@(FileId(1), 152..155) [Declared]: ref_mut real
+"_rn"@(FileId(1), 175..178) [Declared]: ref_mut real
+"_nr"@(FileId(1), 198..201) [Declared]: ref_mut real
+"_ii"@(FileId(1), 221..224) [Declared]: ref_mut int
+"_in"@(FileId(1), 244..247) [Declared]: ref_mut int
+"_ni"@(FileId(1), 267..270) [Declared]: ref_mut int
+"_nn"@(FileId(1), 290..293) [Declared]: ref_mut nat
+"<root>"@(dummy) [Declared]: <error>
+

@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "const ke : int := ()"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-def_kinds:
-    DefId(0) Const(TyRef(Int(Int)))
+"ke"@(FileId(1), 6..8) [Declared]: ref int
+"<root>"@(dummy) [Declared]: <error>
+

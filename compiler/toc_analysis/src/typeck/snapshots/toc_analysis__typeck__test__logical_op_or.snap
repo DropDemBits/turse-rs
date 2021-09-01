@@ -3,8 +3,7 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with booleans\n    var b : boolean\n    var _bb := b or b\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
-def_kinds:
-    DefId(0) Var(TyRef(Boolean))
-    DefId(1) Var(TyRef(Boolean))
+"b"@(FileId(1), 43..44) [Declared]: ref_mut boolean
+"_bb"@(FileId(1), 63..66) [Declared]: ref_mut boolean
+"<root>"@(dummy) [Declared]: <error>
+

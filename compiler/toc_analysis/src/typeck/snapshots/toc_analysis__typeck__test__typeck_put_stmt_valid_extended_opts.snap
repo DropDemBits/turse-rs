@@ -3,11 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\nvar r : real\n\nput i : 0 : 0 : 0\nput n : 0 : 0 : 0\nput r : 0 : 0 : 0\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Real(Real))
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Nat(Nat)))
-    DefId(2) Var(TyRef(Real(Real)))
+"i"@(FileId(1), 4..5) [Declared]: ref_mut int
+"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
+"r"@(FileId(1), 28..29) [Declared]: ref_mut real
+"<root>"@(dummy) [Declared]: <error>
+

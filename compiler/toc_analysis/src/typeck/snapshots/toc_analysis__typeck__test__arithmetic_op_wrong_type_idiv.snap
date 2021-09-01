@@ -3,34 +3,30 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b div r\n    var _bi := b div i\n    var _bn := b div n\n    var _rb := r div b\n    var _ib := i div b\n    var _nb := n div b\n    var _bb := b div b\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Real(Real))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(6))) TyRef(Nat(Nat))
-def_kinds:
-    DefId(0) Var(TyRef(Boolean))
-    DefId(1) Var(TyRef(Real(Real)))
-    DefId(2) Var(TyRef(Int(Int)))
-    DefId(3) Var(TyRef(Nat(Nat)))
-    DefId(4) Var(TyRef(Error))
-    DefId(5) Var(TyRef(Error))
-    DefId(6) Var(TyRef(Error))
-    DefId(7) Var(TyRef(Error))
-    DefId(8) Var(TyRef(Error))
-    DefId(9) Var(TyRef(Error))
-    DefId(10) Var(TyRef(Error))
-error at 87..90: incompatible types for integer division
+"b"@(FileId(1), 9..10) [Declared]: ref_mut boolean
+"r"@(FileId(1), 29..30) [Declared]: ref_mut real
+"i"@(FileId(1), 46..47) [Declared]: ref_mut int
+"n"@(FileId(1), 62..63) [Declared]: ref_mut nat
+"_br"@(FileId(1), 78..81) [Declared]: ref_mut <error>
+"_bi"@(FileId(1), 101..104) [Declared]: ref_mut <error>
+"_bn"@(FileId(1), 124..127) [Declared]: ref_mut <error>
+"_rb"@(FileId(1), 147..150) [Declared]: ref_mut <error>
+"_ib"@(FileId(1), 170..173) [Declared]: ref_mut <error>
+"_nb"@(FileId(1), 193..196) [Declared]: ref_mut <error>
+"_bb"@(FileId(1), 216..219) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 87..90: incompatible types for integer division
 | info: operands must both be numbers
-error at 110..113: incompatible types for integer division
+error in file FileId(1) at 110..113: incompatible types for integer division
 | info: operands must both be numbers
-error at 133..136: incompatible types for integer division
+error in file FileId(1) at 133..136: incompatible types for integer division
 | info: operands must both be numbers
-error at 156..159: incompatible types for integer division
+error in file FileId(1) at 156..159: incompatible types for integer division
 | info: operands must both be numbers
-error at 179..182: incompatible types for integer division
+error in file FileId(1) at 179..182: incompatible types for integer division
 | info: operands must both be numbers
-error at 202..205: incompatible types for integer division
+error in file FileId(1) at 202..205: incompatible types for integer division
 | info: operands must both be numbers
-error at 225..228: incompatible types for integer division
+error in file FileId(1) at 225..228: incompatible types for integer division
 | info: operands must both be numbers

@@ -3,10 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    var r : real\n    var _r := not r\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
-def_kinds:
-    DefId(0) Var(TyRef(Real(Real)))
-    DefId(1) Var(TyRef(Error))
-error at 32..35: incompatible types for `not`
+"r"@(FileId(1), 9..10) [Declared]: ref_mut real
+"_r"@(FileId(1), 26..28) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 32..35: incompatible types for `not`
 | info: operand must be an integer or boolean

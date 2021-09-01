@@ -3,15 +3,10 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var i : int\nvar n : nat\n\nvar _v00 : nat := 1\nvar _v01 : nat := i\nvar _v02 : nat := n\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(4))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(7))) TyRef(Nat(Nat))
-    TypeId(HirId(Idx::<HirNode>(10))) TyRef(Nat(Nat))
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Nat(Nat)))
-    DefId(2) Var(TyRef(Nat(Nat)))
-    DefId(3) Var(TyRef(Nat(Nat)))
-    DefId(4) Var(TyRef(Nat(Nat)))
+"i"@(FileId(1), 4..5) [Declared]: ref_mut int
+"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
+"_v00"@(FileId(1), 29..33) [Declared]: ref_mut nat
+"_v01"@(FileId(1), 49..53) [Declared]: ref_mut nat
+"_v02"@(FileId(1), 69..73) [Declared]: ref_mut nat
+"<root>"@(dummy) [Declared]: <error>
+

@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var k : int := 100"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
+"k"@(FileId(1), 4..5) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+

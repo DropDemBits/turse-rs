@@ -3,11 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var b : boolean\n\nvar _e00 : real := b\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Boolean)
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Real(Real))
-def_kinds:
-    DefId(0) Var(TyRef(Boolean))
-    DefId(1) Var(TyRef(Real(Real)))
-error at 36..37: mismatched types
-| note for 28..32: initializer's type is incompatible with this type
+"b"@(FileId(1), 4..5) [Declared]: ref_mut boolean
+"_e00"@(FileId(1), 21..25) [Declared]: ref_mut real
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 36..37: mismatched types
+| note in file FileId(1) for 28..32: initializer's type is incompatible with this type

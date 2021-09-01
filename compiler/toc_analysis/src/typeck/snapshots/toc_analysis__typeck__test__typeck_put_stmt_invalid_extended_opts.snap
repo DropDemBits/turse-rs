@@ -3,37 +3,33 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\n%put ef : 0 : 0 : 0\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Char)
-    TypeId(HirId(Idx::<HirNode>(3))) TyRef(CharN(Fixed(4)))
-    TypeId(HirId(Idx::<HirNode>(5))) TyRef(String)
-    TypeId(HirId(Idx::<HirNode>(8))) TyRef(StringN(Fixed(4)))
-def_kinds:
-    DefId(0) Var(TyRef(Char))
-    DefId(1) Var(TyRef(CharN(Fixed(4))))
-    DefId(2) Var(TyRef(String))
-    DefId(3) Var(TyRef(StringN(Fixed(4))))
-error at 177..178: invalid put option
-| note for 169..170: cannot specify fraction width for this type
+"c"@(FileId(1), 71..72) [Declared]: ref_mut char
+"cn"@(FileId(1), 84..86) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 101..102) [Declared]: ref_mut string
+"sn"@(FileId(1), 116..118) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 177..178: invalid put option
+| note in file FileId(1) for 169..170: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
-error at 181..182: invalid put option
-| note for 169..170: cannot specify exponent width for this type
+error in file FileId(1) at 181..182: invalid put option
+| note in file FileId(1) for 169..170: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
-error at 196..197: invalid put option
-| note for 187..189: cannot specify fraction width for this type
+error in file FileId(1) at 196..197: invalid put option
+| note in file FileId(1) for 187..189: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
-error at 200..201: invalid put option
-| note for 187..189: cannot specify exponent width for this type
+error in file FileId(1) at 200..201: invalid put option
+| note in file FileId(1) for 187..189: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
-error at 214..215: invalid put option
-| note for 206..207: cannot specify fraction width for this type
+error in file FileId(1) at 214..215: invalid put option
+| note in file FileId(1) for 206..207: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
-error at 218..219: invalid put option
-| note for 206..207: cannot specify exponent width for this type
+error in file FileId(1) at 218..219: invalid put option
+| note in file FileId(1) for 206..207: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
-error at 233..234: invalid put option
-| note for 224..226: cannot specify fraction width for this type
+error in file FileId(1) at 233..234: invalid put option
+| note in file FileId(1) for 224..226: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
-error at 237..238: invalid put option
-| note for 224..226: cannot specify exponent width for this type
+error in file FileId(1) at 237..238: invalid put option
+| note in file FileId(1) for 224..226: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types

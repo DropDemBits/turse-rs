@@ -3,6 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var k := 'o'"
 
 ---
-ty_nodes:
-def_kinds:
-    DefId(0) Var(TyRef(Char))
+"k"@(FileId(1), 4..5) [Declared]: ref_mut char
+"<root>"@(dummy) [Declared]: <error>
+

@@ -3,13 +3,11 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "\n    % Compatibility with all variant of integers\n    var i : int\n    var n : nat\n    var _ii := i or i\n    var _in := i or n\n    var _ni := n or i\n    var _nn := n or n\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(Nat(Nat))
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(Nat(Nat)))
-    DefId(2) Var(TyRef(Nat(Nat)))
-    DefId(3) Var(TyRef(Nat(Nat)))
-    DefId(4) Var(TyRef(Nat(Nat)))
-    DefId(5) Var(TyRef(Nat(Nat)))
+"i"@(FileId(1), 58..59) [Declared]: ref_mut int
+"n"@(FileId(1), 74..75) [Declared]: ref_mut nat
+"_ii"@(FileId(1), 90..93) [Declared]: ref_mut nat
+"_in"@(FileId(1), 112..115) [Declared]: ref_mut nat
+"_ni"@(FileId(1), 134..137) [Declared]: ref_mut nat
+"_nn"@(FileId(1), 156..159) [Declared]: ref_mut nat
+"<root>"@(dummy) [Declared]: <error>
+

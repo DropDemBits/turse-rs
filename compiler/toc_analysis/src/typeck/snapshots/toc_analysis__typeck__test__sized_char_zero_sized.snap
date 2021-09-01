@@ -3,10 +3,9 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var _ : char(0)"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(1))) TyRef(Error)
-def_kinds:
-    DefId(0) Var(TyRef(Error))
-error at 13..14: invalid character count size
-| note for 13..14: computed count is 0
+"_"@(FileId(1), 4..5) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 13..14: invalid character count size
+| note in file FileId(1) for 13..14: computed count is 0
 | info: valid sizes are between 1 to 32767

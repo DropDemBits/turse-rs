@@ -3,9 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "begin var k : char := 'baz' end"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Char)
-def_kinds:
-    DefId(0) Var(TyRef(Char))
-error at 22..27: mismatched types
-| note for 14..18: initializer's type is incompatible with this type
+"k"@(FileId(1), 10..11) [Declared]: ref_mut char
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 22..27: mismatched types
+| note in file FileId(1) for 14..18: initializer's type is incompatible with this type

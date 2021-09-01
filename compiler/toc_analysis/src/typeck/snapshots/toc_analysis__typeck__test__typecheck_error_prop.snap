@@ -3,13 +3,11 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Int(Int))
-    TypeId(HirId(Idx::<HirNode>(2))) TyRef(String)
-def_kinds:
-    DefId(0) Var(TyRef(Int(Int)))
-    DefId(1) Var(TyRef(String))
-    DefId(2) Var(TyRef(Error))
-    DefId(3) Var(TyRef(Error))
-error at 38..39: incompatible types for addition
+"a"@(FileId(1), 4..5) [Declared]: ref_mut int
+"b"@(FileId(1), 16..17) [Declared]: ref_mut string
+"c"@(FileId(1), 31..32) [Declared]: ref_mut <error>
+"j"@(FileId(1), 46..47) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 38..39: incompatible types for addition
 | info: operands must both be numbers, strings, or sets

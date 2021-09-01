@@ -3,9 +3,8 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var s : real\nget : s, skip\n"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(0))) TyRef(Real(Real))
-def_kinds:
-    DefId(0) Var(TyRef(Real(Real)))
-error at 19..20: mismatched types
-| note for 19..20: expected integer type
+"s"@(FileId(1), 4..5) [Declared]: ref_mut real
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 19..20: mismatched types
+| note in file FileId(1) for 19..20: expected integer type

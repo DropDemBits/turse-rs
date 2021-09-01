@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/typeck/test.rs
 expression: "var _ : char(1 - 1 * 1 + 2)"
 
 ---
-ty_nodes:
-    TypeId(HirId(Idx::<HirNode>(7))) TyRef(CharN(Fixed(2)))
-def_kinds:
-    DefId(0) Var(TyRef(CharN(Fixed(2))))
+"_"@(FileId(1), 4..5) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
