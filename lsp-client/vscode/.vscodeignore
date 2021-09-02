@@ -1,11 +1,11 @@
-/*
+**/*
 # Minimal extension files
-!/dist
-!/server
-!/package.json
-!/package-lock.json
-!/README.md
-!/CHANGELOG.md
-!/NOTICE.md
+!dist/
+!server/
+!package.json
+!package-lock.json
+!README.md
+!CHANGELOG.md
+!NOTICE.md
 # Ignore map files
-/dist/*.js.map
+*.map

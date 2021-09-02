@@ -16,10 +16,10 @@ module.exports = function (grunt) {
         },
         webpack: {
             do_watch: Object.assign({ watch: true }, webpackConfig),
-            do_package: Object.assign({
+            do_package: Object.assign(webpackConfig, {
                 mode: 'production',
-                devtool: 'hidden-source-map',
-            }, webpackConfig),
+                devtool: undefined,
+            }, ),
             do_compile: webpackConfig,
         }
     });
