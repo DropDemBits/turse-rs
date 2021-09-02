@@ -87,7 +87,7 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
     // Build a set of common snippets for consecutive annotations
     struct FileSpan {
         path: Arc<String>,
-        source: Arc<(String, Option<toc_vfs::LoadError>)>,
+        source: Arc<String>,
         source_range: Range<usize>,
         line_range: Range<usize>,
     }
@@ -118,7 +118,7 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
             let start_info = db.map_byte_index(file_id, start as usize).unwrap();
             let end_info = db.map_byte_index(file_id, end as usize).unwrap();
 
-            let source = db.file_source(file_id);
+            let source = db.file_source(file_id).0;
             let source_range = start_info.line_span.start..end_info.line_span.end;
             let path = db.file_path(file_id);
 
@@ -154,7 +154,7 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
         } = file_span;
         let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
 
-        let snippet_slice = &source.0[source_range.clone()];
+        let snippet_slice = &source[source_range.clone()];
         let range_base = source_range.start;
         let real_slice = (start as usize - range_base)..(end as usize - range_base);
 
@@ -179,7 +179,7 @@ fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) ->
             ..
         } = file_span;
 
-        let slice_text = &(source.0)[source_range.clone()];
+        let slice_text = &source[source_range.clone()];
         let can_fold = (line_range.end - line_range.start) > 10;
 
         Slice {

@@ -53,7 +53,8 @@ where
             // File does not exist, or was removed
             (String::new(), Some(LoadError::NotFound))
         };
+        let result = (Arc::new(result.0), result.1);
 
-        self.set_file_source(file_id, Arc::new(result));
+        self.set_file_source(file_id, result);
     }
 }

@@ -30,6 +30,7 @@ mod vfs;
 
 use std::convert::TryFrom;
 use std::fmt;
+use std::sync::Arc;
 
 pub use vfs::{HasVfs, Vfs};
 
@@ -106,11 +107,13 @@ pub enum LoadError {
     /// File is in an unsupported encoding
     InvalidEncoding,
     /// Other loading error
-    Other(String),
+    Other(Arc<String>),
 }
 
 #[cfg(test)]
 mod test {
+    use std::ops::Deref;
+
     use toc_salsa::salsa;
 
     use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
@@ -163,9 +166,9 @@ mod test {
         db.invalidate_files();
 
         let res = db.file_source(root_file);
-        let (source, _load_error) = &*res;
+        let (source, _load_error) = res;
 
-        assert_eq!(source, FILE_SOURCE);
+        assert_eq!(source.deref(), FILE_SOURCE);
     }
 
     #[test]
@@ -182,18 +185,18 @@ mod test {
         // Lookup root file source
         {
             let res = db.file_source(root_file);
-            let (source, _load_error) = &*res;
+            let (source, _load_error) = res;
 
-            assert_eq!(source, FILE_SOURCES[0]);
+            assert_eq!(source.deref(), FILE_SOURCES[0]);
         }
 
         // Lookup bar.t file source
         let bar_t = {
             let bar_t = db.resolve_path(root_file, "foo/bar.t");
             let res = db.file_source(bar_t);
-            let (source, _load_error) = &*res;
+            let (source, _load_error) = res;
 
-            assert_eq!(source, FILE_SOURCES[1]);
+            assert_eq!(source.deref(), FILE_SOURCES[1]);
             bar_t
         };
 
@@ -201,9 +204,9 @@ mod test {
         {
             let bap_t = db.resolve_path(bar_t, "bap.t");
             let res = db.file_source(bap_t);
-            let (source, _load_error) = &*res;
+            let (source, _load_error) = res;
 
-            assert_eq!(source, FILE_SOURCES[2]);
+            assert_eq!(source.deref(), FILE_SOURCES[2]);
         };
     }
 
@@ -243,7 +246,7 @@ mod test {
         let predefs_list = {
             let predefs_list = db.resolve_path(root_file, "%oot/support/Predefs.lst");
             let res = db.file_source(predefs_list);
-            assert_eq!(*res, (FILE_SOURCES[1].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
             predefs_list
         };
 
@@ -251,31 +254,31 @@ mod test {
         {
             let net_tu = db.resolve_path(predefs_list, "Net.tu");
             let res = db.file_source(net_tu);
-            assert_eq!(*res, (FILE_SOURCES[2].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[2], None));
         };
 
         {
             let file = db.resolve_path(root_file, "%help/Keyword Lookup.txt");
             let res = db.file_source(file);
-            assert_eq!(*res, (FILE_SOURCES[3].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[3], None));
         };
 
         {
             let file = db.resolve_path(root_file, "%home/special_file.t");
             let res = db.file_source(file);
-            assert_eq!(*res, (FILE_SOURCES[0].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         };
 
         {
             let file = db.resolve_path(root_file, "%tmp/pre/made/some-temp-item");
             let res = db.file_source(file);
-            assert_eq!(*res, (FILE_SOURCES[0].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         };
 
         {
             let file = db.resolve_path(root_file, "%job/to/make/job-item");
             let res = db.file_source(file);
-            assert_eq!(*res, (FILE_SOURCES[0].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         };
     }
 
@@ -290,19 +293,19 @@ mod test {
 
         {
             let res = db.file_source(file);
-            assert_eq!(*res, (FILE_SOURCES[0].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         }
 
         db.update_file(file, Some(FILE_SOURCES[1].into()));
         {
             let res = db.file_source(file);
-            assert_eq!(*res, (FILE_SOURCES[1].to_owned(), None));
+            assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
         }
 
         db.update_file(file, None);
         {
             let res = db.file_source(file);
-            assert_eq!(*res, (String::new(), Some(LoadError::NotFound)));
+            assert_eq!((res.0.as_str(), res.1), ("", Some(LoadError::NotFound)));
         }
     }
 }
