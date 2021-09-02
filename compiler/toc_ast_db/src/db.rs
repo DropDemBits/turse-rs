@@ -46,4 +46,7 @@ pub trait SpanMapping: toc_vfs::db::FileSystem {
         file: toc_span::FileId,
         index: usize,
     ) -> Option<LspPosition>;
+
+    #[salsa::invoke(span::query::map_byte_index_to_character)]
+    fn map_byte_index_to_character(&self, file: toc_span::FileId, index: usize) -> Option<usize>;
 }

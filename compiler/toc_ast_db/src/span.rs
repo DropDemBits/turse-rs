@@ -85,6 +85,19 @@ impl LineMapping {
 
         Some(LspPosition::new(info.line as u32, column_offset as u32))
     }
+
+    fn map_index_to_character(&self, index: usize) -> Option<usize> {
+        if !self.source.is_char_boundary(index) {
+            return None;
+        }
+
+        let source_slice = &self.source[0..index];
+
+        // Get character count in UTF-32 chars
+        let char_index = source_slice.chars().count();
+
+        Some(char_index)
+    }
 }
 
 pub(crate) mod query {
@@ -120,6 +133,14 @@ pub(crate) mod query {
         index: usize,
     ) -> Option<LspPosition> {
         db.line_mapping(file_id).map_index_to_position(index)
+    }
+
+    pub(crate) fn map_byte_index_to_character(
+        db: &dyn db::SpanMapping,
+        file_id: toc_span::FileId,
+        index: usize,
+    ) -> Option<usize> {
+        db.line_mapping(file_id).map_index_to_character(index)
     }
 }
 

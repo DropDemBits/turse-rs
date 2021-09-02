@@ -1,7 +1,7 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::ops::Range;
-use std::{env, fs, io, sync::Arc};
+use std::collections::HashMap;
+use std::{env, fs, io};
 
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::SourceParser;
@@ -9,6 +9,7 @@ use toc_ast_db::db::SpanMapping;
 use toc_ast_db::SourceRoots;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
+use toc_span::{FileId, Span};
 use toc_vfs::db::{FileSystem, VfsDatabaseExt};
 
 fn load_contents(path: &str) -> io::Result<String> {
@@ -67,193 +68,116 @@ fn main() {
     msgs.sort_by_key(|msg| msg.span().range.start());
 
     let mut has_errors = false;
+    let mut cache = VfsCache::new(&db);
 
     for msg in msgs {
         has_errors |= matches!(msg.kind(), toc_reporting::AnnotateKind::Error);
-        let message = message_into_string(&db, msg);
-
-        println!("{}", message);
+        emit_message(&db, &mut cache, msg);
     }
 
     std::process::exit(if has_errors { -1 } else { 0 });
 }
 
-fn message_into_string(db: &MainDatabase, msg: &toc_reporting::ReportMessage) -> String {
-    use annotate_snippets::{
-        display_list::{DisplayList, FormatOptions},
-        snippet::*,
+fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::ReportMessage) {
+    use ariadne::{Color, Label, ReportKind};
+    use std::ops::Range;
+
+    fn mk_range(db: &MainDatabase, span: Span) -> (FileId, Range<usize>) {
+        let file = span.file.unwrap();
+        let start: usize = span.range.start().into();
+        let end: usize = span.range.end().into();
+
+        let start = db.map_byte_index_to_character(file, start).unwrap();
+        let end = db.map_byte_index_to_character(file, end).unwrap();
+
+        (file, start..end)
+    }
+
+    fn kind_to_colour(kind: toc_reporting::AnnotateKind) -> Color {
+        match kind {
+            toc_reporting::AnnotateKind::Note => Color::Cyan,
+            toc_reporting::AnnotateKind::Info => Color::Unset,
+            toc_reporting::AnnotateKind::Warning => Color::Yellow,
+            toc_reporting::AnnotateKind::Error => Color::Red,
+        }
+    }
+
+    let kind = match msg.kind() {
+        toc_reporting::AnnotateKind::Note => ReportKind::Advice,
+        toc_reporting::AnnotateKind::Info => ReportKind::Advice,
+        toc_reporting::AnnotateKind::Warning => ReportKind::Warning,
+        toc_reporting::AnnotateKind::Error => ReportKind::Error,
     };
 
-    // Build a set of common snippets for consecutive annotations
-    struct FileSpan {
-        path: Arc<String>,
-        source: Arc<String>,
-        source_range: Range<usize>,
-        line_range: Range<usize>,
-    }
+    let top_span = msg.span();
+    let (file, range) = mk_range(db, top_span);
 
-    let mut merged_spans = vec![msg.span()];
+    let mut builder = ariadne::Report::build(kind, file, range.start).with_message(msg.message());
 
-    // Merge spans together
-    for annotation in msg.annotations() {
-        let span = annotation.span();
-        let last_span = merged_spans.last_mut().unwrap();
-
-        if span.file == last_span.file {
-            // Merge spans
-            last_span.range = last_span.range.cover(span.range);
-        } else {
-            // Add a new span
-            merged_spans.push(span);
-        }
-    }
-
-    // Get line spans
-    let file_spans: Vec<_> = merged_spans
-        .into_iter()
-        .map(|span| {
-            let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
-
-            let file_id = span.file.unwrap();
-            let start_info = db.map_byte_index(file_id, start as usize).unwrap();
-            let end_info = db.map_byte_index(file_id, end as usize).unwrap();
-
-            let source = db.file_source(file_id).0;
-            let source_range = start_info.line_span.start..end_info.line_span.end;
-            let path = db.file_path(file_id);
-
-            FileSpan {
-                path,
-                source,
-                source_range,
-                line_range: start_info.line..end_info.line,
-            }
-        })
-        .collect();
-
-    // Build snippet slices & footers
-    fn annotate_kind_to_type(kind: toc_reporting::AnnotateKind) -> AnnotationType {
-        match kind {
-            toc_reporting::AnnotateKind::Note => AnnotationType::Note,
-            toc_reporting::AnnotateKind::Info => AnnotationType::Info,
-            toc_reporting::AnnotateKind::Warning => AnnotationType::Warning,
-            toc_reporting::AnnotateKind::Error => AnnotationType::Error,
-        }
-    }
-
-    fn span_into_annotation<'a, 'b>(
-        annotate_type: AnnotationType,
-        span: toc_span::Span,
-        label: &'a str,
-        file_span: &'b FileSpan,
-    ) -> SourceAnnotation<'a> {
-        let FileSpan {
-            source,
-            source_range,
-            ..
-        } = file_span;
-        let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
-
-        let snippet_slice = &source[source_range.clone()];
-        let range_base = source_range.start;
-        let real_slice = (start as usize - range_base)..(end as usize - range_base);
-
-        // Get the real start & end, in characters
-        // `annotate-snippets` requires that the range bounds are in characters, not byte indices
-        let real_start = snippet_slice[0..real_slice.start].chars().count();
-        let real_end = real_start + snippet_slice[real_slice].chars().count();
-
-        SourceAnnotation {
-            annotation_type: annotate_type,
-            label,
-            range: (real_start, real_end),
-        }
-    }
-
-    fn create_snippet(file_span: &FileSpan) -> Slice {
-        let FileSpan {
-            path,
-            source,
-            source_range,
-            line_range,
-            ..
-        } = file_span;
-
-        let slice_text = &source[source_range.clone()];
-        let can_fold = (line_range.end - line_range.start) > 10;
-
-        Slice {
-            source: slice_text,
-            line_start: line_range.start + 1,
-            origin: Some(path),
-            annotations: vec![],
-            fold: can_fold,
-        }
-    }
-
-    let mut slices = vec![];
-    let mut footer = vec![];
-    let mut report_spans = file_spans.iter().peekable();
-
-    // Insert the first slice
-    let mut current_file = msg.span().file;
-
+    // dup it if nothing exists at that span yet
+    if !msg
+        .annotations()
+        .iter()
+        .any(|annotate| annotate.span() == msg.span())
     {
-        let annotation = span_into_annotation(
-            annotate_kind_to_type(msg.kind()),
-            msg.span(),
-            "", // part of the larger message
-            report_spans.peek().unwrap(),
-        );
+        let annotate = msg;
+        let span = mk_range(db, annotate.span());
 
-        let mut slice = create_snippet(report_spans.peek().unwrap());
-        slice.annotations.push(annotation);
-        slices.push(slice);
+        builder = builder.with_label(
+            Label::new(span)
+                .with_message(annotate.message())
+                .with_color(kind_to_colour(annotate.kind()))
+                .with_order(1),
+        );
     }
 
     for annotate in msg.annotations() {
-        let annotation = span_into_annotation(
-            annotate_kind_to_type(annotate.kind()),
-            annotate.span(),
-            annotate.message(),
-            report_spans.peek().unwrap(),
+        let span = mk_range(db, annotate.span());
+
+        builder = builder.with_label(
+            Label::new(span)
+                .with_message(annotate.message())
+                .with_color(kind_to_colour(annotate.kind())),
         );
+    }
 
-        if current_file != annotate.span().file {
-            current_file = annotate.span().file;
+    if let Some(footer) = msg.footer().first() {
+        builder = builder.with_note(footer.message());
+    }
 
-            let mut slice = create_snippet(report_spans.peek().unwrap());
-            slice.annotations.push(annotation);
-            slices.push(slice);
-        } else {
-            let slice = slices.last_mut().unwrap();
-            slice.annotations.push(annotation);
+    builder.finish().eprint(cache).unwrap();
+}
+
+struct VfsCache<'db> {
+    db: &'db MainDatabase,
+    sources: HashMap<FileId, ariadne::Source>,
+}
+
+impl<'db> VfsCache<'db> {
+    fn new(db: &'db MainDatabase) -> Self {
+        Self {
+            db,
+            sources: Default::default(),
         }
     }
+}
 
-    for annotate in msg.footer() {
-        footer.push(Annotation {
-            annotation_type: annotate_kind_to_type(annotate.kind()),
-            id: None,
-            label: Some(annotate.message()),
-        });
+impl ariadne::Cache<FileId> for VfsCache<'_> {
+    fn fetch(&mut self, id: &FileId) -> Result<&ariadne::Source, Box<dyn std::fmt::Debug + '_>> {
+        use std::collections::hash_map::Entry;
+
+        Ok(match self.sources.entry(*id) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let value = ariadne::Source::from(&*self.db.file_source(*id).0);
+                entry.insert(value)
+            }
+        })
     }
 
-    let snippet = Snippet {
-        title: Some(Annotation {
-            label: Some(msg.message()),
-            id: None,
-            annotation_type: annotate_kind_to_type(msg.kind()),
-        }),
-        footer,
-        slices,
-        opt: FormatOptions {
-            color: true,
-            ..Default::default()
-        },
-    };
-
-    DisplayList::from(snippet).to_string()
+    fn display<'a>(&self, id: &'a FileId) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        Some(Box::new(self.db.file_path(*id)))
+    }
 }
 
 #[salsa::database(
