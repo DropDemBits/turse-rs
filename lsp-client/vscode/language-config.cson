@@ -25,22 +25,33 @@ surroundingPairs: [
     [ "'", "'" ]
 ]
 
-# Derived from https://github.com/Alhadis/language-turing/blob/v1.0.2/settings/editor.cson#L4-L12
+###
+Derived from https://github.com/Alhadis/language-turing/blob/v1.0.2/settings/editor.cson#L4-L12
+
+Changes:
+- Add short-hand aliases for function declarations (fcn & proc)
+- Add "turse"-only keywords (`elif`)
+### 
 indentationRules:
-    increaseIndentPattern: """(?x)
-        ( ^\\s* (?:begin|body|case|class|elsif|if|for|loop|process|function|procedure|proc|fcn|then)\\b
-        |  \\s+ (?:then|:) \\s*$
+    increaseIndentPattern: ///
+        ( ^ \s*
+            (?:
+            # Item declarations
+            class|module|monitor|process|function|fcn|procedure|proc|body|
+            # Statements
+            case|if|elsif|elseif|elif|for|loop|begin|
+            # `then` but it's on a different line
+            then
+            )\b
+        |   \s+ (?:then|:) \s*$
         )
-    """
-    decreaseIndentPattern: """(?x)
-        ^ \\s* end \\s+
-        (?:case|elsif|if|for|loop)\\b
-    """
+    ///
+    decreaseIndentPattern: ///
+        ( ^ \s* end (?: \s+ case|if|for|loop|union|record)?\b # Tail end
+        | ^ \s* (endcase|endif|endfor|endloop)\b
+        | ^ \s* (else|elseif|elsif|elif)
+        )
+    ///
 
-onEnterRules: [
-    {
-        beforeText: """(^\\s*(?:class|module|monitor|case|elsif|elseif|if|for|loop|begin|body|process|function|procedure|proc|fcn).*?:\\s*?$)"""
-        action: indent: "indent"
-    }
-]
-
+# where we'd add structure completions 
+onEnterRules: []

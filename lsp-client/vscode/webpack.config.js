@@ -3,6 +3,27 @@
 'use strict';
 
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const CSON = require('cson-parser');
+
+function stringify_regex(obj) {
+    for (let key in obj) {
+        if (typeof obj[key] === "object") {
+            if (obj[key] instanceof RegExp) {
+                obj[key] = obj[key].source;
+            } else {
+                stringify_regex(obj[key]);
+            }
+        }
+    }
+}
+
+function compile_cson(content) {
+    let parsed_cson = CSON.parse(content);
+    stringify_regex(parsed_cson);
+    let new_content = JSON.stringify(parsed_cson, null, 2);
+    return new_content;
+}
 
 /**@type {import('webpack').Configuration}*/
 const config = {
@@ -36,6 +57,19 @@ const config = {
                 ]
             }
         ]
-    }
+    },
+    plugins: [
+        new CopyWebpackPlugin({
+            patterns: [{
+                from: "./language-config.cson",
+                to: "./language-config.json",
+                transform(content, path) { return compile_cson(content); }
+            }, {
+                from: "./syntaxes/turing.cson",
+                to: "./turing.tmLanguage.json",
+                transform(content, path) { return compile_cson(content); }
+            }]
+        })
+    ]
 };
 module.exports = config;

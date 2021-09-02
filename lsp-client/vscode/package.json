@@ -65,6 +65,8 @@
         "@types/vscode": "^1.46.0",
         "@typescript-eslint/eslint-plugin": "^4.9.0",
         "@typescript-eslint/parser": "^4.9.0",
+        "copy-webpack-plugin": "^9.0.1",
+        "cson-parser": "^4.0.9",
         "eslint": "^7.15.0",
         "glob": "^7.1.6",
         "grunt": "^1.4.0",
