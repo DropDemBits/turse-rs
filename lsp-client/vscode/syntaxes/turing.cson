@@ -225,24 +225,24 @@ repository:
 				\b(
 					(?:end\s+)?if|(?:end\s+)?loop|(?:end\s+)?for|(?:end\s+)?case|
 					endif|endloop|endfor|endcase|label|
-					then|elsif|elseif|elif|else|exit|when|include|in|begin|end
+					then|elsif|elseif|elif|else|exit|when|include|in|begin|end|by
 				)\b
 			///
 			name: "keyword.control.$1.turing"
 		},{
 			
 			# Logical operators
-			match: "\\b(and|not|x?or)\\b"
+			match: /\b(and|not|x?or)\b/
 			name: "keyword.operator.logical.$1.turing"
 		},{
 			
 			# Other operators
-			match: "\\b(all|bits|div|lower|mod|nil|rem|shl|shr|unit|upper)\\b"
+			match: /\b(all|bits|cheat|decreasing|div|lower|mod|nil|of|rem|shl|shr|to|unit|upper)\b/
 			name: "keyword.operator.$1.turing"
 		},{
 			
 			# Statements
-			match: "\\b(assert|asm|begin|break|close|exit|fork|free|get|init|invariant|new|objectclass|open|pause|put|quit|read|result|return|seek|signal|tag|tell|wait|write)\\b"
+			match: /\b(asm|begin|break|close|exit|fork|free|get|init|new|objectclass|open|pause|put|quit|read|result|return|seek|signal|tag|tell|wait|write)\b/
 			name: "keyword.other.statement.$1.turing"
 		},{
 			# Items
@@ -261,27 +261,32 @@ repository:
 			}]
 		},{
 			# Other
-			match: /\b(by|cheat|condition|decreasing|import|export|of|post|pre|to)\b/
-			name: "keyword.other.$1.turing"
+			patterns: [{
+				match: /\b(import|export)\b/
+				name: "keyword.other.$1.turing"
+			},{
+				match: /\b(pre|post|assert|invariant)\b/
+				name: "keyword.function.$1.turing"
+			}]
 		},{
 		
 			# Character type of specified length
-			match: "\\b(char)\\s*(\\()(\\d+)(\\))"
+			match: /\b(char)\s*(\()(\d+)(\))/
 			name: "storage.type.$3-char.turing"
 			captures:
 				2: name: "punctuation.definition.arguments.begin.turing"
 				4: name: "punctuation.definition.arguments.end.turing"
 		},{
 			# Colour constants
-			match: """(?x)\\b
+			match: ///\b
 				(black|blue|brightblue|brightcyan|brightgreen|brightmagenta|brightpurple|brightred
 				|brightwhite|brown|colou?r[bf]g|cyan|darkgr[ae]y|gr[ae]y|green|magenta|purple|red
-				|white|yellow)\\b"""
+				|white|yellow)\b///
 			name: "constant.other.colour.turing"
 		},{
 		
 			# Language variables
-			match: "\\b(skip|self)\\b"
+			match: /\b(skip|self)\b/
 			name: "constant.language.$1.turing"
 		}]
 	
@@ -305,8 +310,12 @@ repository:
 		},{
 			
 			# Other
-			match: /\b(body|def|deferred|forward|external|flexible|inherit|opaque|register|pervasive|packed|timeout|priority)\b/
+			match: /\b(body|def|deferred|forward|external|flexible|inherit|opaque|packed|timeout|priority)\b/
 			name: "storage.modifier.$1.turing"
+		},{
+			# OOT other
+			match: /\b(pervasive|register)\b/
+			name: "storage.modifier.$1.oot.turing"
 		}]
 
 
@@ -316,7 +325,7 @@ repository:
 		\b(
 			addressint|array|boolean|char|string|collection|enum|
 			int[124]?|nat[124]?|real[48]?|pointer(\s+to)?|set(\s+of)?|
-			record|union
+			record|union|condition
 		)\b
 		///
 		name: "storage.type.$1-type.turing"

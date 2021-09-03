@@ -8,7 +8,7 @@ module.exports = function (grunt) {
             do_watch: Object.assign({ watch: true }, webpackConfig),
             do_package: Object.assign(webpackConfig, {
                 mode: 'production',
-                devtool: undefined,
+                devtool: 'cheap-source-map',
             }),
             do_compile: webpackConfig,
         }

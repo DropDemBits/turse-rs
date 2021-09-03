@@ -18,10 +18,10 @@ function stringify_regex(obj) {
     }
 }
 
-function compile_cson(content) {
+function compile_cson(content, mode) {
     let parsed_cson = CSON.parse(content);
     stringify_regex(parsed_cson);
-    let new_content = JSON.stringify(parsed_cson, null, 2);
+    let new_content = JSON.stringify(parsed_cson);
     return new_content;
 }
 
@@ -60,15 +60,16 @@ const config = {
     },
     plugins: [
         new CopyWebpackPlugin({
-            patterns: [{
-                from: "./language-config.cson",
-                to: "./language-config.json",
-                transform(content, path) { return compile_cson(content); }
-            }, {
-                from: "./syntaxes/turing.cson",
-                to: "./turing.tmLanguage.json",
-                transform(content, path) { return compile_cson(content); }
-            }]
+            patterns: [
+                ["./language-config.cson", "./language-config.json"],
+                ["./syntaxes/turing.cson", "./turing.tmLanguage.json"]
+            ].map(arg => {
+                return {
+                    from: arg[0],
+                    to: arg[1],
+                    transform(content, _path) { return compile_cson(content, config.mode); }
+                };
+            }),
         })
     ]
 };
