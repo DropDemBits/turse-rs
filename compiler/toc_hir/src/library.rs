@@ -1,5 +1,7 @@
 //! Library structure definitions
 
+use std::sync::Arc;
+
 use indexmap::IndexMap;
 use la_arena::{Arena, ArenaMap};
 use toc_span::{FileId, Span, SpanId, SpanTable};
@@ -106,4 +108,4 @@ impl Library {
 /// Data is wrapped inside of an [`Arc`], so it is trivially cloneable.
 ///
 /// [`Library`]: crate::library::Library
-pub type LoweredLibrary = std::sync::Arc<Library>;
+pub type LoweredLibrary = Arc<Library>;

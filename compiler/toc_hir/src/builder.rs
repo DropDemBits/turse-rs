@@ -36,6 +36,8 @@ impl LibraryBuilder {
     ///
     /// ## Returns
     /// The [`LocalDefId`] associated with the definition
+    ///
+    /// [`LocalDefId`]: crate::symbol::LocalDefId
     pub fn add_def(
         &mut self,
         name: &str,

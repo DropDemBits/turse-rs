@@ -15,9 +15,9 @@
 //!
 //! All paths must be encountered before executing any queries, since no paths are interned from queries
 //!
-//! [`Vfs`]: crate::query::Vfs
-//! [`FileSystem::file_source`]: crate::query::FileSystem::file_source
-//! [`FileSystem::resolve_path`]: crate::query::FileSystem::resolve_path
+//! [`Vfs`]: crate::Vfs
+//! [`FileSystem::file_source`]: crate::db::FileSystem::file_source
+//! [`FileSystem::resolve_path`]: crate::db::FileSystem::resolve_path
 //! [`FileId`]: toc_span::FileId
 
 // TODO: Flesh out documentation using VFS Interface.md
@@ -50,7 +50,7 @@ macro_rules! impl_has_vfs {
 /// The [`Vfs::set_prefix_expansion`][set_prefix_expansion] method
 /// should be used to set the corresponding path the path expands into.
 ///
-/// [set_prefix_expansion]: crate::query::Vfs::set_prefix_expansion
+/// [set_prefix_expansion]: crate::Vfs::set_prefix_expansion
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BuiltinPrefix {
     /// %oot, should point to the Turing home directory

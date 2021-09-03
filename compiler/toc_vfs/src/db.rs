@@ -38,6 +38,8 @@ pub trait FileSystem: HasVfs {
 }
 
 /// Helper extension trait for databases with [`Vfs`]'s
+///
+/// [`Vfs`]: crate::Vfs
 pub trait VfsDatabaseExt: HasVfs + FileSystem {
     /// Invalidates all files, uploading every single source into the database
     /// regardless of if it has changed or not.
