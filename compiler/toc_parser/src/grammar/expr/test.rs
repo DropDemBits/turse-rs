@@ -4982,7 +4982,9 @@ fn parse_not_eq_after_higher_precedence_op() {
 
 #[test]
 fn parse_invalid_tilde_before_indirect() {
-    check("_:=A~B@()", expect![[r#"
+    check(
+        "_:=A~B@()",
+        expect![[r#"
         Source@0..9
           StmtList@0..9
             AssignStmt@0..9
@@ -5004,12 +5006,15 @@ fn parse_invalid_tilde_before_indirect() {
                   At@6..7 "@"
                   LeftParen@7..8 "("
                   RightParen@8..9 ")"
-        error at 5..6: expected ‘in’ or ‘=’, but found identifier"#]]);
+        error at 5..6: expected ‘in’ or ‘=’, but found identifier"#]],
+    );
 }
 
 #[test]
 fn parse_invalid_not_before_indirect() {
-    check("_:=A not B@()", expect![[r#"
+    check(
+        "_:=A not B@()",
+        expect![[r#"
         Source@0..13
           StmtList@0..13
             AssignStmt@0..13
@@ -5033,5 +5038,6 @@ fn parse_invalid_not_before_indirect() {
                   At@10..11 "@"
                   LeftParen@11..12 "("
                   RightParen@12..13 ")"
-        error at 9..10: expected ‘in’ or ‘=’, but found identifier"#]]);
+        error at 9..10: expected ‘in’ or ‘=’, but found identifier"#]],
+    );
 }
