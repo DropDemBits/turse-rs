@@ -12,17 +12,24 @@ env:
 jobs:
   build:
 
-    # TODO: Put on a matrix for testing on Windows
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        toolchain: [ stable ]
+    env:
+      RUSTFLAGS: -D warnings
+      RUSTDOCFLAGS: -D broken_intra_doc_links -D private_intra_doc_links
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install minimal stable toolchain with rustfmt
+    - name: Install minimal ${{ matrix.toolchain }} toolchain with rustfmt
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: ${{ matrix.toolchain }}
         components: rustfmt
     - name: Setup cache
       uses: Swatinem/rust-cache@v1.2.0
@@ -34,3 +41,5 @@ jobs:
       run: cargo test --verbose
     - name: Check formatting
       run: cargo fmt -- --check
+    - name: Check docs
+      run: cargo doc
