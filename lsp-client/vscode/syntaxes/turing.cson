@@ -28,13 +28,13 @@ repository:
 			{ include: "#boolean"       }
 			{ include: "#strings"       }
 			{ include: "#numbers"       }
-			{ include: "#for"           }
 			{ include: "#cc"            }
+			{ include: "#for"           }
+			{ include: "#loop"          }
 			{ include: "#if"            }
 			{ include: "#case"          }
-			{ include: "#types"         }
+			{ include: "#block"         }
 			{ include: "#function"      }
-			{ include: "#keywords"      }
 			{ include: "#modifiers"     }
 			{ include: "#variables"     }
 			{ include: "#punctuation"   }
@@ -46,6 +46,8 @@ repository:
 			{ include: "#type"          }
 			{ include: "#record"        }
 			{ include: "#union"         }
+			{ include: "#types"         }
+			{ include: "#keywords"      }
 			{ include: "#function-call" }
 			{ include: "#stdlib"        }
 		]
@@ -70,8 +72,6 @@ repository:
 			beginCaptures: 0: name: "punctuation.definition.comment.turing"
 			endCaptures:   0: name: "punctuation.definition.comment.turing"
 		}]
-
-	
 	
 	# String literals
 	strings:
@@ -123,7 +123,7 @@ repository:
 				(body)          # 1: storage.modifier.body.turing
 				\\s+
 			)?
-			(function|fcn)      # 2: storage.type.turing
+			(function|fcn)      # 2: storage.type.function.turing
 			(?:
 				\\s+
 				(pervasive|\\*) # 3: storage.modifier.pervasive.turing
@@ -156,7 +156,7 @@ repository:
 		]
 		beginCaptures:
 			1: name: "storage.modifier.body.turing"
-			2: name: "storage.type.turing"
+			2: name: "storage.type.function.turing"
 			3: name: "storage.modifier.pervasive.turing"
 			4: name: "entity.name.function.turing"
 			5: name: "meta.function.parameters.turing"
@@ -166,7 +166,7 @@ repository:
 			9: name: "punctuation.separator.key-value.turing"
 			10: name: "storage.type.type-spec.turing"
 		endCaptures:
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.function.end.turing"
 			2: name: "entity.name.function.turing"
 
 
@@ -185,8 +185,8 @@ repository:
 			
 			# functionName ( args )
 			name: "meta.function-call.turing"
-			begin: "(([\\w.]+))\\s*(\\()"
-			end:   "\\)"
+			begin: /(([\w.]+))\s*(\()/
+			end:   /\)/
 			contentName: "meta.function-call.arguments.turing"
 			beginCaptures:
 				1: name: "entity.function.name.turing"
@@ -200,7 +200,7 @@ repository:
 			
 			# functionName
 			name: "meta.function-call.turing"
-			match: "^\\s*(([\\w.]+))\\s*(?=$|%|/\\*)"
+			match: /^\s*(([\\w.]+))\s*(?=$|%|\/\*)/
 			captures:
 				1: name: "entity.function.name.turing"
 				2: patterns: [include: "#function-name"]
@@ -215,26 +215,19 @@ repository:
 		]
 	
 	
-	# Conditional execution
-	if:
-		name:  "meta.scope.if-block.turing"
-		begin: "^\\s*(if)\\b"
-		end:   "^\\s*(end\\s+if)\\b"
-		beginCaptures:
-			0: name: "meta.scope.begin.turing"
-			1: name: "keyword.control.conditional.turing"
-		endCaptures:
-			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.conditional.turing"
-		patterns: [include: "$self"]
-		
-	
+
 	# Keywords
 	keywords:
 		patterns: [{
 			
 			# Control flow
-			match: "(?:^\\s*)?+\\b((?:end\\s+)?if|then|elsif|elseif|else|(?:end\\s+)?loop|exit|when|include|in|end)\\b"
+			match: ///
+				\b(
+					(?:end\s+)?if|(?:end\s+)?loop|(?:end\s+)?for|(?:end\s+)?case|
+					endif|endloop|endfor|endcase|label|
+					then|elsif|elseif|elif|else|exit|when|include|in|begin|end
+				)\b
+			///
 			name: "keyword.control.$1.turing"
 		},{
 			
@@ -249,8 +242,27 @@ repository:
 		},{
 			
 			# Statements
-			match: "\\b(assert|begin|break|close|exit|fork|free|get|init|invariant|new|objectclass|open|pause|put|quit|read|result|return|seek|signal|tag|tell|wait|write)\\b"
+			match: "\\b(assert|asm|begin|break|close|exit|fork|free|get|init|invariant|new|objectclass|open|pause|put|quit|read|result|return|seek|signal|tag|tell|wait|write)\\b"
 			name: "keyword.other.statement.$1.turing"
+		},{
+			# Items
+			patterns: [{
+				# General
+				match: /\b(class|module|monitor|const|var|type)\b/
+				name: "storage.type.$1.turing"
+			},{
+				# Function-like items
+				match: /\b(function|fcn|procedure|proc|process)\b/
+				name: "storage.type.function.turing"
+			},{
+				# Handler
+				match: /\b(handler)\b/
+				name: "storage.type.handler.turing"
+			}]
+		},{
+			# Other
+			match: /\b(by|cheat|condition|decreasing|import|export|of|post|pre|to)\b/
+			name: "keyword.other.$1.turing"
 		},{
 		
 			# Character type of specified length
@@ -279,24 +291,34 @@ repository:
 		patterns: [{
 			
 			# Checked/unchecked
-			match: "\\b(unchecked|checked)\\b"
+			match: /\b(unchecked|checked)\b/
 			name: "storage.modifier.$1.compiler-directive.oot.turing"
 		},{
 			
 			# Unqualified
-			match: "\\b(unqualified|~\\.)\\b"
+			match: /\b(unqualified|~(?=\s*\.))\b/
 			name: "storage.modifier.unqualified.turing"
+		},{
+			# Implement
+			match: /\b(implement)\b/
+			name: "storage.modifier.implements.turing"
 		},{
 			
 			# Other
-			match: "\\b(external|flexible|opaque|register)\\b"
+			match: /\b(body|def|deferred|forward|external|flexible|inherit|opaque|register|pervasive|packed|timeout|priority)\b/
 			name: "storage.modifier.$1.turing"
 		}]
 
 
 	# Types
 	types:
-		match: "\\b(addressint|array|boolean|char|collection|enum|int[124]?|nat[124]?|real[48]?|pointer\\s+to|set\\s+of|string)\\b"
+		match: ///
+		\b(
+			addressint|array|boolean|char|string|collection|enum|
+			int[124]?|nat[124]?|real[48]?|pointer(\s+to)?|set(\s+of)?|
+			record|union
+		)\b
+		///
 		name: "storage.type.$1-type.turing"
 
 
@@ -326,9 +348,37 @@ repository:
 			2: name: "keyword.operator.decreasing.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "keyword.control.for.end.turing"
 			2: name: "keyword.control.for.turing"
+	
+	# Loop loops
+	loop:
+		name: "meta.scope.loop.turing"
+		begin: /\b(loop)\b/
+		end: /\b(end)\s*(loop)\b/
+		patterns: [{
+			include: "$self"
+		}]
+		beginCaptures:
+			0: name: "meta.scope.begin.turing"
+			1: name: "keyword.control.loop.turing"
+		endCaptures:
+			0: name: "meta.scope.end.turing"
+			1: name: "keyword.control.loop.end.turing"
+			2: name: "keyword.control.loop.turing"
 
+	# Conditional execution
+	if:
+		name:  "meta.scope.if-block.turing"
+		begin: /\b(if)\b/
+		end:   /\b(end\s+if)\b/
+		beginCaptures:
+			0: name: "meta.scope.begin.turing"
+			1: name: "keyword.control.conditional.turing"
+		endCaptures:
+			0: name: "meta.scope.end.turing"
+			1: name: "keyword.control.conditional.turing"
+		patterns: [include: "$self"]
 	
 	# Case blocks
 	case:
@@ -346,7 +396,7 @@ repository:
 			3: name: "keyword.operator.of.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.case.turing"
+			1: name: "keyword.control.case.end.turing"
 
 
 	# Label statements
@@ -362,6 +412,21 @@ repository:
 		]
 		
 	
+	# Block statements
+	block:
+		name: "meta.scope.block.turing"
+		begin: /\b(begin)\b/
+		end: /\b(end)\s*(?!for|loop|case|if|\w+)/
+		beginCaptures:
+			0: name: "meta.scope.begin.turing"
+			1: name: "keyword.control.begin.turing"
+		endCaptures:
+			0: name: "meta.scope.end.turing"
+			1: name: "keyword.control.end.turing"
+		patterns: [
+			{ include: "$self" }
+		]
+
 
 	# Forward/deferred procedure
 	forward:
@@ -412,7 +477,7 @@ repository:
 			3: name: "entity.name.function.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.function.end.turing"
 			2: name: "entity.name.function.turing"
 	
 	
@@ -432,7 +497,7 @@ repository:
 			3: name: "entity.name.function.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.function.end.turing"
 			2: name: "entity.name.function.turing"
 	
 	
@@ -463,15 +528,15 @@ repository:
 			4: name: "punctuation.definition.arguments.end.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.handler.end.turing"
 			2: name: "storage.type.handler.turing"
 	
 	
 	# Class, module and monitor declarations
 	class:
 		name: "meta.scope.$1-block.turing"
-		begin: "^\\s*(class|module|monitor)\\s+(\\w+)"
-		end:   "\\b(end)\\s+(\\2)"
+		begin: /^\s*(class|module|monitor)\s+(\w+)/
+		end:   /\b(end)\s+(\2)/
 		patterns: [
 			{include: "#class-innards"}
 			{include: "$self"}
@@ -482,7 +547,7 @@ repository:
 			2: name: "entity.name.type.class.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.$1.end.turing"
 			2: name: "entity.name.type.class.turing"
 	
 	
@@ -494,7 +559,7 @@ repository:
 			begin: "\\b(import|export)\\b"
 			end:   "(?=$|%|/\\*)"
 			beginCaptures:
-				1: name: "keyword.control.$1.turing"
+				1: name: "keyword.other.$1.turing"
 			patterns: [
 				{include: "#list"}
 				{include: "$self"}
@@ -640,7 +705,7 @@ repository:
 			1: name: "storage.type.record.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.record.end.turing"
 			2: name: "storage.type.record.turing"
 	
 	
@@ -662,7 +727,7 @@ repository:
 			5: name: "keyword.operator.of.turing"
 		endCaptures:
 			0: name: "meta.scope.end.turing"
-			1: name: "keyword.control.end.turing"
+			1: name: "storage.type.union.end.turing"
 			2: name: "storage.type.union.turing"
 	
 
