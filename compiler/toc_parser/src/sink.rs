@@ -4,7 +4,7 @@ use crate::ParseTree;
 
 use rowan::GreenNodeBuilder;
 use std::mem;
-use toc_reporting::{CompileResult, MessageSink, ReportMessage};
+use toc_reporting::{CompileResult, MessageBundle};
 use toc_scanner::token::{Token, TokenKind};
 use toc_syntax::SyntaxKind;
 
@@ -16,14 +16,14 @@ pub(super) struct Sink<'t, 'src> {
     cursor: usize,
     depth: usize,
     events: Vec<Event>,
-    messages: Vec<ReportMessage>,
+    messages: MessageBundle,
 }
 
 impl<'t, 'src> Sink<'t, 'src> {
     pub(super) fn new(
         tokens: &'t [Token<'src>],
         events: Vec<Event>,
-        collected_sinks: Vec<MessageSink>,
+        messages: MessageBundle,
     ) -> Self {
         Self {
             builder: GreenNodeBuilder::new(),
@@ -31,11 +31,7 @@ impl<'t, 'src> Sink<'t, 'src> {
             cursor: 0,
             depth: 0,
             events,
-            messages: collected_sinks
-                .into_iter()
-                .map(|s| s.finish())
-                .flatten()
-                .collect(),
+            messages,
         }
     }
 

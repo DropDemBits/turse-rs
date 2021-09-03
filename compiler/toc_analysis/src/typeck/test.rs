@@ -2,7 +2,7 @@
 
 use toc_hir::symbol::DefId;
 use toc_hir_db::db::HirDatabase;
-use toc_reporting::ReportMessage;
+use toc_reporting::MessageBundle;
 use unindent::unindent;
 
 use crate::db::HirAnalysis;
@@ -51,7 +51,7 @@ fn do_typecheck(source: &str) -> String {
 fn stringify_typeck_results(
     db: &TestDb,
     lib: toc_hir::library::LibraryId,
-    messages: &[ReportMessage],
+    messages: &MessageBundle,
 ) -> String {
     let mut s = String::new();
     // Pretty print typectx

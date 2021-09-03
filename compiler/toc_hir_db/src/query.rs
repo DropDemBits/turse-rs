@@ -6,7 +6,7 @@ use toc_hir::{
     library_graph::{GraphBuilder, LibraryGraph},
     symbol::DefId,
 };
-use toc_reporting::CompileResult;
+use toc_reporting::{CompileResult, MessageBundle};
 
 use crate::db::HirDatabase;
 
@@ -17,15 +17,13 @@ pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary
 }
 
 pub fn library_graph_query(db: &dyn HirDatabase) -> CompileResult<LibraryGraph> {
-    let mut messages = vec![];
+    let mut messages = MessageBundle::default();
     let source_roots = db.source_roots();
     let mut graph = GraphBuilder::new();
 
     for root in source_roots.roots() {
         graph.add_library(root);
-
-        let res = db.lower_library(root);
-        res.bundle_messages(&mut messages);
+        db.lower_library(root).bundle_messages(&mut messages);
     }
 
     CompileResult::new(graph.finish(), messages)

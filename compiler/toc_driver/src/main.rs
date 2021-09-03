@@ -62,15 +62,12 @@ fn main() {
     let analyze_res = db.analyze_libraries();
 
     // We only need to get the messages for the queries at the end of the chain
-    let mut msgs = analyze_res.messages().iter().collect::<Vec<_>>();
-
-    // Sort by start order
-    msgs.sort_by_key(|msg| msg.span().range.start());
+    let msgs = analyze_res.messages();
 
     let mut has_errors = false;
     let mut cache = VfsCache::new(&db);
 
-    for msg in msgs {
+    for msg in msgs.iter() {
         has_errors |= matches!(msg.kind(), toc_reporting::AnnotateKind::Error);
         emit_message(&db, &mut cache, msg);
     }

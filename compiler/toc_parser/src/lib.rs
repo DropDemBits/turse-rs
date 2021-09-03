@@ -24,9 +24,8 @@ pub fn parse(file: Option<FileId>, source: &str) -> CompileResult<ParseTree> {
 
     let source = Source::new(&tokens);
     let parser = parser::Parser::new(file, source);
-    let (events, mut parser_msgs) = parser.parse();
-    parser_msgs.dedup_shared_ranges();
-    let sink = Sink::new(&tokens, events, vec![scanner_msgs, parser_msgs]);
+    let (events, parser_msgs) = parser.parse();
+    let sink = Sink::new(&tokens, events, scanner_msgs.combine(parser_msgs));
 
     sink.finish()
 }
@@ -68,7 +67,7 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     // trim trailing newline
     debug_tree.pop();
 
-    for err in res.messages() {
+    for err in res.messages().iter() {
         debug_tree.push_str(&format!("\n{}", err));
     }
 

@@ -3,7 +3,7 @@ pub mod token;
 
 use logos::Logos;
 use std::ops::Range;
-use toc_reporting::MessageSink;
+use toc_reporting::{MessageBundle, MessageSink};
 use toc_span::FileId;
 use token::{NumberKind, Token, TokenKind};
 
@@ -21,8 +21,8 @@ impl ErrorFerry {
             .error(message, toc_span::Span::new(self.file_id, range));
     }
 
-    pub(crate) fn finish(self) -> MessageSink {
-        self.sink
+    pub(crate) fn finish(self) -> MessageBundle {
+        self.sink.finish()
     }
 }
 
@@ -40,7 +40,7 @@ impl<'s> Scanner<'s> {
         Self { inner }
     }
 
-    pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageSink) {
+    pub fn collect_all(mut self) -> (Vec<Token<'s>>, MessageBundle) {
         let mut toks = vec![];
 
         for token in &mut self {
@@ -98,11 +98,10 @@ mod test {
         (toks, errors)
     }
 
-    fn build_error_list(sink: MessageSink) -> String {
-        let errors = sink.finish();
+    fn build_error_list(errors: MessageBundle) -> String {
         let mut buf = String::new();
 
-        for msg in errors {
+        for msg in errors.iter() {
             let at = msg.span().range;
             let msg = msg.message();
 

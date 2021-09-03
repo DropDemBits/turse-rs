@@ -4,7 +4,7 @@ pub(crate) mod marker;
 
 use drop_bomb::DropBomb;
 pub(crate) use error::Expected;
-use toc_reporting::MessageSink;
+use toc_reporting::{MessageBundle, MessageSink};
 use toc_span::{FileId, Span};
 
 use crate::event::Event;
@@ -121,9 +121,9 @@ impl<'t, 'src> Parser<'t, 'src> {
         }
     }
 
-    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageSink) {
+    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageBundle) {
         grammar::source(&mut self);
-        (self.events, self.msg_sink)
+        (self.events, self.msg_sink.finish())
     }
 
     fn peek(&mut self) -> Option<TokenKind> {
