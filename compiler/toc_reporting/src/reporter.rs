@@ -15,51 +15,37 @@ impl MessageSink {
         Self { messages: vec![] }
     }
 
-    /// Merges an existing set of messages into a new MessageSink
-    pub fn with_messages(messages: Vec<ReportMessage>) -> Self {
-        Self { messages }
-    }
-
     /// Reports an error message
-    pub fn error(&mut self, message: &str, span: Span) {
+    pub fn error(&mut self, message: &str, at_span: &str, span: Span) {
         self.report(AnnotateKind::Error, message, span)
+            .with_error(at_span, span)
+            .finish()
     }
 
     /// Reports a detailed error message
     pub fn error_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
-        self.report_detailed(AnnotateKind::Error, message, span)
+        self.report(AnnotateKind::Error, message, span)
     }
 
     /// Reports a warning message
-    pub fn warn(&mut self, message: &str, span: Span) {
+    pub fn warn(&mut self, message: &str, at_span: &str, span: Span) {
         self.report(AnnotateKind::Warning, message, span)
+            .with_warn(at_span, span)
+            .finish()
     }
 
     /// Reports a detailed warning message
     pub fn warn_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
-        self.report_detailed(AnnotateKind::Warning, message, span)
-    }
-
-    /// Reports a message
-    ///
-    /// Does not add any annotations to the message
-    fn report(&mut self, kind: AnnotateKind, message: &str, span: Span) {
-        MessageBuilder::new(self, kind, message, span).finish();
+        self.report(AnnotateKind::Warning, message, span)
     }
 
     /// Reports a detailed message
     ///
     /// Returns a builder for adding annotations
     #[must_use = "message is not reported until `finish()` is called"]
-    fn report_detailed(&mut self, kind: AnnotateKind, message: &str, span: Span) -> MessageBuilder {
+    fn report(&mut self, kind: AnnotateKind, message: &str, span: Span) -> MessageBuilder {
         MessageBuilder::new(self, kind, message, span)
     }
-
-    /* /// Removes any subsequent messages that share the same text range
-    pub fn dedup_shared_ranges(&mut self) {
-        self.messages
-            .dedup_by(|a, b| a.header.span == b.header.span && a.kind() == b.kind())
-    } */
 
     /// Finishes reporting any messages, giving back the final message list
     pub fn finish(self) -> MessageBundle {
@@ -97,36 +83,35 @@ impl<'a> MessageBuilder<'a> {
         }
     }
 
-    pub fn with_note<S>(self, message: &str, span: S) -> Self
-    where
-        S: Into<Option<Span>>,
-    {
+    /// Each inserted info is treated as a separate line
+    pub fn with_info(self, message: &str) -> Self {
+        self.with_annotation(AnnotateKind::Info, message, None)
+    }
+
+    pub fn with_note(self, message: &str, span: Span) -> Self {
         self.with_annotation(AnnotateKind::Note, message, span)
     }
 
-    pub fn with_info<S>(self, message: &str, span: S) -> Self
-    where
-        S: Into<Option<Span>>,
-    {
-        self.with_annotation(AnnotateKind::Info, message, span)
+    pub fn with_warn(self, message: &str, span: Span) -> Self {
+        self.with_annotation(AnnotateKind::Warning, message, span)
+    }
+
+    pub fn with_error(self, message: &str, span: Span) -> Self {
+        self.with_annotation(AnnotateKind::Error, message, span)
     }
 
     fn with_annotation<R>(mut self, kind: AnnotateKind, message: &str, span: R) -> Self
     where
         R: Into<Option<Span>>,
     {
+        let annotation = Annotation {
+            kind,
+            msg: message.to_string(),
+        };
+
         match span.into() {
-            Some(span) => self.annotations.push(SourceAnnotation {
-                annotation: Annotation {
-                    kind,
-                    msg: message.to_string(),
-                },
-                span,
-            }),
-            None => self.footer.push(Annotation {
-                kind,
-                msg: message.to_string(),
-            }),
+            Some(span) => self.annotations.push(SourceAnnotation { annotation, span }),
+            None => self.footer.push(annotation),
         }
 
         self
@@ -171,13 +156,15 @@ mod tests {
             AnnotateKind::Warning,
             "a warning message",
             Span::new(None, TextRange::new(3.into(), 5.into())),
-        );
+        )
+        .finish();
 
         sink.report(
             AnnotateKind::Error,
             "an error message",
             Span::new(None, TextRange::new(1.into(), 3.into())),
-        );
+        )
+        .finish();
 
         let msgs = sink.finish();
         let mut iter = msgs.iter();

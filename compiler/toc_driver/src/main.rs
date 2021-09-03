@@ -76,7 +76,7 @@ fn main() {
 }
 
 fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::ReportMessage) {
-    use ariadne::{Color, Label, ReportKind};
+    use ariadne::{Color, Config, Label, LabelAttach, ReportKind};
     use std::ops::Range;
 
     fn mk_range(db: &MainDatabase, span: Span) -> (FileId, Range<usize>) {
@@ -109,31 +109,18 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     let top_span = msg.span();
     let (file, range) = mk_range(db, top_span);
 
-    let mut builder = ariadne::Report::build(kind, file, range.start).with_message(msg.message());
+    let config = Config::default().with_label_attach(LabelAttach::End);
+    let mut builder = ariadne::Report::build(kind, file, range.start)
+        .with_message(msg.message())
+        .with_config(config);
 
-    // dup it if nothing exists at that span yet
-    if !msg
-        .annotations()
-        .iter()
-        .any(|annotate| annotate.span() == msg.span())
-    {
-        let annotate = msg;
+    for (order, annotate) in msg.annotations().iter().enumerate() {
         let span = mk_range(db, annotate.span());
 
         builder = builder.with_label(
             Label::new(span)
                 .with_message(annotate.message())
-                .with_color(kind_to_colour(annotate.kind()))
-                .with_order(1),
-        );
-    }
-
-    for annotate in msg.annotations() {
-        let span = mk_range(db, annotate.span());
-
-        builder = builder.with_label(
-            Label::new(span)
-                .with_message(annotate.message())
+                .with_order(order as i32)
                 .with_color(kind_to_colour(annotate.kind())),
         );
     }

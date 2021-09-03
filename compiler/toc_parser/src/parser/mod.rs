@@ -241,7 +241,8 @@ impl<'t, 'src> Parser<'t, 'src> {
         let span = Span::new(self.file, range);
 
         self.msg_sink.warn(
-            &format!("{} found, assuming it to be {}", found, normal),
+            &format!("{} found", found),
+            &format!("assuming it to be {}", normal),
             span,
         );
     }
@@ -351,8 +352,14 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
         );
 
         let span = Span::new(self.p.file, range);
+        let header = if found.is_some() {
+            "unexpected token"
+        } else {
+            "unexpected end of file"
+        };
 
         self.p.msg_sink.error(
+            header,
             &format!(
                 "{}",
                 ParseMessage::UnexpectedToken {

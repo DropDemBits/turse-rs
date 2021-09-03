@@ -4,7 +4,7 @@ pub mod token;
 use logos::Logos;
 use std::ops::Range;
 use toc_reporting::{MessageBundle, MessageSink};
-use toc_span::FileId;
+use toc_span::{FileId, Span};
 use token::{NumberKind, Token, TokenKind};
 
 #[derive(Debug, Default)]
@@ -14,11 +14,11 @@ pub struct ErrorFerry {
 }
 
 impl ErrorFerry {
-    pub(crate) fn push_error(&mut self, message: &str, span: Range<usize>) {
+    pub(crate) fn push_error(&mut self, message: &str, at_span: &str, span: Range<usize>) {
         let range = token::span_to_text_range(span);
 
         self.sink
-            .error(message, toc_span::Span::new(self.file_id, range));
+            .error(message, at_span, Span::new(self.file_id, range));
     }
 
     pub(crate) fn finish(self) -> MessageBundle {
@@ -59,9 +59,11 @@ impl<'s> Scanner<'s> {
             },
             TokenKind::Error => {
                 // Report the invalid character
-                self.inner
-                    .extras
-                    .push_error("invalid character", self.inner.span());
+                self.inner.extras.push_error(
+                    "invalid character",
+                    "", // intentionally left empty, message says it all
+                    self.inner.span(),
+                );
                 TokenKind::Error
             }
             other => other,
@@ -102,11 +104,7 @@ mod test {
         let mut buf = String::new();
 
         for msg in errors.iter() {
-            let at = msg.span().range;
-            let msg = msg.message();
-
-            let (start, end): (usize, usize) = (at.start().into(), at.end().into());
-            buf.push_str(&format!("error at {}..{}: {}\n", start, end, msg));
+            buf.push_str(&msg.to_string());
         }
         buf.pop();
 

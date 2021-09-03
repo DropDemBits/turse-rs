@@ -31,8 +31,8 @@ struct ValidateCtx {
 }
 
 impl ValidateCtx {
-    pub(crate) fn push_error(&mut self, msg: &str, range: TextRange) {
-        self.sink.error(msg, Span::new(self.file, range));
+    pub(crate) fn push_error(&mut self, msg: &str, at_span: &str, range: TextRange) {
+        self.sink.error(msg, at_span, Span::new(self.file, range));
     }
 
     pub(crate) fn push_detailed_error(&mut self, msg: &str, range: TextRange) -> MessageBuilder {
@@ -59,6 +59,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
                 ast::MonitorDecl(_decl) => (),
                 _ => {
                     ctx.push_error(
+                        "invalid unit file",
                         "expected a module, class, or monitor declaration",
                         node.syntax().text_range(),
                     );
@@ -74,11 +75,16 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
                     .unwrap_or(start_range);
                 let full_range = start_range.cover(end_range);
 
-                ctx.push_error("found extra text after unit declaration", full_range);
+                ctx.push_error(
+                    "invalid unit file",
+                    "found extra text after unit declaration",
+                    full_range,
+                );
             }
         } else {
             ctx.push_error(
-                "expected a module, class, or monitor declaration",
+                "missing unit declaration",
+                "expected a module, class, or monitor declaration after here",
                 unit.text_range(),
             );
         }
@@ -134,7 +140,12 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
 pub(crate) fn without_matching(node: &SyntaxNode, thing: &str, ctx: &mut ValidateCtx) {
     let first = node.first_token().unwrap();
     ctx.push_error(
-        &format!("found ‘{}’ without matching ‘{}’", first.text(), thing),
+        &format!("found dangling ‘{}’", first.text()),
+        &format!(
+            "this ‘{}’ does not have a matching ‘{}’",
+            first.text(),
+            thing
+        ),
         first.text_range(),
     );
 }

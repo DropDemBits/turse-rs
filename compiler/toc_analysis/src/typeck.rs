@@ -160,10 +160,8 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", init_span)
-                .with_note(
-                    "initializer's type is incompatible with this type",
-                    spec_span,
-                )
+                .with_error("the type of this expression...", init_span)
+                .with_note("is incompatible with this type", spec_span)
                 .finish();
 
             // Don't need to worry about ConstValue being anything,
@@ -205,13 +203,11 @@ impl TypeCheck<'_> {
                     .lookup_in(&self.library.span_map);
 
                 // TODO: Stringify lhs for more clarity on the error location
+                // TODO: If it's a ref expr, get the definition point
                 self.state()
                     .reporter
                     .error_detailed("cannot assign into expression on left hand side", asn_span)
-                    .with_note(
-                        "this expression cannot be used as a variable reference",
-                        left_span,
-                    )
+                    .with_note("not a reference to a variable", left_span)
                     .finish();
             }
         }
@@ -253,11 +249,9 @@ impl TypeCheck<'_> {
                     self.state()
                         .reporter
                         .error_detailed("invalid put option", span)
+                        .with_error("this is the invalid option", span)
                         .with_note("cannot specify fraction width for this type", item_span)
-                        .with_info(
-                            "fraction width can only be specified for numeric put types",
-                            None,
-                        )
+                        .with_info("fraction width can only be specified for numeric put types")
                         .finish();
                 }
 
@@ -267,11 +261,9 @@ impl TypeCheck<'_> {
                     self.state()
                         .reporter
                         .error_detailed("invalid put option", span)
+                        .with_error("this is the invalid option", span)
                         .with_note("cannot specify exponent width for this type", item_span)
-                        .with_info(
-                            "exponent width can only be specified for numeric types",
-                            None,
-                        )
+                        .with_info("exponent width can only be specified for numeric types")
                         .finish();
                 }
             }
@@ -317,13 +309,11 @@ impl TypeCheck<'_> {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 // TODO: Stringify item for more clarity on the error location
+                // TODO: If it's a ref expr, get the definition point
                 self.state()
                     .reporter
-                    .error_detailed("cannot assign into get item expression", get_item_span)
-                    .with_note(
-                        "this expression cannot be used as a variable reference",
-                        get_item_span,
-                    )
+                    .error_detailed("cannot assign into expression", get_item_span)
+                    .with_error("not a reference to a variable", get_item_span)
                     .finish();
             }
 
@@ -351,7 +341,7 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", ty_span)
-                .with_note("expected integer type", ty_span)
+                .with_error("expected integer type", ty_span)
                 .finish();
         }
     }
@@ -428,9 +418,11 @@ impl TypeCheck<'_> {
                 .span
                 .lookup_in(&self.library.span_map);
 
-            self.state()
-                .reporter
-                .error(&format!("`{}` is not declared", def_info.name.item()), span);
+            self.state().reporter.error(
+                &format!("`{}` is not declared", def_info.name.item()),
+                "not found in this scope",
+                span,
+            );
         }
     }
 
@@ -486,11 +478,8 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("invalid character count size", expr_span)
-                .with_note(&format!("computed count is {}", int), expr_span)
-                .with_info(
-                    &format!("valid sizes are between 1 to {}", size_limit - 1),
-                    None,
-                )
+                .with_error(&format!("computed count is {}", int), expr_span)
+                .with_info(&format!("valid sizes are between 1 to {}", size_limit - 1))
                 .finish();
         }
     }

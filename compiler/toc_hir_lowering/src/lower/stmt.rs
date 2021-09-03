@@ -66,7 +66,11 @@ impl super::BodyLowering<'_, '_> {
 
     fn unsupported_stmt(&mut self, span: SpanId) -> Option<stmt::StmtKind> {
         let span = self.ctx.library.lookup_span(span);
-        self.ctx.messages.error("unsupported statement", span);
+        self.ctx.messages.error(
+            "unsupported statement",
+            "this statement is not handled yet",
+            span,
+        );
         None
     }
 
