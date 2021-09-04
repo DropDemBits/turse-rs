@@ -13,10 +13,14 @@ expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\n
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 60..61: mismatched types
-| note in file FileId(1) for 49..56: initializer's type is incompatible with this type
+| error in file FileId(1) for 60..61: the type of this expression...
+| note in file FileId(1) for 49..56: is incompatible with this type
 error in file FileId(1) at 84..85: mismatched types
-| note in file FileId(1) for 73..80: initializer's type is incompatible with this type
+| error in file FileId(1) for 84..85: the type of this expression...
+| note in file FileId(1) for 73..80: is incompatible with this type
 error in file FileId(1) at 108..109: mismatched types
-| note in file FileId(1) for 97..104: initializer's type is incompatible with this type
+| error in file FileId(1) for 108..109: the type of this expression...
+| note in file FileId(1) for 97..104: is incompatible with this type
 error in file FileId(1) at 132..133: mismatched types
-| note in file FileId(1) for 121..128: initializer's type is incompatible with this type
+| error in file FileId(1) for 132..133: the type of this expression...
+| note in file FileId(1) for 121..128: is incompatible with this type

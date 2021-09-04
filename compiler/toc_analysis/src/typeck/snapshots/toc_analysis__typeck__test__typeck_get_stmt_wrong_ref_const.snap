@@ -6,5 +6,5 @@ expression: "const i : int := 1\nget i\n"
 "i"@(FileId(1), 6..7) [Declared]: ref int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 23..24: cannot assign into get item expression
-| note in file FileId(1) for 23..24: this expression cannot be used as a variable reference
+error in file FileId(1) at 23..24: cannot assign into expression
+| error in file FileId(1) for 23..24: not a reference to a variable

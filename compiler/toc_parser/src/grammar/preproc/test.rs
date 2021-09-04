@@ -89,7 +89,8 @@ mod cond {
                           Whitespace@52..53 " "
                           KwIf@53..55 "if"
                   Whitespace@55..60 "\n    "
-                error at 9..13: expected preprocessor condition, but found ‘then’"##]],
+                error at 9..13: unexpected token
+                | error for 9..13: expected preprocessor condition, but found ‘then’"##]],
         );
     }
 
@@ -133,7 +134,8 @@ mod cond {
                           Whitespace@49..50 " "
                           KwIf@50..52 "if"
                   Whitespace@52..57 "\n    "
-                error at 15..21: expected ‘then’, but found ‘assert’"##]],
+                error at 15..21: unexpected token
+                | error for 15..21: expected ‘then’, but found ‘assert’"##]],
         );
     }
 
@@ -173,7 +175,8 @@ mod cond {
                             EndGroup@42..45
                               KwEnd@42..45 "end"
                   Whitespace@45..50 "\n    "
-                error at 42..45: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’ after here"##]],
+                error at 42..45: unexpected end of file
+                | error for 42..45: expected ‘#elseif’, ‘#elsif’, ‘#else’, ‘#end’ or ‘#endif’ after here"##]],
         );
     }
 
@@ -319,7 +322,8 @@ mod cond {
                           Whitespace@124..125 " "
                           KwIf@125..127 "if"
                   Whitespace@127..132 "\n    "
-                warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
+                warn at 85..92: ‘#elseif’ found
+                | warn for 85..92: assuming it to be ‘#elsif’"##]],
         );
     }
 
@@ -416,7 +420,8 @@ mod cond {
                           Whitespace@162..163 " "
                           KwIf@163..165 "if"
                   Whitespace@165..170 "\n    "
-                warn at 85..92: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
+                warn at 85..92: ‘#elseif’ found
+                | warn for 85..92: assuming it to be ‘#elsif’"##]],
         );
     }
 
@@ -495,7 +500,8 @@ mod cond {
                           Whitespace@40..41 " "
                           KwIf@41..43 "if"
                   Whitespace@43..48 "\n    "
-                warn at 5..12: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
+                warn at 5..12: ‘#elseif’ found
+                | warn for 5..12: assuming it to be ‘#elsif’"##]],
         );
     }
 
@@ -562,7 +568,8 @@ mod cond {
                     PreprocGlob@0..6
                       PPEndIf@0..6
                         PPKwEndIf@0..6 "#endif"
-                warn at 0..6: ‘#endif’ found, assuming it to be ‘#end if’"##]],
+                warn at 0..6: ‘#endif’ found
+                | warn for 0..6: assuming it to be ‘#end if’"##]],
         );
     }
 
@@ -577,7 +584,8 @@ mod cond {
                       PPIf@0..3
                         PPKwIf@0..3 "#if"
                         PPTokenBody@3..3
-                error at 0..3: expected preprocessor condition after here"##]],
+                error at 0..3: unexpected end of file
+                | error for 0..3: expected preprocessor condition after here"##]],
         );
     }
 
@@ -592,7 +600,8 @@ mod cond {
                       PPElseif@0..6
                         PPKwElsif@0..6 "#elsif"
                         PPTokenBody@6..6
-                error at 0..6: expected preprocessor condition after here"##]],
+                error at 0..6: unexpected end of file
+                | error for 0..6: expected preprocessor condition after here"##]],
         );
     }
 
@@ -607,8 +616,10 @@ mod cond {
                       PPElseif@0..7
                         PPKwElseif@0..7 "#elseif"
                         PPTokenBody@7..7
-                warn at 0..7: ‘#elseif’ found, assuming it to be ‘#elsif’
-                error at 0..7: expected preprocessor condition after here"##]],
+                warn at 0..7: ‘#elseif’ found
+                | warn for 0..7: assuming it to be ‘#elsif’
+                error at 0..7: unexpected end of file
+                | error for 0..7: expected preprocessor condition after here"##]],
         );
     }
 
@@ -623,7 +634,8 @@ mod cond {
                       PPElse@0..5
                         PPKwElse@0..5 "#else"
                         PPTokenBody@5..5
-                error at 0..5: expected ‘#end’ or ‘#endif’ after here"##]],
+                error at 0..5: unexpected end of file
+                | error for 0..5: expected ‘#end’ or ‘#endif’ after here"##]],
         );
     }
 
@@ -637,7 +649,8 @@ mod cond {
                     PreprocGlob@0..4
                       PPEndIf@0..4
                         PPKwEnd@0..4 "#end"
-                error at 0..4: expected ‘if’ after here"##]],
+                error at 0..4: unexpected end of file
+                | error for 0..4: expected ‘if’ after here"##]],
         );
     }
 
@@ -651,7 +664,8 @@ mod cond {
                     PreprocGlob@0..6
                       PPEndIf@0..6
                         PPKwEndIf@0..6 "#endif"
-                warn at 0..6: ‘#endif’ found, assuming it to be ‘#end if’"##]],
+                warn at 0..6: ‘#endif’ found
+                | warn for 0..6: assuming it to be ‘#end if’"##]],
         );
     }
 
@@ -701,7 +715,8 @@ mod cond {
                           Whitespace@49..50 " "
                           KwIf@50..52 "if"
                   Whitespace@52..57 "\n    "
-                error at 18..21: expected expression, but found ‘#if’"##]],
+                error at 18..21: unexpected token
+                | error for 18..21: expected expression, but found ‘#if’"##]],
         );
     }
 
@@ -751,7 +766,8 @@ mod cond {
                           Whitespace@52..53 " "
                           KwIf@53..55 "if"
                   Whitespace@55..60 "\n    "
-                error at 18..24: expected expression, but found ‘#elsif’"##]],
+                error at 18..24: unexpected token
+                | error for 18..24: expected expression, but found ‘#elsif’"##]],
         );
     }
 
@@ -801,8 +817,10 @@ mod cond {
                           Whitespace@53..54 " "
                           KwIf@54..56 "if"
                   Whitespace@56..61 "\n    "
-                error at 18..25: expected expression, but found ‘#elseif’
-                warn at 18..25: ‘#elseif’ found, assuming it to be ‘#elsif’"##]],
+                error at 18..25: unexpected token
+                | error for 18..25: expected expression, but found ‘#elseif’
+                warn at 18..25: ‘#elseif’ found
+                | warn for 18..25: assuming it to be ‘#elsif’"##]],
         );
     }
 
@@ -846,7 +864,8 @@ mod cond {
                           Whitespace@44..45 " "
                           KwIf@45..47 "if"
                   Whitespace@47..52 "\n    "
-                error at 18..23: expected expression, but found ‘#else’"##]],
+                error at 18..23: unexpected token
+                | error for 18..23: expected expression, but found ‘#else’"##]],
         );
     }
 
@@ -877,7 +896,8 @@ mod cond {
                         Whitespace@22..23 " "
                         KwIf@23..25 "if"
                   Whitespace@25..30 "\n    "
-                error at 18..22: expected expression, but found ‘#end’"##]],
+                error at 18..22: unexpected token
+                | error for 18..22: expected expression, but found ‘#end’"##]],
         );
     }
 
@@ -903,8 +923,10 @@ mod cond {
                     PreprocGlob@18..24
                       PPEndIf@18..24
                         PPKwEndIf@18..24 "#endif"
-                error at 18..24: expected expression, but found ‘#endif’
-                warn at 18..24: ‘#endif’ found, assuming it to be ‘#end if’"##]],
+                error at 18..24: unexpected token
+                | error for 18..24: expected expression, but found ‘#endif’
+                warn at 18..24: ‘#endif’ found
+                | warn for 18..24: assuming it to be ‘#end if’"##]],
         );
     }
 }
@@ -1201,7 +1223,8 @@ mod expr {
                           PPKwEnd@13..17 "#end"
                           Whitespace@17..18 " "
                           KwIf@18..20 "if"
-                error at 8..12: expected preprocessor condition, but found ‘then’"##]],
+                error at 8..12: unexpected token
+                | error for 8..12: expected preprocessor condition, but found ‘then’"##]],
         )
     }
 
@@ -1230,7 +1253,8 @@ mod expr {
                           PPKwEnd@15..19 "#end"
                           Whitespace@19..20 " "
                           KwIf@20..22 "if"
-                error at 10..14: expected preprocessor condition, but found ‘then’"##]],
+                error at 10..14: unexpected token
+                | error for 10..14: expected preprocessor condition, but found ‘then’"##]],
         )
     }
 
@@ -1265,8 +1289,10 @@ mod expr {
                           PPKwEnd@17..21 "#end"
                           Whitespace@21..22 " "
                           KwIf@22..24 "if"
-                error at 6..9: expected ‘then’, but found ‘not’
-                error at 12..16: expected statement, but found ‘then’"##]],
+                error at 6..9: unexpected token
+                | error for 6..9: expected ‘then’, but found ‘not’
+                error at 12..16: unexpected token
+                | error for 12..16: expected statement, but found ‘then’"##]],
         )
     }
 
@@ -1297,9 +1323,12 @@ mod expr {
                           PPKwEnd@15..19 "#end"
                           Whitespace@19..20 " "
                           KwIf@20..22 "if"
-                error at 4..7: expected preprocessor condition, but found ‘and’
-                error at 8..9: expected ‘then’, but found identifier
-                error at 10..14: expected statement, but found ‘then’"##]],
+                error at 4..7: unexpected token
+                | error for 4..7: expected preprocessor condition, but found ‘and’
+                error at 8..9: unexpected token
+                | error for 8..9: expected ‘then’, but found identifier
+                error at 10..14: unexpected token
+                | error for 10..14: expected statement, but found ‘then’"##]],
         )
     }
 
@@ -1421,7 +1450,8 @@ mod expr {
                           PPKwEnd@12..16 "#end"
                           Whitespace@16..17 " "
                           KwIf@17..19 "if"
-                error at 7..11: expected ‘)’, but found ‘then’"##]],
+                error at 7..11: unexpected token
+                | error for 7..11: expected ‘)’, but found ‘then’"##]],
         )
     }
 
@@ -1447,7 +1477,8 @@ mod expr {
                           PPKwEnd@12..16 "#end"
                           Whitespace@16..17 " "
                           KwIf@17..19 "if"
-                error at 5..6: expected preprocessor condition, but found ‘)’"##]],
+                error at 5..6: unexpected token
+                | error for 5..6: expected preprocessor condition, but found ‘)’"##]],
         )
     }
 }

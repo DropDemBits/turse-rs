@@ -10,4 +10,5 @@ Library@(dummy)
         Assign@(FileId(1), 0..9)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
 error in file FileId(1) at 5..9: unsupported expression
+| error in file FileId(1) for 5..9: this expression is not supported yet
 

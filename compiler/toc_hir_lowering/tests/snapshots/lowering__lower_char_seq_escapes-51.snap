@@ -10,5 +10,6 @@ Library@(dummy)
         Assign@(FileId(1), 0..16)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..16): String("�")
-error in file FileId(1) at 6..15: invalid string literal: unicode codepoint value is greater than U+10FFFF
+error in file FileId(1) at 5..16: invalid string literal
+| error in file FileId(1) for 6..15: unicode codepoint value is greater than U+10FFFF
 

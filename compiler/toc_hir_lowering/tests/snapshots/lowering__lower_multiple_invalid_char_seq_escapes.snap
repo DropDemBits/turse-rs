@@ -10,7 +10,8 @@ Library@(dummy)
         Assign@(FileId(1), 0..19)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..19): CharSeq("��!")
-error in file FileId(1) at 6..10: invalid char literal: octal character value is greater than \377 (decimal 255)
-error in file FileId(1) at 10..16: invalid char literal: surrogate chars are not allowed in char sequences
-error in file FileId(1) at 16..18: invalid char literal: unknown backslash escape
+error in file FileId(1) at 5..19: invalid char literal
+| error in file FileId(1) for 6..10: octal character value is greater than \377 (decimal 255)
+| error in file FileId(1) for 10..16: surrogate chars are not allowed in char sequences
+| error in file FileId(1) for 16..18: unknown backslash escape
 

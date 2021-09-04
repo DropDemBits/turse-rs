@@ -59,11 +59,9 @@ impl<'s> Scanner<'s> {
             },
             TokenKind::Error => {
                 // Report the invalid character
-                self.inner.extras.push_error(
-                    "invalid character",
-                    "", // intentionally left empty, message says it all
-                    self.inner.span(),
-                );
+                self.inner
+                    .extras
+                    .push_error("invalid character", "here", self.inner.span());
                 TokenKind::Error
             }
             other => other,
@@ -106,7 +104,6 @@ mod test {
         for msg in errors.iter() {
             buf.push_str(&msg.to_string());
         }
-        buf.pop();
 
         buf
     }
@@ -174,53 +171,73 @@ mod test {
         expect_with_error(
             "[",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "]",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "{",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "}",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "!",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "$",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "?",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "`",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         expect_with_error(
             "\\",
             &TokenKind::Error,
-            expect![[r#"error at 0..1: invalid character"#]],
+            expect![[r#"
+                error at 0..1: invalid character
+                | error for 0..1: here"#]],
         );
         // Was originally `🧑‍🔬` but that gets split up into multiple tokens
         expect_with_error(
             "🧑",
             &TokenKind::Error,
-            expect![[r#"error at 0..4: invalid character"#]],
+            expect![[r#"
+                error at 0..4: invalid character
+                | error for 0..4: here"#]],
         );
     }
 
@@ -612,21 +629,27 @@ mod test {
         expect_with_error(
             "/* ",
             &TokenKind::Comment,
-            expect![[r#"error at 0..3: block comment is missing terminating ’*/’"#]],
+            expect![[r#"
+                error at 0..3: unterminated block comment
+                | error for 0..3: block comment is missing terminating ’*/’"#]],
         );
 
         // Respecting nesting
         expect_with_error(
             "/* /* abcd */",
             &TokenKind::Comment,
-            expect![[r#"error at 0..13: block comment is missing terminating ’*/’"#]],
+            expect![[r#"
+                error at 0..13: unterminated block comment
+                | error for 0..13: block comment is missing terminating ’*/’"#]],
         );
 
         // With trailing spaces
         expect_with_error(
             "/* /* abcd */ ",
             &TokenKind::Comment,
-            expect![[r#"error at 0..14: block comment is missing terminating ’*/’"#]],
+            expect![[r#"
+                error at 0..14: unterminated block comment
+                | error for 0..14: block comment is missing terminating ’*/’"#]],
         );
     }
 
@@ -742,7 +765,9 @@ mod test {
         expect_with_error(
             "/*/*",
             &TokenKind::Comment,
-            expect![[r#"error at 0..4: block comment is missing terminating ’*/’"#]],
+            expect![[r#"
+                error at 0..4: unterminated block comment
+                | error for 0..4: block comment is missing terminating ’*/’"#]],
         );
     }
 
@@ -751,7 +776,9 @@ mod test {
         expect_seq_with_errors(
             "2#پ",
             &[(TokenKind::RadixLiteral, "2#"), (TokenKind::Error, "پ")],
-            expect![[r#"error at 2..4: invalid character"#]],
+            expect![[r#"
+                error at 2..4: invalid character
+                | error for 2..4: here"#]],
         );
     }
 }

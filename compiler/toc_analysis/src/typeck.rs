@@ -206,7 +206,7 @@ impl TypeCheck<'_> {
                 // TODO: If it's a ref expr, get the definition point
                 self.state()
                     .reporter
-                    .error_detailed("cannot assign into expression on left hand side", asn_span)
+                    .error_detailed("cannot assign into expression", asn_span)
                     .with_note("not a reference to a variable", left_span)
                     .finish();
             }

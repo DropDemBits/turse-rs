@@ -7,4 +7,5 @@ expression: "const k : char := 20"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 18..20: mismatched types
-| note in file FileId(1) for 10..14: initializer's type is incompatible with this type
+| error in file FileId(1) for 18..20: the type of this expression...
+| note in file FileId(1) for 10..14: is incompatible with this type

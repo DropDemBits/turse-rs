@@ -294,11 +294,6 @@ impl<'a> CharSeqExtractor<'a> {
         // Do the extraction
         extractor.do_extraction();
 
-        if !as_str_literal && text.is_empty() {
-            // Zero-length char-seq string
-            extractor.push_error(InvalidChar::EmptySequence, 0, 1);
-        }
-
         let Self {
             extracted_text,
             errors,
@@ -319,6 +314,10 @@ impl<'a> CharSeqExtractor<'a> {
                 _ => {
                     if current == self.ending_delimiter {
                         // At the ending delimiter, stop
+                        if self.ending_delimiter == '\'' && self.extracted_text.is_empty() {
+                            // Zero-length char-seq string
+                            self.push_error(InvalidChar::EmptySequence, 0, 1);
+                        }
                         return;
                     } else {
                         // Append character

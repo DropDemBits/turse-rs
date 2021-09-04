@@ -10,26 +10,34 @@ expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 177..178: invalid put option
+| error in file FileId(1) for 177..178: this is the invalid option
 | note in file FileId(1) for 169..170: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error in file FileId(1) at 181..182: invalid put option
+| error in file FileId(1) for 181..182: this is the invalid option
 | note in file FileId(1) for 169..170: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
 error in file FileId(1) at 196..197: invalid put option
+| error in file FileId(1) for 196..197: this is the invalid option
 | note in file FileId(1) for 187..189: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error in file FileId(1) at 200..201: invalid put option
+| error in file FileId(1) for 200..201: this is the invalid option
 | note in file FileId(1) for 187..189: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
 error in file FileId(1) at 214..215: invalid put option
+| error in file FileId(1) for 214..215: this is the invalid option
 | note in file FileId(1) for 206..207: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error in file FileId(1) at 218..219: invalid put option
+| error in file FileId(1) for 218..219: this is the invalid option
 | note in file FileId(1) for 206..207: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types
 error in file FileId(1) at 233..234: invalid put option
+| error in file FileId(1) for 233..234: this is the invalid option
 | note in file FileId(1) for 224..226: cannot specify fraction width for this type
 | info: fraction width can only be specified for numeric put types
 error in file FileId(1) at 237..238: invalid put option
+| error in file FileId(1) for 237..238: this is the invalid option
 | note in file FileId(1) for 224..226: cannot specify exponent width for this type
 | info: exponent width can only be specified for numeric types

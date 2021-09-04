@@ -1406,7 +1406,8 @@ fn recover_tilde_as_infix() {
                     Whitespace@6..7 " "
                     LiteralExpr@7..8
                       IntLiteral@7..8 "2"
-            error at 7..8: expected ‘in’ or ‘=’, but found int literal"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected ‘in’ or ‘=’, but found int literal"#]],
     );
 }
 
@@ -1432,7 +1433,8 @@ fn recover_not_as_infix() {
                     Whitespace@8..9 " "
                     LiteralExpr@9..10
                       IntLiteral@9..10 "2"
-            error at 9..10: expected ‘in’ or ‘=’, but found int literal"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected ‘in’ or ‘=’, but found int literal"#]],
     );
 }
 
@@ -1581,7 +1583,8 @@ fn recover_infix_missing_rhs() {
                     Assign@1..3 ":="
                   UnaryExpr@3..6
                     KwNot@3..6 "not"
-            error at 3..6: expected expression after here"#]],
+            error at 3..6: unexpected end of file
+            | error for 3..6: expected expression after here"#]],
     );
 }
 
@@ -1673,7 +1676,8 @@ fn recover_just_right_paren() {
                     Assign@1..3 ":="
                   Error@3..4
                     RightParen@3..4 ")"
-            error at 3..4: expected expression, but found ‘)’"#]],
+            error at 3..4: unexpected token
+            | error for 3..4: expected expression, but found ‘)’"#]],
     )
 }
 
@@ -1697,7 +1701,8 @@ fn recover_too_many_right_parens() {
                     RightParen@5..6 ")"
                 Error@6..7
                   RightParen@6..7 ")"
-            error at 6..7: expected statement, but found ‘)’"#]],
+            error at 6..7: unexpected token
+            | error for 6..7: expected statement, but found ‘)’"#]],
     )
 }
 
@@ -1718,7 +1723,8 @@ fn recover_missing_closing_paren() {
                     LeftParen@3..4 "("
                     LiteralExpr@4..5
                       IntLiteral@4..5 "1"
-            error at 4..5: expected ‘)’ after here"#]],
+            error at 4..5: unexpected end of file
+            | error for 4..5: expected ‘)’ after here"#]],
     );
 }
 
@@ -1741,7 +1747,8 @@ fn recover_missing_closing_paren_and_rhs() {
                       LiteralExpr@4..5
                         IntLiteral@4..5 "1"
                       Plus@5..6 "+"
-            error at 5..6: expected expression after here"#]],
+            error at 5..6: unexpected end of file
+            | error for 5..6: expected expression after here"#]],
     );
 }
 
@@ -1762,7 +1769,8 @@ fn recover_missing_rhs() {
                     LiteralExpr@3..4
                       IntLiteral@3..4 "1"
                     Plus@4..5 "+"
-            error at 4..5: expected expression after here"#]],
+            error at 4..5: unexpected end of file
+            | error for 4..5: expected expression after here"#]],
     );
 }
 
@@ -1840,7 +1848,8 @@ fn recover_field_expr_missing_field() {
                       Name@3..4
                         Identifier@3..4 "a"
                     Dot@4..5 "."
-            error at 4..5: expected identifier after here"#]],
+            error at 4..5: unexpected end of file
+            | error for 4..5: expected identifier after here"#]],
     );
 }
 
@@ -1864,7 +1873,8 @@ fn recover_field_missing_closing_paren_and_field() {
                         Name@4..5
                           Identifier@4..5 "a"
                       Dot@5..6 "."
-            error at 5..6: expected identifier after here"#]],
+            error at 5..6: unexpected end of file
+            | error for 5..6: expected identifier after here"#]],
     );
 }
 
@@ -1942,7 +1952,8 @@ fn recover_arrow_expr_missing_field() {
                       Name@3..4
                         Identifier@3..4 "a"
                     Arrow@4..6 "->"
-            error at 4..6: expected identifier after here"#]],
+            error at 4..6: unexpected end of file
+            | error for 4..6: expected identifier after here"#]],
     );
 }
 
@@ -1966,7 +1977,8 @@ fn recover_arrow_missing_closing_paren_and_field() {
                         Name@4..5
                           Identifier@4..5 "a"
                       Arrow@5..7 "->"
-            error at 5..7: expected identifier after here"#]],
+            error at 5..7: unexpected end of file
+            | error for 5..7: expected identifier after here"#]],
     );
 }
 
@@ -2196,7 +2208,8 @@ fn recover_call_expr_missing_closing_paren() {
                       Param@5..6
                         LiteralExpr@5..6
                           IntLiteral@5..6 "1"
-            error at 5..6: expected ‘..’, ‘,’ or ‘)’ after here"#]],
+            error at 5..6: unexpected end of file
+            | error for 5..6: expected ‘..’, ‘,’ or ‘)’ after here"#]],
     );
 }
 
@@ -2225,7 +2238,8 @@ fn recover_call_expr_missing_last_arg() {
                         Comma@6..7 ","
                       Param@7..7
                       RightParen@7..8 ")"
-            error at 7..8: expected expression, but found ‘)’"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -2253,7 +2267,8 @@ fn recover_call_expr_missing_last_arg_and_closing_paren() {
                           IntLiteral@5..6 "1"
                         Comma@6..7 ","
                       Param@7..7
-            error at 6..7: expected expression after here"#]],
+            error at 6..7: unexpected end of file
+            | error for 6..7: expected expression after here"#]],
     );
 }
 
@@ -2285,8 +2300,10 @@ fn recover_call_expr_missing_delim() {
                     IntLiteral@7..8 "1"
                 Error@8..9
                   RightParen@8..9 ")"
-            error at 7..8: expected ‘..’, ‘,’ or ‘)’, but found int literal
-            error at 8..9: expected statement, but found ‘)’"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected ‘..’, ‘,’ or ‘)’, but found int literal
+            error at 8..9: unexpected token
+            | error for 8..9: expected statement, but found ‘)’"#]],
     );
 }
 
@@ -2319,7 +2336,8 @@ fn recover_call_expr_missing_param() {
                         LiteralExpr@8..9
                           IntLiteral@8..9 "1"
                       RightParen@9..10 ")"
-            error at 7..8: expected expression, but found ‘,’"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found ‘,’"#]],
     );
 }
 
@@ -2354,8 +2372,10 @@ fn recover_call_expr_missing_params() {
                         LiteralExpr@9..10
                           IntLiteral@9..10 "1"
                       RightParen@10..11 ")"
-            error at 7..8: expected expression, but found ‘,’
-            error at 8..9: expected expression, but found ‘,’"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected expression, but found ‘,’
+            error at 8..9: unexpected token
+            | error for 8..9: expected expression, but found ‘,’"#]],
     );
 }
 
@@ -2549,7 +2569,8 @@ fn recover_deref_missing_rhs() {
                     Caret@3..4 "^"
                     DerefExpr@4..5
                       Caret@4..5 "^"
-            error at 4..5: expected expression after here"#]],
+            error at 4..5: unexpected end of file
+            | error for 4..5: expected expression after here"#]],
     );
 }
 
@@ -2661,7 +2682,8 @@ fn recover_init_expr_missing_expr_in_list() {
                       LiteralExpr@11..12
                         IntLiteral@11..12 "3"
                     RightParen@12..13 ")"
-            error at 10..11: expected expression, but found ‘,’"#]],
+            error at 10..11: unexpected token
+            | error for 10..11: expected expression, but found ‘,’"#]],
     );
 }
 #[test]
@@ -2693,8 +2715,10 @@ fn recover_init_expr_missing_delimiter() {
                     IntLiteral@13..14 "3"
                 Error@14..15
                   RightParen@14..15 ")"
-            error at 13..14: expected ‘)’, but found int literal
-            error at 14..15: expected statement, but found ‘)’"#]],
+            error at 13..14: unexpected token
+            | error for 13..14: expected ‘)’, but found int literal
+            error at 14..15: unexpected token
+            | error for 14..15: expected statement, but found ‘)’"#]],
     );
 }
 
@@ -2721,7 +2745,8 @@ fn recover_init_expr_missing_right_paren() {
                       Whitespace@10..11 " "
                       LiteralExpr@11..12
                         IntLiteral@11..12 "2"
-            error at 11..12: expected ‘)’ after here"#]],
+            error at 11..12: unexpected end of file
+            | error for 11..12: expected ‘)’ after here"#]],
     );
 }
 
@@ -2748,8 +2773,10 @@ fn recover_init_expr_missing_left_paren() {
                       Whitespace@10..11 " "
                       LiteralExpr@11..12
                         IntLiteral@11..12 "2"
-            error at 8..9: expected ‘(’, but found int literal
-            error at 11..12: expected ‘)’ after here"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected ‘(’, but found int literal
+            error at 11..12: unexpected end of file
+            | error for 11..12: expected ‘)’ after here"#]],
     );
 }
 
@@ -2771,7 +2798,8 @@ fn recover_init_expr_empty() {
                     LeftParen@7..8 "("
                     ExprList@8..8
                     RightParen@8..9 ")"
-            error at 8..9: expected expression, but found ‘)’"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -2794,7 +2822,8 @@ fn recover_init_expr_just_comma() {
                     ExprList@8..9
                       Comma@8..9 ","
                     RightParen@9..10 ")"
-            error at 8..9: expected expression, but found ‘,’"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected expression, but found ‘,’"#]],
     )
 }
 
@@ -3444,7 +3473,8 @@ fn recover_chained_indirect_tails() {
                     LiteralExpr@14..15
                       IntLiteral@14..15 "2"
                     RightParen@15..16 ")"
-            error at 11..12: expected infix operator, but found ‘@’"#]],
+            error at 11..12: unexpected token
+            | error for 11..12: expected infix operator, but found ‘@’"#]],
     );
 }
 
@@ -3485,7 +3515,8 @@ fn recover_just_indirect_ty() {
                 Error@0..4
                   PrimType@0..4
                     KwChar@0..4 "char"
-            error at 0..4: expected ‘(’ or ‘@’ after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected ‘(’ or ‘@’ after here"#]],
     );
 }
 
@@ -3662,7 +3693,8 @@ fn recover_just_bits() {
                 CallStmt@0..4
                   BitsExpr@0..4
                     KwBits@0..4 "bits"
-            error at 0..4: expected ‘(’ after here"#]],
+            error at 0..4: unexpected end of file
+            | error for 0..4: expected ‘(’ after here"#]],
     );
 }
 
@@ -3767,7 +3799,8 @@ fn recover_just_objclass() {
                 CallStmt@0..11
                   ObjClassExpr@0..11
                     KwObjectClass@0..11 "objectclass"
-            error at 0..11: expected ‘(’ after here"#]],
+            error at 0..11: unexpected end of file
+            | error for 0..11: expected ‘(’ after here"#]],
     );
 }
 
@@ -3889,7 +3922,8 @@ fn recover_cheat_expr_missing_size_spec_expr() {
                       Colon@16..17 ":"
                     Whitespace@17..18 " "
                     RightParen@18..19 ")"
-            error at 18..19: expected expression, but found ‘)’"#]],
+            error at 18..19: unexpected token
+            | error for 18..19: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -3914,7 +3948,8 @@ fn recover_cheat_expr_missing_expr() {
                     Comma@12..13 ","
                     Whitespace@13..14 " "
                     RightParen@14..15 ")"
-            error at 14..15: expected expression, but found ‘)’"#]],
+            error at 14..15: unexpected token
+            | error for 14..15: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -3937,7 +3972,8 @@ fn recover_cheat_expr_missing_comma() {
                     PrimType@9..12
                       KwInt@9..12 "int"
                     RightParen@12..13 ")"
-            error at 12..13: expected ‘,’, but found ‘)’"#]],
+            error at 12..13: unexpected token
+            | error for 12..13: expected ‘,’, but found ‘)’"#]],
     );
 }
 
@@ -3958,7 +3994,8 @@ fn recover_cheat_expr_empty() {
                     KwCheat@3..8 "cheat"
                     LeftParen@8..9 "("
                     RightParen@9..10 ")"
-            error at 9..10: expected type specifier, but found ‘)’"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected type specifier, but found ‘)’"#]],
     );
 }
 
@@ -3977,7 +4014,8 @@ fn recover_just_cheat() {
                     Assign@1..3 ":="
                   CheatExpr@3..8
                     KwCheat@3..8 "cheat"
-            error at 3..8: expected ‘(’ after here"#]],
+            error at 3..8: unexpected end of file
+            | error for 3..8: expected ‘(’ after here"#]],
     );
 }
 
@@ -4216,7 +4254,8 @@ fn recover_call_expr_range_item_missing_expr() {
                           Range@7..9 ".."
                       Whitespace@9..10 " "
                       RightParen@10..11 ")"
-            error at 10..11: expected expression, but found ‘)’"#]],
+            error at 10..11: unexpected token
+            | error for 10..11: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -4246,7 +4285,8 @@ fn recover_call_expr_relative_bound_missing_expr() {
                           Minus@7..8 "-"
                       Whitespace@8..9 " "
                       RightParen@9..10 ")"
-            error at 9..10: expected expression, but found ‘)’"#]],
+            error at 9..10: unexpected token
+            | error for 9..10: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -4278,8 +4318,10 @@ fn recover_call_expr_relative_bound_missing_minus() {
                     IntLiteral@7..8 "1"
                 Error@8..9
                   RightParen@8..9 ")"
-            error at 7..8: expected ‘-’, ‘..’, ‘,’ or ‘)’, but found int literal
-            error at 8..9: expected statement, but found ‘)’"#]],
+            error at 7..8: unexpected token
+            | error for 7..8: expected ‘-’, ‘..’, ‘,’ or ‘)’, but found int literal
+            error at 8..9: unexpected token
+            | error for 8..9: expected statement, but found ‘)’"#]],
     );
 }
 
@@ -4381,8 +4423,10 @@ fn recover_all_not_primary() {
                       IntLiteral@18..19 "1"
                 Error@19..20
                   RightParen@19..20 ")"
-            error at 16..17: expected ‘,’ or ‘)’, but found ‘+’
-            error at 19..20: expected statement, but found ‘)’"#]],
+            error at 16..17: unexpected token
+            | error for 16..17: expected ‘,’ or ‘)’, but found ‘+’
+            error at 19..20: unexpected token
+            | error for 19..20: expected statement, but found ‘)’"#]],
     );
 }
 
@@ -4544,7 +4588,8 @@ fn recover_nil_expr_missing_spec() {
                     Whitespace@6..7 " "
                     LeftParen@7..8 "("
                     RightParen@8..9 ")"
-            error at 8..9: expected expression, but found ‘)’"#]],
+            error at 8..9: unexpected token
+            | error for 8..9: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -4568,7 +4613,8 @@ fn recover_nil_expr_missing_right_paren() {
                     NameExpr@8..9
                       Name@8..9
                         Identifier@8..9 "a"
-            error at 8..9: expected ‘)’ after here"#]],
+            error at 8..9: unexpected end of file
+            | error for 8..9: expected ‘)’ after here"#]],
     );
 }
 
@@ -4599,8 +4645,10 @@ fn recover_include_glob_expr() {
                 CallStmt@20..21
                   LiteralExpr@20..21
                     IntLiteral@20..21 "1"
-            error at 3..10: expected expression, but found ‘include’
-            error at 18..19: expected statement, but found ‘+’"#]],
+            error at 3..10: unexpected token
+            | error for 3..10: expected expression, but found ‘include’
+            error at 18..19: unexpected token
+            | error for 18..19: expected statement, but found ‘+’"#]],
     );
 }
 
@@ -4626,7 +4674,8 @@ fn recover_include_glob_ref() {
                   NameExpr@18..27
                     Name@18..27
                       Identifier@18..27 "and_there"
-            error at 15..17: expected statement, but found ‘->’"#]],
+            error at 15..17: unexpected token
+            | error for 15..17: expected statement, but found ‘->’"#]],
     );
 }
 
@@ -4874,7 +4923,8 @@ fn recover_sizeof_expr_missing_right_paren() {
                     NameExpr@10..11
                       Name@10..11
                         Identifier@10..11 "a"
-            error at 10..11: expected ‘)’ after here"#]],
+            error at 10..11: unexpected end of file
+            | error for 10..11: expected ‘)’ after here"#]],
     );
 }
 
@@ -4898,7 +4948,8 @@ fn recover_sizeof_expr_missing_left_paren() {
                       Name@10..11
                         Identifier@10..11 "a"
                     RightParen@11..12 ")"
-            error at 10..11: expected ‘(’, but found identifier"#]],
+            error at 10..11: unexpected token
+            | error for 10..11: expected ‘(’, but found identifier"#]],
     );
 }
 
@@ -4921,7 +4972,8 @@ fn recover_sizeof_expr_missing_parens() {
                     NameExpr@10..11
                       Name@10..11
                         Identifier@10..11 "a"
-            error at 10..11: expected ‘(’, but found identifier"#]],
+            error at 10..11: unexpected token
+            | error for 10..11: expected ‘(’, but found identifier"#]],
     );
 }
 
@@ -4942,7 +4994,8 @@ fn recover_sizeof_expr_missing_arg() {
                     KwSizeOf@3..9 "sizeof"
                     LeftParen@9..10 "("
                     RightParen@10..11 ")"
-            error at 10..11: expected expression, but found ‘)’"#]],
+            error at 10..11: unexpected token
+            | error for 10..11: expected expression, but found ‘)’"#]],
     );
 }
 
@@ -4985,28 +5038,29 @@ fn parse_invalid_tilde_before_indirect() {
     check(
         "_:=A~B@()",
         expect![[r#"
-        Source@0..9
-          StmtList@0..9
-            AssignStmt@0..9
-              NameExpr@0..1
-                Name@0..1
-                  Identifier@0..1 "_"
-              AsnOp@1..3
-                Assign@1..3 ":="
-              BinaryExpr@3..9
-                NameExpr@3..4
-                  Name@3..4
-                    Identifier@3..4 "A"
-                Error@4..5
-                  Tilde@4..5 "~"
-                IndirectExpr@5..9
-                  NameExpr@5..6
-                    Name@5..6
-                      Identifier@5..6 "B"
-                  At@6..7 "@"
-                  LeftParen@7..8 "("
-                  RightParen@8..9 ")"
-        error at 5..6: expected ‘in’ or ‘=’, but found identifier"#]],
+            Source@0..9
+              StmtList@0..9
+                AssignStmt@0..9
+                  NameExpr@0..1
+                    Name@0..1
+                      Identifier@0..1 "_"
+                  AsnOp@1..3
+                    Assign@1..3 ":="
+                  BinaryExpr@3..9
+                    NameExpr@3..4
+                      Name@3..4
+                        Identifier@3..4 "A"
+                    Error@4..5
+                      Tilde@4..5 "~"
+                    IndirectExpr@5..9
+                      NameExpr@5..6
+                        Name@5..6
+                          Identifier@5..6 "B"
+                      At@6..7 "@"
+                      LeftParen@7..8 "("
+                      RightParen@8..9 ")"
+            error at 5..6: unexpected token
+            | error for 5..6: expected ‘in’ or ‘=’, but found identifier"#]],
     );
 }
 
@@ -5015,29 +5069,30 @@ fn parse_invalid_not_before_indirect() {
     check(
         "_:=A not B@()",
         expect![[r#"
-        Source@0..13
-          StmtList@0..13
-            AssignStmt@0..13
-              NameExpr@0..1
-                Name@0..1
-                  Identifier@0..1 "_"
-              AsnOp@1..3
-                Assign@1..3 ":="
-              BinaryExpr@3..13
-                NameExpr@3..4
-                  Name@3..4
-                    Identifier@3..4 "A"
-                Whitespace@4..5 " "
-                Error@5..8
-                  KwNot@5..8 "not"
-                Whitespace@8..9 " "
-                IndirectExpr@9..13
-                  NameExpr@9..10
-                    Name@9..10
-                      Identifier@9..10 "B"
-                  At@10..11 "@"
-                  LeftParen@11..12 "("
-                  RightParen@12..13 ")"
-        error at 9..10: expected ‘in’ or ‘=’, but found identifier"#]],
+            Source@0..13
+              StmtList@0..13
+                AssignStmt@0..13
+                  NameExpr@0..1
+                    Name@0..1
+                      Identifier@0..1 "_"
+                  AsnOp@1..3
+                    Assign@1..3 ":="
+                  BinaryExpr@3..13
+                    NameExpr@3..4
+                      Name@3..4
+                        Identifier@3..4 "A"
+                    Whitespace@4..5 " "
+                    Error@5..8
+                      KwNot@5..8 "not"
+                    Whitespace@8..9 " "
+                    IndirectExpr@9..13
+                      NameExpr@9..10
+                        Name@9..10
+                          Identifier@9..10 "B"
+                      At@10..11 "@"
+                      LeftParen@11..12 "("
+                      RightParen@12..13 ")"
+            error at 9..10: unexpected token
+            | error for 9..10: expected ‘in’ or ‘=’, but found identifier"#]],
     );
 }

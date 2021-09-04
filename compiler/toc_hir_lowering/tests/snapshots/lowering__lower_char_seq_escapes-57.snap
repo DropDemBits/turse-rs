@@ -10,5 +10,6 @@ Library@(dummy)
         Assign@(FileId(1), 0..9)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..9): String("8")
-error in file FileId(1) at 6..8: invalid string literal: unknown backslash escape
+error in file FileId(1) at 5..9: invalid string literal
+| error in file FileId(1) for 6..8: unknown backslash escape
 

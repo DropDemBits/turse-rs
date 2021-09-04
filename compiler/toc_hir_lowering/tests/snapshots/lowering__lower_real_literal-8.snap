@@ -10,5 +10,6 @@ Library@(dummy)
         Assign@(FileId(1), 0..7)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..7): Real(0.0)
-error in file FileId(1) at 5..7: real literal is missing exponent digits
+error in file FileId(1) at 5..7: invalid real literal
+| error in file FileId(1) for 5..7: missing exponent digits
 

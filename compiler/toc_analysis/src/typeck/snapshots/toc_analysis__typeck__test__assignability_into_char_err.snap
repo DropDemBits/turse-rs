@@ -10,6 +10,8 @@ expression: "var c5 : char(5)\nvar s5 : string(5)\n\nvar _e00 : char := s5\nvar 
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 56..58: mismatched types
-| note in file FileId(1) for 48..52: initializer's type is incompatible with this type
+| error in file FileId(1) for 56..58: the type of this expression...
+| note in file FileId(1) for 48..52: is incompatible with this type
 error in file FileId(1) at 78..80: mismatched types
-| note in file FileId(1) for 70..74: initializer's type is incompatible with this type
+| error in file FileId(1) for 78..80: the type of this expression...
+| note in file FileId(1) for 70..74: is incompatible with this type

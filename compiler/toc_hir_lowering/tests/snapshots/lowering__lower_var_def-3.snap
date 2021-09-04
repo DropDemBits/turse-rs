@@ -7,5 +7,6 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..3): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..3): []
-error in file FileId(1) at 0..3: expected identifier after here
+error in file FileId(1) at 0..3: unexpected end of file
+| error in file FileId(1) for 0..3: expected identifier after here
 

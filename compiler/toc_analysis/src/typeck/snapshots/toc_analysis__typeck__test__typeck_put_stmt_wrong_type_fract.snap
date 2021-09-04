@@ -7,4 +7,4 @@ expression: "var f : real\nput 1 : 0 : f\n"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 25..26: mismatched types
-| note in file FileId(1) for 25..26: expected integer type
+| error in file FileId(1) for 25..26: expected integer type

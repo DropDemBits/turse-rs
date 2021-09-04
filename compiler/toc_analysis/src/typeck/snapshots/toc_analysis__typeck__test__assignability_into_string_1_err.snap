@@ -9,4 +9,5 @@ expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : string(N) := c5 % [not
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 55..57: mismatched types
-| note in file FileId(1) for 42..51: initializer's type is incompatible with this type
+| error in file FileId(1) for 55..57: the type of this expression...
+| note in file FileId(1) for 42..51: is incompatible with this type

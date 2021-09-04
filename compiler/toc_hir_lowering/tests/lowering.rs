@@ -286,6 +286,8 @@ fn lower_char_literal() {
     assert_lower(r#"a := 'abcd""#);
     // ... or that are completely empty
     assert_lower(r#"a := ''"#);
+    // ... or that are completely empty without an ending delimiter
+    assert_lower(r#"a := '"#);
 }
 
 #[test]

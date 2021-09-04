@@ -15,10 +15,14 @@ expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 108..109: mismatched types
-| note in file FileId(1) for 97..104: initializer's type is incompatible with this type
+| error in file FileId(1) for 108..109: the type of this expression...
+| note in file FileId(1) for 97..104: is incompatible with this type
 error in file FileId(1) at 132..134: mismatched types
-| note in file FileId(1) for 121..128: initializer's type is incompatible with this type
+| error in file FileId(1) for 132..134: the type of this expression...
+| note in file FileId(1) for 121..128: is incompatible with this type
 error in file FileId(1) at 157..161: mismatched types
-| note in file FileId(1) for 146..153: initializer's type is incompatible with this type
+| error in file FileId(1) for 157..161: the type of this expression...
+| note in file FileId(1) for 146..153: is incompatible with this type
 error in file FileId(1) at 184..186: mismatched types
-| note in file FileId(1) for 173..180: initializer's type is incompatible with this type
+| error in file FileId(1) for 184..186: the type of this expression...
+| note in file FileId(1) for 173..180: is incompatible with this type
