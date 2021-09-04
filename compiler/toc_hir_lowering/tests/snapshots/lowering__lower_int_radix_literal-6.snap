@@ -11,5 +11,5 @@ Library@(dummy)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..11): Integer(0)
 error in file FileId(1) at 5..11: invalid int literal
-| error in file FileId(1) for 5..6: base for explicit int literal is not between 2 - 36
+| error in file FileId(1) for 5..6: base is not between 2 - 36
 

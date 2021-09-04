@@ -719,7 +719,7 @@ pub enum InvalidInt {
     BaseInvalidDigit(char, u8, Range<usize>),
     #[error("missing radix digits")]
     MissingRadix,
-    #[error("base for explicit int literal is not between 2 - 36")]
+    #[error("base is not between 2 - 36")]
     InvalidBase(Range<usize>),
     #[error("invalid literal")]
     Invalid,
