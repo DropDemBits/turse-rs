@@ -11,6 +11,7 @@ use crate::BuiltinPrefix;
 
 /// Concrete virtual filesystem interface
 ///
+// TODO: This behaviour has changed, and the `Vfs` is now just a path tree abstraction
 /// File sources are loaded into the main `Vfs` type, and file sources in
 /// the form of raw binary blobs can come from anywhere.
 /// For example, they can be generated from diffs provided from a
@@ -20,7 +21,6 @@ use crate::BuiltinPrefix;
 pub struct Vfs {
     path_interner: PathInterner,
     builtin_expansions: HashMap<BuiltinPrefix, PathBuf>,
-    pub(crate) file_store: HashMap<FileId, Option<Vec<u8>>>,
 }
 
 impl Vfs {
@@ -119,27 +119,13 @@ impl Vfs {
     pub fn lookup_path(&self, file_id: FileId) -> &std::path::Path {
         self.path_interner.lookup_path(file_id)
     }
-
-    /// Inserts a file, producing a file id
-    ///
-    /// Mainly used in tests.
-    pub fn insert_file(&mut self, path: impl AsRef<Path>, source: &str) -> FileId {
-        let id = self.intern_path(path.as_ref().to_path_buf());
-        self.file_store
-            .insert(id, Some(source.to_string().into_bytes()));
-        id
-    }
-
-    /// Replaces the file source of the given `file_id` with the `new_source`.
-    ///
-    /// [`None`] is used to indicate that a file does not exist.
-    pub fn update_file(&mut self, file_id: FileId, new_source: Option<Vec<u8>>) {
-        self.file_store.insert(file_id, new_source);
-    }
 }
 
 /// Trait providing the query system access to the virtual file system
 pub trait HasVfs {
     // Get access to the underlying virtual file system
     fn get_vfs(&self) -> &Vfs;
+
+    // Get mutable access to the underlying virtual file system
+    fn get_vfs_mut(&mut self) -> &mut Vfs;
 }

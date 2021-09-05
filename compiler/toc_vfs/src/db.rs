@@ -1,5 +1,6 @@
 //! VFS query system definitions
 
+use std::path::Path;
 use std::sync::Arc;
 
 use toc_salsa::salsa;
@@ -41,9 +42,10 @@ pub trait FileSystem: HasVfs {
 ///
 /// [`Vfs`]: crate::Vfs
 pub trait VfsDatabaseExt: HasVfs + FileSystem {
-    /// Invalidates all files, uploading every single source into the database
-    /// regardless of if it has changed or not.
-    fn invalidate_files(&mut self);
+    /// Inserts a file into the database, producing a [`FileId`]
+    /// 
+    /// Mainly used in tests
+    fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> FileId;
 
     /// Updates the contents of the specified file.
     ///

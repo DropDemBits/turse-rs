@@ -42,6 +42,10 @@ macro_rules! impl_has_vfs {
             fn get_vfs(&self) -> &$crate::Vfs {
                 &self.$vfs
             }
+
+            fn get_vfs_mut(&mut self) -> &mut $crate::Vfs {
+                &mut self.$vfs
+            }
         }
     };
 }
@@ -117,7 +121,7 @@ mod test {
     use toc_salsa::salsa;
 
     use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
-    use crate::{BuiltinPrefix, HasVfs, LoadError, Vfs};
+    use crate::{BuiltinPrefix, LoadError, Vfs};
 
     #[salsa::database(FileSystemStorage)]
     struct VfsTestDB {
@@ -127,11 +131,7 @@ mod test {
 
     impl salsa::Database for VfsTestDB {}
 
-    impl HasVfs for VfsTestDB {
-        fn get_vfs(&self) -> &Vfs {
-            &self.vfs
-        }
-    }
+    impl_has_vfs!(VfsTestDB, vfs);
 
     impl VfsTestDB {
         fn new() -> Self {
@@ -161,9 +161,7 @@ mod test {
         const FILE_SOURCE: &str = r#"put "yee""#;
 
         let mut db = make_test_db();
-        let root_file = db.vfs.insert_file("/src/main.t", FILE_SOURCE);
-
-        db.invalidate_files();
+        let root_file = db.insert_file("/src/main.t", FILE_SOURCE);
 
         let res = db.file_source(root_file);
         let (source, _load_error) = res;
@@ -176,11 +174,9 @@ mod test {
         const FILE_SOURCES: &[&str] = &[r#"put "yee""#, r#"put "bam bam""#, r#"put "ye ye""#];
 
         let mut db = make_test_db();
-        let root_file = db.vfs.insert_file("/src/main.t", FILE_SOURCES[0]);
-        db.vfs.insert_file("/src/foo/bar.t", FILE_SOURCES[1]);
-        db.vfs.insert_file("/src/foo/bap.t", FILE_SOURCES[2]);
-
-        db.invalidate_files();
+        let root_file = db.insert_file("/src/main.t", FILE_SOURCES[0]);
+        db.insert_file("/src/foo/bar.t", FILE_SOURCES[1]);
+        db.insert_file("/src/foo/bap.t", FILE_SOURCES[2]);
 
         // Lookup root file source
         {
@@ -221,23 +217,21 @@ mod test {
 
         let mut db = make_test_db();
         let root_file = {
-            let vfs = &mut db.vfs;
-            let root_file = vfs.insert_file("/src/main.t", FILE_SOURCES[0]);
-            vfs.insert_file("/oot/support/Predefs.lst", FILE_SOURCES[1]);
-            vfs.insert_file("/oot/support/Net.tu", FILE_SOURCES[2]);
-            vfs.insert_file("/oot/support/help/Keyword Lookup.txt", FILE_SOURCES[3]);
-            vfs.insert_file("/home/special_file.t", FILE_SOURCES[0]);
-            vfs.insert_file("/temp/pre/made/some-temp-item", FILE_SOURCES[0]);
-            vfs.insert_file("/job/to/make/job-item", FILE_SOURCES[0]);
+            let root_file = db.insert_file("/src/main.t", FILE_SOURCES[0]);
+            db.insert_file("/oot/support/Predefs.lst", FILE_SOURCES[1]);
+            db.insert_file("/oot/support/Net.tu", FILE_SOURCES[2]);
+            db.insert_file("/oot/support/help/Keyword Lookup.txt", FILE_SOURCES[3]);
+            db.insert_file("/home/special_file.t", FILE_SOURCES[0]);
+            db.insert_file("/temp/pre/made/some-temp-item", FILE_SOURCES[0]);
+            db.insert_file("/job/to/make/job-item", FILE_SOURCES[0]);
 
             // Ensure that we are using the correct dirs
+            let vfs = &mut db.vfs;
             vfs.set_prefix_expansion(BuiltinPrefix::Oot, "/oot/");
             vfs.set_prefix_expansion(BuiltinPrefix::Help, "/oot/support/help");
             vfs.set_prefix_expansion(BuiltinPrefix::UserHome, "/home/");
             vfs.set_prefix_expansion(BuiltinPrefix::Job, "/job/");
             vfs.set_prefix_expansion(BuiltinPrefix::Temp, "/temp/");
-
-            db.invalidate_files();
 
             root_file
         };
@@ -287,9 +281,7 @@ mod test {
         const FILE_SOURCES: &[&str] = &[r#"var tee : int := 1"#, r#"var shoe : int := 2"#];
 
         let mut db = make_test_db();
-        let file = db.vfs.insert_file("/main.t", FILE_SOURCES[0]);
-
-        db.invalidate_files();
+        let file = db.insert_file("/main.t", FILE_SOURCES[0]);
 
         {
             let res = db.file_source(file);

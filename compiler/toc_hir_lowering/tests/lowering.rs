@@ -38,8 +38,7 @@ struct LowerResult {
 
 fn assert_lower(src: &str) -> LowerResult {
     let mut db = TestHirDb::default();
-    let root_file = db.vfs.insert_file("src/main.t", src);
-    db.invalidate_files();
+    let root_file = db.insert_file("src/main.t", src);
 
     let lowered = db.lower_library(root_file);
 

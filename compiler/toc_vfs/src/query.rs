@@ -1,6 +1,7 @@
 //! Query interface for the VFS system
 
 use std::borrow::Cow;
+use std::path::Path;
 use std::sync::Arc;
 
 use toc_salsa::salsa;
@@ -23,12 +24,11 @@ impl<T> VfsDatabaseExt for T
 where
     T: HasVfs + FileSystem + salsa::Database,
 {
-    fn invalidate_files(&mut self) {
-        let sources = self.get_vfs().file_store.clone();
-
-        for (file_id, source) in sources {
-            self.update_file(file_id, source)
-        }
+    fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> FileId {
+        // Intern the path, then add it to the db
+        let file_id = self.get_vfs_mut().intern_path(path.as_ref().into());
+        self.set_file_source(file_id, (Arc::new(source.into()), None));
+        file_id
     }
 
     fn update_file(&mut self, file_id: FileId, new_source: Option<Vec<u8>>) {
