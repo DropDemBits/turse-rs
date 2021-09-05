@@ -15,7 +15,6 @@ pub(crate) fn resolve_path(db: &dyn FileSystem, relative_to: FileId, path: &str)
     db.get_vfs()
         .resolve_path(Some(relative_to), path)
         .into_file_id()
-        .expect("path was not interned yet")
 }
 
 // Non query stuff //

@@ -24,6 +24,7 @@
 // TODO: Generate a test fixture VFS tree from a given source string
 
 pub mod db;
+mod fixture;
 mod intern;
 mod query;
 mod vfs;
@@ -32,6 +33,8 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::sync::Arc;
 
+pub use fixture::generate_vfs;
+pub use intern::PathResolution;
 pub use vfs::{HasVfs, Vfs};
 
 /// Helper for implementing the [`HasVfs`] trait.
@@ -188,7 +191,10 @@ mod test {
 
         // Lookup bar.t file source
         let bar_t = {
-            let bar_t = db.resolve_path(root_file, "foo/bar.t");
+            let bar_t = db
+                .vfs
+                .resolve_path(Some(root_file), "foo/bar.t")
+                .into_file_id();
             let res = db.file_source(bar_t);
             let (source, _load_error) = res;
 
@@ -198,7 +204,7 @@ mod test {
 
         // Lookup bap.t from bar.t
         {
-            let bap_t = db.resolve_path(bar_t, "bap.t");
+            let bap_t = db.vfs.resolve_path(Some(bar_t), "bap.t").into_file_id();
             let res = db.file_source(bap_t);
             let (source, _load_error) = res;
 
@@ -238,7 +244,10 @@ mod test {
 
         // Lookup Predefs.lst file source
         let predefs_list = {
-            let predefs_list = db.resolve_path(root_file, "%oot/support/Predefs.lst");
+            let predefs_list = db
+                .vfs
+                .resolve_path(Some(root_file), "%oot/support/Predefs.lst")
+                .into_file_id();
             let res = db.file_source(predefs_list);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
             predefs_list
@@ -246,31 +255,46 @@ mod test {
 
         // Lookup Net.tu from Predefs.lst
         {
-            let net_tu = db.resolve_path(predefs_list, "Net.tu");
+            let net_tu = db
+                .vfs
+                .resolve_path(Some(predefs_list), "Net.tu")
+                .into_file_id();
             let res = db.file_source(net_tu);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[2], None));
         };
 
         {
-            let file = db.resolve_path(root_file, "%help/Keyword Lookup.txt");
+            let file = db
+                .vfs
+                .resolve_path(Some(root_file), "%help/Keyword Lookup.txt")
+                .into_file_id();
             let res = db.file_source(file);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[3], None));
         };
 
         {
-            let file = db.resolve_path(root_file, "%home/special_file.t");
+            let file = db
+                .vfs
+                .resolve_path(Some(root_file), "%home/special_file.t")
+                .into_file_id();
             let res = db.file_source(file);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         };
 
         {
-            let file = db.resolve_path(root_file, "%tmp/pre/made/some-temp-item");
+            let file = db
+                .vfs
+                .resolve_path(Some(root_file), "%tmp/pre/made/some-temp-item")
+                .into_file_id();
             let res = db.file_source(file);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         };
 
         {
-            let file = db.resolve_path(root_file, "%job/to/make/job-item");
+            let file = db
+                .vfs
+                .resolve_path(Some(root_file), "%job/to/make/job-item")
+                .into_file_id();
             let res = db.file_source(file);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         };

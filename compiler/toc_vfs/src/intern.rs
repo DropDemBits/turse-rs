@@ -56,11 +56,18 @@ pub enum PathResolution {
 }
 
 impl PathResolution {
-    /// Extracts the file id from self.
-    pub fn into_file_id(self) -> Option<FileId> {
+    /// Tries to extract the file id from self.
+    pub fn as_file_id(&self) -> Option<FileId> {
         match self {
-            PathResolution::Interned(id) => Some(id),
+            PathResolution::Interned(id) => Some(*id),
             PathResolution::NewPath(_) => None,
         }
+    }
+
+    /// Extracts the file id from self.
+    ///
+    /// Panics if this does not represent an interned path
+    pub fn into_file_id(self) -> FileId {
+        self.as_file_id().expect("path was not interned")
     }
 }

@@ -47,4 +47,3 @@ pub trait AstNode: Sized {
 
     fn syntax(&self) -> &SyntaxNode;
 }
-

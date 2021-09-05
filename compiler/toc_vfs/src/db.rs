@@ -43,7 +43,7 @@ pub trait FileSystem: HasVfs {
 /// [`Vfs`]: crate::Vfs
 pub trait VfsDatabaseExt: HasVfs + FileSystem {
     /// Inserts a file into the database, producing a [`FileId`]
-    /// 
+    ///
     /// Mainly used in tests
     fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> FileId;
 

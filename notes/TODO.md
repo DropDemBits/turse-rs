@@ -196,7 +196,7 @@
 - [ ] Multi-file compilation
   - [x] Select file dependencies
   - [ ] Load in the dependent file sources
-  - [ ] Generate a test fixture VFS from a text string
+  - [x] Generate a test fixture VFS from a text string
   - [ ] Include tree stuff
   - [ ] Reasonable limit on files included
 
