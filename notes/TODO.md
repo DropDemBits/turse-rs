@@ -92,7 +92,7 @@
     - [ ] PreprocIf stmt substitution
     - [ ] PreprocExpr evaluation
     - [ ] PreprocInclude insertion
-      - [ ] Gather include files
+      - [x] Gather include files
 - [ ] Import & dependency resolution
 - [ ] Typeck
   - [ ] Stmt
@@ -192,7 +192,13 @@
   - [ ] External functions support
 - [ ] FileDb & FileId maps
 - [x] Additional `ReportMessage` notes
-  - [ ] Integration with `annotate-snippets`
+  - [x] Integration with `ariadne`
+- [ ] Multi-file compilation
+  - [x] Select file dependencies
+  - [ ] Load in the dependent file sources
+  - [ ] Generate a test fixture VFS from a text string
+  - [ ] Include tree stuff
+  - [ ] Reasonable limit on files included
 
 ### Potential
 

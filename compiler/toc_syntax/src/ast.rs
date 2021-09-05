@@ -20,6 +20,7 @@ mod nodes_ext;
 
 use super::SyntaxNode;
 pub use nodes::*;
+pub use nodes_ext::ExternalItemOwner;
 
 mod helper {
     use crate::{ast::AstNode, SyntaxKind, SyntaxNode, SyntaxToken};
@@ -46,3 +47,4 @@ pub trait AstNode: Sized {
 
     fn syntax(&self) -> &SyntaxNode;
 }
+

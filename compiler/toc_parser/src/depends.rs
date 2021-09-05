@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, Span};
-use toc_syntax::ast::AstNode;
-use toc_syntax::{ast, match_ast, SyntaxNode};
+use toc_syntax::ast::{AstNode, ExternalItemOwner};
+use toc_syntax::{ast, SyntaxNode};
 
 /// What other file sources a given file depends on
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,20 +38,6 @@ pub(crate) fn gather_dependencies(
     file: Option<FileId>,
     syntax: SyntaxNode,
 ) -> CompileResult<FileDepends> {
-    fn external_item<T: ast::AstNode>(node: Option<T>) -> Option<ast::ExternalItem> {
-        let node = node?;
-        let syntax = node.syntax();
-
-        match_ast! {
-            match syntax {
-                ast::ImplementStmt(stmt) => stmt.external_item(),
-                ast::ImplementByStmt(stmt) => stmt.external_item(),
-                ast::InheritStmt(stmt) => stmt.external_item(),
-                _ => None
-            }
-        }
-    }
-
     let mut messages = toc_reporting::MessageSink::new();
     let mut dependencies = vec![];
 
@@ -61,43 +47,20 @@ pub(crate) fn gather_dependencies(
     let is_child_unit = root.unit_token().is_some();
 
     // Gather external items
-    let mut external_items = vec![];
-
-    let import_stmt = if !is_child_unit {
-        root.import_stmt()
+    let external_items = if !is_child_unit {
+        root.import_stmt().map(|node| node.external_items())
     } else if let Some(first_stmt) = first_stmt {
         match first_stmt {
-            ast::Stmt::ModuleDecl(decl) => {
-                external_items.extend(external_item(decl.implement_stmt()));
-                external_items.extend(external_item(decl.implement_by_stmt()));
-                decl.import_stmt()
-            }
-            ast::Stmt::MonitorDecl(decl) => {
-                external_items.extend(external_item(decl.implement_stmt()));
-                external_items.extend(external_item(decl.implement_by_stmt()));
-                decl.import_stmt()
-            }
-            ast::Stmt::ClassDecl(decl) => {
-                external_items.extend(external_item(decl.inherit_stmt()));
-                external_items.extend(external_item(decl.implement_stmt()));
-                external_items.extend(external_item(decl.implement_by_stmt()));
-                decl.import_stmt()
-            }
+            ast::Stmt::ModuleDecl(decl) => Some(decl.external_items()),
+            ast::Stmt::ClassDecl(decl) => Some(decl.external_items()),
+            ast::Stmt::MonitorDecl(decl) => Some(decl.external_items()),
             _ => None,
         }
     } else {
         // Not anything
         None
-    };
-
-    // Add import external items
-    if let Some(imports) = import_stmt.and_then(|import| import.imports()) {
-        external_items.extend(
-            imports
-                .import_item()
-                .filter_map(|item| item.external_item()),
-        );
     }
+    .unwrap_or_default();
 
     // Convert external items into paths
     let external_deps = external_items
