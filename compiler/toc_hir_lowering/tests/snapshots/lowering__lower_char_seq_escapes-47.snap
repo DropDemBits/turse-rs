@@ -10,6 +10,7 @@ Library@(dummy)
         Assign@(FileId(1), 0..7)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..7): String("")
-error in file FileId(1) at 6..7: invalid string literal: unknown caret escape
-error in file FileId(1) at 5..7: invalid string literal: missing terminator character
+error in file FileId(1) at 5..7: invalid string literal
+| error in file FileId(1) for 6..7: unknown caret escape
+| error in file FileId(1) for 5..7: missing terminator character
 

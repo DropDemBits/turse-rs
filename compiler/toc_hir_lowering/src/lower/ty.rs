@@ -29,7 +29,9 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn unsupported_ty(&mut self, span: Span) -> Option<ty::TypeKind> {
-        self.ctx.messages.error("unsupported type", span);
+        self.ctx
+            .messages
+            .error("unsupported type", "this type is not handled yet", span);
         None
     }
 

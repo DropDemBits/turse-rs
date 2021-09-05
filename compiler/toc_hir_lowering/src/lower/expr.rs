@@ -1,6 +1,6 @@
 //! Lowering into `Expr` HIR nodes
 use toc_hir::{body, expr, symbol};
-use toc_span::{SpanId, Spanned};
+use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
 
@@ -66,23 +66,31 @@ impl super::BodyLowering<'_, '_> {
 
     fn unsupported_expr(&mut self, span: SpanId) -> Option<expr::ExprKind> {
         let span = self.ctx.library.lookup_span(span);
-        self.ctx.messages.error("unsupported expression", span);
+        self.ctx.messages.error(
+            "unsupported expression",
+            "this expression is not supported yet",
+            span,
+        );
         None
     }
 
     fn lower_literal_expr(&mut self, expr: ast::LiteralExpr) -> Option<expr::ExprKind> {
         let (value, errs) = expr.literal()?;
 
-        if let Some(errs) = errs {
+        if let Some(errors) = errs {
             let range = expr.syntax().text_range();
 
             // Report errors
             // TODO: Add note saying to escape the caret for `InvalidCaretEscape`
-            for (range, err) in errs.iter().map(|msg| msg.message_at(range)) {
-                let span = self.ctx.mk_span(range);
+            let span = self.ctx.mk_span(range);
+            let mut message = self.ctx.messages.error_detailed(errors.header(), span);
 
-                self.ctx.messages.error(&err.to_string(), span);
+            for (msg, range) in errors.parts(range) {
+                let span = Span::new(Some(self.ctx.file), range);
+                message = message.with_error(&msg, span);
             }
+
+            message.finish();
         }
 
         let value = match value {

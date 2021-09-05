@@ -34,7 +34,7 @@ pub trait FileSystem: HasVfs {
     /// # Returns
     /// An owned file source, as well as an error message to be passed to a message sink
     #[salsa::input]
-    fn file_source(&self, file: FileId) -> Arc<(String, Option<LoadError>)>;
+    fn file_source(&self, file: FileId) -> (Arc<String>, Option<LoadError>);
 }
 
 /// Helper extension trait for databases with [`Vfs`]'s

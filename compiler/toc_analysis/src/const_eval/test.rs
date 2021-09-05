@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use toc_hir::library::{LibraryId, LoweredLibrary};
 use toc_hir_db::db::HirDatabase;
-use toc_reporting::{MessageSink, ReportMessage};
+use toc_reporting::{MessageBundle, MessageSink};
 use unindent::unindent;
 
 use crate::{const_eval::Const, db::ConstEval, test_db::TestDb};
@@ -90,10 +90,10 @@ fn do_const_eval(source: &str) -> String {
     let results = results.into_inner();
 
     // Errors are bundled into the const error context
-    stringify_const_eval_results(&results, &reporter.finish())
+    stringify_const_eval_results(&results, reporter.finish())
 }
 
-fn stringify_const_eval_results(results: &str, messages: &[ReportMessage]) -> String {
+fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> String {
     // Pretty print const eval ctx
     // Want:
     // - Evaluation state of all accessible DefIds

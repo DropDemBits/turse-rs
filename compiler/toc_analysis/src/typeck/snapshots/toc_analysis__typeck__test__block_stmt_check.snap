@@ -7,4 +7,5 @@ expression: "begin var k : char := 'baz' end"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 22..27: mismatched types
-| note in file FileId(1) for 14..18: initializer's type is incompatible with this type
+| error in file FileId(1) for 22..27: the type of this expression...
+| note in file FileId(1) for 14..18: is incompatible with this type

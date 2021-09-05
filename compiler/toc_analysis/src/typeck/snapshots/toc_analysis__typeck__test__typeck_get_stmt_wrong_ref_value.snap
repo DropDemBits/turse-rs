@@ -6,5 +6,5 @@ expression: "var i : int := 1\nget i + i\n"
 "i"@(FileId(1), 4..5) [Declared]: ref_mut int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 21..26: cannot assign into get item expression
-| note in file FileId(1) for 21..26: this expression cannot be used as a variable reference
+error in file FileId(1) at 21..26: cannot assign into expression
+| error in file FileId(1) for 21..26: not a reference to a variable

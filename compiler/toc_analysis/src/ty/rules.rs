@@ -616,35 +616,37 @@ pub fn report_invalid_bin_op(err: InvalidBinaryOp, op_span: Span, reporter: &mut
     };
 
     if unsupported {
-        reporter.error("operation is not type-checked yet", op_span);
+        reporter.error(
+            "unsupported operation",
+            "operation is not type-checked yet",
+            op_span,
+        );
         return;
     }
 
     let msg = reporter.error_detailed(&format!("incompatible types for {}", op_name), op_span);
     let msg = match op {
         // Arithmetic operators
-        expr::BinaryOp::Add => {
-            msg.with_info("operands must both be numbers, strings, or sets", None)
-        }
+        expr::BinaryOp::Add => msg.with_info("operands must both be numbers, strings, or sets"),
         expr::BinaryOp::Sub | expr::BinaryOp::Mul => {
-            msg.with_info("operands must both be numbers or sets", None)
+            msg.with_info("operands must both be numbers or sets")
         }
         expr::BinaryOp::Div
         | expr::BinaryOp::RealDiv
         | expr::BinaryOp::Mod
         | expr::BinaryOp::Rem
-        | expr::BinaryOp::Exp => msg.with_info("operands must both be numbers", None),
+        | expr::BinaryOp::Exp => msg.with_info("operands must both be numbers"),
         // Bitwise operators (integer, integer => nat)
         // + Logical operators (boolean, boolean => boolean)
         expr::BinaryOp::And | expr::BinaryOp::Or | expr::BinaryOp::Xor => {
-            msg.with_info("operands must both be integers or booleans", None)
+            msg.with_info("operands must both be integers or booleans")
         }
         // Pure bitwise operators
         expr::BinaryOp::Shl | expr::BinaryOp::Shr => {
-            msg.with_info("operands must both be integers", None)
+            msg.with_info("operands must both be integers")
         }
         // Pure logical operator
-        expr::BinaryOp::Imply => msg.with_info("operands must both be booleans", None),
+        expr::BinaryOp::Imply => msg.with_info("operands must both be booleans"),
         // Comparison (a, b => boolean where a, b: Comparable)
         expr::BinaryOp::Less => todo!(),
         expr::BinaryOp::LessEq => todo!(),
@@ -717,9 +719,9 @@ pub fn report_invalid_unary_op(err: InvalidUnaryOp, op_span: Span, reporter: &mu
 
     let msg = reporter.error_detailed(&format!("incompatible types for {}", op_name), op_span);
     let msg = match op {
-        expr::UnaryOp::Not => msg.with_info("operand must be an integer or boolean", None),
+        expr::UnaryOp::Not => msg.with_info("operand must be an integer or boolean"),
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
-            msg.with_info("operand must be a number", None)
+            msg.with_info("operand must be a number")
         }
     };
     msg.finish();

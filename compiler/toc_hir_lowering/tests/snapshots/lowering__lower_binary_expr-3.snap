@@ -1,15 +1,14 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := 1.0e600"
+expression: "a := 1 not 1 "
 
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..12): "<root>"@(dummy)
+    Module@(FileId(1), 0..13): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..12): []
         Assign@(FileId(1), 0..12)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..12): Real(0.0)
-error in file FileId(1) at 5..12: invalid real literal
-| error in file FileId(1) for 5..12: number is too large
+error in file FileId(1) at 11..12: unexpected token
+| error in file FileId(1) for 11..12: expected ‘in’ or ‘=’, but found int literal
 

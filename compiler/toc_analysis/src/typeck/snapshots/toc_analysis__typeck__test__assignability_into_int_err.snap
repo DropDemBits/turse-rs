@@ -10,6 +10,8 @@ expression: "var b : boolean\nvar r : real\n\nvar _e00 : int := b\nvar _e01 : in
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 48..49: mismatched types
-| note in file FileId(1) for 41..44: initializer's type is incompatible with this type
+| error in file FileId(1) for 48..49: the type of this expression...
+| note in file FileId(1) for 41..44: is incompatible with this type
 error in file FileId(1) at 68..69: mismatched types
-| note in file FileId(1) for 61..64: initializer's type is incompatible with this type
+| error in file FileId(1) for 68..69: the type of this expression...
+| note in file FileId(1) for 61..64: is incompatible with this type

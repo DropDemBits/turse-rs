@@ -31,6 +31,21 @@ pub struct Span {
     pub range: TextRange,
 }
 
+impl Ord for Span {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Sorted by file, then by start range
+        self.file
+            .cmp(&other.file)
+            .then(self.range.start().cmp(&other.range.start()))
+    }
+}
+
+impl PartialOrd for Span {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl Span {
     pub fn new(file: Option<FileId>, range: TextRange) -> Self {
         Span { file, range }

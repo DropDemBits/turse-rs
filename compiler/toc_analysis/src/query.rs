@@ -1,9 +1,9 @@
 //! Analysis query implementation
 
-use toc_reporting::CompileResult;
+use toc_reporting::{CompileResult, MessageBundle};
 
 pub(crate) fn analyze_libraries(db: &dyn crate::db::HirAnalysis) -> CompileResult<()> {
-    let mut messages = vec![];
+    let mut messages = MessageBundle::default();
 
     let res = db.library_graph();
     let lib_graph = res.result();

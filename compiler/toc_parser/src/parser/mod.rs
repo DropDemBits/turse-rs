@@ -4,7 +4,7 @@ pub(crate) mod marker;
 
 use drop_bomb::DropBomb;
 pub(crate) use error::Expected;
-use toc_reporting::MessageSink;
+use toc_reporting::{MessageBundle, MessageSink};
 use toc_span::{FileId, Span};
 
 use crate::event::Event;
@@ -121,9 +121,9 @@ impl<'t, 'src> Parser<'t, 'src> {
         }
     }
 
-    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageSink) {
+    pub(crate) fn parse(mut self) -> (Vec<Event>, MessageBundle) {
         grammar::source(&mut self);
-        (self.events, self.msg_sink)
+        (self.events, self.msg_sink.finish())
     }
 
     fn peek(&mut self) -> Option<TokenKind> {
@@ -241,7 +241,8 @@ impl<'t, 'src> Parser<'t, 'src> {
         let span = Span::new(self.file, range);
 
         self.msg_sink.warn(
-            &format!("{} found, assuming it to be {}", found, normal),
+            &format!("{} found", found),
+            &format!("assuming it to be {}", normal),
             span,
         );
     }
@@ -341,7 +342,7 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
 
         let (found, range) = match current {
             Some(token) => (Some(token.kind), token.range),
-            None => (None, self.p.source.last_token_range().unwrap()), // Last token always exists in a non-empty file
+            None => (None, self.p.source.last_non_trivia_token_range().unwrap()), // Last token always exists in a non-empty file
         };
 
         // push error
@@ -351,8 +352,14 @@ impl<'p, 't, 's> UnexpectedBuilder<'p, 't, 's> {
         );
 
         let span = Span::new(self.p.file, range);
+        let header = if found.is_some() {
+            "unexpected token"
+        } else {
+            "unexpected end of file"
+        };
 
         self.p.msg_sink.error(
+            header,
             &format!(
                 "{}",
                 ParseMessage::UnexpectedToken {

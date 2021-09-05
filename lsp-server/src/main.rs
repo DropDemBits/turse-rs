@@ -147,11 +147,8 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
 
     // TODO: Recursively load in files
 
-    let mut msgs = vec![];
-    db.analyze_libraries().bundle_messages(&mut msgs);
-
-    // Sort by start order
-    msgs.sort_by_key(|msg| msg.span().range.start());
+    let analyze_res = db.analyze_libraries();
+    let msgs = analyze_res.messages();
 
     eprintln!("finished analysis @ {:?}", uri.as_str());
 

@@ -8,4 +8,5 @@ expression: "var cmx : char(256)\n\nvar _e00 : string := cmx % [not captured by 
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 42..45: mismatched types
-| note in file FileId(1) for 32..38: initializer's type is incompatible with this type
+| error in file FileId(1) for 42..45: the type of this expression...
+| note in file FileId(1) for 32..38: is incompatible with this type

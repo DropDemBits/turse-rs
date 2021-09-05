@@ -10,5 +10,6 @@ Library@(dummy)
         Assign@(FileId(1), 0..11)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Literal@(FileId(1), 5..11): String("abcd ")
-error in file FileId(1) at 5..11: invalid string literal: missing terminator character
+error in file FileId(1) at 5..11: invalid string literal
+| error in file FileId(1) for 5..11: missing terminator character
 

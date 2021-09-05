@@ -18,6 +18,7 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
 
         if block_containing_node(decl.syntax()).is_top_level() {
             ctx.push_error(
+                "cannot use ‘register’ here",
                 "‘register’ attribute is not allowed at module-like or program level",
                 attr.syntax().text_range(),
             );
@@ -49,24 +50,24 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_)
             ) {
                 let span = Span::new(ctx.file, ty.syntax().text_range());
+                let init_span = Span::new(ctx.file, init_expr.syntax().text_range());
 
-                ctx.push_detailed_error(
-                    "‘init’ initializer is not allowed here",
-                    init_expr.syntax().text_range(),
-                )
-                .with_note("cannot use ‘init’ initializer with this type", span)
-                .with_info(
-                    "‘init’ initializer can only be used with array, record, or union types",
-                    None,
-                )
-                .finish();
+                ctx.push_detailed_error("mismatched initializer", init_span.range)
+                    .with_error("‘init’ initializer is not allowed here", init_span)
+                    .with_error("cannot use ‘init’ initializer with this type", span)
+                    .with_info(
+                        "‘init’ initializer can only be used with array, record, or union types",
+                    )
+                    .finish();
             }
         } else {
             // No type spec, never allowed
-            ctx.push_error(
-                "‘init’ initializer is not allowed here",
-                init_expr.syntax().text_range(),
-            );
+            let span = Span::new(ctx.file, init_expr.syntax().text_range());
+
+            ctx.push_detailed_error("mismatched initializer", span.range)
+                .with_error("‘init’ initializer is not allowed here", span)
+                .with_info("‘init’ initializer requires a type to be specified")
+                .finish();
         }
     } else if let Some(ast::Type::ArrayType(array_ty)) = decl.type_spec() {
         // Has array type spec, is unbounded?
@@ -98,22 +99,22 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 // init expr is required
                 if !matches!(decl.init(), Some(ast::Expr::InitExpr(_))) {
                     // Report at either the initializer expr, or the array type spec
-                    let span = Span::new(ctx.file, array_ty.syntax().text_range());
+                    let ty_span = Span::new(ctx.file, array_ty.syntax().text_range());
 
-                    let builder = if let Some(init) = decl.init() {
+                    let (message, report_at) = if let Some(init) = decl.init() {
                         let report_here = init.syntax().text_range();
-                        ctx.push_detailed_error("‘init’ initializer is required here", report_here)
+                        let span = Span::new(ctx.file, report_here);
+                        ("‘init’ initializer required here", span)
                     } else {
                         let report_after = array_ty.syntax().text_range();
-                        ctx.push_detailed_error(
-                            "‘init’ initializer is required after here",
-                            report_after,
-                        )
+                        let span = Span::new(ctx.file, report_after);
+                        ("‘init’ initializer required after here", span)
                     };
 
-                    builder
-                        .with_note("this is an unbounded array type", span)
-                        .with_info("unbounded arrays have their upper bounds specified by ‘init’ initializers", None)
+                    ctx.push_detailed_error("mismatched initializer", report_at.range)
+                        .with_error(message, report_at)
+                        .with_note("this is an unbounded array type", ty_span)
+                        .with_info("unbounded arrays have their upper bounds specified by ‘init’ initializers")
                         .finish();
                 }
             }
@@ -124,6 +125,7 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
 pub(super) fn validate_bind_decl(decl: ast::BindDecl, ctx: &mut ValidateCtx) {
     if block_containing_node(decl.syntax()).is_top_level() {
         ctx.push_error(
+            "cannot use ‘bind’ here",
             "‘bind’ declaration is not allowed at module-like or program level",
             decl.syntax().text_range(),
         );
@@ -140,6 +142,7 @@ pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx)
             // not allowed here
             ctx.push_error(
                 "device specification is not allowed here",
+                "not part of a ‘procedure’ declaration",
                 dev_spec.syntax().text_range(),
             );
         } else {
@@ -150,6 +153,7 @@ pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx)
                 // not in a device monitor
                 ctx.push_error(
                     "device specification is not allowed here",
+                    "‘procedure’ is not in a device monitor",
                     dev_spec.syntax().text_range(),
                 );
             }
@@ -162,11 +166,13 @@ pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCt
 
     if !parent_kind.is_top_level() {
         ctx.push_error(
+            "cannot declare a ‘process’ here",
             "‘process’ declaration is only allowed at the top level of ‘monitor’s and ‘module’s",
             decl.syntax().text_range(),
         );
     } else if matches!(parent_kind, BlockKind::Class | BlockKind::MonitorClass) {
         ctx.push_error(
+            "cannot declare a ‘process’ here",
             "‘process’ declarations is not allowed in classes or monitor classes",
             decl.syntax().text_range(),
         );
@@ -175,19 +181,21 @@ pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCt
 
 pub(super) fn validate_external_var(decl: ast::ExternalVar, ctx: &mut ValidateCtx) {
     ctx.push_error(
+        "unsupported declaration",
         "‘external’ variables are not supported in this compiler",
         decl.syntax().text_range(),
     );
 }
 
 pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut ValidateCtx) {
-    validate_in_module_kind(decl.syntax(), "‘deferred’ declaration", ctx);
+    validate_in_module_kind(decl.syntax(), "‘deferred’", ctx);
 }
 
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
     // Check contained in location
     if !block_containing_node(decl.syntax()).is_top_level() {
         ctx.push_error(
+            "cannot declare a ‘module’ here",
             "modules can only be declared at the program, module, or monitor level",
             decl.module_token().unwrap().text_range(),
         );
@@ -203,6 +211,7 @@ pub(super) fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
         assert!(is_monitor_class, "non-monitor class has device spec");
 
         ctx.push_error(
+            "device specification is not allowed here",
             "device specification is not allowed for monitor classes",
             dev_spec.syntax().text_range(),
         )
@@ -214,18 +223,21 @@ pub(super) fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
         match block_containing_node(decl.syntax()) {
             block if block.is_monitor() => {
                 ctx.push_error(
+                    "cannot declare a ‘monitor class’ here",
                     "monitor classes cannot be declared inside of monitors",
                     decl.class_token().unwrap().text_range(),
                 );
             }
             BlockKind::Class => {
                 ctx.push_error(
+                    "cannot declare a ‘monitor class’ here",
                     "monitor classes cannot be declared inside of classes",
                     decl.class_token().unwrap().text_range(),
                 );
             }
             block if !block.is_top_level() => {
                 ctx.push_error(
+                    "cannot declare a ‘monitor class’ here",
                     "monitor classes can only be declared at the program, module, or monitor level",
                     decl.class_token().unwrap().text_range(),
                 );
@@ -236,18 +248,21 @@ pub(super) fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
         match block_containing_node(decl.syntax()) {
             block if block.is_monitor() => {
                 ctx.push_error(
+                    "cannot declare a ‘class’ here",
                     "classes cannot be declared inside of monitors",
                     decl.class_token().unwrap().text_range(),
                 );
             }
             BlockKind::Class => {
                 ctx.push_error(
+                    "cannot declare a ‘class’ here",
                     "classes cannot be declared inside of other classes",
                     decl.class_token().unwrap().text_range(),
                 );
             }
             block if !block.is_top_level() => {
                 ctx.push_error(
+                    "cannot declare a ‘class’ here",
                     "classes can only be declared at the program, module, or monitor level",
                     decl.class_token().unwrap().text_range(),
                 );
@@ -264,12 +279,14 @@ pub(super) fn validate_monitor_decl(decl: ast::MonitorDecl, ctx: &mut ValidateCt
     match block_containing_node(decl.syntax()) {
         block if block.is_monitor() => {
             ctx.push_error(
+                "cannot declare a ‘monitor’ here",
                 "monitors cannot be declared inside of other monitors",
                 decl.monitor_token().unwrap().text_range(),
             );
         }
         block if !block.is_top_level() => {
             ctx.push_error(
+                "cannot declare a ‘monitor’ here",
                 "monitors can only be declared at the program, module, or monitor level",
                 decl.monitor_token().unwrap().text_range(),
             );
@@ -316,6 +333,7 @@ pub(super) fn validate_for_stmt(stmt: ast::ForStmt, ctx: &mut ValidateCtx) {
             if let Some(first) = bounds.from() {
                 // Missing other range part
                 ctx.push_error(
+                    "invalid loop bound specification",
                     "decreasing for-loop requires explicit end bound",
                     first.syntax().text_range(),
                 );
@@ -370,13 +388,15 @@ pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
 
     if all_arms.is_empty() {
         ctx.push_error(
-            "Missing ‘label’ arms for ‘case’ statement",
+            "invalid ‘case’ statement",
+            "missing ‘label’ arms",
             stmt.syntax().text_range(),
         );
     } else {
         // At least 1 arm present, check if it's a default arm
         if let Some((ArmKind::Default, arm_range)) = all_arms.first() {
             ctx.push_error(
+                "cannot have a default ‘label’ arm as the first ‘case’ arm",
                 "First ‘label’ arm must have at least one selector expression",
                 *arm_range,
             );
@@ -391,16 +411,20 @@ pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
         if let Some((_, extra_arm)) = past_default_arm.next() {
             // At least one extra arm is found
             let (_, last_arm) = all_arms.last().expect("last arm always expected");
-
             let full_range = extra_arm.cover(*last_arm);
-
-            if extra_arm == last_arm {
+            let arms = if extra_arm == last_arm {
                 // Single extra arm
-                ctx.push_error("Extra ‘label’ arm found after default arm", full_range);
+                "arm"
             } else {
                 // Many extra arms
-                ctx.push_error("Extra ‘label’ arms found after default arm", full_range);
-            }
+                "arms"
+            };
+
+            ctx.push_error(
+                &format!("extra ‘label’ {} found after default arm", arms),
+                &format!("extra ‘label’ {}", arms),
+                full_range,
+            );
         }
     }
 }
@@ -409,6 +433,7 @@ pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut Valida
     let kind = block_containing_node(stmt.syntax());
     if kind != BlockKind::Loop && !kind.is_module_kind() {
         ctx.push_error(
+            "cannot use ‘invariant’ here",
             "‘invariant’ statement is only allowed in loop statements and module-kind declarations",
             stmt.syntax().text_range(),
         );
@@ -418,6 +443,7 @@ pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut Valida
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_module_kind() {
         ctx.push_error(
+            &format!("cannot use {} here", kind),
             &format!("{} is only allowed in module-like blocks", kind),
             node.text_range(),
         );
@@ -427,6 +453,7 @@ pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut V
 pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_top_level() {
         ctx.push_error(
+            &format!("cannot use {} here", kind),
             &format!("{} is only allowed at module-like or program level", kind),
             node.text_range(),
         );

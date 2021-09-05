@@ -8,3 +8,4 @@ expression: "var a := a"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 9..10: `a` is not declared
+| error in file FileId(1) for 9..10: not found in this scope

@@ -3,8 +3,12 @@
 #[allow(clippy::upper_case_acronyms)] // Names are pulled from the grammar file exactly
 pub mod ast;
 
+use std::fmt;
+use std::ops::Range;
+
 use num_traits::{FromPrimitive, ToPrimitive};
 use rowan::Language;
+use toc_span::TextRange;
 
 #[macro_use]
 extern crate num_derive;
@@ -641,68 +645,114 @@ pub enum LiteralValue {
 
 #[derive(Debug, thiserror::Error)]
 pub enum LiteralParseError {
-    // Real Literals
-    #[error("real literal is too large")]
-    RealTooLarge,
-    #[error("real literal is too small")]
-    RealTooSmall,
-    #[error("invalid real literal")]
-    RealInvalid,
-    #[error("real literal is missing exponent digits")]
-    RealMissingExponent,
-    // Int Literals
-    #[error("int literal is too large")]
-    IntTooLarge,
-    #[error("explicit int literal is too large")]
-    IntRadixTooLarge,
-    #[error("invalid digit for the specified base")]
-    IntRadixInvalidDigit(usize, usize),
-    #[error("explicit int literal is missing radix digits")]
-    IntMissingRadix,
-    #[error("base for explicit int literal is not between 2 - 36")]
-    IntInvalidBase,
-    #[error("invalid int literal")]
-    IntInvalid,
-    // Char Sequences
-    #[error("invalid string literal: {0:}")]
-    StringError(CharSeqParseError, usize, usize),
-    #[error("invalid char literal: {0:}")]
-    CharError(CharSeqParseError, usize, usize),
+    #[error("invalid real literal: {0: }")]
+    Real(InvalidReal),
+    #[error("invalid int literal: {0:}")]
+    Int(InvalidInt),
+    #[error("invalid string literal\n{0:}")]
+    String(InvalidCharsList),
+    #[error("invalid char literal\n{0:}")]
+    Char(InvalidCharsList),
 }
 
 impl LiteralParseError {
-    pub fn message_at(&self, span: toc_span::TextRange) -> (toc_span::TextRange, &Self) {
-        use std::convert::TryInto;
-        use toc_span::{TextRange, TextSize};
-
-        /// Offsets the given range pair by `source_span`
-        fn offset_span(start: usize, end: usize, source_span: TextRange) -> TextRange {
-            let (start, end): (TextSize, TextSize) = (
-                start
-                    .try_into()
-                    .unwrap_or_else(|_| TextSize::from(u32::MAX)),
-                end.try_into().unwrap_or_else(|_| TextSize::from(u32::MAX)),
-            );
-
-            TextRange::new(source_span.start() + start, source_span.start() + end)
+    pub fn header(&self) -> &str {
+        match self {
+            LiteralParseError::Real(_) => "invalid real literal",
+            LiteralParseError::Int(_) => "invalid int literal",
+            LiteralParseError::String(_) => "invalid string literal",
+            LiteralParseError::Char(_) => "invalid char literal",
         }
+    }
 
-        // Offset the text pair to the correct location
-        let report_span = match self {
-            LiteralParseError::StringError(_, start, end)
-            | LiteralParseError::CharError(_, start, end)
-            | LiteralParseError::IntRadixInvalidDigit(start, end) => {
-                offset_span(*start, *end, span)
-            }
-            _ => span,
-        };
-
-        (report_span, self)
+    pub fn parts(&self, base_span: TextRange) -> Vec<(String, TextRange)> {
+        match self {
+            LiteralParseError::Real(kind) => vec![(kind.to_string(), base_span)],
+            LiteralParseError::Int(kind) => vec![(kind.to_string(), kind.span(base_span))],
+            LiteralParseError::String(errs) | LiteralParseError::Char(errs) => errs
+                .0
+                .iter()
+                .map(|(err, at)| (err.to_string(), offset_span(at, base_span)))
+                .collect(),
+        }
     }
 }
 
+/// Offsets the given range pair by `source_span`
+fn offset_span(range: &Range<usize>, base_span: TextRange) -> TextRange {
+    use std::convert::TryInto;
+    use toc_span::TextSize;
+
+    let (start, end): (TextSize, TextSize) = (
+        range
+            .start
+            .try_into()
+            .unwrap_or_else(|_| TextSize::from(u32::MAX)),
+        range
+            .end
+            .try_into()
+            .unwrap_or_else(|_| TextSize::from(u32::MAX)),
+    );
+
+    TextRange::new(base_span.start() + start, base_span.start() + end)
+}
+
 #[derive(Debug, thiserror::Error)]
-pub enum CharSeqParseError {
+pub enum InvalidReal {
+    #[error("number is too large")]
+    TooLarge,
+    #[error("number is too small")]
+    TooSmall,
+    #[error("missing exponent digits")]
+    MissingExponent,
+    #[error("invalid literal")]
+    Invalid,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InvalidInt {
+    #[error("number is too large")]
+    TooLarge,
+    #[error("number is too large")]
+    RadixTooLarge(Range<usize>),
+    #[error("`{0:}` is not a digit in base {1:}")]
+    BaseInvalidDigit(char, u8, Range<usize>),
+    #[error("missing radix digits")]
+    MissingRadix,
+    #[error("base is not between 2 - 36")]
+    InvalidBase(Range<usize>),
+    #[error("invalid literal")]
+    Invalid,
+}
+
+impl InvalidInt {
+    fn span(&self, span: TextRange) -> TextRange {
+        match self {
+            InvalidInt::RadixTooLarge(range)
+            | InvalidInt::BaseInvalidDigit(_, _, range)
+            | InvalidInt::InvalidBase(range) => offset_span(range, span),
+            _ => span,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct InvalidCharsList(pub(crate) Vec<(InvalidChar, Range<usize>)>);
+
+impl fmt::Display for InvalidCharsList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (err, range) in self.0.iter() {
+            writeln!(f, "| at {:?}: {}", range, err)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl std::error::Error for InvalidCharsList {}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InvalidChar {
     #[error("octal character value is greater than \\377 (decimal 255)")]
     InvalidOctalChar,
     #[error("unicode codepoint value is greater than U+10FFFF")]

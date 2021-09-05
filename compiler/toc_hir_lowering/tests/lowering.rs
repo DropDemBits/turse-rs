@@ -44,7 +44,7 @@ fn assert_lower(src: &str) -> LowerResult {
     let lowered = db.lower_library(root_file);
 
     let mut s = toc_hir_pretty::pretty_print_tree(lowered.result());
-    for err in lowered.messages() {
+    for err in lowered.messages().iter() {
         s.push_str(&format!("{}\n", err));
     }
 
@@ -286,6 +286,8 @@ fn lower_char_literal() {
     assert_lower(r#"a := 'abcd""#);
     // ... or that are completely empty
     assert_lower(r#"a := ''"#);
+    // ... or that are completely empty without an ending delimiter
+    assert_lower(r#"a := '"#);
 }
 
 #[test]
@@ -407,6 +409,8 @@ fn lower_binary_expr() {
     assert_lower("a := a + a");
     // missing operand, should still be present
     assert_lower("a := () + ");
+    // invalid infix, okay to be missing
+    assert_lower("a := 1 not 1 ");
 }
 
 #[test]

@@ -1,7 +1,7 @@
 //! File dependencies extracted from a file
 use std::sync::Arc;
 
-use toc_reporting::CompileResult;
+use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, Span};
 use toc_syntax::ast::AstNode;
 use toc_syntax::{ast, match_ast, SyntaxNode};
@@ -104,29 +104,10 @@ pub(crate) fn gather_dependencies(
         .into_iter()
         .filter_map(|item| {
             if let Some(path) = item.path() {
-                let (value, errors) = path.literal().unwrap();
-                let relative_path = if let toc_syntax::LiteralValue::String(path) = value {
-                    path
-                } else {
-                    // Always defined as a string literal value
-                    unreachable!()
-                };
-
-                if let Some(errors) = errors {
-                    // Report errors
-                    let range = path.syntax().text_range();
-
-                    for (range, err) in errors.iter().map(|msg| msg.message_at(range)) {
-                        let span = Span::new(file, range);
-                        messages.error(&err.to_string(), span);
-                    }
-
-                    None
-                } else {
-                    // Use the path
-                    Some(relative_path)
-                }
+                // From the given path
+                extract_relative_path(path, file, &mut messages)
             } else {
+                // From the item name
                 item.name()
                     .and_then(|name| name.identifier_token())
                     .map(|ident| ident.text().to_string())
@@ -136,37 +117,21 @@ pub(crate) fn gather_dependencies(
             kind: DependencyKind::Import,
             relative_path,
         });
+
     dependencies.extend(external_deps);
 
     // Gather include stmts
     for node in root.syntax().descendants() {
-        if let Some(include) = ast::PPInclude::cast(node) {
-            if let Some(path) = include.path() {
-                let (value, errors) = path.literal().unwrap();
-                let relative_path = if let toc_syntax::LiteralValue::String(path) = value {
-                    path
-                } else {
-                    // Always defined as a string literal value
-                    unreachable!()
-                };
-
-                if let Some(errors) = errors {
-                    // Report errors
-                    let range = path.syntax().text_range();
-
-                    for (range, err) in errors.iter().map(|msg| msg.message_at(range)) {
-                        let span = Span::new(file, range);
-                        messages.error(&err.to_string(), span);
-                    }
-                } else {
-                    // Add dependency
-                    dependencies.push(Dependency {
-                        kind: DependencyKind::Include,
-                        relative_path,
-                    });
-                }
-            }
-        }
+        ast::PPInclude::cast(node)
+            .and_then(|node| node.path())
+            .and_then(|path| extract_relative_path(path, file, &mut messages))
+            .map(|path| {
+                // Add dependency
+                dependencies.push(Dependency {
+                    kind: DependencyKind::Include,
+                    relative_path: path,
+                });
+            });
     }
 
     let dependencies = FileDepends {
@@ -174,6 +139,39 @@ pub(crate) fn gather_dependencies(
     };
 
     CompileResult::new(dependencies, messages.finish())
+}
+
+fn extract_relative_path(
+    path: ast::LiteralExpr,
+    file: Option<FileId>,
+    messages: &mut MessageSink,
+) -> Option<String> {
+    let (value, errors) = path.literal().unwrap();
+    let relative_path = if let toc_syntax::LiteralValue::String(path) = value {
+        path
+    } else {
+        // Always defined as a string literal value
+        unreachable!()
+    };
+
+    if let Some(errors) = errors {
+        // Report errors
+        let range = path.syntax().text_range();
+        let span = Span::new(file, range);
+        let mut message = messages.error_detailed(errors.header(), span);
+
+        for (msg, range) in errors.parts(range) {
+            let span = Span::new(file, range);
+            message = message.with_error(&msg, span);
+        }
+
+        message.finish();
+
+        None
+    } else {
+        // Use the path
+        Some(relative_path)
+    }
 }
 
 #[test]

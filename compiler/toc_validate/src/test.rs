@@ -26,7 +26,9 @@ fn unit_monitor_class() {
 fn report_unit_not_allowed_decl() {
     check(
         "unit begin end",
-        expect![[r#"error at 5..14: expected a module, class, or monitor declaration"#]],
+        expect![[r#"
+            error at 5..14: invalid unit file
+            | error for 5..14: expected a module, class, or monitor declaration"#]],
     );
 }
 
@@ -36,8 +38,10 @@ fn report_unit_not_allowed_decl_and_extra() {
     check(
         "unit begin end begin end begin end",
         expect![[r#"
-            error at 5..14: expected a module, class, or monitor declaration
-            error at 15..34: found extra text after unit declaration"#]],
+            error at 5..14: invalid unit file
+            | error for 5..14: expected a module, class, or monitor declaration
+            error at 15..34: invalid unit file
+            | error for 15..34: found extra text after unit declaration"#]],
     );
 }
 
@@ -45,6 +49,8 @@ fn report_unit_not_allowed_decl_and_extra() {
 fn report_just_unit() {
     check(
         "unit",
-        expect![[r#"error at 0..4: expected a module, class, or monitor declaration"#]],
+        expect![[r#"
+            error at 0..4: missing unit declaration
+            | error for 0..4: expected a module, class, or monitor declaration after here"#]],
     );
 }

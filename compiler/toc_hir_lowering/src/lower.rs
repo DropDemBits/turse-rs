@@ -32,7 +32,7 @@ use toc_hir::{
     stmt::{Block, BlockKind, Stmt, StmtId, StmtKind},
     symbol::{self, LocalDefId},
 };
-use toc_reporting::{CompileResult, MessageSink};
+use toc_reporting::{CompileResult, MessageBundle, MessageSink};
 use toc_span::{FileId, Span, SpanId};
 use toc_syntax::ast::{self, AstNode};
 
@@ -62,13 +62,13 @@ where
 
         // Lower them all
         let mut root_items = vec![];
-        let mut messages = vec![];
+        let mut messages = MessageBundle::default();
         let mut library = builder::LibraryBuilder::default();
 
         for file in reachable_files {
-            let (item, mut msgs) = FileLowering::lower_file(db, &mut library, file).take();
+            let (item, msgs) = FileLowering::lower_file(db, &mut library, file).take();
             root_items.push((file, item));
-            messages.append(&mut msgs);
+            messages = messages.combine(msgs);
         }
 
         let lib = library.finish(root_items);
@@ -111,11 +111,11 @@ impl<'ctx> FileLowering<'ctx> {
         let Self { messages, .. } = ctx;
 
         // Bundle up messages
-        let mut bundled_messages = messages.finish();
-        parse_res.bundle_messages(&mut bundled_messages);
-        validate_res.bundle_messages(&mut bundled_messages);
+        let mut bundle = messages.finish();
+        parse_res.bundle_messages(&mut bundle);
+        validate_res.bundle_messages(&mut bundle);
 
-        CompileResult::new(root_item, bundled_messages)
+        CompileResult::new(root_item, bundle)
     }
 
     fn lower_root(&mut self, root: ast::Source) -> item::ItemId {

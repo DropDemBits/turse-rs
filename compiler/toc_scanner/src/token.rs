@@ -411,9 +411,11 @@ fn lex_block_comment(lexer: &mut logos::Lexer<TokenKind>) {
     // missing terminator
     lexer.bump(bump_len);
 
-    lexer
-        .extras
-        .push_error("block comment is missing terminating ’*/’", lexer.span());
+    lexer.extras.push_error(
+        "unterminated block comment",
+        "block comment is missing terminating ’*/’",
+        lexer.span(),
+    );
 }
 
 fn nom_char_literal(lexer: &mut logos::Lexer<TokenKind>) {
