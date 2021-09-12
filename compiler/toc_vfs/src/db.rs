@@ -7,7 +7,7 @@ use toc_salsa::salsa;
 use toc_span::FileId;
 
 use crate::vfs::HasVfs;
-use crate::{query, LoadError};
+use crate::{LoadError, LoadResult};
 
 /// Query interface into the virtual file system, backed by [`HasVfs`].
 #[salsa::query_group(FileSystemStorage)]
@@ -15,17 +15,16 @@ pub trait FileSystem: HasVfs {
     /// Resolves the given `relative_path` (with `base_path` as the file to have lookups relative to)
     /// into a FileId.
     ///
-    /// Results are not cached since results can change on a whim.
-    ///
     /// # Returns
     /// A `FileId` corresponding to the final resolved path.
     //
     // Note: This should not be the entry point for where paths could be interned
     //
-    // ???: How does this work where we have VFS results being submitted
-    #[salsa::transparent]
-    #[salsa::invoke(query::resolve_path)]
-    fn resolve_path(&self, base_path: FileId, relative_path: &str) -> FileId;
+    // ???: How does this work where we have VFS results being submitted?
+    // Well, path resolutions are also part of the file system state, so they should
+    // also be kept track of
+    #[salsa::input]
+    fn resolve_path(&self, base_path: FileId, relative_path: String) -> FileId;
 
     /// Gets the file source of a text.
     ///
@@ -47,9 +46,6 @@ pub trait VfsDatabaseExt: HasVfs + FileSystem {
     /// Mainly used in tests
     fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> FileId;
 
-    /// Updates the contents of the specified file.
-    ///
-    /// Specifying [`None`] as the `new_source` is equivalent to removing a file,
-    /// or indicating that it does not exist.
-    fn update_file(&mut self, file_id: FileId, new_source: Option<Vec<u8>>);
+    /// Updates the contents of the specified file, using the given load result
+    fn update_file(&mut self, file_id: FileId, result: LoadResult);
 }

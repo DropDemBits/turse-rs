@@ -9,13 +9,7 @@ use toc_span::FileId;
 
 use crate::db::{FileSystem, VfsDatabaseExt};
 use crate::vfs::HasVfs;
-use crate::LoadError;
-
-pub(crate) fn resolve_path(db: &dyn FileSystem, relative_to: FileId, path: &str) -> FileId {
-    db.get_vfs()
-        .resolve_path(Some(relative_to), path)
-        .into_file_id()
-}
+use crate::{LoadError, LoadResult, LoadStatus};
 
 // Non query stuff //
 
@@ -30,27 +24,31 @@ where
         file_id
     }
 
-    fn update_file(&mut self, file_id: FileId, new_source: Option<Vec<u8>>) {
-        let result = if let Some(byte_source) = new_source {
-            // FIXME: Deal with different character encodings (per `VFS Interface.md`)
-            // This is likely the place where we'd do it
+    fn update_file(&mut self, file_id: FileId, result: LoadResult) {
+        let result = match result {
+            Ok(LoadStatus::Unchanged) => return,
+            Ok(LoadStatus::Modified(byte_source)) => {
+                // FIXME: Deal with different character encodings (per `VFS Interface.md`)
+                // This is likely the place where we'd do it
 
-            // Try converting the file into UTF-8
-            let source = String::from_utf8_lossy(&byte_source);
+                // Try converting the file into UTF-8
+                let source = String::from_utf8_lossy(&byte_source);
 
-            match source {
-                Cow::Borrowed(_source) => {
-                    // Steal memory from the cloning process
-                    (String::from_utf8(byte_source).unwrap(), None)
-                }
-                Cow::Owned(invalid) => {
-                    // Non UTF-8 encoded characters
-                    (invalid, Some(LoadError::InvalidEncoding))
+                match source {
+                    Cow::Borrowed(_source) => {
+                        // Steal memory from the cloning process
+                        (String::from_utf8(byte_source).unwrap(), None)
+                    }
+                    Cow::Owned(invalid) => {
+                        // Non UTF-8 encoded characters
+                        (invalid, Some(LoadError::InvalidEncoding))
+                    }
                 }
             }
-        } else {
-            // File does not exist, or was removed
-            (String::new(), Some(LoadError::NotFound))
+            Err(err) => {
+                // Error encountered during loading
+                (String::new(), Some(err))
+            }
         };
         let result = (Arc::new(result.0), result.1);
 

@@ -21,7 +21,6 @@
 //! [`FileId`]: toc_span::FileId
 
 // TODO: Flesh out documentation using VFS Interface.md
-// TODO: Generate a test fixture VFS tree from a given source string
 
 pub mod db;
 mod fixture;
@@ -29,9 +28,10 @@ mod intern;
 mod query;
 mod vfs;
 
-use std::convert::TryFrom;
 use std::fmt;
+use std::path::Path;
 use std::sync::Arc;
+use std::{convert::TryFrom, path::PathBuf};
 
 pub use fixture::generate_vfs;
 pub use intern::PathResolution;
@@ -117,6 +117,24 @@ pub enum LoadError {
     Other(Arc<String>),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum LoadStatus {
+    Unchanged,
+    Modified(Vec<u8>),
+}
+
+pub type LoadResult = Result<LoadStatus, LoadError>;
+
+/// [`FileLoader`] is used for loading files that are not tracked by
+/// the database yet.
+pub trait FileLoader {
+    /// Loads the file at the given path
+    fn load_file(&self, path: &Path) -> LoadResult;
+
+    /// Normalizes the given path into a common representation
+    fn normalize_path(&self, path: &Path) -> Option<PathBuf>;
+}
+
 #[cfg(test)]
 mod test {
     use std::ops::Deref;
@@ -124,7 +142,7 @@ mod test {
     use toc_salsa::salsa;
 
     use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
-    use crate::{BuiltinPrefix, LoadError, Vfs};
+    use crate::{BuiltinPrefix, LoadError, LoadStatus, Vfs};
 
     #[salsa::database(FileSystemStorage)]
     struct VfsTestDB {
@@ -312,13 +330,13 @@ mod test {
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[0], None));
         }
 
-        db.update_file(file, Some(FILE_SOURCES[1].into()));
+        db.update_file(file, Ok(LoadStatus::Modified(FILE_SOURCES[1].into())));
         {
             let res = db.file_source(file);
             assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
         }
 
-        db.update_file(file, None);
+        db.update_file(file, Err(LoadError::NotFound));
         {
             let res = db.file_source(file);
             assert_eq!((res.0.as_str(), res.1), ("", Some(LoadError::NotFound)));

@@ -51,11 +51,14 @@ where
 
         let mut pending_files = VecDeque::from(vec![library_root]);
         while let Some(current_file) = pending_files.pop_front() {
-            reachable_files.insert(current_file);
+            if !reachable_files.insert(current_file) {
+                // Already reached, don't enter into a cycle
+                continue;
+            }
 
             let deps = db.parse_depends(current_file);
             for dep in deps.result().dependencies() {
-                let child = db.resolve_path(current_file, &dep.relative_path);
+                let child = db.resolve_path(current_file, dep.relative_path.clone());
                 pending_files.push_back(child);
             }
         }

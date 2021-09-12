@@ -6,6 +6,7 @@ use toc_hir::library::LibraryId;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_vfs::db::VfsDatabaseExt;
+use toc_vfs::LoadStatus;
 
 #[salsa::database(
     toc_vfs::db::FileSystemStorage,
@@ -30,7 +31,7 @@ impl TestDb {
     pub(crate) fn from_source(source: &str) -> (Self, LibraryId) {
         let mut db = TestDb::default();
         let root_file = db.vfs.intern_path("src/main.t".into());
-        db.update_file(root_file, Some(source.into()));
+        db.update_file(root_file, Ok(LoadStatus::Modified(source.into())));
 
         let source_roots = SourceRoots::new(vec![root_file]);
         db.set_source_roots(source_roots);

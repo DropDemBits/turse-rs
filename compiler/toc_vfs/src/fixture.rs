@@ -2,7 +2,7 @@
 
 use crate::{
     db::{self, VfsDatabaseExt},
-    HasVfs,
+    HasVfs, LoadError, LoadStatus,
 };
 
 pub const FILE_DELIMITER_START: &str = "%%-";
@@ -128,7 +128,7 @@ pub fn generate_vfs<DB: db::FileSystem + HasVfs>(db: &mut DB, source: &str) {
         let file = db.get_vfs_mut().intern_path(path.into());
 
         let source = if is_removed {
-            None
+            Err(LoadError::NotFound)
         } else {
             // Rebuild the source!
             let mut source_lines = source.iter();
@@ -140,7 +140,7 @@ pub fn generate_vfs<DB: db::FileSystem + HasVfs>(db: &mut DB, source: &str) {
                 source.push_str(line);
             }
 
-            Some(source.into())
+            Ok(LoadStatus::Modified(source.into()))
         };
 
         db.update_file(file, source);

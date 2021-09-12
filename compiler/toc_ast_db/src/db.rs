@@ -50,3 +50,8 @@ pub trait SpanMapping: toc_vfs::db::FileSystem {
     #[salsa::invoke(span::query::map_byte_index_to_character)]
     fn map_byte_index_to_character(&self, file: toc_span::FileId, index: usize) -> Option<usize>;
 }
+
+pub trait AstDatabaseExt: toc_vfs::db::FileSystem + SourceParser {
+    /// Reloads the source roots using the given file loader
+    fn reload_source_roots(&mut self, loader: &dyn toc_vfs::FileLoader);
+}
