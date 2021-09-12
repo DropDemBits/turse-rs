@@ -9,7 +9,7 @@ use lsp_types::{
     TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
 };
 use toc_analysis::db::HirAnalysis;
-use toc_ast_db::db::{SourceParser, SpanMapping};
+use toc_ast_db::db::{AstDatabaseExt, SourceParser, SpanMapping};
 use toc_ast_db::SourceGraph;
 use toc_salsa::salsa;
 use toc_vfs::db::VfsDatabaseExt;
@@ -148,6 +148,7 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     db.set_source_graph(Arc::new(source_graph));
 
     // TODO: Recursively load in files, respecting already loaded files
+    db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 
     let analyze_res = db.analyze_libraries();
     let msgs = analyze_res.messages();
