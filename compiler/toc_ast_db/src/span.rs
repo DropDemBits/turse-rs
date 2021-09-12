@@ -15,41 +15,48 @@ impl LspPosition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LineInfo {
     pub line: usize,
-    pub line_span: Range<usize>,
+    pub start: usize,
+    pub end: usize,
 }
 
 impl LineInfo {
-    pub fn new(line: usize, line_span: Range<usize>) -> Self {
-        Self { line, line_span }
+    pub fn line_span(&self) -> Range<usize> {
+        self.start..self.end
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LineMapping {
     source: Arc<String>,
-    line_starts: Vec<usize>,
+    line_infos: Vec<LineInfo>,
 }
 
 impl LineMapping {
     fn from_source(source: Arc<String>) -> Self {
-        let mut line_starts = vec![];
+        let mut line_infos = vec![];
+        let mut line = 0;
         let mut start = 0;
         let line_ends = source.char_indices().filter(|(_, c)| matches!(c, '\n'));
 
         for (at_newline, _) in line_ends {
-            line_starts.push(start);
-            start = at_newline + 1;
+            let end = at_newline + 1;
+            line_infos.push(LineInfo { line, start, end });
+            start = end;
+            line += 1;
         }
 
         // Use a line start covering the rest of the file
-        line_starts.push(start);
-        Self {
-            source,
-            line_starts,
-        }
+        debug_assert_eq!(line_infos.len(), line);
+        line_infos.push(LineInfo {
+            line,
+            start,
+            end: source.len(),
+        });
+
+        Self { source, line_infos }
     }
 
     fn map_index(&self, index: usize) -> Option<LineInfo> {
@@ -58,27 +65,25 @@ impl LineMapping {
             return None;
         }
 
-        let (line, end) = self
-            .line_starts
+        let line = self
+            .line_infos
             .iter()
             .enumerate()
-            .find(|(_line, start)| index < **start)
-            .map(|(line, start)| (line - 1, *start))
-            .unwrap_or((self.line_starts.len() - 1, self.source.len()));
+            .find_map(|(line, info)| (index < info.start).then(|| line - 1))
+            .unwrap_or(self.line_infos.len() - 1);
 
         // `line_starts` is always greater than 1, it's ok to unwrap
         // also bounded by `line_starts.len()`
-        let start = *self.line_starts.get(line).expect("no line infos");
+        //
+        // info should also exist at this point
+        let info = *self.line_infos.get(line).expect("no line infos");
 
-        Some(LineInfo {
-            line,
-            line_span: start..end,
-        })
+        Some(info)
     }
 
     fn map_index_to_position(&self, index: usize) -> Option<LspPosition> {
         let info = self.map_index(index)?;
-        let source_slice = &self.source[info.line_span.start..index];
+        let source_slice = &self.source[info.start..index];
 
         // Get character count in UTF-16 chars
         let column_offset = source_slice.encode_utf16().count();
@@ -94,7 +99,8 @@ impl LineMapping {
         let source_slice = &self.source[0..index];
 
         // Get character count in UTF-32 chars
-        let char_index = source_slice.chars().count();
+        // Exclude `\r` because `ariadne` doesn't include it in its character counts
+        let char_index = source_slice.chars().filter(|c| *c != '\r').count();
 
         Some(char_index)
     }
@@ -146,17 +152,22 @@ pub(crate) mod query {
 
 #[cfg(test)]
 mod test {
+    use std::ops::Range;
     use std::sync::Arc;
 
     use crate::span::{LineInfo, LineMapping, LspPosition};
+
+    fn line_span(info: LineInfo) -> (usize, Range<usize>) {
+        (info.line, info.line_span())
+    }
 
     #[test]
     fn empty_file() {
         let map = LineMapping::from_source(Arc::new("".into()));
 
-        assert_eq!(map.map_index(0), Some(LineInfo::new(0, 0..0)));
-        assert_eq!(map.map_index(1), None);
-        assert_eq!(map.map_index(2), None);
+        assert_eq!(map.map_index(0).map(line_span), Some((0, 0..0)));
+        assert_eq!(map.map_index(1).map(line_span), None);
+        assert_eq!(map.map_index(2).map(line_span), None);
 
         assert_eq!(map.map_index_to_position(0), Some(LspPosition::new(0, 0)));
         assert_eq!(map.map_index_to_position(1), None);
@@ -168,12 +179,12 @@ mod test {
         let source = Arc::new("abcdefg".to_string());
         let map = LineMapping::from_source(source.clone());
 
-        assert_eq!(map.map_index(0), Some(LineInfo::new(0, 0..source.len())));
-        assert_eq!(map.map_index(1), Some(LineInfo::new(0, 0..source.len())));
-        assert_eq!(map.map_index(2), Some(LineInfo::new(0, 0..source.len())));
+        assert_eq!(map.map_index(0).map(line_span), Some((0, 0..source.len())));
+        assert_eq!(map.map_index(1).map(line_span), Some((0, 0..source.len())));
+        assert_eq!(map.map_index(2).map(line_span), Some((0, 0..source.len())));
         assert_eq!(
-            map.map_index(source.len()),
-            Some(LineInfo::new(0, 0..source.len()))
+            map.map_index(source.len()).map(line_span),
+            Some((0, 0..source.len()))
         );
         assert_eq!(map.map_index(source.len() + 1), None);
 
@@ -191,9 +202,9 @@ mod test {
         let source = Arc::new("\n".to_string());
         let map = LineMapping::from_source(source);
 
-        assert_eq!(map.map_index(0), Some(LineInfo::new(0, 0..1)));
-        assert_eq!(map.map_index(1), Some(LineInfo::new(1, 1..1)));
-        assert_eq!(map.map_index(2), None);
+        assert_eq!(map.map_index(0).map(line_span), Some((0, 0..1)));
+        assert_eq!(map.map_index(1).map(line_span), Some((1, 1..1)));
+        assert_eq!(map.map_index(2).map(line_span), None);
 
         assert_eq!(map.map_index_to_position(0), Some(LspPosition::new(0, 0)));
         assert_eq!(map.map_index_to_position(1), Some(LspPosition::new(1, 0)));
@@ -204,15 +215,15 @@ mod test {
         let source = Arc::new("abcd\nab".to_string());
         let map = LineMapping::from_source(source);
 
-        assert_eq!(map.map_index(0), Some(LineInfo::new(0, 0..5)));
-        assert_eq!(map.map_index(1), Some(LineInfo::new(0, 0..5)));
-        assert_eq!(map.map_index(2), Some(LineInfo::new(0, 0..5)));
-        assert_eq!(map.map_index(3), Some(LineInfo::new(0, 0..5)));
-        assert_eq!(map.map_index(4), Some(LineInfo::new(0, 0..5)));
-        assert_eq!(map.map_index(5), Some(LineInfo::new(1, 5..7)));
-        assert_eq!(map.map_index(6), Some(LineInfo::new(1, 5..7)));
-        assert_eq!(map.map_index(7), Some(LineInfo::new(1, 5..7)));
-        assert_eq!(map.map_index(8), None);
+        assert_eq!(map.map_index(0).map(line_span), Some((0, 0..5)));
+        assert_eq!(map.map_index(1).map(line_span), Some((0, 0..5)));
+        assert_eq!(map.map_index(2).map(line_span), Some((0, 0..5)));
+        assert_eq!(map.map_index(3).map(line_span), Some((0, 0..5)));
+        assert_eq!(map.map_index(4).map(line_span), Some((0, 0..5)));
+        assert_eq!(map.map_index(5).map(line_span), Some((1, 5..7)));
+        assert_eq!(map.map_index(6).map(line_span), Some((1, 5..7)));
+        assert_eq!(map.map_index(7).map(line_span), Some((1, 5..7)));
+        assert_eq!(map.map_index(8).map(line_span), None);
 
         assert_eq!(map.map_index_to_position(0), Some(LspPosition::new(0, 0)));
         assert_eq!(map.map_index_to_position(1), Some(LspPosition::new(0, 1)));
@@ -227,27 +238,27 @@ mod test {
         let map = LineMapping::from_source(source.clone());
 
         // start of first 'a'
-        assert_eq!(map.map_index(0), Some(LineInfo::new(0, 0..11)));
+        assert_eq!(map.map_index(0).map(line_span), Some((0, 0..11)));
         // start of first pound
-        assert_eq!(map.map_index(1), Some(LineInfo::new(0, 0..11)));
-        assert_eq!(map.map_index(2), None);
+        assert_eq!(map.map_index(1).map(line_span), Some((0, 0..11)));
+        assert_eq!(map.map_index(2).map(line_span), None);
         // start of second pound
-        assert_eq!(map.map_index(3), Some(LineInfo::new(0, 0..11)));
-        assert_eq!(map.map_index(4), None);
+        assert_eq!(map.map_index(3).map(line_span), Some((0, 0..11)));
+        assert_eq!(map.map_index(4).map(line_span), None);
         // start of heart
-        assert_eq!(map.map_index(5), Some(LineInfo::new(0, 0..11)));
+        assert_eq!(map.map_index(5).map(line_span), Some((0, 0..11)));
         for i in 6..9 {
             assert_eq!(map.map_index(i), None);
         }
         // start of second 'a'
-        assert_eq!(map.map_index(9), Some(LineInfo::new(0, 0..11)));
+        assert_eq!(map.map_index(9).map(line_span), Some((0, 0..11)));
         // newline
-        assert_eq!(map.map_index(10), Some(LineInfo::new(0, 0..11)));
+        assert_eq!(map.map_index(10).map(line_span), Some((0, 0..11)));
         // start of third 'a'
-        assert_eq!(map.map_index(11), Some(LineInfo::new(1, 11..12)));
+        assert_eq!(map.map_index(11).map(line_span), Some((1, 11..12)));
         // eof
-        assert_eq!(map.map_index(12), Some(LineInfo::new(1, 11..12)));
-        assert_eq!(map.map_index(13), None);
+        assert_eq!(map.map_index(12).map(line_span), Some((1, 11..12)));
+        assert_eq!(map.map_index(13).map(line_span), None);
 
         // a
         assert_eq!(map.map_index_to_position(0), Some(LspPosition::new(0, 0)));
@@ -265,5 +276,16 @@ mod test {
         assert_eq!(map.map_index_to_position(11), Some(LspPosition::new(1, 0)));
         // eof
         assert_eq!(map.map_index_to_position(12), Some(LspPosition::new(1, 1)));
+    }
+
+    #[test]
+    fn ignore_cr_in_char_count() {
+        let source = Arc::new("a\r\nb".to_string());
+        let map = LineMapping::from_source(source.clone());
+
+        assert_eq!(map.map_index_to_character(0), Some(0));
+        assert_eq!(map.map_index_to_character(1), Some(1));
+        assert_eq!(map.map_index_to_character(2), Some(1));
+        assert_eq!(map.map_index_to_character(3), Some(2));
     }
 }
