@@ -120,6 +120,16 @@ pub enum LoadError {
     Other(Arc<String>),
 }
 
+impl fmt::Display for LoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LoadError::NotFound => f.write_str("File not found"),
+            LoadError::InvalidEncoding => f.write_str("Invalid file encoding"),
+            LoadError::Other(err) => f.write_str(err),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LoadStatus {
     Unchanged,

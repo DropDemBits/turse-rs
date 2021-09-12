@@ -30,8 +30,6 @@ fn main() {
     db.set_source_graph(Arc::new(source_graph));
     db.invalidate_source_graph(&loader);
 
-    // TODO: Check that all of our library roots loaded correctly
-
     // Parse root CST & dump output
     // Note: this is only for temporary parse tree dumping
     {
@@ -67,6 +65,25 @@ fn main() {
 
     let mut has_errors = false;
     let mut cache = VfsCache::new(&db);
+
+    // Report any library roots that loaded incorrectly
+    for root in db.source_graph().library_roots() {
+        let (_, err) = db.file_source(root);
+
+        if let Some(err) = err {
+            let path = db.vfs.lookup_path(root).display();
+
+            ariadne::Report::<(FileId, std::ops::Range<usize>)>::build(
+                ariadne::ReportKind::Error,
+                root,
+                0,
+            )
+            .with_message::<String>(format!("unable to load source for `{}`: {}", path, err))
+            .finish()
+            .print(&mut cache)
+            .unwrap();
+        }
+    }
 
     for msg in msgs.iter() {
         has_errors |= matches!(msg.kind(), toc_reporting::AnnotateKind::Error);
