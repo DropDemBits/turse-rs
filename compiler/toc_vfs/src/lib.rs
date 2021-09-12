@@ -135,6 +135,23 @@ pub trait FileLoader {
     fn normalize_path(&self, path: &Path) -> Option<PathBuf>;
 }
 
+/// Dummy file loader that effectively performs a no-op
+///
+/// Must ensure that all files are already loaded into the database,
+/// and that all paths passed are in normalized format. This can be
+/// done via [`generate_vfs`] for tests.
+pub struct DummyFileLoader;
+
+impl FileLoader for DummyFileLoader {
+    fn load_file(&self, _path: &Path) -> LoadResult {
+        Ok(LoadStatus::Unchanged)
+    }
+
+    fn normalize_path(&self, _path: &Path) -> Option<PathBuf> {
+        None
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::ops::Deref;

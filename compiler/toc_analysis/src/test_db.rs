@@ -2,13 +2,11 @@
 
 use std::sync::Arc;
 
-use toc_ast_db::db::SourceParser;
+use toc_ast_db::db::{AstDatabaseExt, SourceParser};
 use toc_ast_db::SourceGraph;
 use toc_hir::library::LibraryId;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
-use toc_vfs::db::VfsDatabaseExt;
-use toc_vfs::LoadStatus;
 
 #[salsa::database(
     toc_vfs::db::FileSystemStorage,
@@ -32,12 +30,13 @@ toc_vfs::impl_has_vfs!(TestDb, vfs);
 impl TestDb {
     pub(crate) fn from_source(source: &str) -> (Self, LibraryId) {
         let mut db = TestDb::default();
-        let root_file = db.vfs.intern_path("src/main.t".into());
-        db.update_file(root_file, Ok(LoadStatus::Modified(source.into())));
+        toc_vfs::generate_vfs(&mut db, source);
 
+        let root_file = db.vfs.intern_path("src/main.t".into());
         let mut source_graph = SourceGraph::default();
         source_graph.add_root(root_file);
         db.set_source_graph(Arc::new(source_graph));
+        db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 
         let library_id = db.library_graph().result().library_of(root_file);
 
