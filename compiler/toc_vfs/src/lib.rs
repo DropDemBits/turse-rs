@@ -4,20 +4,23 @@
 //! are held in the concrete [`Vfs`] type, and file sources for the compiler
 //! are accessed via the [`FileSystem::file_source`] query.
 //!
-//! Resolving paths into [`FileId`]s via the [`FileSystem::resolve_path`]
-//! query is required during lowering the concrete syntax tree into HIR,
+//! Resolving paths into [`FileId`]s via the [`Vfs::resolve_path`]
+//! method is required during lowering the concrete syntax tree into HIR,
 //! specifically during:
 //!
 //! - Include file expansion in order to get the file id for getting the parse tree
 //! - Import dependency resolution for generating dependencies between units
+//!
+//! However, the real path resolution should use the `depend_of` query in `toc_ast_db`,
+//! since we cache a source dependency graph in there.
 //!
 //! ## Note
 //!
 //! All paths must be encountered before executing any queries, since no paths are interned from queries
 //!
 //! [`Vfs`]: crate::Vfs
+//! [`Vfs::resolve_path`]: crate::Vfs::resolve_path
 //! [`FileSystem::file_source`]: crate::db::FileSystem::file_source
-//! [`FileSystem::resolve_path`]: crate::db::FileSystem::resolve_path
 //! [`FileId`]: toc_span::FileId
 
 // TODO: Flesh out documentation using VFS Interface.md
