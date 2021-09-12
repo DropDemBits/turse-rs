@@ -12,20 +12,6 @@ use crate::{LoadError, LoadResult};
 /// Query interface into the virtual file system, backed by [`HasVfs`].
 #[salsa::query_group(FileSystemStorage)]
 pub trait FileSystem: HasVfs {
-    /// Resolves the given `relative_path` (with `base_path` as the file to have lookups relative to)
-    /// into a FileId.
-    ///
-    /// # Returns
-    /// A `FileId` corresponding to the final resolved path.
-    //
-    // Note: This should not be the entry point for where paths could be interned
-    //
-    // ???: How does this work where we have VFS results being submitted?
-    // Well, path resolutions are also part of the file system state, so they should
-    // also be kept track of
-    #[salsa::input]
-    fn resolve_path(&self, base_path: FileId, relative_path: String) -> FileId;
-
     /// Gets the file source of a text.
     ///
     /// Provides an `Option<LoadError>`, to notify of things like being unable to open a file,

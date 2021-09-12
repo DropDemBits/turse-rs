@@ -4,17 +4,22 @@ use std::sync::Arc;
 
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
+use toc_source_graph::{DependGraph, SourceGraph, SourceKind};
 use toc_span::FileId;
 use toc_vfs::db::FileSystem;
 
 use crate::span::{LineInfo, LineMapping, LspPosition};
-use crate::{source, span, SourceRoots};
+use crate::{source, span};
 
 #[salsa::query_group(SourceParserStorage)]
 pub trait SourceParser: FileSystem {
-    /// Source roots for all of the libraries
+    /// Source graph of all of the libraries
     #[salsa::input]
-    fn source_roots(&self) -> SourceRoots;
+    fn source_graph(&self) -> Arc<SourceGraph>;
+
+    /// Source dependency graph of a given library
+    #[salsa::input]
+    fn depend_graph(&self, library: FileId) -> Arc<DependGraph>;
 
     /// Parses the given file
     #[salsa::invoke(source::parse_file)]
@@ -27,6 +32,15 @@ pub trait SourceParser: FileSystem {
     /// Parse out the dependencies of a file
     #[salsa::invoke(source::parse_depends)]
     fn parse_depends(&self, file_id: FileId) -> CompileResult<toc_parser::FileDepends>;
+
+    /// Gets the source dependency in a given library from the given file and the relative path
+    #[salsa::invoke(source::depend_of)]
+    fn depend_of(
+        &self,
+        library: FileId,
+        from: FileId,
+        relative_path: String,
+    ) -> (FileId, SourceKind);
 }
 
 #[salsa::query_group(SpanMappingStorage)]
@@ -52,6 +66,8 @@ pub trait SpanMapping: toc_vfs::db::FileSystem {
 }
 
 pub trait AstDatabaseExt: toc_vfs::db::FileSystem + SourceParser {
-    /// Reloads the source roots using the given file loader
-    fn reload_source_roots(&mut self, loader: &dyn toc_vfs::FileLoader);
+    /// Reloads all files accessible from the source roots using the given file loader
+    ///
+    /// Also rebuilds all dependency graphs
+    fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader);
 }

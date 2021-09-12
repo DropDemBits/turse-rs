@@ -1,12 +1,13 @@
 //! Dummy bin for running the new scanner and parser
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::{env, fs};
 
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::SpanMapping;
 use toc_ast_db::db::{AstDatabaseExt, SourceParser};
-use toc_ast_db::SourceRoots;
+use toc_ast_db::SourceGraph;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};
@@ -24,9 +25,12 @@ fn main() {
     let root_file = db.vfs.intern_path(path.into());
 
     // Set the source root
-    let source_roots = SourceRoots::new(vec![root_file]);
-    db.set_source_roots(source_roots);
-    db.reload_source_roots(&loader);
+    let mut source_graph = SourceGraph::default();
+    source_graph.add_root(root_file);
+    db.set_source_graph(Arc::new(source_graph));
+    db.invalidate_source_graph(&loader);
+
+    // TODO: Check that all of our library roots loaded correctly
 
     // Parse root CST & dump output
     // Note: this is only for temporary parse tree dumping

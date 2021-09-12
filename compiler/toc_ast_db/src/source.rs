@@ -1,8 +1,10 @@
 //! Source file interpretation queries
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use toc_reporting::CompileResult;
+use toc_source_graph::{DependGraph, SourceDepend, SourceKind};
 use toc_span::FileId;
 use toc_vfs::{db::VfsDatabaseExt, PathResolution};
 
@@ -30,47 +32,64 @@ pub(crate) fn parse_depends(
     toc_parser::parse_depends(Some(file_id), cst.result().syntax())
 }
 
+pub(crate) fn depend_of(
+    db: &dyn db::SourceParser,
+    library: FileId,
+    from: FileId,
+    relative_path: String,
+) -> (FileId, SourceKind) {
+    db.depend_graph(library).depend_of(from, relative_path)
+}
+
 impl<T> db::AstDatabaseExt for T
 where
-    T: toc_vfs::db::FileSystem + db::SourceParser,
+    T: toc_vfs::HasVfs + toc_vfs::db::FileSystem + db::SourceParser,
 {
-    fn reload_source_roots(&mut self, loader: &dyn toc_vfs::FileLoader) {
+    fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;
-        let source_roots = db.source_roots();
-        let mut reached_files = std::collections::HashSet::new();
+        let source_graph = db.source_graph();
+        let mut pending_files: VecDeque<_> = vec![].into();
 
-        let mut pending_files: VecDeque<_> = source_roots.roots().collect();
-        while let Some(current_file) = pending_files.pop_front() {
-            if !reached_files.insert(current_file) {
-                // We've already reached this file, don't enter into a cycle
-                // TODO: Report that we've reached a cycle if we're dealing with include chains
-                continue;
+        for library_root in source_graph.library_roots() {
+            let mut depend_graph = DependGraph::new(library_root);
+            pending_files.push_back(library_root);
+
+            while let Some(current_file) = pending_files.pop_front() {
+                // Load in the file source
+                let path = db.get_vfs().lookup_path(current_file);
+                let res = loader.load_file(path);
+                db.update_file(current_file, res);
+
+                let deps = db.parse_depends(current_file);
+                for dep in deps.result().dependencies() {
+                    let child = match db
+                        .get_vfs()
+                        .resolve_path(Some(current_file), &dep.relative_path)
+                    {
+                        PathResolution::Interned(id) => id,
+                        PathResolution::NewPath(path) => {
+                            let intern_path = loader.normalize_path(&path).unwrap_or(path);
+                            db.get_vfs_mut().intern_path(intern_path)
+                        }
+                    };
+
+                    // Update the resolution path
+                    let kind = match dep.kind {
+                        toc_parser::DependencyKind::Include => SourceKind::Include,
+                        toc_parser::DependencyKind::Import => SourceKind::Unit,
+                    };
+
+                    let info = SourceDepend {
+                        relative_path: dep.relative_path.clone(),
+                        kind,
+                    };
+                    depend_graph.add_source_dep(current_file, child, info);
+                    pending_files.push_back(child);
+                }
             }
 
-            // Load in the file source
-            let path = db.get_vfs().lookup_path(current_file);
-            let res = loader.load_file(path);
-            db.update_file(current_file, res);
-
-            let deps = db.parse_depends(current_file);
-            for dep in deps.result().dependencies() {
-                let child = match db
-                    .get_vfs()
-                    .resolve_path(Some(current_file), &dep.relative_path)
-                {
-                    PathResolution::Interned(id) => id,
-                    PathResolution::NewPath(path) => {
-                        let intern_path = loader.normalize_path(&path).unwrap_or(path);
-                        db.get_vfs_mut().intern_path(intern_path)
-                    }
-                };
-
-                // Update the resolution path
-                // ???: Any way to reduce changes to this?
-                // Only needs to change if the parent file is modified
-                db.set_resolve_path(current_file, dep.relative_path.clone(), child);
-                pending_files.push_back(child);
-            }
+            // Update the depend graph
+            db.set_depend_graph(library_root, Arc::new(depend_graph));
         }
     }
 }

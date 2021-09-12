@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
 use lsp_types::notification::{DidChangeTextDocument, DidOpenTextDocument};
@@ -9,7 +10,7 @@ use lsp_types::{
 };
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::{SourceParser, SpanMapping};
-use toc_ast_db::SourceRoots;
+use toc_ast_db::SourceGraph;
 use toc_salsa::salsa;
 use toc_vfs::db::VfsDatabaseExt;
 use toc_vfs::LoadStatus;
@@ -141,11 +142,12 @@ fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
     // Add the root path to the file db
     let root_file = db.vfs.intern_path(path.into());
     db.update_file(root_file, Ok(LoadStatus::Modified(contents.into())));
-    // Setup source roots
-    let source_roots = SourceRoots::new(vec![root_file]);
-    db.set_source_roots(source_roots);
+    // Setup source graph
+    let mut source_graph = SourceGraph::default();
+    source_graph.add_root(root_file);
+    db.set_source_graph(Arc::new(source_graph));
 
-    // TODO: Recursively load in files
+    // TODO: Recursively load in files, respecting already loaded files
 
     let analyze_res = db.analyze_libraries();
     let msgs = analyze_res.messages();

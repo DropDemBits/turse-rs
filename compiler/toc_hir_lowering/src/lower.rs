@@ -20,9 +20,8 @@ mod expr;
 mod stmt;
 mod ty;
 
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
-use indexmap::IndexSet;
 use toc_ast_db::db::SourceParser;
 use toc_hir::{
     body,
@@ -46,24 +45,9 @@ where
     fn lower_library(&self, library_root: FileId) -> CompileResult<LoweredLibrary> {
         let db = self;
 
-        // Gather all files reachable from the library root
-        let mut reachable_files = IndexSet::new();
+        let reachable_files: Vec<_> = self.depend_graph(library_root).unit_sources().collect();
 
-        let mut pending_files = VecDeque::from(vec![library_root]);
-        while let Some(current_file) = pending_files.pop_front() {
-            if !reachable_files.insert(current_file) {
-                // Already reached, don't enter into a cycle
-                continue;
-            }
-
-            let deps = db.parse_depends(current_file);
-            for dep in deps.result().dependencies() {
-                let child = db.resolve_path(current_file, dep.relative_path.clone());
-                pending_files.push_back(child);
-            }
-        }
-
-        // Lower them all
+        // Lower all files reachable from the library root
         let mut root_items = vec![];
         let mut messages = MessageBundle::default();
         let mut library = builder::LibraryBuilder::default();

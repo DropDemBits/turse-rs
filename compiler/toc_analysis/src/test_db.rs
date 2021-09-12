@@ -1,7 +1,9 @@
 //! Testing helpers
 
+use std::sync::Arc;
+
 use toc_ast_db::db::SourceParser;
-use toc_ast_db::SourceRoots;
+use toc_ast_db::SourceGraph;
 use toc_hir::library::LibraryId;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
@@ -33,8 +35,9 @@ impl TestDb {
         let root_file = db.vfs.intern_path("src/main.t".into());
         db.update_file(root_file, Ok(LoadStatus::Modified(source.into())));
 
-        let source_roots = SourceRoots::new(vec![root_file]);
-        db.set_source_roots(source_roots);
+        let mut source_graph = SourceGraph::default();
+        source_graph.add_root(root_file);
+        db.set_source_graph(Arc::new(source_graph));
 
         let library_id = db.library_graph().result().library_of(root_file);
 
