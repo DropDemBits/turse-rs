@@ -20,7 +20,11 @@ jobs:
         toolchain: [ stable ]
     env:
       RUSTFLAGS: -D warnings
-      RUSTDOCFLAGS: -D broken_intra_doc_links -D private_intra_doc_links
+      RUSTDOCFLAGS: -D rustdoc::broken_intra_doc_links -D rustdoc::private_intra_doc_links
+      # Disable debug info & incremental
+      CARGO_PROFILE_DEV_DEBUG: false
+      CARGO_PROFILE_TEST_DEBUG: false
+      CARGO_INCREMENTAL: false
 
     steps:
     - uses: actions/checkout@v2
@@ -42,4 +46,4 @@ jobs:
     - name: Check formatting
       run: cargo fmt -- --check
     - name: Check docs
-      run: cargo doc
+      run: cargo doc --workspace --no-deps
