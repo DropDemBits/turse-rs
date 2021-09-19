@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 
 use toc_span::FileId;
 
@@ -40,7 +40,7 @@ impl Vfs {
         // Convert `path` into an absolute one
         let expanded_path = self.expand_path(path);
 
-        let full_path = if expanded_path.is_absolute() {
+        let full_path = if !needs_joining(&expanded_path) {
             // Already an absolute path
             expanded_path
         } else if let Some(relative_to) = relative_to {
@@ -95,6 +95,7 @@ impl Vfs {
                     .builtin_expansions
                     .get(&prefix_path)
                     .expect("missing path prefix");
+
                 join_dedot(
                     base_path.to_owned(),
                     path.strip_prefix(prefix_path.to_string()).unwrap(),
@@ -143,28 +144,97 @@ pub trait HasVfs {
 
 /// Joins two paths together, applying `ParentDir` and `CurrentDir` components
 ///
-/// `append` must be a relative path
-fn join_dedot(mut path: PathBuf, append: &Path) -> PathBuf {
-    assert!(append.is_relative());
+/// `append` must be a path that needs joining
+fn join_dedot(mut base_path: PathBuf, append: &Path) -> PathBuf {
+    assert!(needs_joining(append));
 
-    for comp in append.components() {
+    let mut comps = append.components().peekable();
+
+    // Deal with the first component
+    if let Some(first) = comps.peek() {
+        match *first {
+            Component::Prefix(prefix) => {
+                if let Prefix::Disk(_) = prefix.kind() {
+                    assert!(!matches!(comps.next(), Some(Component::RootDir)));
+
+                    // Check if we need to fixup the drive prefix
+                    // Only need to do so if theres either a (different) drive prefix,
+                    // or no prefix at all
+
+                    let mut base_comps = base_path.components().peekable();
+
+                    let needs_fixup = match base_comps.peek() {
+                        // Do the fixup for drive prefix paths
+                        // Don't change drive for non-drive prefix paths
+                        Some(Component::Prefix(other_prefix)) => {
+                            matches!(other_prefix.kind(), Prefix::Disk(_))
+                        }
+                        // Append the drive prefix for all other components
+                        _ => true,
+                    };
+
+                    if needs_fixup {
+                        // Strip off existing drive prefix and join the rest of the path back
+                        let new_path = std::iter::once(Component::Prefix(prefix))
+                            .chain(base_comps.skip_while(|c| matches!(c, Component::Prefix(_))))
+                            .collect();
+                        base_path = new_path;
+                    }
+                } else {
+                    // per the assert above
+                    unreachable!()
+                }
+            }
+            Component::RootDir => unreachable!("tried to append on a path with a root dir"),
+            _ => {}
+        }
+    }
+
+    for comp in comps {
         match comp {
             Component::CurDir => {}
             Component::ParentDir => {
                 // go up
-                path.pop();
+                base_path.pop();
             }
             Component::Normal(comp) => {
                 // append component
-                path.push(comp);
+                base_path.push(comp);
             }
-            // absolute components
-            // should never be reachable since we check for absolute expanded paths
+            // absolute component
+            // should never be reachable since we should've already dealt with them
             Component::Prefix(_) | Component::RootDir => unreachable!(),
         }
     }
 
-    path
+    base_path
+}
+
+/// Returns true if the path is needs to be joined onto another path
+fn needs_joining(path: &Path) -> bool {
+    let mut comps = path.components();
+    let first = if let Some(comp) = comps.next() {
+        comp
+    } else {
+        // empty path
+        return true;
+    };
+
+    match first {
+        Component::Prefix(prefix) => {
+            if matches!(prefix.kind(), Prefix::Disk(_)) {
+                // Only consider for matching if the next component isn't a root dir
+                !matches!(comps.next(), Some(Component::RootDir))
+            } else {
+                // None of the other prefixes should be considered for joining
+                false
+            }
+        }
+        // Doesn't need joining, driver directory will come from current drive
+        Component::RootDir => false,
+        // Definitely relative components
+        Component::CurDir | Component::ParentDir | Component::Normal(_) => true,
+    }
 }
 
 #[cfg(test)]
@@ -191,5 +261,144 @@ mod test {
 
         let resolve = vfs.resolve_path(Some(child), "../././././main.t");
         assert_eq!(resolve, PathResolution::Interned(main));
+    }
+
+    // Windows-specific tests
+    #[cfg(windows)]
+    mod windows {
+        use super::*;
+
+        #[test]
+        fn fixup_joined_paths() {
+            // With same drive prefix
+            assert_eq!(
+                join_dedot(r#"C:\wah\bloop"#.into(), Path::new(r#"C:"#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"C:\wah\bloop"#.into(), Path::new(r#"C:."#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"C:\wah\bloop"#.into(), Path::new(r#"C:.."#)),
+                Path::new(r#"C:\wah"#)
+            );
+            assert_eq!(
+                join_dedot(r#"C:\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"C:\wah\bloop\a"#)
+            );
+
+            // With different drive prefix
+            assert_eq!(
+                join_dedot(r#"D:\wah\bloop"#.into(), Path::new(r#"C:"#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"D:\wah\bloop"#.into(), Path::new(r#"C:."#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"D:\wah\bloop"#.into(), Path::new(r#"C:.."#)),
+                Path::new(r#"C:\wah"#)
+            );
+            assert_eq!(
+                join_dedot(r#"D:\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"C:\wah\bloop\a"#)
+            );
+
+            // With different case drive prefix
+            assert_eq!(
+                join_dedot(r#"c:\wah\bloop"#.into(), Path::new(r#"C:"#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"c:\wah\bloop"#.into(), Path::new(r#"C:."#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"c:\wah\bloop"#.into(), Path::new(r#"C:.."#)),
+                Path::new(r#"C:\wah"#)
+            );
+            assert_eq!(
+                join_dedot(r#"c:\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"C:\wah\bloop\a"#)
+            );
+
+            // With drive prefix
+            assert_eq!(
+                join_dedot(r#"\wah\bloop"#.into(), Path::new(r#"C:"#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\wah\bloop"#.into(), Path::new(r#"C:."#)),
+                Path::new(r#"C:\wah\bloop"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\wah\bloop"#.into(), Path::new(r#"C:.."#)),
+                Path::new(r#"C:\wah"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\wah\bloop"#.into(), Path::new(r#"c:a"#)),
+                Path::new(r#"c:\wah\bloop\a"#)
+            );
+        }
+
+        #[test]
+        fn no_fixup_paths() {
+            // Don't fixup non-disk prefix base paths
+            assert_eq!(
+                join_dedot(r#"\\?\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"\\?\wah\bloop\a"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\\?\UNC\remote\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"\\?\UNC\remote\wah\bloop\a"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\\?\C:\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"\\?\C:\wah\bloop\a"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\\.\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"\\.\wah\bloop\a"#)
+            );
+            assert_eq!(
+                join_dedot(r#"\\UNC\remote\wah\bloop"#.into(), Path::new(r#"C:a"#)),
+                Path::new(r#"\\UNC\remote\wah\bloop\a"#)
+            );
+        }
+    }
+
+    #[test]
+    fn paths_need_joining() {
+        assert_eq!(needs_joining(Path::new("../a")), true);
+        assert_eq!(needs_joining(Path::new("./a")), true);
+        assert_eq!(needs_joining(Path::new("a")), true);
+        assert_eq!(needs_joining(Path::new("")), true);
+
+        if cfg!(windows) {
+            // Drive relative paths needs joining (and fixups)
+            assert_eq!(needs_joining(Path::new(r#"C:..\a"#)), true);
+            assert_eq!(needs_joining(Path::new(r#"C:.\a"#)), true);
+            assert_eq!(needs_joining(Path::new(r#"C:a"#)), true);
+            assert_eq!(needs_joining(Path::new(r#"C:"#)), true);
+        }
+    }
+
+    #[test]
+    fn paths_dont_need_joining() {
+        assert_eq!(needs_joining(Path::new("/")), false);
+
+        if cfg!(windows) {
+            // Drive absolute paths don't need joining
+            assert_eq!(needs_joining(Path::new(r#"C:\"#)), false);
+
+            // All other prefixes don't need joining
+            assert_eq!(needs_joining(Path::new(r#"\\?\heyo"#)), false);
+            assert_eq!(needs_joining(Path::new(r#"\\?\UNC\remote\place"#)), false);
+            assert_eq!(needs_joining(Path::new(r#"\\?\C:\verbatim_disk"#)), false);
+            assert_eq!(needs_joining(Path::new(r#"\\.\NUL"#)), false);
+            assert_eq!(needs_joining(Path::new(r#"\\UNC\remote\location"#)), false);
+        }
     }
 }
