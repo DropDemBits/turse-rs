@@ -190,12 +190,11 @@
   - [ ] SizeOf structure size computation
 - [ ] HIR Codegen
   - [ ] External functions support
-- [ ] FileDb & FileId maps
 - [x] Additional `ReportMessage` notes
   - [x] Integration with `ariadne`
 - [ ] Multi-file compilation
   - [x] Select file dependencies
-  - [ ] Load in the dependent file sources
+  - [x] Load in the dependent file sources
   - [x] Generate a test fixture VFS from a text string
   - [ ] Include tree stuff
   - [ ] Reasonable limit on files included
