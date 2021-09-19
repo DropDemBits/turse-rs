@@ -7,7 +7,7 @@ use toc_salsa::salsa;
 use toc_span::FileId;
 use toc_vfs::{FixtureFiles, LoadError, LoadResult};
 
-/// Query interface into the virtual file system, backed by [`HasVfs`].
+/// Query interface into the virtual file system.
 #[salsa::query_group(FileSystemStorage)]
 pub trait FileSystem {
     /// Gets the file source of a text.
@@ -22,6 +22,8 @@ pub trait FileSystem {
 }
 
 /// Helper extension trait for databases with [`Vfs`]'s
+///
+/// [`Vfs`]: toc_vfs::Vfs
 pub trait VfsDatabaseExt {
     /// Inserts a file into the database, producing a [`FileId`]
     ///
