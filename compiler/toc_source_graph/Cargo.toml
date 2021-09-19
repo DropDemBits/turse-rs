@@ -8,4 +8,5 @@ edition = "2018"
 [dependencies]
 toc_span = { path = "../toc_span" }
 
-petgraph = "0.6.0"
+petgraph = { version = "0.6.0", default-features = false, features = ["graphmap"] }
+

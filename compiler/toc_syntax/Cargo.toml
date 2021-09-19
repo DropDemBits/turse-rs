@@ -10,8 +10,8 @@ edition = "2018"
 # Local deps
 toc_span = { path = "../toc_span" }
 # External deps
-rowan = "0.12"
+rowan = "0.13"
 num-derive = "^0.3"
 num-traits = "0.2"
-lexical = { version = "^5.1", features = [ "radix" ] }
+lexical = { version = "^5", features = [ "radix" ] }
 thiserror = "1.0"
