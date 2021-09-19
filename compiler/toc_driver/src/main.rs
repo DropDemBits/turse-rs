@@ -1,35 +1,34 @@
 //! Dummy bin for running the new scanner and parser
 
 use std::collections::HashMap;
-use std::{env, fs, io};
+use std::sync::Arc;
+use std::{env, fs};
 
 use toc_analysis::db::HirAnalysis;
-use toc_ast_db::db::SourceParser;
 use toc_ast_db::db::SpanMapping;
-use toc_ast_db::SourceRoots;
+use toc_ast_db::db::{AstDatabaseExt, SourceParser};
+use toc_ast_db::SourceGraph;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};
-use toc_vfs::db::{FileSystem, VfsDatabaseExt};
-
-fn load_contents(path: &str) -> io::Result<String> {
-    let contents = fs::read(path)?;
-    let contents = String::from_utf8_lossy(&contents).to_string();
-    Ok(contents)
-}
+use toc_vfs::db::FileSystem;
+use toc_vfs::FileLoader;
 
 fn main() {
-    let path: String = env::args().nth(1).expect("Missing path to source file");
-    let contents = load_contents(&path).expect("Unable to load file");
+    let loader = MainFileLoader::default();
+    let str_path: String = env::args().nth(1).expect("Missing path to source file");
+    let path = std::path::Path::new(&str_path);
+    let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
     let mut db = MainDatabase::default();
 
     // Add the root path to the db
     let root_file = db.vfs.intern_path(path.into());
-    db.update_file(root_file, Some(contents.into_bytes()));
 
     // Set the source root
-    let source_roots = SourceRoots::new(vec![root_file]);
-    db.set_source_roots(source_roots);
+    let mut source_graph = SourceGraph::default();
+    source_graph.add_root(root_file);
+    db.set_source_graph(Arc::new(source_graph));
+    db.invalidate_source_graph(&loader);
 
     // Parse root CST & dump output
     // Note: this is only for temporary parse tree dumping
@@ -66,6 +65,25 @@ fn main() {
 
     let mut has_errors = false;
     let mut cache = VfsCache::new(&db);
+
+    // Report any library roots that loaded incorrectly
+    for root in db.source_graph().library_roots() {
+        let (_, err) = db.file_source(root);
+
+        if let Some(err) = err {
+            let path = db.vfs.lookup_path(root).display();
+
+            ariadne::Report::<(FileId, std::ops::Range<usize>)>::build(
+                ariadne::ReportKind::Error,
+                root,
+                0,
+            )
+            .with_message::<String>(format!("unable to load source for `{}`: {}", path, err))
+            .finish()
+            .print(&mut cache)
+            .unwrap();
+        }
+    }
 
     for msg in msgs.iter() {
         has_errors |= matches!(msg.kind(), toc_reporting::AnnotateKind::Error);
@@ -184,3 +202,24 @@ struct MainDatabase {
 impl salsa::Database for MainDatabase {}
 
 toc_vfs::impl_has_vfs!(MainDatabase, vfs);
+
+#[derive(Default)]
+struct MainFileLoader {}
+
+impl toc_vfs::FileLoader for MainFileLoader {
+    fn load_file(&self, path: &std::path::Path) -> toc_vfs::LoadResult {
+        match fs::read(path) {
+            Ok(contents) => Ok(toc_vfs::LoadStatus::Modified(contents)),
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::NotFound => Err(toc_vfs::LoadError::NotFound),
+                _ => Err(toc_vfs::LoadError::Other(std::sync::Arc::new(
+                    err.to_string(),
+                ))),
+            },
+        }
+    }
+
+    fn normalize_path(&self, path: &std::path::Path) -> Option<std::path::PathBuf> {
+        fs::canonicalize(path).ok()
+    }
+}

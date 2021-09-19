@@ -18,10 +18,10 @@ pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary
 
 pub fn library_graph_query(db: &dyn HirDatabase) -> CompileResult<LibraryGraph> {
     let mut messages = MessageBundle::default();
-    let source_roots = db.source_roots();
+    let source_graph = db.source_graph();
     let mut graph = GraphBuilder::new();
 
-    for root in source_roots.roots() {
+    for root in source_graph.library_roots() {
         graph.add_library(root);
         db.lower_library(root).bundle_messages(&mut messages);
     }

@@ -10,6 +10,82 @@ use crate::{
     SyntaxToken,
 };
 
+// Extension Traits //
+
+pub trait ExternalItemOwner: AstNode {
+    fn external_items(&self) -> Vec<ExternalItem> {
+        self.syntax()
+            .descendants()
+            .filter_map(ExternalItem::cast)
+            .collect()
+    }
+}
+
+impl ExternalItemOwner for ImportItem {}
+
+impl ExternalItemOwner for ImportList {}
+
+impl ExternalItemOwner for ImportStmt {}
+
+impl ExternalItemOwner for InheritStmt {}
+
+impl ExternalItemOwner for ImplementStmt {}
+
+impl ExternalItemOwner for ImplementByStmt {}
+
+// Only for the decl itself
+impl ExternalItemOwner for ModuleDecl {
+    fn external_items(&self) -> Vec<ExternalItem> {
+        vec![
+            extract_external_items(self.implement_stmt()),
+            extract_external_items(self.implement_by_stmt()),
+            extract_external_items(self.import_stmt()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+impl ExternalItemOwner for ClassDecl {
+    fn external_items(&self) -> Vec<ExternalItem> {
+        vec![
+            extract_external_items(self.inherit_stmt()),
+            extract_external_items(self.implement_stmt()),
+            extract_external_items(self.implement_by_stmt()),
+            extract_external_items(self.import_stmt()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+impl ExternalItemOwner for MonitorDecl {
+    fn external_items(&self) -> Vec<ExternalItem> {
+        vec![
+            extract_external_items(self.implement_stmt()),
+            extract_external_items(self.implement_by_stmt()),
+            extract_external_items(self.import_stmt()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+fn extract_external_items<T>(node: Option<T>) -> Vec<ExternalItem>
+where
+    T: ExternalItemOwner,
+{
+    match node {
+        Some(node) => node.external_items(),
+        None => vec![],
+    }
+}
+
+// Node impls //
+
 impl PPBinaryExpr {
     pub fn lhs(&self) -> Option<PPExpr> {
         helper::nodes(self.syntax()).next()

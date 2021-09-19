@@ -2,12 +2,13 @@
 use std::sync::Arc;
 
 use if_chain::if_chain;
+use toc_ast_db::db::{AstDatabaseExt, SourceParser};
+use toc_ast_db::SourceGraph;
 use toc_hir::{body, expr, item, library::LoweredLibrary, stmt, ty};
 use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_span::FileId;
-use toc_vfs::db::VfsDatabaseExt;
 
 #[salsa::database(
     InternedTypeStorage,
@@ -38,8 +39,13 @@ struct LowerResult {
 
 fn assert_lower(src: &str) -> LowerResult {
     let mut db = TestHirDb::default();
-    let root_file = db.vfs.insert_file("src/main.t", src);
-    db.invalidate_files();
+    toc_vfs::generate_vfs(&mut db, src);
+
+    let root_file = db.vfs.intern_path("src/main.t".into());
+    let mut source_graph = SourceGraph::new();
+    source_graph.add_root(root_file);
+    db.set_source_graph(Arc::new(source_graph));
+    db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 
     let lowered = db.lower_library(root_file);
 

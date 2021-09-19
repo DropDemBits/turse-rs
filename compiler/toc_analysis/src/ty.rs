@@ -128,6 +128,19 @@ pub enum TypeKind {
     Ref(Mutability, TypeId),
 }
 
+// Other types to add:
+// - array
+// - range
+// - enum
+// - union
+// - record
+// - set
+// - pointer
+// - alias
+// - function (fcn/proc/process)
+// - condition
+// - collection
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mutability {
     Const,

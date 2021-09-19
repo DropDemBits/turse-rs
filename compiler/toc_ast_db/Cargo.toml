@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 toc_salsa = { path = "../toc_salsa" }
+toc_source_graph = { path = "../toc_source_graph" }
 toc_span = { path = "../toc_span" }
 toc_vfs = { path = "../toc_vfs" }
 toc_parser = { path = "../toc_parser" }
