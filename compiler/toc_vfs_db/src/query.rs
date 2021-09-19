@@ -8,8 +8,7 @@ use toc_salsa::salsa;
 use toc_span::FileId;
 
 use crate::db::{FileSystem, VfsDatabaseExt};
-use crate::vfs::HasVfs;
-use crate::{LoadError, LoadResult, LoadStatus};
+use toc_vfs::{HasVfs, LoadError, LoadResult, LoadStatus};
 
 // Non query stuff //
 
@@ -22,6 +21,12 @@ where
         let file_id = self.get_vfs_mut().intern_path(path.as_ref().into());
         self.set_file_source(file_id, (Arc::new(source.into()), None));
         file_id
+    }
+
+    fn insert_fixture(&mut self, fixture: toc_vfs::FixtureFiles) {
+        for (file, source) in fixture.files {
+            self.update_file(file, source);
+        }
     }
 
     fn update_file(&mut self, file_id: FileId, result: LoadResult) {

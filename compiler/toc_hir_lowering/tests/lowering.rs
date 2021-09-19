@@ -9,10 +9,11 @@ use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_span::FileId;
+use toc_vfs_db::db::VfsDatabaseExt;
 
 #[salsa::database(
     InternedTypeStorage,
-    toc_vfs::db::FileSystemStorage,
+    toc_vfs_db::db::FileSystemStorage,
     toc_ast_db::db::SourceParserStorage
 )]
 #[derive(Default)]
@@ -39,7 +40,8 @@ struct LowerResult {
 
 fn assert_lower(src: &str) -> LowerResult {
     let mut db = TestHirDb::default();
-    toc_vfs::generate_vfs(&mut db, src);
+    let fixture = toc_vfs::generate_vfs(&mut db, src);
+    db.insert_fixture(fixture);
 
     let root_file = db.vfs.intern_path("src/main.t".into());
     let mut source_graph = SourceGraph::new();
