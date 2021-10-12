@@ -3,30 +3,19 @@
 use toc_hir::{
     item,
     library::{InLibrary, LibraryId, LoweredLibrary},
-    library_graph::{GraphBuilder, LibraryGraph},
+    library_graph::LibraryGraph,
     symbol::DefId,
 };
-use toc_reporting::{CompileResult, MessageBundle};
 
 use crate::db::HirDatabase;
 
 pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary {
-    let lib_graph = db.library_graph();
-    let file = lib_graph.result().file_of(library);
+    let file = db.library_graph().file_of(library);
     db.lower_library(file).result().clone()
 }
 
-pub fn library_graph_query(db: &dyn HirDatabase) -> CompileResult<LibraryGraph> {
-    let mut messages = MessageBundle::default();
-    let source_graph = db.source_graph();
-    let mut graph = GraphBuilder::new();
-
-    for root in source_graph.library_roots() {
-        graph.add_library(root);
-        db.lower_library(root).bundle_messages(&mut messages);
-    }
-
-    CompileResult::new(graph.finish(), messages)
+pub fn library_graph_query(db: &dyn HirDatabase) -> LibraryGraph {
+    db.lower_library_graph().result().clone()
 }
 
 pub fn lookup_item(db: &dyn HirDatabase, def_id: DefId) -> Option<InLibrary<item::ItemId>> {

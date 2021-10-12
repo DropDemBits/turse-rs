@@ -40,7 +40,7 @@ impl TestDb {
         db.set_source_graph(Arc::new(source_graph));
         db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 
-        let library_id = db.library_graph().result().library_of(root_file);
+        let library_id = db.library_graph().library_of(root_file);
 
         (db, library_id)
     }

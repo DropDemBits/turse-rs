@@ -46,8 +46,7 @@ fn main() {
 
     // Dump library graph
     println!("Libraries:");
-    let lower_res = db.library_graph();
-    let library_graph = lower_res.result();
+    let library_graph = db.library_graph();
 
     for (file, lib) in library_graph.library_roots() {
         println!(

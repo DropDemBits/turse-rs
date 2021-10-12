@@ -21,6 +21,7 @@ mod lower;
 mod scopes;
 
 use toc_hir::library::LoweredLibrary;
+use toc_hir::library_graph::LibraryGraph;
 use toc_reporting::CompileResult;
 use toc_span::FileId;
 
@@ -36,4 +37,7 @@ pub trait LoweringDb: toc_ast_db::db::SourceParser {
     /// [`Library`]: toc_hir::library::Library
     /// [`SpanTable`]: toc_span::SpanTable
     fn lower_library(&self, file: FileId) -> CompileResult<LoweredLibrary>;
+
+    /// Lowers the entire library graph
+    fn lower_library_graph(&self) -> CompileResult<LibraryGraph>;
 }

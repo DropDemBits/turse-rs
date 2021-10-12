@@ -7,7 +7,6 @@ use toc_hir::{
     symbol::DefId,
     ty,
 };
-use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 
 use crate::query;
@@ -21,7 +20,7 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
 
     /// Graph of all libraries
     #[salsa::invoke(query::library_graph_query)]
-    fn library_graph(&self) -> CompileResult<LibraryGraph>;
+    fn library_graph(&self) -> LibraryGraph;
 
     /// Looks up the corresponding item for the given `DefId`,
     /// or `None` if it doesn't exist.

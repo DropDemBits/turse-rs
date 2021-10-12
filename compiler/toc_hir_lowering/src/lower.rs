@@ -23,6 +23,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
+use toc_hir::library_graph::{GraphBuilder, LibraryGraph};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -61,6 +62,19 @@ where
         let lib = library.finish(root_items);
 
         CompileResult::new(Arc::new(lib), messages)
+    }
+
+    fn lower_library_graph(&self) -> CompileResult<LibraryGraph> {
+        let mut messages = MessageBundle::default();
+        let source_graph = self.source_graph();
+        let mut graph = GraphBuilder::new();
+
+        for root in source_graph.library_roots() {
+            graph.add_library(root);
+            self.lower_library(root).bundle_messages(&mut messages);
+        }
+
+        CompileResult::new(graph.finish(), messages)
     }
 }
 
