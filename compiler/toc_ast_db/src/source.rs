@@ -6,7 +6,8 @@ use std::sync::Arc;
 use toc_reporting::CompileResult;
 use toc_source_graph::{DependGraph, SourceDepend, SourceKind};
 use toc_span::FileId;
-use toc_vfs::{db::VfsDatabaseExt, PathResolution};
+use toc_vfs::{HasVfs, PathResolution};
+use toc_vfs_db::db::{self as vfs_db, VfsDatabaseExt};
 
 use crate::db;
 
@@ -43,7 +44,7 @@ pub(crate) fn depend_of(
 
 impl<T> db::AstDatabaseExt for T
 where
-    T: toc_vfs::HasVfs + toc_vfs::db::FileSystem + db::SourceParser,
+    T: HasVfs + vfs_db::FileSystem + db::SourceParser,
 {
     fn invalidate_source_graph(&mut self, loader: &dyn toc_vfs::FileLoader) {
         let db = self;

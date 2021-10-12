@@ -5,13 +5,11 @@ use std::sync::Arc;
 
 use toc_salsa::salsa;
 use toc_span::FileId;
+use toc_vfs::{FixtureFiles, LoadError, LoadResult};
 
-use crate::vfs::HasVfs;
-use crate::{LoadError, LoadResult};
-
-/// Query interface into the virtual file system, backed by [`HasVfs`].
+/// Query interface into the virtual file system.
 #[salsa::query_group(FileSystemStorage)]
-pub trait FileSystem: HasVfs {
+pub trait FileSystem {
     /// Gets the file source of a text.
     ///
     /// Provides an `Option<LoadError>`, to notify of things like being unable to open a file,
@@ -25,12 +23,15 @@ pub trait FileSystem: HasVfs {
 
 /// Helper extension trait for databases with [`Vfs`]'s
 ///
-/// [`Vfs`]: crate::Vfs
-pub trait VfsDatabaseExt: HasVfs + FileSystem {
+/// [`Vfs`]: toc_vfs::Vfs
+pub trait VfsDatabaseExt {
     /// Inserts a file into the database, producing a [`FileId`]
     ///
     /// Mainly used in tests
     fn insert_file<P: AsRef<Path>>(&mut self, path: P, source: &str) -> FileId;
+
+    /// Inserts a generated fixture tree into the database
+    fn insert_fixture(&mut self, fixture: FixtureFiles);
 
     /// Updates the contents of the specified file, using the given load result
     fn update_file(&mut self, file_id: FileId, result: LoadResult);

@@ -10,6 +10,7 @@ toc_salsa = { path = "../toc_salsa" }
 toc_source_graph = { path = "../toc_source_graph" }
 toc_span = { path = "../toc_span" }
 toc_vfs = { path = "../toc_vfs" }
+toc_vfs_db = { path = "../toc_vfs_db" }
 toc_parser = { path = "../toc_parser" }
 toc_validate = { path = "../toc_validate" }
 toc_reporting = { path = "../toc_reporting" }

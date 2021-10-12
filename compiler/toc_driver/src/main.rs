@@ -11,8 +11,8 @@ use toc_ast_db::SourceGraph;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};
-use toc_vfs::db::FileSystem;
 use toc_vfs::FileLoader;
+use toc_vfs_db::db::FileSystem;
 
 fn main() {
     let loader = MainFileLoader::default();
@@ -183,7 +183,7 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
 }
 
 #[salsa::database(
-    toc_vfs::db::FileSystemStorage,
+    toc_vfs_db::db::FileSystemStorage,
     toc_ast_db::db::SpanMappingStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,

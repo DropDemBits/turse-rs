@@ -6,7 +6,8 @@ use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 use toc_source_graph::{DependGraph, SourceGraph, SourceKind};
 use toc_span::FileId;
-use toc_vfs::db::FileSystem;
+use toc_vfs::HasVfs;
+use toc_vfs_db::db::FileSystem;
 
 use crate::span::{LineInfo, LineMapping, LspPosition};
 use crate::{source, span};
@@ -44,7 +45,7 @@ pub trait SourceParser: FileSystem {
 }
 
 #[salsa::query_group(SpanMappingStorage)]
-pub trait SpanMapping: toc_vfs::db::FileSystem {
+pub trait SpanMapping: FileSystem + HasVfs {
     #[salsa::invoke(span::query::line_mapping)]
     fn line_mapping(&self, file_id: toc_span::FileId) -> Arc<LineMapping>;
 
@@ -65,7 +66,7 @@ pub trait SpanMapping: toc_vfs::db::FileSystem {
     fn map_byte_index_to_character(&self, file: toc_span::FileId, index: usize) -> Option<usize>;
 }
 
-pub trait AstDatabaseExt: toc_vfs::db::FileSystem + SourceParser {
+pub trait AstDatabaseExt: FileSystem + SourceParser {
     /// Reloads all files accessible from the source roots using the given file loader
     ///
     /// Also rebuilds all dependency graphs

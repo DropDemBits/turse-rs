@@ -391,6 +391,7 @@ dependencies = [
  "toc_salsa",
  "toc_span",
  "toc_vfs",
+ "toc_vfs_db",
 ]
 
 [[package]]
@@ -813,6 +814,7 @@ dependencies = [
  "toc_salsa",
  "toc_span",
  "toc_vfs",
+ "toc_vfs_db",
  "unindent",
 ]
 
@@ -827,6 +829,7 @@ dependencies = [
  "toc_span",
  "toc_validate",
  "toc_vfs",
+ "toc_vfs_db",
 ]
 
 [[package]]
@@ -844,6 +847,7 @@ dependencies = [
  "toc_span",
  "toc_syntax",
  "toc_vfs",
+ "toc_vfs_db",
 ]
 
 [[package]]
@@ -885,6 +889,7 @@ dependencies = [
  "toc_span",
  "toc_syntax",
  "toc_vfs",
+ "toc_vfs_db",
  "unindent",
 ]
 
@@ -979,8 +984,16 @@ version = "0.1.0"
 dependencies = [
  "if_chain",
  "indexmap",
+ "toc_span",
+]
+
+[[package]]
+name = "toc_vfs_db"
+version = "0.1.0"
+dependencies = [
  "toc_salsa",
  "toc_span",
+ "toc_vfs",
 ]
 
 [[package]]
