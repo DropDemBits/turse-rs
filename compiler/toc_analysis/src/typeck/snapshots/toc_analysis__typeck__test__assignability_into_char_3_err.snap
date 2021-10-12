@@ -15,14 +15,18 @@ expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 102..103: mismatched types
-| error in file FileId(1) for 102..103: the type of this expression...
-| note in file FileId(1) for 91..98: is incompatible with this type
+| note in file FileId(1) for 102..103: this is of type `char`
+| note in file FileId(1) for 91..98: this is of type `char(3)`
+| info: `char` is not assignable into `char(3)`
 error in file FileId(1) at 126..128: mismatched types
-| error in file FileId(1) for 126..128: the type of this expression...
-| note in file FileId(1) for 115..122: is incompatible with this type
+| note in file FileId(1) for 126..128: this is of type `char(1)`
+| note in file FileId(1) for 115..122: this is of type `char(3)`
+| info: `char(1)` is not assignable into `char(3)`
 error in file FileId(1) at 151..153: mismatched types
-| error in file FileId(1) for 151..153: the type of this expression...
-| note in file FileId(1) for 140..147: is incompatible with this type
+| note in file FileId(1) for 151..153: this is of type `char(5)`
+| note in file FileId(1) for 140..147: this is of type `char(3)`
+| info: `char(5)` is not assignable into `char(3)`
 error in file FileId(1) at 176..178: mismatched types
-| error in file FileId(1) for 176..178: the type of this expression...
-| note in file FileId(1) for 165..172: is incompatible with this type
+| note in file FileId(1) for 176..178: this is of type `string(1)`
+| note in file FileId(1) for 165..172: this is of type `char(3)`
+| info: `string(1)` is not assignable into `char(3)`

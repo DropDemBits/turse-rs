@@ -9,5 +9,6 @@ expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : char(N) := c5\n"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 53..55: mismatched types
-| error in file FileId(1) for 53..55: the type of this expression...
-| note in file FileId(1) for 42..49: is incompatible with this type
+| note in file FileId(1) for 53..55: this is of type `char(5)`
+| note in file FileId(1) for 42..49: this is of type `char(1)`
+| info: `char(5)` is not assignable into `char(1)`

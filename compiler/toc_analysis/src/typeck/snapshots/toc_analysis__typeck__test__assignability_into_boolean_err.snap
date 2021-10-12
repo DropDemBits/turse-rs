@@ -13,14 +13,18 @@ expression: "var r : real\nvar i : int\nvar n : nat\n\nvar _e00 : boolean := 1\n
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 60..61: mismatched types
-| error in file FileId(1) for 60..61: the type of this expression...
-| note in file FileId(1) for 49..56: is incompatible with this type
+| note in file FileId(1) for 60..61: this is of type `{integer}`
+| note in file FileId(1) for 49..56: this is of type `boolean`
+| info: `{integer}` is not assignable into `boolean`
 error in file FileId(1) at 84..85: mismatched types
-| error in file FileId(1) for 84..85: the type of this expression...
-| note in file FileId(1) for 73..80: is incompatible with this type
+| note in file FileId(1) for 84..85: this is of type `int`
+| note in file FileId(1) for 73..80: this is of type `boolean`
+| info: `int` is not assignable into `boolean`
 error in file FileId(1) at 108..109: mismatched types
-| error in file FileId(1) for 108..109: the type of this expression...
-| note in file FileId(1) for 97..104: is incompatible with this type
+| note in file FileId(1) for 108..109: this is of type `nat`
+| note in file FileId(1) for 97..104: this is of type `boolean`
+| info: `nat` is not assignable into `boolean`
 error in file FileId(1) at 132..133: mismatched types
-| error in file FileId(1) for 132..133: the type of this expression...
-| note in file FileId(1) for 121..128: is incompatible with this type
+| note in file FileId(1) for 132..133: this is of type `real`
+| note in file FileId(1) for 121..128: this is of type `boolean`
+| info: `real` is not assignable into `boolean`
