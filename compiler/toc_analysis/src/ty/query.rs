@@ -1,7 +1,5 @@
 //! Type-related query implementation
 
-use std::sync::Arc;
-
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
@@ -13,7 +11,6 @@ use toc_hir::{
 use crate::db;
 
 use super::lower;
-use super::pretty;
 use super::{IntSize, Mutability, NatSize, RealSize, SeqSize, Type, TypeId, TypeKind};
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
@@ -62,10 +59,6 @@ fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
         toc_hir::body::BodyKind::Stmts(_, _) => db.mk_error(), // This is where we'd evaluate a const fn
         toc_hir::body::BodyKind::Exprs(expr) => db.type_of((body_id.0, body_id.1, *expr).into()),
     }
-}
-
-pub(crate) fn debug_ty(db: &dyn db::TypeDatabase, type_id: TypeId) -> Arc<String> {
-    Arc::new(pretty::debug_ty(db, type_id))
 }
 
 impl<T> db::TypeInternExt for T

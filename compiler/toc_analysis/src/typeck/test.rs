@@ -66,7 +66,7 @@ fn stringify_typeck_results(
         let name_fmt = format!("{:?}@{:?} [{:?}]: ", name, name_span, def_info.kind);
 
         s.push_str(&name_fmt);
-        s.push_str(&db.debug_ty(ty));
+        s.push_str(&ty.in_db(db).debug());
         s.push('\n');
     }
 

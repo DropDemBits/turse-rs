@@ -11,70 +11,6 @@ mod pretty;
 pub(crate) mod query;
 pub mod rules;
 
-toc_salsa::create_intern_key!(
-    /// Id referencing an interned type.
-    pub TypeId;
-);
-
-impl TypeId {
-    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
-    where
-        DB: db::TypeDatabase + ?Sized + 'db,
-    {
-        TyRef { db, id: self }
-    }
-}
-
-/// Interned type data
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeData {
-    data: Arc<Type>,
-}
-
-impl std::ops::Deref for TypeData {
-    type Target = Type;
-
-    fn deref(&self) -> &Self::Target {
-        self.data.deref()
-    }
-}
-
-impl From<Type> for TypeData {
-    fn from(ty: Type) -> Self {
-        Self { data: Arc::new(ty) }
-    }
-}
-
-/// Wrapper type for making it easier to work with TypeIds
-#[derive(Debug, PartialEq, Eq)]
-pub struct TyRef<'db, DB: ?Sized + 'db> {
-    db: &'db DB,
-    id: TypeId,
-}
-
-impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
-    fn clone(&self) -> Self {
-        Self {
-            db: self.db,
-            id: self.id,
-        }
-    }
-}
-
-impl<'db, DB: ?Sized + 'db> Copy for TyRef<'db, DB> {}
-
-/// Wrapper type for getting a [`TypeKind`] from a [`TyRef`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TyRefKind(TypeData);
-
-impl std::ops::Deref for TyRefKind {
-    type Target = TypeKind;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.kind()
-    }
-}
-
 // Constructible vs Well-formed (valid)
 //
 // Constructible, Well-formed  => Type itself is real, and all dependencies of it are real
@@ -185,4 +121,68 @@ pub enum SeqSize {
     Dynamic,
     /// Fixed, compile-time size
     Fixed(Const),
+}
+
+toc_salsa::create_intern_key!(
+    /// Id referencing an interned type.
+    pub TypeId;
+);
+
+impl TypeId {
+    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
+    where
+        DB: db::TypeDatabase + ?Sized + 'db,
+    {
+        TyRef { db, id: self }
+    }
+}
+
+/// Interned type data
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeData {
+    data: Arc<Type>,
+}
+
+impl std::ops::Deref for TypeData {
+    type Target = Type;
+
+    fn deref(&self) -> &Self::Target {
+        self.data.deref()
+    }
+}
+
+impl From<Type> for TypeData {
+    fn from(ty: Type) -> Self {
+        Self { data: Arc::new(ty) }
+    }
+}
+
+/// Wrapper type for making it easier to work with TypeIds
+#[derive(Debug, PartialEq, Eq)]
+pub struct TyRef<'db, DB: ?Sized + 'db> {
+    db: &'db DB,
+    id: TypeId,
+}
+
+impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
+    fn clone(&self) -> Self {
+        Self {
+            db: self.db,
+            id: self.id,
+        }
+    }
+}
+
+impl<'db, DB: ?Sized + 'db> Copy for TyRef<'db, DB> {}
+
+/// Wrapper type for getting a [`TypeKind`] from a [`TyRef`]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TyRefKind(TypeData);
+
+impl std::ops::Deref for TyRefKind {
+    type Target = TypeKind;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.kind()
+    }
 }

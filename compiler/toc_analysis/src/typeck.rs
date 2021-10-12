@@ -157,12 +157,7 @@ impl TypeCheck<'_> {
                 .span
                 .lookup_in(&self.library.span_map);
 
-            self.state()
-                .reporter
-                .error_detailed("mismatched types", init_span)
-                .with_error("the type of this expression...", init_span)
-                .with_note("is incompatible with this type", spec_span)
-                .finish();
+            self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span);
 
             // Don't need to worry about ConstValue being anything,
             // since that should be handled by const eval type restrictions
@@ -188,10 +183,11 @@ impl TypeCheck<'_> {
             Some(false) => {
                 // TODO: Report expected type vs found type
                 // - Requires type stringification/display impl
-                self.state()
-                    .reporter
-                    .error_detailed("mismatched types", asn_span)
-                    .finish();
+                let body = self.library.body(in_body);
+                let left_span = body.expr(item.lhs).span.lookup_in(&self.library.span_map);
+                let right_span = body.expr(item.rhs).span.lookup_in(&self.library.span_map);
+
+                self.report_mismatched_assign_tys(left, right, asn_span, left_span, right_span);
             }
             None => {
                 // Not a mut ref
@@ -211,6 +207,36 @@ impl TypeCheck<'_> {
                     .finish();
             }
         }
+    }
+
+    fn report_mismatched_assign_tys(
+        &self,
+        left: ty::TypeId,
+        right: ty::TypeId,
+        asn_span: toc_span::Span,
+        left_span: toc_span::Span,
+        right_span: toc_span::Span,
+    ) {
+        let db = self.db;
+        let left_tyname = left.in_db(db).display();
+        let right_tyname = right.in_db(db).display();
+        self.state()
+            .reporter
+            .error_detailed("mismatched types", asn_span)
+            .with_note(
+                &format!("this is of type `{right}`", right = right_tyname),
+                right_span,
+            )
+            .with_note(
+                &format!("this is of type `{left}`", left = left_tyname),
+                left_span,
+            )
+            .with_info(&format!(
+                "`{right}` is not assignable into `{left}`",
+                left = left_tyname,
+                right = right_tyname
+            ))
+            .finish();
     }
 
     fn typeck_put(&self, body_id: body::BodyId, stmt: &stmt::Put) {
