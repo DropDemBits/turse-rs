@@ -218,23 +218,24 @@ impl TypeCheck<'_> {
         right_span: toc_span::Span,
     ) {
         let db = self.db;
-        let left_tyname = left.in_db(db).display();
-        let right_tyname = right.in_db(db).display();
+        let left_ty = left.in_db(db);
+        let right_ty = right.in_db(db);
+
         self.state()
             .reporter
             .error_detailed("mismatched types", asn_span)
             .with_note(
-                &format!("this is of type `{right}`", right = right_tyname),
+                &format!("this is of type `{right}`", right = right_ty),
                 right_span,
             )
             .with_note(
-                &format!("this is of type `{left}`", left = left_tyname),
+                &format!("this is of type `{left}`", left = left_ty),
                 left_span,
             )
             .with_info(&format!(
                 "`{right}` is not assignable into `{left}`",
-                left = left_tyname,
-                right = right_tyname
+                left = left_ty,
+                right = right_ty
             ))
             .finish();
     }

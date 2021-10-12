@@ -11,23 +11,21 @@ use crate::{
 
 use super::{Mutability, TypeId};
 
-impl<'db, DB> TyRef<'db, DB>
+impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
     DB: db::TypeDatabase + ?Sized + 'db,
 {
-    /// Produces a `Debug` formatted string of the given type
-    pub fn debug(&self) -> String {
-        debug_ty(self.db, self.id)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        emit_debug_ty(self.db, f, self.id)
     }
 }
 
-impl<'db, DB> TyRef<'db, DB>
+impl<'db, DB> fmt::Display for TyRef<'db, DB>
 where
     DB: db::ConstEval + ?Sized + 'db,
 {
-    /// Produces a `Display` formatted string of the given type
-    pub fn display(&self) -> String {
-        display_ty(self.db, self.id)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        emit_display_ty(self.db, f, self.id)
     }
 }
 
@@ -70,15 +68,6 @@ impl TypeKind {
     }
 }
 
-fn debug_ty<'db, DB>(db: &'db DB, type_id: TypeId) -> String
-where
-    DB: db::TypeDatabase + ?Sized + 'db,
-{
-    let mut out = String::new();
-    emit_debug_ty(db, &mut out, type_id).expect("failed to debug fmt ty");
-    out
-}
-
 fn emit_debug_ty<'db, DB>(db: &'db DB, out: &mut dyn fmt::Write, type_id: TypeId) -> fmt::Result
 where
     DB: db::TypeDatabase + ?Sized + 'db,
@@ -103,15 +92,6 @@ where
     Ok(())
 }
 
-fn display_ty<'db, DB>(db: &'db DB, type_id: TypeId) -> String
-where
-    DB: db::ConstEval + ?Sized + 'db,
-{
-    let mut out = String::new();
-    emit_display_ty(db, &mut out, type_id).expect("Failed to display fmt ty");
-    out
-}
-
 fn emit_display_ty<'db, DB>(db: &'db DB, out: &mut dyn fmt::Write, type_id: TypeId) -> fmt::Result
 where
     DB: db::ConstEval + ?Sized + 'db,
@@ -128,7 +108,7 @@ where
             match seq.fixed_len(db, Span::default()) {
                 Ok(None) => out.write_char('*')?,
                 Ok(Some(v)) => out.write_fmt(format_args!("{}", v))?,
-                Err(_) => unreachable!("should not print out errors!"),
+                Err(_) => unreachable!("should not show errors!"),
             }
             out.write_char(')')?;
         }

@@ -158,7 +158,7 @@ impl From<Type> for TypeData {
 }
 
 /// Wrapper type for making it easier to work with TypeIds
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct TyRef<'db, DB: ?Sized + 'db> {
     db: &'db DB,
     id: TypeId,
