@@ -7,5 +7,8 @@ expression: "const k := 20 + false\nconst l : int := k   % Nothing reported here
 "l"@(FileId(1), 28..29) [Declared]: ref int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 14..15: incompatible types for addition
+error in file FileId(1) at 14..15: mismatched types for addition
+| note in file FileId(1) for 11..13: this is of type `{integer}`
+| note in file FileId(1) for 16..21: this is of type `boolean`
+| error in file FileId(1) for 14..15: `{integer}` cannot be added to `boolean`
 | info: operands must both be numbers, strings, or sets

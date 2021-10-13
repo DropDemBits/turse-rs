@@ -10,8 +10,10 @@ expression: "var b : boolean\nvar r : real\n\nvar _e00 : nat := b\nvar _e01 : na
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 48..49: mismatched types
-| error in file FileId(1) for 48..49: the type of this expression...
-| note in file FileId(1) for 41..44: is incompatible with this type
+| note in file FileId(1) for 48..49: this is of type `boolean`
+| note in file FileId(1) for 41..44: this is of type `nat`
+| info: `boolean` is not assignable into `nat`
 error in file FileId(1) at 68..69: mismatched types
-| error in file FileId(1) for 68..69: the type of this expression...
-| note in file FileId(1) for 61..64: is incompatible with this type
+| note in file FileId(1) for 68..69: this is of type `real`
+| note in file FileId(1) for 61..64: this is of type `nat`
+| info: `real` is not assignable into `nat`

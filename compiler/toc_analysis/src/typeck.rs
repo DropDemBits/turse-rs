@@ -11,7 +11,7 @@ use toc_hir::stmt::BodyStmt;
 use toc_hir::symbol::{self, DefId};
 use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
-use toc_span::SpanId;
+use toc_span::Span;
 
 use crate::db::HirAnalysis;
 use crate::ty;
@@ -34,7 +34,7 @@ use crate::ty;
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
 pub(crate) fn typecheck_library(db: &dyn HirAnalysis, library: LibraryId) -> CompileResult<()> {
-    TypeCheck::check_unit(db, library)
+    TypeCheck::check_library(db, library)
 }
 
 struct TypeCheck<'db> {
@@ -63,7 +63,7 @@ struct TypeCheckState {
 }
 
 impl<'db> TypeCheck<'db> {
-    fn check_unit(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<()> {
+    fn check_library(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<()> {
         let state = TypeCheckState {
             reporter: toc_reporting::MessageSink::new(),
         };
@@ -157,12 +157,7 @@ impl TypeCheck<'_> {
                 .span
                 .lookup_in(&self.library.span_map);
 
-            self.state()
-                .reporter
-                .error_detailed("mismatched types", init_span)
-                .with_error("the type of this expression...", init_span)
-                .with_note("is incompatible with this type", spec_span)
-                .finish();
+            self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span);
 
             // Don't need to worry about ConstValue being anything,
             // since that should be handled by const eval type restrictions
@@ -186,12 +181,12 @@ impl TypeCheck<'_> {
         match asn_able {
             Some(true) => {} // Valid
             Some(false) => {
-                // TODO: Report expected type vs found type
-                // - Requires type stringification/display impl
-                self.state()
-                    .reporter
-                    .error_detailed("mismatched types", asn_span)
-                    .finish();
+                // Invalid types!
+                let body = self.library.body(in_body);
+                let left_span = body.expr(item.lhs).span.lookup_in(&self.library.span_map);
+                let right_span = body.expr(item.rhs).span.lookup_in(&self.library.span_map);
+
+                self.report_mismatched_assign_tys(left, right, asn_span, left_span, right_span);
             }
             None => {
                 // Not a mut ref
@@ -211,6 +206,37 @@ impl TypeCheck<'_> {
                     .finish();
             }
         }
+    }
+
+    fn report_mismatched_assign_tys(
+        &self,
+        left: ty::TypeId,
+        right: ty::TypeId,
+        asn_span: toc_span::Span,
+        left_span: toc_span::Span,
+        right_span: toc_span::Span,
+    ) {
+        let db = self.db;
+        let left_ty = left.in_db(db).peel_ref();
+        let right_ty = right.in_db(db).peel_ref();
+
+        self.state()
+            .reporter
+            .error_detailed("mismatched types", asn_span)
+            .with_note(
+                &format!("this is of type `{right}`", right = right_ty),
+                right_span,
+            )
+            .with_note(
+                &format!("this is of type `{left}`", left = left_ty),
+                left_span,
+            )
+            .with_info(&format!(
+                "`{right}` is not assignable into `{left}`",
+                left = left_ty,
+                right = right_ty
+            ))
+            .finish();
     }
 
     fn typeck_put(&self, body_id: body::BodyId, stmt: &stmt::Put) {
@@ -327,23 +353,7 @@ impl TypeCheck<'_> {
         let ty_ref = self.db.type_of((self.library_id, expr).into());
         let span = self.library.body(expr.0).expr(expr.1).span;
 
-        self.check_integer_type(ty_ref, span);
-    }
-
-    fn check_integer_type(&self, ty: ty::TypeId, span: SpanId) {
-        let ty = ty.in_db(self.db).peel_ref();
-        let ty_kind = ty.kind();
-
-        if !ty_kind.is_integer() && !ty_kind.is_error() {
-            let ty_span = span.lookup_in(&self.library.span_map);
-
-            // TODO: Stringify type for more clarity on the error
-            self.state()
-                .reporter
-                .error_detailed("mismatched types", ty_span)
-                .with_error("expected integer type", ty_span)
-                .finish();
-        }
+        self.expect_integer_type(ty_ref, self.library.lookup_span(span));
     }
 
     fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
@@ -387,7 +397,18 @@ impl TypeCheck<'_> {
 
         if let Err(err) = ty::rules::check_binary_op(db, left, *expr.op.item(), right) {
             let op_span = self.library.lookup_span(expr.op.span());
-            ty::rules::report_invalid_bin_op(err, op_span, &mut self.state().reporter);
+            let body = self.library.body(body);
+            let left_span = self.library.lookup_span(body.expr(expr.lhs).span);
+            let right_span = self.library.lookup_span(body.expr(expr.rhs).span);
+
+            ty::rules::report_invalid_bin_op(
+                db,
+                err,
+                left_span,
+                op_span,
+                right_span,
+                &mut self.state().reporter,
+            );
         }
     }
 
@@ -398,7 +419,16 @@ impl TypeCheck<'_> {
 
         if let Err(err) = ty::rules::check_unary_op(db, *expr.op.item(), right) {
             let op_span = self.library.lookup_span(expr.op.span());
-            ty::rules::report_invalid_unary_op(err, op_span, &mut self.state().reporter);
+            let body = self.library.body(body);
+            let right_span = self.library.lookup_span(body.expr(expr.rhs).span);
+
+            ty::rules::report_invalid_unary_op(
+                db,
+                err,
+                op_span,
+                right_span,
+                &mut self.state().reporter,
+            );
         }
     }
 
@@ -427,22 +457,31 @@ impl TypeCheck<'_> {
     }
 
     fn typeck_primitive(&self, id: toc_hir::ty::TypeId, ty_node: &toc_hir::ty::Primitive) {
+        let db = self.db;
         let ty = self
             .db
             .from_hir_type(id.in_library(self.library_id))
-            .in_db(self.db);
+            .in_db(db);
         let ty_kind = &*ty.kind();
 
-        let expr_span = match ty_node {
+        let (expr_span, expr_ty) = match ty_node {
             toc_hir::ty::Primitive::SizedChar(toc_hir::ty::SeqLength::Expr(body))
-            | toc_hir::ty::Primitive::SizedString(toc_hir::ty::SeqLength::Expr(body)) => self
-                .library
-                .body(*body)
-                .span
-                .lookup_in(&self.library.span_map),
+            | toc_hir::ty::Primitive::SizedString(toc_hir::ty::SeqLength::Expr(body)) => {
+                let expr_span = self
+                    .library
+                    .body(*body)
+                    .span
+                    .lookup_in(&self.library.span_map);
+                let expr_ty = db.type_of((self.library_id, *body).into());
+
+                (expr_span, expr_ty)
+            }
             _ => return,
         };
 
+        self.expect_integer_type(expr_ty, expr_span);
+
+        // Check resultant size
         let (seq_size, size_limit) = match ty_kind {
             ty::TypeKind::CharN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
@@ -460,11 +499,11 @@ impl TypeCheck<'_> {
             _ => unreachable!(),
         };
 
-        let int = match seq_size.fixed_len(self.db, expr_span) {
+        let int = match seq_size.fixed_len(db, expr_span) {
             Ok(Some(v)) => v,
             Ok(None) => return, // dynamic, doesn't need checking
             Err(err) => {
-                err.report_to(self.db, &mut self.state().reporter);
+                err.report_to(db, &mut self.state().reporter);
                 return;
             }
         };
@@ -480,6 +519,20 @@ impl TypeCheck<'_> {
                 .error_detailed("invalid character count size", expr_span)
                 .with_error(&format!("computed count is {}", int), expr_span)
                 .with_info(&format!("valid sizes are between 1 to {}", size_limit - 1))
+                .finish();
+        }
+    }
+
+    fn expect_integer_type(&self, type_id: ty::TypeId, span: Span) {
+        let ty = type_id.in_db(self.db).peel_ref();
+        let ty_kind = ty.kind();
+
+        if !ty_kind.is_integer() && !ty_kind.is_error() {
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", span)
+                .with_note(&format!("this is of type `{}`", ty), span)
+                .with_info(&format!("`{}` is not an integer type", ty))
                 .finish();
         }
     }

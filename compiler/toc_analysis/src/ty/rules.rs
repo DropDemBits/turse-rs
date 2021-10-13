@@ -30,6 +30,10 @@ impl TypeKind {
         matches!(self, TypeKind::Integer | TypeKind::Nat(_))
     }
 
+    pub fn is_boolean(&self) -> bool {
+        matches!(self, TypeKind::Boolean)
+    }
+
     pub fn is_error(&self) -> bool {
         matches!(self, TypeKind::Error)
     }
@@ -104,19 +108,6 @@ impl SeqSize {
             .and_then(|v| v.into_int(span))
             .map(Some)
     }
-}
-
-/// Type for associated mismatch binary operand types
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InvalidBinaryOp {
-    op: expr::BinaryOp,
-    unsupported: bool,
-}
-
-/// Type for associated mismatch unary operand types
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InvalidUnaryOp {
-    op: expr::UnaryOp,
 }
 
 /// Returns `Some(is_assignable)`, or `None` if the the l_value is not deref'able.
@@ -308,6 +299,15 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     Some(is_assignable)
 }
 
+/// Type for associated mismatch binary operand types
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InvalidBinaryOp {
+    left: TypeId,
+    op: expr::BinaryOp,
+    right: TypeId,
+    unsupported: bool,
+}
+
 /// Gets the type produced by the given binary operation
 pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
     db: &T,
@@ -368,25 +368,28 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    fn create_binary_type_error(op: expr::BinaryOp) -> Result<TypeId, InvalidBinaryOp> {
+    let left = left.in_db(db).peel_ref();
+    let right = right.in_db(db).peel_ref();
+    let (lhs_kind, rhs_kind) = (&*left.kind(), &*right.kind());
+
+    // Use the peeled versions of the types for reporting
+    let mk_type_error = || {
         Err(InvalidBinaryOp {
+            left: left.id,
             op,
+            right: right.id,
             unsupported: false,
         })
-    }
+    };
 
-    fn create_unsupported_binary_op(op: expr::BinaryOp) -> Result<TypeId, InvalidBinaryOp> {
+    let unsupported_op = || {
         Err(InvalidBinaryOp {
+            left: left.id,
             op,
+            right: right.id,
             unsupported: true,
         })
-    }
-
-    let left = left.in_db(db);
-    let right = right.in_db(db);
-
-    let (left_ty, right_ty) = (left.peel_ref(), right.peel_ref());
-    let (lhs_kind, rhs_kind) = (&*left_ty.kind(), &*right_ty.kind());
+    };
 
     // Short circuit for error types
     // Don't duplicate errors
@@ -407,7 +410,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 Ok(result_ty)
             } else {
                 // Type error
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Sub => {
@@ -419,7 +422,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Subtraction
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Mul => {
@@ -431,7 +434,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Multiplication
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Div => {
@@ -445,7 +448,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                     Ok(db.mk_nat(NatSize::Nat))
                 }
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_int(IntSize::Int)),
-                _ => create_binary_type_error(op),
+                _ => mk_type_error(),
             }
         }
         expr::BinaryOp::RealDiv => {
@@ -455,7 +458,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             if lhs_kind.is_number() && rhs_kind.is_number() {
                 Ok(db.mk_real(RealSize::Real))
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Mod => {
@@ -466,7 +469,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Modulo
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Rem => {
@@ -477,7 +480,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Remainder
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Exp => {
@@ -488,7 +491,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Exponentiation
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         // Bitwise operators (integer, integer => nat)
@@ -505,7 +508,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical And
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Or => {
@@ -520,7 +523,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Or
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Xor => {
@@ -535,7 +538,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         // Pure bitwise operators
@@ -547,7 +550,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Bitwise Shl
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         expr::BinaryOp::Shr => {
@@ -558,7 +561,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Bitwise Shr
                 Ok(result_ty)
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         // Pure logical operator
@@ -570,26 +573,54 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
-                create_binary_type_error(op)
+                mk_type_error()
             }
         }
         // Comparison (a, b => boolean where a, b: Comparable)
-        expr::BinaryOp::Less => create_unsupported_binary_op(op),
-        expr::BinaryOp::LessEq => create_unsupported_binary_op(op),
-        expr::BinaryOp::Greater => create_unsupported_binary_op(op),
-        expr::BinaryOp::GreaterEq => create_unsupported_binary_op(op),
-        expr::BinaryOp::Equal => create_unsupported_binary_op(op),
-        expr::BinaryOp::NotEqual => create_unsupported_binary_op(op),
+        expr::BinaryOp::Less => unsupported_op(),
+        expr::BinaryOp::LessEq => unsupported_op(),
+        expr::BinaryOp::Greater => unsupported_op(),
+        expr::BinaryOp::GreaterEq => unsupported_op(),
+        expr::BinaryOp::Equal => unsupported_op(),
+        expr::BinaryOp::NotEqual => unsupported_op(),
         // Set membership tests (set(a), a => boolean)
-        expr::BinaryOp::In => create_unsupported_binary_op(op),
-        expr::BinaryOp::NotIn => create_unsupported_binary_op(op),
+        expr::BinaryOp::In => unsupported_op(),
+        expr::BinaryOp::NotIn => unsupported_op(),
     }
 }
 
-pub fn report_invalid_bin_op(err: InvalidBinaryOp, op_span: Span, reporter: &mut MessageSink) {
+pub fn report_invalid_bin_op<'db, DB>(
+    db: &'db DB,
+    err: InvalidBinaryOp,
+    left_span: Span,
+    op_span: Span,
+    right_span: Span,
+    reporter: &mut MessageSink,
+) where
+    DB: ?Sized + db::ConstEval + 'db,
+{
     let InvalidBinaryOp {
-        op, unsupported, ..
+        left: left_ty,
+        op,
+        right: right_ty,
+        unsupported,
+        ..
     } = err;
+
+    if unsupported {
+        reporter.error(
+            "unsupported operation",
+            "operation is not type-checked yet",
+            op_span,
+        );
+        return;
+    }
+
+    let left_ty = left_ty.in_db(db);
+    let right_ty = right_ty.in_db(db);
+    // Try logical operation if either is a boolean
+    let is_logical = left_ty.kind().is_boolean() || right_ty.kind().is_boolean();
+
     let op_name = match op {
         expr::BinaryOp::Add => "addition",
         expr::BinaryOp::Sub => "subtraction",
@@ -599,9 +630,12 @@ pub fn report_invalid_bin_op(err: InvalidBinaryOp, op_span: Span, reporter: &mut
         expr::BinaryOp::Mod => "modulus",
         expr::BinaryOp::Rem => "remainder",
         expr::BinaryOp::Exp => "exponentiation",
-        expr::BinaryOp::And => "`and`",
-        expr::BinaryOp::Or => "`or`",
-        expr::BinaryOp::Xor => "`xor`",
+        expr::BinaryOp::And if is_logical => "logical `and`",
+        expr::BinaryOp::Or if is_logical => "logical `or`",
+        expr::BinaryOp::Xor if is_logical => "logical `xor`",
+        expr::BinaryOp::And => "bitwise `and`",
+        expr::BinaryOp::Or => "bitwise `or`",
+        expr::BinaryOp::Xor => "bitwise `xor`",
         expr::BinaryOp::Shl => "`shl`",
         expr::BinaryOp::Shr => "`shr`",
         expr::BinaryOp::Imply => "`=>`",
@@ -614,17 +648,53 @@ pub fn report_invalid_bin_op(err: InvalidBinaryOp, op_span: Span, reporter: &mut
         expr::BinaryOp::In => "`in`",
         expr::BinaryOp::NotIn => "`not in`",
     };
+    let verb_phrase = match op {
+        expr::BinaryOp::Add => "added to",
+        expr::BinaryOp::Sub => "subtracted by",
+        expr::BinaryOp::Mul => "multiplied by",
+        expr::BinaryOp::Div | expr::BinaryOp::RealDiv => "divided by",
+        expr::BinaryOp::Mod => "`mod`'d by",
+        expr::BinaryOp::Rem => "`rem`'d by",
+        expr::BinaryOp::Exp => "exponentiated by",
+        expr::BinaryOp::And if is_logical => "`and`ed logically by",
+        expr::BinaryOp::Or if is_logical => "`or`ed by",
+        expr::BinaryOp::Xor if is_logical => "`xor`ed logically by",
+        expr::BinaryOp::And => "`and`ed bitwise by",
+        expr::BinaryOp::Or => "`or`ed bitwise by",
+        expr::BinaryOp::Xor => "`xor`ed bitwise by",
+        expr::BinaryOp::Shl => "shifted left by",
+        expr::BinaryOp::Shr => "shifted right by",
+        expr::BinaryOp::Less
+        | expr::BinaryOp::LessEq
+        | expr::BinaryOp::Greater
+        | expr::BinaryOp::GreaterEq
+        | expr::BinaryOp::Equal
+        | expr::BinaryOp::NotEqual
+        | expr::BinaryOp::In
+        | expr::BinaryOp::NotIn
+        | expr::BinaryOp::Imply => "compared to",
+    };
 
-    if unsupported {
-        reporter.error(
-            "unsupported operation",
-            "operation is not type-checked yet",
+    let msg = reporter
+        .error_detailed(&format!("mismatched types for {}", op_name), op_span)
+        .with_note(
+            &format!("this is of type `{left}`", left = left_ty),
+            left_span,
+        )
+        .with_note(
+            &format!("this is of type `{right}`", right = right_ty),
+            right_span,
+        )
+        .with_error(
+            &format!(
+                "`{left}` cannot be {verb_phrase} `{right}`",
+                left = left_ty,
+                verb_phrase = verb_phrase,
+                right = right_ty
+            ),
             op_span,
         );
-        return;
-    }
 
-    let msg = reporter.error_detailed(&format!("incompatible types for {}", op_name), op_span);
     let msg = match op {
         // Arithmetic operators
         expr::BinaryOp::Add => msg.with_info("operands must both be numbers, strings, or sets"),
@@ -661,6 +731,13 @@ pub fn report_invalid_bin_op(err: InvalidBinaryOp, op_span: Span, reporter: &mut
     msg.finish();
 }
 
+/// Type for associated mismatch unary operand types
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InvalidUnaryOp {
+    op: expr::UnaryOp,
+    right: TypeId,
+}
+
 /// Implemented as a query in TypeDatabase
 pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
     db: &T,
@@ -669,12 +746,16 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
 ) -> Result<TypeId, InvalidUnaryOp> {
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    fn create_unary_type_error(op: expr::UnaryOp) -> Result<TypeId, InvalidUnaryOp> {
-        Err(InvalidUnaryOp { op })
-    }
+    let right = right.in_db(db).peel_ref();
+    let rhs_kind = &*right.kind();
 
-    let right_ty = right.in_db(db).peel_ref();
-    let rhs_kind = &*right_ty.kind();
+    // Use the peeled version of the type
+    let type_error = || {
+        Err(InvalidUnaryOp {
+            op,
+            right: right.id,
+        })
+    };
 
     // Short circuit for error types
     // Don't duplicate errors
@@ -691,7 +772,7 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
                 // Logical Not
                 Ok(db.mk_boolean())
             } else {
-                create_unary_type_error(op)
+                type_error()
             }
         }
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
@@ -703,21 +784,57 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
                 TypeKind::Real(_) => Ok(db.mk_real(RealSize::Real)),
                 TypeKind::Int(_) => Ok(db.mk_int(IntSize::Int)),
                 TypeKind::Nat(_) => Ok(db.mk_nat(NatSize::Nat)),
-                _ => create_unary_type_error(op),
+                _ => type_error(),
             }
         }
     }
 }
 
-pub fn report_invalid_unary_op(err: InvalidUnaryOp, op_span: Span, reporter: &mut MessageSink) {
-    let InvalidUnaryOp { op, .. } = err;
+pub fn report_invalid_unary_op<'db, DB>(
+    db: &'db DB,
+    err: InvalidUnaryOp,
+    op_span: Span,
+    right_span: Span,
+    reporter: &mut MessageSink,
+) where
+    DB: ?Sized + db::ConstEval + 'db,
+{
+    let InvalidUnaryOp {
+        op,
+        right: right_ty,
+        ..
+    } = err;
+    let right_ty = right_ty.in_db(db);
+    let is_bitwise = right_ty.kind().is_integer();
+
     let op_name = match op {
-        expr::UnaryOp::Not => "`not`",
+        expr::UnaryOp::Not if is_bitwise => "bitwise `not`",
+        expr::UnaryOp::Not => "logical `not`",
         expr::UnaryOp::Identity => "unary `+`",
         expr::UnaryOp::Negate => "unary `-`",
     };
+    let verb_phrase = match op {
+        expr::UnaryOp::Not if is_bitwise => "bitwise `not`",
+        expr::UnaryOp::Not => "logical `not`",
+        expr::UnaryOp::Identity => "identity",
+        expr::UnaryOp::Negate => "negation",
+    };
 
-    let msg = reporter.error_detailed(&format!("incompatible types for {}", op_name), op_span);
+    let msg = reporter
+        .error_detailed(&format!("mismatched types for {}", op_name), op_span)
+        .with_note(
+            &format!("this is of type `{right}`", right = right_ty),
+            right_span,
+        )
+        .with_error(
+            &format!(
+                "cannot apply {verb_phrase} to `{right}`",
+                verb_phrase = verb_phrase,
+                right = right_ty
+            ),
+            op_span,
+        );
+
     let msg = match op {
         expr::UnaryOp::Not => msg.with_info("operand must be an integer or boolean"),
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {

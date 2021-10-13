@@ -6,4 +6,6 @@ expression: "var _ : char(1.0)"
 "_"@(FileId(1), 4..5) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 13..16: wrong type for compile-time expression
+error in file FileId(1) at 13..16: mismatched types
+| note in file FileId(1) for 13..16: this is of type `real`
+| info: `real` is not an integer type

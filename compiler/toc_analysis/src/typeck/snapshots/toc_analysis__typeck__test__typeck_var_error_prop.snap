@@ -7,5 +7,8 @@ expression: "var k := 20 + false\nvar l : int := k   % Nothing reported here\n"
 "l"@(FileId(1), 24..25) [Declared]: ref_mut int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 12..13: incompatible types for addition
+error in file FileId(1) at 12..13: mismatched types for addition
+| note in file FileId(1) for 9..11: this is of type `{integer}`
+| note in file FileId(1) for 14..19: this is of type `boolean`
+| error in file FileId(1) for 12..13: `{integer}` cannot be added to `boolean`
 | info: operands must both be numbers, strings, or sets

@@ -15,14 +15,18 @@ expression: "const N := 256\nvar c : char\nvar c5 : char(5)\nvar c257 : char(257
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 108..109: mismatched types
-| error in file FileId(1) for 108..109: the type of this expression...
-| note in file FileId(1) for 97..104: is incompatible with this type
+| note in file FileId(1) for 108..109: this is of type `char`
+| note in file FileId(1) for 97..104: this is of type `char(256)`
+| info: `char` is not assignable into `char(256)`
 error in file FileId(1) at 132..134: mismatched types
-| error in file FileId(1) for 132..134: the type of this expression...
-| note in file FileId(1) for 121..128: is incompatible with this type
+| note in file FileId(1) for 132..134: this is of type `char(5)`
+| note in file FileId(1) for 121..128: this is of type `char(256)`
+| info: `char(5)` is not assignable into `char(256)`
 error in file FileId(1) at 157..161: mismatched types
-| error in file FileId(1) for 157..161: the type of this expression...
-| note in file FileId(1) for 146..153: is incompatible with this type
+| note in file FileId(1) for 157..161: this is of type `char(257)`
+| note in file FileId(1) for 146..153: this is of type `char(256)`
+| info: `char(257)` is not assignable into `char(256)`
 error in file FileId(1) at 184..186: mismatched types
-| error in file FileId(1) for 184..186: the type of this expression...
-| note in file FileId(1) for 173..180: is incompatible with this type
+| note in file FileId(1) for 184..186: this is of type `string(5)`
+| note in file FileId(1) for 173..180: this is of type `char(256)`
+| info: `string(5)` is not assignable into `char(256)`

@@ -7,5 +7,6 @@ expression: "var k : char := 20"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 16..18: mismatched types
-| error in file FileId(1) for 16..18: the type of this expression...
-| note in file FileId(1) for 8..12: is incompatible with this type
+| note in file FileId(1) for 16..18: this is of type `{integer}`
+| note in file FileId(1) for 8..12: this is of type `char`
+| info: `{integer}` is not assignable into `char`
