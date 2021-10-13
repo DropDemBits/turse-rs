@@ -17,19 +17,43 @@ expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n
 "_nr"@(FileId(1), 232..235) [Declared]: ref_mut <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 87..89: incompatible types for `=>`
+error in file FileId(1) at 87..89: mismatched types for `=>`
+| note in file FileId(1) for 85..86: this is of type `boolean`
+| note in file FileId(1) for 90..91: this is of type `int`
+| error in file FileId(1) for 87..89: `boolean` cannot be compared to `int`
 | info: operands must both be booleans
-error in file FileId(1) at 109..111: incompatible types for `=>`
+error in file FileId(1) at 109..111: mismatched types for `=>`
+| note in file FileId(1) for 107..108: this is of type `boolean`
+| note in file FileId(1) for 112..113: this is of type `nat`
+| error in file FileId(1) for 109..111: `boolean` cannot be compared to `nat`
 | info: operands must both be booleans
-error in file FileId(1) at 131..133: incompatible types for `=>`
+error in file FileId(1) at 131..133: mismatched types for `=>`
+| note in file FileId(1) for 129..130: this is of type `int`
+| note in file FileId(1) for 134..135: this is of type `boolean`
+| error in file FileId(1) for 131..133: `int` cannot be compared to `boolean`
 | info: operands must both be booleans
-error in file FileId(1) at 153..155: incompatible types for `=>`
+error in file FileId(1) at 153..155: mismatched types for `=>`
+| note in file FileId(1) for 151..152: this is of type `nat`
+| note in file FileId(1) for 156..157: this is of type `boolean`
+| error in file FileId(1) for 153..155: `nat` cannot be compared to `boolean`
 | info: operands must both be booleans
-error in file FileId(1) at 175..177: incompatible types for `=>`
+error in file FileId(1) at 175..177: mismatched types for `=>`
+| note in file FileId(1) for 173..174: this is of type `real`
+| note in file FileId(1) for 178..179: this is of type `int`
+| error in file FileId(1) for 175..177: `real` cannot be compared to `int`
 | info: operands must both be booleans
-error in file FileId(1) at 197..199: incompatible types for `=>`
+error in file FileId(1) at 197..199: mismatched types for `=>`
+| note in file FileId(1) for 195..196: this is of type `real`
+| note in file FileId(1) for 200..201: this is of type `nat`
+| error in file FileId(1) for 197..199: `real` cannot be compared to `nat`
 | info: operands must both be booleans
-error in file FileId(1) at 219..221: incompatible types for `=>`
+error in file FileId(1) at 219..221: mismatched types for `=>`
+| note in file FileId(1) for 217..218: this is of type `int`
+| note in file FileId(1) for 222..223: this is of type `real`
+| error in file FileId(1) for 219..221: `int` cannot be compared to `real`
 | info: operands must both be booleans
-error in file FileId(1) at 241..243: incompatible types for `=>`
+error in file FileId(1) at 241..243: mismatched types for `=>`
+| note in file FileId(1) for 239..240: this is of type `nat`
+| note in file FileId(1) for 244..245: this is of type `real`
+| error in file FileId(1) for 241..243: `nat` cannot be compared to `real`
 | info: operands must both be booleans

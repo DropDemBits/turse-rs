@@ -7,5 +7,7 @@ expression: "\n    var b : boolean\n    var _b := + b\n"
 "_b"@(FileId(1), 29..31) [Declared]: ref_mut <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 35..36: incompatible types for unary `+`
+error in file FileId(1) at 35..36: mismatched types for unary `+`
+| note in file FileId(1) for 37..38: this is of type `boolean`
+| error in file FileId(1) for 35..36: cannot apply identity to `boolean`
 | info: operand must be a number

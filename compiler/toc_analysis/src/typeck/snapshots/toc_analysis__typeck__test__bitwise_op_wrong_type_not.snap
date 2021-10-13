@@ -7,5 +7,7 @@ expression: "\n    var r : real\n    var _r := not r\n"
 "_r"@(FileId(1), 26..28) [Declared]: ref_mut <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 32..35: incompatible types for `not`
+error in file FileId(1) at 32..35: mismatched types for logical `not`
+| note in file FileId(1) for 36..37: this is of type `real`
+| error in file FileId(1) for 32..35: cannot apply logical `not` to `real`
 | info: operand must be an integer or boolean

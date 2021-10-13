@@ -34,7 +34,7 @@ use crate::ty;
 // - Export mutability matters for mutation outside of the local unit scope, normal const/var rules apply for local units
 
 pub(crate) fn typecheck_library(db: &dyn HirAnalysis, library: LibraryId) -> CompileResult<()> {
-    TypeCheck::check_unit(db, library)
+    TypeCheck::check_library(db, library)
 }
 
 struct TypeCheck<'db> {
@@ -63,7 +63,7 @@ struct TypeCheckState {
 }
 
 impl<'db> TypeCheck<'db> {
-    fn check_unit(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<()> {
+    fn check_library(db: &'db dyn HirAnalysis, library_id: LibraryId) -> CompileResult<()> {
         let state = TypeCheckState {
             reporter: toc_reporting::MessageSink::new(),
         };
@@ -397,7 +397,18 @@ impl TypeCheck<'_> {
 
         if let Err(err) = ty::rules::check_binary_op(db, left, *expr.op.item(), right) {
             let op_span = self.library.lookup_span(expr.op.span());
-            ty::rules::report_invalid_bin_op(err, op_span, &mut self.state().reporter);
+            let body = self.library.body(body);
+            let left_span = self.library.lookup_span(body.expr(expr.lhs).span);
+            let right_span = self.library.lookup_span(body.expr(expr.rhs).span);
+
+            ty::rules::report_invalid_bin_op(
+                db,
+                err,
+                left_span,
+                op_span,
+                right_span,
+                &mut self.state().reporter,
+            );
         }
     }
 
@@ -408,7 +419,16 @@ impl TypeCheck<'_> {
 
         if let Err(err) = ty::rules::check_unary_op(db, *expr.op.item(), right) {
             let op_span = self.library.lookup_span(expr.op.span());
-            ty::rules::report_invalid_unary_op(err, op_span, &mut self.state().reporter);
+            let body = self.library.body(body);
+            let right_span = self.library.lookup_span(body.expr(expr.rhs).span);
+
+            ty::rules::report_invalid_unary_op(
+                db,
+                err,
+                op_span,
+                right_span,
+                &mut self.state().reporter,
+            );
         }
     }
 

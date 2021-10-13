@@ -7,5 +7,8 @@ expression: "var lhs : real\nvar rhs : boolean\nlhs += rhs\n"
 "rhs"@(FileId(1), 19..22) [Declared]: ref_mut boolean
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 37..39: incompatible types for addition
+error in file FileId(1) at 37..39: mismatched types for addition
+| note in file FileId(1) for 33..36: this is of type `real`
+| note in file FileId(1) for 40..43: this is of type `boolean`
+| error in file FileId(1) for 37..39: `real` cannot be added to `boolean`
 | info: operands must both be numbers, strings, or sets
