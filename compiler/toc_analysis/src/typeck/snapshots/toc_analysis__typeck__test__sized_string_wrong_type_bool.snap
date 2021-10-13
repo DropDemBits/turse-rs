@@ -6,4 +6,6 @@ expression: "var _ : string(true)"
 "_"@(FileId(1), 4..5) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 15..19: wrong type for compile-time expression
+error in file FileId(1) at 15..19: mismatched types
+| note in file FileId(1) for 15..19: this is of type `boolean`
+| info: `boolean` is not an integer type

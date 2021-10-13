@@ -36,7 +36,7 @@ impl TypeKind {
             TypeKind::CharN(_) => "char",
             TypeKind::StringN(_) => "string",
             // Refs are not shown to the user
-            TypeKind::Ref(_, _) => "",
+            TypeKind::Ref(_, _) => unreachable!("refs should be peeled before display"),
             _ => self.debug_prefix(),
         }
     }

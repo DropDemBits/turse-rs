@@ -8,4 +8,5 @@ expression: "var w : real\nvar i : int\nget i : w\n"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 33..34: mismatched types
-| error in file FileId(1) for 33..34: expected integer type
+| note in file FileId(1) for 33..34: this is of type `real`
+| info: `real` is not an integer type
