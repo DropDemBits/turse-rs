@@ -2,7 +2,7 @@ use std::error::Error;
 use std::sync::Arc;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
-use lsp_types::notification::{DidChangeTextDocument, DidOpenTextDocument};
+use lsp_types::notification::{DidChangeTextDocument, DidOpenTextDocument, PublishDiagnostics};
 use lsp_types::{
     Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, InitializeParams, Location,
     Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
@@ -41,6 +41,7 @@ fn main_loop(
     connection: &Connection,
     params: serde_json::Value,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut state = ServerState::default();
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     eprintln!("listening for messages");
 
@@ -52,17 +53,21 @@ fn main_loop(
                 if connection.handle_shutdown(&req)? {
                     return Ok(());
                 }
-                handle_request(connection, req)?;
+                handle_request(&mut state, connection, req)?;
             }
             Message::Response(_resp) => {}
-            Message::Notification(notify) => handle_notify(connection, notify)?,
+            Message::Notification(notify) => handle_notify(&mut state, connection, notify)?,
         }
     }
 
     Ok(())
 }
 
-fn handle_request(_connection: &Connection, req: Request) -> Result<(), DynError> {
+fn handle_request(
+    _state: &mut ServerState,
+    _connection: &Connection,
+    req: Request,
+) -> Result<(), DynError> {
     fn _cast<Kind: lsp_types::request::Request>(
         req: &mut Option<Request>,
     ) -> Option<(RequestId, Kind::Params)> {
@@ -81,7 +86,11 @@ fn handle_request(_connection: &Connection, req: Request) -> Result<(), DynError
     Ok(())
 }
 
-fn handle_notify(connection: &Connection, notify: Notification) -> Result<(), DynError> {
+fn handle_notify(
+    state: &mut ServerState,
+    connection: &Connection,
+    notify: Notification,
+) -> Result<(), DynError> {
     fn cast<Kind: lsp_types::notification::Notification>(
         notify: &mut Option<Notification>,
     ) -> Option<Kind::Params> {
@@ -101,30 +110,32 @@ fn handle_notify(connection: &Connection, notify: Notification) -> Result<(), Dy
         let TextDocumentItem { text, uri, .. } = params.text_document;
 
         eprintln!("open, sending diagnostics @ {:?}", uri.as_str());
-        check_document(connection, uri, &text)?;
+        check_document(state, connection, uri, &text)?;
     } else if let Some(mut params) = cast::<DidChangeTextDocument>(&mut notify) {
         let VersionedTextDocumentIdentifier { uri, .. } = params.text_document;
         let text = &params.content_changes.pop().unwrap().text;
 
         eprintln!("change, sending diagnostics @ {:?}", uri.as_str());
-        check_document(connection, uri, text)?;
+        check_document(state, connection, uri, text)?;
     }
 
     Ok(())
 }
 
 fn check_document(
+    state: &mut ServerState,
     connection: &Connection,
     uri: lsp_types::Url,
     contents: &str,
 ) -> Result<(), DynError> {
+    use lsp_types::notification::Notification as NotificationTrait;
     // Collect diagnostics
-    let diagnostics = check_file(&uri, contents);
+    let diagnostics = state.check_file(&uri, contents);
 
     connection
         .sender
         .send(Message::Notification(Notification::new(
-            "textDocument/publishDiagnostics".into(),
+            PublishDiagnostics::METHOD.into(),
             PublishDiagnosticsParams {
                 uri,
                 diagnostics,
@@ -135,78 +146,86 @@ fn check_document(
     Ok(())
 }
 
-fn check_file(uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
-    let path = uri.path();
-    let mut db = LspDatabase::default();
-
-    // Add the root path to the file db
-    let root_file = db.vfs.intern_path(path.into());
-    db.update_file(root_file, Ok(LoadStatus::Modified(contents.into())));
-    // Setup source graph
-    let mut source_graph = SourceGraph::default();
-    source_graph.add_root(root_file);
-    db.set_source_graph(Arc::new(source_graph));
-
-    // TODO: Recursively load in files, respecting already loaded files
-    db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
-
-    let analyze_res = db.analyze_libraries();
-    let msgs = analyze_res.messages();
-
-    eprintln!("finished analysis @ {:?}", uri.as_str());
-
-    fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
-        use toc_reporting::AnnotateKind;
-
-        match kind {
-            AnnotateKind::Note => DiagnosticSeverity::Hint,
-            AnnotateKind::Info => DiagnosticSeverity::Information,
-            AnnotateKind::Warning => DiagnosticSeverity::Warning,
-            AnnotateKind::Error => DiagnosticSeverity::Error,
-        }
-    }
-
-    // Convert into `Diagnostic`s
-    msgs.iter()
-        .map(|msg| {
-            let range = map_span_to_location(&db, msg.span()).range;
-            let severity = to_diag_level(msg.kind());
-            let annotations = msg
-                .annotations()
-                .iter()
-                .map(|annotate| DiagnosticRelatedInformation {
-                    location: map_span_to_location(&db, annotate.span()),
-                    message: annotate.message().to_string(),
-                })
-                .collect();
-
-            Diagnostic::new(
-                range,
-                Some(severity),
-                None,
-                None,
-                msg.message().to_string(),
-                Some(annotations),
-                None,
-            )
-        })
-        .collect()
+#[derive(Default)]
+struct ServerState {
+    db: LspDatabase,
 }
 
-fn map_span_to_location(db: &LspDatabase, span: toc_span::Span) -> Location {
-    let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+impl ServerState {
+    fn check_file(&mut self, uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
+        let path = uri.path();
+        let db = &mut self.db;
 
-    let file = span.file.unwrap();
+        // Add the root path to the file db
+        let root_file = db.vfs.intern_path(path.into());
+        db.update_file(root_file, Ok(LoadStatus::Modified(contents.into())));
+        // Setup source graph
+        let mut source_graph = SourceGraph::default();
+        source_graph.add_root(root_file);
+        db.set_source_graph(Arc::new(source_graph));
 
-    let start = db.map_byte_index_to_position(file, start as usize).unwrap();
-    let end = db.map_byte_index_to_position(file, end as usize).unwrap();
+        // TODO: Recursively load in files, respecting already loaded files
+        db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
 
-    let path = &db.file_path(file);
+        let analyze_res = db.analyze_libraries();
+        let msgs = analyze_res.messages();
 
-    Location::new(
-        lsp_types::Url::from_file_path(path.as_str()).unwrap(),
-        lsp_types::Range::new(start.into_position(), end.into_position()),
-    )
+        eprintln!("finished analysis @ {:?}", uri.as_str());
+
+        fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
+            use toc_reporting::AnnotateKind;
+
+            match kind {
+                AnnotateKind::Note => DiagnosticSeverity::Hint,
+                AnnotateKind::Info => DiagnosticSeverity::Information,
+                AnnotateKind::Warning => DiagnosticSeverity::Warning,
+                AnnotateKind::Error => DiagnosticSeverity::Error,
+            }
+        }
+
+        // Convert into `Diagnostic`s
+        msgs.iter()
+            .map(|msg| {
+                let range = self.map_span_to_location(msg.span()).range;
+                let severity = to_diag_level(msg.kind());
+                let annotations = msg
+                    .annotations()
+                    .iter()
+                    .map(|annotate| DiagnosticRelatedInformation {
+                        location: self.map_span_to_location(annotate.span()),
+                        message: annotate.message().to_string(),
+                    })
+                    .collect();
+
+                Diagnostic::new(
+                    range,
+                    Some(severity),
+                    None,
+                    None,
+                    msg.message().to_string(),
+                    Some(annotations),
+                    None,
+                )
+            })
+            .collect()
+    }
+
+    fn map_span_to_location(&self, span: toc_span::Span) -> Location {
+        let db = &self.db;
+        let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
+
+        let file = span.file.unwrap();
+
+        let start = db.map_byte_index_to_position(file, start as usize).unwrap();
+        let end = db.map_byte_index_to_position(file, end as usize).unwrap();
+
+        let path = &db.file_path(file);
+
+        Location::new(
+            lsp_types::Url::from_file_path(path.as_str()).unwrap(),
+            lsp_types::Range::new(start.into_position(), end.into_position()),
+        )
+    }
 }
 
 trait IntoPosition {
