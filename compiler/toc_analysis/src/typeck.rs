@@ -275,8 +275,11 @@ impl TypeCheck<'_> {
                     self.state()
                         .reporter
                         .error_detailed("invalid put option", span)
+                        .with_note(
+                            &format!("cannot specify fraction width for `{}`", put_ty),
+                            item_span,
+                        )
                         .with_error("this is the invalid option", span)
-                        .with_note("cannot specify fraction width for this type", item_span)
                         .with_info("fraction width can only be specified for numeric put types")
                         .finish();
                 }
@@ -287,8 +290,11 @@ impl TypeCheck<'_> {
                     self.state()
                         .reporter
                         .error_detailed("invalid put option", span)
+                        .with_note(
+                            &format!("cannot specify exponent width for `{}`", put_ty),
+                            item_span,
+                        )
                         .with_error("this is the invalid option", span)
-                        .with_note("cannot specify exponent width for this type", item_span)
                         .with_info("exponent width can only be specified for numeric types")
                         .finish();
                 }
