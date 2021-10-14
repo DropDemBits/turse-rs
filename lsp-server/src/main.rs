@@ -2,11 +2,14 @@ use std::error::Error;
 use std::sync::Arc;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
-use lsp_types::notification::{DidChangeTextDocument, DidOpenTextDocument, PublishDiagnostics};
+use lsp_types::notification::{
+    DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, PublishDiagnostics,
+};
 use lsp_types::{
     Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, InitializeParams, Location,
-    Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentItem,
-    TextDocumentSyncCapability, TextDocumentSyncKind, VersionedTextDocumentIdentifier,
+    Position, PublishDiagnosticsParams, ServerCapabilities, TextDocumentIdentifier,
+    TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
+    VersionedTextDocumentIdentifier,
 };
 use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::{AstDatabaseExt, SourceParser, SpanMapping};
@@ -107,16 +110,32 @@ fn handle_notify(
     eprintln!("recv notify {:?}", notify);
 
     if let Some(params) = cast::<DidOpenTextDocument>(&mut notify) {
-        let TextDocumentItem { text, uri, .. } = params.text_document;
+        let TextDocumentItem {
+            text, uri, version, ..
+        } = params.text_document;
 
-        eprintln!("open, sending diagnostics @ {:?}", uri.as_str());
-        check_document(state, connection, uri, &text)?;
+        // update file store representation first
+        eprintln!("open, updating file store @ {:?}", uri.as_str());
+        state.open_file(&uri, version, text);
+
+        // pub diagnostics
+        eprintln!("post-open, sending diagnostics @ {:?}", uri.as_str());
+        check_document(state, connection, uri)?;
     } else if let Some(mut params) = cast::<DidChangeTextDocument>(&mut notify) {
         let VersionedTextDocumentIdentifier { uri, .. } = params.text_document;
-        let text = &params.content_changes.pop().unwrap().text;
 
+        // update contents first
+        let text = params.content_changes.pop().unwrap().text;
+        state.update_file(&uri, text);
+
+        // pub diagnostics
         eprintln!("change, sending diagnostics @ {:?}", uri.as_str());
-        check_document(state, connection, uri, text)?;
+        check_document(state, connection, uri)?;
+    } else if let Some(params) = cast::<DidCloseTextDocument>(&mut notify) {
+        let TextDocumentIdentifier { uri } = params.text_document;
+
+        eprintln!("closing, updating file store");
+        state.close_file(&uri);
     }
 
     Ok(())
@@ -126,11 +145,12 @@ fn check_document(
     state: &mut ServerState,
     connection: &Connection,
     uri: lsp_types::Url,
-    contents: &str,
 ) -> Result<(), DynError> {
     use lsp_types::notification::Notification as NotificationTrait;
     // Collect diagnostics
-    let diagnostics = state.check_file(&uri, contents);
+    let diagnostics = state.collect_diagnostics();
+    eprintln!("finished analysis @ {:?}", uri.as_str());
+    eprintln!("diagnostics: {:#?}", diagnostics);
 
     connection
         .sender
@@ -152,7 +172,17 @@ struct ServerState {
 }
 
 impl ServerState {
-    fn check_file(&mut self, uri: &lsp_types::Url, contents: &str) -> Vec<Diagnostic> {
+    fn open_file(&mut self, uri: &lsp_types::Url, _version: i32, text: String) {
+        // This is where we update the source graph, as well as the file sources, and the file store
+        self.update_file(uri, text);
+    }
+
+    fn close_file(&mut self, _uri: &lsp_types::Url) {
+        // This is where we remove files from the source graph (if applicable / non-root) and from the file store
+        //todo!()
+    }
+
+    fn update_file(&mut self, uri: &lsp_types::Url, contents: String) {
         let path = uri.path();
         let db = &mut self.db;
 
@@ -166,11 +196,12 @@ impl ServerState {
 
         // TODO: Recursively load in files, respecting already loaded files
         db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+    }
 
-        let analyze_res = db.analyze_libraries();
+    /// Collect diagnostics for all libraries
+    fn collect_diagnostics(&self) -> Vec<Diagnostic> {
+        let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
-
-        eprintln!("finished analysis @ {:?}", uri.as_str());
 
         fn to_diag_level(kind: toc_reporting::AnnotateKind) -> DiagnosticSeverity {
             use toc_reporting::AnnotateKind;
