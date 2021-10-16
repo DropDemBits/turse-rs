@@ -150,7 +150,6 @@ fn check_document(
     // Collect diagnostics
     let diagnostics = state.collect_diagnostics();
     eprintln!("finished analysis @ {:?}", uri.as_str());
-    eprintln!("diagnostics: {:#?}", diagnostics);
 
     connection
         .sender
@@ -227,13 +226,26 @@ impl ServerState {
                         message: annotate.message().to_string(),
                     })
                     .collect();
+                let message = if !msg.footer().is_empty() {
+                    // Push all footer infos into the main message
+                    let mut message = msg.message().to_string();
+
+                    for annotate in msg.footer() {
+                        message.push('\n');
+                        message.push_str(annotate.message());
+                    }
+
+                    message
+                } else {
+                    msg.message().to_string()
+                };
 
                 Diagnostic::new(
                     range,
                     Some(severity),
                     None,
                     None,
-                    msg.message().to_string(),
+                    message,
                     Some(annotations),
                     None,
                 )
