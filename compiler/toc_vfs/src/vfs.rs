@@ -132,8 +132,13 @@ impl Vfs {
         self.path_interner.intern_path(path)
     }
 
+    /// Looks up the [`FileId`] corresponding to the given path
+    pub fn lookup_id(&self, path: impl AsRef<Path>) -> Option<FileId> {
+        self.path_interner.lookup_id(path.as_ref())
+    }
+
     /// Looks up the path corresponding to the given [`FileId`]
-    pub fn lookup_path(&self, file_id: FileId) -> &std::path::Path {
+    pub fn lookup_path(&self, file_id: FileId) -> &Path {
         self.path_interner.lookup_path(file_id)
     }
 }

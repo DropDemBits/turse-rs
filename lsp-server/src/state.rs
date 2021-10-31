@@ -77,7 +77,6 @@ impl ServerState {
     }
 
     /// Collect diagnostics for all libraries
-    // TODO: Separate by file in message header
     pub(crate) fn collect_diagnostics(&self) -> Vec<(PathBuf, Vec<Diagnostic>)> {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
@@ -143,11 +142,24 @@ impl ServerState {
             file_diagnostics.push(diagnostic);
         }
 
+        // Add empty bundles for files that are tracked, but don't have any diagnostics
+        // This is done to remove any diagnostics from files which previously had some
+        for (path, _) in self.files.file_map.iter() {
+            let file_id = self
+                .db
+                .vfs
+                .lookup_id(path)
+                .expect("all paths should be interned already");
+            bundles.entry(file_id).or_insert(vec![]);
+        }
+
         // Convert FileIds into paths
-        bundles
+        let bundles = bundles
             .into_iter()
             .map(|(file, bundle)| (self.db.vfs.lookup_path(file).to_path_buf(), bundle))
-            .collect()
+            .collect();
+
+        bundles
     }
 
     fn map_span_to_location(&self, span: toc_span::Span) -> Location {
