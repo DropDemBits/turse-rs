@@ -325,16 +325,9 @@ impl<'a> toc_vfs::FileLoader for LspFileLoader<'a> {
             // Tracked, source is unchanged from before
             Ok(toc_vfs::LoadStatus::Unchanged)
         } else {
-            // Load in a new source
-            use std::fs;
-
-            match fs::read(path) {
-                Ok(contents) => Ok(toc_vfs::LoadStatus::Modified(contents)),
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::NotFound => Err(toc_vfs::LoadError::NotFound),
-                    _ => Err(toc_vfs::LoadError::Other(Arc::new(err.to_string()))),
-                },
-            }
+            // Don't actually load in file sources
+            // TODO: Load in new file sources, and indicate that we're tracking changes to them
+            Err(toc_vfs::LoadError::NotFound)
         }
     }
 
