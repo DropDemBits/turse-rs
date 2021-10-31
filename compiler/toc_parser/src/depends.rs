@@ -85,16 +85,16 @@ pub(crate) fn gather_dependencies(
 
     // Gather include stmts
     for node in root.syntax().descendants() {
-        ast::PPInclude::cast(node)
+        let include_path = ast::PPInclude::cast(node)
             .and_then(|node| node.path())
-            .and_then(|path| extract_relative_path(path, file, &mut messages))
-            .map(|path| {
-                // Add dependency
-                dependencies.push(Dependency {
-                    kind: DependencyKind::Include,
-                    relative_path: path,
-                });
+            .and_then(|path| extract_relative_path(path, file, &mut messages));
+
+        if let Some(path) = include_path {
+            dependencies.push(Dependency {
+                kind: DependencyKind::Include,
+                relative_path: path,
             });
+        }
     }
 
     let dependencies = FileDepends {

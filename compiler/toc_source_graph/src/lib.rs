@@ -114,9 +114,9 @@ impl DependGraph {
             .expect("missing depend info");
 
         let (_from, to) = self.source_deps.edge_endpoints(dep_edge).unwrap();
-        let to = self.source_deps[to];
+        let (to_file, to_kind) = self.source_deps[to];
 
-        to
+        (to_file, to_kind)
     }
 
     /// Traverses the sources of the library in DFS post-order

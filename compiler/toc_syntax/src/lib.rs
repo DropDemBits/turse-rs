@@ -680,7 +680,6 @@ impl LiteralParseError {
 
 /// Offsets the given range pair by `source_span`
 fn offset_span(range: &Range<usize>, base_span: TextRange) -> TextRange {
-    use std::convert::TryInto;
     use toc_span::TextSize;
 
     let (start, end): (TextSize, TextSize) = (

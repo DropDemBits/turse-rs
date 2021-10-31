@@ -140,9 +140,10 @@ pub fn generate_vfs<DB: HasVfs>(db: &mut DB, source: &str) -> FixtureFiles {
             // Rebuild the source!
             let mut source_lines = source.iter();
             let mut source = String::new();
-            source.push_str(source_lines.next().unwrap_or(&""));
 
-            while let Some(line) = source_lines.next() {
+            // this is essentially equivalent to itertools::intersperse
+            source.push_str(source_lines.next().unwrap_or(&""));
+            for line in source_lines {
                 source.push('\n');
                 source.push_str(line);
             }

@@ -446,7 +446,6 @@ impl<'a> CharSeqExtractor<'a> {
     /// Eats all variants of the slash escape
     fn eat_slash_escape(&mut self) {
         use std::char;
-        use std::convert::TryFrom;
 
         let escape_start = self.current_pos();
 
