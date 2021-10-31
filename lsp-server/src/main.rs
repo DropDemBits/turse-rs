@@ -143,16 +143,21 @@ fn check_document(
     let diagnostics = state.collect_diagnostics();
     eprintln!("finished analysis @ {:?}", uri.as_str());
 
-    connection
-        .sender
-        .send(Message::Notification(Notification::new(
-            PublishDiagnostics::METHOD.into(),
-            PublishDiagnosticsParams {
-                uri,
-                diagnostics,
-                version: None,
-            },
-        )))?;
+    for (path, bundle) in diagnostics {
+        let uri =
+            lsp_types::Url::from_file_path(path).expect("path wasn't absolute or a valid url");
+
+        connection
+            .sender
+            .send(Message::Notification(Notification::new(
+                PublishDiagnostics::METHOD.into(),
+                PublishDiagnosticsParams {
+                    uri,
+                    diagnostics: bundle,
+                    version: None,
+                },
+            )))?;
+    }
 
     Ok(())
 }

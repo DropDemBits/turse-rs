@@ -78,7 +78,7 @@ impl ServerState {
 
     /// Collect diagnostics for all libraries
     // TODO: Separate by file in message header
-    pub(crate) fn collect_diagnostics(&self) -> Vec<Diagnostic> {
+    pub(crate) fn collect_diagnostics(&self) -> Vec<(PathBuf, Vec<Diagnostic>)> {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
 
@@ -93,43 +93,60 @@ impl ServerState {
             }
         }
 
-        // Convert into `Diagnostic`s
-        msgs.iter()
-            .map(|msg| {
-                let range = self.map_span_to_location(msg.span()).range;
-                let severity = to_diag_level(msg.kind());
-                let annotations = msg
-                    .annotations()
-                    .iter()
-                    .map(|annotate| DiagnosticRelatedInformation {
-                        location: self.map_span_to_location(annotate.span()),
-                        message: annotate.message().to_string(),
-                    })
-                    .collect();
-                let message = if !msg.footer().is_empty() {
-                    // Push all footer infos into the main message
-                    let mut message = msg.message().to_string();
+        // Breakup messages into per-file bundles
+        let mut bundles = HashMap::new();
 
-                    for annotate in msg.footer() {
-                        message.push('\n');
-                        message.push_str(annotate.message());
-                    }
+        for msg in msgs.iter() {
+            // Convert each message into a `Diagnostic`
+            let range = self.map_span_to_location(msg.span()).range;
+            let severity = to_diag_level(msg.kind());
+            let annotations = msg
+                .annotations()
+                .iter()
+                .map(|annotate| DiagnosticRelatedInformation {
+                    location: self.map_span_to_location(annotate.span()),
+                    message: annotate.message().to_string(),
+                })
+                .collect();
+            let message = if !msg.footer().is_empty() {
+                // Push all footer infos into the main message
+                let mut message = msg.message().to_string();
 
-                    message
-                } else {
-                    msg.message().to_string()
-                };
+                for annotate in msg.footer() {
+                    message.push('\n');
+                    message.push_str(annotate.message());
+                }
 
-                Diagnostic::new(
-                    range,
-                    Some(severity),
-                    None,
-                    None,
-                    message,
-                    Some(annotations),
-                    None,
-                )
-            })
+                message
+            } else {
+                msg.message().to_string()
+            };
+
+            let diagnostic = Diagnostic::new(
+                range,
+                Some(severity),
+                None,
+                None,
+                message,
+                Some(annotations),
+                None,
+            );
+
+            // Only accept diagnostics with files attached
+            let file = if let Some(file) = msg.span().file {
+                file
+            } else {
+                // FIXME: Log a warning in this situation
+                continue;
+            };
+            let file_diagnostics = bundles.entry(file).or_insert(vec![]);
+            file_diagnostics.push(diagnostic);
+        }
+
+        // Convert FileIds into paths
+        bundles
+            .into_iter()
+            .map(|(file, bundle)| (self.db.vfs.lookup_path(file).to_path_buf(), bundle))
             .collect()
     }
 
