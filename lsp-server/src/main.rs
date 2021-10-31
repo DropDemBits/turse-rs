@@ -115,12 +115,10 @@ fn handle_notify(
         // pub diagnostics
         eprintln!("post-open, sending diagnostics @ {:?}", uri.as_str());
         check_document(state, connection, uri)?;
-    } else if let Some(mut params) = cast::<DidChangeTextDocument>(&mut notify) {
-        let VersionedTextDocumentIdentifier { uri, .. } = params.text_document;
+    } else if let Some(params) = cast::<DidChangeTextDocument>(&mut notify) {
+        let VersionedTextDocumentIdentifier { uri, version } = params.text_document;
 
-        // update contents first
-        let text = params.content_changes.pop().unwrap().text;
-        state.update_file(&uri, text);
+        state.apply_changes(&uri, version, params.content_changes);
 
         // pub diagnostics
         eprintln!("change, sending diagnostics @ {:?}", uri.as_str());

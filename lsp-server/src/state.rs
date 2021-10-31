@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
@@ -5,42 +8,76 @@ use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::{AstDatabaseExt, SourceParser, SpanMapping};
 use toc_ast_db::SourceGraph;
 use toc_salsa::salsa;
-use toc_vfs::LoadStatus;
+use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::db::VfsDatabaseExt;
 
 #[derive(Default)]
 pub(crate) struct ServerState {
     db: LspDatabase,
+    files: FileStore,
 }
 
 impl ServerState {
-    pub(crate) fn open_file(&mut self, uri: &lsp_types::Url, _version: i32, text: String) {
+    pub(crate) fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
         // This is where we update the source graph, as well as the file sources, and the file store
-        self.update_file(uri, text);
+        let path = Path::new(uri.path());
+        // Track the file in the file store
+        self.files.add_file(path, text, version);
+
+        // Push updated sources & source graph into db
+        self.update_file(path, false);
     }
 
-    pub(crate) fn close_file(&mut self, _uri: &lsp_types::Url) {
+    pub(crate) fn close_file(&mut self, uri: &lsp_types::Url) {
         // This is where we remove files from the source graph (if applicable / non-root) and from the file store
-        //todo!()
+        let path = Path::new(uri.path());
+
+        // Notify that the editor isn't using the file anymore
+        self.files.remove_file(path);
+
+        // Push removed sources & updated source graph
+        self.update_file(path, true);
     }
 
-    pub(crate) fn update_file(&mut self, uri: &lsp_types::Url, contents: String) {
-        let path = uri.path();
+    pub(crate) fn apply_changes(
+        &mut self,
+        uri: &lsp_types::Url,
+        version: i32,
+        changes: Vec<lsp_types::TextDocumentContentChangeEvent>,
+    ) {
+        let path = Path::new(uri.path());
+
+        self.files.apply_changes(path, version, changes);
+
+        // Push updated sources & source graph into db
+        self.update_file(path, false);
+    }
+
+    fn update_file(&mut self, path: &Path, removed: bool) {
         let db = &mut self.db;
+        let contents = self.files.source(path).into_owned();
 
         // Add the root path to the file db
         let root_file = db.vfs.intern_path(path.into());
-        db.update_file(root_file, Ok(LoadStatus::Modified(contents.into())));
+        let load_status = if !removed {
+            Ok(LoadStatus::Modified(contents.into()))
+        } else {
+            Err(LoadError::NotFound)
+        };
+        db.update_file(root_file, load_status);
+
         // Setup source graph
         let mut source_graph = SourceGraph::default();
         source_graph.add_root(root_file);
         db.set_source_graph(Arc::new(source_graph));
 
         // TODO: Recursively load in files, respecting already loaded files
-        db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+        let file_loader = LspFileLoader::new(&self.files);
+        db.invalidate_source_graph(&file_loader);
     }
 
     /// Collect diagnostics for all libraries
+    // TODO: Separate by file in message header
     pub(crate) fn collect_diagnostics(&self) -> Vec<Diagnostic> {
         let analyze_res = self.db.analyze_libraries();
         let msgs = analyze_res.messages();
@@ -144,3 +181,136 @@ struct LspDatabase {
 impl salsa::Database for LspDatabase {}
 
 toc_vfs::impl_has_vfs!(LspDatabase, vfs);
+
+/// File store tracks the state of all files currently used by the LSP.
+/// Files sources can come from two primary locations:
+///
+/// - From the editor itself (indicated by open/close events)
+/// - Encountered during source graph invalidation (via `FileLoader` load file)
+///
+/// Files from the first source automatically have the sources watched for changes
+/// through `didChange` events. Files from the second source need to be manually
+/// added to a watcher list provided by the client.
+///
+/// Once tracked from one of these sources, a file can be in one of the following states:
+///
+/// - Tracked from the filesystem: Changes come from filesystem events
+/// - Tracked from the editor: Changes come from the editor, frequent
+/// - Untracked: File does not correspond either to a file on-disk, nor from an editor buffer
+///
+/// `FileStore` is what will hold the source of truth for the actual file sources.
+///
+/// Practically, the `FileStore` only cares if a file is tracked or not, since that's the only thing that's important
+/// when loading in new files (we don't want to reload in files that we're already tracking changes for).
+///
+// ???: Can this changed behaviour be pushed into the vfs?
+// ???: Can we have fixed-point file loading? (allows for progress bar, may depend on behaviour being pushed into vfs)
+//      - Files will be in an incomplete state, db queries dependent on these files must not be exec'd
+//      - Will need to pub what files need sources
+//      - Could set status of frontier files to indicate that results from using them are invalid...
+#[derive(Default)]
+struct FileStore {
+    file_map: HashMap<PathBuf, FileInfo>,
+}
+
+impl FileStore {
+    /// Adds a file to be tracked inside of the file store
+    ///
+    /// Returns `true` if this replaced an already tracked file
+    fn add_file(&mut self, path: &Path, text: String, version: i32) -> bool {
+        let old = self.file_map.insert(
+            path.into(),
+            FileInfo {
+                version,
+                source: text,
+            },
+        );
+
+        old.is_some()
+    }
+
+    /// Removes a file from being tracked inside of the file store
+    fn remove_file(&mut self, path: &Path) {
+        self.file_map
+            .remove(path)
+            .expect("non-tracked file removed from file store");
+    }
+
+    fn apply_changes(
+        &mut self,
+        path: &Path,
+        version: i32,
+        changes: Vec<lsp_types::TextDocumentContentChangeEvent>,
+    ) {
+        let file_info = self.file_map.get_mut(path).expect("file not tracked yet");
+
+        // Apply the changes
+        for change in changes {
+            // We're assuming that we're only getting full text changes only
+            assert!(
+                change.range.is_none(),
+                "found incremental change, which is not handled yet"
+            );
+
+            file_info.source = change.text;
+        }
+
+        // Update version
+        file_info.version = version;
+    }
+
+    /// Gets the source of the given file
+    fn source(&self, path: &Path) -> Cow<'_, str> {
+        let source = &self
+            .file_map
+            .get(path)
+            .expect("file not tracked yet")
+            .source;
+
+        source.into()
+    }
+
+    fn is_tracked(&self, path: &Path) -> bool {
+        self.file_map.contains_key(path)
+    }
+}
+
+struct FileInfo {
+    version: i32,
+    source: String,
+}
+
+struct LspFileLoader<'a> {
+    files: &'a FileStore,
+}
+
+impl<'a> LspFileLoader<'a> {
+    fn new(files: &'a FileStore) -> Self {
+        Self { files }
+    }
+}
+
+impl<'a> toc_vfs::FileLoader for LspFileLoader<'a> {
+    fn load_file(&self, path: &Path) -> toc_vfs::LoadResult {
+        if self.files.is_tracked(path) {
+            // Tracked, source is unchanged from before
+            Ok(toc_vfs::LoadStatus::Unchanged)
+        } else {
+            // Load in a new source
+            use std::fs;
+
+            match fs::read(path) {
+                Ok(contents) => Ok(toc_vfs::LoadStatus::Modified(contents)),
+                Err(err) => match err.kind() {
+                    std::io::ErrorKind::NotFound => Err(toc_vfs::LoadError::NotFound),
+                    _ => Err(toc_vfs::LoadError::Other(Arc::new(err.to_string()))),
+                },
+            }
+        }
+    }
+
+    fn normalize_path(&self, _path: &Path) -> Option<PathBuf> {
+        // No canonicalization to be performed right now
+        None
+    }
+}
