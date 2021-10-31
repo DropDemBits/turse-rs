@@ -138,7 +138,7 @@ impl ServerState {
                 // FIXME: Log a warning in this situation
                 continue;
             };
-            let file_diagnostics = bundles.entry(file).or_insert(vec![]);
+            let file_diagnostics = bundles.entry(file).or_insert_with(Vec::new);
             file_diagnostics.push(diagnostic);
         }
 
@@ -150,16 +150,14 @@ impl ServerState {
                 .vfs
                 .lookup_id(path)
                 .expect("all paths should be interned already");
-            bundles.entry(file_id).or_insert(vec![]);
+            bundles.entry(file_id).or_insert_with(Vec::new);
         }
 
         // Convert FileIds into paths
-        let bundles = bundles
+        bundles
             .into_iter()
             .map(|(file, bundle)| (self.db.vfs.lookup_path(file).to_path_buf(), bundle))
-            .collect();
-
-        bundles
+            .collect()
     }
 
     fn map_span_to_location(&self, span: toc_span::Span) -> Location {

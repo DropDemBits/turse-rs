@@ -22,7 +22,7 @@ fn main() {
     let mut db = MainDatabase::default();
 
     // Add the root path to the db
-    let root_file = db.vfs.intern_path(path.into());
+    let root_file = db.vfs.intern_path(path);
 
     // Set the source root
     let mut source_graph = SourceGraph::default();
