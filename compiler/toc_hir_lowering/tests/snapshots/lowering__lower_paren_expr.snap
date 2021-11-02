@@ -9,6 +9,5 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..8): []
         Assign@(FileId(1), 0..8)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Paren@(FileId(1), 5..8)
-            Name@(FileId(1), 6..7): "a"@(FileId(1), 0..1), undeclared
+          Name@(FileId(1), 6..7): "a"@(FileId(1), 0..1), undeclared
 

@@ -45,7 +45,10 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::SizeOfExpr(_) => self.unsupported_expr(span),
             ast::Expr::BinaryExpr(expr) => self.lower_binary_expr(expr),
             ast::Expr::UnaryExpr(expr) => self.lower_unary_expr(expr),
-            ast::Expr::ParenExpr(expr) => self.lower_paren_expr(expr),
+            ast::Expr::ParenExpr(expr) => {
+                // Explicitly unwrap paren exprs (they don't exist in the HIR tree)
+                return self.lower_required_expr(expr.expr());
+            }
             ast::Expr::NameExpr(expr) => self.lower_name_expr(expr),
             ast::Expr::SelfExpr(_) => self.unsupported_expr(span),
             ast::Expr::FieldExpr(_) => self.unsupported_expr(span),
@@ -123,11 +126,6 @@ impl super::BodyLowering<'_, '_> {
         let rhs = self.lower_required_expr(expr.rhs());
 
         Some(expr::ExprKind::Unary(expr::Unary { op, rhs }))
-    }
-
-    fn lower_paren_expr(&mut self, expr: ast::ParenExpr) -> Option<expr::ExprKind> {
-        let expr = self.lower_required_expr(expr.expr());
-        Some(expr::ExprKind::Paren(expr::Paren { expr }))
     }
 
     fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::ExprKind> {

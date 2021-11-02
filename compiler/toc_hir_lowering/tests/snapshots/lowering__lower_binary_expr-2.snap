@@ -10,7 +10,6 @@ Library@(dummy)
         Assign@(FileId(1), 0..9)
           Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
           Binary@(FileId(1), 5..9): Add
-            Paren@(FileId(1), 5..7)
 error in file FileId(1) at 6..7: unexpected token
 | error in file FileId(1) for 6..7: expected expression, but found ‘)’
 error in file FileId(1) at 8..9: unexpected token

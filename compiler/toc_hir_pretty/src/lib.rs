@@ -238,10 +238,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.expr_span(id);
         self.emit_node("Unary", span, Some(format_args!("{:?}", expr.op.item())))
     }
-    fn visit_paren(&self, id: BodyExpr, _expr: &expr::Paren) {
-        let span = self.expr_span(id);
-        self.emit_node("Paren", span, None)
-    }
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
         let span = self.expr_span(id);
         match expr {
