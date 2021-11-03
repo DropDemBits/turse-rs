@@ -1,0 +1,86 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "\n    var c : char\n    var c_dyn : char(*)\n    var c_sz : char(6)\n    var s : string\n    var s_dyn : string(*)\n    var s_sz : string(6)\n    var i : int\n\n    var _e00 := c + i\n    var _e01 := c_dyn + i\n    var _e02 := c_sz + i\n    var _e03 := s + i\n    var _e04 := s_dyn + i\n    var _e05 := s_sz + i\n\n    var _e10 := i + c\n    var _e11 := i + c_dyn\n    var _e12 := i + c_sz\n    var _e13 := i + s\n    var _e14 := i + s_dyn\n    var _e15 := i + s_sz\n\n    % TODO: Uncomment to verify incompatible types\n    /*\n    var _e20 : char(13) := c_sz + c_sz\n    var _e21 : char(8) := c_sz + c\n    var _e22 : char(8) := c + c_sz\n    var _e23 : char(3) := c + c\n    var _e24 : char := c + c\n    */\n    "
+
+---
+"c"@(FileId(1), 9..10) [Declared]: ref_mut char
+"c_dyn"@(FileId(1), 26..31) [Declared]: ref_mut char_n Dynamic
+"c_sz"@(FileId(1), 50..54) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 73..74) [Declared]: ref_mut string
+"s_dyn"@(FileId(1), 92..97) [Declared]: ref_mut string_n Dynamic
+"s_sz"@(FileId(1), 118..122) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"i"@(FileId(1), 143..144) [Declared]: ref_mut int
+"_e00"@(FileId(1), 160..164) [Declared]: ref_mut <error>
+"_e01"@(FileId(1), 182..186) [Declared]: ref_mut <error>
+"_e02"@(FileId(1), 208..212) [Declared]: ref_mut <error>
+"_e03"@(FileId(1), 233..237) [Declared]: ref_mut <error>
+"_e04"@(FileId(1), 255..259) [Declared]: ref_mut <error>
+"_e05"@(FileId(1), 281..285) [Declared]: ref_mut <error>
+"_e10"@(FileId(1), 307..311) [Declared]: ref_mut <error>
+"_e11"@(FileId(1), 329..333) [Declared]: ref_mut <error>
+"_e12"@(FileId(1), 355..359) [Declared]: ref_mut <error>
+"_e13"@(FileId(1), 380..384) [Declared]: ref_mut <error>
+"_e14"@(FileId(1), 402..406) [Declared]: ref_mut <error>
+"_e15"@(FileId(1), 428..432) [Declared]: ref_mut <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 170..171: mismatched types for string concatenation
+| note in file FileId(1) for 168..169: this is of type `char`
+| note in file FileId(1) for 172..173: this is of type `int`
+| error in file FileId(1) for 170..171: `char` cannot be concatenated to `int`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 196..197: mismatched types for string concatenation
+| note in file FileId(1) for 190..195: this is of type `char(*)`
+| note in file FileId(1) for 198..199: this is of type `int`
+| error in file FileId(1) for 196..197: `char(*)` cannot be concatenated to `int`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 221..222: mismatched types for string concatenation
+| note in file FileId(1) for 216..220: this is of type `char(6)`
+| note in file FileId(1) for 223..224: this is of type `int`
+| error in file FileId(1) for 221..222: `char(6)` cannot be concatenated to `int`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 243..244: mismatched types for string concatenation
+| note in file FileId(1) for 241..242: this is of type `string`
+| note in file FileId(1) for 245..246: this is of type `int`
+| error in file FileId(1) for 243..244: `string` cannot be concatenated to `int`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 269..270: mismatched types for string concatenation
+| note in file FileId(1) for 263..268: this is of type `string(*)`
+| note in file FileId(1) for 271..272: this is of type `int`
+| error in file FileId(1) for 269..270: `string(*)` cannot be concatenated to `int`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 294..295: mismatched types for string concatenation
+| note in file FileId(1) for 289..293: this is of type `string(6)`
+| note in file FileId(1) for 296..297: this is of type `int`
+| error in file FileId(1) for 294..295: `string(6)` cannot be concatenated to `int`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 317..318: mismatched types for string concatenation
+| note in file FileId(1) for 315..316: this is of type `int`
+| note in file FileId(1) for 319..320: this is of type `char`
+| error in file FileId(1) for 317..318: `int` cannot be concatenated to `char`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 339..340: mismatched types for string concatenation
+| note in file FileId(1) for 337..338: this is of type `int`
+| note in file FileId(1) for 341..346: this is of type `char(*)`
+| error in file FileId(1) for 339..340: `int` cannot be concatenated to `char(*)`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 365..366: mismatched types for string concatenation
+| note in file FileId(1) for 363..364: this is of type `int`
+| note in file FileId(1) for 367..371: this is of type `char(6)`
+| error in file FileId(1) for 365..366: `int` cannot be concatenated to `char(6)`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 390..391: mismatched types for string concatenation
+| note in file FileId(1) for 388..389: this is of type `int`
+| note in file FileId(1) for 392..393: this is of type `string`
+| error in file FileId(1) for 390..391: `int` cannot be concatenated to `string`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 412..413: mismatched types for string concatenation
+| note in file FileId(1) for 410..411: this is of type `int`
+| note in file FileId(1) for 414..419: this is of type `string(*)`
+| error in file FileId(1) for 412..413: `int` cannot be concatenated to `string(*)`
+| info: operands must both be numbers, strings, or sets
+error in file FileId(1) at 438..439: mismatched types for string concatenation
+| note in file FileId(1) for 436..437: this is of type `int`
+| note in file FileId(1) for 440..444: this is of type `string(6)`
+| error in file FileId(1) for 438..439: `int` cannot be concatenated to `string(6)`
+| info: operands must both be numbers, strings, or sets

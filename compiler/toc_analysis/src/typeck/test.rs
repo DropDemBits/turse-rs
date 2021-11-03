@@ -301,6 +301,104 @@ test_for_each_op! { logical_op_wrong_type,
     // unary `not` also covered in `bitwise_op_wrong_type`
 }
 
+test_for_each_op! { string_manip_op,
+    [("+", concat)] =>
+    // over all 30 permutations + 6 same-arg permutations
+    r#"
+    var c : char
+    var c_dyn : char(*)
+    var c_sz : char(6)
+    var s : string
+    var s_dyn : string(*)
+    var s_sz : string(6)
+
+    % special cases first
+    var _t00 := c {0} c
+    var _t02 := c {0} c_sz
+    var _t20 := c_sz {0} c
+    var _t22 := c_sz {0} c_sz
+
+    % the rest of them down here (should produce string)
+    var _t01 := c {0} c_dyn
+    var _t03 := c {0} s
+    var _t04 := c {0} s_dyn
+    var _t05 := c {0} s_sz
+
+    var _t10 := c_dyn {0} c
+    var _t30 := s {0} c
+    var _t40 := s_dyn {0} c
+    var _t50 := s_sz {0} c
+
+    var _t11 := c_dyn {0} c_dyn
+    var _t12 := c_dyn {0} c_sz
+    var _t13 := c_dyn {0} s
+    var _t14 := c_dyn {0} s_dyn
+    var _t15 := c_dyn {0} s_sz
+
+    var _t21 := c_sz {0} c_dyn
+    var _t31 := s {0} c_dyn
+    var _t41 := s_dyn {0} c_dyn
+    var _t51 := s_sz {0} c_dyn
+
+    var _t23 := c_sz {0} s
+    var _t24 := c_sz {0} s_dyn
+    var _t25 := c_sz {0} s_sz
+
+    var _t32 := s {0} c_sz
+    var _t42 := s_dyn {0} c_sz
+    var _t52 := s_sz {0} c_sz
+
+    var _t33 := s {0} s
+    var _t34 := s {0} s_dyn
+    var _t35 := s {0} s_sz
+
+    var _t43 := s_dyn {0} s
+    var _t53 := s_sz {0} s
+
+    var _t44 := s_dyn {0} s_dyn
+    var _t45 := s_dyn {0} s_sz
+
+    var _t54 := s_sz {0} s_dyn
+
+    var _t55 := s_sz {0} s_sz
+    "#
+}
+
+test_for_each_op! { string_manip_op_wrong_type,
+    [("+", concat)] => r#"
+    var c : char
+    var c_dyn : char(*)
+    var c_sz : char(6)
+    var s : string
+    var s_dyn : string(*)
+    var s_sz : string(6)
+    var i : int
+
+    var _e00 := c {0} i
+    var _e01 := c_dyn {0} i
+    var _e02 := c_sz {0} i
+    var _e03 := s {0} i
+    var _e04 := s_dyn {0} i
+    var _e05 := s_sz {0} i
+
+    var _e10 := i {0} c
+    var _e11 := i {0} c_dyn
+    var _e12 := i {0} c_sz
+    var _e13 := i {0} s
+    var _e14 := i {0} s_dyn
+    var _e15 := i {0} s_sz
+
+    % TODO: Uncomment to verify incompatible types
+    /*
+    var _e20 : char(13) := c_sz {0} c_sz
+    var _e21 : char(8) := c_sz {0} c
+    var _e22 : char(8) := c {0} c_sz
+    var _e23 : char(3) := c {0} c
+    var _e24 : char := c {0} c
+    */
+    "#
+}
+
 // Test integer inference for all compatible operators
 test_for_each_op! { integer_inference,
     [

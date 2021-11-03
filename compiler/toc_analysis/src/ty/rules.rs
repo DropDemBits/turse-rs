@@ -37,6 +37,14 @@ impl TypeKind {
     pub fn is_error(&self) -> bool {
         matches!(self, TypeKind::Error)
     }
+
+    /// charseq types includes `String`, `StringN`, `Char`, and `CharN` types
+    pub fn is_charseq(&self) -> bool {
+        matches!(
+            self,
+            TypeKind::String | TypeKind::StringN(_) | TypeKind::Char | TypeKind::CharN(_)
+        )
+    }
 }
 
 // Conversions of type
@@ -368,6 +376,29 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
+    fn check_charseq_operands<T: ?Sized + db::TypeDatabase>(
+        db: &T,
+        left: &TypeKind,
+        right: &TypeKind,
+    ) -> Option<TypeId> {
+        // For now, don't deal with the following special cases:
+        // - char, char
+        // - char(N), char / char, char(N)
+        // - char(N), char(M)
+        //
+        // These require building compile time expressions not from the HIR, which we don't support yet
+        // TODO: Handle special cases once we can lazy evaluate constant expressions
+        //
+        // Testing note: special cases with char(N) can go over the max char size, make sure we check for that
+
+        if left.is_charseq() && right.is_charseq() {
+            // The rest of the cases fall back on producing string
+            Some(db.mk_string())
+        } else {
+            None
+        }
+    }
+
     let left = left.in_db(db).peel_ref();
     let right = right.in_db(db).peel_ref();
     let (lhs_kind, rhs_kind) = (&*left.kind(), &*right.kind());
@@ -401,12 +432,15 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         // Arithmetic operators
         expr::BinaryOp::Add => {
             // Operations:
-            // x String concatenation (charseq, charseq => charseq)
+            // - String concatenation (charseq, charseq => charseq)
             // x Set union (set, set => set)
             // - Addition (number, number => number)
 
             if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
                 // Addition
+                Ok(result_ty)
+            } else if let Some(result_ty) = check_charseq_operands(db, lhs_kind, rhs_kind) {
+                // String concatenation
                 Ok(result_ty)
             } else {
                 // Type error
@@ -620,8 +654,11 @@ pub fn report_invalid_bin_op<'db, DB>(
     let right_ty = right_ty.in_db(db);
     // Try logical operation if either is a boolean
     let is_logical = left_ty.kind().is_boolean() || right_ty.kind().is_boolean();
+    // Try string concat operation if either is a charseq
+    let is_string_concat = left_ty.kind().is_charseq() || right_ty.kind().is_charseq();
 
     let op_name = match op {
+        expr::BinaryOp::Add if is_string_concat => "string concatenation",
         expr::BinaryOp::Add => "addition",
         expr::BinaryOp::Sub => "subtraction",
         expr::BinaryOp::Mul => "multiplication",
@@ -649,6 +686,7 @@ pub fn report_invalid_bin_op<'db, DB>(
         expr::BinaryOp::NotIn => "`not in`",
     };
     let verb_phrase = match op {
+        expr::BinaryOp::Add if is_string_concat => "concatenated to",
         expr::BinaryOp::Add => "added to",
         expr::BinaryOp::Sub => "subtracted by",
         expr::BinaryOp::Mul => "multiplied by",
