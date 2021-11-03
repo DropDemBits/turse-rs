@@ -654,8 +654,11 @@ pub fn report_invalid_bin_op<'db, DB>(
     let right_ty = right_ty.in_db(db);
     // Try logical operation if either is a boolean
     let is_logical = left_ty.kind().is_boolean() || right_ty.kind().is_boolean();
+    // Try string concat operation if either is a charseq
+    let is_string_concat = left_ty.kind().is_charseq() || right_ty.kind().is_charseq();
 
     let op_name = match op {
+        expr::BinaryOp::Add if is_string_concat => "string concatenation",
         expr::BinaryOp::Add => "addition",
         expr::BinaryOp::Sub => "subtraction",
         expr::BinaryOp::Mul => "multiplication",
@@ -683,6 +686,7 @@ pub fn report_invalid_bin_op<'db, DB>(
         expr::BinaryOp::NotIn => "`not in`",
     };
     let verb_phrase = match op {
+        expr::BinaryOp::Add if is_string_concat => "concatenated to",
         expr::BinaryOp::Add => "added to",
         expr::BinaryOp::Sub => "subtracted by",
         expr::BinaryOp::Mul => "multiplied by",
