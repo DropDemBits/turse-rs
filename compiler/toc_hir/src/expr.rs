@@ -24,7 +24,6 @@ pub enum ExprKind {
     //SizeOf(SizeOf),
     Binary(Binary),
     Unary(Unary),
-    Paren(Paren),
     /// `self` is a special case of a name expression
     Name(Name),
     //Field(Field),
@@ -145,11 +144,6 @@ pub enum UnaryOp {
     Identity,
     /// Integer negation (`-`)
     Negate,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Paren {
-    pub expr: ExprId,
 }
 
 /// Name expression

@@ -116,7 +116,6 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Literal(expr) => literal_ty(db, body, expr),
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr),
-        expr::ExprKind::Paren(expr) => paren_ty(db, body, expr),
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
     }
 }
@@ -155,11 +154,6 @@ fn unary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Un
     let right = ty_from_expr(db, body, expr.rhs);
 
     ty::rules::check_unary_op(db, *expr.op.item(), right).unwrap_or_else(|_| db.mk_error())
-}
-
-fn paren_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Paren) -> TypeId {
-    // Same eval kind as the inner
-    ty_from_expr(db, body, expr.expr)
 }
 
 fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Name) -> TypeId {

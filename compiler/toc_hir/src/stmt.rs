@@ -138,11 +138,6 @@ pub struct Block {
 pub enum BlockKind {
     /// A regular block statement (`begin ... end`).
     Normal,
-    /// Multiple declarations wrapped up into one statement.
-    /// This is only used for [`ConstVar`] items with multiple declarations.
-    ///
-    /// [`ConstVar`]: crate::item::ConstVar
-    ItemGroup,
 }
 
 /// A generic type representing anything skippable.

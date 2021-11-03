@@ -4,12 +4,15 @@ use toc_hir::{expr, item, stmt, symbol};
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
+use crate::lower::LoweredStmt;
+
 impl super::BodyLowering<'_, '_> {
-    pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<stmt::StmtKind> {
+    pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<LoweredStmt> {
         let span = self.ctx.intern_range(stmt.syntax().text_range());
 
-        match stmt {
-            ast::Stmt::ConstVarDecl(decl) => self.lower_constvar_decl(decl),
+        let kind = match stmt {
+            // `ConstVarDecl` is the only decl that can produce multiple stmts
+            ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
             ast::Stmt::TypeDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::BindDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
@@ -61,7 +64,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ImportStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ExportStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::PreprocGlob(_) => self.unsupported_stmt(span),
-        }
+        };
+
+        kind.map(LoweredStmt::Single)
     }
 
     fn unsupported_stmt(&mut self, span: SpanId) -> Option<stmt::StmtKind> {
@@ -74,9 +79,10 @@ impl super::BodyLowering<'_, '_> {
         None
     }
 
-    fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<stmt::StmtKind> {
+    fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<LoweredStmt> {
         // is actually an item
         let span = self.ctx.mk_span(decl.syntax().text_range());
+        let span = self.ctx.library.intern_span(span);
 
         let is_pervasive = decl.pervasive_attr().is_some();
         let is_register = decl.register_attr().is_some();
@@ -94,14 +100,13 @@ impl super::BodyLowering<'_, '_> {
 
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
-        let span = self.ctx.library.intern_span(span);
         let mutability = if is_const {
             item::Mutability::Const
         } else {
             item::Mutability::Var
         };
 
-        let item_group: Vec<_> = names
+        let stmts: Vec<_> = names
             .into_iter()
             .map(|def_id| {
                 let const_var = item::ConstVar {
@@ -110,34 +115,27 @@ impl super::BodyLowering<'_, '_> {
                     tail,
                 };
 
-                self.ctx.library.add_item(item::Item {
+                let item_id = self.ctx.library.add_item(item::Item {
                     kind: item::ItemKind::ConstVar(const_var),
                     def_id,
                     span,
-                })
+                });
+
+                stmt::StmtKind::Item(item_id)
             })
             .collect();
 
-        if item_group.len() == 1 {
+        let lowered = if stmts.len() == 1 {
             // Single declaration
-            Some(stmt::StmtKind::Item(*item_group.first().unwrap()))
+            // Just a little mutable reborrow, as a treat
+            let mut stmts = stmts;
+            LoweredStmt::Single(stmts.pop().unwrap())
         } else {
-            // Multiple declarations, bundle it into one block statement
-            let stmts: Vec<_> = item_group
-                .into_iter()
-                .map(|item_id| {
-                    self.body.add_stmt(stmt::Stmt {
-                        kind: stmt::StmtKind::Item(item_id),
-                        span,
-                    })
-                })
-                .collect();
+            // Multiple declarations, pack it into a multiple
+            LoweredStmt::Multiple(stmts)
+        };
 
-            Some(stmt::StmtKind::Block(stmt::Block {
-                kind: stmt::BlockKind::ItemGroup,
-                stmts,
-            }))
-        }
+        Some(lowered)
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {

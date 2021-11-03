@@ -107,10 +107,6 @@ pub(crate) fn evaluate_const(
                 eval_stack.push(Eval::Op(op, span.lookup_in(span_map)));
                 eval_stack.push(Eval::Expr(expr.rhs));
             }
-            expr::ExprKind::Paren(expr) => {
-                // Push the inner expr
-                eval_stack.push(Eval::Expr(expr.expr));
-            }
             expr::ExprKind::Name(name) => {
                 // May or may not reference a constant expression
                 match name {
