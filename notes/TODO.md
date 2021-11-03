@@ -155,10 +155,14 @@
       - [x] Bitwise
       - [x] Logical
       - [ ] Comparison
-      - [ ] String concatenation
+        - [ ] Numeric
+        - [ ] Lexicographic (over charseqs)
+        - [ ] Class hierarchy
+        - [ ] Enums
+        - [ ] Sets (sub/superset tests)
+      - [x] String concatenation
       - [ ] Set manipulation
     - [x] Unary
-    - [x] Paren
     - [ ] Name
     - [ ] Self
     - [ ] Field
@@ -287,7 +291,7 @@
 
 ## LSP Client/Server
 
-- [ ] Basic error reporting
+- [x] Basic error reporting
 
 ## HIR Lowering Steps
 
