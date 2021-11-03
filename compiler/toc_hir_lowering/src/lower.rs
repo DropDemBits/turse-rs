@@ -29,7 +29,7 @@ use toc_hir::{
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
     item,
-    stmt::{Block, BlockKind, Stmt, StmtId, StmtKind},
+    stmt::{Stmt, StmtId, StmtKind},
     symbol::{self, LocalDefId},
 };
 use toc_reporting::{CompileResult, MessageBundle, MessageSink};
@@ -160,22 +160,11 @@ impl<'ctx> FileLowering<'ctx> {
         let declared_items = {
             let mut declared_items = vec![];
 
-            for stmt in body_stmts.iter().map(|id| body.stmt(*id)) {
-                match &stmt.kind {
-                    StmtKind::Item(item) => declared_items.push(*item),
-                    StmtKind::Block(Block {
-                        kind: BlockKind::ItemGroup,
-                        stmts,
-                    }) => {
-                        // Is an item group, guaranteed to have items
-                        let items = stmts.iter().map(|id| match &body.stmt(*id).kind {
-                            StmtKind::Item(item) => *item,
-                            _ => unreachable!(),
-                        });
+            for stmt_id in &body_stmts {
+                let stmt = body.stmt(*stmt_id);
 
-                        declared_items.extend(items);
-                    }
-                    _ => {}
+                if let StmtKind::Item(item) = &stmt.kind {
+                    declared_items.push(*item);
                 }
             }
 
@@ -241,22 +230,34 @@ impl<'ctx: 'body, 'body> BodyLowering<'ctx, 'body> {
 
         for node in stmt_list.stmts() {
             let range = node.syntax().text_range();
-            let kind = {
-                if let Some(kind) = self.lower_stmt(node) {
-                    kind
-                } else {
-                    continue;
-                }
+            let lowered = if let Some(lowered) = self.lower_stmt(node) {
+                lowered
+            } else {
+                continue;
             };
 
             let span = self
                 .ctx
                 .library
                 .intern_span(Span::new(Some(self.ctx.file), range));
-            let id = self.body.add_stmt(Stmt { kind, span });
-            stmts.push(id);
+
+            let mut add_kind = |kind| {
+                let id = self.body.add_stmt(Stmt { kind, span });
+                stmts.push(id);
+            };
+
+            match lowered {
+                LoweredStmt::Single(kind) => add_kind(kind),
+                LoweredStmt::Multiple(kinds) => kinds.into_iter().for_each(add_kind),
+            }
         }
 
         stmts
     }
+}
+
+/// Either a single lowered statement, or a group of lowered statements
+enum LoweredStmt {
+    Single(StmtKind),
+    Multiple(Vec<StmtKind>),
 }
