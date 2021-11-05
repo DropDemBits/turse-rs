@@ -55,11 +55,11 @@ impl ServerState {
 
     fn update_file(&mut self, path: &Path, removed: bool) {
         let db = &mut self.db;
-        let contents = self.files.source(path).into_owned();
 
         // Add the root path to the file db
         let root_file = db.vfs.intern_path(path.into());
         let load_status = if !removed {
+            let contents = self.files.source(path).into_owned();
             Ok(LoadStatus::Modified(contents.into()))
         } else {
             Err(LoadError::NotFound)
@@ -68,7 +68,11 @@ impl ServerState {
 
         // Setup source graph
         let mut source_graph = SourceGraph::default();
-        source_graph.add_root(root_file);
+        if !removed {
+            source_graph.add_root(root_file);
+        } else {
+            // TODO: remove file from persistent source graph
+        }
         db.set_source_graph(Arc::new(source_graph));
 
         // TODO: Recursively load in files, respecting already loaded files
@@ -332,5 +336,25 @@ impl<'a> toc_vfs::FileLoader for LspFileLoader<'a> {
     fn normalize_path(&self, _path: &Path) -> Option<PathBuf> {
         // No canonicalization to be performed right now
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lsp_types::Url;
+
+    use super::*;
+
+    #[test]
+    fn state_open_close_file() {
+        let mut state = ServerState::default();
+
+        // Make an absolute path for making a url from
+        let path = Path::new("/").canonicalize().unwrap().join("test.yee");
+        let uri = Url::from_file_path(&path).unwrap();
+
+        // Survive opening & closing a file
+        state.open_file(&uri, 0, "% blah".into());
+        state.close_file(&uri);
     }
 }
