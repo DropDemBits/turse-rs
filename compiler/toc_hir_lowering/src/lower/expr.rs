@@ -132,13 +132,9 @@ impl super::BodyLowering<'_, '_> {
         let name = expr.name()?.identifier_token()?;
         let span = self.ctx.mk_span(name.text_range());
 
-        // Split borrows
-        // FIXME: Simplify once new closure capture rules are stabilized
-        let scopes = &mut self.ctx.scopes;
-        let library = &mut self.ctx.library;
-
-        let def_id = scopes.use_sym(name.text(), || {
+        let def_id = self.ctx.scopes.use_sym(name.text(), || {
             // make an undeclared
+            let library = &mut self.ctx.library;
             let span = library.intern_span(span);
             library.add_def(name.text(), span, symbol::SymbolKind::Undeclared)
         });

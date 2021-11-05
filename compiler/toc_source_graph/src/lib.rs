@@ -60,14 +60,10 @@ impl SourceGraph {
     }
 
     fn get_or_insert_library(&mut self, library: FileId) -> NodeIndex {
-        // Disjoint borrow because we aren't using new closure capture rules
-        // FIXME: Simplify once we're on Rust 2021
-        let libraries = &mut self.libraries;
-
         *self
             .library_to_node
             .entry(library)
-            .or_insert_with(|| libraries.add_node(library))
+            .or_insert_with(|| self.libraries.add_node(library))
     }
 }
 
@@ -132,14 +128,10 @@ impl DependGraph {
     }
 
     fn get_or_insert_dep(&mut self, dep: FileId, kind: SourceKind) -> NodeIndex {
-        // Disjoint borrow because we aren't using new closure capture rules
-        // FIXME: Simplify once we're on Rust 2021
-        let source_deps = &mut self.source_deps;
-
         *self
             .source_to_node
             .entry(dep)
-            .or_insert_with(|| source_deps.add_node((dep, kind)))
+            .or_insert_with(|| self.source_deps.add_node((dep, kind)))
     }
 }
 
@@ -156,12 +148,9 @@ impl Iterator for LibraryRoots<'_, '_> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let node = {
-                // Disjoint borrows
-                let graph = self.graph;
-
                 self.visitor
                     .as_mut()
-                    .and_then(|visitor| visitor.next(graph))
+                    .and_then(|visitor| visitor.next(self.graph))
             };
 
             if let Some(node) = node {
