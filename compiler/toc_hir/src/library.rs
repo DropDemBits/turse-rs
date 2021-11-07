@@ -101,6 +101,13 @@ impl Library {
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {
         self.defs.iter().map(|(id, _)| symbol::LocalDefId(id))
     }
+
+    pub fn body_ids(&self) -> Vec<body::BodyId> {
+        self.bodies
+            .iter()
+            .map(|(idx, _)| body::BodyId(idx))
+            .collect()
+    }
 }
 
 /// Lowered [`Library`].

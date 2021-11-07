@@ -38,7 +38,7 @@ fn do_const_eval(source: &str) -> String {
         results: Default::default(),
     };
 
-    toc_hir::visitor::preorder_visit_library(&library, &const_evaluator);
+    toc_hir::visitor::Walker::from_library(&library).visit_preorder(&const_evaluator);
 
     struct ConstEvaluator<'db> {
         db: &'db TestDb,

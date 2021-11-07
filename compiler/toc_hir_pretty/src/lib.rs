@@ -19,7 +19,7 @@ use toc_span::SpanId;
 
 pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
     let mut output = String::new();
-    let mut walker = Walker::new(lowered);
+    let mut walker = Walker::from_library(lowered);
 
     let pretty = PrettyVisitor::new(&mut output, lowered);
 

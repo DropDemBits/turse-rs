@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use toc_hir::body;
 use toc_hir::{
     item,
     library::{InLibrary, LibraryId, LoweredLibrary},
@@ -28,6 +29,10 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// This does not perform any form of identifier resolution.
     #[salsa::invoke(query::lookup_item)]
     fn item_of(&self, def_id: DefId) -> Option<InLibrary<item::ItemId>>;
+
+    /// Gets all of the bodies in the given library
+    #[salsa::invoke(query::lookup_bodies)]
+    fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
 }
 
 /// Salsa-backed type interner

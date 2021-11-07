@@ -12,34 +12,6 @@ use crate::{
     ty,
 };
 
-/// Visits the library in postorder
-pub fn postorder_visit_library(lib: &library::Library, visitor: &dyn HirVisitor) {
-    let mut walker = Walker::new(lib);
-
-    while let Some(event) = walker.next_event() {
-        let node = match event {
-            WalkEvent::Leave(node) => node,
-            _ => continue,
-        };
-
-        node.visit_node(visitor);
-    }
-}
-
-/// Visits the library in preorder
-pub fn preorder_visit_library(library: &library::Library, visitor: &dyn HirVisitor) {
-    let mut walker = Walker::new(library);
-
-    while let Some(event) = walker.next_event() {
-        let node = match event {
-            WalkEvent::Enter(node) => node,
-            _ => continue,
-        };
-
-        node.visit_node(visitor);
-    }
-}
-
 /// Visitor over all nodes in the HIR tree.
 #[allow(unused_variables)]
 pub trait HirVisitor {
@@ -154,7 +126,8 @@ pub struct Walker<'hir> {
 }
 
 impl<'hir> Walker<'hir> {
-    pub fn new(lib: &'hir library::Library) -> Self {
+    /// Starts walking the HIR from the library root
+    pub fn from_library(lib: &'hir library::Library) -> Self {
         Self {
             lib,
             pending: vec![].into(),
@@ -162,6 +135,16 @@ impl<'hir> Walker<'hir> {
         }
     }
 
+    /// Starts walking the HIR from the given body
+    pub fn from_body(lib: &'hir library::Library, body_id: body::BodyId) -> Self {
+        Self {
+            lib,
+            pending: vec![].into(),
+            process: vec![WalkEvent::Enter(WalkNode::Body(body_id, lib.body(body_id)))].into(),
+        }
+    }
+
+    /// Gets the next walking event
     pub fn next_event(&mut self) -> Option<WalkEvent> {
         let event = self.process.pop_front()?;
 
@@ -180,13 +163,37 @@ impl<'hir> Walker<'hir> {
                 WalkNode::Type(_, ty) => self.walk_type(ty),
             }
 
-            // Insert pending in reversed order
+            // Insert pending in reversed order to retain insertion order
             for event in self.pending.drain(..).rev() {
                 self.process.push_front(event)
             }
         }
 
         Some(event)
+    }
+
+    /// Walks the HIR tree in pre-order, invoking the given visitor
+    pub fn visit_preorder(mut self, visitor: &dyn HirVisitor) {
+        while let Some(event) = self.next_event() {
+            let node = match event {
+                WalkEvent::Enter(node) => node,
+                _ => continue,
+            };
+
+            node.visit_node(visitor);
+        }
+    }
+
+    /// Walks the HIR tree in post-order, invoking the given visitor
+    pub fn visit_postorder(mut self, visitor: &dyn HirVisitor) {
+        while let Some(event) = self.next_event() {
+            let node = match event {
+                WalkEvent::Leave(node) => node,
+                _ => continue,
+            };
+
+            node.visit_node(visitor);
+        }
     }
 
     fn enter_item_root(&mut self, file: FileId, item: item::ItemId) {

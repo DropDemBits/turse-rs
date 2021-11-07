@@ -79,8 +79,9 @@ impl<'db> TypeCheck<'db> {
         };
 
         // Check bodies, starting from the root
-        let visitor = (&typeck) as &dyn toc_hir::visitor::HirVisitor;
-        toc_hir::visitor::postorder_visit_library(&typeck.library, visitor);
+        for body_id in db.bodies_of(library_id).iter().copied() {
+            toc_hir::visitor::Walker::from_body(&typeck.library, body_id).visit_postorder(&typeck);
+        }
 
         let state = typeck.state.into_inner();
 

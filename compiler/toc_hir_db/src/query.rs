@@ -1,7 +1,9 @@
 //! Query implementations
 
+use std::sync::Arc;
+
 use toc_hir::{
-    item,
+    body, item,
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     symbol::DefId,
@@ -22,4 +24,9 @@ pub fn lookup_item(db: &dyn HirDatabase, def_id: DefId) -> Option<InLibrary<item
     db.library(def_id.0)
         .item_of(def_id.1)
         .map(|id| InLibrary(def_id.0, id))
+}
+
+pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::BodyId>> {
+    let library = db.library(library);
+    Arc::new(library.body_ids())
 }
