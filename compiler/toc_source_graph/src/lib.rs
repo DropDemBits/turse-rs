@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
+use petgraph::stable_graph::StableDiGraph;
 use petgraph::visit::{DfsPostOrder, Visitable};
 use toc_span::FileId;
 
@@ -16,7 +17,7 @@ pub enum SourceKind {
     Include,
 }
 
-type LibraryGraph = DiGraph<FileId, ()>;
+type LibraryGraph = StableDiGraph<FileId, ()>;
 type SourceDepGraph = DiGraph<(FileId, SourceKind), ()>;
 
 /// Library source graph
@@ -39,7 +40,15 @@ impl SourceGraph {
         self.library_roots.push(root);
     }
 
-    // TODO: Add library removal for when we retain db in lsp-server
+    /// Removes a library from the source graph
+    pub fn remove_root(&mut self, library: FileId) {
+        let root = self
+            .library_to_node
+            .remove(&library)
+            .expect("file was never added to the source graph");
+        self.libraries.remove_node(root);
+        self.library_roots.retain(|node| *node != root);
+    }
 
     /// Adds a library dependency between library roots
     ///

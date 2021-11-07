@@ -15,6 +15,7 @@ use toc_vfs_db::db::VfsDatabaseExt;
 pub(crate) struct ServerState {
     db: LspDatabase,
     files: FileStore,
+    source_graph: SourceGraph,
 }
 
 impl ServerState {
@@ -67,15 +68,17 @@ impl ServerState {
         db.update_file(root_file, load_status);
 
         // Setup source graph
-        let mut source_graph = SourceGraph::default();
         if !removed {
-            source_graph.add_root(root_file);
+            self.source_graph.add_root(root_file);
         } else {
-            // TODO: remove file from persistent source graph
+            self.source_graph.remove_root(root_file)
         }
-        db.set_source_graph(Arc::new(source_graph));
+        // oeuf, this is not pretty!
+        // ???: Can we avoid the clone here?
+        db.set_source_graph(Arc::new(self.source_graph.clone()));
 
         // TODO: Recursively load in files, respecting already loaded files
+        // TODO: Deal with adding source roots that depend on files that are already source roots
         let file_loader = LspFileLoader::new(&self.files);
         db.invalidate_source_graph(&file_loader);
     }
