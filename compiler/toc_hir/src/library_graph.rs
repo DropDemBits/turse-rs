@@ -39,7 +39,7 @@ impl LibraryGraph {
 // creating library roots in some form (either in syntax,
 // or a project description)
 // FIXME: Actually make this a dependency graph builder
-// once user specifiable library roots are implemented#[derive(Default)]
+// once user specifiable library roots are implemented
 #[derive(Default)]
 pub struct GraphBuilder {
     graph_data: GraphData,
