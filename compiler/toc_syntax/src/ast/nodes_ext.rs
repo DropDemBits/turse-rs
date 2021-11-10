@@ -445,8 +445,6 @@ impl<'a> CharSeqExtractor<'a> {
 
     /// Eats all variants of the slash escape
     fn eat_slash_escape(&mut self) {
-        use std::char;
-
         let escape_start = self.current_pos();
 
         let escaped = if let Some(chr) = self.bump() {
@@ -780,11 +778,21 @@ impl PrimType {
 }
 
 impl RangeType {
-    pub fn begin(&self) -> Option<Expr> {
+    pub fn start(&self) -> Option<Expr> {
         helper::nodes(self.syntax()).next()
     }
 
     pub fn end(&self) -> Option<EndBound> {
+        helper::nodes(self.syntax()).next()
+    }
+}
+
+impl RangeItem {
+    pub fn start(&self) -> Option<RangeBound> {
+        helper::nodes(self.syntax()).next()
+    }
+
+    pub fn end(&self) -> Option<RangeBound> {
         helper::nodes(self.syntax()).nth(1)
     }
 }

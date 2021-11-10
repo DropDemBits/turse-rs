@@ -784,7 +784,7 @@ NameType =
   Expr
 
 RangeType =
-  begin:Expr '..' end:EndBound
+  start:Expr '..' end:EndBound
 
 EndBound =
   UnsizedBound

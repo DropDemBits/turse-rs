@@ -308,7 +308,7 @@ fn visit_terminal_rule(rule: &Rule, g: &Grammar, children: &mut Vec<Child>) -> O
                 "wait_arg",
                 "bit_range",
                 "prim",
-                "begin",
+                "start",
                 "end",
                 "width",
                 "fraction",

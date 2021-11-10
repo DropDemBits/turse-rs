@@ -3325,7 +3325,6 @@ impl AstNode for RangeItem {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl RangeItem {
-    pub fn start(&self) -> Option<RangeBound> { helper::node(&self.0) }
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
