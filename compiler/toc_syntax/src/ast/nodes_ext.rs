@@ -78,10 +78,7 @@ fn extract_external_items<T>(node: Option<T>) -> Vec<ExternalItem>
 where
     T: ExternalItemOwner,
 {
-    match node {
-        Some(node) => node.external_items(),
-        None => vec![],
-    }
+    node.map(|node| node.external_items()).unwrap_or_default()
 }
 
 // Node impls //
