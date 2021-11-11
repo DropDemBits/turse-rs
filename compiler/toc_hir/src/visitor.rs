@@ -33,6 +33,7 @@ pub trait HirVisitor {
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {}
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {}
     fn visit_get(&self, id: BodyStmt, stmt: &stmt::Get) {}
+    fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {}
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {}
     // Exprs
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {
@@ -63,6 +64,7 @@ pub trait HirVisitor {
             stmt::StmtKind::Assign(stmt) => self.visit_assign(id, stmt),
             stmt::StmtKind::Put(stmt) => self.visit_put(id, stmt),
             stmt::StmtKind::Get(stmt) => self.visit_get(id, stmt),
+            stmt::StmtKind::If(stmt) => self.visit_if(id, stmt),
             stmt::StmtKind::Block(stmt) => self.visit_block(id, stmt),
         }
     }
@@ -278,6 +280,7 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::Assign(node) => self.walk_assign(in_body, node),
             stmt::StmtKind::Put(node) => self.walk_put(in_body, node),
             stmt::StmtKind::Get(node) => self.walk_get(in_body, node),
+            stmt::StmtKind::If(node) => self.walk_if(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
         }
     }
@@ -332,6 +335,14 @@ impl<'hir> Walker<'hir> {
                     self.enter_expr(in_body, expr);
                 }
             }
+        }
+    }
+
+    fn walk_if(&mut self, in_body: body::BodyId, node: &stmt::If) {
+        self.enter_expr(in_body, node.condition);
+        self.enter_stmt(in_body, node.true_branch);
+        if let Some(false_branch) = node.false_branch {
+            self.enter_stmt(in_body, false_branch);
         }
     }
 

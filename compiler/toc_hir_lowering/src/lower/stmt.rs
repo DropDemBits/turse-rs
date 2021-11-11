@@ -1,7 +1,7 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::Assign;
 use toc_hir::{expr, item, stmt, symbol};
-use toc_span::{SpanId, Spanned};
+use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::lower::LoweredStmt;
@@ -37,7 +37,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ForStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::LoopStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ExitStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::IfStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::IfStmt(stmt) => self.lower_if_stmt(stmt),
             ast::Stmt::CaseStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::BlockStmt(stmt) => self.lower_block_stmt(stmt),
             ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
@@ -259,6 +259,48 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
+    fn lower_if_stmt(&mut self, stmt: ast::IfStmt) -> Option<stmt::StmtKind> {
+        Some(self.lower_if_stmt_body(stmt.if_body().unwrap()))
+    }
+
+    fn lower_if_stmt_body(&mut self, if_body: ast::IfBody) -> stmt::StmtKind {
+        let condition = self.lower_required_expr(if_body.condition());
+
+        // Create block stmt for the true branch
+        self.ctx.scopes.push_scope(false);
+        let true_branch = self.lower_stmt_list_to_block(if_body.true_branch().unwrap());
+        self.ctx.scopes.pop_scope();
+
+        // Handle the false branch
+        let false_branch = if_body.false_branch().map(|branch| match branch {
+            ast::FalseBranch::ElseStmt(stmt) => {
+                // Simple, just lower to a stmt block
+                self.ctx.scopes.push_scope(false);
+                let else_branch = self.lower_stmt_list_to_block(stmt.stmt_list().unwrap());
+                self.ctx.scopes.pop_scope();
+
+                else_branch
+            }
+            ast::FalseBranch::ElseifStmt(stmt) => {
+                // Also simple, just reuse our lowering of if bodies
+                let range = stmt.syntax().text_range();
+                let span = self
+                    .ctx
+                    .library
+                    .intern_span(Span::new(Some(self.ctx.file), range));
+                let kind = self.lower_if_stmt_body(stmt.if_body().unwrap());
+
+                self.body.add_stmt(stmt::Stmt { kind, span })
+            }
+        });
+
+        stmt::StmtKind::If(stmt::If {
+            condition,
+            true_branch,
+            false_branch,
+        })
+    }
+
     fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> Option<stmt::StmtKind> {
         let stmt_list = stmt.stmt_list()?;
 
@@ -270,6 +312,26 @@ impl super::BodyLowering<'_, '_> {
             kind: stmt::BlockKind::Normal,
             stmts,
         }))
+    }
+
+    fn lower_stmt_list_to_block(&mut self, stmt_list: ast::StmtList) -> stmt::StmtId {
+        let range = stmt_list.syntax().text_range();
+
+        self.ctx.scopes.push_scope(false);
+        let stmts = self.lower_stmt_list(stmt_list);
+        self.ctx.scopes.pop_scope();
+
+        let kind = stmt::StmtKind::Block(stmt::Block {
+            kind: stmt::BlockKind::Normal,
+            stmts,
+        });
+
+        let span = self
+            .ctx
+            .library
+            .intern_span(Span::new(Some(self.ctx.file), range));
+
+        self.body.add_stmt(toc_hir::stmt::Stmt { kind, span })
     }
 
     /// Lowers a name list, holding up the invariant that it always contains

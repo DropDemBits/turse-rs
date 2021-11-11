@@ -498,3 +498,72 @@ fn lower_multiple_stmts() {
 fn expression_order() {
     assert_lower("_ := 1 + 2 * 3 + 4");
 }
+
+#[test]
+fn lower_if_stmt() {
+    // if
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    end if
+    "#,
+    );
+    // if else
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    else
+        var a := 2
+    end if
+    "#,
+    );
+    // if elseif
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    elsif false then
+        var a := 2
+    end if
+    "#,
+    );
+    // if elseif else
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    elsif false then
+        var a := 2
+    else
+        var a := 3
+    end if
+    "#,
+    );
+    // if elseif elseif else
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    elsif false then
+        var a := 2
+    elsif true then
+        var a := 3
+    else
+        var a := 4
+    end if
+    "#,
+    );
+    // dangling
+    assert_lower(
+        r#"
+    elsif true then end if
+    elif true then end if
+    elseif true then end if
+    else end if
+    "#,
+    );
+    // with missing condition
+    assert_lower("if then end if");
+}

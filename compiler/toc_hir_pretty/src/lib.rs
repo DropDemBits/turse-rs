@@ -221,6 +221,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Get", span, None)
     }
+    fn visit_if(&self, id: BodyStmt, _stmt: &stmt::If) {
+        let span = self.stmt_span(id);
+        self.emit_node("If", span, None)
+    }
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {
         let span = self.stmt_span(id);
         self.emit_node("Block", span, Some(format_args!("{:?}", stmt.kind)))

@@ -31,7 +31,8 @@ pub enum StmtKind {
     // For { .. },
     // Loop { .. },
     // Exit { .. },
-    // If { .. },
+    /// If statement
+    If(If),
     // Case { .. },
     /// Block statement (`begin ... end`)
     Block(Block),
@@ -126,6 +127,16 @@ pub struct Get {
     pub stream_num: Option<expr::ExprId>,
     /// The items to get from the stream.
     pub items: Vec<Skippable<GetItem>>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct If {
+    /// Condition expression
+    pub condition: expr::ExprId,
+    /// True branch, executed if the condition is true
+    pub true_branch: StmtId,
+    /// Optional false branch
+    pub false_branch: Option<StmtId>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
