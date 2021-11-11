@@ -780,7 +780,7 @@ impl RangeType {
     }
 
     pub fn end(&self) -> Option<EndBound> {
-        helper::nodes(self.syntax()).next()
+        helper::nodes(self.syntax()).nth(1)
     }
 }
 
