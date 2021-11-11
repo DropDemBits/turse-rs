@@ -112,6 +112,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_get(id.0, stmt);
     }
 
+    fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {
+        self.typeck_if(id.0, stmt);
+    }
+
     fn visit_binary(&self, id: BodyExpr, expr: &toc_hir::expr::Binary) {
         self.typeck_binary(id.0, expr);
     }
@@ -396,6 +400,15 @@ impl TypeCheck<'_> {
         }
     }
 
+    fn typeck_if(&self, body_id: body::BodyId, stmt: &stmt::If) {
+        let condition = self
+            .db
+            .type_of((self.library_id, body_id, stmt.condition).into());
+        let span = self.library.body(body_id).expr(stmt.condition).span;
+
+        self.expect_boolean_type(condition, self.library.lookup_span(span));
+    }
+
     fn typeck_binary(&self, body: body::BodyId, expr: &expr::Binary) {
         let db = self.db;
         let lib_id = self.library_id;
@@ -530,6 +543,8 @@ impl TypeCheck<'_> {
         }
     }
 
+    // TODO: Replace `expect_*_type` with `expect_type` once we have `ty::rules::is_equivalent`
+
     fn expect_integer_type(&self, type_id: ty::TypeId, span: Span) {
         let ty = type_id.in_db(self.db).peel_ref();
         let ty_kind = ty.kind();
@@ -540,6 +555,24 @@ impl TypeCheck<'_> {
                 .error_detailed("mismatched types", span)
                 .with_note(&format!("this is of type `{}`", ty), span)
                 .with_info(&format!("`{}` is not an integer type", ty))
+                .finish();
+        }
+    }
+
+    fn expect_boolean_type(&self, type_id: ty::TypeId, span: Span) {
+        let ty = type_id.in_db(self.db).peel_ref();
+        let expected_ty = self.db.mk_boolean().in_db(self.db);
+        let ty_kind = ty.kind();
+
+        if !ty_kind.is_boolean() && !ty_kind.is_error() {
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", span)
+                .with_note(&format!("this is of type `{}`", ty), span)
+                .with_info(&format!(
+                    "expected a `{}` type",
+                    expected_ty.kind().prefix()
+                ))
                 .finish();
         }
     }

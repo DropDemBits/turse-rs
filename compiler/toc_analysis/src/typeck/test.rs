@@ -953,6 +953,23 @@ test_named_group! { typeck_get_stmt,
     ]
 }
 
+test_named_group! { typeck_if,
+    [
+        matching_types => r#"
+        if true then
+        elsif true then
+        endif
+        "#,
+        wrong_types => r#"
+        if 1 then
+        elsif 1.0 then
+        elsif 'yee' then
+        elsif "wahhh" then
+        end if
+        "#
+    ]
+}
+
 test_named_group! { peel_ref,
     [
         in_assign => r#"var a : int var k : int := a"#,
