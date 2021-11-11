@@ -33,6 +33,8 @@ pub trait HirVisitor {
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {}
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {}
     fn visit_get(&self, id: BodyStmt, stmt: &stmt::Get) {}
+    fn visit_loop(&self, id: BodyStmt, stmt: &stmt::Loop) {}
+    fn visit_exit(&self, id: BodyStmt, stmt: &stmt::Exit) {}
     fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {}
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {}
     // Exprs
@@ -64,6 +66,8 @@ pub trait HirVisitor {
             stmt::StmtKind::Assign(stmt) => self.visit_assign(id, stmt),
             stmt::StmtKind::Put(stmt) => self.visit_put(id, stmt),
             stmt::StmtKind::Get(stmt) => self.visit_get(id, stmt),
+            stmt::StmtKind::Loop(stmt) => self.visit_loop(id, stmt),
+            stmt::StmtKind::Exit(stmt) => self.visit_exit(id, stmt),
             stmt::StmtKind::If(stmt) => self.visit_if(id, stmt),
             stmt::StmtKind::Block(stmt) => self.visit_block(id, stmt),
         }
@@ -220,6 +224,12 @@ impl<'hir> Walker<'hir> {
             .push_back(WalkEvent::Enter(WalkNode::Stmt(id, stmt)));
     }
 
+    fn enter_stmts(&mut self, in_body: body::BodyId, stmts: &[stmt::StmtId]) {
+        for stmt in stmts {
+            self.enter_stmt(in_body, *stmt);
+        }
+    }
+
     fn enter_expr(&mut self, in_body: body::BodyId, expr: expr::ExprId) {
         let id = BodyExpr(in_body, expr);
         let expr = self.lib.body(in_body).expr(expr);
@@ -280,6 +290,8 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::Assign(node) => self.walk_assign(in_body, node),
             stmt::StmtKind::Put(node) => self.walk_put(in_body, node),
             stmt::StmtKind::Get(node) => self.walk_get(in_body, node),
+            stmt::StmtKind::Loop(node) => self.walk_loop(in_body, node),
+            stmt::StmtKind::Exit(node) => self.walk_exit(in_body, node),
             stmt::StmtKind::If(node) => self.walk_if(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
         }
@@ -338,6 +350,16 @@ impl<'hir> Walker<'hir> {
         }
     }
 
+    fn walk_loop(&mut self, in_body: body::BodyId, node: &stmt::Loop) {
+        self.enter_stmts(in_body, &node.stmts);
+    }
+
+    fn walk_exit(&mut self, in_body: body::BodyId, node: &stmt::Exit) {
+        if let Some(expr) = node.when_condition {
+            self.enter_expr(in_body, expr);
+        }
+    }
+
     fn walk_if(&mut self, in_body: body::BodyId, node: &stmt::If) {
         self.enter_expr(in_body, node.condition);
         self.enter_stmt(in_body, node.true_branch);
@@ -347,9 +369,8 @@ impl<'hir> Walker<'hir> {
     }
 
     fn walk_block(&mut self, in_body: body::BodyId, node: &stmt::Block) {
-        for stmt in &node.stmts {
-            self.enter_stmt(in_body, *stmt);
-        }
+        let stmts = &node.stmts;
+        self.enter_stmts(in_body, stmts);
     }
 
     fn walk_expr(&mut self, in_body: body::BodyId, expr: &expr::Expr) {

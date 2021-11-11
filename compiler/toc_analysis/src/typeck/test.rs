@@ -970,6 +970,15 @@ test_named_group! { typeck_if,
     ]
 }
 
+test_named_group! {
+    typeck_exit,
+    [
+        no_condition => r#"loop exit end loop"#,
+        matching_types => r#"loop exit when true end loop"#,
+        wrong_types => r#"loop exit when "gekdu" end loop"#,
+    ]
+}
+
 test_named_group! { peel_ref,
     [
         in_assign => r#"var a : int var k : int := a"#,

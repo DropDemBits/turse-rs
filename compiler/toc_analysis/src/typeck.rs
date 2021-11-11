@@ -112,6 +112,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_get(id.0, stmt);
     }
 
+    fn visit_exit(&self, id: BodyStmt, stmt: &stmt::Exit) {
+        self.typeck_exit(id.0, stmt);
+    }
+
     fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {
         self.typeck_if(id.0, stmt);
     }
@@ -397,6 +401,17 @@ impl TypeCheck<'_> {
             | ty::TypeKind::StringN(_) => true,
             // Already deref'd
             ty::TypeKind::Ref(_, _) => unreachable!(),
+        }
+    }
+
+    fn typeck_exit(&self, body_id: body::BodyId, stmt: &stmt::Exit) {
+        if let Some(condition_expr) = stmt.when_condition {
+            let condition_ty = self
+                .db
+                .type_of((self.library_id, body_id, condition_expr).into());
+            let span = self.library.body(body_id).expr(condition_expr).span;
+
+            self.expect_boolean_type(condition_ty, self.library.lookup_span(span));
         }
     }
 

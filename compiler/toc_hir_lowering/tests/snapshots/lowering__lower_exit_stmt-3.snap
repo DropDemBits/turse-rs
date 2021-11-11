@@ -1,0 +1,13 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: loop exit when true end loop
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..28): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..28): []
+        Loop@(FileId(1), 0..28)
+          Exit@(FileId(1), 5..19)
+            Literal@(FileId(1), 15..19): Boolean(true)
+

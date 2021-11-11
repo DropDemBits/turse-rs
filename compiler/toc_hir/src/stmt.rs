@@ -29,8 +29,10 @@ pub enum StmtKind {
     // Seek { .. },
     // Tell { .. },
     // For { .. },
-    // Loop { .. },
-    // Exit { .. },
+    /// Loop statement
+    Loop(Loop),
+    /// Exit statement
+    Exit(Exit),
     /// If statement
     If(If),
     // Case { .. },
@@ -127,6 +129,16 @@ pub struct Get {
     pub stream_num: Option<expr::ExprId>,
     /// The items to get from the stream.
     pub items: Vec<Skippable<GetItem>>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Loop {
+    pub stmts: Vec<StmtId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Exit {
+    pub when_condition: Option<expr::ExprId>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

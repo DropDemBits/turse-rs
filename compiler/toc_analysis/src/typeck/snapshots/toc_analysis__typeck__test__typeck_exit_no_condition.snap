@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: loop exit end loop
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "loop exit when \"gekdu\" end loop"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 15..22: mismatched types
+| note in file FileId(1) for 15..22: this is of type `string`
+| info: expected a `boolean` type

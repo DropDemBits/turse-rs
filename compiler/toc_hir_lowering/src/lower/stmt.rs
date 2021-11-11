@@ -1,7 +1,7 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::Assign;
 use toc_hir::{expr, item, stmt, symbol};
-use toc_span::{Span, SpanId, Spanned};
+use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::lower::LoweredStmt;
@@ -36,8 +36,8 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::SeekStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::TellStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ForStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::LoopStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ExitStmt(_) => self.unsupported_stmt(span),
+            ast::Stmt::LoopStmt(stmt) => self.lower_loop_stmt(stmt),
+            ast::Stmt::ExitStmt(stmt) => self.lower_exit_stmt(stmt),
             ast::Stmt::IfStmt(stmt) => self.lower_if_stmt(stmt),
             ast::Stmt::CaseStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::BlockStmt(stmt) => self.lower_block_stmt(stmt),
@@ -260,6 +260,35 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
+    fn lower_loop_stmt(&mut self, stmt: ast::LoopStmt) -> Option<stmt::StmtKind> {
+        self.ctx.scopes.push_scope(ScopeKind::Loop);
+        let stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
+        self.ctx.scopes.pop_scope();
+
+        Some(stmt::StmtKind::Loop(stmt::Loop { stmts }))
+    }
+
+    fn lower_exit_stmt(&mut self, stmt: ast::ExitStmt) -> Option<stmt::StmtKind> {
+        let when_condition = stmt.condition().map(|expr| self.lower_expr(expr));
+
+        // Report if we're outside of a loop or for statement
+        if !matches!(
+            self.ctx.scopes.enclosing_scope_kind(),
+            // TODO: uncomment the other part once for-loops are lowered
+            ScopeKind::Loop // | ScopeKind::ForLoop
+        ) {
+            let span = self.ctx.mk_span(stmt.syntax().text_range());
+
+            self.ctx.messages.error(
+                "cannot use `exit` statement here",
+                "can only be used inside of `loop` and `for` statements",
+                span,
+            );
+        }
+
+        Some(stmt::StmtKind::Exit(stmt::Exit { when_condition }))
+    }
+
     fn lower_if_stmt(&mut self, stmt: ast::IfStmt) -> Option<stmt::StmtKind> {
         Some(self.lower_if_stmt_body(stmt.if_body().unwrap()))
     }
@@ -287,10 +316,7 @@ impl super::BodyLowering<'_, '_> {
             ast::FalseBranch::ElseifStmt(stmt) => {
                 // Also simple, just reuse our lowering of if bodies
                 let range = stmt.syntax().text_range();
-                let span = self
-                    .ctx
-                    .library
-                    .intern_span(Span::new(Some(self.ctx.file), range));
+                let span = self.ctx.library.intern_span(self.ctx.mk_span(range));
                 let kind = self.lower_if_stmt_body(stmt.if_body().unwrap());
 
                 self.body.add_stmt(stmt::Stmt { kind, span })
@@ -332,11 +358,7 @@ impl super::BodyLowering<'_, '_> {
             kind: stmt::BlockKind::Normal,
             stmts,
         });
-
-        let span = self
-            .ctx
-            .library
-            .intern_span(Span::new(Some(self.ctx.file), range));
+        let span = self.ctx.library.intern_span(self.ctx.mk_span(range));
 
         self.body.add_stmt(toc_hir::stmt::Stmt { kind, span })
     }

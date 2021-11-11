@@ -24,6 +24,7 @@ pub(crate) enum ScopeKind {
     #[allow(dead_code)] // Only constructed in tests for now
     Module,
     Block,
+    Loop,
 }
 
 impl ScopeKind {

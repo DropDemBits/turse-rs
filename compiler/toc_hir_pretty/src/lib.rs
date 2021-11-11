@@ -221,6 +221,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Get", span, None)
     }
+    fn visit_loop(&self, id: BodyStmt, _stmt: &stmt::Loop) {
+        let span = self.stmt_span(id);
+        self.emit_node("Loop", span, None)
+    }
+    fn visit_exit(&self, id: BodyStmt, _stmt: &stmt::Exit) {
+        let span = self.stmt_span(id);
+        self.emit_node("Exit", span, None)
+    }
     fn visit_if(&self, id: BodyStmt, _stmt: &stmt::If) {
         let span = self.stmt_span(id);
         self.emit_node("If", span, None)
@@ -229,6 +237,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Block", span, Some(format_args!("{:?}", stmt.kind)))
     }
+
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {
         let span = self.expr_span(id);

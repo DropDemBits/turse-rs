@@ -567,3 +567,21 @@ fn lower_if_stmt() {
     // with missing condition
     assert_lower("if then end if");
 }
+
+#[test]
+fn lower_loop_stmt() {
+    assert_lower("loop end loop");
+}
+
+#[test]
+fn lower_exit_stmt() {
+    // in loop body
+    assert_lower(r#"loop exit end loop"#);
+    // in for-loop body
+    // TODO: Uncomment once for-loops are lowered
+    //assert_lower(r#"for i : 1 .. 10 exit end for"#);
+    // outside of a loop body
+    assert_lower("exit");
+    // with optional condition
+    assert_lower("loop exit when true end loop");
+}
