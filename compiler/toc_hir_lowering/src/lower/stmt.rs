@@ -5,6 +5,7 @@ use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::lower::LoweredStmt;
+use crate::scopes::ScopeKind;
 
 impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<LoweredStmt> {
@@ -267,16 +268,18 @@ impl super::BodyLowering<'_, '_> {
         let condition = self.lower_required_expr(if_body.condition());
 
         // Create block stmt for the true branch
-        self.ctx.scopes.push_scope(false);
-        let true_branch = self.lower_stmt_list_to_block(if_body.true_branch().unwrap());
+        self.ctx.scopes.push_scope(ScopeKind::Block);
+        let true_branch =
+            self.lower_stmt_list_to_block(if_body.true_branch().unwrap(), ScopeKind::Block);
         self.ctx.scopes.pop_scope();
 
         // Handle the false branch
         let false_branch = if_body.false_branch().map(|branch| match branch {
             ast::FalseBranch::ElseStmt(stmt) => {
                 // Simple, just lower to a stmt block
-                self.ctx.scopes.push_scope(false);
-                let else_branch = self.lower_stmt_list_to_block(stmt.stmt_list().unwrap());
+                self.ctx.scopes.push_scope(ScopeKind::Block);
+                let else_branch =
+                    self.lower_stmt_list_to_block(stmt.stmt_list().unwrap(), ScopeKind::Block);
                 self.ctx.scopes.pop_scope();
 
                 else_branch
@@ -304,7 +307,7 @@ impl super::BodyLowering<'_, '_> {
     fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> Option<stmt::StmtKind> {
         let stmt_list = stmt.stmt_list()?;
 
-        self.ctx.scopes.push_scope(false);
+        self.ctx.scopes.push_scope(ScopeKind::Block);
         let stmts = self.lower_stmt_list(stmt_list);
         self.ctx.scopes.pop_scope();
 
@@ -314,10 +317,14 @@ impl super::BodyLowering<'_, '_> {
         }))
     }
 
-    fn lower_stmt_list_to_block(&mut self, stmt_list: ast::StmtList) -> stmt::StmtId {
+    fn lower_stmt_list_to_block(
+        &mut self,
+        stmt_list: ast::StmtList,
+        as_kind: ScopeKind,
+    ) -> stmt::StmtId {
         let range = stmt_list.syntax().text_range();
 
-        self.ctx.scopes.push_scope(false);
+        self.ctx.scopes.push_scope(as_kind);
         let stmts = self.lower_stmt_list(stmt_list);
         self.ctx.scopes.pop_scope();
 

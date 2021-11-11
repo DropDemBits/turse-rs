@@ -12,20 +12,37 @@ use toc_hir::symbol;
 
 #[derive(Debug)]
 pub(crate) struct Scope {
+    /// What kind of this scope this is
+    kind: ScopeKind,
     /// All symbols declared in a scope.
     symbols: HashMap<String, symbol::LocalDefId>,
-    /// If the scope is an import boundary.
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ScopeKind {
+    Root,
+    #[allow(dead_code)] // Only constructed in tests for now
+    Module,
+    Block,
+}
+
+impl ScopeKind {
+    /// If the scope kind forms an import boundary.
     ///
     /// An import boundary only allows pervasive identifiers to be implicitly
     /// imported.
-    is_import_boundary: bool,
+    fn is_import_boundary(&self) -> bool {
+        // Only the root scope and modules forms an import boundary,
+        // everything else isn't one
+        matches!(self, ScopeKind::Root | ScopeKind::Module)
+    }
 }
 
 impl Scope {
-    fn new(is_import_boundary: bool) -> Self {
+    fn new(kind: ScopeKind) -> Self {
         Self {
+            kind,
             symbols: HashMap::new(),
-            is_import_boundary,
         }
     }
 
@@ -49,7 +66,7 @@ impl std::fmt::Debug for ScopeTracker {
 impl ScopeTracker {
     pub fn new() -> Self {
         Self {
-            scopes: vec![Scope::new(true)],
+            scopes: vec![Scope::new(ScopeKind::Root)],
             pervasive_tracker: HashSet::default(),
         }
     }
@@ -59,20 +76,30 @@ impl ScopeTracker {
     /// Only used for tests
     #[cfg(test)]
     fn with_scope<F: FnOnce(&mut Self) -> R, R>(&mut self, is_import_boundary: bool, f: F) -> R {
-        self.scopes.push(Scope::new(is_import_boundary));
+        let kind = if is_import_boundary {
+            ScopeKind::Module
+        } else {
+            ScopeKind::Block
+        };
+
+        self.scopes.push(Scope::new(kind));
         let ret = f(self);
         self.scopes.pop();
 
         ret
     }
 
-    pub fn push_scope(&mut self, is_import_boundary: bool) {
-        self.scopes.push(Scope::new(is_import_boundary));
+    pub fn push_scope(&mut self, kind: ScopeKind) {
+        self.scopes.push(Scope::new(kind));
     }
 
     pub fn pop_scope(&mut self) {
         debug_assert!(self.scopes.len() > 1, "Cannot pop off root scope");
         self.scopes.pop();
+    }
+
+    pub fn enclosing_scope_kind(&self) -> ScopeKind {
+        self.scopes.last().unwrap().kind
     }
 
     pub fn def_sym(
@@ -120,7 +147,7 @@ impl ScopeTracker {
                 }
             }
 
-            if scope.is_import_boundary {
+            if scope.kind.is_import_boundary() {
                 // Crossing an import boundary
                 // Restrict search to pervasive identifiers after import boundaries
                 restrict_to_pervasive = true;
@@ -133,7 +160,7 @@ impl ScopeTracker {
 
     fn boundary_scope(scopes: &mut Vec<Scope>) -> &mut Scope {
         for scope in scopes.iter_mut().rev() {
-            if scope.is_import_boundary {
+            if scope.kind.is_import_boundary() {
                 return scope;
             }
         }

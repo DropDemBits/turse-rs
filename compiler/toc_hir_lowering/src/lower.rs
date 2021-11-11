@@ -225,6 +225,7 @@ impl<'ctx: 'body, 'body> BodyLowering<'ctx, 'body> {
         Self { ctx, body }
     }
 
+    /// Does not automatically enclose the lowered statements in a a scope
     fn lower_stmt_list(&mut self, stmt_list: ast::StmtList) -> Vec<StmtId> {
         let mut stmts = vec![];
 
