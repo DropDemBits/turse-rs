@@ -14,6 +14,7 @@ impl super::BodyLowering<'_, '_> {
         let kind = match stmt {
             // `ConstVarDecl` is the only decl that can produce multiple stmts
             ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
+
             ast::Stmt::TypeDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::BindDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
@@ -26,7 +27,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ModuleDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ClassDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::MonitorDecl(_) => self.unsupported_stmt(span),
+
             ast::Stmt::AssignStmt(stmt) => self.lower_assign_stmt(stmt),
+
             ast::Stmt::OpenStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::CloseStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::PutStmt(stmt) => self.lower_put_stmt(stmt),
@@ -35,12 +38,16 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::WriteStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::SeekStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::TellStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ForStmt(_) => self.unsupported_stmt(span),
+
+            ast::Stmt::ForStmt(stmt) => self.lower_for_stmt(stmt),
             ast::Stmt::LoopStmt(stmt) => self.lower_loop_stmt(stmt),
             ast::Stmt::ExitStmt(stmt) => self.lower_exit_stmt(stmt),
             ast::Stmt::IfStmt(stmt) => self.lower_if_stmt(stmt),
+
             ast::Stmt::CaseStmt(_) => self.unsupported_stmt(span),
+
             ast::Stmt::BlockStmt(stmt) => self.lower_block_stmt(stmt),
+
             ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::AssertStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::CallStmt(_) => self.unsupported_stmt(span),
@@ -260,6 +267,91 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
+    fn lower_for_stmt(&mut self, stmt: ast::ForStmt) -> Option<stmt::StmtKind> {
+        // ???: How do we associate a type with the counter?
+        // - We may need an internal `typeof` "type" (as in, infer from this type)
+        // - Or we can just modify the type_of query to instead use a lookup table
+        //   constructed by collecting defs
+
+        let is_decreasing = stmt.decreasing_token().is_some();
+        let name = stmt.name();
+
+        let for_bounds = if let Some(for_bounds) = stmt.for_bounds() {
+            if for_bounds.range_token().is_some() {
+                stmt::ForBounds::Full(
+                    self.lower_required_expr(for_bounds.from()),
+                    self.lower_required_expr(for_bounds.to()),
+                )
+            } else {
+                stmt::ForBounds::Implicit(self.lower_required_expr(for_bounds.from()))
+            }
+        } else {
+            // Make a dummy for-loop bounds
+            // Full bounds satisfies all cases
+            stmt::ForBounds::Full(
+                self.lower_required_expr(None),
+                self.lower_required_expr(None),
+            )
+        };
+
+        // If `decreasing` is present, then the for-loop must have both bounds defined
+        if is_decreasing && matches!(for_bounds, stmt::ForBounds::Implicit(_)) {
+            let bounds_span = self
+                .ctx
+                .mk_span(stmt.for_bounds().unwrap().syntax().text_range());
+            let decreasing_span = self
+                .ctx
+                .mk_span(stmt.decreasing_token().unwrap().text_range());
+
+            // ???: Are we able to include the potentially implied bounds in the error message?
+            self.ctx
+                .messages
+                .error_detailed(
+                    "`decreasing` for-loops cannot use implicit range bounds",
+                    bounds_span,
+                )
+                .with_error("range bounds are implied from here", bounds_span)
+                .with_note("`decreasing` for-loop specified here", decreasing_span)
+                .with_info(
+                    "`decreasing` for-loops can only use explicit range bounds (e.g. `1 .. 2`)",
+                )
+                .finish();
+        }
+
+        let step_by = stmt
+            .steps()
+            .and_then(|step_by| step_by.expr())
+            .map(|expr| self.lower_expr(expr));
+
+        let counter_def;
+        let body_stmts;
+
+        self.ctx.scopes.push_scope(ScopeKind::ForLoop);
+        {
+            // counter is only available inside of the loop body
+            counter_def = name.map(|name| {
+                let name = name.identifier_token().unwrap();
+                let span = self.ctx.intern_range(name.text_range());
+                let def_id =
+                    self.ctx
+                        .library
+                        .add_def(name.text(), span, symbol::SymbolKind::Declared);
+                self.ctx.scopes.def_sym(name.text(), def_id, false)
+            });
+
+            body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
+        }
+        self.ctx.scopes.pop_scope();
+
+        Some(stmt::StmtKind::For(stmt::For {
+            is_decreasing,
+            counter_def,
+            bounds: for_bounds,
+            step_by,
+            stmts: body_stmts,
+        }))
+    }
+
     fn lower_loop_stmt(&mut self, stmt: ast::LoopStmt) -> Option<stmt::StmtKind> {
         self.ctx.scopes.push_scope(ScopeKind::Loop);
         let stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
@@ -274,8 +366,7 @@ impl super::BodyLowering<'_, '_> {
         // Report if we're outside of a loop or for statement
         if !matches!(
             self.ctx.scopes.enclosing_scope_kind(),
-            // TODO: uncomment the other part once for-loops are lowered
-            ScopeKind::Loop // | ScopeKind::ForLoop
+            ScopeKind::Loop | ScopeKind::ForLoop
         ) {
             let span = self.ctx.mk_span(stmt.syntax().text_range());
 

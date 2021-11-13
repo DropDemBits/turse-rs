@@ -578,10 +578,32 @@ fn lower_exit_stmt() {
     // in loop body
     assert_lower(r#"loop exit end loop"#);
     // in for-loop body
-    // TODO: Uncomment once for-loops are lowered
-    //assert_lower(r#"for i : 1 .. 10 exit end for"#);
+    assert_lower(r#"for i : 1 .. 10 exit end for"#);
     // outside of a loop body
     assert_lower("exit");
     // with optional condition
     assert_lower("loop exit when true end loop");
+}
+
+#[test]
+fn lower_for_stmt() {
+    // bare loop
+    assert_lower(r#"for : 1 .. 10 end for"#);
+    // explicit bounds & step
+    assert_lower(r#"for : 1 .. 10 by 3 end for"#);
+    // implicit bounds
+    assert_lower(r#"for : wah end for"#);
+    // implicit bounds & step
+    assert_lower(r#"for : wah by 1 end for"#);
+    // with counter
+    assert_lower(
+        r#"
+    for woo : 1 .. 10 var k := woo end for
+    var woo := 1.0
+    "#,
+    );
+    // decreasing explicit bounds
+    assert_lower(r#"for decreasing : 1 .. 10 end for"#);
+    // decreasing implicit bounds (error)
+    assert_lower(r#"for decreasing : implied end for"#);
 }

@@ -1,13 +1,14 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: exit
+expression: "for i : 1 .. 10 exit end for"
 
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..4): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..4): []
-        Exit@(FileId(1), 0..4)
-error in file FileId(1) at 0..4: cannot use `exit` statement here
-| error in file FileId(1) for 0..4: can only be used inside of `loop` and `for` statements
+    Module@(FileId(1), 0..28): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..28): []
+        For@(FileId(1), 0..28)
+          Literal@(FileId(1), 8..9): Integer(1)
+          Literal@(FileId(1), 8..9): Integer(1)
+          Exit@(FileId(1), 16..20)
 

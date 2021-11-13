@@ -221,6 +221,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Get", span, None)
     }
+    fn visit_for(&self, id: BodyStmt, _stmt: &stmt::For) {
+        let span = self.stmt_span(id);
+        self.emit_node("For", span, None)
+    }
     fn visit_loop(&self, id: BodyStmt, _stmt: &stmt::Loop) {
         let span = self.stmt_span(id);
         self.emit_node("Loop", span, None)

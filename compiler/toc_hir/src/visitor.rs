@@ -33,6 +33,7 @@ pub trait HirVisitor {
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {}
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {}
     fn visit_get(&self, id: BodyStmt, stmt: &stmt::Get) {}
+    fn visit_for(&self, id: BodyStmt, stmt: &stmt::For) {}
     fn visit_loop(&self, id: BodyStmt, stmt: &stmt::Loop) {}
     fn visit_exit(&self, id: BodyStmt, stmt: &stmt::Exit) {}
     fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {}
@@ -66,6 +67,7 @@ pub trait HirVisitor {
             stmt::StmtKind::Assign(stmt) => self.visit_assign(id, stmt),
             stmt::StmtKind::Put(stmt) => self.visit_put(id, stmt),
             stmt::StmtKind::Get(stmt) => self.visit_get(id, stmt),
+            stmt::StmtKind::For(stmt) => self.visit_for(id, stmt),
             stmt::StmtKind::Loop(stmt) => self.visit_loop(id, stmt),
             stmt::StmtKind::Exit(stmt) => self.visit_exit(id, stmt),
             stmt::StmtKind::If(stmt) => self.visit_if(id, stmt),
@@ -290,6 +292,7 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::Assign(node) => self.walk_assign(in_body, node),
             stmt::StmtKind::Put(node) => self.walk_put(in_body, node),
             stmt::StmtKind::Get(node) => self.walk_get(in_body, node),
+            stmt::StmtKind::For(node) => self.walk_for(in_body, node),
             stmt::StmtKind::Loop(node) => self.walk_loop(in_body, node),
             stmt::StmtKind::Exit(node) => self.walk_exit(in_body, node),
             stmt::StmtKind::If(node) => self.walk_if(in_body, node),
@@ -348,6 +351,22 @@ impl<'hir> Walker<'hir> {
                 }
             }
         }
+    }
+
+    fn walk_for(&mut self, in_body: body::BodyId, node: &stmt::For) {
+        match node.bounds {
+            stmt::ForBounds::Implicit(expr) => self.enter_expr(in_body, expr),
+            stmt::ForBounds::Full(start, end) => {
+                self.enter_expr(in_body, start);
+                self.enter_expr(in_body, end);
+            }
+        }
+
+        if let Some(expr) = node.step_by {
+            self.enter_expr(in_body, expr);
+        }
+
+        self.enter_stmts(in_body, &node.stmts);
     }
 
     fn walk_loop(&mut self, in_body: body::BodyId, node: &stmt::Loop) {

@@ -1,13 +1,13 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: loop exit when true end loop
+expression: exit
 
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..28): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..28): []
-        Loop@(FileId(1), 0..28)
-          Exit@(FileId(1), 5..19)
-            Literal@(FileId(1), 15..19): Boolean(true)
+    Module@(FileId(1), 0..4): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..4): []
+        Exit@(FileId(1), 0..4)
+error in file FileId(1) at 0..4: cannot use `exit` statement here
+| error in file FileId(1) for 0..4: can only be used inside of `loop` and `for` statements
 

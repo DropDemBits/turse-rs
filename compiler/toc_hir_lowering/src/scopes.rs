@@ -25,6 +25,7 @@ pub(crate) enum ScopeKind {
     Module,
     Block,
     Loop,
+    ForLoop,
 }
 
 impl ScopeKind {
