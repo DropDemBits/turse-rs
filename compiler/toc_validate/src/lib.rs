@@ -112,7 +112,6 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),
             ast::NewOpen(open) => stmt::validate_new_open(open, ctx),
-            ast::ForStmt(stmt) => stmt::validate_for_stmt(stmt, ctx),
             ast::ElseStmt(stmt) => stmt::validate_else_stmt(stmt, ctx),
             ast::ElseifStmt(stmt) => stmt::validate_elseif_stmt(stmt, ctx),
             ast::CaseStmt(stmt) => stmt::validate_case_stmt(stmt, ctx),

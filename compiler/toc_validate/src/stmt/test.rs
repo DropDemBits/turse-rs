@@ -671,37 +671,6 @@ fn report_new_open_conflicting_mixed_caps() {
 }
 
 #[test]
-fn for_stmt_partial_increasing() {
-    check("for : a end for", expect![[]]);
-}
-
-#[test]
-fn for_stmt_full_decreasing() {
-    check("for decreasing : a .. b end for", expect![[]]);
-}
-
-#[test]
-fn report_for_stmt_partial_decreasing() {
-    check(
-        "for decreasing : a end for",
-        expect![[r#"
-            error at 17..18: invalid loop bound specification
-            | error for 17..18: decreasing for-loop requires explicit end bound"#]],
-    );
-}
-
-#[test]
-fn for_stmt_partial_decreasing_no_bounds() {
-    // Don't duplicate errors
-    check(
-        "for decreasing : end for",
-        expect![[r#"
-            error at 17..20: unexpected token
-            | error for 17..20: expected expression, but found ‘end’"#]],
-    );
-}
-
-#[test]
 fn report_case_stmt_missing_arms() {
     check(
         "case a of end case",

@@ -606,4 +606,8 @@ fn lower_for_stmt() {
     assert_lower(r#"for decreasing : 1 .. 10 end for"#);
     // decreasing implicit bounds (error)
     assert_lower(r#"for decreasing : implied end for"#);
+    // no bounds
+    assert_lower(r#"for : end for"#);
+    // decreasing no bounds
+    assert_lower(r#"for decreasing : end for"#);
 }

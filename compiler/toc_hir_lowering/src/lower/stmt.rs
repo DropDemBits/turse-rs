@@ -277,22 +277,26 @@ impl super::BodyLowering<'_, '_> {
         let is_decreasing = stmt.decreasing_token().is_some();
         let name = stmt.name();
 
-        let for_bounds = if let Some(for_bounds) = stmt.for_bounds() {
+        let for_bounds = {
+            let for_bounds = stmt.for_bounds().unwrap();
+
             if for_bounds.range_token().is_some() {
+                // Explicit bounds
                 stmt::ForBounds::Full(
                     self.lower_required_expr(for_bounds.start()),
                     self.lower_required_expr(for_bounds.end()),
                 )
+            } else if let Some(start) = for_bounds.start() {
+                // Implicit bounds
+                stmt::ForBounds::Implicit(self.lower_expr(start))
             } else {
-                stmt::ForBounds::Implicit(self.lower_required_expr(for_bounds.start()))
+                // Make a dummy for-loop bounds
+                // Full bounds satisfies all cases
+                stmt::ForBounds::Full(
+                    self.lower_required_expr(None),
+                    self.lower_required_expr(None),
+                )
             }
-        } else {
-            // Make a dummy for-loop bounds
-            // Full bounds satisfies all cases
-            stmt::ForBounds::Full(
-                self.lower_required_expr(None),
-                self.lower_required_expr(None),
-            )
         };
 
         // If `decreasing` is present, then the for-loop must have both bounds defined
