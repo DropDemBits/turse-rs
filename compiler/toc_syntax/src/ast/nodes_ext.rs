@@ -793,3 +793,13 @@ impl RangeItem {
         helper::nodes(self.syntax()).nth(1)
     }
 }
+
+impl ForBounds {
+    pub fn start(&self) -> Option<Expr> {
+        helper::nodes(self.syntax()).next()
+    }
+
+    pub fn end(&self) -> Option<Expr> {
+        helper::nodes(self.syntax()).nth(1)
+    }
+}

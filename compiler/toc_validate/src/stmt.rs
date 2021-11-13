@@ -330,7 +330,7 @@ pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
 pub(super) fn validate_for_stmt(stmt: ast::ForStmt, ctx: &mut ValidateCtx) {
     if let Some(bounds) = stmt.for_bounds() {
         if stmt.decreasing_token().is_some() && bounds.range_token().is_none() {
-            if let Some(first) = bounds.from() {
+            if let Some(first) = bounds.start() {
                 // Missing other range part
                 ctx.push_error(
                     "invalid loop bound specification",

@@ -280,11 +280,11 @@ impl super::BodyLowering<'_, '_> {
         let for_bounds = if let Some(for_bounds) = stmt.for_bounds() {
             if for_bounds.range_token().is_some() {
                 stmt::ForBounds::Full(
-                    self.lower_required_expr(for_bounds.from()),
-                    self.lower_required_expr(for_bounds.to()),
+                    self.lower_required_expr(for_bounds.start()),
+                    self.lower_required_expr(for_bounds.end()),
                 )
             } else {
-                stmt::ForBounds::Implicit(self.lower_required_expr(for_bounds.from()))
+                stmt::ForBounds::Implicit(self.lower_required_expr(for_bounds.start()))
             }
         } else {
             // Make a dummy for-loop bounds

@@ -9,5 +9,5 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..21): []
         For@(FileId(1), 0..21)
           Literal@(FileId(1), 6..7): Integer(1)
-          Literal@(FileId(1), 6..7): Integer(1)
+          Literal@(FileId(1), 11..13): Integer(10)
 
