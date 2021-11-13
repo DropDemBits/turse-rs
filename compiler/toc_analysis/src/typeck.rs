@@ -423,7 +423,7 @@ impl TypeCheck<'_> {
                 )
             }
             stmt::ForBounds::Full(start, end) => {
-                // Must both be index bound types
+                // Must both be index types
                 let start_ty = db.type_of((self.library_id, body_id, start).into());
                 let end_ty = db.type_of((self.library_id, body_id, end).into());
 
@@ -441,8 +441,7 @@ impl TypeCheck<'_> {
 
                 let bounds_span = start_span.cover(end_span);
 
-                let is_index_bound_ty =
-                    |ty_kind: ty::TyRefKind| ty_kind.is_index_bound() || ty_kind.is_error();
+                let is_index_ty = |ty_kind: ty::TyRefKind| ty_kind.is_index() || ty_kind.is_error();
 
                 if !ty::rules::is_equivalent(db, start_ty.id(), end_ty.id()) {
                     // Bounds are not equivalent
@@ -453,15 +452,15 @@ impl TypeCheck<'_> {
                         .with_note(&format!("this is of type `{}`", end_ty), end_span)
                         .with_info(&format!("`{}` is not equivalent to `{}`", start_ty, end_ty))
                         .finish();
-                } else if !is_index_bound_ty(start_ty.kind()) || !is_index_bound_ty(end_ty.kind()) {
-                    // Neither is an index bound type
+                } else if !is_index_ty(start_ty.kind()) || !is_index_ty(end_ty.kind()) {
+                    // Neither is an index type
                     self.state()
                         .reporter
-                        .error_detailed("range bounds are not index bound types", bounds_span)
+                        .error_detailed("range bounds are not index types", bounds_span)
                         .with_note(&format!("this is of type `{}`", start_ty), start_span)
                         .with_note(&format!("this is also of type `{}`", end_ty), end_span)
                         .with_info(&format!(
-                            "expected an index bound type (an integer, `{boolean}`, `{chr}`, or enumerated type",
+                            "expected an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range)",
                             boolean = ty::TypeKind::Boolean.prefix(),
                             chr = ty::TypeKind::Char.prefix()
                         ))

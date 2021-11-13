@@ -46,8 +46,8 @@ impl TypeKind {
         )
     }
 
-    /// index bound types includes all integer types, `Char`, `Boolean`, and `Enum` types
-    pub fn is_index_bound(&self) -> bool {
+    /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
+    pub fn is_index(&self) -> bool {
         self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
     }
 }

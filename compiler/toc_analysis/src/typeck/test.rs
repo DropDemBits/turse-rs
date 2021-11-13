@@ -993,7 +993,7 @@ test_named_group! {
         // TODO: Uncomment once enum types are lowered
         //normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
         wrong_types_bounds_not_same => r#"for : 1 .. true end for"#,
-        wrong_types_bounds_not_index => r#"for : 1 .. 10 "no" .. "yes" end for"#,
+        wrong_types_bounds_not_index => r#"for : "no" .. "yes" end for"#,
 
         normal_step_by_ty => r#"for : false .. true by 2 end for"#,
         wrong_types_step_by => r#"for : false .. true by false end for"#,
