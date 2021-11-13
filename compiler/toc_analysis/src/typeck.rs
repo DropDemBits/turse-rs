@@ -112,6 +112,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_get(id.0, stmt);
     }
 
+    fn visit_for(&self, id: BodyStmt, stmt: &stmt::For) {
+        self.typeck_for(id.0, stmt);
+    }
+
     fn visit_exit(&self, id: BodyStmt, stmt: &stmt::Exit) {
         self.typeck_exit(id.0, stmt);
     }
@@ -401,6 +405,78 @@ impl TypeCheck<'_> {
             | ty::TypeKind::StringN(_) => true,
             // Already deref'd
             ty::TypeKind::Ref(_, _) => unreachable!(),
+        }
+    }
+
+    fn typeck_for(&self, body_id: body::BodyId, stmt: &stmt::For) {
+        let db = self.db;
+
+        match stmt.bounds {
+            stmt::ForBounds::Implicit(expr) => {
+                // These are not supported yet, until range types are lowered
+                let expr_span = self.library.body(body_id).expr(expr).span;
+
+                self.state().reporter.error(
+                    "unsupported expression",
+                    "implicit range bounds are not supported yet",
+                    self.library.lookup_span(expr_span),
+                )
+            }
+            stmt::ForBounds::Full(start, end) => {
+                // Must both be index bound types
+                let start_ty = db.type_of((self.library_id, body_id, start).into());
+                let end_ty = db.type_of((self.library_id, body_id, end).into());
+
+                // Wrap up both types
+                let (start_ty, end_ty) =
+                    (start_ty.in_db(db).peel_ref(), end_ty.in_db(db).peel_ref());
+
+                let start_span = self.library.body(body_id).expr(start).span;
+                let end_span = self.library.body(body_id).expr(end).span;
+
+                let (start_span, end_span) = (
+                    self.library.lookup_span(start_span),
+                    self.library.lookup_span(end_span),
+                );
+
+                let bounds_span = start_span.cover(end_span);
+
+                let is_index_bound_ty =
+                    |ty_kind: ty::TyRefKind| ty_kind.is_index_bound() || ty_kind.is_error();
+
+                if !ty::rules::is_equivalent(db, start_ty.id(), end_ty.id()) {
+                    // Bounds are not equivalent
+                    self.state()
+                        .reporter
+                        .error_detailed("range bounds are not the same type", bounds_span)
+                        .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                        .with_note(&format!("this is of type `{}`", end_ty), end_span)
+                        .with_info(&format!("`{}` is not equivalent to `{}`", start_ty, end_ty))
+                        .finish();
+                } else if !is_index_bound_ty(start_ty.kind()) || !is_index_bound_ty(end_ty.kind()) {
+                    // Neither is an index bound type
+                    self.state()
+                        .reporter
+                        .error_detailed("range bounds are not index bound types", bounds_span)
+                        .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                        .with_note(&format!("this is also of type `{}`", end_ty), end_span)
+                        .with_info(&format!(
+                            "expected an index bound type (an integer, `{boolean}`, `{chr}`, or enumerated type",
+                            boolean = ty::TypeKind::Boolean.prefix(),
+                            chr = ty::TypeKind::Char.prefix()
+                        ))
+                        .finish();
+                }
+            }
+        }
+
+        if let Some(step_by) = stmt.step_by {
+            // `step_by` must evaluate to an integer type
+            // ???: Does this make sense for other range types?
+            let ty_id = db.type_of((self.library_id, body_id, step_by).into());
+            let span = self.library.body(body_id).expr(step_by).span;
+
+            self.expect_integer_type(ty_id, self.library.lookup_span(span));
         }
     }
 

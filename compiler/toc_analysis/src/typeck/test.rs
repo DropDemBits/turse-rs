@@ -979,6 +979,31 @@ test_named_group! {
     ]
 }
 
+test_named_group! {
+    typeck_for,
+    [
+        infer_counter_ty => r#"
+        for a : 1 .. 10
+            var q : int := a
+        end for
+        "#,
+        normal_boolean_bounds => r#"for : false .. true end for"#,
+        normal_char_bounds => r#"for : 'a' .. 'z' end for"#,
+        normal_int_bounds => r#"for : 1 .. 10 end for"#,
+        // TODO: Uncomment once enum types are lowered
+        //normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
+        wrong_types_bounds_not_same => r#"for : 1 .. true end for"#,
+        wrong_types_bounds_not_index => r#"for : 1 .. 10 "no" .. "yes" end for"#,
+
+        normal_step_by_ty => r#"for : false .. true by 2 end for"#,
+        wrong_types_step_by => r#"for : false .. true by false end for"#,
+
+        immut_counter => r#"for i : false .. true i := false end for"#,
+
+        unsupported_implicit_bounds => r#"var implied : int for : implied end for"#
+    ]
+}
+
 test_named_group! { peel_ref,
     [
         in_assign => r#"var a : int var k : int := a"#,
@@ -988,5 +1013,6 @@ test_named_group! { peel_ref,
         in_put_stmt => r#"var a : int put a : 0 : 0 : 0"#,
         in_put_arg => r#"var a : int put a : a : a : a"#,
         in_get_arg => r#"var a : int get a : a"#,
+        in_for_bound => r#"var a : int for : a .. a end for"#
     ]
 }

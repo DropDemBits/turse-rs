@@ -29,7 +29,7 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
     if let Some(owner) = db.def_owner(def_id) {
         match owner {
             DefOwner::Item(item_id) => lower::ty_from_item(db, InLibrary(def_id.0, item_id)),
-            DefOwner::Stmt(_) => todo!(),
+            DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
         }
     } else {
         // No actual definition owner

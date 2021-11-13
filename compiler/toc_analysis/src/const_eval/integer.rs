@@ -1,5 +1,6 @@
 //! Sign & magnitude integer representation
 
+use std::cmp::Ordering;
 use std::convert::TryInto;
 use std::fmt;
 
@@ -494,6 +495,17 @@ impl ConstInt {
     /// Does nothing for a magnitude of 0.
     pub fn negate(self) -> Result<ConstInt, ConstError> {
         Self::check_overflow(Some(self.magnitude), self.sign.negate(), self.width)
+    }
+
+    /// Compares this integer with another integer
+    pub fn cmp(self, rhs: ConstInt) -> Ordering {
+        match (self.sign, rhs.sign) {
+            (Sign::Positive, Sign::Positive) => Ordering::Equal,
+            (Sign::Positive, Sign::Negative) => Ordering::Greater,
+            (Sign::Negative, Sign::Positive) => Ordering::Less,
+            (Sign::Negative, Sign::Negative) => Ordering::Equal,
+        }
+        .then(self.magnitude.cmp(&rhs.magnitude))
     }
 
     /// Negates the sign of the integer.

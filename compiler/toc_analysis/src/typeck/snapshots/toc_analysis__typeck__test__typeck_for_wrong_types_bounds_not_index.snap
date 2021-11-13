@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "for : 1 .. 10 \"no\" .. \"yes\" end for"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var implied : int for : implied end for"
+
+---
+"implied"@(FileId(1), 4..11) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 24..31: unsupported expression
+| error in file FileId(1) for 24..31: implicit range bounds are not supported yet
