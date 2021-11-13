@@ -7,7 +7,7 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..32): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..32): []
-        For@(FileId(1), 0..32)
+        For@(FileId(1), 0..32): decreasing explicit
           Literal@(FileId(1), 17..18): Integer(1)
           Literal@(FileId(1), 22..24): Integer(10)
 

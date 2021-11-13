@@ -221,9 +221,22 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Get", span, None)
     }
-    fn visit_for(&self, id: BodyStmt, _stmt: &stmt::For) {
+    fn visit_for(&self, id: BodyStmt, stmt: &stmt::For) {
         let span = self.stmt_span(id);
-        self.emit_node("For", span, None)
+        let bounds_kind = match stmt.bounds {
+            stmt::ForBounds::Implicit(_) => "implicit",
+            stmt::ForBounds::Full(_, _) => "explicit",
+        };
+
+        if stmt.is_decreasing {
+            self.emit_node(
+                "For",
+                span,
+                Some(format_args!("decreasing {}", bounds_kind)),
+            )
+        } else {
+            self.emit_node("For", span, Some(format_args!("{}", bounds_kind)))
+        }
     }
     fn visit_loop(&self, id: BodyStmt, _stmt: &stmt::Loop) {
         let span = self.stmt_span(id);
