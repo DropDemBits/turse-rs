@@ -18,13 +18,8 @@ impl LibraryBuilder {
     }
 
     pub fn add_item(&mut self, item: item::Item) -> item::ItemId {
-        let def_id = item.def_id;
         let index = self.items.alloc(item);
-        let id = item::ItemId(index);
-
-        // Add def -> item mapping
-        self.item_defs.insert(def_id.0, id);
-        id
+        item::ItemId(index)
     }
 
     /// Helper for declaring a new symbol.
@@ -88,7 +83,6 @@ impl Default for LibraryBuilder {
         Self {
             library: library::Library {
                 root_items: Default::default(),
-                item_defs: Default::default(),
                 items: Default::default(),
                 defs: Default::default(),
                 bodies: Default::default(),

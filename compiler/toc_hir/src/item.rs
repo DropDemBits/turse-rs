@@ -67,6 +67,7 @@ pub enum Mutability {
 pub struct ConstVar {
     pub is_register: bool,
     pub mutability: Mutability,
+    pub def_id: symbol::LocalDefId,
     pub tail: ConstVarTail,
 }
 
@@ -101,6 +102,7 @@ impl ConstVarTail {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Module {
     pub as_monitor: bool,
+    pub def_id: symbol::LocalDefId,
     pub declares: Vec<ItemId>,
     // not handling exports yet
     //exports: Vec<ExportItem>,

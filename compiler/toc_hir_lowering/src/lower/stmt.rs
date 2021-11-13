@@ -118,8 +118,9 @@ impl super::BodyLowering<'_, '_> {
             .into_iter()
             .map(|def_id| {
                 let const_var = item::ConstVar {
-                    mutability,
                     is_register,
+                    mutability,
+                    def_id,
                     tail,
                 };
 

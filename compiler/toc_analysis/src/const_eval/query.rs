@@ -117,8 +117,8 @@ pub(crate) fn evaluate_const(
                         let library_id = library_id;
                         let library = db.library(library_id);
 
-                        let body = library.item_of(def_id).and_then(|item| {
-                            match &library.item(item).kind {
+                        let body = db.item_of(DefId(library_id, def_id)).and_then(|item| {
+                            match &library.item(item.1).kind {
                                 toc_hir::item::ItemKind::ConstVar(cv)
                                     if matches!(cv.mutability, Mutability::Const) =>
                                 {

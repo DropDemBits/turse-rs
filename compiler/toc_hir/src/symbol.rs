@@ -1,9 +1,14 @@
 //! Everything related to symbols.
 //! `SymbolTable` construction with respect to scoping rules occurs in `toc_hir_lowering`.
 
+use la_arena::ArenaMap;
 use toc_span::Spanned;
 
 pub use crate::ids::{DefId, LocalDefId};
+use crate::{
+    ids::{ItemId, LocalDefIndex},
+    stmt::BodyStmt,
+};
 
 /// Information associated with a `LocalDefId` or `DefId`.
 #[derive(Debug, PartialEq, Eq)]
@@ -41,4 +46,27 @@ pub enum SymbolKind {
     /// The symbol is a resolution of a forward declaration, with a `DefId`
     /// pointing back to the original forward declaration symbol.
     Resolved(DefId),
+}
+
+/// Any HIR node that contains a definition
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DefOwner {
+    Item(ItemId),
+    Stmt(BodyStmt),
+}
+
+/// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct DefTable {
+    def_owners: ArenaMap<LocalDefIndex, DefOwner>,
+}
+
+impl DefTable {
+    pub fn add_owner(&mut self, def_id: LocalDefId, owner: DefOwner) {
+        self.def_owners.insert(def_id.0, owner);
+    }
+
+    pub fn get_owner(&self, def_id: LocalDefId) -> Option<DefOwner> {
+        self.def_owners.get(def_id.0).copied()
+    }
 }

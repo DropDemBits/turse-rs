@@ -135,6 +135,7 @@ impl<'ctx> FileLowering<'ctx> {
             .intern_span(Span::new(Some(self.file), root.syntax().text_range()));
         let module = item::Module {
             as_monitor: false,
+            def_id: module_def,
             declares: declared_items,
             body,
         };

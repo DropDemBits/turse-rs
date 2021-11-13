@@ -3,10 +3,9 @@
 use std::sync::Arc;
 
 use indexmap::IndexMap;
-use la_arena::{Arena, ArenaMap};
+use la_arena::Arena;
 use toc_span::{FileId, Span, SpanId, SpanTable};
 
-use crate::ids::LocalDefIndex;
 use crate::{body, item, symbol, ty};
 
 pub use crate::ids::LibraryId;
@@ -56,8 +55,6 @@ pub struct Library {
     pub root_items: IndexMap<FileId, item::ItemId>,
     /// Table of all interned spans
     pub span_map: SpanTable,
-    /// Mapping from definitions to `DefId`s
-    pub item_defs: ArenaMap<LocalDefIndex, item::ItemId>,
     /// Table of all interned types
     pub(crate) type_map: ty::TypeTable,
     pub(crate) items: Arena<item::Item>,
@@ -80,10 +77,6 @@ impl Library {
 
     pub fn item(&self, item_id: item::ItemId) -> &item::Item {
         &self.items[item_id.into()]
-    }
-
-    pub fn item_of(&self, def_id: symbol::LocalDefId) -> Option<item::ItemId> {
-        self.item_defs.get(def_id.0).copied()
     }
 
     pub fn local_def(&self, def_id: symbol::LocalDefId) -> &symbol::DefInfo {
