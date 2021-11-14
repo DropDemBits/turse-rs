@@ -842,6 +842,23 @@ test_named_group! { assignability_into,
     ]
 }
 
+test_named_group! { equivalence_of,
+    [
+        integer => r#"
+        var n : nat
+        var i : int
+        var r : real
+
+        for : 1 .. n end for
+        for : 1 .. i end for
+        for : 1 .. r end for
+        for : n .. 1 end for
+        for : i .. 1 end for
+        for : r .. 1 end for
+        "#
+    ]
+}
+
 test_named_group! { typeck_put_stmt,
     [
         normal_items => r#"
@@ -994,6 +1011,9 @@ test_named_group! {
         //normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
         wrong_types_bounds_not_same => r#"for : 1 .. true end for"#,
         wrong_types_bounds_not_index => r#"for : "no" .. "yes" end for"#,
+        // Specialize error message in case of {integer} combined with concrete type
+        wrong_types_bounds_concrete_integer => r#"var r : real for : r .. 1 end for"#,
+        wrong_types_bounds_integer_concrete => r#"var r : real for : 1 .. r end for"#,
 
         normal_step_by_ty => r#"for : false .. true by 2 end for"#,
         wrong_types_step_by => r#"for : false .. true by false end for"#,

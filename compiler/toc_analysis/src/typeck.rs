@@ -454,12 +454,25 @@ impl TypeCheck<'_> {
                         .finish();
                 } else if !is_index_ty(start_ty.kind()) || !is_index_ty(end_ty.kind()) {
                     // Neither is an index type
-                    self.state()
+                    let mut state = self.state();
+                    let mut builder = state
                         .reporter
-                        .error_detailed("range bounds are not index types", bounds_span)
-                        .with_note(&format!("this is of type `{}`", start_ty), start_span)
-                        .with_note(&format!("this is also of type `{}`", end_ty), end_span)
-                        .with_info(&format!(
+                        .error_detailed("range bounds are not index types", bounds_span);
+
+                    // Specialize when reporting a non-concrete type
+                    if matches!(&*start_ty.kind(), ty::TypeKind::Integer)
+                        || matches!(&*end_ty.kind(), ty::TypeKind::Integer)
+                    {
+                        builder = builder
+                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .with_note(&format!("this is of type `{}`", end_ty), end_span);
+                    } else {
+                        builder = builder
+                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .with_note(&format!("this is also of type `{}`", end_ty), end_span);
+                    }
+
+                    builder.with_info(&format!(
                             "expected an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range)",
                             boolean = ty::TypeKind::Boolean.prefix(),
                             chr = ty::TypeKind::Char.prefix()

@@ -142,6 +142,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         (TypeKind::Int(left_size), TypeKind::Int(right_size)) => left_size == right_size,
         (TypeKind::Nat(left_size), TypeKind::Nat(right_size)) => left_size == right_size,
         (TypeKind::Real(left_size), TypeKind::Real(right_size)) => left_size == right_size,
+        (TypeKind::Integer, other) | (other, TypeKind::Integer) => other.is_number(),
         (TypeKind::String, TypeKind::String) => true,
         (TypeKind::Char, TypeKind::Char) => true,
         (TypeKind::CharN(left_sz), TypeKind::CharN(right_sz))
