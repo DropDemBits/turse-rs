@@ -611,3 +611,81 @@ fn lower_for_stmt() {
     // decreasing no bounds
     assert_lower(r#"for decreasing : end for"#);
 }
+
+#[test]
+fn lower_case_stmt() {
+    // no arms
+    assert_lower(r#"case s of end case"#);
+    // one default arm
+    assert_lower(r#"case s of label: end case"#);
+    // one arm
+    assert_lower(r#"case s of label 1: end case"#);
+    // many arms
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    end case
+    "#,
+    );
+    // many arms, default
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    label :
+        var a := a + 4
+    end case
+    "#,
+    );
+    // many arms, default, default arm
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    label :
+        var a := a + 4
+    label :
+        var a := a + 5
+    end case
+    "#,
+    );
+    // many arms, default, arms
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    label :
+        var a := a + 4
+    label 5:
+        var a := a + 5
+    label 6:
+        var a := a + 6
+    end case
+    "#,
+    );
+}

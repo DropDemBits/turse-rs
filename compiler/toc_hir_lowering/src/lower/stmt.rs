@@ -32,8 +32,10 @@ impl super::BodyLowering<'_, '_> {
 
             ast::Stmt::OpenStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::CloseStmt(_) => self.unsupported_stmt(span),
+
             ast::Stmt::PutStmt(stmt) => self.lower_put_stmt(stmt),
             ast::Stmt::GetStmt(stmt) => self.lower_get_stmt(stmt),
+
             ast::Stmt::ReadStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::WriteStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::SeekStmt(_) => self.unsupported_stmt(span),
@@ -43,9 +45,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::LoopStmt(stmt) => self.lower_loop_stmt(stmt),
             ast::Stmt::ExitStmt(stmt) => self.lower_exit_stmt(stmt),
             ast::Stmt::IfStmt(stmt) => self.lower_if_stmt(stmt),
-
-            ast::Stmt::CaseStmt(_) => self.unsupported_stmt(span),
-
+            ast::Stmt::CaseStmt(stmt) => self.lower_case_stmt(stmt),
             ast::Stmt::BlockStmt(stmt) => self.lower_block_stmt(stmt),
 
             ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
@@ -424,6 +424,41 @@ impl super::BodyLowering<'_, '_> {
             true_branch,
             false_branch,
         })
+    }
+
+    fn lower_case_stmt(&mut self, stmt: ast::CaseStmt) -> Option<stmt::StmtKind> {
+        let discriminant = self.lower_required_expr(stmt.expr());
+        let case_arms = stmt
+            .case_arm()
+            .map(|arm| {
+                let selectors: Vec<_> = arm
+                    .select()
+                    .map(|selectors| {
+                        selectors
+                            .exprs()
+                            .map(|expr| self.lower_expr(expr))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                let selectors = if selectors.is_empty() {
+                    stmt::CaseSelector::Default
+                } else {
+                    stmt::CaseSelector::Exprs(selectors)
+                };
+
+                self.ctx.scopes.push_scope(ScopeKind::Block);
+                let stmts = self.lower_stmt_list(arm.stmt_list().unwrap());
+                self.ctx.scopes.pop_scope();
+
+                stmt::CaseArm { selectors, stmts }
+            })
+            .collect();
+
+        Some(stmt::StmtKind::Case(stmt::Case {
+            discriminant,
+            arms: case_arms,
+        }))
     }
 
     fn lower_block_stmt(&mut self, stmt: ast::BlockStmt) -> Option<stmt::StmtKind> {

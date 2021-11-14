@@ -36,7 +36,8 @@ pub enum StmtKind {
     Exit(Exit),
     /// If statement
     If(If),
-    // Case { .. },
+    /// Case statement
+    Case(Case),
     /// Block statement (`begin ... end`)
     Block(Block),
     // Invariant { .. }
@@ -172,6 +173,26 @@ pub struct If {
     pub true_branch: StmtId,
     /// Optional false branch
     pub false_branch: Option<StmtId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Case {
+    pub discriminant: expr::ExprId,
+    pub arms: Vec<CaseArm>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct CaseArm {
+    pub selectors: CaseSelector,
+    pub stmts: Vec<StmtId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CaseSelector {
+    /// Default selection arm
+    Default,
+    /// Arm is selected if the discriminant is equal to any of these expressions
+    Exprs(Vec<expr::ExprId>),
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: case s of end case
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..18): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..18): []
+        Case@(FileId(1), 0..18)
+          Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
+error in file FileId(1) at 0..18: invalid ‘case’ statement
+| error in file FileId(1) for 0..18: missing ‘label’ arms
+
