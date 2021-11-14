@@ -102,9 +102,9 @@ fn constvar_ty(
     // Make the type concrete
     let item_ty = if *item_ty.kind() == TypeKind::Integer {
         // Integer decomposes into a normal `int`
-        db.mk_int(IntSize::Int).in_db(db)
+        db.mk_int(IntSize::Int)
     } else {
-        item_ty
+        item_ty.id()
     };
 
     // Use the appropriate reference mutability
@@ -113,7 +113,7 @@ fn constvar_ty(
         item::Mutability::Var => Mutability::Var,
     };
 
-    db.mk_ref(mutability, item_ty.id())
+    db.mk_ref(mutability, item_ty)
 }
 
 fn for_counter_ty(
@@ -129,20 +129,26 @@ fn for_counter_ty(
             // TODO: Do the proper thing once range types & type aliases are lowered
             db.mk_error()
         }
-        stmt::ForBounds::Full(start, _end) => {
+        stmt::ForBounds::Full(start, end) => {
             // Always infer from the start type
-            // We can usually ignore the end type
-            let counter_ty = db
+            // We can usually ignore the end type, except if start is not a concrete type
+            let start_ty = db
                 .type_of((library_id, stmt_id.0, start).into())
                 .in_db(db)
                 .peel_ref();
+            let end_ty = db
+                .type_of((library_id, stmt_id.0, end).into())
+                .in_db(db)
+                .peel_ref();
 
-            // Make the type concrete
-            let counter_ty = if *counter_ty.kind() == TypeKind::Integer {
+            // Pick the concrete type
+            let counter_ty = if *start_ty.kind() != TypeKind::Integer {
+                start_ty.id()
+            } else if *end_ty.kind() != TypeKind::Integer {
+                end_ty.id()
+            } else {
                 // Integer decomposes into a normal `int`
                 db.mk_int(IntSize::Int)
-            } else {
-                counter_ty.id()
             };
 
             db.mk_ref(Mutability::Const, counter_ty)

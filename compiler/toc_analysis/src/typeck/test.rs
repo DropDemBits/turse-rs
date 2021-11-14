@@ -1004,6 +1004,11 @@ test_named_group! {
             var q : int := a
         end for
         "#,
+        infer_concrete_counter_ty => r#"
+        % Both should fail
+        for c : 1.0 .. 1 var k : int := c end for
+        for c : 1 .. 1.0 var k : int := c end for
+        "#,
         normal_boolean_bounds => r#"for : false .. true end for"#,
         normal_char_bounds => r#"for : 'a' .. 'z' end for"#,
         normal_int_bounds => r#"for : 1 .. 10 end for"#,
