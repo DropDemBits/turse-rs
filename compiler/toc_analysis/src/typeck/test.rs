@@ -1029,6 +1029,43 @@ test_named_group! {
     ]
 }
 
+test_named_group! {
+    typeck_case,
+    [
+        // contracts to test over:
+        // - discriminant type
+        normal_discriminant_ty => r#"
+        case 1 of label 1: end case
+        case 'c' of label 'c': end case
+        case true of label true: end case
+        case "a" of label "a": end case
+        "#,
+        wrong_discriminant_ty => r#"
+        case 1.0 of label 1.0: end case
+        case 'aa' of label 'aa': end case
+        "#,
+
+        // discriminant - selector equivalence
+        normal_discrim_select_ty => r#"case 'c' of label 'c', 'd', 'e' end case"#,
+        mismatch_discrim_select_ty => r#"case 'c' of label "c", 'dd', false end case"#,
+        wrong_mismatch_discrim_select_ty => r#"case 1.0 of label 1, 'd', false end case"#,
+
+        // - selectors are compile-time evaluable
+        comptime_selector_exprs => r#"
+        case 1 of label 1 + 1 - 1: end case
+        case true of label true and false: end case
+        % TODO: uncomment once `chr` is a comptime operation
+        %case 'E' of label chr(17 * 4 + 1): end case
+        % TODO: uncomment once strconcat is a comptime operation
+        %case "vee" of label "v" + "e" + 'e': end case
+        "#,
+        non_comptime_selector_expr => r#"
+        var k : int
+        case 1 of label k + 1: end case
+        "#
+    ]
+}
+
 test_named_group! { peel_ref,
     [
         in_assign => r#"var a : int var k : int := a"#,

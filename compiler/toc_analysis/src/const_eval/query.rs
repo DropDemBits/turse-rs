@@ -26,20 +26,25 @@ pub(crate) fn evaluate_const(
         Const::Value(v) => return Ok(v),
         Const::Error(err) => return Err(err),
         Const::Unevaluated(library, body) => (library, body),
+        Const::UnevaluatedExpr(library, expr) => (library, expr.0),
     };
 
     let library = db.library(library_id);
     let body = library.body(body_id);
     let span_map = &library.span_map;
 
-    let root_expr = match &body.kind {
-        toc_hir::body::BodyKind::Stmts(_, _) => {
-            return Err(ConstError::new(
-                ErrorKind::NotConstExpr(None),
-                body.span.lookup_in(span_map),
-            ))
-        }
-        toc_hir::body::BodyKind::Exprs(expr) => *expr,
+    let root_expr = match expr {
+        Const::Unevaluated(_, _) => match &body.kind {
+            toc_hir::body::BodyKind::Stmts(_, _) => {
+                return Err(ConstError::new(
+                    ErrorKind::NotConstExpr(None),
+                    body.span.lookup_in(span_map),
+                ))
+            }
+            toc_hir::body::BodyKind::Exprs(expr) => *expr,
+        },
+        Const::UnevaluatedExpr(_, expr) => expr.1,
+        _ => unreachable!(),
     };
 
     // Do the actual evaluation, as a stack machine

@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "case 1 of label 1 + 1 - 1: end case\ncase true of label true and false: end case\n% TODO: uncomment once `chr` is a comptime operation\n%case 'E' of label chr(17 * 4 + 1): end case\n% TODO: uncomment once strconcat is a comptime operation\n%case \"vee\" of label \"v\" + \"e\" + 'e': end case\n"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

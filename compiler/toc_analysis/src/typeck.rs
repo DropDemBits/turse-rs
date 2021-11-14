@@ -13,6 +13,7 @@ use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
+use crate::const_eval::Const;
 use crate::db::HirAnalysis;
 use crate::ty;
 
@@ -122,6 +123,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
     fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {
         self.typeck_if(id.0, stmt);
+    }
+
+    fn visit_case(&self, id: BodyStmt, stmt: &stmt::Case) {
+        self.typeck_case(id.0, stmt);
     }
 
     fn visit_binary(&self, id: BodyExpr, expr: &toc_hir::expr::Binary) {
@@ -510,6 +515,94 @@ impl TypeCheck<'_> {
         let span = self.library.body(body_id).expr(stmt.condition).span;
 
         self.expect_boolean_type(condition, self.library.lookup_span(span));
+    }
+
+    fn typeck_case(&self, body_id: body::BodyId, stmt: &stmt::Case) {
+        // Contracts:
+        // - case discriminant must be one of the following types
+        //   - integer
+        //   - char
+        //   - boolean
+        //   - enum
+        //   - string (? charseq)
+        // - label selectors must be equivalent types to the case discriminant
+        // - label selectors must be compile-time exprs
+        let db = self.db;
+
+        let discrim_ty = db
+            .type_of((self.library_id, body_id, stmt.discriminant).into())
+            .in_db(db)
+            .peel_ref();
+        let discrim_tykind = discrim_ty.kind();
+        let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
+        let discrim_span = self.library.lookup_span(discrim_span);
+
+        // Check discriminant type
+        if !discrim_tykind.is_error()
+            && !discrim_tykind.is_index()
+            && !matches!(&*discrim_tykind, ty::TypeKind::String)
+        {
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", discrim_span)
+                .with_note(&format!("this is of type `{}`", discrim_ty), discrim_span)
+                .with_info("`case` discriminant must be either:")
+                .with_info(&format!(
+                    "- an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range), or",
+                    boolean = ty::TypeKind::Boolean.prefix(),
+                    chr = ty::TypeKind::Char.prefix()
+                ))
+                .with_info(&format!("- a `{}`", ty::TypeKind::String.prefix()))
+                .finish();
+        }
+
+        // Check label selectors
+        for &selector in stmt
+            .arms
+            .iter()
+            .filter_map(|arm| {
+                if let stmt::CaseSelector::Exprs(exprs) = &arm.selectors {
+                    Some(exprs)
+                } else {
+                    None
+                }
+            })
+            .flatten()
+        {
+            // was doing: adding tests
+            let selector_ty = db.type_of((self.library_id, body_id, selector).into());
+            let selector_span = self.library.body(body_id).expr(selector).span;
+            let selector_span = self.library.lookup_span(selector_span);
+
+            // Must match discriminant type
+            if !ty::rules::is_equivalent(db, discrim_ty.id(), selector_ty) {
+                let selector_ty = selector_ty.in_db(db).peel_ref();
+
+                self.state()
+                    .reporter
+                    .error_detailed("mismatched types", selector_span)
+                    .with_note(&format!("this is of type `{}`", selector_ty), selector_span)
+                    .with_note(
+                        &format!("discriminant is of type `{}`", discrim_ty),
+                        discrim_span,
+                    )
+                    .with_info(&format!("`{}` is not a `{}`", selector_ty, discrim_ty))
+                    .with_info("selector type must match discriminant type")
+                    .finish();
+            }
+
+            // Must be a compile time expression
+            let res = db
+                .evaluate_const(
+                    Const::from_expr(self.library_id, expr::BodyExpr(body_id, selector)),
+                    Default::default(),
+                )
+                .err();
+
+            if let Some(err) = res {
+                err.report_to(db, &mut self.state().reporter);
+            }
+        }
     }
 
     fn typeck_binary(&self, body: body::BodyId, expr: &expr::Binary) {

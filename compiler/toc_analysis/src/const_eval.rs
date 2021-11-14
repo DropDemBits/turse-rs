@@ -24,6 +24,7 @@ mod query;
 mod value;
 
 use toc_hir::body::BodyId;
+use toc_hir::expr::BodyExpr;
 use toc_hir::library::LibraryId;
 
 pub use errors::ConstError;
@@ -35,8 +36,10 @@ pub use value::ConstValue;
 pub enum Const {
     /// Eagerly evaluated constant value
     Value(ConstValue),
-    /// Unevaluated expression
+    /// Unevaluated body
     Unevaluated(LibraryId, BodyId),
+    /// Unevaluated expression
+    UnevaluatedExpr(LibraryId, BodyExpr),
     /// Invalid constant value
     Error(ConstError),
 }
@@ -48,6 +51,10 @@ impl Const {
 
     pub fn from_body(library: LibraryId, body: BodyId) -> Self {
         Self::Unevaluated(library, body)
+    }
+
+    pub fn from_expr(library: LibraryId, expr: BodyExpr) -> Self {
+        Self::UnevaluatedExpr(library, expr)
     }
 }
 
