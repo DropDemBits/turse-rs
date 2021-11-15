@@ -1,0 +1,36 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    if true then\n        var a := 1\n    elsif false then\n        var a := 2\n    elsif true then\n        var a := 3\n    else\n        var a := 4\n    end if\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(4)
+    Module@(FileId(1), 0..159): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..154): []
+        If@(FileId(1), 5..154)
+          Literal@(FileId(1), 8..12): Boolean(true)
+          Block@(FileId(1), 26..36): Normal
+            StmtItem@(FileId(1), 26..36): ItemId(0)
+              ConstVar@(FileId(1), 26..36): var "a"@(FileId(1), 30..31)
+                ExprBody@(FileId(1), 35..36)
+                  Literal@(FileId(1), 35..36): Integer(1)
+          If@(FileId(1), 41..143)
+            Literal@(FileId(1), 47..52): Boolean(false)
+            Block@(FileId(1), 66..76): Normal
+              StmtItem@(FileId(1), 66..76): ItemId(1)
+                ConstVar@(FileId(1), 66..76): var "a"@(FileId(1), 70..71)
+                  ExprBody@(FileId(1), 75..76)
+                    Literal@(FileId(1), 75..76): Integer(2)
+            If@(FileId(1), 81..143)
+              Literal@(FileId(1), 87..91): Boolean(true)
+              Block@(FileId(1), 105..115): Normal
+                StmtItem@(FileId(1), 105..115): ItemId(2)
+                  ConstVar@(FileId(1), 105..115): var "a"@(FileId(1), 109..110)
+                    ExprBody@(FileId(1), 114..115)
+                      Literal@(FileId(1), 114..115): Integer(3)
+              Block@(FileId(1), 133..143): Normal
+                StmtItem@(FileId(1), 133..143): ItemId(3)
+                  ConstVar@(FileId(1), 133..143): var "a"@(FileId(1), 137..138)
+                    ExprBody@(FileId(1), 142..143)
+                      Literal@(FileId(1), 142..143): Integer(4)
+

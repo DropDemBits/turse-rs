@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "for : false .. true end for"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

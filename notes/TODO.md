@@ -26,11 +26,11 @@
     - [ ] WriteStmt
     - [ ] SeekStmt
     - [ ] TellStmt
-    - [ ] ForStmt
-    - [ ] LoopStmt
-    - [ ] ExitStmt
-    - [ ] IfStmt
-    - [ ] CaseStmt
+    - [x] ForStmt
+    - [x] LoopStmt
+    - [x] ExitStmt
+    - [x] IfStmt
+    - [x] CaseStmt
     - [x] BlockStmt
     - [ ] InvariantStmt
     - [ ] AssertStmt
@@ -97,6 +97,8 @@
 - [ ] Typeck
   - [ ] Stmt
     - [ ] ConstVar
+      - [x] Binding type to def
+      - [ ] Handling `init()` as the initialzer expression
     - [ ] Type
     - [ ] Bind
     - [ ] Proc
@@ -121,11 +123,11 @@
     - [ ] Seek
     - [ ] Tell
     - [ ] For
-    - [ ] Loop
-    - [ ] Exit
-    - [ ] If
-    - [ ] Case
-    - [ ] Block
+    - [x] Loop
+    - [x] Exit
+    - [x] If
+    - [x] Case
+    - [x] Block
     - [ ] Invariant
     - [ ] Assert
     - [ ] Call

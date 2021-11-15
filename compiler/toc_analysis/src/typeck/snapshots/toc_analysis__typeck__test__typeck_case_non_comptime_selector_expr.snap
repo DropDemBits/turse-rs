@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var k : int\ncase 1 of label k + 1: end case\n"
+
+---
+"k"@(FileId(1), 4..5) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 28..29: reference cannot be computed at compile-time
+| note in file FileId(1) for 4..5: `k` declared here

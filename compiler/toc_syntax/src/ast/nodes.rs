@@ -2381,9 +2381,7 @@ impl AstNode for ForBounds {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ForBounds {
-    pub fn from(&self) -> Option<Expr> { helper::node(&self.0) }
     pub fn range_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Range) }
-    pub fn to(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]

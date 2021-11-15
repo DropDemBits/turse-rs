@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "case s of label: end case"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..25): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..25): []
+        Case@(FileId(1), 0..25)
+          Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
+error in file FileId(1) at 10..17: cannot have a default ‘label’ arm as the first ‘case’ arm
+| error in file FileId(1) for 10..17: First ‘label’ arm must have at least one selector expression
+

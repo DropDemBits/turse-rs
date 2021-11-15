@@ -45,6 +45,11 @@ impl TypeKind {
             TypeKind::String | TypeKind::StringN(_) | TypeKind::Char | TypeKind::CharN(_)
         )
     }
+
+    /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
+    pub fn is_index(&self) -> bool {
+        self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
+    }
 }
 
 // Conversions of type
@@ -118,6 +123,54 @@ impl SeqSize {
     }
 }
 
+// TODO: Document type equivalence
+// steal from the old compiler
+pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
+    let left = left.in_db(db).peel_ref();
+    let right = right.in_db(db).peel_ref();
+
+    let (left_kind, right_kind) = (left.kind(), right.kind());
+
+    // Quick bailouts
+    if (left.id() == right.id()) || (left_kind.is_error() || right_kind.is_error()) {
+        // Same type id implies trivial equivalency
+        // Error types get treated as equivalent to everything
+        return true;
+    }
+
+    match (&*left_kind, &*right_kind) {
+        (TypeKind::Int(left_size), TypeKind::Int(right_size)) => left_size == right_size,
+        (TypeKind::Nat(left_size), TypeKind::Nat(right_size)) => left_size == right_size,
+        (TypeKind::Real(left_size), TypeKind::Real(right_size)) => left_size == right_size,
+        (TypeKind::Integer, other) | (other, TypeKind::Integer) => other.is_number(),
+        (TypeKind::String, TypeKind::String) => true,
+        (TypeKind::Char, TypeKind::Char) => true,
+        (TypeKind::CharN(left_sz), TypeKind::CharN(right_sz))
+        | (TypeKind::StringN(left_sz), TypeKind::StringN(right_sz)) => {
+            let left_sz = left_sz.fixed_len(db, Default::default());
+            let right_sz = right_sz.fixed_len(db, Default::default());
+
+            let (left_sz, right_sz) = if let (Ok(left_sz), Ok(right_sz)) = (left_sz, right_sz) {
+                (left_sz, right_sz)
+            } else {
+                return false;
+            };
+
+            if let Some((left_sz, right_sz)) = left_sz.zip(right_sz) {
+                left_sz.cmp(right_sz).is_eq()
+            } else {
+                // `charseq(*)` treated as equivalent to either type
+                true
+            }
+        }
+
+        (TypeKind::Ref(_, _), _) | (_, TypeKind::Ref(_, _)) => unreachable!(),
+        _ => false,
+    }
+}
+
+// TODO: Document type assignability
+// steal from the old compiler
 /// Returns `Some(is_assignable)`, or `None` if the the l_value is not deref'able.
 /// `ignore_mut` is only to be used during initializers
 ///

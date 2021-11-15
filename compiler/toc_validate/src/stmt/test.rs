@@ -671,33 +671,52 @@ fn report_new_open_conflicting_mixed_caps() {
 }
 
 #[test]
-fn for_stmt_partial_increasing() {
-    check("for : a end for", expect![[]]);
+fn for_valid_bounds() {
+    // increasing explicit
+    check("for : 1 .. 10 end for", expect![[]]);
+    // decreasing explicit
+    check("for decreasing : 1 .. 10 end for", expect![[]]);
+    // increasing implicit
+    check("for : implied end for", expect![[]]);
 }
 
 #[test]
-fn for_stmt_full_decreasing() {
-    check("for decreasing : a .. b end for", expect![[]]);
-}
-
-#[test]
-fn report_for_stmt_partial_decreasing() {
+fn report_for_invalid_bounds() {
+    // decreasing implicit
     check(
-        "for decreasing : a end for",
+        "for decreasing : implied end for",
         expect![[r#"
-            error at 17..18: invalid loop bound specification
-            | error for 17..18: decreasing for-loop requires explicit end bound"#]],
+        error at 17..24: `decreasing` for-loops cannot use implicit range bounds
+        | error for 17..24: range bounds are implied from here
+        | note for 4..14: `decreasing` for-loop specified here
+        | info: `decreasing` for-loops can only use explicit range bounds (e.g. `1 .. 2`)"#]],
     );
 }
 
 #[test]
-fn for_stmt_partial_decreasing_no_bounds() {
-    // Don't duplicate errors
+fn report_exit_outside_loop() {
     check(
-        "for decreasing : end for",
+        "exit",
         expect![[r#"
-            error at 17..20: unexpected token
-            | error for 17..20: expected expression, but found ‘end’"#]],
+        error at 0..4: cannot use `exit` statement here
+        | error for 0..4: can only be used inside of `loop` and `for` statements"#]],
+    );
+}
+
+#[test]
+fn exit_in_loop() {
+    // no error
+    check("loop  exit  end loop", expect![[]]);
+    check("for : 1 .. 10  exit  end for", expect![[]]);
+}
+
+#[test]
+fn exit_in_if_loop() {
+    // no error
+    check("loop if true then exit end if end loop", expect![[]]);
+    check(
+        "for : 1 .. 10 if true then exit end if end for",
+        expect![[]],
     );
 }
 

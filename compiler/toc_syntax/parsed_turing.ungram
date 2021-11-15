@@ -422,7 +422,7 @@ ForStmt =
   EndGroup
 
 ForBounds =
-  from:Expr ( '..' to:Expr )?
+  start:Expr ( '..' end:Expr )?
 
 StepBy =
   'by' Expr

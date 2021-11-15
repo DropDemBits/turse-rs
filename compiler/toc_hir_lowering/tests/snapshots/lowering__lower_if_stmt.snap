@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "\n    if true then\n        var a := 1\n    end if\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..52): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..47): []
+        If@(FileId(1), 5..47)
+          Literal@(FileId(1), 8..12): Boolean(true)
+          Block@(FileId(1), 26..36): Normal
+            StmtItem@(FileId(1), 26..36): ItemId(0)
+              ConstVar@(FileId(1), 26..36): var "a"@(FileId(1), 30..31)
+                ExprBody@(FileId(1), 35..36)
+                  Literal@(FileId(1), 35..36): Integer(1)
+

@@ -1,5 +1,8 @@
 //! Lowering implementation.
 //! Fragmented into submodules by node class
+//!
+//! Note: Anything that is considered invalid syntax but still HIR representable should
+//! be moved into `toc_validator`
 #![allow(clippy::unnecessary_wraps)] // Top level lowering points also return Option
 
 // lower_library
@@ -135,6 +138,7 @@ impl<'ctx> FileLowering<'ctx> {
             .intern_span(Span::new(Some(self.file), root.syntax().text_range()));
         let module = item::Module {
             as_monitor: false,
+            def_id: module_def,
             declares: declared_items,
             body,
         };
@@ -225,6 +229,7 @@ impl<'ctx: 'body, 'body> BodyLowering<'ctx, 'body> {
         Self { ctx, body }
     }
 
+    /// Does not automatically enclose the lowered statements in a a scope
     fn lower_stmt_list(&mut self, stmt_list: ast::StmtList) -> Vec<StmtId> {
         let mut stmts = vec![];
 

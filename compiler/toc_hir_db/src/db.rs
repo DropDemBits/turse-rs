@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use toc_hir::body;
+use toc_hir::symbol::{DefOwner, DefTable};
 use toc_hir::{
     item,
     library::{InLibrary, LibraryId, LoweredLibrary},
@@ -22,6 +23,15 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// Graph of all libraries
     #[salsa::invoke(query::library_graph_query)]
     fn library_graph(&self) -> LibraryGraph;
+
+    /// Gets all of the definitions in the library,
+    /// providing a mapping between definitions and definition owners.
+    #[salsa::invoke(query::collect_defs)]
+    fn defs_of(&self, library: LibraryId) -> Arc<DefTable>;
+
+    /// Gets the corresponding [`DefOwner`] to the given [`DefId`]
+    #[salsa::invoke(query::lookup_def_owner)]
+    fn def_owner(&self, def_id: DefId) -> Option<DefOwner>;
 
     /// Looks up the corresponding item for the given `DefId`,
     /// or `None` if it doesn't exist.

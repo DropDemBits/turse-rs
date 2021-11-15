@@ -842,6 +842,23 @@ test_named_group! { assignability_into,
     ]
 }
 
+test_named_group! { equivalence_of,
+    [
+        integer => r#"
+        var n : nat
+        var i : int
+        var r : real
+
+        for : 1 .. n end for
+        for : 1 .. i end for
+        for : 1 .. r end for
+        for : n .. 1 end for
+        for : i .. 1 end for
+        for : r .. 1 end for
+        "#
+    ]
+}
+
 test_named_group! { typeck_put_stmt,
     [
         normal_items => r#"
@@ -953,6 +970,102 @@ test_named_group! { typeck_get_stmt,
     ]
 }
 
+test_named_group! { typeck_if,
+    [
+        matching_types => r#"
+        if true then
+        elsif true then
+        endif
+        "#,
+        wrong_types => r#"
+        if 1 then
+        elsif 1.0 then
+        elsif 'yee' then
+        elsif "wahhh" then
+        end if
+        "#
+    ]
+}
+
+test_named_group! {
+    typeck_exit,
+    [
+        no_condition => r#"loop exit end loop"#,
+        matching_types => r#"loop exit when true end loop"#,
+        wrong_types => r#"loop exit when "gekdu" end loop"#,
+    ]
+}
+
+test_named_group! {
+    typeck_for,
+    [
+        infer_counter_ty => r#"
+        for a : 1 .. 10
+            var q : int := a
+        end for
+        "#,
+        infer_concrete_counter_ty => r#"
+        % Both should fail
+        for c : 1.0 .. 1 var k : int := c end for
+        for c : 1 .. 1.0 var k : int := c end for
+        "#,
+        normal_boolean_bounds => r#"for : false .. true end for"#,
+        normal_char_bounds => r#"for : 'a' .. 'z' end for"#,
+        normal_int_bounds => r#"for : 1 .. 10 end for"#,
+        // TODO: Uncomment once enum types are lowered
+        //normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
+        wrong_types_bounds_not_same => r#"for : 1 .. true end for"#,
+        wrong_types_bounds_not_index => r#"for : "no" .. "yes" end for"#,
+        // Specialize error message in case of {integer} combined with concrete type
+        wrong_types_bounds_concrete_integer => r#"var r : real for : r .. 1 end for"#,
+        wrong_types_bounds_integer_concrete => r#"var r : real for : 1 .. r end for"#,
+
+        normal_step_by_ty => r#"for : false .. true by 2 end for"#,
+        wrong_types_step_by => r#"for : false .. true by false end for"#,
+
+        immut_counter => r#"for i : false .. true i := false end for"#,
+
+        unsupported_implicit_bounds => r#"var implied : int for : implied end for"#
+    ]
+}
+
+test_named_group! {
+    typeck_case,
+    [
+        // contracts to test over:
+        // - discriminant type
+        normal_discriminant_ty => r#"
+        case 1 of label 1: end case
+        case 'c' of label 'c': end case
+        case true of label true: end case
+        case "a" of label "a": end case
+        "#,
+        wrong_discriminant_ty => r#"
+        case 1.0 of label 1.0: end case
+        case 'aa' of label 'aa': end case
+        "#,
+
+        // discriminant - selector equivalence
+        normal_discrim_select_ty => r#"case 'c' of label 'c', 'd', 'e' end case"#,
+        mismatch_discrim_select_ty => r#"case 'c' of label "c", 'dd', false end case"#,
+        wrong_mismatch_discrim_select_ty => r#"case 1.0 of label 1, 'd', false end case"#,
+
+        // - selectors are compile-time evaluable
+        comptime_selector_exprs => r#"
+        case 1 of label 1 + 1 - 1: end case
+        case true of label true and false: end case
+        % TODO: uncomment once `chr` is a comptime operation
+        %case 'E' of label chr(17 * 4 + 1): end case
+        % TODO: uncomment once strconcat is a comptime operation
+        %case "vee" of label "v" + "e" + 'e': end case
+        "#,
+        non_comptime_selector_expr => r#"
+        var k : int
+        case 1 of label k + 1: end case
+        "#
+    ]
+}
+
 test_named_group! { peel_ref,
     [
         in_assign => r#"var a : int var k : int := a"#,
@@ -962,5 +1075,6 @@ test_named_group! { peel_ref,
         in_put_stmt => r#"var a : int put a : 0 : 0 : 0"#,
         in_put_arg => r#"var a : int put a : a : a : a"#,
         in_get_arg => r#"var a : int get a : a"#,
+        in_for_bound => r#"var a : int for : a .. a end for"#
     ]
 }

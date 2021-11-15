@@ -498,3 +498,194 @@ fn lower_multiple_stmts() {
 fn expression_order() {
     assert_lower("_ := 1 + 2 * 3 + 4");
 }
+
+#[test]
+fn lower_if_stmt() {
+    // if
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    end if
+    "#,
+    );
+    // if else
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    else
+        var a := 2
+    end if
+    "#,
+    );
+    // if elseif
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    elsif false then
+        var a := 2
+    end if
+    "#,
+    );
+    // if elseif else
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    elsif false then
+        var a := 2
+    else
+        var a := 3
+    end if
+    "#,
+    );
+    // if elseif elseif else
+    assert_lower(
+        r#"
+    if true then
+        var a := 1
+    elsif false then
+        var a := 2
+    elsif true then
+        var a := 3
+    else
+        var a := 4
+    end if
+    "#,
+    );
+    // dangling
+    assert_lower(
+        r#"
+    elsif true then end if
+    elif true then end if
+    elseif true then end if
+    else end if
+    "#,
+    );
+    // with missing condition
+    assert_lower("if then end if");
+}
+
+#[test]
+fn lower_loop_stmt() {
+    assert_lower("loop end loop");
+}
+
+#[test]
+fn lower_exit_stmt() {
+    // in loop body
+    assert_lower(r#"loop exit end loop"#);
+    // in for-loop body
+    assert_lower(r#"for i : 1 .. 10 exit end for"#);
+    // outside of a loop body
+    assert_lower("exit");
+    // with optional condition
+    assert_lower("loop exit when true end loop");
+}
+
+#[test]
+fn lower_for_stmt() {
+    // bare loop
+    assert_lower(r#"for : 1 .. 10 end for"#);
+    // explicit bounds & step
+    assert_lower(r#"for : 1 .. 10 by 3 end for"#);
+    // implicit bounds
+    assert_lower(r#"for : wah end for"#);
+    // implicit bounds & step
+    assert_lower(r#"for : wah by 1 end for"#);
+    // with counter
+    assert_lower(
+        r#"
+    for woo : 1 .. 10 var k := woo end for
+    var woo := 1.0
+    "#,
+    );
+    // decreasing explicit bounds
+    assert_lower(r#"for decreasing : 1 .. 10 end for"#);
+    // decreasing implicit bounds (error)
+    assert_lower(r#"for decreasing : implied end for"#);
+    // no bounds
+    assert_lower(r#"for : end for"#);
+    // decreasing no bounds
+    assert_lower(r#"for decreasing : end for"#);
+}
+
+#[test]
+fn lower_case_stmt() {
+    // no arms
+    assert_lower(r#"case s of end case"#);
+    // one default arm
+    assert_lower(r#"case s of label: end case"#);
+    // one arm
+    assert_lower(r#"case s of label 1: end case"#);
+    // many arms
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    end case
+    "#,
+    );
+    // many arms, default
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    label :
+        var a := a + 4
+    end case
+    "#,
+    );
+    // many arms, default, default arm
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    label :
+        var a := a + 4
+    label :
+        var a := a + 5
+    end case
+    "#,
+    );
+    // many arms, default, arms
+    assert_lower(
+        r#"
+    var a : int
+    case s of
+    label 1:
+        var a := a + 1
+    label 2, 3:
+        var a := a + 2
+    label 4:
+        var a := a + 3
+    label :
+        var a := a + 4
+    label 5:
+        var a := a + 5
+    label 6:
+        var a := a + 6
+    end case
+    "#,
+    );
+}

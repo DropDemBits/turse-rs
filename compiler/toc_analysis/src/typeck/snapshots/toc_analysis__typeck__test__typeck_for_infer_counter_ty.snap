@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "for a : 1 .. 10\n    var q : int := a\nend for\n"
+
+---
+"a"@(FileId(1), 4..5) [Declared]: ref int
+"q"@(FileId(1), 24..25) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+

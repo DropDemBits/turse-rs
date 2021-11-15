@@ -33,6 +33,11 @@ pub trait HirVisitor {
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {}
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {}
     fn visit_get(&self, id: BodyStmt, stmt: &stmt::Get) {}
+    fn visit_for(&self, id: BodyStmt, stmt: &stmt::For) {}
+    fn visit_loop(&self, id: BodyStmt, stmt: &stmt::Loop) {}
+    fn visit_exit(&self, id: BodyStmt, stmt: &stmt::Exit) {}
+    fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {}
+    fn visit_case(&self, id: BodyStmt, stmt: &stmt::Case) {}
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {}
     // Exprs
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {
@@ -63,6 +68,11 @@ pub trait HirVisitor {
             stmt::StmtKind::Assign(stmt) => self.visit_assign(id, stmt),
             stmt::StmtKind::Put(stmt) => self.visit_put(id, stmt),
             stmt::StmtKind::Get(stmt) => self.visit_get(id, stmt),
+            stmt::StmtKind::For(stmt) => self.visit_for(id, stmt),
+            stmt::StmtKind::Loop(stmt) => self.visit_loop(id, stmt),
+            stmt::StmtKind::Exit(stmt) => self.visit_exit(id, stmt),
+            stmt::StmtKind::If(stmt) => self.visit_if(id, stmt),
+            stmt::StmtKind::Case(stmt) => self.visit_case(id, stmt),
             stmt::StmtKind::Block(stmt) => self.visit_block(id, stmt),
         }
     }
@@ -218,6 +228,12 @@ impl<'hir> Walker<'hir> {
             .push_back(WalkEvent::Enter(WalkNode::Stmt(id, stmt)));
     }
 
+    fn enter_stmts(&mut self, in_body: body::BodyId, stmts: &[stmt::StmtId]) {
+        for stmt in stmts {
+            self.enter_stmt(in_body, *stmt);
+        }
+    }
+
     fn enter_expr(&mut self, in_body: body::BodyId, expr: expr::ExprId) {
         let id = BodyExpr(in_body, expr);
         let expr = self.lib.body(in_body).expr(expr);
@@ -278,6 +294,11 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::Assign(node) => self.walk_assign(in_body, node),
             stmt::StmtKind::Put(node) => self.walk_put(in_body, node),
             stmt::StmtKind::Get(node) => self.walk_get(in_body, node),
+            stmt::StmtKind::For(node) => self.walk_for(in_body, node),
+            stmt::StmtKind::Loop(node) => self.walk_loop(in_body, node),
+            stmt::StmtKind::Exit(node) => self.walk_exit(in_body, node),
+            stmt::StmtKind::If(node) => self.walk_if(in_body, node),
+            stmt::StmtKind::Case(node) => self.walk_case(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
         }
     }
@@ -335,10 +356,57 @@ impl<'hir> Walker<'hir> {
         }
     }
 
-    fn walk_block(&mut self, in_body: body::BodyId, node: &stmt::Block) {
-        for stmt in &node.stmts {
-            self.enter_stmt(in_body, *stmt);
+    fn walk_for(&mut self, in_body: body::BodyId, node: &stmt::For) {
+        match node.bounds {
+            stmt::ForBounds::Implicit(expr) => self.enter_expr(in_body, expr),
+            stmt::ForBounds::Full(start, end) => {
+                self.enter_expr(in_body, start);
+                self.enter_expr(in_body, end);
+            }
         }
+
+        if let Some(expr) = node.step_by {
+            self.enter_expr(in_body, expr);
+        }
+
+        self.enter_stmts(in_body, &node.stmts);
+    }
+
+    fn walk_loop(&mut self, in_body: body::BodyId, node: &stmt::Loop) {
+        self.enter_stmts(in_body, &node.stmts);
+    }
+
+    fn walk_exit(&mut self, in_body: body::BodyId, node: &stmt::Exit) {
+        if let Some(expr) = node.when_condition {
+            self.enter_expr(in_body, expr);
+        }
+    }
+
+    fn walk_if(&mut self, in_body: body::BodyId, node: &stmt::If) {
+        self.enter_expr(in_body, node.condition);
+        self.enter_stmt(in_body, node.true_branch);
+        if let Some(false_branch) = node.false_branch {
+            self.enter_stmt(in_body, false_branch);
+        }
+    }
+
+    fn walk_case(&mut self, in_body: body::BodyId, node: &stmt::Case) {
+        self.enter_expr(in_body, node.discriminant);
+
+        for arm in &node.arms {
+            if let stmt::CaseSelector::Exprs(exprs) = &arm.selectors {
+                exprs
+                    .iter()
+                    .for_each(|&expr| self.enter_expr(in_body, expr));
+            }
+
+            self.enter_stmts(in_body, &arm.stmts);
+        }
+    }
+
+    fn walk_block(&mut self, in_body: body::BodyId, node: &stmt::Block) {
+        let stmts = &node.stmts;
+        self.enter_stmts(in_body, stmts);
     }
 
     fn walk_expr(&mut self, in_body: body::BodyId, expr: &expr::Expr) {

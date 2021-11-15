@@ -13,6 +13,7 @@ use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
+use crate::const_eval::Const;
 use crate::db::HirAnalysis;
 use crate::ty;
 
@@ -110,6 +111,22 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
     fn visit_get(&self, id: BodyStmt, stmt: &stmt::Get) {
         self.typeck_get(id.0, stmt);
+    }
+
+    fn visit_for(&self, id: BodyStmt, stmt: &stmt::For) {
+        self.typeck_for(id.0, stmt);
+    }
+
+    fn visit_exit(&self, id: BodyStmt, stmt: &stmt::Exit) {
+        self.typeck_exit(id.0, stmt);
+    }
+
+    fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {
+        self.typeck_if(id.0, stmt);
+    }
+
+    fn visit_case(&self, id: BodyStmt, stmt: &stmt::Case) {
+        self.typeck_case(id.0, stmt);
     }
 
     fn visit_binary(&self, id: BodyExpr, expr: &toc_hir::expr::Binary) {
@@ -396,6 +413,198 @@ impl TypeCheck<'_> {
         }
     }
 
+    fn typeck_for(&self, body_id: body::BodyId, stmt: &stmt::For) {
+        let db = self.db;
+
+        match stmt.bounds {
+            stmt::ForBounds::Implicit(expr) => {
+                // These are not supported yet, until range types are lowered
+                let expr_span = self.library.body(body_id).expr(expr).span;
+
+                self.state().reporter.error(
+                    "unsupported expression",
+                    "implicit range bounds are not supported yet",
+                    self.library.lookup_span(expr_span),
+                )
+            }
+            stmt::ForBounds::Full(start, end) => {
+                // Must both be index types
+                let start_ty = db.type_of((self.library_id, body_id, start).into());
+                let end_ty = db.type_of((self.library_id, body_id, end).into());
+
+                // Wrap up both types
+                let (start_ty, end_ty) =
+                    (start_ty.in_db(db).peel_ref(), end_ty.in_db(db).peel_ref());
+
+                let start_span = self.library.body(body_id).expr(start).span;
+                let end_span = self.library.body(body_id).expr(end).span;
+
+                let (start_span, end_span) = (
+                    self.library.lookup_span(start_span),
+                    self.library.lookup_span(end_span),
+                );
+
+                let bounds_span = start_span.cover(end_span);
+
+                let is_index_ty = |ty_kind: ty::TyRefKind| ty_kind.is_index() || ty_kind.is_error();
+
+                if !ty::rules::is_equivalent(db, start_ty.id(), end_ty.id()) {
+                    // Bounds are not equivalent
+                    self.state()
+                        .reporter
+                        .error_detailed("range bounds are not the same type", bounds_span)
+                        .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                        .with_note(&format!("this is of type `{}`", end_ty), end_span)
+                        .with_info(&format!("`{}` is not equivalent to `{}`", start_ty, end_ty))
+                        .finish();
+                } else if !is_index_ty(start_ty.kind()) || !is_index_ty(end_ty.kind()) {
+                    // Neither is an index type
+                    let mut state = self.state();
+                    let mut builder = state
+                        .reporter
+                        .error_detailed("range bounds are not index types", bounds_span);
+
+                    // Specialize when reporting a non-concrete type
+                    if matches!(&*start_ty.kind(), ty::TypeKind::Integer)
+                        || matches!(&*end_ty.kind(), ty::TypeKind::Integer)
+                    {
+                        builder = builder
+                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .with_note(&format!("this is of type `{}`", end_ty), end_span);
+                    } else {
+                        builder = builder
+                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .with_note(&format!("this is also of type `{}`", end_ty), end_span);
+                    }
+
+                    builder.with_info(&format!(
+                            "expected an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range)",
+                            boolean = ty::TypeKind::Boolean.prefix(),
+                            chr = ty::TypeKind::Char.prefix()
+                        ))
+                        .finish();
+                }
+            }
+        }
+
+        if let Some(step_by) = stmt.step_by {
+            // `step_by` must evaluate to an integer type
+            // ???: Does this make sense for other range types?
+            let ty_id = db.type_of((self.library_id, body_id, step_by).into());
+            let span = self.library.body(body_id).expr(step_by).span;
+
+            self.expect_integer_type(ty_id, self.library.lookup_span(span));
+        }
+    }
+
+    fn typeck_exit(&self, body_id: body::BodyId, stmt: &stmt::Exit) {
+        if let Some(condition_expr) = stmt.when_condition {
+            let condition_ty = self
+                .db
+                .type_of((self.library_id, body_id, condition_expr).into());
+            let span = self.library.body(body_id).expr(condition_expr).span;
+
+            self.expect_boolean_type(condition_ty, self.library.lookup_span(span));
+        }
+    }
+
+    fn typeck_if(&self, body_id: body::BodyId, stmt: &stmt::If) {
+        let condition = self
+            .db
+            .type_of((self.library_id, body_id, stmt.condition).into());
+        let span = self.library.body(body_id).expr(stmt.condition).span;
+
+        self.expect_boolean_type(condition, self.library.lookup_span(span));
+    }
+
+    fn typeck_case(&self, body_id: body::BodyId, stmt: &stmt::Case) {
+        // Contracts:
+        // - case discriminant must be one of the following types
+        //   - integer
+        //   - char
+        //   - boolean
+        //   - enum
+        //   - string (? charseq)
+        // - label selectors must be equivalent types to the case discriminant
+        // - label selectors must be compile-time exprs
+        let db = self.db;
+
+        let discrim_ty = db
+            .type_of((self.library_id, body_id, stmt.discriminant).into())
+            .in_db(db)
+            .peel_ref();
+        let discrim_tykind = discrim_ty.kind();
+        let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
+        let discrim_span = self.library.lookup_span(discrim_span);
+
+        // Check discriminant type
+        if !discrim_tykind.is_error()
+            && !discrim_tykind.is_index()
+            && !matches!(&*discrim_tykind, ty::TypeKind::String)
+        {
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", discrim_span)
+                .with_note(&format!("this is of type `{}`", discrim_ty), discrim_span)
+                .with_info("`case` discriminant must be either:")
+                .with_info(&format!(
+                    "- an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range), or",
+                    boolean = ty::TypeKind::Boolean.prefix(),
+                    chr = ty::TypeKind::Char.prefix()
+                ))
+                .with_info(&format!("- a `{}`", ty::TypeKind::String.prefix()))
+                .finish();
+        }
+
+        // Check label selectors
+        for &selector in stmt
+            .arms
+            .iter()
+            .filter_map(|arm| {
+                if let stmt::CaseSelector::Exprs(exprs) = &arm.selectors {
+                    Some(exprs)
+                } else {
+                    None
+                }
+            })
+            .flatten()
+        {
+            // was doing: adding tests
+            let selector_ty = db.type_of((self.library_id, body_id, selector).into());
+            let selector_span = self.library.body(body_id).expr(selector).span;
+            let selector_span = self.library.lookup_span(selector_span);
+
+            // Must match discriminant type
+            if !ty::rules::is_equivalent(db, discrim_ty.id(), selector_ty) {
+                let selector_ty = selector_ty.in_db(db).peel_ref();
+
+                self.state()
+                    .reporter
+                    .error_detailed("mismatched types", selector_span)
+                    .with_note(&format!("this is of type `{}`", selector_ty), selector_span)
+                    .with_note(
+                        &format!("discriminant is of type `{}`", discrim_ty),
+                        discrim_span,
+                    )
+                    .with_info(&format!("`{}` is not a `{}`", selector_ty, discrim_ty))
+                    .with_info("selector type must match discriminant type")
+                    .finish();
+            }
+
+            // Must be a compile time expression
+            let res = db
+                .evaluate_const(
+                    Const::from_expr(self.library_id, expr::BodyExpr(body_id, selector)),
+                    Default::default(),
+                )
+                .err();
+
+            if let Some(err) = res {
+                err.report_to(db, &mut self.state().reporter);
+            }
+        }
+    }
+
     fn typeck_binary(&self, body: body::BodyId, expr: &expr::Binary) {
         let db = self.db;
         let lib_id = self.library_id;
@@ -530,6 +739,8 @@ impl TypeCheck<'_> {
         }
     }
 
+    // TODO: Replace `expect_*_type` with `expect_type` once we have `ty::rules::is_equivalent`
+
     fn expect_integer_type(&self, type_id: ty::TypeId, span: Span) {
         let ty = type_id.in_db(self.db).peel_ref();
         let ty_kind = ty.kind();
@@ -540,6 +751,24 @@ impl TypeCheck<'_> {
                 .error_detailed("mismatched types", span)
                 .with_note(&format!("this is of type `{}`", ty), span)
                 .with_info(&format!("`{}` is not an integer type", ty))
+                .finish();
+        }
+    }
+
+    fn expect_boolean_type(&self, type_id: ty::TypeId, span: Span) {
+        let ty = type_id.in_db(self.db).peel_ref();
+        let expected_ty = self.db.mk_boolean().in_db(self.db);
+        let ty_kind = ty.kind();
+
+        if !ty_kind.is_boolean() && !ty_kind.is_error() {
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", span)
+                .with_note(&format!("this is of type `{}`", ty), span)
+                .with_info(&format!(
+                    "expected a `{}` type",
+                    expected_ty.kind().prefix()
+                ))
                 .finish();
         }
     }

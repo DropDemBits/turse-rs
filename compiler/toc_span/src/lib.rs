@@ -50,6 +50,22 @@ impl Span {
     pub fn new(file: Option<FileId>, range: TextRange) -> Self {
         Span { file, range }
     }
+
+    /// Makes a new span covering both text ranges.
+    ///
+    /// # Panics
+    /// Panics if both spans aren't in the same file.
+    pub fn cover(self, other: Self) -> Self {
+        assert_eq!(
+            self.file, other.file,
+            "trying to cover spans in different files"
+        );
+
+        Span {
+            range: self.range.cover(other.range),
+            ..self
+        }
+    }
 }
 
 impl Default for Span {

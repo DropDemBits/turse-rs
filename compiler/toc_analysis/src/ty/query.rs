@@ -4,7 +4,7 @@ use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
     library::{InLibrary, WrapInLibrary},
-    symbol::DefId,
+    symbol::{DefId, DefOwner},
     ty::TypeId as HirTypeId,
 };
 
@@ -19,27 +19,27 @@ pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTyp
 
 pub(crate) fn type_of(db: &dyn db::TypeDatabase, source: db::TypeSource) -> TypeId {
     match source {
-        db::TypeSource::Def(def_id) => ty_of_item(db, def_id),
+        db::TypeSource::Def(def_id) => ty_of_def(db, def_id),
         db::TypeSource::BodyExpr(id, expr) => ty_of_expr(db, InLibrary(id, expr)),
         db::TypeSource::Body(id, body) => ty_of_body(db, InLibrary(id, body)),
     }
 }
 
-fn ty_of_item(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
-    // Lookup the corresponding item
-    let item_id = if let Some(item) = db.item_of(def_id) {
-        item
+fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
+    if let Some(owner) = db.def_owner(def_id) {
+        match owner {
+            DefOwner::Item(item_id) => lower::ty_from_item(db, InLibrary(def_id.0, item_id)),
+            DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
+        }
     } else {
-        // No actual item
-        return db.intern_type(
+        // No actual definition owner
+        db.intern_type(
             Type {
                 kind: TypeKind::Error,
             }
             .into(),
-        );
-    };
-
-    lower::ty_from_item(db, item_id)
+        )
+    }
 }
 
 fn ty_of_expr(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -> TypeId {

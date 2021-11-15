@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "for : 1 .. true end for"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 6..15: range bounds are not the same type
+| note in file FileId(1) for 6..7: this is of type `{integer}`
+| note in file FileId(1) for 11..15: this is of type `boolean`
+| info: `{integer}` is not equivalent to `boolean`

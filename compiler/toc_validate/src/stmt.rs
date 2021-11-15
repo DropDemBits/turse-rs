@@ -327,21 +327,6 @@ pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
     }
 }
 
-pub(super) fn validate_for_stmt(stmt: ast::ForStmt, ctx: &mut ValidateCtx) {
-    if let Some(bounds) = stmt.for_bounds() {
-        if stmt.decreasing_token().is_some() && bounds.range_token().is_none() {
-            if let Some(first) = bounds.from() {
-                // Missing other range part
-                ctx.push_error(
-                    "invalid loop bound specification",
-                    "decreasing for-loop requires explicit end bound",
-                    first.syntax().text_range(),
-                );
-            }
-        }
-    }
-}
-
 pub(super) fn validate_else_stmt(stmt: ast::ElseStmt, ctx: &mut ValidateCtx) {
     let parent_kind = stmt.syntax().parent().map(|p| p.kind());
 
@@ -355,6 +340,42 @@ pub(super) fn validate_elseif_stmt(stmt: ast::ElseifStmt, ctx: &mut ValidateCtx)
 
     if !matches!(parent_kind, Some(SyntaxKind::IfBody)) {
         without_matching(stmt.syntax(), "if", ctx);
+    }
+}
+
+pub(super) fn validate_for_stmt(stmt: ast::ForStmt, ctx: &mut ValidateCtx) {
+    let is_decreasing = stmt.decreasing_token().is_some();
+    let for_bounds = stmt.for_bounds().unwrap();
+    // Is only implicit bounds if there's an expression, but no range token
+    let is_implicit_bounds = for_bounds.start().is_some() && for_bounds.range_token().is_none();
+
+    // If `decreasing` is present, then the for-loop must have both bounds defined
+    if is_decreasing && is_implicit_bounds {
+        let bounds_span = Span::new(ctx.file, for_bounds.syntax().text_range());
+        let decreasing_span = Span::new(ctx.file, stmt.decreasing_token().unwrap().text_range());
+
+        // ???: Are we able to include the potentially implied bounds in the error message?
+        // Not during validation since it requires name resolution and type lookup
+        // It's only be useful for suggestions on how to fix it
+        ctx.push_detailed_error(
+            "`decreasing` for-loops cannot use implicit range bounds",
+            bounds_span.range,
+        )
+        .with_error("range bounds are implied from here", bounds_span)
+        .with_note("`decreasing` for-loop specified here", decreasing_span)
+        .with_info("`decreasing` for-loops can only use explicit range bounds (e.g. `1 .. 2`)")
+        .finish();
+    }
+}
+
+pub(super) fn validate_exit_stmt(stmt: ast::ExitStmt, ctx: &mut ValidateCtx) {
+    // Report if we're outside of a loop or for statement
+    if !walk_blocks(stmt.syntax()).any(|kind| kind == BlockKind::Loop) {
+        ctx.push_error(
+            "cannot use `exit` statement here",
+            "can only be used inside of `loop` and `for` statements",
+            stmt.syntax().text_range(),
+        );
     }
 }
 

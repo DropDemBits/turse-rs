@@ -221,10 +221,44 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Get", span, None)
     }
+    fn visit_for(&self, id: BodyStmt, stmt: &stmt::For) {
+        let span = self.stmt_span(id);
+        let bounds_kind = match stmt.bounds {
+            stmt::ForBounds::Implicit(_) => "implicit",
+            stmt::ForBounds::Full(_, _) => "explicit",
+        };
+
+        if stmt.is_decreasing {
+            self.emit_node(
+                "For",
+                span,
+                Some(format_args!("decreasing {}", bounds_kind)),
+            )
+        } else {
+            self.emit_node("For", span, Some(format_args!("{}", bounds_kind)))
+        }
+    }
+    fn visit_loop(&self, id: BodyStmt, _stmt: &stmt::Loop) {
+        let span = self.stmt_span(id);
+        self.emit_node("Loop", span, None)
+    }
+    fn visit_exit(&self, id: BodyStmt, _stmt: &stmt::Exit) {
+        let span = self.stmt_span(id);
+        self.emit_node("Exit", span, None)
+    }
+    fn visit_if(&self, id: BodyStmt, _stmt: &stmt::If) {
+        let span = self.stmt_span(id);
+        self.emit_node("If", span, None)
+    }
+    fn visit_case(&self, id: BodyStmt, _stmt: &stmt::Case) {
+        let span = self.stmt_span(id);
+        self.emit_node("Case", span, None)
+    }
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {
         let span = self.stmt_span(id);
         self.emit_node("Block", span, Some(format_args!("{:?}", stmt.kind)))
     }
+
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {
         let span = self.expr_span(id);

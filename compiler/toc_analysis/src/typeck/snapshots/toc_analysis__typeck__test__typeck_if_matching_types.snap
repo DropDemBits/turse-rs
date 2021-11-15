@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "if true then\nelsif true then\nendif\n"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

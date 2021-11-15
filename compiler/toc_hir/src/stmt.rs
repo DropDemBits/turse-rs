@@ -28,11 +28,16 @@ pub enum StmtKind {
     // Write { .. },
     // Seek { .. },
     // Tell { .. },
-    // For { .. },
-    // Loop { .. },
-    // Exit { .. },
-    // If { .. },
-    // Case { .. },
+    /// For-loop statement
+    For(For),
+    /// Loop statement
+    Loop(Loop),
+    /// Exit statement
+    Exit(Exit),
+    /// If statement
+    If(If),
+    /// Case statement
+    Case(Case),
     /// Block statement (`begin ... end`)
     Block(Block),
     // Invariant { .. }
@@ -126,6 +131,68 @@ pub struct Get {
     pub stream_num: Option<expr::ExprId>,
     /// The items to get from the stream.
     pub items: Vec<Skippable<GetItem>>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct For {
+    /// If the for-loop has the `decreasing` modifier on it
+    pub is_decreasing: bool,
+    /// DefId of the optional counter variable
+    pub counter_def: Option<symbol::LocalDefId>,
+    /// Bounds of the for-loop
+    pub bounds: ForBounds,
+    /// Optional `by ...` expression, to change the counter delta
+    pub step_by: Option<expr::ExprId>,
+    /// Body of the for-loop
+    pub stmts: Vec<StmtId>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForBounds {
+    /// Bounds of the for-loop are implied by the type referenced by this reference
+    Implicit(expr::ExprId),
+    /// Bounds of the are explicitly laid out in the `from` and `to` (respectively) expressions
+    Full(expr::ExprId, expr::ExprId),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Loop {
+    pub stmts: Vec<StmtId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Exit {
+    pub when_condition: Option<expr::ExprId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct If {
+    /// Condition expression
+    pub condition: expr::ExprId,
+    /// True branch, executed if the condition is true
+    pub true_branch: StmtId,
+    /// Optional false branch
+    pub false_branch: Option<StmtId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Case {
+    pub discriminant: expr::ExprId,
+    pub arms: Vec<CaseArm>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct CaseArm {
+    pub selectors: CaseSelector,
+    pub stmts: Vec<StmtId>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CaseSelector {
+    /// Default selection arm
+    Default,
+    /// Arm is selected if the discriminant is equal to any of these expressions
+    Exprs(Vec<expr::ExprId>),
 }
 
 #[derive(Debug, PartialEq, Eq)]

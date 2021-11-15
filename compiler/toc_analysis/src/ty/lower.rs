@@ -3,7 +3,7 @@
 use std::convert::TryInto;
 
 use toc_hir::library::{LibraryId, WrapInLibrary};
-use toc_hir::{body, expr};
+use toc_hir::{body, expr, stmt};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
 use crate::const_eval::{Const, ConstInt};
@@ -66,6 +66,19 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
     }
 }
 
+pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
+    let library_id = stmt_id.0;
+    let stmt_id = stmt_id.1;
+
+    let library = db.library(library_id);
+    let stmt = library.body(stmt_id.0).stmt(stmt_id.1);
+
+    match &stmt.kind {
+        stmt::StmtKind::For(stmt) => for_counter_ty(db, library_id, stmt_id, stmt),
+        _ => unreachable!("not a def owner"),
+    }
+}
+
 fn constvar_ty(
     db: &dyn TypeDatabase,
     item_id: InLibrary<item::ItemId>,
@@ -89,9 +102,9 @@ fn constvar_ty(
     // Make the type concrete
     let item_ty = if *item_ty.kind() == TypeKind::Integer {
         // Integer decomposes into a normal `int`
-        db.mk_int(IntSize::Int).in_db(db)
+        db.mk_int(IntSize::Int)
     } else {
-        item_ty
+        item_ty.id()
     };
 
     // Use the appropriate reference mutability
@@ -100,7 +113,47 @@ fn constvar_ty(
         item::Mutability::Var => Mutability::Var,
     };
 
-    db.mk_ref(mutability, item_ty.id())
+    db.mk_ref(mutability, item_ty)
+}
+
+fn for_counter_ty(
+    db: &dyn TypeDatabase,
+    library_id: LibraryId,
+    stmt_id: stmt::BodyStmt,
+    stmt: &stmt::For,
+) -> TypeId {
+    // infer the counter type from the range bounds
+    match stmt.bounds {
+        stmt::ForBounds::Implicit(_expr) => {
+            // We don't support implicit bounds yet, so make an error
+            // TODO: Do the proper thing once range types & type aliases are lowered
+            db.mk_error()
+        }
+        stmt::ForBounds::Full(start, end) => {
+            // Always infer from the start type
+            // We can usually ignore the end type, except if start is not a concrete type
+            let start_ty = db
+                .type_of((library_id, stmt_id.0, start).into())
+                .in_db(db)
+                .peel_ref();
+            let end_ty = db
+                .type_of((library_id, stmt_id.0, end).into())
+                .in_db(db)
+                .peel_ref();
+
+            // Pick the concrete type
+            let counter_ty = if *start_ty.kind() != TypeKind::Integer {
+                start_ty.id()
+            } else if *end_ty.kind() != TypeKind::Integer {
+                end_ty.id()
+            } else {
+                // Integer decomposes into a normal `int`
+                db.mk_int(IntSize::Int)
+            };
+
+            db.mk_ref(Mutability::Const, counter_ty)
+        }
+    }
 }
 
 pub(crate) fn ty_from_expr(

@@ -1,0 +1,18 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var n : nat\nvar i : int\nvar r : real\n\nfor : 1 .. n end for\nfor : 1 .. i end for\nfor : 1 .. r end for\nfor : n .. 1 end for\nfor : i .. 1 end for\nfor : r .. 1 end for\n"
+
+---
+"n"@(FileId(1), 4..5) [Declared]: ref_mut nat
+"i"@(FileId(1), 16..17) [Declared]: ref_mut int
+"r"@(FileId(1), 28..29) [Declared]: ref_mut real
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 86..92: range bounds are not index types
+| note in file FileId(1) for 86..87: this is of type `{integer}`
+| note in file FileId(1) for 91..92: this is of type `real`
+| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
+error in file FileId(1) at 149..155: range bounds are not index types
+| note in file FileId(1) for 149..150: this is of type `real`
+| note in file FileId(1) for 154..155: this is of type `{integer}`
+| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
