@@ -25,7 +25,6 @@ pub(crate) enum ScopeKind {
     Module,
     Block,
     Loop,
-    ForLoop,
 }
 
 impl ScopeKind {
@@ -98,10 +97,6 @@ impl ScopeTracker {
     pub fn pop_scope(&mut self) {
         debug_assert!(self.scopes.len() > 1, "Cannot pop off root scope");
         self.scopes.pop();
-    }
-
-    pub fn enclosing_scope_kind(&self) -> ScopeKind {
-        self.scopes.last().unwrap().kind
     }
 
     pub fn def_sym(

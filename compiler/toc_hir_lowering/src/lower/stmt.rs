@@ -269,11 +269,6 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_for_stmt(&mut self, stmt: ast::ForStmt) -> Option<stmt::StmtKind> {
-        // ???: How do we associate a type with the counter?
-        // - We may need an internal `typeof` "type" (as in, infer from this type)
-        // - Or we can just modify the type_of query to instead use a lookup table
-        //   constructed by collecting defs
-
         let is_decreasing = stmt.decreasing_token().is_some();
         let name = stmt.name();
 
@@ -299,30 +294,6 @@ impl super::BodyLowering<'_, '_> {
             }
         };
 
-        // If `decreasing` is present, then the for-loop must have both bounds defined
-        if is_decreasing && matches!(for_bounds, stmt::ForBounds::Implicit(_)) {
-            let bounds_span = self
-                .ctx
-                .mk_span(stmt.for_bounds().unwrap().syntax().text_range());
-            let decreasing_span = self
-                .ctx
-                .mk_span(stmt.decreasing_token().unwrap().text_range());
-
-            // ???: Are we able to include the potentially implied bounds in the error message?
-            self.ctx
-                .messages
-                .error_detailed(
-                    "`decreasing` for-loops cannot use implicit range bounds",
-                    bounds_span,
-                )
-                .with_error("range bounds are implied from here", bounds_span)
-                .with_note("`decreasing` for-loop specified here", decreasing_span)
-                .with_info(
-                    "`decreasing` for-loops can only use explicit range bounds (e.g. `1 .. 2`)",
-                )
-                .finish();
-        }
-
         let step_by = stmt
             .steps()
             .and_then(|step_by| step_by.expr())
@@ -331,7 +302,7 @@ impl super::BodyLowering<'_, '_> {
         let counter_def;
         let body_stmts;
 
-        self.ctx.scopes.push_scope(ScopeKind::ForLoop);
+        self.ctx.scopes.push_scope(ScopeKind::Loop);
         {
             // counter is only available inside of the loop body
             counter_def = name.map(|name| {
@@ -366,23 +337,9 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_exit_stmt(&mut self, stmt: ast::ExitStmt) -> Option<stmt::StmtKind> {
-        let when_condition = stmt.condition().map(|expr| self.lower_expr(expr));
-
-        // Report if we're outside of a loop or for statement
-        if !matches!(
-            self.ctx.scopes.enclosing_scope_kind(),
-            ScopeKind::Loop | ScopeKind::ForLoop
-        ) {
-            let span = self.ctx.mk_span(stmt.syntax().text_range());
-
-            self.ctx.messages.error(
-                "cannot use `exit` statement here",
-                "can only be used inside of `loop` and `for` statements",
-                span,
-            );
-        }
-
-        Some(stmt::StmtKind::Exit(stmt::Exit { when_condition }))
+        Some(stmt::StmtKind::Exit(stmt::Exit {
+            when_condition: self.try_lower_expr(stmt.condition()),
+        }))
     }
 
     fn lower_if_stmt(&mut self, stmt: ast::IfStmt) -> Option<stmt::StmtKind> {

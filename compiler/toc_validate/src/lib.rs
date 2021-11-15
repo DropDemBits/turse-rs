@@ -1,5 +1,5 @@
 //! AST validation
-//! Checking if things hold up to stricter syntax semantics
+//! Checking if things hold up to stricter syntax semantics, but are still representable in HIR
 // fancy quotes: ‘’
 mod preproc;
 mod stmt;
@@ -114,6 +114,8 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::NewOpen(open) => stmt::validate_new_open(open, ctx),
             ast::ElseStmt(stmt) => stmt::validate_else_stmt(stmt, ctx),
             ast::ElseifStmt(stmt) => stmt::validate_elseif_stmt(stmt, ctx),
+            ast::ForStmt(stmt) => stmt::validate_for_stmt(stmt, ctx),
+            ast::ExitStmt(stmt) => stmt::validate_exit_stmt(stmt, ctx),
             ast::CaseStmt(stmt) => stmt::validate_case_stmt(stmt, ctx),
             ast::InvariantStmt(stmt) => stmt::validate_invariant_stmt(stmt, ctx),
             _ => (),
