@@ -1,6 +1,6 @@
 //! Lowering implementation.
 //! Fragmented into submodules by node class
-//! 
+//!
 //! Note: Anything that is considered invalid syntax but still HIR representable should
 //! be moved into `toc_validator`
 #![allow(clippy::unnecessary_wraps)] // Top level lowering points also return Option
