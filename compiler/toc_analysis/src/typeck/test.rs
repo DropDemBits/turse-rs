@@ -399,6 +399,184 @@ test_for_each_op! { string_manip_op_wrong_type,
     "#
 }
 
+test_for_each_op! { comparison_op_numerics,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Numerics
+    var r : real
+    var i : int
+    var n : nat
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := 1 {0} 1
+    _v_res := 1 {0} 1.0
+    _v_res := 1 {0} r
+    _v_res := 1 {0} i
+    _v_res := 1 {0} n
+
+    _v_res := 1.0 {0} 1
+    _v_res := 1.0 {0} 1.0
+    _v_res := 1.0 {0} r
+    _v_res := 1.0 {0} i
+    _v_res := 1.0 {0} n
+
+    _v_res := r {0} 1
+    _v_res := r {0} 1.0
+    _v_res := r {0} r
+    _v_res := r {0} i
+    _v_res := r {0} n
+
+    _v_res := i {0} 1
+    _v_res := i {0} 1.0
+    _v_res := i {0} r
+    _v_res := i {0} i
+    _v_res := i {0} n
+
+    _v_res := n {0} 1
+    _v_res := n {0} 1.0
+    _v_res := n {0} r
+    _v_res := n {0} i
+    _v_res := n {0} n
+    "#,
+}
+
+test_for_each_op! { comparison_op_charseqs,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Sized charseqs
+    var c : char
+    var c_sz : char(6)
+    var s : string
+    var s_sz : string(6)
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := c {0} c
+    _v_res := c {0} c_sz
+    _v_res := c {0} s
+    _v_res := c {0} s_sz
+
+    _v_res := c_sz {0} c
+    _v_res := c_sz {0} c_sz
+    _v_res := c_sz {0} s
+    _v_res := c_sz {0} s_sz
+
+    _v_res := s {0} c
+    _v_res := s {0} c_sz
+    _v_res := s {0} s
+    _v_res := s {0} s_sz
+
+    _v_res := s_sz {0} c
+    _v_res := s_sz {0} c_sz
+    _v_res := s_sz {0} s
+    _v_res := s_sz {0} s_sz
+    "#,
+}
+
+test_for_each_op! { comparison_op_wrong_types,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Numerics
+    var r : real
+    var i : int
+    var n : nat
+
+    % Other scalars
+    var b : boolean
+
+    % Sized charseqs
+    var c : char
+    var c_sz : char(6)
+    var s : string
+    var s_sz : string(6)
+
+    % should all produce boolean anyway
+    var _v_res : boolean
+
+    _v_res := r {0} b
+    _v_res := r {0} c
+    _v_res := r {0} c_sz
+    _v_res := r {0} s
+    _v_res := r {0} s_sz
+
+    _v_res := i {0} b
+    _v_res := i {0} c
+    _v_res := i {0} c_sz
+    _v_res := i {0} s
+    _v_res := i {0} s_sz
+
+    _v_res := n {0} b
+    _v_res := n {0} c
+    _v_res := n {0} c_sz
+    _v_res := n {0} s
+    _v_res := n {0} s_sz
+
+    _v_res := b {0} r
+    _v_res := b {0} i
+    _v_res := b {0} n
+    _v_res := b {0} c
+    _v_res := b {0} c_sz
+    _v_res := b {0} s
+    _v_res := b {0} s_sz
+
+    _v_res := c {0} r
+    _v_res := c {0} i
+    _v_res := c {0} n
+    _v_res := c {0} b
+
+    _v_res := c_sz {0} r
+    _v_res := c_sz {0} i
+    _v_res := c_sz {0} n
+    _v_res := c_sz {0} b
+
+    _v_res := s {0} r
+    _v_res := s {0} i
+    _v_res := s {0} n
+    _v_res := s {0} b
+
+    _v_res := s_sz {0} r
+    _v_res := s_sz {0} i
+    _v_res := s_sz {0} n
+    _v_res := s_sz {0} b
+    "#
+}
+
+test_for_each_op! { equality_op_scalars,
+    [
+        ("=", equal),
+        ("not=", not_equal)
+    ] => r#"
+    % Other scalars
+    var b : boolean
+
+    % should all produce boolean
+    var _v_res : boolean
+
+    _v_res := b {0} b
+    "#
+}
+
 // Test integer inference for all compatible operators
 test_for_each_op! { integer_inference,
     [

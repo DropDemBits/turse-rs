@@ -46,9 +46,41 @@ impl TypeKind {
         )
     }
 
+    /// comparable charseq types includes `String`, `StringN`, `Char`, and `CharN` (except `CharN(*)`) types
+    pub fn is_cmp_charseq(&self) -> bool {
+        matches!(
+            self,
+            TypeKind::String
+                | TypeKind::StringN(_)
+                | TypeKind::Char
+                | TypeKind::CharN(SeqSize::Fixed(_))
+        )
+    }
+
     /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
     pub fn is_index(&self) -> bool {
         self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
+    }
+
+    /// scalar types are types representable only 1 value
+    pub fn is_scalar(&self) -> bool {
+        match self {
+            TypeKind::Error
+            | TypeKind::Boolean
+            | TypeKind::Int(_)
+            | TypeKind::Nat(_)
+            | TypeKind::Real(_)
+            | TypeKind::Integer
+            | TypeKind::Char => true,
+            // Missing scalars:
+            // - function handle
+            // - subrange
+            // - pointer
+            // - enum
+            TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) | TypeKind::Ref(_, _) => {
+                false
+            }
+        }
     }
 }
 
@@ -591,7 +623,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise And
                 Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical And
                 Ok(db.mk_boolean())
             } else {
@@ -606,7 +638,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise Or
                 Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical Or
                 Ok(db.mk_boolean())
             } else {
@@ -621,7 +653,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise Xor
                 Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
@@ -656,7 +688,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Imply (boolean, boolean => boolean)
 
-            if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
+            if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
@@ -664,12 +696,50 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             }
         }
         // Comparison (a, b => boolean where a, b: Comparable)
-        expr::BinaryOp::Less => unsupported_op(),
-        expr::BinaryOp::LessEq => unsupported_op(),
-        expr::BinaryOp::Greater => unsupported_op(),
-        expr::BinaryOp::GreaterEq => unsupported_op(),
-        expr::BinaryOp::Equal => unsupported_op(),
-        expr::BinaryOp::NotEqual => unsupported_op(),
+        expr::BinaryOp::Less
+        | expr::BinaryOp::LessEq
+        | expr::BinaryOp::Greater
+        | expr::BinaryOp::GreaterEq => {
+            // Operations:
+            // - Numeric compare (number, number => boolean)
+            // - Charseq compare (charseq, charseq => boolean)
+            // x Enum compare (enum, enum => boolean)
+            // x Set sub/supersets (set, set => boolean)
+            // x Class hierarchy (class, class => boolean)
+
+            match (left.kind(), right.kind()) {
+                // All numbers are comparable to each other
+                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_boolean()),
+                // Charseqs that can be coerced to a sized type are comparable
+                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(db.mk_boolean()),
+                // All other types aren't comparable
+                _ => mk_type_error(),
+            }
+        }
+        expr::BinaryOp::Equal | expr::BinaryOp::NotEqual => {
+            // Operations:
+            // - Numeric equality (number, number => boolean)
+            // - Charseq equality (charseq, charseq => boolean)
+            // x Class equality (class, class => boolean)
+            // x Pointer equality (pointer, pointer => boolean)
+            // x Set equality (set, set => boolean)
+            // - Scalar equality (scalar, scalar => boolean)
+
+            match (left.kind(), right.kind()) {
+                // All numbers are comparable to each other
+                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_boolean()),
+                // Charseqs that can be coerced to a sized type are comparable
+                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(db.mk_boolean()),
+                // All scalar types can be tested for equality
+                (lhs, rhs) if lhs.is_scalar() && rhs.is_scalar() && lhs == rhs => {
+                    // TODO: this won't be able to support function types, which will require a const eval db
+                    // - We need to separate the inferential & checking functions
+                    Ok(db.mk_boolean())
+                }
+                // All other types aren't comparable
+                _ => mk_type_error(),
+            }
+        }
         // Set membership tests (set(a), a => boolean)
         expr::BinaryOp::In => unsupported_op(),
         expr::BinaryOp::NotIn => unsupported_op(),
@@ -809,12 +879,18 @@ pub fn report_invalid_bin_op<'db, DB>(
         // Pure logical operator
         expr::BinaryOp::Imply => msg.with_info("operands must both be booleans"),
         // Comparison (a, b => boolean where a, b: Comparable)
-        expr::BinaryOp::Less => todo!(),
-        expr::BinaryOp::LessEq => todo!(),
-        expr::BinaryOp::Greater => todo!(),
-        expr::BinaryOp::GreaterEq => todo!(),
-        expr::BinaryOp::Equal => todo!(),
-        expr::BinaryOp::NotEqual => todo!(),
+        expr::BinaryOp::Less
+        | expr::BinaryOp::LessEq
+        | expr::BinaryOp::Greater
+        | expr::BinaryOp::GreaterEq
+        | expr::BinaryOp::Equal
+        | expr::BinaryOp::NotEqual => {
+            if is_equivalent(db, left_ty.id(), right_ty.id()) {
+                msg.with_info("operands must both be scalars, sets, or strings")
+            } else {
+                msg.with_info("operands must both be the same type")
+            }
+        }
         // Set membership tests (set(a), a => boolean)
         expr::BinaryOp::In => todo!(),
         expr::BinaryOp::NotIn => todo!(),
