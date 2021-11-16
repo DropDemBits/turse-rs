@@ -121,36 +121,47 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
     let left = left.in_db(db).peel_ref();
     let right = right.in_db(db).peel_ref();
 
-    // Quick bailouts
-    if (left.id() == right.id()) || (left.kind().is_error() || right.kind().is_error()) {
+    // Quick bailout
+    if left.id() == right.id() {
         // Same type id implies trivial equivalency
-        // Error types get treated as equivalent to everything
         return true;
     }
 
     match (left.kind(), right.kind()) {
+        // Error types get treated as equivalent to everything
+        (TypeKind::Error, _) | (_, TypeKind::Error) => true,
+
+        // Fundamental numeric types are equivalent if they are the exact same size & semantics
         (TypeKind::Int(left_size), TypeKind::Int(right_size)) => left_size == right_size,
         (TypeKind::Nat(left_size), TypeKind::Nat(right_size)) => left_size == right_size,
         (TypeKind::Real(left_size), TypeKind::Real(right_size)) => left_size == right_size,
+
+        // Integer is treated as equivalent to the other numeric types
         (TypeKind::Integer, other) | (other, TypeKind::Integer) => other.is_number(),
+
         (TypeKind::String, TypeKind::String) => true,
         (TypeKind::Char, TypeKind::Char) => true,
+
+        // Sized charseqs are equivalent to each other if they have the same size
+        // Dyn sized charseqs are not equivalent to anything
         (TypeKind::CharN(left_sz), TypeKind::CharN(right_sz))
         | (TypeKind::StringN(left_sz), TypeKind::StringN(right_sz)) => {
-            let left_sz = left_sz.fixed_len(db, Default::default());
-            let right_sz = right_sz.fixed_len(db, Default::default());
+            let left_sz = left_sz.fixed_len(db, Default::default()).ok();
+            let right_sz = right_sz.fixed_len(db, Default::default()).ok();
 
-            let (left_sz, right_sz) = if let (Ok(left_sz), Ok(right_sz)) = (left_sz, right_sz) {
-                (left_sz, right_sz)
+            let (left_sz, right_sz) = if let Some(sizes) = left_sz.zip(right_sz) {
+                sizes
             } else {
-                return false;
+                // Invalid evaluations treated as equivalent types
+                return true;
             };
 
             if let Some((left_sz, right_sz)) = left_sz.zip(right_sz) {
+                // sized charseqs are treated as equivalent types if the sizes are equal
                 left_sz.cmp(right_sz).is_eq()
             } else {
-                // `charseq(*)` treated as equivalent to either type
-                true
+                // `charseq(*)` treated as not equivalent to either type
+                false
             }
         }
 
@@ -172,8 +183,7 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     ignore_mut: bool,
 ) -> Option<bool> {
     // Current assignability rules:
-    // boolean :=
-    //   boolean
+    // All equivalence rules, plus
     //
     // Int(_) :=
     //   Int(_)
@@ -250,17 +260,18 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         }
     }
 
+    // Equivalent types imply trivial assignability
+    if is_equivalent(db, left.id(), right.id()) {
+        return Some(true);
+    }
+
     let is_assignable = match (left.kind(), right.kind()) {
         // Short-circuiting error types
         // Always pass
         (TypeKind::Error, _) | (_, TypeKind::Error) => return Some(true),
 
-        // Boolean types are assignable to each other
-        (TypeKind::Boolean, TypeKind::Boolean) => true,
-
         // Integer types are assignable to each other
-        (TypeKind::Nat(_), other) | (other, TypeKind::Nat(_)) if other.is_integer() => true,
-        (TypeKind::Int(_), other) | (other, TypeKind::Int(_)) if other.is_integer() => true,
+        (TypeKind::Nat(_) | TypeKind::Int(_), rhs) if rhs.is_integer() => true,
 
         // All numeric types are assignable into a real
         (TypeKind::Real(_), rhs) if rhs.is_number() => true,
