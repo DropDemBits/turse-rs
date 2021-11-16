@@ -275,7 +275,6 @@ impl TypeCheck<'_> {
                 .type_of((self.library_id, body_id, item.expr).into())
                 .in_db(self.db)
                 .peel_ref();
-            let put_kind = put_ty.kind();
 
             if !self.is_text_io_item(put_ty.id()) {
                 continue;
@@ -285,7 +284,7 @@ impl TypeCheck<'_> {
             // - Int
             // - Nat
             // - Real
-            if !put_kind.is_number() {
+            if !put_ty.kind().is_number() {
                 let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
                 if let Some(expr) = item.opts.precision() {
                     let span = body.expr(expr).span.lookup_in(&self.library.span_map);
@@ -355,7 +354,7 @@ impl TypeCheck<'_> {
                 continue;
             }
 
-            if ty.as_deref_mut().is_none() {
+            if ty.to_deref_mut().is_err() {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 // TODO: Stringify item for more clarity on the error location
@@ -397,7 +396,7 @@ impl TypeCheck<'_> {
         // - Enum
 
         // For now, all lowered types satisfy this condition
-        match &*ty_dat.kind() {
+        match ty_dat.kind() {
             ty::TypeKind::Error
             | ty::TypeKind::Boolean
             | ty::TypeKind::Int(_)
@@ -446,7 +445,7 @@ impl TypeCheck<'_> {
 
                 let bounds_span = start_span.cover(end_span);
 
-                let is_index_ty = |ty_kind: ty::TyRefKind| ty_kind.is_index() || ty_kind.is_error();
+                let is_index_ty = |ty_kind: &ty::TypeKind| ty_kind.is_index() || ty_kind.is_error();
 
                 if !ty::rules::is_equivalent(db, start_ty.id(), end_ty.id()) {
                     // Bounds are not equivalent
@@ -465,8 +464,8 @@ impl TypeCheck<'_> {
                         .error_detailed("range bounds are not index types", bounds_span);
 
                     // Specialize when reporting a non-concrete type
-                    if matches!(&*start_ty.kind(), ty::TypeKind::Integer)
-                        || matches!(&*end_ty.kind(), ty::TypeKind::Integer)
+                    if matches!(start_ty.kind(), ty::TypeKind::Integer)
+                        || matches!(end_ty.kind(), ty::TypeKind::Integer)
                     {
                         builder = builder
                             .with_note(&format!("this is of type `{}`", start_ty), start_span)
@@ -533,14 +532,13 @@ impl TypeCheck<'_> {
             .type_of((self.library_id, body_id, stmt.discriminant).into())
             .in_db(db)
             .peel_ref();
-        let discrim_tykind = discrim_ty.kind();
         let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
         let discrim_span = self.library.lookup_span(discrim_span);
 
         // Check discriminant type
-        if !discrim_tykind.is_error()
-            && !discrim_tykind.is_index()
-            && !matches!(&*discrim_tykind, ty::TypeKind::String)
+        if !(discrim_ty.kind().is_error()
+            || discrim_ty.kind().is_index()
+            || matches!(discrim_ty.kind(), ty::TypeKind::String))
         {
             self.state()
                 .reporter
@@ -678,7 +676,6 @@ impl TypeCheck<'_> {
             .db
             .from_hir_type(id.in_library(self.library_id))
             .in_db(db);
-        let ty_kind = &*ty.kind();
 
         let (expr_span, expr_ty) = match ty_node {
             toc_hir::ty::Primitive::SizedChar(toc_hir::ty::SeqLength::Expr(body))
@@ -698,7 +695,7 @@ impl TypeCheck<'_> {
         self.expect_integer_type(expr_ty, expr_span);
 
         // Check resultant size
-        let (seq_size, size_limit) = match ty_kind {
+        let (seq_size, size_limit) = match ty.kind() {
             ty::TypeKind::CharN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
                 // ???: Do we want to add a config/feature option to change this?
@@ -743,9 +740,8 @@ impl TypeCheck<'_> {
 
     fn expect_integer_type(&self, type_id: ty::TypeId, span: Span) {
         let ty = type_id.in_db(self.db).peel_ref();
-        let ty_kind = ty.kind();
 
-        if !ty_kind.is_integer() && !ty_kind.is_error() {
+        if !ty.kind().is_integer() && !ty.kind().is_error() {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", span)
@@ -758,9 +754,8 @@ impl TypeCheck<'_> {
     fn expect_boolean_type(&self, type_id: ty::TypeId, span: Span) {
         let ty = type_id.in_db(self.db).peel_ref();
         let expected_ty = self.db.mk_boolean().in_db(self.db);
-        let ty_kind = ty.kind();
 
-        if !ty_kind.is_boolean() && !ty_kind.is_error() {
+        if !ty.kind().is_boolean() && !ty.kind().is_error() {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", span)

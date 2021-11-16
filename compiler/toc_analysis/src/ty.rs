@@ -133,7 +133,11 @@ impl TypeId {
     where
         DB: db::TypeDatabase + ?Sized + 'db,
     {
-        TyRef { db, id: self }
+        TyRef {
+            db,
+            id: self,
+            data: db.lookup_intern_type(self),
+        }
     }
 }
 
@@ -162,27 +166,15 @@ impl From<Type> for TypeData {
 pub struct TyRef<'db, DB: ?Sized + 'db> {
     db: &'db DB,
     id: TypeId,
+    data: TypeData,
 }
 
-impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
-    fn clone(&self) -> Self {
-        Self {
-            db: self.db,
-            id: self.id,
-        }
+impl<'db, DB: ?Sized + 'db> TyRef<'db, DB> {
+    pub fn kind(&self) -> &TypeKind {
+        &self.data.kind
     }
-}
 
-impl<'db, DB: ?Sized + 'db> Copy for TyRef<'db, DB> {}
-
-/// Wrapper type for getting a [`TypeKind`] from a [`TyRef`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TyRefKind(TypeData);
-
-impl std::ops::Deref for TyRefKind {
-    type Target = TypeKind;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.kind()
+    pub fn id(&self) -> TypeId {
+        self.id
     }
 }

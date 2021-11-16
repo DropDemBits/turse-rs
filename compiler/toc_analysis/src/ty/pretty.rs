@@ -73,12 +73,10 @@ where
     DB: db::TypeDatabase + ?Sized + 'db,
 {
     let ty = type_id.in_db(db);
-    let ty_kind = &*ty.kind();
-
-    out.write_str(ty_kind.debug_prefix())?;
+    out.write_str(ty.kind().debug_prefix())?;
 
     // Extra bits
-    match ty_kind {
+    match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_fmt(format_args!(" {:?}", seq))?
         }
@@ -97,12 +95,10 @@ where
     DB: db::ConstEval + ?Sized + 'db,
 {
     let ty = type_id.in_db(db);
-    let ty_kind = &*ty.kind();
-
-    out.write_str(ty_kind.prefix())?;
+    out.write_str(ty.kind().prefix())?;
 
     // Extra bits
-    match ty_kind {
+    match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {

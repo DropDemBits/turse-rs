@@ -9,7 +9,7 @@ use crate::{
     ty::{Mutability, SeqSize, TypeId, TypeKind},
 };
 
-use super::{TyRef, TyRefKind, TypeData};
+use super::TyRef;
 
 impl TypeKind {
     pub fn is_number(&self) -> bool {
@@ -58,24 +58,28 @@ where
     DB: db::TypeDatabase + ?Sized + 'db,
 {
     /// Applies a deref transformation
-    pub fn as_deref(self) -> Option<Self> {
-        match *self.kind() {
-            TypeKind::Error => Some(self), // Propagate error
-            TypeKind::Ref(_, ty) => Some(ty.in_db(self.db)),
-            _ => None,
+    ///
+    /// Returns `Ok(deref_ty)`, otherwise `Err(self)`
+    pub fn to_deref(self) -> Result<Self, Self> {
+        match self.kind() {
+            TypeKind::Error => Ok(self), // Propagate error
+            TypeKind::Ref(_, ty) => Ok(ty.in_db(self.db)),
+            _ => Err(self),
         }
     }
 
     /// Applies a deref transformation, requiring var mutability
-    pub fn as_deref_mut(self) -> Option<Self> {
-        match *self.kind() {
-            TypeKind::Error => Some(self), // Propagate error
-            TypeKind::Ref(Mutability::Var, ty) => Some(ty.in_db(self.db)),
-            _ => None,
+    ///
+    /// Returns `Ok(deref_ty)`, otherwise `Err(self)`
+    pub fn to_deref_mut(self) -> Result<Self, Self> {
+        match self.kind() {
+            TypeKind::Error => Ok(self), // Propagate error
+            TypeKind::Ref(Mutability::Var, ty) => Ok(ty.in_db(self.db)),
+            _ => Err(self),
         }
     }
 
-    /// Returns the type id pointed to by a ref, or itself if it's not a type
+    /// Returns the type id pointed to by a ref, or itself if it's not a ref type
     ///
     /// # Example
     ///
@@ -85,22 +89,10 @@ where
     /// Ref(Const, Ref(Const, Boolean)) -> Ref(Const, Boolean)
     /// ```
     pub fn peel_ref(self) -> Self {
-        match self.as_deref() {
-            Some(to) => to,
-            None => self,
+        match self.to_deref() {
+            Ok(to) => to,
+            Err(_self) => _self,
         }
-    }
-
-    pub fn data(self) -> TypeData {
-        self.db.lookup_intern_type(self.id)
-    }
-
-    pub fn kind(self) -> TyRefKind {
-        TyRefKind(self.data())
-    }
-
-    pub fn id(self) -> TypeId {
-        self.id
     }
 }
 
@@ -129,16 +121,14 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
     let left = left.in_db(db).peel_ref();
     let right = right.in_db(db).peel_ref();
 
-    let (left_kind, right_kind) = (left.kind(), right.kind());
-
     // Quick bailouts
-    if (left.id() == right.id()) || (left_kind.is_error() || right_kind.is_error()) {
+    if (left.id() == right.id()) || (left.kind().is_error() || right.kind().is_error()) {
         // Same type id implies trivial equivalency
         // Error types get treated as equivalent to everything
         return true;
     }
 
-    match (&*left_kind, &*right_kind) {
+    match (left.kind(), right.kind()) {
         (TypeKind::Int(left_size), TypeKind::Int(right_size)) => left_size == right_size,
         (TypeKind::Nat(left_size), TypeKind::Nat(right_size)) => left_size == right_size,
         (TypeKind::Real(left_size), TypeKind::Real(right_size)) => left_size == right_size,
@@ -241,9 +231,9 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     let right = right.in_db(db);
 
     let left = if ignore_mut {
-        left.as_deref()?
+        left.to_deref().ok()?
     } else {
-        left.as_deref_mut()?
+        left.to_deref_mut().ok()?
     };
     let right = right.peel_ref();
 
@@ -260,7 +250,7 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         }
     }
 
-    let is_assignable = match (&*left.kind(), &*right.kind()) {
+    let is_assignable = match (left.kind(), right.kind()) {
         // Short-circuiting error types
         // Always pass
         (TypeKind::Error, _) | (_, TypeKind::Error) => return Some(true),
@@ -454,7 +444,6 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
 
     let left = left.in_db(db).peel_ref();
     let right = right.in_db(db).peel_ref();
-    let (lhs_kind, rhs_kind) = (&*left.kind(), &*right.kind());
 
     // Use the peeled versions of the types for reporting
     let mk_type_error = || {
@@ -477,7 +466,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
 
     // Short circuit for error types
     // Don't duplicate errors
-    if lhs_kind.is_error() || rhs_kind.is_error() {
+    if left.kind().is_error() || right.kind().is_error() {
         return Ok(db.mk_error());
     }
 
@@ -489,10 +478,10 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // x Set union (set, set => set)
             // - Addition (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Addition
                 Ok(result_ty)
-            } else if let Some(result_ty) = check_charseq_operands(db, lhs_kind, rhs_kind) {
+            } else if let Some(result_ty) = check_charseq_operands(db, left.kind(), right.kind()) {
                 // String concatenation
                 Ok(result_ty)
             } else {
@@ -505,7 +494,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // x Set difference (set, set => set)
             // - Subtraction (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Subtraction
                 Ok(result_ty)
             } else {
@@ -517,7 +506,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // x Set intersection (set, set => set)
             // - Multiplication (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Multiplication
                 Ok(result_ty)
             } else {
@@ -528,7 +517,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Integer division (number, number => integer)
 
-            match (lhs_kind, rhs_kind) {
+            match (left.kind(), right.kind()) {
                 // Pass through type inference
                 (TypeKind::Integer, TypeKind::Integer) => Ok(db.mk_integer()),
                 (operand, TypeKind::Nat(_)) | (TypeKind::Nat(_), operand) if operand.is_nat() => {
@@ -542,7 +531,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Floating point division (number, number => real)
 
-            if lhs_kind.is_number() && rhs_kind.is_number() {
+            if left.kind().is_number() && right.kind().is_number() {
                 Ok(db.mk_real(RealSize::Real))
             } else {
                 mk_type_error()
@@ -552,7 +541,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Modulo (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Modulo
                 Ok(result_ty)
             } else {
@@ -563,7 +552,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Remainder (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Remainder
                 Ok(result_ty)
             } else {
@@ -574,7 +563,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Exponentiation (number, number => number)
 
-            if let Some(result_ty) = check_arithmetic_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Exponentiation
                 Ok(result_ty)
             } else {
@@ -588,10 +577,10 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // - Bitwise And (integer, integer => nat)
             // - Logical And (boolean, boolean => boolean)
 
-            if let Some(result_ty) = check_bitwise_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise And
                 Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&lhs_kind, &rhs_kind) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
                 // Logical And
                 Ok(db.mk_boolean())
             } else {
@@ -603,10 +592,10 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // - Bitwise Or (integer, integer => nat)
             // - Logical Or (boolean, boolean => boolean)
 
-            if let Some(result_ty) = check_bitwise_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise Or
                 Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&lhs_kind, &rhs_kind) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
                 // Logical Or
                 Ok(db.mk_boolean())
             } else {
@@ -618,10 +607,10 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // - Bitwise Xor (integer, integer => nat)
             // - Logical Xor (boolean, boolean => boolean)
 
-            if let Some(result_ty) = check_bitwise_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise Xor
                 Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&lhs_kind, &rhs_kind) {
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
@@ -633,7 +622,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Bitwise Shl (integer, integer => nat)
 
-            if let Some(result_ty) = check_bitwise_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise Shl
                 Ok(result_ty)
             } else {
@@ -644,7 +633,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Bitwise Shr (integer, integer => nat)
 
-            if let Some(result_ty) = check_bitwise_operands(db, lhs_kind, rhs_kind) {
+            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
                 // Bitwise Shr
                 Ok(result_ty)
             } else {
@@ -656,7 +645,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
             // Operations:
             // - Imply (boolean, boolean => boolean)
 
-            if let (TypeKind::Boolean, TypeKind::Boolean) = (&lhs_kind, &rhs_kind) {
+            if let (TypeKind::Boolean, TypeKind::Boolean) = (&left.kind(), &right.kind()) {
                 // Logical Xor
                 Ok(db.mk_boolean())
             } else {
@@ -838,7 +827,6 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
     use crate::ty::{IntSize, NatSize, RealSize};
 
     let right = right.in_db(db).peel_ref();
-    let rhs_kind = &*right.kind();
 
     // Use the peeled version of the type
     let type_error = || {
@@ -850,16 +838,16 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
 
     // Short circuit for error types
     // Don't duplicate errors
-    if rhs_kind.is_error() {
+    if right.kind().is_error() {
         return Ok(db.mk_error());
     }
 
     match op {
         expr::UnaryOp::Not => {
-            if rhs_kind.is_integer() {
+            if right.kind().is_integer() {
                 // Bitwise Not
                 Ok(db.mk_nat(NatSize::Nat))
-            } else if let TypeKind::Boolean = &rhs_kind {
+            } else if let TypeKind::Boolean = &right.kind() {
                 // Logical Not
                 Ok(db.mk_boolean())
             } else {
@@ -867,7 +855,7 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
             }
         }
         expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
-            match rhs_kind {
+            match right.kind() {
                 // Pass through integer inference
                 TypeKind::Integer => Ok(db.mk_integer()),
 
