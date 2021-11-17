@@ -245,27 +245,15 @@
 
 #### Comparison
 
-- [ ] Over numbers
-  - [ ] Less
-  - [ ] LessEq
-  - [ ] Greater
-  - [ ] GreaterEq
-  - [ ] Equal
-  - [ ] NotEqual
-- [ ] Over sets
-  - [ ] Less
-  - [ ] LessEq
-  - [ ] Greater
-  - [ ] GreaterEq
-  - [ ] Equal
-  - [ ] NotEqual
-- [ ] Over char seqs
-  - [ ] Less
-  - [ ] LessEq
-  - [ ] Greater
-  - [ ] GreaterEq
-  - [ ] Equal
-  - [ ] NotEqual
+- [ ] Ordering
+  - [x] Over numbers
+  - [x] Over char seqs
+  - [ ] Over sets
+- [ ] Equality
+  - [x] Over numbers
+  - [x] Over booleans
+  - [x] Over char seqs
+  - [ ] Over sets
 
 #### Type Conversion
 
