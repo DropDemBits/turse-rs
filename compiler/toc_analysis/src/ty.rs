@@ -11,6 +11,12 @@ mod pretty;
 pub(crate) mod query;
 pub mod rules;
 
+/// Maximum length of a `string`
+pub const MAX_STRING_LEN: u32 = 256;
+
+/// Maximum length of a `char(N)`
+pub const MAX_CHAR_N_LEN: u32 = 32768;
+
 // Constructible vs Well-formed (valid)
 //
 // Constructible, Well-formed  => Type itself is real, and all dependencies of it are real

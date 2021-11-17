@@ -106,6 +106,12 @@ pub(super) enum ErrorKind {
     /// Negative int shift provided during bit shifting
     #[error("bit shifting integer by a negative amount")]
     NegativeIntShift,
+    /// Produced a string that is too big
+    #[error("produced a string that is too large")]
+    StringTooBig,
+    /// Produced a char(n) that is too big
+    #[error("produced a character sequence that is too large")]
+    CharNTooBig,
 
     // Unsupported messages
     /// Currently unsupported const eval value

@@ -700,14 +700,14 @@ impl TypeCheck<'_> {
             ty::TypeKind::CharN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
                 // ???: Do we want to add a config/feature option to change this?
-                (seq_size, 32768)
+                (seq_size, ty::MAX_CHAR_N_LEN)
             }
             ty::TypeKind::StringN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // 256 is the maximum defined limit for the length on `n` for string(N),
                 // so no option of changing that (unless we have control over the interpreter code).
                 // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
                 //   so we can't change it yet unless we use a new interpreter.
-                (seq_size, 256)
+                (seq_size, ty::MAX_STRING_LEN)
             }
             // because of hir disambiguation above
             _ => unreachable!(),

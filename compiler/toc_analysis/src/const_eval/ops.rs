@@ -7,6 +7,7 @@ use toc_hir::expr;
 use toc_span::Spanned;
 
 use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue};
+use crate::ty;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum ConstOp {
@@ -67,38 +68,40 @@ impl ConstOp {
                         lhs.checked_add(rhs).map(ConstValue::Integer)
                     }
                     // String Concatenation
-                    // TODO: Check if we generate strings / character strings that are too big
                     // Makes CharN
                     (ConstValue::Char(lhs), ConstValue::Char(rhs)) => {
                         // Char, Char => Char(2)
+                        // Always succeeds
                         Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     (ConstValue::Char(lhs), ConstValue::CharN(rhs)) => {
                         // Char, Char(N) => Char(N+1)
+                        check_charseq_len(rhs.len() + 1)?;
                         Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     (ConstValue::CharN(lhs), ConstValue::Char(rhs)) => {
                         // Char(N), Char => Char(N+1)
+                        check_charseq_len(lhs.len() + 1)?;
                         Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     (ConstValue::CharN(lhs), ConstValue::CharN(rhs)) => {
                         // Char(N), Char(M) => Char(N+M)
+                        check_charseq_len(lhs.len() + rhs.len())?;
                         Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     // Makes String
                     (ConstValue::String(lhs), ConstValue::Char(rhs)) => {
+                        check_string_len(lhs.len() + 1)?;
                         Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     (ConstValue::Char(lhs), ConstValue::String(rhs)) => {
+                        check_string_len(rhs.len() + 1)?;
                         Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
                     }
-                    (ConstValue::String(lhs), ConstValue::CharN(rhs)) => {
-                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
-                    }
-                    (ConstValue::CharN(lhs), ConstValue::String(rhs)) => {
-                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
-                    }
-                    (ConstValue::String(lhs), ConstValue::String(rhs)) => {
+                    (ConstValue::CharN(lhs), ConstValue::String(rhs))
+                    | (ConstValue::String(lhs), ConstValue::CharN(rhs))
+                    | (ConstValue::String(lhs), ConstValue::String(rhs)) => {
+                        check_string_len(lhs.len() + rhs.len())?;
                         Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
@@ -422,5 +425,21 @@ impl TryFrom<Spanned<expr::UnaryOp>> for ConstOp {
             expr::UnaryOp::Identity => Ok(Self::Identity),
             expr::UnaryOp::Negate => Ok(Self::Negate),
         }
+    }
+}
+
+fn check_string_len(size: usize) -> Result<(), ConstError> {
+    if size >= ty::MAX_STRING_LEN.try_into().unwrap() {
+        Err(ConstError::without_span(ErrorKind::StringTooBig))
+    } else {
+        Ok(())
+    }
+}
+
+fn check_charseq_len(size: usize) -> Result<(), ConstError> {
+    if size >= ty::MAX_CHAR_N_LEN.try_into().unwrap() {
+        Err(ConstError::without_span(ErrorKind::CharNTooBig))
+    } else {
+        Ok(())
     }
 }

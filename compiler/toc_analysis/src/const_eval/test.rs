@@ -5,6 +5,7 @@ use toc_hir_db::db::HirDatabase;
 use toc_reporting::{MessageBundle, MessageSink};
 use unindent::unindent;
 
+use crate::ty;
 use crate::{const_eval::Const, db::ConstEval, test_db::TestDb};
 
 #[track_caller]
@@ -534,6 +535,82 @@ fn error_negative_int_exp() {
 fn error_negative_int_shift() {
     assert_const_eval_expr("2 shl -1");
     assert_const_eval_expr("2 shr -1");
+}
+
+#[test]
+fn error_charseq_too_big() {
+    // Character sequences are very long, so we'll have to make the string programmatically
+    const SEQ_LEN: usize = ty::MAX_CHAR_N_LEN as usize;
+    const FILLER: &str = "✨✨✨✨✨✨✨✨";
+    let mut big_charseq = String::with_capacity(SEQ_LEN);
+
+    for _ in 0..(SEQ_LEN / FILLER.len()) {
+        // ✨sparkle✨ to death
+        big_charseq.push_str(FILLER);
+    }
+
+    // Fill the remaining length with a's
+    for _ in big_charseq.len()..SEQ_LEN {
+        big_charseq.push('a');
+    }
+
+    let mid = {
+        // Skip towards a char
+        let mut cursor = big_charseq.len() / 2;
+        while !big_charseq.is_char_boundary(cursor) {
+            cursor += 1
+        }
+        cursor
+    };
+
+    // char, charN
+    let almost_slice = &big_charseq[..big_charseq.len() - 1];
+    assert_const_eval_expr(&format!("'a'+'{}'", almost_slice));
+    // charN, char
+    assert_const_eval_expr(&format!("'{}'+'a'", almost_slice));
+    // charN, charN
+    let (left, right) = big_charseq.split_at(mid);
+    assert_const_eval_expr(&format!("'{}'+'{}'", left, right));
+}
+
+#[test]
+fn error_string_too_big() {
+    // Max string size is sorta long, so we'll still make the string programmatically
+    const SEQ_LEN: usize = ty::MAX_STRING_LEN as usize;
+    const FILLER: &str = "✨✨✨✨✨✨✨✨";
+    let mut big_charseq = String::with_capacity(SEQ_LEN);
+
+    for _ in 0..(SEQ_LEN / FILLER.len()) {
+        // ✨sparkle✨ to death
+        big_charseq.push_str(FILLER);
+    }
+
+    // Fill the remaining length with a's
+    for _ in big_charseq.len()..SEQ_LEN {
+        big_charseq.push('a');
+    }
+
+    // char, string
+    let almost_slice = &big_charseq[..big_charseq.len() - 1];
+    assert_const_eval_expr(&format!(r#"'a'+"{}""#, almost_slice));
+    // string, char
+    assert_const_eval_expr(&format!(r#""{}"+'a'"#, almost_slice));
+
+    let mid = {
+        // Skip towards a char
+        let mut cursor = big_charseq.len() / 2;
+        while !big_charseq.is_char_boundary(cursor) {
+            cursor += 1
+        }
+        cursor
+    };
+    // string, charN
+    let (left, right) = big_charseq.split_at(mid);
+    assert_const_eval_expr(&format!(r#""{}"+'{}'"#, left, right));
+    // charN, string
+    assert_const_eval_expr(&format!(r#"'{}'+"{}""#, left, right));
+    // string, string
+    assert_const_eval_expr(&format!(r#""{}"+"{}""#, left, right));
 }
 
 #[test]
