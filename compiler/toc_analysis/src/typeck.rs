@@ -567,7 +567,6 @@ impl TypeCheck<'_> {
             })
             .flatten()
         {
-            // was doing: adding tests
             let selector_ty = db.type_of((self.library_id, body_id, selector).into());
             let selector_span = self.library.body(body_id).expr(selector).span;
             let selector_span = self.library.lookup_span(selector_span);

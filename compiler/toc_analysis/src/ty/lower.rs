@@ -193,20 +193,21 @@ fn literal_ty(
     }
 }
 
-// was doing: figure out how to actually lower it
-// - see ty::rules::check_{bin,unary}_op for details
 fn binary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Binary) -> TypeId {
-    // TODO: do full binexpr typechecks
     let left = ty_from_expr(db, body, expr.lhs);
     let right = ty_from_expr(db, body, expr.rhs);
 
-    ty::rules::check_binary_op(db, left, *expr.op.item(), right).unwrap_or_else(|_| db.mk_error())
+    // Inference doesn't care about type errors too much
+    // Just use the provided inferred type
+    ty::rules::infer_binary_op(db, left, *expr.op.item(), right).extract_ty()
 }
 
 fn unary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Unary) -> TypeId {
     let right = ty_from_expr(db, body, expr.rhs);
 
-    ty::rules::check_unary_op(db, *expr.op.item(), right).unwrap_or_else(|_| db.mk_error())
+    // Inference doesn't care about type errors too much
+    // Just use the provided inferred type
+    ty::rules::infer_unary_op(db, *expr.op.item(), right).extract_ty()
 }
 
 fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Name) -> TypeId {

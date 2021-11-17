@@ -393,22 +393,46 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     Some(is_assignable)
 }
 
-/// Type for associated mismatch binary operand types
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InvalidBinaryOp {
-    left: TypeId,
-    op: expr::BinaryOp,
-    right: TypeId,
-    unsupported: bool,
+/// Result of inferring a type from an operation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InferTy {
+    /// This is the proper type for this operation, so no additional type
+    /// checking needs to be done.
+    Complete(TypeId),
+    /// This is not quite the proper type for this operation, so we'll need
+    /// to do additional type checking to verify if it's actually valid. In
+    /// the mean time, using this type as the inference result is okay as
+    /// will give the right semantics for most cases.
+    Partial(TypeId),
+    /// This is the error type for this operation, since the constraints of
+    /// the operation were not met. No additional type checking needs to be
+    /// done.
+    Error(TypeId),
 }
 
-/// Gets the type produced by the given binary operation
-pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
+impl InferTy {
+    /// Extracts the associated type from the inference result.
+    /// Used when we only care about what type was inferred.
+    pub fn extract_ty(self) -> TypeId {
+        match self {
+            InferTy::Complete(ty) | InferTy::Partial(ty) | InferTy::Error(ty) => ty,
+        }
+    }
+}
+
+/// Infers the correct type for the binary operation
+///
+/// # Returns
+///
+/// `OK(ty)` for the proper inferred type,
+/// `Err(ty)` if the input types aren't appropriate for the operation
+pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
     db: &T,
     left: TypeId,
     op: expr::BinaryOp,
     right: TypeId,
-) -> Result<TypeId, InvalidBinaryOp> {
+) -> InferTy {
+    // TODO: do full binexpr typechecks
     // TODO: Handle 32-bit vs 64-bit integer widths
 
     // Type classes:
@@ -424,7 +448,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
     // nat - nat => nat
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    fn check_arithmetic_operands<T: ?Sized + db::TypeDatabase>(
+    fn infer_arithmetic_operands<T: ?Sized + db::TypeDatabase>(
         db: &T,
         left: &TypeKind,
         right: &TypeKind,
@@ -447,7 +471,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    fn check_bitwise_operands<T: ?Sized + db::TypeDatabase>(
+    fn infer_bitwise_operands<T: ?Sized + db::TypeDatabase>(
         db: &T,
         left: &TypeKind,
         right: &TypeKind,
@@ -462,7 +486,7 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    fn check_charseq_operands<T: ?Sized + db::TypeDatabase>(
+    fn infer_charseq_operands<T: ?Sized + db::TypeDatabase>(
         db: &T,
         left: &TypeKind,
         right: &TypeKind,
@@ -488,6 +512,226 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
     let left = left.in_db(db).peel_ref();
     let right = right.in_db(db).peel_ref();
 
+    // Propagate error type as complete so that we don't duplicate the error
+    if left.kind().is_error() || right.kind().is_error() {
+        return InferTy::Complete(db.mk_error());
+    }
+
+    match op {
+        // Arithmetic operators
+        expr::BinaryOp::Add => {
+            // Operations:
+            // - String concatenation (charseq, charseq => charseq)
+            // x Set union (set, set => set)
+            // - Addition (number, number => number)
+
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+                // Addition
+                InferTy::Complete(result_ty)
+            } else if let Some(result_ty) = infer_charseq_operands(db, left.kind(), right.kind()) {
+                // String concatenation
+                InferTy::Complete(result_ty)
+            } else {
+                // Type error
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Sub => {
+            // Operations:
+            // x Set difference (set, set => set)
+            // - Subtraction (number, number => number)
+
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+                // Subtraction
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Mul => {
+            // Operations:
+            // x Set intersection (set, set => set)
+            // - Multiplication (number, number => number)
+
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+                // Multiplication
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Div => {
+            // Operations:
+            // - Integer division (number, number => integer)
+
+            match (left.kind(), right.kind()) {
+                // Pass through type inference
+                (TypeKind::Integer, TypeKind::Integer) => InferTy::Complete(db.mk_integer()),
+                (operand, TypeKind::Nat(_)) | (TypeKind::Nat(_), operand) if operand.is_nat() => {
+                    InferTy::Complete(db.mk_nat(NatSize::Nat))
+                }
+                (lhs, rhs) if lhs.is_number() && rhs.is_number() => {
+                    InferTy::Complete(db.mk_int(IntSize::Int))
+                }
+                _ => InferTy::Error(db.mk_error()),
+            }
+        }
+        expr::BinaryOp::RealDiv => {
+            // Operations:
+            // - Floating point division (number, number => real)
+
+            if left.kind().is_number() && right.kind().is_number() {
+                InferTy::Complete(db.mk_real(RealSize::Real))
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Mod => {
+            // Operations:
+            // - Modulo (number, number => number)
+
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+                // Modulo
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Rem => {
+            // Operations:
+            // - Remainder (number, number => number)
+
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+                // Remainder
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Exp => {
+            // Operations:
+            // - Exponentiation (number, number => number)
+
+            if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
+                // Exponentiation
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        // Bitwise operators (integer, integer => nat)
+        // + Logical operators (boolean, boolean => boolean)
+        expr::BinaryOp::And => {
+            // Operations:
+            // - Bitwise And (integer, integer => nat)
+            // - Logical And (boolean, boolean => boolean)
+
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+                // Bitwise And
+                InferTy::Complete(result_ty)
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+                // Logical And
+                InferTy::Complete(db.mk_boolean())
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Or => {
+            // Operations:
+            // - Bitwise Or (integer, integer => nat)
+            // - Logical Or (boolean, boolean => boolean)
+
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+                // Bitwise Or
+                InferTy::Complete(result_ty)
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+                // Logical Or
+                InferTy::Complete(db.mk_boolean())
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Xor => {
+            // Operations:
+            // - Bitwise Xor (integer, integer => nat)
+            // - Logical Xor (boolean, boolean => boolean)
+
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+                // Bitwise Xor
+                InferTy::Complete(result_ty)
+            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+                // Logical Xor
+                InferTy::Complete(db.mk_boolean())
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        // Pure bitwise operators
+        expr::BinaryOp::Shl => {
+            // Operations:
+            // - Bitwise Shl (integer, integer => nat)
+
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+                // Bitwise Shl
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::BinaryOp::Shr => {
+            // Operations:
+            // - Bitwise Shr (integer, integer => nat)
+
+            if let Some(result_ty) = infer_bitwise_operands(db, left.kind(), right.kind()) {
+                // Bitwise Shr
+                InferTy::Complete(result_ty)
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        // Pure logical operator
+        expr::BinaryOp::Imply => {
+            // Operations:
+            // - Imply (boolean, boolean => boolean)
+
+            if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
+                // Imply
+                InferTy::Complete(db.mk_boolean())
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+
+        // Comparison (a, b => boolean where a, b: Comparable)
+        // Comparison operations require a const eval context (since they depend on `is_equivalent`),
+        // so we'll need to do further type checking
+        expr::BinaryOp::Less
+        | expr::BinaryOp::LessEq
+        | expr::BinaryOp::Greater
+        | expr::BinaryOp::GreaterEq
+        | expr::BinaryOp::Equal
+        | expr::BinaryOp::NotEqual => InferTy::Partial(db.mk_boolean()),
+        // Set membership tests (set(a), a => boolean)
+        // These ops are not implemented yet, but inferring them into a boolean type is ok
+        expr::BinaryOp::In | expr::BinaryOp::NotIn => InferTy::Partial(db.mk_boolean()),
+    }
+}
+
+/// Performs the full type checks for the given binary operation and operand types.
+///
+/// # Returns
+///
+/// `Ok(())` if the operation is valid for the given operand types, or `Err(err)`
+/// with `err` containing information about the error
+pub fn check_binary_op<T: ?Sized + db::ConstEval>(
+    db: &T,
+    left: TypeId,
+    op: expr::BinaryOp,
+    right: TypeId,
+) -> Result<(), InvalidBinaryOp> {
+    let left = left.in_db(db).peel_ref();
+    let right = right.in_db(db).peel_ref();
+
     // Use the peeled versions of the types for reporting
     let mk_type_error = || {
         Err(InvalidBinaryOp {
@@ -507,194 +751,15 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         })
     };
 
-    // Short circuit for error types
-    // Don't duplicate errors
-    if left.kind().is_error() || right.kind().is_error() {
-        return Ok(db.mk_error());
+    // Start from the inference code
+    match infer_binary_op(db, left.id(), op, right.id()) {
+        InferTy::Complete(_) => return Ok(()),
+        InferTy::Error(_) => return mk_type_error(),
+        InferTy::Partial(_) => (),
     }
 
+    // Inference code covers most of the operations, perform the remaining checks
     match op {
-        // Arithmetic operators
-        expr::BinaryOp::Add => {
-            // Operations:
-            // - String concatenation (charseq, charseq => charseq)
-            // x Set union (set, set => set)
-            // - Addition (number, number => number)
-
-            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
-                // Addition
-                Ok(result_ty)
-            } else if let Some(result_ty) = check_charseq_operands(db, left.kind(), right.kind()) {
-                // String concatenation
-                Ok(result_ty)
-            } else {
-                // Type error
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Sub => {
-            // Operations:
-            // x Set difference (set, set => set)
-            // - Subtraction (number, number => number)
-
-            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
-                // Subtraction
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Mul => {
-            // Operations:
-            // x Set intersection (set, set => set)
-            // - Multiplication (number, number => number)
-
-            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
-                // Multiplication
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Div => {
-            // Operations:
-            // - Integer division (number, number => integer)
-
-            match (left.kind(), right.kind()) {
-                // Pass through type inference
-                (TypeKind::Integer, TypeKind::Integer) => Ok(db.mk_integer()),
-                (operand, TypeKind::Nat(_)) | (TypeKind::Nat(_), operand) if operand.is_nat() => {
-                    Ok(db.mk_nat(NatSize::Nat))
-                }
-                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_int(IntSize::Int)),
-                _ => mk_type_error(),
-            }
-        }
-        expr::BinaryOp::RealDiv => {
-            // Operations:
-            // - Floating point division (number, number => real)
-
-            if left.kind().is_number() && right.kind().is_number() {
-                Ok(db.mk_real(RealSize::Real))
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Mod => {
-            // Operations:
-            // - Modulo (number, number => number)
-
-            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
-                // Modulo
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Rem => {
-            // Operations:
-            // - Remainder (number, number => number)
-
-            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
-                // Remainder
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Exp => {
-            // Operations:
-            // - Exponentiation (number, number => number)
-
-            if let Some(result_ty) = check_arithmetic_operands(db, left.kind(), right.kind()) {
-                // Exponentiation
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        // Bitwise operators (integer, integer => nat)
-        // + Logical operators (boolean, boolean => boolean)
-        expr::BinaryOp::And => {
-            // Operations:
-            // - Bitwise And (integer, integer => nat)
-            // - Logical And (boolean, boolean => boolean)
-
-            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
-                // Bitwise And
-                Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
-                // Logical And
-                Ok(db.mk_boolean())
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Or => {
-            // Operations:
-            // - Bitwise Or (integer, integer => nat)
-            // - Logical Or (boolean, boolean => boolean)
-
-            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
-                // Bitwise Or
-                Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
-                // Logical Or
-                Ok(db.mk_boolean())
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Xor => {
-            // Operations:
-            // - Bitwise Xor (integer, integer => nat)
-            // - Logical Xor (boolean, boolean => boolean)
-
-            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
-                // Bitwise Xor
-                Ok(result_ty)
-            } else if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
-                // Logical Xor
-                Ok(db.mk_boolean())
-            } else {
-                mk_type_error()
-            }
-        }
-        // Pure bitwise operators
-        expr::BinaryOp::Shl => {
-            // Operations:
-            // - Bitwise Shl (integer, integer => nat)
-
-            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
-                // Bitwise Shl
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        expr::BinaryOp::Shr => {
-            // Operations:
-            // - Bitwise Shr (integer, integer => nat)
-
-            if let Some(result_ty) = check_bitwise_operands(db, left.kind(), right.kind()) {
-                // Bitwise Shr
-                Ok(result_ty)
-            } else {
-                mk_type_error()
-            }
-        }
-        // Pure logical operator
-        expr::BinaryOp::Imply => {
-            // Operations:
-            // - Imply (boolean, boolean => boolean)
-
-            if let (TypeKind::Boolean, TypeKind::Boolean) = (left.kind(), right.kind()) {
-                // Logical Xor
-                Ok(db.mk_boolean())
-            } else {
-                mk_type_error()
-            }
-        }
         // Comparison (a, b => boolean where a, b: Comparable)
         expr::BinaryOp::Less
         | expr::BinaryOp::LessEq
@@ -709,9 +774,9 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
 
             match (left.kind(), right.kind()) {
                 // All numbers are comparable to each other
-                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_boolean()),
+                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
-                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(db.mk_boolean()),
+                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(()),
                 // All other types aren't comparable
                 _ => mk_type_error(),
             }
@@ -727,14 +792,18 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
 
             match (left.kind(), right.kind()) {
                 // All numbers are comparable to each other
-                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(db.mk_boolean()),
+                (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
-                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(db.mk_boolean()),
-                // All scalar types can be tested for equality
-                (lhs, rhs) if lhs.is_scalar() && rhs.is_scalar() && lhs == rhs => {
-                    // TODO: this won't be able to support function types, which will require a const eval db
-                    // - We need to separate the inferential & checking functions
-                    Ok(db.mk_boolean())
+                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(()),
+                // All scalar types can be tested for equality if they are of equivalent types
+                (lhs, rhs)
+                    if lhs.is_scalar()
+                        && rhs.is_scalar()
+                        && is_equivalent(db, left.id(), right.id()) =>
+                {
+                    // TODO: This also needs to do type coercion for proper equality
+                    // e.g. testing equality between `int1` and `int` is impossible
+                    Ok(())
                 }
                 // All other types aren't comparable
                 _ => mk_type_error(),
@@ -743,7 +812,84 @@ pub fn check_binary_op<T: ?Sized + db::TypeDatabase>(
         // Set membership tests (set(a), a => boolean)
         expr::BinaryOp::In => unsupported_op(),
         expr::BinaryOp::NotIn => unsupported_op(),
+        _ => unreachable!(),
     }
+}
+
+pub fn infer_unary_op<T: ?Sized + db::TypeDatabase>(
+    db: &T,
+    op: expr::UnaryOp,
+    right: TypeId,
+) -> InferTy {
+    use crate::ty::{IntSize, NatSize, RealSize};
+
+    let right = right.in_db(db).peel_ref();
+
+    // Propagate error type as complete so that we don't duplicate the error
+    if right.kind().is_error() {
+        return InferTy::Complete(db.mk_error());
+    }
+
+    match op {
+        expr::UnaryOp::Not => {
+            if right.kind().is_integer() {
+                // Bitwise Not
+                InferTy::Complete(db.mk_nat(NatSize::Nat))
+            } else if let TypeKind::Boolean = &right.kind() {
+                // Logical Not
+                InferTy::Complete(db.mk_boolean())
+            } else {
+                InferTy::Error(db.mk_error())
+            }
+        }
+        expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
+            match right.kind() {
+                // Pass through integer inference
+                TypeKind::Integer => InferTy::Complete(db.mk_integer()),
+
+                // Normal operands
+                TypeKind::Real(_) => InferTy::Complete(db.mk_real(RealSize::Real)),
+                TypeKind::Int(_) => InferTy::Complete(db.mk_int(IntSize::Int)),
+                TypeKind::Nat(_) => InferTy::Complete(db.mk_nat(NatSize::Nat)),
+                _ => InferTy::Error(db.mk_error()),
+            }
+        }
+    }
+}
+/// Performs the full type checks for the given unary operation and operand type.
+///
+/// # Returns
+///
+/// `Ok(())` if the operation is valid for the given operand type, or `Err(err)`
+/// with `err` containing information about the error
+pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
+    db: &T,
+    op: expr::UnaryOp,
+    right: TypeId,
+) -> Result<(), InvalidUnaryOp> {
+    let right = right.in_db(db).peel_ref();
+
+    // Infer unary type currently does all of the work
+    match infer_unary_op(db, op, right.id()) {
+        InferTy::Complete(_) => Ok(()),
+        InferTy::Error(_) => {
+            // Use the peeled version of the type
+            Err(InvalidUnaryOp {
+                op,
+                right: right.id(),
+            })
+        }
+        InferTy::Partial(_) => unreachable!(),
+    }
+}
+
+/// An error representing mismatched binary operand types
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InvalidBinaryOp {
+    left: TypeId,
+    op: expr::BinaryOp,
+    right: TypeId,
+    unsupported: bool,
 }
 
 pub fn report_invalid_bin_op<'db, DB>(
@@ -898,62 +1044,11 @@ pub fn report_invalid_bin_op<'db, DB>(
     msg.finish();
 }
 
-/// Type for associated mismatch unary operand types
+/// An error representing a mismatched unary operand type
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InvalidUnaryOp {
     op: expr::UnaryOp,
     right: TypeId,
-}
-
-/// Implemented as a query in TypeDatabase
-pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
-    db: &T,
-    op: expr::UnaryOp,
-    right: TypeId,
-) -> Result<TypeId, InvalidUnaryOp> {
-    use crate::ty::{IntSize, NatSize, RealSize};
-
-    let right = right.in_db(db).peel_ref();
-
-    // Use the peeled version of the type
-    let type_error = || {
-        Err(InvalidUnaryOp {
-            op,
-            right: right.id,
-        })
-    };
-
-    // Short circuit for error types
-    // Don't duplicate errors
-    if right.kind().is_error() {
-        return Ok(db.mk_error());
-    }
-
-    match op {
-        expr::UnaryOp::Not => {
-            if right.kind().is_integer() {
-                // Bitwise Not
-                Ok(db.mk_nat(NatSize::Nat))
-            } else if let TypeKind::Boolean = &right.kind() {
-                // Logical Not
-                Ok(db.mk_boolean())
-            } else {
-                type_error()
-            }
-        }
-        expr::UnaryOp::Identity | expr::UnaryOp::Negate => {
-            match right.kind() {
-                // Pass through integer inference
-                TypeKind::Integer => Ok(db.mk_integer()),
-
-                // Normal operands
-                TypeKind::Real(_) => Ok(db.mk_real(RealSize::Real)),
-                TypeKind::Int(_) => Ok(db.mk_int(IntSize::Int)),
-                TypeKind::Nat(_) => Ok(db.mk_nat(NatSize::Nat)),
-                _ => type_error(),
-            }
-        }
-    }
 }
 
 pub fn report_invalid_unary_op<'db, DB>(
