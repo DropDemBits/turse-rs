@@ -535,10 +535,16 @@ fn restrict_assign_type() {
 }
 
 #[test]
-fn unsupported_values() {
-    assert_const_eval(r#"const a := "alphabet""#);
-    assert_const_eval(r#"const a := 'fun times'"#);
-    assert_const_eval(r#"const a := 'e'"#);
+fn supported_values() {
+    // All handled const values
+    for_all_const_exprs![
+        r#"1"#
+        r#"1.0"#
+        r#"true"#
+        r#""alphabet""#
+        r#"'fun times'"#
+        r#"'e'"#
+    ];
 }
 
 #[test]

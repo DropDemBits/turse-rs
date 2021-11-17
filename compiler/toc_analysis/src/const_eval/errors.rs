@@ -109,6 +109,7 @@ pub(super) enum ErrorKind {
 
     // Unsupported messages
     /// Currently unsupported const eval value
+    #[allow(dead_code)] // We'll reuse this for set types once we lower those
     #[error("literal is currently not implemented for compile-time evaluation")]
     UnsupportedValue,
     /// Currently unsupported const eval operation

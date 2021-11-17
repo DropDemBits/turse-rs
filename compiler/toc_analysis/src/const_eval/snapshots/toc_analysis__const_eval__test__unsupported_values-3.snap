@@ -3,7 +3,6 @@ source: compiler/toc_analysis/src/const_eval/test.rs
 expression: "const a := 'e'"
 
 ---
-"a"@(FileId(1), 6..7) -> ConstError { kind: UnsupportedValue, span: (FileId(1), 11..14) }
+"a"@(FileId(1), 6..7) -> Char('e')
 
-error in file FileId(1) at 11..14: literal is currently not implemented for compile-time evaluation
 
