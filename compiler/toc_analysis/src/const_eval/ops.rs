@@ -1,6 +1,7 @@
 //! All valid compile-time operations
 
 use std::convert::TryFrom;
+use std::sync::Arc;
 
 use toc_hir::expr;
 use toc_span::Spanned;
@@ -50,6 +51,7 @@ impl ConstOp {
                 let lhs = operand_stack.pop().unwrap();
 
                 match (lhs, rhs) {
+                    // Arithmetic Add
                     (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
 
@@ -63,6 +65,41 @@ impl ConstOp {
                     (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
                         let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
                         lhs.checked_add(rhs).map(ConstValue::Integer)
+                    }
+                    // String Concatenation
+                    // TODO: Check if we generate strings / character strings that are too big
+                    // Makes CharN
+                    (ConstValue::Char(lhs), ConstValue::Char(rhs)) => {
+                        // Char, Char => Char(2)
+                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::Char(lhs), ConstValue::CharN(rhs)) => {
+                        // Char, Char(N) => Char(N+1)
+                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::CharN(lhs), ConstValue::Char(rhs)) => {
+                        // Char(N), Char => Char(N+1)
+                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::CharN(lhs), ConstValue::CharN(rhs)) => {
+                        // Char(N), Char(M) => Char(N+M)
+                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    // Makes String
+                    (ConstValue::String(lhs), ConstValue::Char(rhs)) => {
+                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::Char(lhs), ConstValue::String(rhs)) => {
+                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::String(lhs), ConstValue::CharN(rhs)) => {
+                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::CharN(lhs), ConstValue::String(rhs)) => {
+                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                    }
+                    (ConstValue::String(lhs), ConstValue::String(rhs)) => {
+                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
                     }
                     _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }

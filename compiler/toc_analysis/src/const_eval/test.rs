@@ -261,6 +261,33 @@ fn bitwise_const_ops() {
 }
 
 #[test]
+fn string_concat_ops() {
+    for_all_const_exprs![
+        // Special cases, produce CharN values
+        // char char
+        r#"'b' + 'a'"#
+        // char charN
+        // charN char
+        r#"'a' + 'cab'"#
+        r#"'aca' + 'b'"#
+        // charN charN
+        r#"'wow' + 'ie'"#
+
+        // The rest, produce String values
+        // char string
+        // string char
+        r#"'v' + "ee""#
+        r#""ve" + 'e'"#
+        // charN string
+        // string charN
+        r#""o" + 'wo'"#
+        r#"'ow' + "o""#
+        // string string
+        r#""v" + "ee""#
+    ];
+}
+
+#[test]
 fn real_promotion() {
     for_all_const_exprs![
         "1.0 + 1"
