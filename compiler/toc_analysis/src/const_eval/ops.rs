@@ -1,5 +1,6 @@
 //! All valid compile-time operations
 
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::sync::Arc;
 
@@ -338,9 +339,25 @@ impl ConstOp {
             | ConstOp::Greater
             | ConstOp::GreaterEq
             | ConstOp::Equal
-            | ConstOp::NotEqual
-            | ConstOp::In
-            | ConstOp::NotIn => Err(ConstError::without_span(ErrorKind::UnsupportedOp)),
+            | ConstOp::NotEqual => {
+                let rhs = operand_stack.pop().unwrap();
+                let lhs = operand_stack.pop().unwrap();
+                let is_equal = matches!(self, ConstOp::Equal | ConstOp::NotEqual);
+                let res = compare_values(lhs, rhs, is_equal)?;
+
+                let value = match self {
+                    ConstOp::Less => res.is_lt(),
+                    ConstOp::LessEq => res.is_le(),
+                    ConstOp::Greater => res.is_gt(),
+                    ConstOp::GreaterEq => res.is_ge(),
+                    ConstOp::Equal => res.is_eq(),
+                    ConstOp::NotEqual => res.is_ne(),
+                    _ => unreachable!(),
+                };
+
+                Ok(ConstValue::Bool(value))
+            }
+            ConstOp::In | ConstOp::NotIn => Err(ConstError::without_span(ErrorKind::UnsupportedOp)),
             ConstOp::Imply => {
                 let rhs = operand_stack.pop().unwrap();
                 let lhs = operand_stack.pop().unwrap();
@@ -442,4 +459,64 @@ fn check_charseq_len(size: usize) -> Result<(), ConstError> {
     } else {
         Ok(())
     }
+}
+
+fn compare_values(
+    lhs: ConstValue,
+    rhs: ConstValue,
+    is_equality: bool,
+) -> Result<Ordering, ConstError> {
+    // Comparison between numbers
+    // Comparison between bools
+    // Comparison between charseqs
+    let res = match (lhs, rhs) {
+        // Over numbers
+        (lhs @ ConstValue::Real(_), rhs) | (lhs, rhs @ ConstValue::Real(_)) => {
+            let (lhs, rhs) = (lhs.cast_into_real()?, rhs.cast_into_real()?);
+            // FIXME: Replace with total_cmp once that's stable
+            lhs.partial_cmp(&rhs)
+                .expect("encountered NaN in compile-time context")
+        }
+        (lhs @ ConstValue::Integer(_), rhs) | (lhs, rhs @ ConstValue::Integer(_)) => {
+            let (lhs, rhs) = (lhs.cast_into_int()?, rhs.cast_into_int()?);
+            lhs.cmp(rhs)
+        }
+
+        // Over booleans
+        // Only allow bool compares if it's equality
+        (ConstValue::Bool(lhs), ConstValue::Bool(rhs)) if is_equality => lhs.cmp(&rhs),
+
+        // Over charseqs
+        (ConstValue::Char(lhs), ConstValue::Char(rhs)) => lhs.cmp(&rhs),
+        (ConstValue::Char(lhs), ConstValue::String(rhs) | ConstValue::CharN(rhs)) => {
+            compare_char_with_charseq(lhs, rhs.as_str())
+        }
+        (ConstValue::String(lhs) | ConstValue::CharN(lhs), ConstValue::Char(rhs)) => {
+            compare_char_with_charseq(rhs, lhs.as_str()).reverse()
+        }
+        (
+            ConstValue::String(lhs) | ConstValue::CharN(lhs),
+            ConstValue::String(rhs) | ConstValue::CharN(rhs),
+        ) => lhs.cmp(&rhs),
+        _ => return Err(ConstError::without_span(ErrorKind::WrongOperandType)),
+    };
+
+    Ok(res)
+}
+
+fn compare_char_with_charseq(lhs: char, rhs: &str) -> Ordering {
+    // If it's an empty string, then a char will always be ordered after it
+    if rhs.is_empty() {
+        return Ordering::Greater;
+    }
+
+    let rhs_char = rhs.chars().next().unwrap();
+
+    lhs.cmp(&rhs_char).then_with(|| {
+        if rhs.len() == 1 {
+            Ordering::Equal
+        } else {
+            Ordering::Less
+        }
+    })
 }

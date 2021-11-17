@@ -289,6 +289,124 @@ fn string_concat_ops() {
 }
 
 #[test]
+fn compare_ops_numeric() {
+    // Testing ordering
+    for_all_const_exprs![
+        // With reals
+        "1.0 < 2.0"
+        "2.0 < 1.0"
+        "1.0 > 2.0"
+        "2.0 > 1.0"
+
+        "1.0 <= 1.0"
+        "1.0 <= 2.0"
+        "2.0 >= 2.0"
+        "2.0 >= 1.0"
+
+        // With integers
+        "1 < 2"
+        "2 < 1"
+        "1 > 2"
+        "2 > 1"
+
+        "1 <= 1"
+        "1 <= 2"
+        "2 >= 2"
+        "2 >= 1"
+    ];
+}
+
+#[test]
+fn compare_ops_charseq() {
+    for_all_const_exprs! [
+        r#"'c' < 'c'"#
+        r#"'c' > 'c'"#
+        r#"'c' <= 'c'"#
+        r#"'c' >= 'c'"#
+
+        r#"'c' < 'cc'"#
+        r#"'c' > 'cc'"#
+        r#"'c' <= 'cc'"#
+        r#"'c' >= 'cc'"#
+
+        r#"'cc' < 'c'"#
+        r#"'cc' > 'c'"#
+        r#"'cc' <= 'c'"#
+        r#"'cc' >= 'c'"#
+
+        r#""" < 'c'"#
+        r#""" > 'c'"#
+        r#""" <= 'c'"#
+        r#""" >= 'c'"#
+
+        r#"'c' < """#
+        r#"'c' > """#
+        r#"'c' <= """#
+        r#"'c' >= """#
+
+        r#"'cc' < "dd""#
+        r#"'cc' > "dd""#
+        r#"'cc' <= "dd""#
+        r#"'cc' >= "dd""#
+    ];
+}
+
+#[test]
+fn equality_ops_numeric() {
+    for_all_const_exprs![
+        // With reals
+        "1.0 = 2.0"
+        "2.0 = 2.0"
+        "1.0 ~= 2.0"
+        "2.0 ~= 2.0"
+
+        // With integers
+        "1 = 2"
+        "2 = 2"
+        "1 ~= 2"
+        "2 ~= 2"
+    ];
+}
+
+#[test]
+fn equality_ops_bool() {
+    for_all_const_exprs! [
+        "true = true"
+        "true = false"
+        "false = true"
+        "false = false"
+
+        "true ~= true"
+        "true ~= false"
+        "false ~= true"
+        "false ~= false"
+    ];
+}
+
+#[test]
+fn equality_ops_charseq() {
+    for_all_const_exprs! [
+        r#"'c' = 'c'"#
+        r#"'c' ~= 'c'"#
+
+        r#"'c' = 'cc'"#
+        r#"'c' ~= 'cc'"#
+
+        r#"'cc' = 'c'"#
+        r#"'cc' ~= 'c'"#
+
+        r#""" = 'c'"#
+        r#""" ~= 'c'"#
+
+        r#"'c' = """#
+        r#"'c' ~= """#
+
+        r#"'cc' = "dd""#
+        r#"'cc' ~= "dd""#
+    ];
+}
+
+#[test]
 fn real_promotion() {
     for_all_const_exprs![
         "1.0 + 1"
@@ -306,6 +424,18 @@ fn real_promotion() {
         "1.0 div 1"
         "  1 div 1.0"
         "1.0 div 1.0"
+
+        "1 < 1.0"
+        "1.0 < 1"
+
+        "1 > 1.0"
+        "1.0 > 1"
+
+        "1 >= 1.0"
+        "1.0 >= 1"
+
+        "1 <= 1.0"
+        "1.0 <= 1"
     ];
 }
 
@@ -486,6 +616,62 @@ fn error_logical_wrong_types() {
 }
 
 #[test]
+fn error_comparison_wrong_types() {
+    for_all_const_exprs! [
+        r#"1 < 'c'"#
+        r#"1 < 'cc'"#
+        r#"1 < "cc""#
+        r#"1 < true"#
+
+        r#"1.0 < 'c'"#
+        r#"1.0 < 'cc'"#
+        r#"1.0 < "cc""#
+        r#"1.0 < true"#
+
+        r#"'c' < 1"#
+        r#"'cc' < 1"#
+        r#""cc" < 1"#
+        r#"true < 1"#
+
+        r#"'c' < 1.0"#
+        r#"'cc' < 1.0"#
+        r#""cc" < 1.0"#
+        r#"true < 1.0"#
+
+        // Bools cannot be compared order-wise
+        r#"true < true"#
+        r#"true >= true"#
+        r#"true < true"#
+        r#"true >= true"#
+    ];
+}
+
+#[test]
+fn error_equality_wrong_types() {
+    for_all_const_exprs! [
+        r#"1 = 'c'"#
+        r#"1 = 'cc'"#
+        r#"1 = "cc""#
+        r#"1 = true"#
+
+        r#"1.0 = 'c'"#
+        r#"1.0 = 'cc'"#
+        r#"1.0 = "cc""#
+        r#"1.0 = true"#
+
+        r#"'c' = 1"#
+        r#"'cc' = 1"#
+        r#""cc" = 1"#
+        r#"true = 1"#
+
+        r#"'c' = 1.0"#
+        r#"'cc' = 1.0"#
+        r#""cc" = 1.0"#
+        r#"true = 1.0"#
+    ];
+}
+
+#[test]
 fn error_no_const_expr() {
     // Referencing a runtime-evaluated var
     assert_const_eval(&unindent(
@@ -654,12 +840,6 @@ fn supported_values() {
 #[test]
 fn unsupported_ops() {
     for_all_const_exprs![
-        "1 > 1"
-        "1 >= 1"
-        "1 < 1"
-        "1 <= 1"
-        "1 = 1"
-        "1 ~= 1"
         "1 in 1"
         "1 ~in 1"
     ];
