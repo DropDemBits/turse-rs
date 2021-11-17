@@ -620,6 +620,42 @@ test_for_each_op! { integer_inference,
 "#
 }
 
+// Anything using `is_equivalent` and using type coercion needs to be added here
+test_named_group! { do_type_coercion,
+    [
+        // These check if we are performing type coercion at all
+        // The type coercion tests are somewhere else
+        comparison_ops => r#"
+        var i1 : int1
+        var i : int
+        var _res : boolean
+        _res := i < i1
+        "#,
+        equality_ops => r#"
+        var c1 : char(1)
+        var c : char
+        var _res : boolean
+        _res := c = c1
+        "#,
+        for_bounds => r#"
+        var i1 : int1
+        var i : int
+        var _res : boolean
+        for : i .. i1 end for
+        "#,
+        // TODO: Uncomment once we allow coercion in case selectors
+        /*
+        case_selectors => r#"
+        var i1 : int1
+        const k : int := 1
+        case i1 of
+        label k:
+        end case
+        "#
+        */
+    ]
+}
+
 test_named_group! { sized_char,
     [
         literal => r#"var _ : char(1)"#,
@@ -1225,8 +1261,11 @@ test_named_group! {
 
         // discriminant - selector equivalence
         normal_discrim_select_ty => r#"case 'c' of label 'c', 'd', 'e' end case"#,
-        mismatch_discrim_select_ty => r#"case 'c' of label "c", 'dd', false end case"#,
+        mismatch_discrim_select_ty => r#"case 'c' of label 123, 'dd', false end case"#,
         wrong_mismatch_discrim_select_ty => r#"case 1.0 of label 1, 'd', false end case"#,
+        // TODO: Uncomment once we allow coerced types again
+        //coerced_discrim_select_ty => r#"case 'c' of label "c": end case"#,
+        //wrong_coerced_discrim_select_ty => r#"case 'c' of label "cc": end case"#,
 
         // - selectors are compile-time evaluable
         comptime_selector_exprs => r#"

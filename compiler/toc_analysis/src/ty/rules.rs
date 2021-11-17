@@ -202,19 +202,16 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
     }
 }
 
-// TODO: Document type assignability
-// steal from the old compiler
-/// Returns `Some(is_assignable)`, or `None` if the the l_value is not deref'able.
-/// `ignore_mut` is only to be used during initializers
+/// Tests if `rhs` can be implicitly coerced into the `lhs` type.
 ///
-/// l_value should be left as a ref it is one.
-pub fn is_assignable<T: db::ConstEval + ?Sized>(
-    db: &T,
-    left: TypeId,
-    right: TypeId,
-    ignore_mut: bool,
-) -> Option<bool> {
-    // Current assignability rules:
+/// Implicit coercing rules are essentially the same as the assignability rules,
+/// but without the requirement of `lhs` being a ref type.
+/// See [`is_assignable`] for specifics on these rules.
+///
+/// This function is not symmetric, use [`is_either_coercible`] if that property
+/// is desired.
+pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: TypeId) -> bool {
+    // Current coercion rules:
     // All equivalence rules, plus
     //
     // Int(_) :=
@@ -269,17 +266,10 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
     /// Maximum length of a `string`
     const MAX_STRING_LEN: u32 = 256;
 
-    let left = left.in_db(db);
-    let right = right.in_db(db);
+    let left = lhs.in_db(db).peel_ref();
+    let right = rhs.in_db(db).peel_ref();
 
-    let left = if ignore_mut {
-        left.to_deref().ok()?
-    } else {
-        left.to_deref_mut().ok()?
-    };
-    let right = right.peel_ref();
-
-    /// Gets a sequence size suitable for assignment checking.
+    /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
     fn seq_size<T: db::ConstEval + ?Sized>(db: &T, seq_size: &SeqSize) -> Option<u32> {
         match seq_size.fixed_len(db, Default::default()) {
@@ -292,37 +282,33 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         }
     }
 
-    // Equivalent types imply trivial assignability
+    // Equivalent types imply trivial coercion
     if is_equivalent(db, left.id(), right.id()) {
-        return Some(true);
+        return true;
     }
 
-    let is_assignable = match (left.kind(), right.kind()) {
-        // Short-circuiting error types
-        // Always pass
-        (TypeKind::Error, _) | (_, TypeKind::Error) => return Some(true),
-
-        // Integer types are assignable to each other
+    match (left.kind(), right.kind()) {
+        // Integer types can be coerced to each other
         (TypeKind::Nat(_) | TypeKind::Int(_), rhs) if rhs.is_integer() => true,
 
-        // All numeric types are assignable into a real
+        // All numeric types are coercible into a real
         (TypeKind::Real(_), rhs) if rhs.is_number() => true,
 
         // Char rules:
-        // - String(1), Char(1), and Char are assignable into Char
-        // - String is assignable into Char, but checked at runtime
-        // - String(*) and Char(*) is assignable into Char, but checked at runtime
+        // - String(1), Char(1), and Char are coercible into Char
+        // - String is coercible into Char, but checked at runtime
+        // - String(*) and Char(*) is coercible into Char, but checked at runtime
         (TypeKind::Char, TypeKind::Char | TypeKind::String) => true,
         (TypeKind::Char, TypeKind::StringN(size)) | (TypeKind::Char, TypeKind::CharN(size)) => {
             seq_size(db, size).map(|n| n == 1).unwrap_or(true)
         }
 
         // Char(N) rules:
-        // - Char is assignable into Char(N) if N = 1
-        // - Char(M) is assignable into Char(N) if N = M
-        // - String(M) is assignable into Char(N) if N <= M, but double checked at runtime
-        // - String is assignable into Char(N), but checked at runtime
-        // - All of these are assignable into Char(*), but checked at runtime
+        // - Char is coercible into Char(N) if N = 1
+        // - Char(M) is coercible into Char(N) if N = M
+        // - String(M) is coercible into Char(N) if N <= M, but double checked at runtime
+        // - String is coercible into Char(N), but checked at runtime
+        // - All of these are coercible into Char(*), but checked at runtime
         (TypeKind::CharN(left), rhs) => match (seq_size(db, left), rhs) {
             // Char(N) := Char where N = 1
             (Some(n), TypeKind::Char) => n == 1,
@@ -349,15 +335,15 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
         },
 
         // String rules:
-        // - Char, String(N), String(*) and String are assignable into String
-        // - Char(N) is assignable into String if N < `MAX_STRING_LEN`
-        // - Char(*) is assignable into String, but is checked at runtime
+        // - Char, String(N), String(*) and String are coercible into String
+        // - Char(N) is coercible into String if N < `MAX_STRING_LEN`
+        // - Char(*) is coercible into String, but is checked at runtime
 
         // String(N) rules:
-        // - Char is assignable into String(N) and String(*)
-        // - String is assignable into String(N) and String(*), but checked at runtime
-        // - String(M) is assignable into String(N) and String(*), but String(N) is double checked at runtime
-        // - Char(M) is assignable into String(N) and String(*) if n >= m and m < `MAX_STRING_LEN`
+        // - Char is coercible into String(N) and String(*)
+        // - String is coercible into String(N) and String(*), but checked at runtime
+        // - String(M) is coercible into String(N) and String(*), but String(N) is double checked at runtime
+        // - Char(M) is coercible into String(N) and String(*) if n >= m and m < `MAX_STRING_LEN`
 
         // String | String(* | N) :=
         //   Char
@@ -386,11 +372,43 @@ pub fn is_assignable<T: db::ConstEval + ?Sized>(
             }
         }
 
-        // Not assignable otherwise
+        // Not coercible otherwise
         _ => false,
-    };
+    }
+}
 
-    Some(is_assignable)
+/// Tests if `rhs` can be implicitly coerced into the `lhs` type, or if the
+/// swapped version is true.
+///
+/// This is the symmetric version of [`is_coercible_into`]
+pub fn is_either_coercible<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, right: TypeId) -> bool {
+    is_coercible_into(db, left, right) || is_coercible_into(db, right, left)
+}
+
+// TODO: Document type assignability
+// steal from the old compiler
+/// Returns `Some(is_assignable)`, or `None` if the the l_value is not deref'able.
+/// `ignore_mut` is only to be used during initializers
+///
+/// l_value should be left as a ref it is one.
+pub fn is_assignable<T: ?Sized + db::ConstEval>(
+    db: &T,
+    left: TypeId,
+    right: TypeId,
+    ignore_mut: bool,
+) -> Option<bool> {
+    let left = left.in_db(db);
+    let right = right.in_db(db);
+
+    let left = if ignore_mut {
+        left.to_deref().ok()?
+    } else {
+        left.to_deref_mut().ok()?
+    };
+    let right = right.peel_ref();
+
+    // Defer to the coercion rules
+    Some(is_coercible_into(db, left.id(), right.id()))
 }
 
 /// Result of inferring a type from an operation
@@ -796,14 +814,14 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                 // Charseqs that can be coerced to a sized type are comparable
                 (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(()),
                 // All scalar types can be tested for equality if they are of equivalent types
-                (lhs, rhs)
-                    if lhs.is_scalar()
-                        && rhs.is_scalar()
-                        && is_equivalent(db, left.id(), right.id()) =>
-                {
-                    // TODO: This also needs to do type coercion for proper equality
-                    // e.g. testing equality between `int1` and `int` is impossible
-                    Ok(())
+                (lhs, rhs) if lhs.is_scalar() && rhs.is_scalar() => {
+                    // Types should be coercible into each other
+                    // TODO: This really only starts to matter when we lower range types, so add tests for this then
+                    if is_either_coercible(db, left.id(), right.id()) {
+                        Ok(())
+                    } else {
+                        mk_type_error()
+                    }
                 }
                 // All other types aren't comparable
                 _ => mk_type_error(),
