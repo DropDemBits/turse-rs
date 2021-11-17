@@ -13,7 +13,7 @@ use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
-use crate::const_eval::Const;
+use crate::const_eval::{Const, ConstValue};
 use crate::db::HirAnalysis;
 use crate::ty;
 
@@ -572,8 +572,7 @@ impl TypeCheck<'_> {
             let selector_span = self.library.lookup_span(selector_span);
 
             // Must match discriminant type
-            // TODO: We can only use coercible types for selectors if we can verify the below TODO
-            if !ty::rules::is_equivalent(db, discrim_ty.id(), selector_ty) {
+            if !ty::rules::is_coercible_into(db, discrim_ty.id(), selector_ty) {
                 let selector_ty = selector_ty.in_db(db).peel_ref();
 
                 self.state()
@@ -590,16 +589,45 @@ impl TypeCheck<'_> {
             }
 
             // Must be a compile time expression
-            // TODO: If this evaluates to a string & discrim_ty is coercible into char, then check that it's a length 1 string
-            let res = db
-                .evaluate_const(
-                    Const::from_expr(self.library_id, expr::BodyExpr(body_id, selector)),
-                    Default::default(),
-                )
-                .err();
+            let res = db.evaluate_const(
+                Const::from_expr(self.library_id, expr::BodyExpr(body_id, selector)),
+                Default::default(),
+            );
 
-            if let Some(err) = res {
-                err.report_to(db, &mut self.state().reporter);
+            match res {
+                Err(err) => {
+                    err.report_to(db, &mut self.state().reporter);
+                }
+                Ok(ConstValue::String(s)) if matches!(discrim_ty.kind(), ty::TypeKind::Char) => {
+                    // Check that it's a length 1 string
+                    if s.len() != 1 {
+                        let selector_ty = selector_ty.in_db(db).peel_ref();
+
+                        self.state()
+                            .reporter
+                            .error_detailed("mismatched types", selector_span)
+                            .with_note(
+                                &format!(
+                                    "this is of type `{}`, of length {}",
+                                    selector_ty,
+                                    s.len()
+                                ),
+                                selector_span,
+                            )
+                            .with_note(
+                                &format!("discriminant is of type `{}`", discrim_ty),
+                                discrim_span,
+                            )
+                            .with_info(&format!(
+                                "`{}` only allows `{}` or `{}`s of length 1",
+                                discrim_ty,
+                                ty::TypeKind::Char.prefix(),
+                                ty::TypeKind::String.prefix()
+                            ))
+                            .finish();
+                    }
+                }
+                _ => (),
             }
         }
     }

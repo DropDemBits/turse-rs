@@ -1263,9 +1263,8 @@ test_named_group! {
         normal_discrim_select_ty => r#"case 'c' of label 'c', 'd', 'e' end case"#,
         mismatch_discrim_select_ty => r#"case 'c' of label 123, 'dd', false end case"#,
         wrong_mismatch_discrim_select_ty => r#"case 1.0 of label 1, 'd', false end case"#,
-        // TODO: Uncomment once we allow coerced types again
-        //coerced_discrim_select_ty => r#"case 'c' of label "c": end case"#,
-        //wrong_coerced_discrim_select_ty => r#"case 'c' of label "cc": end case"#,
+        coerced_discrim_select_ty => r#"case 'c' of label "c": end case"#,
+        wrong_coerced_discrim_select_ty => r#"case 'c' of label "cc", "": end case"#,
 
         // - selectors are compile-time evaluable
         comptime_selector_exprs => r#"
@@ -1273,8 +1272,7 @@ test_named_group! {
         case true of label true and false: end case
         % TODO: uncomment once `chr` is a comptime operation
         %case 'E' of label chr(17 * 4 + 1): end case
-        % TODO: uncomment once strconcat is a comptime operation
-        %case "vee" of label "v" + "e" + 'e': end case
+        case "vee" of label "v" + "e" + 'e': end case
         "#,
         non_comptime_selector_expr => r#"
         var k : int
