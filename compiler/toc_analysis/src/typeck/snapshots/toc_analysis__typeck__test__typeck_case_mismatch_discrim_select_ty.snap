@@ -1,14 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "case 'c' of label \"c\", 'dd', false end case"
+expression: "case 'c' of label 123, 'dd', false end case"
 
 ---
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 18..21: mismatched types
-| note in file FileId(1) for 18..21: this is of type `string`
+| note in file FileId(1) for 18..21: this is of type `{integer}`
 | note in file FileId(1) for 5..8: discriminant is of type `char`
-| info: `string` is not a `char`
+| info: `{integer}` is not a `char`
 | info: selector type must match discriminant type
 error in file FileId(1) at 23..27: mismatched types
 | note in file FileId(1) for 23..27: this is of type `char(2)`

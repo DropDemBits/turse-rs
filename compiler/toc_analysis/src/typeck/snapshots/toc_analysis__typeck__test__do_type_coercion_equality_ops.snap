@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "var c1 : char(1)\nvar c : char\nvar _res : boolean\n_res := c = c1\n"
+
+---
+"c1"@(FileId(1), 4..6) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"c"@(FileId(1), 21..22) [Declared]: ref_mut char
+"_res"@(FileId(1), 34..38) [Declared]: ref_mut boolean
+"<root>"@(dummy) [Declared]: <error>
+

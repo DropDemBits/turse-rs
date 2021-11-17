@@ -399,6 +399,184 @@ test_for_each_op! { string_manip_op_wrong_type,
     "#
 }
 
+test_for_each_op! { comparison_op_numerics,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Numerics
+    var r : real
+    var i : int
+    var n : nat
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := 1 {0} 1
+    _v_res := 1 {0} 1.0
+    _v_res := 1 {0} r
+    _v_res := 1 {0} i
+    _v_res := 1 {0} n
+
+    _v_res := 1.0 {0} 1
+    _v_res := 1.0 {0} 1.0
+    _v_res := 1.0 {0} r
+    _v_res := 1.0 {0} i
+    _v_res := 1.0 {0} n
+
+    _v_res := r {0} 1
+    _v_res := r {0} 1.0
+    _v_res := r {0} r
+    _v_res := r {0} i
+    _v_res := r {0} n
+
+    _v_res := i {0} 1
+    _v_res := i {0} 1.0
+    _v_res := i {0} r
+    _v_res := i {0} i
+    _v_res := i {0} n
+
+    _v_res := n {0} 1
+    _v_res := n {0} 1.0
+    _v_res := n {0} r
+    _v_res := n {0} i
+    _v_res := n {0} n
+    "#,
+}
+
+test_for_each_op! { comparison_op_charseqs,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Sized charseqs
+    var c : char
+    var c_sz : char(6)
+    var s : string
+    var s_sz : string(6)
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := c {0} c
+    _v_res := c {0} c_sz
+    _v_res := c {0} s
+    _v_res := c {0} s_sz
+
+    _v_res := c_sz {0} c
+    _v_res := c_sz {0} c_sz
+    _v_res := c_sz {0} s
+    _v_res := c_sz {0} s_sz
+
+    _v_res := s {0} c
+    _v_res := s {0} c_sz
+    _v_res := s {0} s
+    _v_res := s {0} s_sz
+
+    _v_res := s_sz {0} c
+    _v_res := s_sz {0} c_sz
+    _v_res := s_sz {0} s
+    _v_res := s_sz {0} s_sz
+    "#,
+}
+
+test_for_each_op! { comparison_op_wrong_types,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Numerics
+    var r : real
+    var i : int
+    var n : nat
+
+    % Other scalars
+    var b : boolean
+
+    % Sized charseqs
+    var c : char
+    var c_sz : char(6)
+    var s : string
+    var s_sz : string(6)
+
+    % should all produce boolean anyway
+    var _v_res : boolean
+
+    _v_res := r {0} b
+    _v_res := r {0} c
+    _v_res := r {0} c_sz
+    _v_res := r {0} s
+    _v_res := r {0} s_sz
+
+    _v_res := i {0} b
+    _v_res := i {0} c
+    _v_res := i {0} c_sz
+    _v_res := i {0} s
+    _v_res := i {0} s_sz
+
+    _v_res := n {0} b
+    _v_res := n {0} c
+    _v_res := n {0} c_sz
+    _v_res := n {0} s
+    _v_res := n {0} s_sz
+
+    _v_res := b {0} r
+    _v_res := b {0} i
+    _v_res := b {0} n
+    _v_res := b {0} c
+    _v_res := b {0} c_sz
+    _v_res := b {0} s
+    _v_res := b {0} s_sz
+
+    _v_res := c {0} r
+    _v_res := c {0} i
+    _v_res := c {0} n
+    _v_res := c {0} b
+
+    _v_res := c_sz {0} r
+    _v_res := c_sz {0} i
+    _v_res := c_sz {0} n
+    _v_res := c_sz {0} b
+
+    _v_res := s {0} r
+    _v_res := s {0} i
+    _v_res := s {0} n
+    _v_res := s {0} b
+
+    _v_res := s_sz {0} r
+    _v_res := s_sz {0} i
+    _v_res := s_sz {0} n
+    _v_res := s_sz {0} b
+    "#
+}
+
+test_for_each_op! { equality_op_scalars,
+    [
+        ("=", equal),
+        ("not=", not_equal)
+    ] => r#"
+    % Other scalars
+    var b : boolean
+
+    % should all produce boolean
+    var _v_res : boolean
+
+    _v_res := b {0} b
+    "#
+}
+
 // Test integer inference for all compatible operators
 test_for_each_op! { integer_inference,
     [
@@ -440,6 +618,42 @@ test_for_each_op! { integer_inference,
     var _i0 := {0} i
     var _n0 := {0} n
 "#
+}
+
+// Anything using `is_equivalent` and using type coercion needs to be added here
+test_named_group! { do_type_coercion,
+    [
+        // These check if we are performing type coercion at all
+        // The type coercion tests are somewhere else
+        comparison_ops => r#"
+        var i1 : int1
+        var i : int
+        var _res : boolean
+        _res := i < i1
+        "#,
+        equality_ops => r#"
+        var c1 : char(1)
+        var c : char
+        var _res : boolean
+        _res := c = c1
+        "#,
+        for_bounds => r#"
+        var i1 : int1
+        var i : int
+        var _res : boolean
+        for : i .. i1 end for
+        "#,
+        // TODO: Uncomment once we allow coercion in case selectors
+        /*
+        case_selectors => r#"
+        var i1 : int1
+        const k : int := 1
+        case i1 of
+        label k:
+        end case
+        "#
+        */
+    ]
 }
 
 test_named_group! { sized_char,
@@ -1047,8 +1261,11 @@ test_named_group! {
 
         // discriminant - selector equivalence
         normal_discrim_select_ty => r#"case 'c' of label 'c', 'd', 'e' end case"#,
-        mismatch_discrim_select_ty => r#"case 'c' of label "c", 'dd', false end case"#,
+        mismatch_discrim_select_ty => r#"case 'c' of label 123, 'dd', false end case"#,
         wrong_mismatch_discrim_select_ty => r#"case 1.0 of label 1, 'd', false end case"#,
+        // TODO: Uncomment once we allow coerced types again
+        //coerced_discrim_select_ty => r#"case 'c' of label "c": end case"#,
+        //wrong_coerced_discrim_select_ty => r#"case 'c' of label "cc": end case"#,
 
         // - selectors are compile-time evaluable
         comptime_selector_exprs => r#"

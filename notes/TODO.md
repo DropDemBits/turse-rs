@@ -157,8 +157,8 @@
       - [x] Bitwise
       - [x] Logical
       - [ ] Comparison
-        - [ ] Numeric
-        - [ ] Lexicographic (over charseqs)
+        - [x] Numeric
+        - [x] Lexicographic (over charseqs)
         - [ ] Class hierarchy
         - [ ] Enums
         - [ ] Sets (sub/superset tests)

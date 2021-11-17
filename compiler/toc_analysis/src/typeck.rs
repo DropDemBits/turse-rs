@@ -447,8 +447,8 @@ impl TypeCheck<'_> {
 
                 let is_index_ty = |ty_kind: &ty::TypeKind| ty_kind.is_index() || ty_kind.is_error();
 
-                if !ty::rules::is_equivalent(db, start_ty.id(), end_ty.id()) {
-                    // Bounds are not equivalent
+                if !ty::rules::is_either_coercible(db, start_ty.id(), end_ty.id()) {
+                    // Bounds are not equivalent for our purposes
                     self.state()
                         .reporter
                         .error_detailed("range bounds are not the same type", bounds_span)
@@ -567,12 +567,12 @@ impl TypeCheck<'_> {
             })
             .flatten()
         {
-            // was doing: adding tests
             let selector_ty = db.type_of((self.library_id, body_id, selector).into());
             let selector_span = self.library.body(body_id).expr(selector).span;
             let selector_span = self.library.lookup_span(selector_span);
 
             // Must match discriminant type
+            // TODO: We can only use coercible types for selectors if we can verify the below TODO
             if !ty::rules::is_equivalent(db, discrim_ty.id(), selector_ty) {
                 let selector_ty = selector_ty.in_db(db).peel_ref();
 
@@ -590,6 +590,7 @@ impl TypeCheck<'_> {
             }
 
             // Must be a compile time expression
+            // TODO: If this evaluates to a string & discrim_ty is coercible into char, then check that it's a length 1 string
             let res = db
                 .evaluate_const(
                     Const::from_expr(self.library_id, expr::BodyExpr(body_id, selector)),
