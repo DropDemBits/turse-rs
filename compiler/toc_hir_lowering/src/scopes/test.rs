@@ -30,7 +30,8 @@ fn test_ident_declare_use() {
     let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
-    let def_id = scopes.def_sym("a", defs.next(), false);
+    let def_id = defs.next();
+    scopes.def_sym("a", def_id, false);
     let lookup_id = scopes.use_sym("a", assert_declared);
 
     assert_eq!(def_id, lookup_id);
@@ -42,12 +43,17 @@ fn test_ident_redeclare() {
     let mut defs = LocalDefAlloc::default();
 
     // First decl, pass
-    let initial_id = scopes.def_sym("a", defs.next(), false);
+    let initial_id = defs.next();
+    let old_def = scopes.def_sym("a", initial_id, false);
+    assert_eq!(old_def, None);
 
     // Redecl, have different ids
-    let redeclare_id = scopes.def_sym("a", defs.next(), false);
+    let redeclare_id = defs.next();
+    let old_def = scopes.def_sym("a", redeclare_id, false);
 
     assert_ne!(initial_id, redeclare_id);
+    // Should be the initial id
+    assert_eq!(old_def, Some(initial_id));
 }
 
 #[test]
@@ -57,14 +63,19 @@ fn test_ident_declare_shadow() {
     let mut defs = LocalDefAlloc::default();
 
     // Outer declare
-    let outer_def = scopes.def_sym("a", defs.next(), false);
+    let outer_def = defs.next();
+    let old_def = scopes.def_sym("a", outer_def, false);
+    assert_eq!(old_def, None);
 
     // Inner declare
     scopes.with_scope(false, |scopes| {
-        let shadow_def = scopes.def_sym("a", defs.next(), false);
+        let shadow_def = defs.next();
+        let old_def = scopes.def_sym("a", shadow_def, false);
 
         // Identifiers should be different
         assert_ne!(shadow_def, outer_def);
+        // Old def should be outer_def
+        assert_eq!(old_def, Some(outer_def));
         // Use here should fetch shadow_def
         assert_eq!(scopes.use_sym("a", assert_declared), shadow_def);
     });
@@ -81,18 +92,24 @@ fn test_ident_declare_no_shadow() {
 
     // Inner declare
     let (shadow_def, shadow_use) = scopes.with_scope(false, |scopes| {
-        let shadow_def = scopes.def_sym("a", defs.next(), false);
+        let shadow_def = defs.next();
+        let old_def = scopes.def_sym("a", shadow_def, false);
         let shadow_use = scopes.use_sym("a", assert_declared);
+
+        assert!(old_def.is_none());
 
         (shadow_def, shadow_use)
     });
 
     // Outer declare
-    let outer_def = scopes.def_sym("a", defs.next(), false);
+    let outer_def = defs.next();
+    let old_def = scopes.def_sym("a", outer_def, false);
     let outer_use = scopes.use_sym("a", assert_declared);
 
-    // No shadowing should be done, outer_use should match outer_def
+    // No shadowing should be done, outer_use should match outer_def,
+    // and old_def shouldn't exist
     assert_eq!(outer_def, outer_use);
+    assert!(old_def.is_none());
     // Identifiers should be different
     assert_ne!(shadow_def, outer_def);
     assert_ne!(shadow_use, outer_use);
@@ -147,7 +164,8 @@ fn test_use_import() {
     let mut defs = LocalDefAlloc::default();
 
     // Root declare
-    let declare_id = scopes.def_sym("a", defs.next(), false);
+    let declare_id = defs.next();
+    scopes.def_sym("a", declare_id, false);
 
     // Inner use
     scopes.with_scope(false, |scopes| {
@@ -164,8 +182,10 @@ fn test_import_boundaries() {
     let mut defs = LocalDefAlloc::default();
 
     // Declare some external identifiers
-    let non_pervasive = scopes.def_sym("non_pervasive", defs.next(), false);
-    let pervasive = scopes.def_sym("pervasive", defs.next(), true);
+    let non_pervasive = defs.next();
+    scopes.def_sym("non_pervasive", non_pervasive, false);
+    let pervasive = defs.next();
+    scopes.def_sym("pervasive", pervasive, true);
     let undecl = scopes.use_sym("undecl", make_undeclared(&mut defs));
 
     // Make an inner block
