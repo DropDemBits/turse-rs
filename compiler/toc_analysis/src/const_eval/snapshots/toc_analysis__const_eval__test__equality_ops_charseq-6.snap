@@ -1,0 +1,8 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+expression: "'cc' ~= 'c'"
+
+---
+"_"@(FileId(1), 6..7) -> Bool(true)
+
+

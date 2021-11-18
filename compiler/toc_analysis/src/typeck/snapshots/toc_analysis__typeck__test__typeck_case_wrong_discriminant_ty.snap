@@ -15,4 +15,3 @@ error in file FileId(1) at 37..41: mismatched types
 | info: `case` discriminant must be either:
 | info: - an index type (an integer, `boolean`, `char`, enumerated type, or a range), or
 | info: - a `string`
-error in file FileId(1) at 51..55: literal is currently not implemented for compile-time evaluation

@@ -1,6 +1,7 @@
 //! Const eval query implementations
 
 use std::convert::TryInto;
+use std::sync::Arc;
 
 use toc_hir::{expr, item::Mutability, symbol::DefId};
 
@@ -89,12 +90,9 @@ pub(crate) fn evaluate_const(
                     }
                     expr::Literal::Real(v) => ConstValue::Real(*v),
                     expr::Literal::Boolean(v) => ConstValue::Bool(*v),
-                    expr::Literal::Char(_)
-                    | expr::Literal::CharSeq(_)
-                    | expr::Literal::String(_) => {
-                        // Unsupported const value
-                        return Err(ConstError::new(ErrorKind::UnsupportedValue, expr_span));
-                    }
+                    expr::Literal::Char(v) => ConstValue::Char(*v),
+                    expr::Literal::CharSeq(v) => ConstValue::CharN(Arc::new(v.clone())),
+                    expr::Literal::String(v) => ConstValue::String(Arc::new(v.clone())),
                 };
 
                 operand_stack.push(operand);

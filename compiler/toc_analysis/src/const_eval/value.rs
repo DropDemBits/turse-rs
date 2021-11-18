@@ -1,5 +1,7 @@
 //! Compile-time values
 
+use std::sync::Arc;
+
 use toc_span::Span;
 
 use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt};
@@ -7,7 +9,7 @@ use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt};
 /// A compile-time constant literal
 ///
 /// # Note
-/// `Eq` and `PartialEq` only satisfy bitwise structual equality,
+/// `Eq` and `PartialEq` only satisfy bitwise structural equality,
 /// which may be different from value equality of the type.
 #[derive(Debug, Clone)]
 pub enum ConstValue {
@@ -17,6 +19,12 @@ pub enum ConstValue {
     Real(f64),
     /// Boolean value
     Bool(bool),
+    /// Character value
+    Char(char),
+    /// String value (wrapped in `Arc` to be cheaply cloneable)
+    String(Arc<String>),
+    /// CharN value (wrapped in `Arc` to be cheaply cloneable)
+    CharN(Arc<String>),
 }
 
 impl std::hash::Hash for ConstValue {
@@ -28,9 +36,12 @@ impl std::hash::Hash for ConstValue {
 impl PartialEq for ConstValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Real(l0), Self::Real(r0)) => l0.to_bits() == r0.to_bits(),
             (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
+            (Self::Real(l0), Self::Real(r0)) => l0.to_bits() == r0.to_bits(),
             (Self::Bool(l0), Self::Bool(r0)) => l0 == r0,
+            (Self::Char(l0), Self::Char(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::CharN(l0), Self::CharN(r0)) => l0 == r0,
             _ => false,
         }
     }
@@ -50,15 +61,6 @@ impl ConstValue {
         match self {
             ConstValue::Integer(v) => Ok(v),
             _ => Err(ConstError::new(ErrorKind::WrongResultType, span)),
-        }
-    }
-
-    /// Gets the human readable version of the value's type
-    pub fn type_name(&self) -> &str {
-        match self {
-            ConstValue::Integer(_) => "integer value",
-            ConstValue::Real(_) => "real value",
-            ConstValue::Bool(_) => "boolean value",
         }
     }
 

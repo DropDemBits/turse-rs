@@ -3,6 +3,7 @@ use toc_hir::expr;
 use toc_reporting::MessageSink;
 use toc_span::Span;
 
+use crate::ty;
 use crate::{
     const_eval::{ConstInt, ConstResult},
     db,
@@ -263,9 +264,6 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     // | String(*) [runtime checked]
     //
 
-    /// Maximum length of a `string`
-    const MAX_STRING_LEN: u32 = 256;
-
     let left = lhs.in_db(db).peel_ref();
     let right = rhs.in_db(db).peel_ref();
 
@@ -355,16 +353,16 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
         ) => true,
         (TypeKind::String, TypeKind::CharN(size)) => match seq_size(db, size) {
             // String := Char(N) if N < `MAX_STRING_LEN`
-            Some(n) => n < MAX_STRING_LEN,
+            Some(n) => n < ty::MAX_STRING_LEN,
             // String := Char(*) [runtime checked]
             None => true,
         },
         (TypeKind::StringN(left), TypeKind::CharN(right)) => {
             match (seq_size(db, left), seq_size(db, right)) {
                 // String(N) := Char(M) if M in [N..MAX_STRING_LEN)
-                (Some(n), Some(m)) => n >= m && m < MAX_STRING_LEN,
+                (Some(n), Some(m)) => n >= m && m < ty::MAX_STRING_LEN,
                 // String(*) := Char(N) if M < MAX_STRING_LEN
-                (None, Some(m)) => m < MAX_STRING_LEN,
+                (None, Some(m)) => m < ty::MAX_STRING_LEN,
                 // String(N) := Char(*) [runtime checked]
                 (Some(_n), None) => true,
                 // String(*) := Char(*) [runtime checked]

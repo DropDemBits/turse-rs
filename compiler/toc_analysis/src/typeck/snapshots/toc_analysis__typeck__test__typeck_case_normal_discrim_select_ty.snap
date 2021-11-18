@@ -5,6 +5,3 @@ expression: "case 'c' of label 'c', 'd', 'e' end case"
 ---
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 18..21: literal is currently not implemented for compile-time evaluation
-error in file FileId(1) at 23..26: literal is currently not implemented for compile-time evaluation
-error in file FileId(1) at 28..31: literal is currently not implemented for compile-time evaluation

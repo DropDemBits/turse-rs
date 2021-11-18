@@ -1,0 +1,7 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "case 'c' of label \"c\": end case"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

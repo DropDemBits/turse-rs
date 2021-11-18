@@ -5,6 +5,7 @@ use toc_hir_db::db::HirDatabase;
 use toc_reporting::{MessageBundle, MessageSink};
 use unindent::unindent;
 
+use crate::ty;
 use crate::{const_eval::Const, db::ConstEval, test_db::TestDb};
 
 #[track_caller]
@@ -261,6 +262,151 @@ fn bitwise_const_ops() {
 }
 
 #[test]
+fn string_concat_ops() {
+    for_all_const_exprs![
+        // Special cases, produce CharN values
+        // char char
+        r#"'b' + 'a'"#
+        // char charN
+        // charN char
+        r#"'a' + 'cab'"#
+        r#"'aca' + 'b'"#
+        // charN charN
+        r#"'wow' + 'ie'"#
+
+        // The rest, produce String values
+        // char string
+        // string char
+        r#"'v' + "ee""#
+        r#""ve" + 'e'"#
+        // charN string
+        // string charN
+        r#""o" + 'wo'"#
+        r#"'ow' + "o""#
+        // string string
+        r#""v" + "ee""#
+    ];
+}
+
+#[test]
+fn compare_ops_numeric() {
+    // Testing ordering
+    for_all_const_exprs![
+        // With reals
+        "1.0 < 2.0"
+        "2.0 < 1.0"
+        "1.0 > 2.0"
+        "2.0 > 1.0"
+
+        "1.0 <= 1.0"
+        "1.0 <= 2.0"
+        "2.0 >= 2.0"
+        "2.0 >= 1.0"
+
+        // With integers
+        "1 < 2"
+        "2 < 1"
+        "1 > 2"
+        "2 > 1"
+
+        "1 <= 1"
+        "1 <= 2"
+        "2 >= 2"
+        "2 >= 1"
+    ];
+}
+
+#[test]
+fn compare_ops_charseq() {
+    for_all_const_exprs! [
+        r#"'c' < 'c'"#
+        r#"'c' > 'c'"#
+        r#"'c' <= 'c'"#
+        r#"'c' >= 'c'"#
+
+        r#"'c' < 'cc'"#
+        r#"'c' > 'cc'"#
+        r#"'c' <= 'cc'"#
+        r#"'c' >= 'cc'"#
+
+        r#"'cc' < 'c'"#
+        r#"'cc' > 'c'"#
+        r#"'cc' <= 'c'"#
+        r#"'cc' >= 'c'"#
+
+        r#""" < 'c'"#
+        r#""" > 'c'"#
+        r#""" <= 'c'"#
+        r#""" >= 'c'"#
+
+        r#"'c' < """#
+        r#"'c' > """#
+        r#"'c' <= """#
+        r#"'c' >= """#
+
+        r#"'cc' < "dd""#
+        r#"'cc' > "dd""#
+        r#"'cc' <= "dd""#
+        r#"'cc' >= "dd""#
+    ];
+}
+
+#[test]
+fn equality_ops_numeric() {
+    for_all_const_exprs![
+        // With reals
+        "1.0 = 2.0"
+        "2.0 = 2.0"
+        "1.0 ~= 2.0"
+        "2.0 ~= 2.0"
+
+        // With integers
+        "1 = 2"
+        "2 = 2"
+        "1 ~= 2"
+        "2 ~= 2"
+    ];
+}
+
+#[test]
+fn equality_ops_bool() {
+    for_all_const_exprs! [
+        "true = true"
+        "true = false"
+        "false = true"
+        "false = false"
+
+        "true ~= true"
+        "true ~= false"
+        "false ~= true"
+        "false ~= false"
+    ];
+}
+
+#[test]
+fn equality_ops_charseq() {
+    for_all_const_exprs! [
+        r#"'c' = 'c'"#
+        r#"'c' ~= 'c'"#
+
+        r#"'c' = 'cc'"#
+        r#"'c' ~= 'cc'"#
+
+        r#"'cc' = 'c'"#
+        r#"'cc' ~= 'c'"#
+
+        r#""" = 'c'"#
+        r#""" ~= 'c'"#
+
+        r#"'c' = """#
+        r#"'c' ~= """#
+
+        r#"'cc' = "dd""#
+        r#"'cc' ~= "dd""#
+    ];
+}
+
+#[test]
 fn real_promotion() {
     for_all_const_exprs![
         "1.0 + 1"
@@ -278,6 +424,18 @@ fn real_promotion() {
         "1.0 div 1"
         "  1 div 1.0"
         "1.0 div 1.0"
+
+        "1 < 1.0"
+        "1.0 < 1"
+
+        "1 > 1.0"
+        "1.0 > 1"
+
+        "1 >= 1.0"
+        "1.0 >= 1"
+
+        "1 <= 1.0"
+        "1.0 <= 1"
     ];
 }
 
@@ -458,6 +616,62 @@ fn error_logical_wrong_types() {
 }
 
 #[test]
+fn error_comparison_wrong_types() {
+    for_all_const_exprs! [
+        r#"1 < 'c'"#
+        r#"1 < 'cc'"#
+        r#"1 < "cc""#
+        r#"1 < true"#
+
+        r#"1.0 < 'c'"#
+        r#"1.0 < 'cc'"#
+        r#"1.0 < "cc""#
+        r#"1.0 < true"#
+
+        r#"'c' < 1"#
+        r#"'cc' < 1"#
+        r#""cc" < 1"#
+        r#"true < 1"#
+
+        r#"'c' < 1.0"#
+        r#"'cc' < 1.0"#
+        r#""cc" < 1.0"#
+        r#"true < 1.0"#
+
+        // Bools cannot be compared order-wise
+        r#"true < true"#
+        r#"true >= true"#
+        r#"true < true"#
+        r#"true >= true"#
+    ];
+}
+
+#[test]
+fn error_equality_wrong_types() {
+    for_all_const_exprs! [
+        r#"1 = 'c'"#
+        r#"1 = 'cc'"#
+        r#"1 = "cc""#
+        r#"1 = true"#
+
+        r#"1.0 = 'c'"#
+        r#"1.0 = 'cc'"#
+        r#"1.0 = "cc""#
+        r#"1.0 = true"#
+
+        r#"'c' = 1"#
+        r#"'cc' = 1"#
+        r#""cc" = 1"#
+        r#"true = 1"#
+
+        r#"'c' = 1.0"#
+        r#"'cc' = 1.0"#
+        r#""cc" = 1.0"#
+        r#"true = 1.0"#
+    ];
+}
+
+#[test]
 fn error_no_const_expr() {
     // Referencing a runtime-evaluated var
     assert_const_eval(&unindent(
@@ -510,6 +724,82 @@ fn error_negative_int_shift() {
 }
 
 #[test]
+fn error_charseq_too_big() {
+    // Character sequences are very long, so we'll have to make the string programmatically
+    const SEQ_LEN: usize = ty::MAX_CHAR_N_LEN as usize;
+    const FILLER: &str = "✨✨✨✨✨✨✨✨";
+    let mut big_charseq = String::with_capacity(SEQ_LEN);
+
+    for _ in 0..(SEQ_LEN / FILLER.len()) {
+        // ✨sparkle✨ to death
+        big_charseq.push_str(FILLER);
+    }
+
+    // Fill the remaining length with a's
+    for _ in big_charseq.len()..SEQ_LEN {
+        big_charseq.push('a');
+    }
+
+    let mid = {
+        // Skip towards a char
+        let mut cursor = big_charseq.len() / 2;
+        while !big_charseq.is_char_boundary(cursor) {
+            cursor += 1
+        }
+        cursor
+    };
+
+    // char, charN
+    let almost_slice = &big_charseq[..big_charseq.len() - 1];
+    assert_const_eval_expr(&format!("'a'+'{}'", almost_slice));
+    // charN, char
+    assert_const_eval_expr(&format!("'{}'+'a'", almost_slice));
+    // charN, charN
+    let (left, right) = big_charseq.split_at(mid);
+    assert_const_eval_expr(&format!("'{}'+'{}'", left, right));
+}
+
+#[test]
+fn error_string_too_big() {
+    // Max string size is sorta long, so we'll still make the string programmatically
+    const SEQ_LEN: usize = ty::MAX_STRING_LEN as usize;
+    const FILLER: &str = "✨✨✨✨✨✨✨✨";
+    let mut big_charseq = String::with_capacity(SEQ_LEN);
+
+    for _ in 0..(SEQ_LEN / FILLER.len()) {
+        // ✨sparkle✨ to death
+        big_charseq.push_str(FILLER);
+    }
+
+    // Fill the remaining length with a's
+    for _ in big_charseq.len()..SEQ_LEN {
+        big_charseq.push('a');
+    }
+
+    // char, string
+    let almost_slice = &big_charseq[..big_charseq.len() - 1];
+    assert_const_eval_expr(&format!(r#"'a'+"{}""#, almost_slice));
+    // string, char
+    assert_const_eval_expr(&format!(r#""{}"+'a'"#, almost_slice));
+
+    let mid = {
+        // Skip towards a char
+        let mut cursor = big_charseq.len() / 2;
+        while !big_charseq.is_char_boundary(cursor) {
+            cursor += 1
+        }
+        cursor
+    };
+    // string, charN
+    let (left, right) = big_charseq.split_at(mid);
+    assert_const_eval_expr(&format!(r#""{}"+'{}'"#, left, right));
+    // charN, string
+    assert_const_eval_expr(&format!(r#"'{}'+"{}""#, left, right));
+    // string, string
+    assert_const_eval_expr(&format!(r#""{}"+"{}""#, left, right));
+}
+
+#[test]
 fn restrict_assign_type() {
     // Assignment type restriction is only checked on const use (for eval only)
     // Boolean is assignable into boolean
@@ -535,21 +825,21 @@ fn restrict_assign_type() {
 }
 
 #[test]
-fn unsupported_values() {
-    assert_const_eval(r#"const a := "alphabet""#);
-    assert_const_eval(r#"const a := 'fun times'"#);
-    assert_const_eval(r#"const a := 'e'"#);
+fn supported_values() {
+    // All handled const values
+    for_all_const_exprs![
+        r#"1"#
+        r#"1.0"#
+        r#"true"#
+        r#""alphabet""#
+        r#"'fun times'"#
+        r#"'e'"#
+    ];
 }
 
 #[test]
 fn unsupported_ops() {
     for_all_const_exprs![
-        "1 > 1"
-        "1 >= 1"
-        "1 < 1"
-        "1 <= 1"
-        "1 = 1"
-        "1 ~= 1"
         "1 in 1"
         "1 ~in 1"
     ];
