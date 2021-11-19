@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use toc_hir::expr::{self, BodyExpr};
 use toc_hir::library::{self, LibraryId, WrapInLibrary};
 use toc_hir::stmt::BodyStmt;
-use toc_hir::symbol::{self, DefId};
+use toc_hir::symbol::DefId;
 use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -135,10 +135,6 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
     fn visit_unary(&self, id: BodyExpr, expr: &toc_hir::expr::Unary) {
         self.typeck_unary(id.0, expr);
-    }
-
-    fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
-        self.typeck_name(id, expr)
     }
 
     fn visit_primitive(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Primitive) {
@@ -671,30 +667,6 @@ impl TypeCheck<'_> {
                 op_span,
                 right_span,
                 &mut self.state().reporter,
-            );
-        }
-    }
-
-    fn typeck_name(&self, id: BodyExpr, expr: &expr::Name) {
-        let def_id = match expr {
-            expr::Name::Name(def_id) => *def_id,
-            expr::Name::Self_ => todo!(), // TODO: Take def id from associated class
-        };
-
-        let def_info = self.library.local_def(def_id);
-
-        if matches!(def_info.kind, symbol::SymbolKind::Undeclared) {
-            let span = self
-                .library
-                .body(id.0)
-                .expr(id.1)
-                .span
-                .lookup_in(&self.library.span_map);
-
-            self.state().reporter.error(
-                &format!("`{}` is not declared", def_info.name.item()),
-                "not found in this scope",
-                span,
             );
         }
     }
