@@ -96,9 +96,9 @@ fn var_decl_init_typecheck() {
 
 #[test]
 fn bare_var_decl() {
-    // Invariant, to be covered by the parser & hir stage
-    // Should not amount to anything
-    assert_typecheck("var k");
+    assert_typecheck("var k k := 3");
+    // should yell about this
+    assert_typecheck("const k k := 3");
 }
 
 #[test]

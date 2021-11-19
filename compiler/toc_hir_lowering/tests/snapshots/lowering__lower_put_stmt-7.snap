@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "put : a"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..7): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..7): []
+        Put@(FileId(1), 0..7): newline
+          Name@(FileId(1), 6..7): "a"@(FileId(1), 6..7), undeclared
+error in file FileId(1) at 6..7: `a` is undeclared
+| error in file FileId(1) for 6..7: no definitions of `a` are in scope
+

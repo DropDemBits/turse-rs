@@ -137,6 +137,8 @@ fn lower_simple_assignment() {
     assert_lower("var a, b : int a := b");
     // non-reference lhs
     assert_lower("1 := 2");
+    // no rhs
+    assert_lower("1 := ");
 }
 
 #[test]
@@ -497,6 +499,11 @@ fn lower_put_stmt() {
     assert_lower("put 1 : 1 :  : 1");
     assert_lower("put 1 : 1 :  : ");
     assert_lower("put 1 :  :  : ");
+
+    // stream expr
+    assert_lower("put : a");
+    // no items, but there's a stream expr
+    assert_lower("put : 1");
 }
 
 #[test]
@@ -509,6 +516,11 @@ fn lower_get_stmt() {
     assert_lower("get");
     // not a reference
     assert_lower("get a*a");
+
+    // stream expr
+    assert_lower("get a : a*a");
+    // no items, but there's a stream expr
+    assert_lower("get : 1");
 }
 
 #[test]

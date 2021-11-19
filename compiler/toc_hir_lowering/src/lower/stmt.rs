@@ -149,12 +149,8 @@ impl super::BodyLowering<'_, '_> {
             (asn_op.asn_kind().and_then(asn_to_bin_op), span)
         };
 
-        if stmt.lhs().is_none() && stmt.rhs().is_none() {
-            // No useful information can be provided
-            return None;
-        }
-
-        let lhs = self.lower_required_expr(stmt.lhs());
+        // Only lhs is required to generate a node
+        let lhs = self.lower_expr(stmt.lhs()?);
         let rhs = self.lower_required_expr(stmt.rhs());
 
         let rhs = if let Some(op) = op {
@@ -304,7 +300,7 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.scopes.push_scope(ScopeKind::Loop);
         {
             // counter is only available inside of the loop body
-            counter_def = name.map(|name| self.lower_name(name, false));
+            counter_def = name.map(|name| self.lower_name_def(name, false));
             body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
         }
         self.ctx.scopes.pop_scope();
@@ -450,14 +446,14 @@ impl super::BodyLowering<'_, '_> {
     ) -> Option<Vec<symbol::LocalDefId>> {
         let names = name_list?
             .names()
-            .map(|name| self.lower_name(name, is_pervasive))
+            .map(|name| self.lower_name_def(name, is_pervasive))
             .collect::<Vec<_>>();
 
         // Invariant: Names list must contain at least one name
         Some(names).filter(|names| !names.is_empty())
     }
 
-    fn lower_name(&mut self, name: ast::Name, is_pervasive: bool) -> symbol::LocalDefId {
+    fn lower_name_def(&mut self, name: ast::Name, is_pervasive: bool) -> symbol::LocalDefId {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
         let def_id = self
