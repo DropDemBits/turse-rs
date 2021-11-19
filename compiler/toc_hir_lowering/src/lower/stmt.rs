@@ -98,13 +98,6 @@ impl super::BodyLowering<'_, '_> {
 
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.ctx.lower_expr_body(expr));
-        let tail = match (type_spec, init_expr) {
-            (Some(type_spec), None) => item::ConstVarTail::TypeSpec(type_spec),
-            (None, Some(init_expr)) => item::ConstVarTail::InitExpr(init_expr),
-            (Some(type_spec), Some(init_expr)) => item::ConstVarTail::Both(type_spec, init_expr),
-            // Captured by the parser, no error needs to be reported
-            (None, None) => return None,
-        };
 
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
@@ -121,7 +114,8 @@ impl super::BodyLowering<'_, '_> {
                     is_register,
                     mutability,
                     def_id,
-                    tail,
+                    type_spec,
+                    init_expr,
                 };
 
                 let item_id = self.ctx.library.add_item(item::Item {
@@ -155,8 +149,9 @@ impl super::BodyLowering<'_, '_> {
             (asn_op.asn_kind().and_then(asn_to_bin_op), span)
         };
 
+        // Only lhs is required to generate a node
         let lhs = self.lower_expr(stmt.lhs()?);
-        let rhs = self.lower_expr(stmt.rhs()?);
+        let rhs = self.lower_required_expr(stmt.rhs());
 
         let rhs = if let Some(op) = op {
             // Insert binary expression
@@ -223,8 +218,8 @@ impl super::BodyLowering<'_, '_> {
         // Presence means newline should be omitted
         let append_newline = stmt.range_token().is_none();
 
-        if items.is_empty() {
-            // there must be at least one item present
+        if items.is_empty() && stream_num.is_none() {
+            // there must be something present
             None
         } else {
             Some(stmt::StmtKind::Put(stmt::Put {
@@ -260,8 +255,8 @@ impl super::BodyLowering<'_, '_> {
             })
             .collect::<Vec<_>>();
 
-        if items.is_empty() {
-            // there must be at least one item present
+        if items.is_empty() && stream_num.is_none() {
+            // there must be something present
             None
         } else {
             Some(stmt::StmtKind::Get(stmt::Get { stream_num, items }))
@@ -305,7 +300,7 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.scopes.push_scope(ScopeKind::Loop);
         {
             // counter is only available inside of the loop body
-            counter_def = name.map(|name| self.lower_name(name, false));
+            counter_def = name.map(|name| self.lower_name_def(name, false));
             body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
         }
         self.ctx.scopes.pop_scope();
@@ -451,14 +446,14 @@ impl super::BodyLowering<'_, '_> {
     ) -> Option<Vec<symbol::LocalDefId>> {
         let names = name_list?
             .names()
-            .map(|name| self.lower_name(name, is_pervasive))
+            .map(|name| self.lower_name_def(name, is_pervasive))
             .collect::<Vec<_>>();
 
         // Invariant: Names list must contain at least one name
         Some(names).filter(|names| !names.is_empty())
     }
 
-    fn lower_name(&mut self, name: ast::Name, is_pervasive: bool) -> symbol::LocalDefId {
+    fn lower_name_def(&mut self, name: ast::Name, is_pervasive: bool) -> symbol::LocalDefId {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
         let def_id = self

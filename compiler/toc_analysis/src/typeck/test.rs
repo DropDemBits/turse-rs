@@ -96,9 +96,9 @@ fn var_decl_init_typecheck() {
 
 #[test]
 fn bare_var_decl() {
-    // Invariant, to be covered by the parser & hir stage
-    // Should not amount to anything
-    assert_typecheck("var k");
+    assert_typecheck("var k k := 3");
+    // should yell about this
+    assert_typecheck("const k k := 3");
 }
 
 #[test]
@@ -732,6 +732,10 @@ test_named_group! { typeck_assignment,
             var lhs : int
             lhs := 1 + 1.0
         "#,
+        lhs_not_mut_missing_rhs => r#"
+            const j : int := 1
+            j := 
+        "#
     ]
 }
 
@@ -1127,6 +1131,7 @@ test_named_group! { typeck_put_stmt,
         var e : real
         put 1 : 0 : 0 : e
         "#,
+        wrong_type_only_steam => r#"put : 1.0"#
         // TODO: Add test for non-put-able items once non-primitive types are lowered
     ]
 }
@@ -1173,6 +1178,7 @@ test_named_group! { typeck_get_stmt,
         wrong_ref_literal => r#"
         get 1
         "#,
+        wrong_type_only_stream => r#"get : 1.0"#
         // TODO: Add test for non-get-able items once non-primitive types are lowered
     ]
 }

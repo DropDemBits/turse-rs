@@ -68,7 +68,8 @@ pub struct ConstVar {
     pub is_register: bool,
     pub mutability: Mutability,
     pub def_id: symbol::LocalDefId,
-    pub tail: ConstVarTail,
+    pub type_spec: Option<ty::TypeId>,
+    pub init_expr: Option<body::BodyId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

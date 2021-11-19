@@ -275,11 +275,11 @@ impl<'hir> Walker<'hir> {
     }
 
     fn walk_constvar(&mut self, node: &item::ConstVar) {
-        if let Some(ty) = node.tail.type_spec() {
+        if let Some(ty) = node.type_spec {
             self.enter_type(ty, self.lib.lookup_type(ty));
         }
 
-        if let Some(id) = node.tail.init_expr() {
+        if let Some(id) = node.init_expr {
             self.enter_body(id, self.lib.body(id));
         }
     }
