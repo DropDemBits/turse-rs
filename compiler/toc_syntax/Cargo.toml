@@ -13,5 +13,5 @@ toc_span = { path = "../toc_span" }
 rowan = "0.15"
 num-derive = "^0.3"
 num-traits = "0.2"
-lexical = { version = "^5", features = [ "radix" ] }
+lexical = { version = "^6", default-features = false, features = [ "std", "parse", "floats", ] }
 thiserror = "1.0"

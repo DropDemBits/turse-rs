@@ -221,13 +221,11 @@ impl LiteralExpr {
 
     fn parse_int_literal(text: &str) -> (LiteralValue, Option<LiteralParseError>) {
         // Basic integer, parsing with radix 10
-        let value = lexical::parse::<u64, _>(text);
-
-        match value {
+        match text.parse() {
             Ok(num) => (LiteralValue::Int(num), None),
             Err(err) => {
-                let err = match err.code {
-                    lexical::ErrorCode::Overflow => InvalidInt::TooLarge,
+                let err = match err.kind() {
+                    std::num::IntErrorKind::PosOverflow => InvalidInt::TooLarge,
                     _ => InvalidInt::Invalid,
                 };
                 (LiteralValue::Int(0), Some(LiteralParseError::Int(err)))
@@ -240,7 +238,7 @@ impl LiteralExpr {
         let (base_slice, digits_slice) = text.split_at(text.find('#').unwrap());
         let digits_slice = &digits_slice[1..]; // skip over #
 
-        let base = match lexical::parse::<u8, _>(base_slice) {
+        let base = match base_slice.parse::<u8>() {
             Ok(base) if (2..=36).contains(&base) => base,
             _ => {
                 // invalid base value
@@ -254,24 +252,42 @@ impl LiteralExpr {
         };
 
         // valid radix, parse the tail
-        match lexical::parse_radix::<u64, _>(&digits_slice, base) {
+        match u64::from_str_radix(digits_slice, base.into()) {
             Ok(num) => (LiteralValue::Int(num), None),
             Err(err) => {
-                let err = match err.code {
-                    lexical::ErrorCode::Overflow => {
+                let err = match err.kind() {
+                    std::num::IntErrorKind::PosOverflow => {
                         InvalidInt::RadixTooLarge((base_slice.len() + 1)..text.len())
                     }
-                    lexical::ErrorCode::InvalidDigit => {
+                    std::num::IntErrorKind::InvalidDigit => {
+                        // Find where the invalid digit is in the digit slice
+                        let (invalid_at, digit) = {
+                            let limit = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                .chars()
+                                .nth((base - 1).into())
+                                .unwrap();
+
+                            digits_slice
+                                .char_indices()
+                                .find(|(_, chr)| {
+                                    // These are the only two invalid digit conditions:
+                                    //
+                                    // - Any non-alphanumeric character is rejected immediately
+                                    //   Though, we shouldn't encounter this as long as the lexer did its job
+                                    //   and we didn't alter the number format
+                                    //
+                                    // - The digit is not valid in the current base
+                                    //   We're (ab)using the layout of the ascii table, as well as ensuring it's
+                                    //   alphanumeric so that we can just do one bounds check
+                                    !(chr.is_alphanumeric()
+                                        && ('0'..=limit).contains(&chr.to_ascii_uppercase()))
+                                })
+                                .expect("should be an invalid digit here")
+                        };
+
                         // Get the exact span of the invalid digit
                         // account for width of the radix & '#'
-                        let digit_at = base_slice.len() + 1 + err.index;
-
-                        // Unwrap is infallible because lexical already touched
-                        // this character
-                        let (_, digit) = text
-                            .char_indices()
-                            .find(|(idx, _)| *idx == digit_at)
-                            .unwrap();
+                        let digit_at = base_slice.len() + 1 + invalid_at;
 
                         InvalidInt::BaseInvalidDigit(
                             digit,
@@ -279,7 +295,7 @@ impl LiteralExpr {
                             digit_at..(digit_at + digit.len_utf8()),
                         )
                     }
-                    lexical::ErrorCode::Empty => InvalidInt::MissingRadix,
+                    std::num::IntErrorKind::Empty => InvalidInt::MissingRadix,
                     _ => InvalidInt::Invalid,
                 };
                 (LiteralValue::Int(0), Some(LiteralParseError::Int(err)))
@@ -289,21 +305,30 @@ impl LiteralExpr {
 
     fn parse_real_literal(text: &str) -> (LiteralValue, Option<LiteralParseError>) {
         // Pretty simple real parsing
-        let v = match lexical::parse_lossy::<f64, _>(text) {
-            Ok(num) if num.is_infinite() => (LiteralValue::Real(0.0), Some(InvalidReal::TooLarge)),
-            Ok(num) if num.is_nan() => (LiteralValue::Real(0.0), Some(InvalidReal::Invalid)),
-            Err(err) => {
-                let err = match err.code {
-                    lexical::ErrorCode::Overflow => InvalidReal::TooLarge,
-                    lexical::ErrorCode::Underflow => InvalidReal::TooSmall,
-                    lexical::ErrorCode::EmptyExponent => InvalidReal::MissingExponent,
-                    // all other cases are protected by what is parsed, but still push out an error
-                    _ => InvalidReal::Invalid,
-                };
-                (LiteralValue::Real(0.0), Some(err))
-            }
-            Ok(num) => (LiteralValue::Real(num), None),
-        };
+        let opts = lexical::ParseFloatOptionsBuilder::new()
+            .lossy(true)
+            .build()
+            .unwrap();
+
+        let v =
+            match lexical::parse_with_options::<f64, _, { lexical::format::STANDARD }>(text, &opts)
+            {
+                Ok(num) if num.is_infinite() => {
+                    (LiteralValue::Real(0.0), Some(InvalidReal::TooLarge))
+                }
+                Ok(num) if num.is_nan() => (LiteralValue::Real(0.0), Some(InvalidReal::Invalid)),
+                Err(err) => {
+                    let err = match err {
+                        lexical::Error::Overflow(_) => InvalidReal::TooLarge,
+                        lexical::Error::Underflow(_) => InvalidReal::TooSmall,
+                        lexical::Error::EmptyExponent(_) => InvalidReal::MissingExponent,
+                        // all other cases are protected by what is parsed, but still push out an error
+                        _ => InvalidReal::Invalid,
+                    };
+                    (LiteralValue::Real(0.0), Some(err))
+                }
+                Ok(num) => (LiteralValue::Real(num), None),
+            };
 
         (v.0, v.1.map(LiteralParseError::Real))
     }
@@ -489,7 +514,7 @@ impl<'a> CharSeqExtractor<'a> {
                 // Convert to character & check if it's in range
                 // Since we're only feeding in chars that are 0..7 and only octal values up to
                 // 777 (decimal 512), parsing should be infallible
-                let chr_value = lexical::parse_radix::<u16, _>(digits, 8).unwrap();
+                let chr_value = u16::from_str_radix(digits, 8).unwrap();
 
                 if let Ok(chr) = u8::try_from(chr_value) {
                     // Successful conversion, push it
@@ -535,7 +560,7 @@ impl<'a> CharSeqExtractor<'a> {
                 // Convert to character value & push it
                 // Since we're only feeding in chars that are '0'..'F' and only hex values up to
                 // `u8::MAX`, parsing should be infallible
-                let chr_value = lexical::parse_radix::<u8, _>(digits, 16).unwrap();
+                let chr_value = u8::from_str_radix(digits, 16).unwrap();
                 self.push(chr_value as char);
             }
             'u' | 'U' => {
@@ -572,7 +597,7 @@ impl<'a> CharSeqExtractor<'a> {
                 // Convert to Unicode codepoint
                 // Since we're only feeding in chars that are '0'..'F' and only hex values up to
                 // `u32::MAX`, parsing should be infallible
-                let codepoint = lexical::parse_radix::<u32, _>(digits, 16).unwrap();
+                let codepoint = u32::from_str_radix(digits, 16).unwrap();
 
                 // Try to convert codepoint into a `char`
                 if let Ok(chr) = char::try_from(codepoint) {
