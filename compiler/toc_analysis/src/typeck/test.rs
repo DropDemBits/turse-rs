@@ -102,13 +102,6 @@ fn bare_var_decl() {
 }
 
 #[test]
-fn undeclared_symbol() {
-    assert_typecheck("var a := b");
-    // No cyclic deps
-    assert_typecheck("var a := a");
-}
-
-#[test]
 fn typecheck_error_prop() {
     // Only one error should be reported, propagated error suppresses the rest
     assert_typecheck(&unindent(

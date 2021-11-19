@@ -1,14 +1,15 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := self"
+expression: "const a := self"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..9): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..9): []
-        Assign@(FileId(1), 0..9)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-error in file FileId(1) at 5..9: unsupported expression
-| error in file FileId(1) for 5..9: this expression is not supported yet
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..15): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..15): []
+        StmtItem@(FileId(1), 0..15): ItemId(0)
+          ConstVar@(FileId(1), 0..15): const "a"@(FileId(1), 6..7)
+            ExprBody@(FileId(1), 11..15)
+error in file FileId(1) at 11..15: unsupported expression
+| error in file FileId(1) for 11..15: this expression is not supported yet
 

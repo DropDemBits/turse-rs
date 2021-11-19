@@ -305,16 +305,7 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.scopes.push_scope(ScopeKind::Loop);
         {
             // counter is only available inside of the loop body
-            counter_def = name.map(|name| {
-                let name = name.identifier_token().unwrap();
-                let span = self.ctx.intern_range(name.text_range());
-                let def_id =
-                    self.ctx
-                        .library
-                        .add_def(name.text(), span, symbol::SymbolKind::Declared);
-                self.ctx.scopes.def_sym(name.text(), def_id, false)
-            });
-
+            counter_def = name.map(|name| self.lower_name(name, false));
             body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
         }
         self.ctx.scopes.pop_scope();
@@ -460,20 +451,47 @@ impl super::BodyLowering<'_, '_> {
     ) -> Option<Vec<symbol::LocalDefId>> {
         let names = name_list?
             .names()
-            .filter_map(|name| {
-                name.identifier_token().map(|token| {
-                    let span = self.ctx.intern_range(token.text_range());
-                    let def_id =
-                        self.ctx
-                            .library
-                            .add_def(token.text(), span, symbol::SymbolKind::Declared);
-                    self.ctx.scopes.def_sym(token.text(), def_id, is_pervasive)
-                })
-            })
+            .map(|name| self.lower_name(name, is_pervasive))
             .collect::<Vec<_>>();
 
         // Invariant: Names list must contain at least one name
         Some(names).filter(|names| !names.is_empty())
+    }
+
+    fn lower_name(&mut self, name: ast::Name, is_pervasive: bool) -> symbol::LocalDefId {
+        let token = name.identifier_token().unwrap();
+        let span = self.ctx.intern_range(token.text_range());
+        let def_id = self
+            .ctx
+            .library
+            .add_def(token.text(), span, symbol::SymbolKind::Declared);
+
+        // Bring into scope
+        let old_def = self.ctx.scopes.def_sym(token.text(), def_id, is_pervasive);
+
+        if let Some(old_def) = old_def {
+            let old_def_info = self.ctx.library.local_def(old_def);
+            if old_def_info.kind == symbol::SymbolKind::Declared {
+                // Redeclaring over an older def
+                let new_span = self.ctx.library.lookup_span(span);
+                let old_span = self.ctx.library.lookup_span(old_def_info.name.span());
+
+                // Just use the name from the old def
+                let name = old_def_info.name.item();
+
+                self.ctx
+                    .messages
+                    .error_detailed(
+                        &format!("`{}` is already declared in this scope", name),
+                        new_span,
+                    )
+                    .with_note(&format!("`{}` previously declared here", name), old_span)
+                    .with_error(&format!("`{}` redeclared here", name), new_span)
+                    .finish();
+            }
+        }
+
+        def_id
     }
 }
 

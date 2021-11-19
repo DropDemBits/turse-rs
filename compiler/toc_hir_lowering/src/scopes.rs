@@ -99,27 +99,47 @@ impl ScopeTracker {
         self.scopes.pop();
     }
 
+    /// Bring the definition into scope with the name `name`
+    ///
+    /// # Returns
+    /// The definition that previously held this `name`, if present
     pub fn def_sym(
         &mut self,
         name: &str,
         def_id: symbol::LocalDefId,
         is_pervasive: bool,
-    ) -> symbol::LocalDefId {
+    ) -> Option<symbol::LocalDefId> {
+        let last_def = self.lookup_def(name);
         self.scopes.last_mut().unwrap().def_in(name, def_id);
 
         if is_pervasive {
             self.pervasive_tracker.insert(def_id);
         }
 
-        def_id
+        last_def
     }
 
+    /// Looks up the given def named `name`, using `or_undeclared` if it doesn't exist
     pub fn use_sym(
         &mut self,
         name: &str,
         or_undeclared: impl FnOnce() -> symbol::LocalDefId,
     ) -> symbol::LocalDefId {
         self.lookup_def(name).unwrap_or_else(|| {
+            // ???: Do we still need to declare undecl's at the boundary scope?
+            // Since we plan to run another pass to collect defs for the export tables,
+            // would it make more sense to hoist up to root?
+            //
+            // The original motivation was that undeclared defs may or may not represent
+            // unqualified imports, so it make sense to have the same undeclared names
+            // in an import boundary to share a LocalDefId. Thus, if the undecl def is
+            // really an unqualified import, we'd have done something approximating the
+            // right thing.
+            //
+            // However, if ScopeTracker has access to the complete export tables, then we
+            // can disambiguate between unqualified imports and undeclared definitions,
+            // leaving us free to always have all of the undeclared defs share a LocalDefId.
+
             // Declare at the import boundary
             let def_id = or_undeclared();
             Self::boundary_scope(&mut self.scopes).def_in(name, def_id);

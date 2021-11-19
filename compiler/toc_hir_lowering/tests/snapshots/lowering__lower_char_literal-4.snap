@@ -1,14 +1,15 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := ''"
+expression: "const a := ''"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..7): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..7): []
-        Assign@(FileId(1), 0..7)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-error in file FileId(1) at 5..7: invalid char literal
-| error in file FileId(1) for 5..6: no characters in literal
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..13): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..13): []
+        StmtItem@(FileId(1), 0..13): ItemId(0)
+          ConstVar@(FileId(1), 0..13): const "a"@(FileId(1), 6..7)
+            ExprBody@(FileId(1), 11..13)
+error in file FileId(1) at 11..13: invalid char literal
+| error in file FileId(1) for 11..12: no characters in literal
 

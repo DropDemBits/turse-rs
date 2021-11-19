@@ -1,15 +1,18 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := 18446744073709551616#0000"
+expression: "var _ : int _ := 18446744073709551616#0000"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..30): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..30): []
-        Assign@(FileId(1), 0..30)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..30): Integer(0)
-error in file FileId(1) at 5..30: invalid int literal
-| error in file FileId(1) for 5..25: base is not between 2 - 36
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..42): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..42): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        Assign@(FileId(1), 12..42)
+          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 17..42): Integer(0)
+error in file FileId(1) at 17..42: invalid int literal
+| error in file FileId(1) for 17..37: base is not between 2 - 36
 

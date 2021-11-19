@@ -1,13 +1,16 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := 2.47032822920623272e-324"
+expression: "var _ : int _ := 2.47032822920623272e-324"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..29): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..29): []
-        Assign@(FileId(1), 0..29)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..29): Real(0.0)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..41): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..41): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        Assign@(FileId(1), 12..41)
+          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 17..41): Real(0.0)
 
