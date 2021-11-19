@@ -145,8 +145,8 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
         // Check the initializer expression
-        let (ty_spec, init) = if let item::ConstVarTail::Both(ty_spec, initializer) = item.tail {
-            (ty_spec, initializer)
+        let (ty_spec, init) = if let Some(bundle) = item.type_spec.zip(item.init_expr) {
+            bundle
         } else {
             // Inferred or already specified
             return;

@@ -125,7 +125,7 @@ pub(crate) fn evaluate_const(
                                 toc_hir::item::ItemKind::ConstVar(cv)
                                     if matches!(cv.mutability, Mutability::Const) =>
                                 {
-                                    cv.tail.init_expr()
+                                    cv.init_expr
                                 }
                                 _ => None,
                             }

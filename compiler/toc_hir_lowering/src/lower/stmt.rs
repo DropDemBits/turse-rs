@@ -98,13 +98,6 @@ impl super::BodyLowering<'_, '_> {
 
         let type_spec = decl.type_spec().and_then(|ty| self.lower_type(ty));
         let init_expr = decl.init().map(|expr| self.ctx.lower_expr_body(expr));
-        let tail = match (type_spec, init_expr) {
-            (Some(type_spec), None) => item::ConstVarTail::TypeSpec(type_spec),
-            (None, Some(init_expr)) => item::ConstVarTail::InitExpr(init_expr),
-            (Some(type_spec), Some(init_expr)) => item::ConstVarTail::Both(type_spec, init_expr),
-            // Captured by the parser, no error needs to be reported
-            (None, None) => return None,
-        };
 
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
@@ -121,7 +114,8 @@ impl super::BodyLowering<'_, '_> {
                     is_register,
                     mutability,
                     def_id,
-                    tail,
+                    type_spec,
+                    init_expr,
                 };
 
                 let item_id = self.ctx.library.add_item(item::Item {
@@ -155,8 +149,13 @@ impl super::BodyLowering<'_, '_> {
             (asn_op.asn_kind().and_then(asn_to_bin_op), span)
         };
 
-        let lhs = self.lower_expr(stmt.lhs()?);
-        let rhs = self.lower_expr(stmt.rhs()?);
+        if stmt.lhs().is_none() && stmt.rhs().is_none() {
+            // No useful information can be provided
+            return None;
+        }
+
+        let lhs = self.lower_required_expr(stmt.lhs());
+        let rhs = self.lower_required_expr(stmt.rhs());
 
         let rhs = if let Some(op) = op {
             // Insert binary expression
@@ -223,8 +222,8 @@ impl super::BodyLowering<'_, '_> {
         // Presence means newline should be omitted
         let append_newline = stmt.range_token().is_none();
 
-        if items.is_empty() {
-            // there must be at least one item present
+        if items.is_empty() && stream_num.is_none() {
+            // there must be something present
             None
         } else {
             Some(stmt::StmtKind::Put(stmt::Put {
@@ -260,8 +259,8 @@ impl super::BodyLowering<'_, '_> {
             })
             .collect::<Vec<_>>();
 
-        if items.is_empty() {
-            // there must be at least one item present
+        if items.is_empty() && stream_num.is_none() {
+            // there must be something present
             None
         } else {
             Some(stmt::StmtKind::Get(stmt::Get { stream_num, items }))
