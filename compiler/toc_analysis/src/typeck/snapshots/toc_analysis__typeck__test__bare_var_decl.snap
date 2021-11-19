@@ -1,7 +1,8 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: var k
+expression: "var k k := 3"
 
 ---
+"k"@(FileId(1), 4..5) [Declared]: ref_mut <error>
 "<root>"@(dummy) [Declared]: <error>
 

@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+expression: "const k k := 3"
+
+---
+"k"@(FileId(1), 6..7) [Declared]: ref <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 10..12: cannot assign into expression
+| note in file FileId(1) for 8..9: not a reference to a variable

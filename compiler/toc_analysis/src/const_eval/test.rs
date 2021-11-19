@@ -52,7 +52,7 @@ fn do_const_eval(source: &str) -> String {
     impl toc_hir::visitor::HirVisitor for ConstEvaluator<'_> {
         fn visit_constvar(&self, id: toc_hir::item::ItemId, item: &toc_hir::item::ConstVar) {
             let def_id = self.library.item(id).def_id;
-            let body = if let Some(body) = item.tail.init_expr() {
+            let body = if let Some(body) = item.init_expr {
                 body
             } else {
                 return;
