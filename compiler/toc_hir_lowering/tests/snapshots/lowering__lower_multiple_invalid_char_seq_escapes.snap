@@ -1,17 +1,20 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := '\\777\\ud800\\!'"
+expression: "var _ : int _ := '\\777\\ud800\\!'"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..19): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..19): []
-        Assign@(FileId(1), 0..19)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..19): CharSeq("��!")
-error in file FileId(1) at 5..19: invalid char literal
-| error in file FileId(1) for 6..10: octal character value is greater than \377 (decimal 255)
-| error in file FileId(1) for 10..16: surrogate chars are not allowed in char sequences
-| error in file FileId(1) for 16..18: unknown backslash escape
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..31): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..31): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        Assign@(FileId(1), 12..31)
+          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 17..31): CharSeq("��!")
+error in file FileId(1) at 17..31: invalid char literal
+| error in file FileId(1) for 18..22: octal character value is greater than \377 (decimal 255)
+| error in file FileId(1) for 22..28: surrogate chars are not allowed in char sequences
+| error in file FileId(1) for 28..30: unknown backslash escape
 

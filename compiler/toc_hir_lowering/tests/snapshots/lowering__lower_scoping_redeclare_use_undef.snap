@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+expression: "a := a"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..6): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..6): []
+        Assign@(FileId(1), 0..6)
+          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
+          Name@(FileId(1), 5..6): "a"@(FileId(1), 0..1), undeclared
+error in file FileId(1) at 0..1: `a` is undeclared
+| error in file FileId(1) for 0..1: no definitions of `a` are in scope
+

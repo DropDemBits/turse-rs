@@ -11,4 +11,6 @@ Library@(dummy)
           ConstVar@(FileId(1), 0..10): var "a"@(FileId(1), 4..5)
             ExprBody@(FileId(1), 9..10)
               Name@(FileId(1), 9..10): "a"@(FileId(1), 9..10), undeclared
+error in file FileId(1) at 9..10: `a` is undeclared
+| error in file FileId(1) for 9..10: no definitions of `a` are in scope
 

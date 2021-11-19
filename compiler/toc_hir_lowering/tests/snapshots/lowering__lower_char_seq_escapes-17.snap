@@ -1,13 +1,16 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := \"\\0o\""
+expression: "var _ : int _ := \"\\0o\""
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..10): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..10): []
-        Assign@(FileId(1), 0..10)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..10): String("\u{0}o")
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..22): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..22): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        Assign@(FileId(1), 12..22)
+          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 17..22): String("\u{0}o")
 

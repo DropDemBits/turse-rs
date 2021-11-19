@@ -17,4 +17,10 @@ Library@(dummy)
           Literal@(FileId(1), 32..33): Integer(4)
           Literal@(FileId(1), 36..37): Integer(5)
           Literal@(FileId(1), 40..41): Integer(6)
+error in file FileId(1) at 10..11: `a` is undeclared
+| error in file FileId(1) for 10..11: no definitions of `a` are in scope
+error in file FileId(1) at 17..18: `b` is undeclared
+| error in file FileId(1) for 17..18: no definitions of `b` are in scope
+error in file FileId(1) at 28..29: `c` is undeclared
+| error in file FileId(1) for 28..29: no definitions of `c` are in scope
 

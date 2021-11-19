@@ -134,6 +134,12 @@ impl super::BodyLowering<'_, '_> {
 
         let def_id = self.ctx.scopes.use_sym(name.text(), || {
             // make an undeclared
+            self.ctx.messages.error(
+                &format!("`{}` is undeclared", name.text()),
+                &format!("no definitions of `{}` are in scope", name.text()),
+                span,
+            );
+
             let library = &mut self.ctx.library;
             let span = library.intern_span(span);
             library.add_def(name.text(), span, symbol::SymbolKind::Undeclared)

@@ -1,13 +1,14 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := (((a)))"
+expression: "const a := (((1)))"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..12): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..12): []
-        Assign@(FileId(1), 0..12)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 8..9): "a"@(FileId(1), 0..1), undeclared
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..18): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..18): []
+        StmtItem@(FileId(1), 0..18): ItemId(0)
+          ConstVar@(FileId(1), 0..18): const "a"@(FileId(1), 6..7)
+            ExprBody@(FileId(1), 14..15)
+              Literal@(FileId(1), 14..15): Integer(1)
 

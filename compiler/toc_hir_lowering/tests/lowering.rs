@@ -64,7 +64,8 @@ fn assert_lower(src: &str) -> LowerResult {
     }
 }
 
-fn literal_value(lower_result: &LowerResult) -> &expr::Literal {
+fn lower_literal_value(expr: &str) -> expr::Literal {
+    let lower_result = assert_lower(&format!("var _ : int _ := {}", expr));
     let LowerResult {
         root_file,
         hir_result,
@@ -77,11 +78,11 @@ fn literal_value(lower_result: &LowerResult) -> &expr::Literal {
         if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
         let body = library.body(*body);
         if let body::BodyKind::Stmts(stmts, _) = &body.kind;
-        if let Some(first_stmt) = stmts.first();
-        if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*first_stmt).kind;
+        if let Some(second_stmt) = stmts.get(1);
+        if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*second_stmt).kind;
         if let expr::ExprKind::Literal(value) = &body.expr(*rhs).kind;
         then {
-            value
+            value.clone()
         } else {
             unreachable!();
         }
@@ -133,14 +134,14 @@ fn lower_var_def() {
 
 #[test]
 fn lower_simple_assignment() {
-    assert_lower("a := b");
+    assert_lower("var a, b : int a := b");
     // non-reference lhs
     assert_lower("1 := 2");
 }
 
 #[test]
 fn lower_compound_add_assignment() {
-    assert_lower("a += b");
+    assert_lower("var a, b : int a += b");
 }
 
 #[test]
@@ -156,15 +157,45 @@ fn lower_scoping_outer_use_inner_use() {
 }
 
 #[test]
+fn lower_scoping_redeclare_over_def() {
+    // Each of these inner defs should be a redcl error
+    assert_lower(
+        r#"
+    var k : int
+    begin
+        const k := 1
+        const k := 2
+        const k := 3
+    end
+    begin
+        const k := 1.0
+    end
+    k := k"#,
+    );
+}
+
+#[test]
+fn lower_scoping_redeclare_use_undef() {
+    // should yell about this
+    assert_lower(r#"a := a"#);
+}
+
+#[test]
+fn lower_scoping_redeclare_over_undef() {
+    // no qualms about the definition
+    assert_lower(r#"a := a const a := 1"#);
+}
+
+#[test]
 fn lower_int_literal() {
-    assert_lower("a := 01234560");
+    assert_lower("const a := 01234560");
     // Overflow
-    assert_lower("a := 99999999999999999999");
+    assert_lower("const a := 99999999999999999999");
 }
 
 #[test]
 fn lower_int_radix_literal() {
-    assert_lower("a := 16#EABC");
+    assert_lower("const a := 16#EABC");
 
     let failing_tests = vec![
         // Overflow
@@ -186,12 +217,11 @@ fn lower_int_radix_literal() {
 
     for (num, text) in failing_tests.into_iter().enumerate() {
         eprintln!("On failing test #{}", num + 1);
-        let lowered = assert_lower(&format!("a := {}", text));
-        let actual_value = literal_value(&lowered);
+        let actual_value = lower_literal_value(text);
 
         // All error literal should produce 0
         if let expr::Literal::Integer(actual_value) = actual_value {
-            assert_eq!(*actual_value, 0);
+            assert_eq!(actual_value, 0);
         } else {
             unreachable!()
         }
@@ -223,11 +253,10 @@ fn lower_real_literal() {
 
     for (num, (text, value)) in tests.into_iter().enumerate() {
         eprintln!("On test #{}", num + 1);
-        let lowered = assert_lower(&format!("a := {}", text));
-        let actual_value = literal_value(&lowered);
+        let actual_value = lower_literal_value(text);
 
         if let expr::Literal::Real(actual_value) = actual_value {
-            approx::assert_relative_eq!(*actual_value, value);
+            approx::assert_relative_eq!(actual_value, value);
         } else {
             unreachable!()
         }
@@ -262,12 +291,11 @@ fn lower_complex_real_literal() {
 
     for (name, hex_value, text) in tests.into_iter() {
         eprintln!("On test {}", name);
-        let lowered = assert_lower(&format!("a := {}", text));
-        let actual_value = literal_value(&lowered);
+        let actual_value = lower_literal_value(text);
         let value = f64::from_ne_bytes(hex_value.to_ne_bytes());
 
         if let expr::Literal::Real(actual_value) = actual_value {
-            approx::assert_relative_eq!(*actual_value, value);
+            approx::assert_relative_eq!(actual_value, value);
         } else {
             unreachable!()
         }
@@ -276,26 +304,26 @@ fn lower_complex_real_literal() {
 
 #[test]
 fn lower_string_literal() {
-    assert_lower(r#"a := "abcd💖""#);
+    assert_lower(r#"const a := "abcd💖""#);
 
     // Should handle strings without an ending delimiter
-    assert_lower(r#"a := "abcd "#);
+    assert_lower(r#"const a := "abcd "#);
     // ... or mismatched delimiter
-    assert_lower(r#"a := "abcd'"#);
+    assert_lower(r#"const a := "abcd'"#);
 }
 
 #[test]
 fn lower_char_literal() {
-    assert_lower(r#"a := 'abcd💖'"#);
+    assert_lower(r#"const a := 'abcd💖'"#);
 
     // Should handle character strings without an ending delimiter
-    assert_lower(r#"a := 'abcd "#);
+    assert_lower(r#"const a := 'abcd "#);
     // ... or mismatched delimiter
-    assert_lower(r#"a := 'abcd""#);
+    assert_lower(r#"const a := 'abcd""#);
     // ... or that are completely empty
-    assert_lower(r#"a := ''"#);
+    assert_lower(r#"const a := ''"#);
     // ... or that are completely empty without an ending delimiter
-    assert_lower(r#"a := '"#);
+    assert_lower(r#"const a := '"#);
 }
 
 #[test]
@@ -380,10 +408,9 @@ fn lower_char_seq_escapes() {
 
     for (text, expected_value) in escapes.into_iter() {
         let stringified_test = format!("({:?}, {:?}, ..)", text, expected_value);
-        let lowered = assert_lower(&format!("a := {}", text));
         assert_eq!(
-            literal_value(&lowered),
-            &expr::Literal::String(expected_value.to_string()),
+            lower_literal_value(text),
+            expr::Literal::String(expected_value.to_string()),
             "At \"{}\"",
             stringified_test
         );
@@ -393,39 +420,39 @@ fn lower_char_seq_escapes() {
 #[test]
 fn lower_multiple_invalid_char_seq_escapes() {
     assert_eq!(
-        literal_value(&assert_lower(r#"a := '\777\ud800\!'"#)),
-        &expr::Literal::CharSeq("\u{FFFD}\u{FFFD}!".to_string()),
+        lower_literal_value(r#"'\777\ud800\!'"#),
+        expr::Literal::CharSeq("\u{FFFD}\u{FFFD}!".to_string()),
     );
 }
 
 #[test]
 fn lower_paren_expr() {
-    assert_lower("a := (a)");
+    assert_lower("const a := (1)");
     // nested
-    assert_lower("a := (((a)))");
+    assert_lower("const a := (((1)))");
     // empty
-    assert_lower("a := ()");
+    assert_lower("const a := ()");
 }
 
 #[test]
 fn lower_self_expr() {
-    assert_lower("a := self");
+    assert_lower("const a := self");
 }
 
 #[test]
 fn lower_binary_expr() {
-    assert_lower("a := a + a");
+    assert_lower("const a := 1 + 1");
     // missing operand, should still be present
-    assert_lower("a := () + ");
+    assert_lower("const a := () + ");
     // invalid infix, okay to be missing
-    assert_lower("a := 1 not 1 ");
+    assert_lower("const a := 1 not 1 ");
 }
 
 #[test]
 fn lower_unary_expr() {
-    assert_lower("a := + a");
+    assert_lower("const a := + a");
     // missing operand, should still be present
-    assert_lower("a := +");
+    assert_lower("const a := +");
 }
 
 #[test]
@@ -486,17 +513,17 @@ fn lower_get_stmt() {
 
 #[test]
 fn lower_block_stmt_multiple() {
-    assert_lower("begin _ := a _ := b _ := c end");
+    assert_lower("begin var _ := 0 _ := 1 _ := 2 _ := 3 end");
 }
 
 #[test]
 fn lower_multiple_stmts() {
-    assert_lower("_ := a _ := b _ := c");
+    assert_lower("var _ := 0 _ := 1 _ := 2 _ := 3");
 }
 
 #[test]
 fn expression_order() {
-    assert_lower("_ := 1 + 2 * 3 + 4");
+    assert_lower("var _ := 1 + 2 * 3 + 4");
 }
 
 #[test]
@@ -592,9 +619,9 @@ fn lower_for_stmt() {
     // explicit bounds & step
     assert_lower(r#"for : 1 .. 10 by 3 end for"#);
     // implicit bounds
-    assert_lower(r#"for : wah end for"#);
+    assert_lower(r#"var wah : int for : wah end for"#);
     // implicit bounds & step
-    assert_lower(r#"for : wah by 1 end for"#);
+    assert_lower(r#"var wah : int for : wah by 1 end for"#);
     // with counter
     assert_lower(
         r#"
@@ -605,7 +632,7 @@ fn lower_for_stmt() {
     // decreasing explicit bounds
     assert_lower(r#"for decreasing : 1 .. 10 end for"#);
     // decreasing implicit bounds (error)
-    assert_lower(r#"for decreasing : implied end for"#);
+    assert_lower(r#"var implied : int for decreasing : implied end for"#);
     // no bounds
     assert_lower(r#"for : end for"#);
     // decreasing no bounds
@@ -623,7 +650,6 @@ fn lower_case_stmt() {
     // many arms
     assert_lower(
         r#"
-    var a : int
     case s of
     label 1:
         var a := a + 1
@@ -637,7 +663,6 @@ fn lower_case_stmt() {
     // many arms, default
     assert_lower(
         r#"
-    var a : int
     case s of
     label 1:
         var a := a + 1
@@ -653,7 +678,6 @@ fn lower_case_stmt() {
     // many arms, default, default arm
     assert_lower(
         r#"
-    var a : int
     case s of
     label 1:
         var a := a + 1
@@ -671,7 +695,6 @@ fn lower_case_stmt() {
     // many arms, default, arms
     assert_lower(
         r#"
-    var a : int
     case s of
     label 1:
         var a := a + 1

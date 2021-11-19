@@ -10,4 +10,6 @@ Library@(dummy)
         Case@(FileId(1), 0..27)
           Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
           Literal@(FileId(1), 16..17): Integer(1)
+error in file FileId(1) at 5..6: `s` is undeclared
+| error in file FileId(1) for 5..6: no definitions of `s` are in scope
 

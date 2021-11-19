@@ -467,7 +467,29 @@ impl super::BodyLowering<'_, '_> {
             .add_def(token.text(), span, symbol::SymbolKind::Declared);
 
         // Bring into scope
-        let _ = self.ctx.scopes.def_sym(token.text(), def_id, is_pervasive);
+        let old_def = self.ctx.scopes.def_sym(token.text(), def_id, is_pervasive);
+
+        if let Some(old_def) = old_def {
+            let old_def_info = self.ctx.library.local_def(old_def);
+            if old_def_info.kind == symbol::SymbolKind::Declared {
+                // Redeclaring over an older def
+                let new_span = self.ctx.library.lookup_span(span);
+                let old_span = self.ctx.library.lookup_span(old_def_info.name.span());
+
+                // Just use the name from the old def
+                let name = old_def_info.name.item();
+
+                self.ctx
+                    .messages
+                    .error_detailed(
+                        &format!("`{}` is already declared in this scope", name),
+                        new_span,
+                    )
+                    .with_note(&format!("`{}` previously declared here", name), old_span)
+                    .with_error(&format!("`{}` redeclared here", name), new_span)
+                    .finish();
+            }
+        }
 
         def_id
     }

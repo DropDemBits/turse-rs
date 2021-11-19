@@ -1,15 +1,18 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := \"\\U\""
+expression: "var _ : int _ := \"\\U\""
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..9): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..9): []
-        Assign@(FileId(1), 0..9)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..9): String("U")
-error in file FileId(1) at 5..9: invalid string literal
-| error in file FileId(1) for 6..8: missing hex digits after here
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..21): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..21): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        Assign@(FileId(1), 12..21)
+          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 17..21): String("U")
+error in file FileId(1) at 17..21: invalid string literal
+| error in file FileId(1) for 18..20: missing hex digits after here
 

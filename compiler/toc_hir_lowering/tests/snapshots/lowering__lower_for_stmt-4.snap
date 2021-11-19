@@ -1,13 +1,16 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "for : wah by 1 end for"
+expression: "var wah : int for : wah by 1 end for"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..22): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..22): []
-        For@(FileId(1), 0..22): implicit
-          Name@(FileId(1), 6..9): "wah"@(FileId(1), 6..9), undeclared
-          Literal@(FileId(1), 13..14): Integer(1)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..36): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..36): []
+        StmtItem@(FileId(1), 0..13): ItemId(0)
+          ConstVar@(FileId(1), 0..13): var "wah"@(FileId(1), 4..7)
+            Primitive@(FileId(1), 10..13): Int
+        For@(FileId(1), 14..36): implicit
+          Name@(FileId(1), 20..23): "wah"@(FileId(1), 4..7)
+          Literal@(FileId(1), 27..28): Integer(1)
 

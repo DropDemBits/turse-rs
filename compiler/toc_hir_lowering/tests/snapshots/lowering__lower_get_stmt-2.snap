@@ -12,4 +12,10 @@ Library@(dummy)
           Name@(FileId(1), 13..14): "b"@(FileId(1), 13..14), undeclared
           Literal@(FileId(1), 17..18): Integer(1)
           Name@(FileId(1), 20..21): "c"@(FileId(1), 20..21), undeclared
+error in file FileId(1) at 10..11: `a` is undeclared
+| error in file FileId(1) for 10..11: no definitions of `a` are in scope
+error in file FileId(1) at 13..14: `b` is undeclared
+| error in file FileId(1) for 13..14: no definitions of `b` are in scope
+error in file FileId(1) at 20..21: `c` is undeclared
+| error in file FileId(1) for 20..21: no definitions of `c` are in scope
 

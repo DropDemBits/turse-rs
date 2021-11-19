@@ -1,14 +1,17 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := + a"
+expression: "const a := + a"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..8): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..8): []
-        Assign@(FileId(1), 0..8)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Unary@(FileId(1), 5..8): Identity
-            Name@(FileId(1), 7..8): "a"@(FileId(1), 0..1), undeclared
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..14): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..14): []
+        StmtItem@(FileId(1), 0..14): ItemId(0)
+          ConstVar@(FileId(1), 0..14): const "a"@(FileId(1), 6..7)
+            ExprBody@(FileId(1), 11..14)
+              Unary@(FileId(1), 11..14): Identity
+                Name@(FileId(1), 13..14): "a"@(FileId(1), 13..14), undeclared
+error in file FileId(1) at 13..14: `a` is undeclared
+| error in file FileId(1) for 13..14: no definitions of `a` are in scope
 

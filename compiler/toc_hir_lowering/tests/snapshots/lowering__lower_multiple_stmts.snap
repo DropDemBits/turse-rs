@@ -1,19 +1,23 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "_ := a _ := b _ := c"
+expression: "var _ := 0 _ := 1 _ := 2 _ := 3"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..20): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..20): []
-        Assign@(FileId(1), 0..6)
-          Name@(FileId(1), 0..1): "_"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 5..6): "a"@(FileId(1), 5..6), undeclared
-        Assign@(FileId(1), 7..13)
-          Name@(FileId(1), 7..8): "_"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 12..13): "b"@(FileId(1), 12..13), undeclared
-        Assign@(FileId(1), 14..20)
-          Name@(FileId(1), 14..15): "_"@(FileId(1), 0..1), undeclared
-          Name@(FileId(1), 19..20): "c"@(FileId(1), 19..20), undeclared
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..31): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..31): []
+        StmtItem@(FileId(1), 0..10): ItemId(0)
+          ConstVar@(FileId(1), 0..10): var "_"@(FileId(1), 4..5)
+            ExprBody@(FileId(1), 9..10)
+              Literal@(FileId(1), 9..10): Integer(0)
+        Assign@(FileId(1), 11..17)
+          Name@(FileId(1), 11..12): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 16..17): Integer(1)
+        Assign@(FileId(1), 18..24)
+          Name@(FileId(1), 18..19): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 23..24): Integer(2)
+        Assign@(FileId(1), 25..31)
+          Name@(FileId(1), 25..26): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 30..31): Integer(3)
 

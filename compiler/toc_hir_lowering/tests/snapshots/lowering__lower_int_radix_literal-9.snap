@@ -1,15 +1,18 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-expression: "a := 10#999a9a9"
+expression: "var _ : int _ := 10#999a9a9"
 
 ---
 Library@(dummy)
-  Root@(dummy): FileId(1) -> ItemId(0)
-    Module@(FileId(1), 0..15): "<root>"@(dummy)
-      StmtBody@(FileId(1), 0..15): []
-        Assign@(FileId(1), 0..15)
-          Name@(FileId(1), 0..1): "a"@(FileId(1), 0..1), undeclared
-          Literal@(FileId(1), 5..15): Integer(0)
-error in file FileId(1) at 5..15: invalid int literal
-| error in file FileId(1) for 11..12: `a` is not a digit in base 10
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..27): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..27): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "_"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        Assign@(FileId(1), 12..27)
+          Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
+          Literal@(FileId(1), 17..27): Integer(0)
+error in file FileId(1) at 17..27: invalid int literal
+| error in file FileId(1) for 23..24: `a` is not a digit in base 10
 
