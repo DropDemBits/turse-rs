@@ -12,7 +12,7 @@ toc_scanner = { path = "../toc_scanner" }
 toc_syntax = { path = "../toc_syntax" }
 toc_span = { path = "../toc_span" }
 
-rowan = "0.13"
+rowan = "0.15"
 drop_bomb = "0.1.5"
 
 [dev-dependencies]

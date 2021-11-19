@@ -10,7 +10,7 @@ edition = "2021"
 # Local deps
 toc_span = { path = "../toc_span" }
 # External deps
-rowan = "0.13"
+rowan = "0.15"
 num-derive = "^0.3"
 num-traits = "0.2"
 lexical = { version = "^5", features = [ "radix" ] }
