@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 if_chain = "1.0.1"
 lsp-server = "0.5.1"
-lsp-types = "0.89.1"
+lsp-types = "0.91"
 serde_json = "1.0.64"
 
 # Local compiler dependencies
