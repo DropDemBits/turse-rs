@@ -92,10 +92,10 @@ impl ServerState {
             use toc_reporting::AnnotateKind;
 
             match kind {
-                AnnotateKind::Note => DiagnosticSeverity::Hint,
-                AnnotateKind::Info => DiagnosticSeverity::Information,
-                AnnotateKind::Warning => DiagnosticSeverity::Warning,
-                AnnotateKind::Error => DiagnosticSeverity::Error,
+                AnnotateKind::Note => DiagnosticSeverity::HINT,
+                AnnotateKind::Info => DiagnosticSeverity::INFORMATION,
+                AnnotateKind::Warning => DiagnosticSeverity::WARNING,
+                AnnotateKind::Error => DiagnosticSeverity::ERROR,
             }
         }
 

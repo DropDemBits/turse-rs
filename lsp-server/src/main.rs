@@ -21,7 +21,7 @@ fn main() -> Result<(), DynError> {
     let (connection, io_threads) = Connection::stdio();
 
     let server_caps = serde_json::to_value(&ServerCapabilities {
-        text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::Full)),
+        text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
         ..ServerCapabilities::default()
     })
     .unwrap();
