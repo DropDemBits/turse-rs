@@ -8,6 +8,9 @@ use toc_reporting::{CompileResult, MessageSink};
 
 use crate::{db, ty};
 
+#[cfg(test)]
+mod test;
+
 pub(crate) fn lint_library(
     db: &dyn db::HirAnalysis,
     library_id: library::LibraryId,
@@ -20,7 +23,7 @@ pub(crate) fn lint_library(
         reporter: Default::default(),
     };
 
-    Walker::from_library(&ctx.library).visit_preorder(&ImplLimitsLint { ctx: &ctx });
+    Walker::from_library(&ctx.library).visit_postorder(&ImplLimitsLint { ctx: &ctx });
 
     CompileResult::new((), ctx.reporter.into_inner().finish())
 }
