@@ -1,6 +1,6 @@
 //! Source file interpretation queries
 
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 use toc_reporting::CompileResult;
@@ -50,12 +50,19 @@ where
         let db = self;
         let source_graph = db.source_graph();
         let mut pending_files: VecDeque<_> = vec![].into();
+        let mut visited_files: HashSet<_> = HashSet::default();
 
         for library_root in source_graph.library_roots() {
             let mut depend_graph = DependGraph::new(library_root);
             pending_files.push_back(library_root);
 
             while let Some(current_file) = pending_files.pop_front() {
+                // Don't visit files we've already encountered
+                let already_visited = !visited_files.insert(current_file);
+                if already_visited {
+                    continue;
+                }
+
                 // Load in the file source
                 let path = db.get_vfs().lookup_path(current_file);
                 let res = loader.load_file(path);
@@ -92,5 +99,94 @@ where
             // Update the depend graph
             db.set_depend_graph(library_root, Arc::new(depend_graph));
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use std::sync::Arc;
+    use toc_salsa::salsa;
+    use toc_source_graph::SourceGraph;
+
+    use crate::db::AstDatabaseExt;
+    use crate::db::SourceParser;
+
+    #[salsa::database(toc_vfs_db::db::FileSystemStorage, crate::db::SourceParserStorage)]
+    #[derive(Default)]
+    struct TestDb {
+        storage: salsa::Storage<Self>,
+        vfs: toc_vfs::Vfs,
+    }
+
+    impl salsa::Database for TestDb {}
+
+    toc_vfs::impl_has_vfs!(TestDb, vfs);
+
+    impl TestDb {
+        fn from_source(source: &str) -> Self {
+            let mut db = TestDb::default();
+            let fixture = toc_vfs::generate_vfs(&mut db, source);
+            db.insert_fixture(fixture);
+
+            let root_file = db.vfs.intern_path("src/main.t".into());
+            let mut source_graph = SourceGraph::default();
+            source_graph.add_root(root_file);
+            db.set_source_graph(Arc::new(source_graph));
+            db.invalidate_source_graph(&toc_vfs::DummyFileLoader);
+
+            db
+        }
+    }
+
+    #[test]
+    fn test_load_cyclic_dep_include() {
+        let _ = TestDb::from_source(
+            r#"
+        %%- src/main.t
+        include "main.t"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_load_cyclic_dep_import() {
+        let _ = TestDb::from_source(
+            r#"
+        %%- src/main.t
+        unit module a
+            import a in "main.t"
+        end a
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_load_mutual_cyclic_dep_include() {
+        let _ = TestDb::from_source(
+            r#"
+        %%- src/main.t
+        include "main.t"
+        %%- src/other.t
+        include "other.t"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_load_mutual_cyclic_dep_import() {
+        let _ = TestDb::from_source(
+            r#"
+        %%- src/main.t
+        unit module a
+            import b in "other.t"
+        end a
+        %%- src/other.t
+        unit module b
+            import a in "main.t"
+        end b
+        "#,
+        );
     }
 }
