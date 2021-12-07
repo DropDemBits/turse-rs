@@ -1,0 +1,8 @@
+---
+source: compiler/toc_analysis/src/lints/test.rs
+expression: "var k := 16#100000000"
+
+---
+
+error in file FileId(1) at 9..21: invalid int literal
+| error in file FileId(1) for 9..21: number is too large

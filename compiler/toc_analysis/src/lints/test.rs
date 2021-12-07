@@ -69,3 +69,8 @@ fn lint_impl_limits_char_length() {
 
     assert_lint(&format!(r#"const a := '{}'"#, big_charseq));
 }
+
+#[test]
+fn lint_impl_limits_int_value_greater_than() {
+    assert_lint("var k := 16#100000000");
+}

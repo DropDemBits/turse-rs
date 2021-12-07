@@ -71,6 +71,22 @@ impl<'ctx> HirVisitor for ImplLimitsLint<'ctx> {
                     );
                 }
             }
+            expr::Literal::Integer(value) => {
+                // We check if the value of an integer is in bounds here because
+                // we (eventually will) have implementation backends that don't
+                // support 64-bit values.
+                //
+                // If we do choose to implement integer size suffixes, then this
+                // check can be moved into HIR lowering as we'll default to representing
+                // them as `int` types. This still won't take care of things like
+                // overflowing unary negation or any overflowing operation, but
+                // we'd need to use the const evaluator for that kind of reporting.
+                if *value > u32::MAX.into() {
+                    self.ctx
+                        .reporter()
+                        .error("invalid int literal", "number is too large", span);
+                }
+            }
             _ => {}
         }
     }
