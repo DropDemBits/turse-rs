@@ -904,6 +904,7 @@ dependencies = [
  "toc_analysis",
  "toc_ast_db",
  "toc_hir",
+ "toc_hir_codegen",
  "toc_hir_db",
  "toc_hir_pretty",
  "toc_reporting",
@@ -920,6 +921,17 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "la-arena",
+ "toc_span",
+]
+
+[[package]]
+name = "toc_hir_codegen"
+version = "0.1.0"
+dependencies = [
+ "toc_analysis",
+ "toc_hir",
+ "toc_hir_db",
+ "toc_reporting",
  "toc_span",
 ]
 

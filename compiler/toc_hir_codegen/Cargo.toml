@@ -1,0 +1,13 @@
+[package]
+name = "toc_hir_codegen"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+toc_analysis = { path = "../toc_analysis" }
+toc_hir = { path = "../toc_hir" }
+toc_hir_db = { path = "../toc_hir_db" }
+toc_reporting = { path = "../toc_reporting" }
+toc_span = { path = "../toc_span" }

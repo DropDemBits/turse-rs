@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::{env, fs};
 
-use toc_analysis::db::HirAnalysis;
 use toc_ast_db::db::SpanMapping;
 use toc_ast_db::db::{AstDatabaseExt, SourceParser};
 use toc_ast_db::SourceGraph;
@@ -57,12 +56,11 @@ fn main() {
     }
 
     // TODO: resolve imports between units
-    let analyze_res = db.analyze_libraries();
+    let codegen_res = toc_hir_codegen::generate_code(&db);
 
     // We only need to get the messages for the queries at the end of the chain
-    let msgs = analyze_res.messages();
+    let msgs = codegen_res.messages();
 
-    let mut has_errors = false;
     let mut cache = VfsCache::new(&db);
 
     // Report any library roots that loaded incorrectly
@@ -85,11 +83,14 @@ fn main() {
     }
 
     for msg in msgs.iter() {
-        has_errors |= matches!(msg.kind(), toc_reporting::AnnotateKind::Error);
         emit_message(&db, &mut cache, msg);
     }
 
-    std::process::exit(if has_errors { -1 } else { 0 });
+    if let Some(_blob) = codegen_res.result() {
+        // TODO: Write blob out to a file
+    }
+
+    std::process::exit(if msgs.has_errors() { -1 } else { 0 });
 }
 
 fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::ReportMessage) {

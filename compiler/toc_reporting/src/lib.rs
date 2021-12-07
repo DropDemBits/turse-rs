@@ -47,4 +47,15 @@ impl<T> CompileResult<T> {
         let messages = std::mem::take(messages);
         (self.result, messages)
     }
+
+    /// Maps a `CompileResult<T>` into a `CompileResult<U>`
+    pub fn map<F, U>(self, f: F) -> CompileResult<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        CompileResult {
+            result: f(self.result),
+            messages: self.messages,
+        }
+    }
 }
