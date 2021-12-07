@@ -25,7 +25,7 @@ Item {
 pub(super) struct LoweredGrammar {
     pub(super) nodes: Vec<Node>,
     pub(super) groups: Vec<Group>,
-    pub(super) tokens: Vec<String>,
+    pub(super) _tokens: Vec<String>,
     group_names: BTreeSet<String>,
 }
 
@@ -138,7 +138,7 @@ impl LowerCtx {
         LoweredGrammar {
             nodes: self.node_data,
             groups: self.group_data,
-            tokens: self.token_data,
+            _tokens: self.token_data,
             group_names: self.group_names,
         }
     }
