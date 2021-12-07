@@ -4,7 +4,7 @@ use toc_hir::library::LibraryId;
 use toc_reporting::CompileResult;
 use toc_salsa::salsa;
 
-use crate::{query, typeck};
+use crate::{lints, query, typeck};
 
 pub use crate::const_eval::db::*;
 pub use crate::ty::db::*;
@@ -20,4 +20,8 @@ pub trait HirAnalysis: TypeDatabase + ConstEval {
     /// and that all types are well-formed.
     #[salsa::invoke(typeck::typecheck_library)]
     fn typecheck_library(&self, library: LibraryId) -> CompileResult<()>;
+
+    /// Runs the lint passes over given library
+    #[salsa::invoke(lints::lint_library)]
+    fn lint_library(&self, library: LibraryId) -> CompileResult<()>;
 }

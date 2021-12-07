@@ -1,6 +1,7 @@
 //! General code analysis, including type checking and dead code reporting
 
 mod const_eval;
+mod lints;
 mod query;
 mod typeck;
 

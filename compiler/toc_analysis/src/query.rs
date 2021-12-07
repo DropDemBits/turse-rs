@@ -11,6 +11,7 @@ pub(crate) fn analyze_libraries(db: &dyn crate::db::HirAnalysis) -> CompileResul
 
     for (_, library) in lib_graph.library_roots() {
         db.typecheck_library(library).bundle_messages(&mut messages);
+        db.lint_library(library).bundle_messages(&mut messages);
     }
 
     CompileResult::new((), messages)
