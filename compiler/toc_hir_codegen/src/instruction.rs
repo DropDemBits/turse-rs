@@ -704,58 +704,60 @@ define_encodings! {
         EOF () = 0x4D,
 
         /// ## EQADDR ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         EQADDR () = 0x4E,
 
         /// ## EQCHARN (len:u32)
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
+        /// The char sequences at `lhs` and `rhs` must be of length `len` (though
+        /// it is not validated).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         EQCHARN (u32) = 0x4F,
 
         /// ## EQINT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:i32 rhs:i32 -- compare:bool )`
         ///
         EQINT () = 0x50,
 
         /// ## EQINTNAT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:u32 rhs:i32 -- compare:bool )`
         ///
         EQINTNAT () = 0x51,
 
         /// ## EQNAT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:u32 rhs:u32 -- compare:bool )`
         ///
         EQNAT () = 0x52,
 
         /// ## EQREAL ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:f64 rhs:f64 -- compare:bool )`
         ///
         EQREAL () = 0x53,
 
         /// ## EQSTR ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         EQSTR () = 0x55,
 
@@ -979,66 +981,70 @@ define_encodings! {
         FREEU () = 0x6E,
 
         /// ## GECLASS ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`
+        /// (i.e. if `lhs` is an ancestor class, or the same class as `rhs`).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         GECLASS () = 0x70,
 
         /// ## GECHARN (len:u32)
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`.
+        /// The char sequences at `lhs` and `rhs` must be of length `len` (though
+        /// it is not validated).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         GECHARN (u32) = 0x6F,
 
         /// ## GEINT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:i32 rhs:i32 -- compare:bool )`
         ///
         GEINT () = 0x71,
 
         /// ## GEINTNAT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:i32 rhs:u32 -- compare:bool )`
         ///
         GEINTNAT () = 0x72,
 
         /// ## GENAT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:u32 rhs:u32 -- compare:bool )`
         ///
         GENAT () = 0x73,
 
         /// ## GENATINT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:u32 rhs:i32 -- compare:bool )`
         ///
         GENATINT () = 0x74,
 
         /// ## GEREAL ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:f64 rhs:f64 -- compare:bool )`
         ///
         GEREAL () = 0x75,
 
         /// ## GESTR ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs >= rhs`
+        /// (i.e. if `lhs` is lexicographically after `rhs`).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         GESTR () = 0x77,
 
@@ -1209,66 +1215,70 @@ define_encodings! {
         JUMPB (CodeOffset) = 0x8A,
 
         /// ## LECLASS ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`
+        /// (i.e. if `lhs` is a descendant class, or the same class as `rhs`).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         LECLASS () = 0x8C,
 
         /// ## LECHARN (len:u32)
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`.
+        /// The char sequences at `lhs` and `rhs` must be of length `len` (though
+        /// it is not validated).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         LECHARN (u32) = 0x8B,
 
         /// ## LEINT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:i32 rhs:i32 -- compare:bool )`
         ///
         LEINT () = 0x8D,
 
         /// ## LEINTNAT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:i32 rhs:u32 -- compare:bool )`
         ///
         LEINTNAT () = 0x8E,
 
         /// ## LENAT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:u32 rhs:u32 -- compare:bool )`
         ///
         LENAT () = 0x8F,
 
         /// ## LENATINT ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:u32 rhs:i32 -- compare:bool )`
         ///
         LENATINT () = 0x90,
 
         /// ## LEREAL ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:f64 rhs:f64 -- compare:bool )`
         ///
         LEREAL () = 0x91,
 
         /// ## LESTR ()
-        /// (description)
+        /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs <= rhs`
+        /// (i.e. if `lhs` is lexicographically before `rhs`).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- compare:bool )`
         ///
         LESTR () = 0x93,
 
