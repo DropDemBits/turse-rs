@@ -928,6 +928,7 @@ dependencies = [
 name = "toc_hir_codegen"
 version = "0.1.0"
 dependencies = [
+ "indexmap",
  "toc_analysis",
  "toc_hir",
  "toc_hir_db",
