@@ -1,22 +1,32 @@
 //! Code generation backend based on the HIR tree
 
+use indexmap::IndexSet;
 use toc_analysis::db::HirAnalysis;
 use toc_analysis::ty;
+use toc_ast_db::db::SpanMapping;
 use toc_hir::symbol::DefId;
 use toc_hir::{
     body as hir_body, expr as hir_expr, item as hir_item, library as hir_library, stmt as hir_stmt,
 };
 use toc_reporting::CompileResult;
+use toc_span::{FileId, Span};
 
 use crate::instruction::Opcode;
 
 mod instruction;
 
-pub struct CodeBlob();
+#[derive(Default)]
+pub struct CodeBlob {
+    file_map: IndexSet<FileId>,
+}
+
+pub trait CodeGenDB: HirAnalysis + SpanMapping {}
+
+impl<T> CodeGenDB for T where T: HirAnalysis + SpanMapping {}
 
 /// Generates code from the given HIR database,
 /// or producing nothing if an error was encountered before code generation.
-pub fn generate_code(db: &dyn HirAnalysis) -> CompileResult<Option<CodeBlob>> {
+pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
     // Bail if there are any errors from analysis
     let res = db.analyze_libraries();
 
@@ -25,30 +35,32 @@ pub fn generate_code(db: &dyn HirAnalysis) -> CompileResult<Option<CodeBlob>> {
     }
 
     // Start producing blobs for each library
+    // Only deal with one library right now
     let lib_graph = db.library_graph();
-    for (_, library_id) in lib_graph.library_roots() {
+    let mut blob = CodeBlob::default();
+
+    if let Some((_, library_id)) = lib_graph.library_roots().next() {
         let library = db.library(library_id);
 
         // Generate code for each statement body
         for body_id in library.body_ids() {
             let body = library.body(body_id);
-            eprintln!("{:?}: {:?}", body_id, body);
-        }
-
-        for body_id in library.body_ids() {
-            let body = library.body(body_id);
 
             match &body.kind {
                 hir_body::BodyKind::Stmts(_, _) => {
-                    eprintln!("gen body {:?}", body_id);
                     // For simple statements (e.g invariant, assign, constvar init)
                     // we can deal with them easily as they correspond to a linear
                     // sequence of instructions.
                     //
                     // For control flow statements, we need to keep track of where we should
                     // branch to, thus we can't fall back on simple HIR walking.
-                    let body_code =
-                        BodyCodeGenerator::generate_body(db, library_id, library.as_ref(), body_id);
+                    let body_code = BodyCodeGenerator::generate_body(
+                        db,
+                        &mut blob,
+                        library_id,
+                        library.as_ref(),
+                        body_id,
+                    );
 
                     println!("gen code:");
                     for opc in &body_code.0.opcodes {
@@ -73,17 +85,21 @@ pub fn generate_code(db: &dyn HirAnalysis) -> CompileResult<Option<CodeBlob>> {
 struct BodyCode(CodeFragment);
 
 struct BodyCodeGenerator<'a> {
-    db: &'a dyn HirAnalysis,
+    db: &'a dyn CodeGenDB,
     library_id: hir_library::LibraryId,
     library: &'a hir_library::Library,
     body_id: hir_body::BodyId,
     body: &'a hir_body::Body,
     code_fragment: &'a mut CodeFragment,
+
+    code_blob: &'a mut CodeBlob,
+    last_location: Option<(usize, usize)>,
 }
 
 impl BodyCodeGenerator<'_> {
     fn generate_body(
-        db: &dyn HirAnalysis,
+        db: &dyn CodeGenDB,
+        code_blob: &mut CodeBlob,
         library_id: hir_library::LibraryId,
         library: &hir_library::Library,
         body_id: hir_body::BodyId,
@@ -96,6 +112,9 @@ impl BodyCodeGenerator<'_> {
             body_id,
             body: library.body(body_id),
             code_fragment: &mut code_fragment,
+
+            code_blob,
+            last_location: None,
         };
 
         gen.inline_body(body_id);
@@ -112,6 +131,9 @@ impl BodyCodeGenerator<'_> {
             body_id,
             body: self.library.body(body_id),
             code_fragment: self.code_fragment,
+
+            code_blob: self.code_blob,
+            last_location: self.last_location,
         };
 
         match &self.library.body(body_id).kind {
@@ -122,10 +144,16 @@ impl BodyCodeGenerator<'_> {
             }
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
+
+        self.last_location = gen.last_location;
     }
 
     fn generate_stmt(&mut self, stmt_id: hir_stmt::StmtId) {
-        match &self.body.stmt(stmt_id).kind {
+        let stmt = self.body.stmt(stmt_id);
+        let span = self.library.lookup_span(stmt.span);
+        self.emit_location(span);
+
+        match &stmt.kind {
             hir_stmt::StmtKind::Item(item_id) => self.generate_item(*item_id),
             hir_stmt::StmtKind::Assign(stmt) => self.generate_stmt_assign(stmt),
             hir_stmt::StmtKind::Put(_) => todo!(),
@@ -172,7 +200,11 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
-        match &self.library.item(item_id).kind {
+        let item = self.library.item(item_id);
+        let span = self.library.lookup_span(item.span);
+        self.emit_location(span);
+
+        match &item.kind {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
             hir_item::ItemKind::Module(_) => {
                 // We already generate code for module bodies as part of walking
@@ -243,12 +275,53 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_expr(&mut self, expr_id: hir_expr::ExprId) {
-        match &self.body.expr(expr_id).kind {
+        let expr = self.body.expr(expr_id);
+        let span = self.library.lookup_span(expr.span);
+        self.emit_location(span);
+
+        match &expr.kind {
             hir_expr::ExprKind::Missing => unreachable!("malformed code reached code generation"),
             hir_expr::ExprKind::Literal(expr) => self.generate_expr_literal(expr),
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
             hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr),
+        }
+    }
+
+    fn emit_location(&mut self, span: Span) {
+        let file = span.file.unwrap();
+        let info = self
+            .db
+            .map_byte_index(file, span.range.start().into())
+            .unwrap();
+
+        let code_file = self.code_blob.file_map.insert_full(file).0;
+        // `LineInfo` line is zero-based, so adjust it
+        let (new_file, new_line) = (code_file as u16, info.line as u16 + 1);
+
+        let opcode = if let Some((last_file, last_line)) =
+            self.last_location.replace((code_file, info.line))
+        {
+            if (last_file, last_line) == (code_file, info.line) {
+                // Same location, don't need to emit anything
+                None
+            } else if last_file != code_file {
+                // Different file, file absolute location
+                Some(Opcode::SETFILENO(new_file, new_line))
+            } else if info.line.checked_sub(last_line) == Some(1) {
+                // Can get away with a line relative location
+                Some(Opcode::INCLINENO())
+            } else {
+                // Need a line absolute location
+                Some(Opcode::SETLINENO(new_line))
+            }
+        } else {
+            // Start of body, need a file absolute location
+            Some(Opcode::SETFILENO(new_file, new_line))
+        };
+
+        if let Some(opcode) = opcode {
+            self.code_fragment.emit_opcode(opcode);
         }
     }
 
@@ -673,7 +746,11 @@ impl BodyCodeGenerator<'_> {
 
     /// Like `generate_expr`, but for producing references to locations
     fn generate_ref_expr(&mut self, expr_id: hir_expr::ExprId) {
-        match &self.body.expr(expr_id).kind {
+        let expr = self.body.expr(expr_id);
+        let span = self.library.lookup_span(expr.span);
+        self.emit_location(span);
+
+        match &expr.kind {
             hir_expr::ExprKind::Name(ref_expr) => self.generate_ref_expr_name(ref_expr),
             // These can never be in reference producing position
             hir_expr::ExprKind::Missing
@@ -722,7 +799,7 @@ struct CodeFragment {
 }
 
 impl CodeFragment {
-    fn allocate_local(&mut self, db: &dyn HirAnalysis, def_id: DefId, def_ty: ty::TypeId) {
+    fn allocate_local(&mut self, db: &dyn CodeGenDB, def_id: DefId, def_ty: ty::TypeId) {
         // Align to the nearest stack slot
         let size = align_up_to(size_of_ty(db, def_ty), 4).try_into().unwrap();
         let offset = self.locals_size;
@@ -748,7 +825,7 @@ impl CodeFragment {
         self.emit_opcode(Opcode::LOCATELOCAL(offset));
     }
 
-    fn emit_assign_into_var(&mut self, into_tyref: &ty::TyRef<dyn HirAnalysis>) {
+    fn emit_assign_into_var(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>) {
         let opcode = match into_tyref.kind() {
             ty::TypeKind::Boolean => Opcode::ASNINT1INV(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::ASNINT1INV(),
@@ -774,7 +851,7 @@ impl CodeFragment {
         self.emit_opcode(opcode);
     }
 
-    fn emit_assign(&mut self, into_tyref: &ty::TyRef<dyn HirAnalysis>) {
+    fn emit_assign(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>) {
         let opcode = match into_tyref.kind() {
             ty::TypeKind::Boolean => Opcode::ASNINT1(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::ASNINT1(),
@@ -801,7 +878,7 @@ impl CodeFragment {
     }
 
     // Expects a destination address to be present
-    fn emit_assign_uninit(&mut self, uninit_ty: &ty::TyRef<dyn HirAnalysis>) {
+    fn emit_assign_uninit(&mut self, uninit_ty: &ty::TyRef<dyn CodeGenDB>) {
         let opcode = match uninit_ty.kind() {
             ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
             ty::TypeKind::Boolean => Opcode::UNINITBOOLEAN(),
@@ -815,7 +892,7 @@ impl CodeFragment {
         self.emit_opcode(opcode);
     }
 
-    fn emit_fetch_value(&mut self, ty_ref: &ty::TyRef<dyn HirAnalysis>) {
+    fn emit_fetch_value(&mut self, ty_ref: &ty::TyRef<dyn CodeGenDB>) {
         let opcode = match ty_ref.kind() {
             ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),
@@ -842,7 +919,7 @@ impl CodeFragment {
     }
 }
 
-fn size_of_ty(db: &dyn HirAnalysis, ty: ty::TypeId) -> usize {
+fn size_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> usize {
     let ty_ref = ty.in_db(db);
 
     match ty_ref.kind() {
@@ -868,7 +945,7 @@ fn size_of_ty(db: &dyn HirAnalysis, ty: ty::TypeId) -> usize {
     }
 }
 
-fn has_uninit(ty_ref: &ty::TyRef<dyn HirAnalysis>) -> bool {
+fn has_uninit(ty_ref: &ty::TyRef<dyn CodeGenDB>) -> bool {
     matches!(
         ty_ref.kind(),
         ty::TypeKind::Boolean

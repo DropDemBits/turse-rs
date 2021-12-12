@@ -930,6 +930,7 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "toc_analysis",
+ "toc_ast_db",
  "toc_hir",
  "toc_hir_db",
  "toc_reporting",

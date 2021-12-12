@@ -1097,10 +1097,10 @@ define_encodings! {
         IN (u32, i32, i32) = 0x7C,
 
         /// ## INCLINENO ()
-        /// (description)
+        /// Increments the line number in the location information by 1.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         INCLINENO () = 0x7D,
 
@@ -1835,18 +1835,19 @@ define_encodings! {
         SETELEMENT (u32, i32, i32) = 0xD4,
 
         /// ## SETFILENO (fileNo:u16, lineNo:u16)
-        /// (description)
+        /// Sets the file and line number in the location information to `fileNo` and `lineNo`
+        /// respectively.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         SETFILENO (u16, u16) = 0xD5,
 
         /// ## SETLINENO (lineNo:u16)
-        /// (description)
+        /// Sets the line number in the location information to `lineNo`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         SETLINENO (u16) = 0xD6,
 

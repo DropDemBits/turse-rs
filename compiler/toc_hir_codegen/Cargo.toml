@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 indexmap = "1.7.0"
 toc_analysis = { path = "../toc_analysis" }
+toc_ast_db = { path = "../toc_ast_db" }
 toc_hir = { path = "../toc_hir" }
 toc_hir_db = { path = "../toc_hir_db" }
 toc_reporting = { path = "../toc_reporting" }
