@@ -1060,13 +1060,18 @@ define_encodings! {
         ///
         GESET (u32) = 0x76,
 
-        /// ## GET ()
-        /// (description)
+        /// ## GET (getKind:u8, ...)
+        /// Gets a value from the provided `stream`.
+        ///
+        /// The actual number of stack arguments and operands is based on `getKind`,
+        /// as different get items have different uses for the arguments.
+        /// See [`GetKind`] for more information on the specific stack arguments and
+        /// instruction operands.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( ... stream:addrint -- )`
         ///
-        GET () = 0x78,
+        GET (GetKind) = 0x78,
 
         /// ## GETPRIORITY ()
         /// (description)
@@ -2346,6 +2351,178 @@ impl PutKind {
                 self,
                 PutKind::IntFract() | PutKind::NatFract() | PutKind::RealFract()
             )
+    }
+}
+
+define_encodings! {
+    #[derive(Debug, Clone, Copy)]
+    #[allow(dead_code)] // We aren't using all of the variants right now
+    pub enum GetKind {
+        /// Boolean Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// `typeSize` is always 1.
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        Boolean() = 0,
+
+        /// Char Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// `typeSize` is always 1.
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        Char() = 1,
+
+        /// Char Item, with a specific value range
+        ///
+        /// The character value must be in the range `min .. max` (inclusive).
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32, min:i32, max:i32 )`
+        ///
+        /// `typeSize` is always 1.
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        CharRange(i32, i32) = 2,
+
+        /// CharN Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint getWidth:i32 length:u32 -- )`
+        CharN(u32) = 3,
+
+        /// Enum Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint variantNames:addrint -- )`
+        Enum(u32) = 4,
+
+        /// Enum Item, with a specific value range
+        ///
+        /// The enum ordinal value must be in the range `min .. max` (inclusive).
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32, min:i32, max:i32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint variantNames:addrint -- )`
+        EnumRange(u32, i32, i32) = 5,
+
+        /// Int Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        Int(u32) = 6,
+
+        /// Int Item, with a specific value range
+        ///
+        /// The value must be in the range `min .. max` (inclusive).
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32, min:i32, max:i32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        IntRange(i32, i32) = 7,
+
+        /// Nat Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        Nat(u32) = 8,
+
+        /// Real Item
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint -- )`
+        Real(u32) = 9,
+
+        /// String Item, getting an exact number of characters from the stream
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint getWidth:u32 maxLength:u32 -- )`
+        StringExact(u32) = 10,
+
+        /// String Item, getting a full line from the stream
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint maxLength:u32 -- )`
+        StringLine(u32) = 11,
+
+        /// String Item, getting a full token from the stream
+        ///
+        /// ### Extra Operands
+        ///
+        /// `( typeSize:u32 )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( storeTo:addrint maxLength:u32 -- )`
+        StringToken(u32) = 12,
+
+        /// Skip Item, skipping a full token from the stream
+        ///
+        /// ### Extra Operands
+        ///
+        /// `(  )`
+        ///
+        /// ### Stack Effect
+        ///
+        /// `( -- )`
+        Skip() = 13,
     }
 }
 

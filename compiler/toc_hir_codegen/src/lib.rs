@@ -11,7 +11,7 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
-use crate::instruction::{Opcode, PutKind, StdStream, StreamKind, TemporarySlot};
+use crate::instruction::{GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot};
 
 mod instruction;
 
@@ -157,7 +157,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Item(item_id) => self.generate_item(*item_id),
             hir_stmt::StmtKind::Assign(stmt) => self.generate_stmt_assign(stmt),
             hir_stmt::StmtKind::Put(stmt) => self.generate_stmt_put(stmt),
-            hir_stmt::StmtKind::Get(_) => todo!(),
+            hir_stmt::StmtKind::Get(stmt) => self.generate_stmt_get(stmt),
             hir_stmt::StmtKind::For(_) => todo!(),
             hir_stmt::StmtKind::Loop(_) => todo!(),
             hir_stmt::StmtKind::Exit(_) => todo!(),
@@ -203,30 +203,12 @@ impl BodyCodeGenerator<'_> {
         // Steps
         // We're only concerned with stdout emission
 
-        // Make a temporary to store the stream handle
-        let stream_handle = self.code_fragment.allocate_temporary_space(4);
-
-        if let Some(stream_num) = stmt.stream_num {
-            // Make temporary to store the status_var location from SETSTREAM
-            let status_var = self.code_fragment.allocate_temporary_space(4);
-
-            // Use this stream as the target
-            self.generate_expr(stream_num);
-            self.code_fragment.emit_opcode(Opcode::PUSHADDR(0)); // no place to store status
-
-            // References to the temporary store
-            self.code_fragment.emit_locate_temp(stream_handle);
-            self.code_fragment.emit_locate_temp(status_var);
-
-            self.code_fragment
-                .emit_opcode(Opcode::SETSTREAM(StreamKind::Put()));
-        } else {
-            self.code_fragment.emit_locate_temp(stream_handle);
-
-            // Use stdout as the target stream
-            self.code_fragment
-                .emit_opcode(Opcode::SETSTDSTREAM(StdStream::Stdout()));
-        }
+        let stream_handle = self.generate_set_stream(
+            stmt.stream_num,
+            None,
+            StdStream::Stdout(),
+            StreamKind::Put(),
+        );
 
         for item in &stmt.items {
             let item = match item {
@@ -296,6 +278,93 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment.emit_locate_temp(stream_handle);
             self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
         }
+    }
+
+    fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
+        let stream_handle = self.generate_set_stream(
+            stmt.stream_num,
+            None,
+            StdStream::Stdout(),
+            StreamKind::Get(),
+        );
+
+        for item in &stmt.items {
+            let item = match item {
+                hir_stmt::Skippable::Skip => {
+                    // Skip token
+                    self.code_fragment.emit_locate_temp(stream_handle);
+                    self.code_fragment.emit_opcode(Opcode::GET(GetKind::Skip()));
+                    continue;
+                }
+                hir_stmt::Skippable::Item(item) => item,
+            };
+
+            let get_ty = self
+                .db
+                .type_of((self.library_id, self.body_id, item.expr).into())
+                .in_db(self.db)
+                .peel_ref();
+            let ty_size = size_of_ty(self.db, get_ty.id()) as u32;
+
+            let get_kind = match get_ty.kind() {
+                ty::TypeKind::Boolean => GetKind::Boolean(),
+                ty::TypeKind::Int(_) => GetKind::Int(ty_size),
+                ty::TypeKind::Nat(_) => GetKind::Nat(ty_size),
+                ty::TypeKind::Real(_) => GetKind::Real(ty_size),
+                ty::TypeKind::Integer => unreachable!("type must be concrete"),
+                ty::TypeKind::Char => GetKind::Char(),
+                ty::TypeKind::String => todo!(),
+                ty::TypeKind::CharN(_) => todo!(),
+                ty::TypeKind::StringN(_) => todo!(),
+                _ => unreachable!(),
+            };
+
+            // TODO: Deal with get width once we deal with strings vars
+
+            // Put reference onto the stack
+            self.generate_ref_expr(item.expr);
+
+            self.code_fragment.emit_locate_temp(stream_handle);
+            self.code_fragment.emit_opcode(Opcode::GET(get_kind));
+        }
+    }
+
+    fn generate_set_stream(
+        &mut self,
+        stream_num: Option<hir_expr::ExprId>,
+        status_expr: Option<hir_expr::ExprId>,
+        default_stream: StdStream,
+        op: StreamKind,
+    ) -> TemporarySlot {
+        // Make a temporary to store the stream handle
+        let stream_handle = self.code_fragment.allocate_temporary_space(4);
+
+        if let Some(stream_num) = stream_num {
+            // Make temporary to store the status_var location from SETSTREAM
+            let status_var = self.code_fragment.allocate_temporary_space(4);
+
+            // Use this stream as the target
+            self.generate_expr(stream_num);
+            if let Some(_status_expr) = status_expr {
+                todo!();
+            } else {
+                self.code_fragment.emit_opcode(Opcode::PUSHADDR(0)); // no place to store status
+            }
+
+            // References to the temporary store
+            self.code_fragment.emit_locate_temp(stream_handle);
+            self.code_fragment.emit_locate_temp(status_var);
+
+            self.code_fragment.emit_opcode(Opcode::SETSTREAM(op));
+        } else {
+            self.code_fragment.emit_locate_temp(stream_handle);
+
+            // Use stdout as the target stream
+            self.code_fragment
+                .emit_opcode(Opcode::SETSTDSTREAM(default_stream));
+        }
+
+        stream_handle
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
