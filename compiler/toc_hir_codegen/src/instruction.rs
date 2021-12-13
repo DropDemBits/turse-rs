@@ -1708,7 +1708,7 @@ define_encodings! {
         /// See [`PutKind`] for more information on the specific stack arguments.
         ///
         /// ### Stack Effect
-        /// `( stream:addrint ... -- )`
+        /// `( ... stream:addrint -- )`
         ///
         PUT (PutKind) = 0xC4,
 

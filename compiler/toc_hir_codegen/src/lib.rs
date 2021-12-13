@@ -205,11 +205,9 @@ impl BodyCodeGenerator<'_> {
 
         // Make a temporary to store the stream handle
         let stream_handle = self.code_fragment.allocate_temporary_space(4);
-        self.code_fragment.emit_locate_temp(stream_handle);
 
         if let Some(stream_num) = stmt.stream_num {
-            // Make temporaries to store the values from SETSTREAM
-            let handle_var = self.code_fragment.allocate_temporary_space(4);
+            // Make temporary to store the status_var location from SETSTREAM
             let status_var = self.code_fragment.allocate_temporary_space(4);
 
             // Use this stream as the target
@@ -217,23 +215,24 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment.emit_opcode(Opcode::PUSHADDR(0)); // no place to store status
 
             // References to the temporary store
-            self.code_fragment.emit_locate_temp(handle_var);
+            self.code_fragment.emit_locate_temp(stream_handle);
             self.code_fragment.emit_locate_temp(status_var);
 
             self.code_fragment
                 .emit_opcode(Opcode::SETSTREAM(StreamKind::Put()));
         } else {
+            self.code_fragment.emit_locate_temp(stream_handle);
+
             // Use stdout as the target stream
             self.code_fragment
                 .emit_opcode(Opcode::SETSTDSTREAM(StdStream::Stdout()));
         }
 
         for item in &stmt.items {
-            // Emit stream handle reference
-            self.code_fragment.emit_locate_temp(stream_handle);
-
             let item = match item {
                 hir_stmt::Skippable::Skip => {
+                    // Emit stream handle reference
+                    self.code_fragment.emit_locate_temp(stream_handle);
                     self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
                     continue;
                 }
@@ -287,6 +286,8 @@ impl BodyCodeGenerator<'_> {
                 self.generate_expr(exp_width);
             }
 
+            // Emit stream handle reference
+            self.code_fragment.emit_locate_temp(stream_handle);
             self.code_fragment.emit_opcode(Opcode::PUT(put_kind));
         }
 
