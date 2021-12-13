@@ -228,8 +228,6 @@ impl BodyCodeGenerator<'_> {
                 .emit_opcode(Opcode::SETSTDSTREAM(StdStream::Stdout()));
         }
 
-        self.code_fragment.emit_opcode(Opcode::LOCATEARG(0));
-
         for item in &stmt.items {
             // Emit stream handle reference
             self.code_fragment.emit_locate_temp(stream_handle);
@@ -650,7 +648,7 @@ impl BodyCodeGenerator<'_> {
                     }
                 };
 
-                if expr.op.item() == &hir_expr::BinaryOp::Equal {
+                if expr.op.item() == &hir_expr::BinaryOp::GreaterEq {
                     cmp_op
                 } else {
                     self.code_fragment.emit_opcode(cmp_op);
@@ -679,7 +677,7 @@ impl BodyCodeGenerator<'_> {
                     }
                 };
 
-                if expr.op.item() == &hir_expr::BinaryOp::Equal {
+                if expr.op.item() == &hir_expr::BinaryOp::LessEq {
                     cmp_op
                 } else {
                     self.code_fragment.emit_opcode(cmp_op);
