@@ -528,98 +528,92 @@ impl BodyCodeGenerator<'_> {
                 self.generate_expr(expr.rhs);
                 Opcode::SHR()
             }
-            hir_expr::BinaryOp::Less => {
-                let cmp_op = self
-                    .dispatch_over_numbers(
-                        expr,
-                        lhs_ty.kind(),
-                        rhs_ty.kind(),
-                        Opcode::GEREAL(),
-                        Opcode::GENAT(),
-                        Opcode::GENATINT(),
-                        Opcode::GEINTNAT(),
-                        Opcode::GEINT(),
-                    )
-                    .unwrap();
-                self.code_fragment.emit_opcode(cmp_op);
-                Opcode::NOT()
+            hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
+                let cmp_op = if let Some(cmp_op) = self.dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::GEREAL(),
+                    Opcode::GENAT(),
+                    Opcode::GENATINT(),
+                    Opcode::GEINTNAT(),
+                    Opcode::GEINT(),
+                ) {
+                    cmp_op
+                } else {
+                    self.generate_expr(expr.lhs);
+                    self.generate_expr(expr.rhs);
+
+                    match (lhs_ty.kind(), rhs_ty.kind()) {
+                        (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::GENAT(),
+                        _ => unreachable!(),
+                    }
+                };
+
+                if expr.op.item() == &hir_expr::BinaryOp::Equal {
+                    cmp_op
+                } else {
+                    self.code_fragment.emit_opcode(cmp_op);
+                    Opcode::NOT()
+                }
             }
-            hir_expr::BinaryOp::LessEq => {
-                let cmp_op = self
-                    .dispatch_over_numbers(
-                        expr,
-                        lhs_ty.kind(),
-                        rhs_ty.kind(),
-                        Opcode::LEREAL(),
-                        Opcode::LENAT(),
-                        Opcode::LENATINT(),
-                        Opcode::LEINTNAT(),
-                        Opcode::LEINT(),
-                    )
-                    .unwrap();
-                cmp_op
+            hir_expr::BinaryOp::Greater | hir_expr::BinaryOp::LessEq => {
+                let cmp_op = if let Some(cmp_op) = self.dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::LEREAL(),
+                    Opcode::LENAT(),
+                    Opcode::LENATINT(),
+                    Opcode::LEINTNAT(),
+                    Opcode::LEINT(),
+                ) {
+                    cmp_op
+                } else {
+                    self.generate_expr(expr.lhs);
+                    self.generate_expr(expr.rhs);
+
+                    match (lhs_ty.kind(), rhs_ty.kind()) {
+                        (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::LENAT(),
+                        _ => unreachable!(),
+                    }
+                };
+
+                if expr.op.item() == &hir_expr::BinaryOp::Equal {
+                    cmp_op
+                } else {
+                    self.code_fragment.emit_opcode(cmp_op);
+                    Opcode::NOT()
+                }
             }
-            hir_expr::BinaryOp::Greater => {
-                let cmp_op = self
-                    .dispatch_over_numbers(
-                        expr,
-                        lhs_ty.kind(),
-                        rhs_ty.kind(),
-                        Opcode::LEREAL(),
-                        Opcode::LENAT(),
-                        Opcode::LENATINT(),
-                        Opcode::LEINTNAT(),
-                        Opcode::LEINT(),
-                    )
-                    .unwrap();
-                self.code_fragment.emit_opcode(cmp_op);
-                Opcode::NOT()
-            }
-            hir_expr::BinaryOp::GreaterEq => {
-                let cmp_op = self
-                    .dispatch_over_numbers(
-                        expr,
-                        lhs_ty.kind(),
-                        rhs_ty.kind(),
-                        Opcode::GEREAL(),
-                        Opcode::GENAT(),
-                        Opcode::GENATINT(),
-                        Opcode::GEINTNAT(),
-                        Opcode::GEINT(),
-                    )
-                    .unwrap();
-                cmp_op
-            }
-            hir_expr::BinaryOp::Equal => {
-                let cmp_op = self
-                    .dispatch_over_numbers(
-                        expr,
-                        lhs_ty.kind(),
-                        rhs_ty.kind(),
-                        Opcode::EQREAL(),
-                        Opcode::EQNAT(),
-                        Opcode::EQINTNAT(),
-                        Opcode::EQINTNAT(),
-                        Opcode::EQINT(),
-                    )
-                    .unwrap();
-                cmp_op
-            }
-            hir_expr::BinaryOp::NotEqual => {
-                let cmp_op = self
-                    .dispatch_over_numbers(
-                        expr,
-                        lhs_ty.kind(),
-                        rhs_ty.kind(),
-                        Opcode::EQREAL(),
-                        Opcode::EQNAT(),
-                        Opcode::EQINTNAT(),
-                        Opcode::EQINTNAT(),
-                        Opcode::EQINT(),
-                    )
-                    .unwrap();
-                self.code_fragment.emit_opcode(cmp_op);
-                Opcode::NOT()
+            hir_expr::BinaryOp::Equal | hir_expr::BinaryOp::NotEqual => {
+                let cmp_op = if let Some(cmp_op) = self.dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::EQREAL(),
+                    Opcode::EQNAT(),
+                    Opcode::EQINTNAT(),
+                    Opcode::EQINTNAT(),
+                    Opcode::EQINT(),
+                ) {
+                    cmp_op
+                } else {
+                    self.generate_expr(expr.lhs);
+                    self.generate_expr(expr.rhs);
+
+                    match (lhs_ty.kind(), rhs_ty.kind()) {
+                        (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQNAT(),
+                        _ => unreachable!(),
+                    }
+                };
+
+                if expr.op.item() == &hir_expr::BinaryOp::Equal {
+                    cmp_op
+                } else {
+                    self.code_fragment.emit_opcode(cmp_op);
+                    Opcode::NOT()
+                }
             }
             hir_expr::BinaryOp::In => todo!(),
             hir_expr::BinaryOp::NotIn => todo!(),
@@ -841,7 +835,7 @@ impl CodeFragment {
             ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::ASNREAL8INV(),
             ty::TypeKind::Real(ty::RealSize::Real) => Opcode::ASNREALINV(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => todo!(),
+            ty::TypeKind::Char => Opcode::ASNINT1INV(),
             ty::TypeKind::String => todo!(),
             ty::TypeKind::CharN(_) => todo!(),
             ty::TypeKind::StringN(_) => todo!(),
@@ -867,7 +861,7 @@ impl CodeFragment {
             ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::ASNREAL8(),
             ty::TypeKind::Real(ty::RealSize::Real) => Opcode::ASNREAL(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => todo!(),
+            ty::TypeKind::Char => Opcode::ASNINT1(),
             ty::TypeKind::String => todo!(),
             ty::TypeKind::CharN(_) => todo!(),
             ty::TypeKind::StringN(_) => todo!(),
@@ -908,7 +902,7 @@ impl CodeFragment {
             ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::FETCHREAL8(),
             ty::TypeKind::Real(ty::RealSize::Real) => Opcode::FETCHREAL(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => todo!(),
+            ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String => todo!(),
             ty::TypeKind::CharN(_) => todo!(),
             ty::TypeKind::StringN(_) => todo!(),
