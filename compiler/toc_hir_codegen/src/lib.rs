@@ -11,7 +11,7 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
-use crate::instruction::{Opcode, PutKind, StdStream};
+use crate::instruction::{Opcode, PutKind, StdStream, StreamKind, TemporarySlot};
 
 mod instruction;
 
@@ -204,15 +204,24 @@ impl BodyCodeGenerator<'_> {
         // We're only concerned with stdout emission
 
         // Make a temporary to store the stream handle
-        self.code_fragment.emit_opcode(Opcode::PUSHVAL0());
-        self.code_fragment.emit_opcode(Opcode::LOCATEARG(0));
+        let stream_handle = self.code_fragment.allocate_temporary_space(4);
+        self.code_fragment.emit_locate_temp(stream_handle);
 
         if let Some(stream_num) = stmt.stream_num {
+            // Make temporaries to store the values from SETSTREAM
+            let handle_var = self.code_fragment.allocate_temporary_space(4);
+            let status_var = self.code_fragment.allocate_temporary_space(4);
+
             // Use this stream as the target
             self.generate_expr(stream_num);
+            self.code_fragment.emit_opcode(Opcode::PUSHADDR(0)); // no place to store status
 
-            // TODO: Use SETSTREAM as the proper opcode
-            self.code_fragment.emit_opcode(Opcode::ASNINT4());
+            // References to the temporary store
+            self.code_fragment.emit_locate_temp(handle_var);
+            self.code_fragment.emit_locate_temp(status_var);
+
+            self.code_fragment
+                .emit_opcode(Opcode::SETSTREAM(StreamKind::Put()));
         } else {
             // Use stdout as the target stream
             self.code_fragment
@@ -222,8 +231,8 @@ impl BodyCodeGenerator<'_> {
         self.code_fragment.emit_opcode(Opcode::LOCATEARG(0));
 
         for item in &stmt.items {
-            // Copy arg for later items
-            self.code_fragment.emit_opcode(Opcode::PUSHCOPY());
+            // Emit stream handle reference
+            self.code_fragment.emit_locate_temp(stream_handle);
 
             let item = match item {
                 hir_stmt::Skippable::Skip => {
@@ -283,16 +292,10 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment.emit_opcode(Opcode::PUT(put_kind));
         }
 
-        // Deal with remaining stream handle
         if stmt.append_newline {
-            // Have the final skip eat the pointer
+            // Emit newline
+            self.code_fragment.emit_locate_temp(stream_handle);
             self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
-            // ... but still eat the temporary
-            self.code_fragment.emit_opcode(Opcode::INCSP(4));
-        } else {
-            // Just bump sp to eat both the address and the temp
-            // all in one go
-            self.code_fragment.emit_opcode(Opcode::INCSP(8));
         }
     }
 
@@ -885,6 +888,8 @@ struct StackSlot {
 struct CodeFragment {
     locals: indexmap::IndexMap<DefId, StackSlot>,
     locals_size: u32,
+    temps: Vec<StackSlot>,
+    temps_size: u32,
 
     opcodes: Vec<Opcode>,
 }
@@ -905,6 +910,21 @@ impl CodeFragment {
         self.locals_size += size;
     }
 
+    fn allocate_temporary_space(&mut self, size: u32) -> TemporarySlot {
+        // Align to the nearest stack slot
+        let size = align_up_to(size as usize, 4).try_into().unwrap();
+        let offset = self.temps_size;
+        let handle = self.temps.len();
+
+        self.temps.push(StackSlot {
+            offset,
+            _size: size,
+        });
+
+        self.temps_size += size;
+        TemporarySlot(handle)
+    }
+
     fn emit_opcode(&mut self, opcode: Opcode) {
         self.opcodes.push(opcode)
     }
@@ -914,6 +934,11 @@ impl CodeFragment {
         let offset = slot_info.offset;
 
         self.emit_opcode(Opcode::LOCATELOCAL(offset));
+    }
+
+    fn emit_locate_temp(&mut self, temp: TemporarySlot) {
+        // Don't know the final size of temporaries yet, so use temporary slots.
+        self.emit_opcode(Opcode::LOCATETEMP(temp));
     }
 
     fn emit_assign_into_var(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>) {

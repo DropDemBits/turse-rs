@@ -15,6 +15,10 @@ pub struct RelocatableOffset {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CodeOffset(pub i32);
 
+/// A reference to the temporaries area in a function
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TemporarySlot(pub usize);
+
 macro_rules! define_encodings {
     (
         $(#[$enum_attr:meta])*
@@ -1326,12 +1330,13 @@ define_encodings! {
         LOCATEPARM (u32) = 0x97,
 
         /// ## LOCATETEMP (localsArea:offset, temporary:offset)
-        /// (description)
+        /// Produces an address `tempAt` that points to the temporary at
+        /// `temporary` in the temporary space, just after the locals space.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- tempAt:addrint )`
         ///
-        LOCATETEMP (u32, u32) = 0x98,
+        LOCATETEMP (TemporarySlot) = 0x98,
 
         /// ## LTCLASS ()
         /// (description)
@@ -1877,12 +1882,16 @@ define_encodings! {
         SETSTDSTREAM (StdStream) = 0xD8,
 
         /// ## SETSTREAM (kind:u8)
-        /// (description)
+        /// Sets up a stream for operations with the given `kind`.
+        ///
+        /// This initializes the stream info with `streamHandle` (the handle for the stream)
+        /// and `status` (a pointer to where to store the status), and copies these two into
+        /// `handleVar` and `statusVar` respectively.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( streamHandle:i32 status:addrint handleVar:addrint statusVar:addrint -- )`
         ///
-        SETSTREAM (u8) = 0xD9,
+        SETSTREAM (StreamKind) = 0xD9,
 
         /// ## SHL ()
         /// Shifts `lhs` left by `rhs` bits, producing `res`
@@ -2341,13 +2350,26 @@ impl PutKind {
 }
 
 define_encodings! {
-    /// Standard streams selectible from `SETSTDSTREAM`
+    /// Standard streams selectable from `SETSTDSTREAM`
     #[derive(Debug, Clone, Copy)]
     pub enum StdStream {
-        /// Stadard In (default handle = -2)
+        /// Standard In (default handle = -2)
         #[allow(dead_code)] // We aren't using the `Stdin` variant yet
         Stdin() = 1,
         /// Standard Out (default handle = -1)
         Stdout() = 2,
+    }
+}
+
+define_encodings! {
+    /// Stream operations that can be used from `SETSTREAM`
+    #[derive(Debug, Clone, Copy)]
+    #[allow(dead_code)] // We aren't using all of the variants right now
+    pub enum StreamKind {
+        Seek() = 0,
+        Get() = 1,
+        Put() = 2,
+        Read() = 3,
+        Write() = 4,
     }
 }
