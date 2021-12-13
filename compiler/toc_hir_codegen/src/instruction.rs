@@ -1105,10 +1105,11 @@ define_encodings! {
         INCLINENO () = 0x7D,
 
         /// ## INCSP (amount:offset)
-        /// (description)
+        /// Adjusts the data stack pointer by `amount` bytes.
+        /// This is the same thing as popping off many items from the data stack.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( ...items:bytes(amount) -- )`
         ///
         INCSP (u32) = 0x7E,
 
@@ -1291,10 +1292,11 @@ define_encodings! {
         LESET (u32) = 0x92,
 
         /// ## LOCATEARG (argOff:offset)
-        /// (description)
+        /// Produces an address `argAt` that points to the stack argument
+        /// at `argOff` from the stack pointer.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- argAt:addrint )`
         ///
         LOCATEARG (u32) = 0x94,
 
@@ -1694,12 +1696,16 @@ define_encodings! {
         PUSHVAL1 () = 0xC3,
 
         /// ## PUT (putKind:u8)
-        /// (description)
+        /// Puts the given value to the provided `stream`.
+        ///
+        /// The actual number of stack arguments is based on `putKind`,
+        /// as different put items have different uses for the arguments.
+        /// See [`PutKind`] for more information on the specific stack arguments.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( stream:addrint ... -- )`
         ///
-        PUT (u8) = 0xC4,
+        PUT (PutKind) = 0xC4,
 
         /// ## QUIT ()
         /// (description)
@@ -1860,12 +1866,15 @@ define_encodings! {
         SETPRIORITY () = 0xD7,
 
         /// ## SETSTDSTREAM (kind:u8)
-        /// (description)
+        /// Assigns `dest` with the stream handle of the corresponding
+        /// standard stream. If a standard stream isn't redirected, the handle
+        /// stored will be the default stream handle for the respective
+        /// standard stream.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- ??? )`
         ///
-        SETSTDSTREAM (u8) = 0xD8,
+        SETSTDSTREAM (StdStream) = 0xD8,
 
         /// ## SETSTREAM (kind:u8)
         /// (description)
@@ -2205,5 +2214,140 @@ define_encodings! {
         InvalidCaseVariant() = 8,
         /// From a `function` missing a `result` statement
         MissingResult() = 9,
+    }
+}
+
+define_encodings! {
+    /// Valid types for `put`
+    #[derive(Debug, Clone, Copy)]
+    #[allow(dead_code)] // We aren't using all of the variants right now
+    pub enum PutKind {
+        /// Boolean Item
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 -- )`
+        ///
+        Boolean() = 0,
+
+        /// Char Item
+        ///
+        /// ### Stack Effect
+        /// `( value:u8 width:i32 -- )`
+        ///
+        Char() = 1,
+
+        /// CharN Item
+        ///
+        /// Note: The argument ordering is emitted in the wrong order from
+        /// original Turing (`width` and `length` are swapped). This uses
+        /// the ordering from the bytecode executor, which is what we're
+        /// ultimately targeting.
+        ///
+        /// ### Stack Effect
+        /// `( value:addrint length:u32 width:i32 -- )`
+        ///
+        CharN() = 2,
+
+        /// Enum Item
+        ///
+        /// ### Stack Effect
+        /// `( value:u32 width:i32 variantNames:addrint -- )`
+        ///
+        Enum() = 3,
+
+        /// Int Item, only width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 -- )`
+        Int() = 4,
+
+        /// Int Item, with fractional width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 fractWidth:i32 -- )`
+        IntFract() = 5,
+
+        /// Int Item, with exponent width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 fractWidth:i32 expWidth:i32 -- )`
+        IntExp() = 6,
+
+        /// Int Item, only width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 -- )`
+        Nat() = 7,
+
+        /// Int Item, with fractional width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 fractWidth:i32 -- )`
+        NatFract() = 8,
+
+        /// Int Item, with exponent width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 fractWidth:i32 expWidth:i32 -- )`
+        NatExp() = 9,
+
+        /// Real Item, only width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 -- )`
+        Real() = 10,
+
+        /// Real Item, with fractional width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 fractWidth:i32 -- )`
+        RealFract() = 11,
+
+        /// Real Item, with exponent width
+        ///
+        /// ### Stack Effect
+        /// `( value:i32 width:i32 fractWidth:i32 expWidth:i32 -- )`
+        RealExp() = 12,
+
+        /// String Item
+        ///
+        /// ### Stack Effect
+        /// `( value:addrint width:i32 -- )`
+        String() = 13,
+
+        /// Skip item, only printing a newline
+        ///
+        /// ### Stack Effect
+        /// `( -- )`
+        Skip() = 14,
+    }
+}
+
+impl PutKind {
+    pub fn has_exp_width_opt(self) -> bool {
+        matches!(
+            self,
+            PutKind::IntExp() | PutKind::NatExp() | PutKind::RealExp()
+        )
+    }
+
+    pub fn has_fract_opt(self) -> bool {
+        self.has_exp_width_opt()
+            || matches!(
+                self,
+                PutKind::IntFract() | PutKind::NatFract() | PutKind::RealFract()
+            )
+    }
+}
+
+define_encodings! {
+    /// Standard streams selectible from `SETSTDSTREAM`
+    #[derive(Debug, Clone, Copy)]
+    pub enum StdStream {
+        /// Stadard In (default handle = -2)
+        #[allow(dead_code)] // We aren't using the `Stdin` variant yet
+        Stdin() = 1,
+        /// Standard Out (default handle = -1)
+        Stdout() = 2,
     }
 }

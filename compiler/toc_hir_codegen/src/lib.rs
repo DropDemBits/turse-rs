@@ -11,7 +11,7 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
-use crate::instruction::Opcode;
+use crate::instruction::{Opcode, PutKind, StdStream};
 
 mod instruction;
 
@@ -156,7 +156,7 @@ impl BodyCodeGenerator<'_> {
         match &stmt.kind {
             hir_stmt::StmtKind::Item(item_id) => self.generate_item(*item_id),
             hir_stmt::StmtKind::Assign(stmt) => self.generate_stmt_assign(stmt),
-            hir_stmt::StmtKind::Put(_) => todo!(),
+            hir_stmt::StmtKind::Put(stmt) => self.generate_stmt_put(stmt),
             hir_stmt::StmtKind::Get(_) => todo!(),
             hir_stmt::StmtKind::For(_) => todo!(),
             hir_stmt::StmtKind::Loop(_) => todo!(),
@@ -197,6 +197,103 @@ impl BodyCodeGenerator<'_> {
         self.code_fragment.emit_assign(&lhs_ty);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
+    }
+
+    fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
+        // Steps
+        // We're only concerned with stdout emission
+
+        // Make a temporary to store the stream handle
+        self.code_fragment.emit_opcode(Opcode::PUSHVAL0());
+        self.code_fragment.emit_opcode(Opcode::LOCATEARG(0));
+
+        if let Some(stream_num) = stmt.stream_num {
+            // Use this stream as the target
+            self.generate_expr(stream_num);
+
+            // TODO: Use SETSTREAM as the proper opcode
+            self.code_fragment.emit_opcode(Opcode::ASNINT4());
+        } else {
+            // Use stdout as the target stream
+            self.code_fragment
+                .emit_opcode(Opcode::SETSTDSTREAM(StdStream::Stdout()));
+        }
+
+        self.code_fragment.emit_opcode(Opcode::LOCATEARG(0));
+
+        for item in &stmt.items {
+            // Copy arg for later items
+            self.code_fragment.emit_opcode(Opcode::PUSHCOPY());
+
+            let item = match item {
+                hir_stmt::Skippable::Skip => {
+                    self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
+                    continue;
+                }
+                hir_stmt::Skippable::Item(put_item) => put_item,
+            };
+
+            let put_ty = self
+                .db
+                .type_of((self.library_id, self.body_id, item.expr).into())
+                .in_db(self.db)
+                .peel_ref();
+
+            let put_kind = match put_ty.kind() {
+                ty::TypeKind::Boolean => PutKind::Boolean(),
+                ty::TypeKind::Int(_) if item.opts.exponent_width().is_some() => PutKind::IntExp(),
+                ty::TypeKind::Int(_) if item.opts.precision().is_some() => PutKind::IntFract(),
+                ty::TypeKind::Int(_) => PutKind::Int(),
+                ty::TypeKind::Nat(_) if item.opts.exponent_width().is_some() => PutKind::NatExp(),
+                ty::TypeKind::Nat(_) if item.opts.precision().is_some() => PutKind::NatFract(),
+                ty::TypeKind::Nat(_) => PutKind::Nat(),
+                ty::TypeKind::Real(_) if item.opts.exponent_width().is_some() => PutKind::RealExp(),
+                ty::TypeKind::Real(_) if item.opts.precision().is_some() => PutKind::RealFract(),
+                ty::TypeKind::Real(_) => PutKind::Real(),
+                ty::TypeKind::Integer => unreachable!("type must be concrete"),
+                ty::TypeKind::Char => PutKind::Char(),
+                ty::TypeKind::String => todo!(),
+                ty::TypeKind::CharN(_) => todo!(),
+                ty::TypeKind::StringN(_) => todo!(),
+                // TODO: Add case for enums
+                _ => unreachable!(),
+            };
+
+            // Put value onto the stack
+            self.generate_expr(item.expr);
+
+            // Deal with the put opts
+            if let Some(width) = item.opts.width() {
+                self.generate_expr(width)
+            } else {
+                // width is common to non-skip items, so have it present
+                self.code_fragment.emit_opcode(Opcode::PUSHVAL0())
+            }
+
+            if let (Some(fract_width), true) = (item.opts.precision(), put_kind.has_fract_opt()) {
+                self.generate_expr(fract_width);
+            }
+
+            if let (Some(exp_width), true) =
+                (item.opts.exponent_width(), put_kind.has_exp_width_opt())
+            {
+                self.generate_expr(exp_width);
+            }
+
+            self.code_fragment.emit_opcode(Opcode::PUT(put_kind));
+        }
+
+        // Deal with remaining stream handle
+        if stmt.append_newline {
+            // Have the final skip eat the pointer
+            self.code_fragment.emit_opcode(Opcode::PUT(PutKind::Skip()));
+            // ... but still eat the temporary
+            self.code_fragment.emit_opcode(Opcode::INCSP(4));
+        } else {
+            // Just bump sp to eat both the address and the temp
+            // all in one go
+            self.code_fragment.emit_opcode(Opcode::INCSP(8));
+        }
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
