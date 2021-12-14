@@ -229,16 +229,33 @@ impl BodyCodeGenerator<'_> {
 
             let put_kind = match put_ty.kind() {
                 ty::TypeKind::Boolean => PutKind::Boolean(),
-                ty::TypeKind::Int(_) if item.opts.exponent_width().is_some() => PutKind::IntExp(),
-                ty::TypeKind::Int(_) if item.opts.precision().is_some() => PutKind::IntFract(),
-                ty::TypeKind::Int(_) => PutKind::Int(),
-                ty::TypeKind::Nat(_) if item.opts.exponent_width().is_some() => PutKind::NatExp(),
-                ty::TypeKind::Nat(_) if item.opts.precision().is_some() => PutKind::NatFract(),
-                ty::TypeKind::Nat(_) => PutKind::Nat(),
-                ty::TypeKind::Real(_) if item.opts.exponent_width().is_some() => PutKind::RealExp(),
-                ty::TypeKind::Real(_) if item.opts.precision().is_some() => PutKind::RealFract(),
-                ty::TypeKind::Real(_) => PutKind::Real(),
-                ty::TypeKind::Integer => unreachable!("type must be concrete"),
+                ty::TypeKind::Integer | ty::TypeKind::Int(_) => {
+                    if item.opts.exponent_width().is_some() {
+                        PutKind::IntExp()
+                    } else if item.opts.precision().is_some() {
+                        PutKind::IntFract()
+                    } else {
+                        PutKind::Int()
+                    }
+                }
+                ty::TypeKind::Nat(_) => {
+                    if item.opts.exponent_width().is_some() {
+                        PutKind::NatExp()
+                    } else if item.opts.precision().is_some() {
+                        PutKind::NatFract()
+                    } else {
+                        PutKind::Nat()
+                    }
+                }
+                ty::TypeKind::Real(_) => {
+                    if item.opts.exponent_width().is_some() {
+                        PutKind::RealExp()
+                    } else if item.opts.precision().is_some() {
+                        PutKind::RealFract()
+                    } else {
+                        PutKind::Real()
+                    }
+                }
                 ty::TypeKind::Char => PutKind::Char(),
                 ty::TypeKind::String => todo!(),
                 ty::TypeKind::CharN(_) => todo!(),
