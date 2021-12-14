@@ -1011,7 +1011,15 @@ impl CodeFragment {
     }
 
     fn emit_opcode(&mut self, opcode: Opcode) {
-        self.opcodes.push(opcode)
+        if matches!(opcode, Opcode::INCLINENO()) {
+            // Fold together INCLINENO and SETFILENO / SETLINENO
+            match self.opcodes.last_mut() {
+                Some(Opcode::SETFILENO(_, line) | Opcode::SETLINENO(line)) => *line += 1,
+                _ => self.opcodes.push(Opcode::INCLINENO()),
+            }
+        } else {
+            self.opcodes.push(opcode)
+        }
     }
 
     fn emit_locate_local(&mut self, def_id: DefId) {
