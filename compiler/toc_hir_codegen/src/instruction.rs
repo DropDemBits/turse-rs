@@ -13,7 +13,7 @@ pub struct RelocatableOffset {
 /// A branch target that will be patched by a later instruction
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CodeOffset(pub i32);
+pub struct CodeOffset(pub usize);
 
 /// A reference to the temporaries area in a function
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1089,11 +1089,13 @@ define_encodings! {
         ///
         GTCLASS () = 0x7A,
 
-        /// ## IF (skipTo:offset)
-        /// (description)
+        /// ## IF (jumpTo:offset)
+        /// Follows the branch if `condition` is false.
+        ///
+        /// `jumpTo` is computed relative to the address *at* the operand.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( condition:bool -- ??? )`
         ///
         IF (CodeOffset) = 0x7B,
 
@@ -1122,10 +1124,12 @@ define_encodings! {
         ///
         INCSP (u32) = 0x7E,
 
-        /// ## INFIXAND (skipTo:offset)
+        /// ## INFIXAND (jumpTo:offset)
         /// Follows the branch if `condition` is false.
         /// This is used to implement short-circuiting `and`, but is otherwise
-        /// equivalent to a chain of `NOT` `IF`.
+        /// equivalent to a chain of `IF`.
+        ///
+        /// `jumpTo` is computed relative to the address *at* the operand.
         ///
         /// ### Stack Effect
         ///
@@ -1133,10 +1137,12 @@ define_encodings! {
         ///
         INFIXAND (CodeOffset) = 0x7F,
 
-        /// ## INFIXOR (skipTo:offset)
+        /// ## INFIXOR (jumpTo:offset)
         /// Follows the branch if `condition` is true.
         /// This is used to implement short-circuiting `or`, but is otherwise
-        /// equivalent to `IF`.
+        /// equivalent to `NOT` `IF`.
+        ///
+        /// `jumpTo` is computed relative to the address *at* the operand.
         ///
         /// ### Stack Effect
         ///
@@ -1209,7 +1215,9 @@ define_encodings! {
         JSR (CodeOffset) = 0x88,
 
         /// ## JUMP (jumpTo:offset)
-        /// (description)
+        /// Jumps the program counter forwards relative to the current instruction.
+        ///
+        /// `jumpTo` is computed relative to the address *at* the operand.
         ///
         /// ### Stack Effect
         /// `( ??? -- ??? )`
@@ -1217,10 +1225,12 @@ define_encodings! {
         JUMP (CodeOffset) = 0x89,
 
         /// ## JUMPB (jumpTo:offset)
-        /// (description)
+        /// Jumps the program counter backwards relative to the current instruction.
+        ///
+        /// `jumpTo` is computed relative to the address *after* the operand.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         JUMPB (CodeOffset) = 0x8A,
 

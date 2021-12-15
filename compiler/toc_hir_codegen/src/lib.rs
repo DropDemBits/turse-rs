@@ -11,7 +11,9 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
-use crate::instruction::{GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot};
+use crate::instruction::{
+    CodeOffset, GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot,
+};
 
 mod instruction;
 
@@ -63,8 +65,13 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     );
 
                     println!("gen code:");
-                    for opc in &body_code.0.opcodes {
-                        println!("    {:?}", opc);
+                    for (idx, opc) in body_code.0.opcodes.iter().enumerate() {
+                        println!("{:4}    {:?}", idx, opc);
+                    }
+                    println!();
+                    println!("offsets:");
+                    for (idx, off) in body_code.0.code_offsets.iter().enumerate() {
+                        println!("{:4}    {:?}", idx, off);
                     }
                 }
                 hir_body::BodyKind::Exprs(_expr) => {
@@ -94,6 +101,7 @@ struct BodyCodeGenerator<'a> {
 
     code_blob: &'a mut CodeBlob,
     last_location: Option<(usize, usize)>,
+    loop_branch_stack: Vec<(CodeOffset, CodeOffset)>,
 }
 
 impl BodyCodeGenerator<'_> {
@@ -115,9 +123,17 @@ impl BodyCodeGenerator<'_> {
 
             code_blob,
             last_location: None,
+            loop_branch_stack: vec![],
         };
 
-        gen.inline_body(body_id);
+        match &library.body(body_id).kind {
+            hir_body::BodyKind::Stmts(stmts, _) => {
+                for stmt_id in stmts {
+                    gen.generate_stmt(*stmt_id);
+                }
+            }
+            hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
+        }
 
         BodyCode(code_fragment)
     }
@@ -134,6 +150,7 @@ impl BodyCodeGenerator<'_> {
 
             code_blob: self.code_blob,
             last_location: self.last_location,
+            loop_branch_stack: vec![],
         };
 
         match &self.library.body(body_id).kind {
@@ -148,6 +165,50 @@ impl BodyCodeGenerator<'_> {
         self.last_location = gen.last_location;
     }
 
+    fn emit_location(&mut self, span: Span) {
+        let file = span.file.unwrap();
+        let info = self
+            .db
+            .map_byte_index(file, span.range.start().into())
+            .unwrap();
+
+        let code_file = self.code_blob.file_map.insert_full(file).0;
+        // `LineInfo` line is zero-based, so adjust it
+        let (new_file, new_line) = (code_file as u16, info.line as u16 + 1);
+
+        let opcode = if let Some((last_file, last_line)) =
+            self.last_location.replace((code_file, info.line))
+        {
+            if (last_file, last_line) == (code_file, info.line) {
+                // Same location, don't need to emit anything
+                None
+            } else if last_file != code_file {
+                // Different file, file absolute location
+                Some(Opcode::SETFILENO(new_file, new_line))
+            } else if info.line.checked_sub(last_line) == Some(1) {
+                // Can get away with a line relative location
+                Some(Opcode::INCLINENO())
+            } else {
+                // Need a line absolute location
+                Some(Opcode::SETLINENO(new_line))
+            }
+        } else {
+            // Start of body, need a file absolute location
+            Some(Opcode::SETFILENO(new_file, new_line))
+        };
+
+        if let Some(opcode) = opcode {
+            self.code_fragment.emit_opcode(opcode);
+        }
+    }
+
+    fn emit_absolute_location(&mut self) {
+        if let Some((file, line)) = self.last_location {
+            self.code_fragment
+                .emit_opcode(Opcode::SETFILENO(file as u16, line as u16));
+        }
+    }
+
     fn generate_stmt(&mut self, stmt_id: hir_stmt::StmtId) {
         let stmt = self.body.stmt(stmt_id);
         let span = self.library.lookup_span(stmt.span);
@@ -159,8 +220,8 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Put(stmt) => self.generate_stmt_put(stmt),
             hir_stmt::StmtKind::Get(stmt) => self.generate_stmt_get(stmt),
             hir_stmt::StmtKind::For(_) => todo!(),
-            hir_stmt::StmtKind::Loop(_) => todo!(),
-            hir_stmt::StmtKind::Exit(_) => todo!(),
+            hir_stmt::StmtKind::Loop(stmt) => self.generate_stmt_loop(stmt),
+            hir_stmt::StmtKind::Exit(stmt) => self.generate_stmt_exit(stmt),
             hir_stmt::StmtKind::If(_) => todo!(),
             hir_stmt::StmtKind::Case(_) => todo!(),
             hir_stmt::StmtKind::Block(_) => todo!(),
@@ -384,6 +445,39 @@ impl BodyCodeGenerator<'_> {
         stream_handle
     }
 
+    fn generate_stmt_loop(&mut self, stmt: &hir_stmt::Loop) {
+        // Need to:
+        // - Create a new branch, anchored to next instruction
+        // - Create a forward branch for after the loop
+        // - Anchor floating branch to instruction after the backward jump
+        let loop_start = self.code_fragment.place_branch();
+        let after_loop = self.code_fragment.new_branch();
+
+        // Have a fixed location for the branch to go to
+        self.emit_absolute_location();
+
+        self.loop_branch_stack.push((loop_start, after_loop));
+        for stmt_id in &stmt.stmts {
+            self.generate_stmt(*stmt_id)
+        }
+        self.code_fragment.emit_opcode(Opcode::JUMPB(loop_start));
+        self.loop_branch_stack.pop();
+        self.code_fragment.anchor_branch(after_loop);
+    }
+
+    fn generate_stmt_exit(&mut self, stmt: &hir_stmt::Exit) {
+        // Branch to the after the loop
+        let branch_to = self.loop_branch_stack.last().unwrap().1;
+
+        if let Some(condition) = stmt.when_condition {
+            // Use INFIXOR as an alias of "branch if true"
+            self.generate_expr(condition);
+            self.code_fragment.emit_opcode(Opcode::INFIXOR(branch_to));
+        } else {
+            self.code_fragment.emit_opcode(Opcode::JUMP(branch_to));
+        }
+    }
+
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
         let item = self.library.item(item_id);
         let span = self.library.lookup_span(item.span);
@@ -470,43 +564,6 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
             hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr),
-        }
-    }
-
-    fn emit_location(&mut self, span: Span) {
-        let file = span.file.unwrap();
-        let info = self
-            .db
-            .map_byte_index(file, span.range.start().into())
-            .unwrap();
-
-        let code_file = self.code_blob.file_map.insert_full(file).0;
-        // `LineInfo` line is zero-based, so adjust it
-        let (new_file, new_line) = (code_file as u16, info.line as u16 + 1);
-
-        let opcode = if let Some((last_file, last_line)) =
-            self.last_location.replace((code_file, info.line))
-        {
-            if (last_file, last_line) == (code_file, info.line) {
-                // Same location, don't need to emit anything
-                None
-            } else if last_file != code_file {
-                // Different file, file absolute location
-                Some(Opcode::SETFILENO(new_file, new_line))
-            } else if info.line.checked_sub(last_line) == Some(1) {
-                // Can get away with a line relative location
-                Some(Opcode::INCLINENO())
-            } else {
-                // Need a line absolute location
-                Some(Opcode::SETLINENO(new_line))
-            }
-        } else {
-            // Start of body, need a file absolute location
-            Some(Opcode::SETFILENO(new_file, new_line))
-        };
-
-        if let Some(opcode) = opcode {
-            self.code_fragment.emit_opcode(opcode);
         }
     }
 
@@ -969,6 +1026,11 @@ struct StackSlot {
     _size: u32,
 }
 
+#[derive(Debug)]
+enum OffsetTarget {
+    Branch(Option<usize>),
+}
+
 #[derive(Default)]
 struct CodeFragment {
     locals: indexmap::IndexMap<DefId, StackSlot>,
@@ -977,6 +1039,7 @@ struct CodeFragment {
     temps_size: u32,
 
     opcodes: Vec<Opcode>,
+    code_offsets: Vec<OffsetTarget>,
 }
 
 impl CodeFragment {
@@ -1125,6 +1188,26 @@ impl CodeFragment {
         };
 
         self.emit_opcode(opcode);
+    }
+
+    fn place_branch(&mut self) -> CodeOffset {
+        let offset = self.new_branch();
+        self.anchor_branch_to(offset, self.opcodes.len());
+        offset
+    }
+
+    fn new_branch(&mut self) -> CodeOffset {
+        let idx = self.code_offsets.len();
+        self.code_offsets.push(OffsetTarget::Branch(None));
+        CodeOffset(idx)
+    }
+
+    fn anchor_branch(&mut self, offset: CodeOffset) {
+        self.anchor_branch_to(offset, self.opcodes.len())
+    }
+
+    fn anchor_branch_to(&mut self, offset: CodeOffset, to_opcode: usize) {
+        *self.code_offsets.get_mut(offset.0).unwrap() = OffsetTarget::Branch(Some(to_opcode))
     }
 }
 
