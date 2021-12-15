@@ -1238,7 +1238,11 @@ test_named_group! {
 
         immut_counter => r#"for i : false .. true i := false end for"#,
 
-        unsupported_implicit_bounds => r#"var implied : int for : implied end for"#
+        unsupported_implicit_bounds => r#"var implied : int for : implied end for"#,
+
+        // Be resilient against missing bounds
+        missing_left_bound => "for : 1 .. end for",
+        missing_right_bound => "for : 1 .. end for",
     ]
 }
 
