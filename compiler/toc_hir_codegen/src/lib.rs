@@ -242,7 +242,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::For(stmt) => self.generate_stmt_for(stmt),
             hir_stmt::StmtKind::Loop(stmt) => self.generate_stmt_loop(stmt),
             hir_stmt::StmtKind::Exit(stmt) => self.generate_stmt_exit(stmt),
-            hir_stmt::StmtKind::If(_) => todo!(),
+            hir_stmt::StmtKind::If(stmt) => self.generate_stmt_if(stmt),
             hir_stmt::StmtKind::Case(_) => todo!(),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
         }
@@ -568,6 +568,31 @@ impl BodyCodeGenerator<'_> {
         } else {
             self.code_fragment.emit_opcode(Opcode::JUMP(branch_to));
         }
+    }
+
+    fn generate_stmt_if(&mut self, stmt: &hir_stmt::If) {
+        // Steps:
+        // - Evaluate condition
+        // - If false, branch after true block
+        // - Otherwise, proceed through true block and branch to after if statement
+        self.generate_expr(stmt.condition);
+
+        let after_true = self.code_fragment.new_branch();
+        let after_false = self.code_fragment.new_branch();
+
+        // Emit true branch
+        self.code_fragment.emit_opcode(Opcode::IF(after_true));
+        self.generate_stmt(stmt.true_branch);
+        self.code_fragment.emit_opcode(Opcode::JUMP(after_false));
+        self.code_fragment.anchor_branch(after_true);
+        self.emit_absolute_location();
+
+        // Then false branch
+        if let Some(false_branch) = stmt.false_branch {
+            self.generate_stmt(false_branch);
+        }
+        self.code_fragment.anchor_branch(after_false);
+        self.emit_absolute_location();
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
