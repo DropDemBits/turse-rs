@@ -19,6 +19,17 @@ pub struct CodeOffset(pub usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TemporarySlot(pub usize);
 
+/// Descriptor used for keeping state in `for` loops
+///
+/// Only used for storage size computation
+#[repr(C)]
+pub struct ForDescriptor {
+    counter: i32,
+    end: i32,
+    step: i32,
+    save_sp: u32,
+}
+
 macro_rules! define_encodings {
     (
         $(#[$enum_attr:meta])*
@@ -691,11 +702,15 @@ define_encodings! {
         ///
         EMPTY () = 0x4B,
 
-        /// ## ENDFOR (jumpBack:offset)
-        /// (description)
+        /// ## ENDFOR (jumpTo:offset)
+        /// Completes one iteration of a for-loop.
+        /// The branch is taken only if the for-loop counter has not surpassed the
+        /// end value.
+        ///
+        /// `forDescriptor` is used to keep track of the for-loop state.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( forDescriptor:addrint -- )`
         ///
         ENDFOR (CodeOffset) = 0x4C,
 
@@ -945,10 +960,10 @@ define_encodings! {
         FIELD (u32) = 0x69,
 
         /// ## FOR (skipBlock:offset)
-        /// (description)
+        /// Initializes the state of the for-loop, storing state at `forDescriptor`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( start:i32 end:i32 step:i32 forDescriptor:addrint -- )`
         ///
         FOR (CodeOffset) = 0x6A,
 
@@ -1227,7 +1242,7 @@ define_encodings! {
         /// ## JUMPB (jumpTo:offset)
         /// Jumps the program counter backwards relative to the current instruction.
         ///
-        /// `jumpTo` is computed relative to the address *after* the operand.
+        /// `jumpTo` is computed relative to the address *at* the operand.
         ///
         /// ### Stack Effect
         /// `( -- )`

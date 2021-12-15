@@ -12,7 +12,7 @@ use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
 use crate::instruction::{
-    CodeOffset, GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot,
+    CodeOffset, ForDescriptor, GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot,
 };
 
 mod instruction;
@@ -68,9 +68,16 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     for (idx, opc) in body_code.0.opcodes.iter().enumerate() {
                         println!("{:4}    {:?}", idx, opc);
                     }
-                    println!();
-                    println!("offsets:");
+                    println!("\noffsets:");
                     for (idx, off) in body_code.0.code_offsets.iter().enumerate() {
+                        println!("{:4}    {:?}", idx, off);
+                    }
+                    println!("\nlocals ({} bytes):", body_code.0.locals_size);
+                    for (idx, off) in body_code.0.locals.iter().enumerate() {
+                        println!("{:4}    ({:?})> {:?}", idx, off.0, off.1);
+                    }
+                    println!("\ntemporaries ({} bytes):", body_code.0.temps_size);
+                    for (idx, off) in body_code.0.temps.iter().enumerate() {
                         println!("{:4}    {:?}", idx, off);
                     }
                 }
@@ -88,6 +95,27 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
     res.map(|_| None)
 }
 
+#[derive(Debug, Clone, Copy)]
+enum BlockBranches {
+    Loop(CodeOffset, CodeOffset),
+    For(ForDescriptorSlot, CodeOffset, CodeOffset),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ForDescriptorSlot {
+    Local(DefId),
+    Temporary(TemporarySlot),
+}
+
+impl ForDescriptorSlot {
+    fn emit_locate_descriptor(&self, code_fragment: &mut CodeFragment) {
+        match self {
+            ForDescriptorSlot::Local(def_id) => code_fragment.emit_locate_local(*def_id),
+            ForDescriptorSlot::Temporary(slot) => code_fragment.emit_locate_temp(*slot),
+        }
+    }
+}
+
 #[derive(Default)]
 struct BodyCode(CodeFragment);
 
@@ -101,7 +129,7 @@ struct BodyCodeGenerator<'a> {
 
     code_blob: &'a mut CodeBlob,
     last_location: Option<(usize, usize)>,
-    loop_branch_stack: Vec<(CodeOffset, CodeOffset)>,
+    branch_stack: Vec<BlockBranches>,
 }
 
 impl BodyCodeGenerator<'_> {
@@ -123,7 +151,7 @@ impl BodyCodeGenerator<'_> {
 
             code_blob,
             last_location: None,
-            loop_branch_stack: vec![],
+            branch_stack: vec![],
         };
 
         match &library.body(body_id).kind {
@@ -146,7 +174,7 @@ impl BodyCodeGenerator<'_> {
 
             code_blob: self.code_blob,
             last_location: self.last_location,
-            loop_branch_stack: vec![],
+            branch_stack: vec![],
         };
 
         match &self.library.body(body_id).kind {
@@ -169,7 +197,7 @@ impl BodyCodeGenerator<'_> {
         let (new_file, new_line) = (code_file as u16, info.line as u16 + 1);
 
         let opcode = if let Some((last_file, last_line)) =
-            self.last_location.replace((code_file, info.line))
+            self.last_location.replace((code_file, info.line + 1))
         {
             if (last_file, last_line) == (code_file, info.line) {
                 // Same location, don't need to emit anything
@@ -211,7 +239,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Assign(stmt) => self.generate_stmt_assign(stmt),
             hir_stmt::StmtKind::Put(stmt) => self.generate_stmt_put(stmt),
             hir_stmt::StmtKind::Get(stmt) => self.generate_stmt_get(stmt),
-            hir_stmt::StmtKind::For(_) => todo!(),
+            hir_stmt::StmtKind::For(stmt) => self.generate_stmt_for(stmt),
             hir_stmt::StmtKind::Loop(stmt) => self.generate_stmt_loop(stmt),
             hir_stmt::StmtKind::Exit(stmt) => self.generate_stmt_exit(stmt),
             hir_stmt::StmtKind::If(_) => todo!(),
@@ -443,6 +471,69 @@ impl BodyCodeGenerator<'_> {
         stream_handle
     }
 
+    fn generate_stmt_for(&mut self, stmt: &hir_stmt::For) {
+        let descriptor_size = std::mem::size_of::<ForDescriptor>();
+
+        let descriptor_slot = if let Some(counter_def) = stmt.counter_def {
+            let local = DefId(self.library_id, counter_def);
+            self.code_fragment
+                .allocate_local_space(local, descriptor_size);
+            ForDescriptorSlot::Local(DefId(self.library_id, counter_def))
+        } else {
+            // Reserve temporary space for the descriptor
+            let temporary = self.code_fragment.allocate_temporary_space(descriptor_size);
+            ForDescriptorSlot::Temporary(temporary)
+        };
+
+        // Emit bounds
+        match stmt.bounds {
+            hir_stmt::ForBounds::Implicit(_range) => todo!(),
+            hir_stmt::ForBounds::Full(start, end) => {
+                self.generate_expr(start);
+                self.generate_expr(end);
+            }
+        }
+
+        // ... and the step by
+        if let Some(step_by) = stmt.step_by {
+            self.generate_expr(step_by);
+            // TODO: Emit CHKRANGE, within positive int4 bounds
+        } else {
+            self.code_fragment.emit_opcode(Opcode::PUSHVAL1());
+        }
+
+        // Negate if decreasing
+        if stmt.is_decreasing {
+            self.code_fragment.emit_opcode(Opcode::NEGINT());
+        }
+
+        // Emit loop body
+        let loop_start = self.code_fragment.new_branch();
+        let after_loop = self.code_fragment.new_branch();
+
+        match descriptor_slot {
+            ForDescriptorSlot::Local(def_id) => self.code_fragment.emit_locate_local(def_id),
+            ForDescriptorSlot::Temporary(slot) => self.code_fragment.emit_locate_temp(slot),
+        }
+        self.code_fragment.emit_opcode(Opcode::FOR(after_loop));
+
+        self.code_fragment.anchor_branch(loop_start);
+        {
+            // Have a fixed location for the branch to go to
+            self.emit_absolute_location();
+
+            self.branch_stack
+                .push(BlockBranches::For(descriptor_slot, loop_start, after_loop));
+
+            self.generate_stmt_list(&stmt.stmts);
+
+            descriptor_slot.emit_locate_descriptor(self.code_fragment);
+            self.code_fragment.emit_opcode(Opcode::ENDFOR(loop_start));
+            self.branch_stack.pop();
+        }
+        self.code_fragment.anchor_branch(after_loop);
+    }
+
     fn generate_stmt_loop(&mut self, stmt: &hir_stmt::Loop) {
         // Need to:
         // - Create a new branch, anchored to next instruction
@@ -454,16 +545,21 @@ impl BodyCodeGenerator<'_> {
         // Have a fixed location for the branch to go to
         self.emit_absolute_location();
 
-        self.loop_branch_stack.push((loop_start, after_loop));
+        self.branch_stack
+            .push(BlockBranches::Loop(loop_start, after_loop));
         self.generate_stmt_list(&stmt.stmts);
         self.code_fragment.emit_opcode(Opcode::JUMPB(loop_start));
-        self.loop_branch_stack.pop();
+        self.branch_stack.pop();
         self.code_fragment.anchor_branch(after_loop);
     }
 
     fn generate_stmt_exit(&mut self, stmt: &hir_stmt::Exit) {
-        // Branch to the after the loop
-        let branch_to = self.loop_branch_stack.last().unwrap().1;
+        // Branch to after the loop
+        let block_branches = self.branch_stack.last().unwrap();
+        let branch_to = match block_branches {
+            BlockBranches::Loop(_, after_block) => *after_block,
+            BlockBranches::For(_, _, after_block) => *after_block,
+        };
 
         if let Some(condition) = stmt.when_condition {
             // Use INFIXOR as an alias of "branch if true"
@@ -1016,7 +1112,7 @@ enum CoerceTo {
     Real,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 struct StackSlot {
     offset: u32,
     _size: u32,
@@ -1040,8 +1136,12 @@ struct CodeFragment {
 
 impl CodeFragment {
     fn allocate_local(&mut self, db: &dyn CodeGenDB, def_id: DefId, def_ty: ty::TypeId) {
+        self.allocate_local_space(def_id, size_of_ty(db, def_ty));
+    }
+
+    fn allocate_local_space(&mut self, def_id: DefId, size: usize) {
         // Align to the nearest stack slot
-        let size = align_up_to(size_of_ty(db, def_ty), 4).try_into().unwrap();
+        let size = align_up_to(size, 4).try_into().unwrap();
         let offset = self.locals_size;
 
         self.locals.insert(
@@ -1054,9 +1154,9 @@ impl CodeFragment {
         self.locals_size += size;
     }
 
-    fn allocate_temporary_space(&mut self, size: u32) -> TemporarySlot {
+    fn allocate_temporary_space(&mut self, size: usize) -> TemporarySlot {
         // Align to the nearest stack slot
-        let size = align_up_to(size as usize, 4).try_into().unwrap();
+        let size = align_up_to(size, 4).try_into().unwrap();
         let offset = self.temps_size;
         let handle = self.temps.len();
 
