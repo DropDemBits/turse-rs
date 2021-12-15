@@ -79,7 +79,7 @@ fn main() {
             )
             .with_message::<String>(format!("unable to load source for `{}`: {}", path, err))
             .finish()
-            .print(&mut cache)
+            .eprint(&mut cache)
             .unwrap();
         }
     }
