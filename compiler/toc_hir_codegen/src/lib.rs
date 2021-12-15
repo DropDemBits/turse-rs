@@ -127,11 +127,7 @@ impl BodyCodeGenerator<'_> {
         };
 
         match &library.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, _) => {
-                for stmt_id in stmts {
-                    gen.generate_stmt(*stmt_id);
-                }
-            }
+            hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
@@ -154,11 +150,7 @@ impl BodyCodeGenerator<'_> {
         };
 
         match &self.library.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, _) => {
-                for stmt_id in stmts {
-                    gen.generate_stmt(*stmt_id);
-                }
-            }
+            hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
@@ -224,7 +216,13 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Exit(stmt) => self.generate_stmt_exit(stmt),
             hir_stmt::StmtKind::If(_) => todo!(),
             hir_stmt::StmtKind::Case(_) => todo!(),
-            hir_stmt::StmtKind::Block(_) => todo!(),
+            hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
+        }
+    }
+
+    fn generate_stmt_list(&mut self, stmts: &[hir_stmt::StmtId]) {
+        for stmt_id in stmts {
+            self.generate_stmt(*stmt_id)
         }
     }
 
@@ -457,9 +455,7 @@ impl BodyCodeGenerator<'_> {
         self.emit_absolute_location();
 
         self.loop_branch_stack.push((loop_start, after_loop));
-        for stmt_id in &stmt.stmts {
-            self.generate_stmt(*stmt_id)
-        }
+        self.generate_stmt_list(&stmt.stmts);
         self.code_fragment.emit_opcode(Opcode::JUMPB(loop_start));
         self.loop_branch_stack.pop();
         self.code_fragment.anchor_branch(after_loop);
