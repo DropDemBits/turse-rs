@@ -52,19 +52,21 @@ impl Span {
     }
 
     /// Makes a new span covering both text ranges.
+    /// If either span is a dummy span, then `None` is returned.
     ///
     /// # Panics
     /// Panics if both spans aren't in the same file.
-    pub fn cover(self, other: Self) -> Self {
+    pub fn cover(self, other: Self) -> Option<Self> {
+        let (this_file, other_file) = self.file.zip(other.file)?;
         assert_eq!(
-            self.file, other.file,
+            this_file, other_file,
             "trying to cover spans in different files"
         );
 
-        Span {
+        Some(Span {
             range: self.range.cover(other.range),
             ..self
-        }
+        })
     }
 }
 
