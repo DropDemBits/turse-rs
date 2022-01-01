@@ -243,7 +243,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Loop(stmt) => self.generate_stmt_loop(stmt),
             hir_stmt::StmtKind::Exit(stmt) => self.generate_stmt_exit(stmt),
             hir_stmt::StmtKind::If(stmt) => self.generate_stmt_if(stmt),
-            hir_stmt::StmtKind::Case(_) => todo!(),
+            hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
         }
     }
@@ -288,7 +288,7 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
         // Steps
-        // We're only concerned with stdout emission
+        // We're only concerned with stdout emission_ty
 
         let stream_handle = self.generate_set_stream(
             stmt.stream_num,
@@ -592,6 +592,78 @@ impl BodyCodeGenerator<'_> {
             self.generate_stmt(false_branch);
         }
         self.code_fragment.anchor_branch(after_false);
+        self.emit_absolute_location();
+    }
+
+    fn generate_stmt_case(&mut self, stmt: &hir_stmt::Case) {
+        // Steps:
+        // - Store discriminant in a temporary
+        // - Generate series of cond branches matching the condition
+        //   - Generate floating locations for the branch targets
+        // - Generate branch for after the case statement
+        // - For each branch, add inline statements and branch to after case statement
+        self.generate_expr(stmt.discriminant);
+
+        let discrim_ty = self
+            .db
+            .type_of((self.library_id, self.body_id, stmt.discriminant).into())
+            .in_db(self.db)
+            .peel_ref();
+
+        let discrim_value = self
+            .code_fragment
+            .allocate_temporary_space(size_of_ty(self.db, discrim_ty.id()));
+        self.code_fragment.emit_locate_temp(discrim_value);
+        self.code_fragment.emit_assign_into_var(&discrim_ty);
+
+        let mut arm_targets = vec![];
+        let mut has_default = false;
+
+        for arm in &stmt.arms {
+            let target = self.code_fragment.new_branch();
+            arm_targets.push(target);
+
+            match &arm.selectors {
+                hir_stmt::CaseSelector::Exprs(exprs) => {
+                    for expr in exprs {
+                        // TODO: Coerce expr into the correct type
+                        self.generate_expr(*expr);
+                        self.code_fragment.emit_locate_temp(discrim_value);
+
+                        let expr_ty = self
+                            .db
+                            .type_of((self.library_id, self.body_id, *expr).into())
+                            .in_db(self.db)
+                            .peel_ref();
+
+                        let eq_op = self.select_eq_op(expr_ty.kind(), discrim_ty.kind());
+                        self.code_fragment.emit_opcode(eq_op);
+
+                        // Branch if any are true
+                        self.code_fragment.emit_opcode(Opcode::INFIXOR(target));
+                    }
+                }
+                hir_stmt::CaseSelector::Default => {
+                    has_default = true;
+                    self.code_fragment.emit_opcode(Opcode::JUMP(target));
+                    break;
+                }
+            }
+        }
+
+        let after_case = self.code_fragment.new_branch();
+        if !has_default {
+            self.code_fragment.emit_opcode(Opcode::JUMP(after_case));
+        }
+
+        for (arm, target) in stmt.arms.iter().zip(arm_targets.iter()) {
+            self.code_fragment.anchor_branch(*target);
+            self.emit_absolute_location();
+            self.generate_stmt_list(&arm.stmts);
+            self.code_fragment.emit_opcode(Opcode::JUMP(after_case));
+        }
+
+        self.code_fragment.anchor_branch(after_case);
         self.emit_absolute_location();
     }
 
@@ -946,26 +1018,8 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Equal | hir_expr::BinaryOp::NotEqual => {
-                let cmp_op = if let Some(cmp_op) = self.dispatch_over_numbers(
-                    expr,
-                    lhs_ty.kind(),
-                    rhs_ty.kind(),
-                    Opcode::EQREAL(),
-                    Opcode::EQNAT(),
-                    Opcode::EQINTNAT(),
-                    Opcode::EQINTNAT(),
-                    Opcode::EQINT(),
-                ) {
-                    cmp_op
-                } else {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-
-                    match (lhs_ty.kind(), rhs_ty.kind()) {
-                        (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQNAT(),
-                        _ => unreachable!(),
-                    }
-                };
+                self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
+                let cmp_op = self.select_eq_op(lhs_ty.kind(), rhs_ty.kind());
 
                 if expr.op.item() == &hir_expr::BinaryOp::Equal {
                     cmp_op
@@ -1005,33 +1059,60 @@ impl BodyCodeGenerator<'_> {
         int_nat: Opcode,
         int_int: Opcode,
     ) -> Option<Opcode> {
+        self.coerce_to_same(expr, lhs, rhs);
+        self.select_over_numbers(lhs, rhs, real, nat_nat, nat_int, int_nat, int_int)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn select_over_numbers(
+        &self,
+        lhs: &ty::TypeKind,
+        rhs: &ty::TypeKind,
+        real: Opcode,
+        nat_nat: Opcode,
+        nat_int: Opcode,
+        int_nat: Opcode,
+        int_int: Opcode,
+    ) -> Option<Opcode> {
+        match (lhs, rhs) {
+            (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => Some(real),
+            (ty::TypeKind::Nat(_), ty::TypeKind::Nat(_)) => Some(nat_nat),
+            (ty::TypeKind::Nat(_), other) if other.is_integer() => Some(nat_int),
+            (other, ty::TypeKind::Nat(_)) if other.is_integer() => Some(int_nat),
+            (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => Some(int_int),
+            _ => None,
+        }
+    }
+
+    fn coerce_to_same(&mut self, expr: &hir_expr::Binary, lhs: &ty::TypeKind, rhs: &ty::TypeKind) {
         match (lhs, rhs) {
             (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
                 self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
                 self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
-                Some(real)
             }
-            (ty::TypeKind::Nat(_), ty::TypeKind::Nat(_)) => {
+            _ => {
                 self.generate_expr(expr.lhs);
                 self.generate_expr(expr.rhs);
-                Some(nat_nat)
             }
-            (ty::TypeKind::Nat(_), other) if other.is_integer() => {
-                self.generate_expr(expr.lhs);
-                self.generate_expr(expr.rhs);
-                Some(nat_int)
+        }
+    }
+
+    fn select_eq_op(&self, lhs_kind: &ty::TypeKind, rhs_kind: &ty::TypeKind) -> Opcode {
+        if let Some(cmp_op) = self.select_over_numbers(
+            lhs_kind,
+            rhs_kind,
+            Opcode::EQREAL(),
+            Opcode::EQNAT(),
+            Opcode::EQINTNAT(),
+            Opcode::EQINTNAT(),
+            Opcode::EQINT(),
+        ) {
+            cmp_op
+        } else {
+            match (lhs_kind, rhs_kind) {
+                (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQNAT(),
+                _ => unreachable!(),
             }
-            (other, ty::TypeKind::Nat(_)) if other.is_integer() => {
-                self.generate_expr(expr.lhs);
-                self.generate_expr(expr.rhs);
-                Some(int_nat)
-            }
-            (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
-                self.generate_expr(expr.lhs);
-                self.generate_expr(expr.rhs);
-                Some(int_int)
-            }
-            _ => None,
         }
     }
 
