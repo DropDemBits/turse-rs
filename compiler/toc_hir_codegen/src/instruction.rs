@@ -430,18 +430,20 @@ define_encodings! {
         ASNREAL8INV () = 0x2C,
 
         /// ## ASNNONSCALAR (bytes:u32)
-        /// (description)
+        /// Assigns `rhs` into a precomputed `lhs` destination.
+        /// This is equivalent to a `memcpy(rhs, lhs, bytes)`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint -- )`
         ///
         ASNNONSCALAR (u32) = 0x23,
 
         /// ## ASNNONSCALARINV (bytes:u32)
-        /// (description)
+        /// Assigns `rhs` into a **post**computed `lhs` destination.
+        /// This is equivalent to a `memcpy(rhs, lhs, bytes)`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( rhs:addrint lhs:addrint -- )`
         ///
         ASNNONSCALARINV (u32) = 0x24,
 

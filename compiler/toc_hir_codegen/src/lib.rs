@@ -388,13 +388,24 @@ impl BodyCodeGenerator<'_> {
                 }
                 ty::TypeKind::Char => PutKind::Char(),
                 ty::TypeKind::String | ty::TypeKind::StringN(_) => PutKind::String(),
-                ty::TypeKind::CharN(_) => todo!(),
+                ty::TypeKind::CharN(_) => PutKind::CharN(),
                 // TODO: Add case for enums
                 _ => unreachable!(),
             };
 
             // Put value onto the stack
             self.generate_expr(item.expr);
+
+            if let ty::TypeKind::CharN(seq_size) = put_ty.kind() {
+                let length = seq_size
+                    .fixed_len(self.db, Span::default())
+                    .ok()
+                    .flatten()
+                    .expect("const should succeed and not be dyn");
+                let length = length.into_u32().expect("should be int representable");
+
+                self.code_fragment.emit_opcode(Opcode::PUSHINT(length));
+            }
 
             // Deal with the put opts
             if let Some(width) = item.opts.width() {
@@ -468,7 +479,14 @@ impl BodyCodeGenerator<'_> {
                         GetKind::StringExact(ty_size)
                     }
                 },
-                ty::TypeKind::CharN(_) => todo!(),
+                ty::TypeKind::CharN(_) => match item.width {
+                    hir_stmt::GetWidth::Chars(width) => {
+                        get_width = Some(width);
+                        GetKind::CharN(ty_size)
+                    }
+                    hir_stmt::GetWidth::Token => GetKind::CharN(ty_size),
+                    hir_stmt::GetWidth::Line => unreachable!(),
+                },
                 _ => unreachable!(),
             };
 
@@ -479,7 +497,10 @@ impl BodyCodeGenerator<'_> {
 
             if matches!(
                 get_kind,
-                GetKind::StringToken(_) | GetKind::StringLine(_) | GetKind::StringExact(_)
+                GetKind::StringToken(_)
+                    | GetKind::StringLine(_)
+                    | GetKind::StringExact(_)
+                    | GetKind::CharN(_)
             ) {
                 // push max width
                 if let Some(width) = get_width {
@@ -487,7 +508,8 @@ impl BodyCodeGenerator<'_> {
                 }
 
                 // and max length
-                self.code_fragment.emit_opcode(Opcode::PUSHINT(ty_size - 1));
+                let max_len = length_of_ty(self.db, get_ty.id()).expect("is a charseq") as u32;
+                self.code_fragment.emit_opcode(Opcode::PUSHINT(max_len));
             }
 
             self.code_fragment.emit_locate_temp(stream_handle);
@@ -847,8 +869,7 @@ impl BodyCodeGenerator<'_> {
                     unreachable!("this backend does not support non-(extended) ascii code points")
                 }
             }
-            hir_expr::Literal::CharSeq(_) => todo!(),
-            hir_expr::Literal::String(value) => {
+            hir_expr::Literal::CharSeq(value) | hir_expr::Literal::String(value) => {
                 let str_at = self.code_blob.add_const_str(value);
                 self.code_fragment.emit_opcode(Opcode::PUSHADDR1(str_at));
             }
@@ -1387,7 +1408,10 @@ impl CodeFragment {
                 self.emit_opcode(Opcode::PUSHINT(255));
                 Opcode::ASNSTRINV()
             }
-            ty::TypeKind::CharN(_) => todo!(),
+            ty::TypeKind::CharN(_) => {
+                let storage_size = size_of_ty(db, into_tyref.id()) as u32;
+                Opcode::ASNNONSCALARINV(storage_size)
+            }
             ty::TypeKind::StringN(seq_size) => {
                 // Push corresponding storage size
                 let char_len = seq_size
@@ -1427,7 +1451,10 @@ impl CodeFragment {
                 self.emit_opcode(Opcode::PUSHINT(255));
                 Opcode::ASNSTR()
             }
-            ty::TypeKind::CharN(_) => todo!(),
+            ty::TypeKind::CharN(_) => {
+                let storage_size = size_of_ty(db, into_tyref.id()) as u32;
+                Opcode::ASNNONSCALAR(storage_size)
+            }
             ty::TypeKind::StringN(seq_size) => {
                 // Push corresponding storage size
                 let char_len = seq_size
@@ -1478,7 +1505,7 @@ impl CodeFragment {
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
-            ty::TypeKind::CharN(_) => todo!(),
+            ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
             ty::TypeKind::Error | ty::TypeKind::Ref(_, _) => unreachable!(),
         };
 
@@ -1529,20 +1556,52 @@ fn size_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> usize {
             // max chars (including null terminator)
             256
         }
-        ty::TypeKind::CharN(_seq_size) => todo!(),
-        ty::TypeKind::StringN(seq_size) => {
+        ty::TypeKind::CharN(seq_size) | ty::TypeKind::StringN(seq_size) => {
             let char_len = seq_size
                 .fixed_len(db, Span::default())
                 .ok()
                 .flatten()
                 .expect("eval should succeed and not be dyn");
 
-            // Storage size includes the always present null terminator
             let char_len = (char_len.into_u32().expect("size should be a u32")) as usize;
-            char_len + 1
+            if matches!(ty_ref.kind(), ty::TypeKind::StringN(_)) {
+                // Storage size for strings includes the always present null terminator
+                char_len + 1
+            } else {
+                // Storage size for char(N)'s is always rounded up to the nearest 2-byte boundary
+                // ???: This can always be to the nearest byte boundary, but this depends on the
+                // alignment of char(N)
+                // TODO: Align up sizes for other types according to the type's alignment
+                align_up_to(char_len as usize, 2)
+            }
         }
         ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
     }
+}
+
+fn length_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> Option<usize> {
+    let ty_ref = ty.in_db(db);
+
+    let length = match ty_ref.kind() {
+        ty::TypeKind::String => {
+            // max chars (excluding null terminator)
+            255
+        }
+        ty::TypeKind::CharN(seq_size) | ty::TypeKind::StringN(seq_size) => {
+            let char_len = seq_size
+                .fixed_len(db, Span::default())
+                .ok()
+                .flatten()
+                .expect("eval should succeed and not be dyn");
+
+            let char_len = (char_len.into_u32().expect("size should be a u32")) as usize;
+            char_len
+        }
+        ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
+        _ => return None,
+    };
+
+    Some(length)
 }
 
 fn has_uninit(ty_ref: &ty::TyRef<dyn CodeGenDB>) -> bool {
