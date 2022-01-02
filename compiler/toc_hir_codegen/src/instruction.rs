@@ -1,14 +1,10 @@
 //! Instructions used for code generation
 
 /// An offset that is modified for relocations
+// Encoded as (previous_reloc: u32, section_offset:u32)
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RelocatableOffset {
-    /// How many bytes to skip by to get to the next relocation
-    pub previous_reloc: u32,
-    /// The offset from the relocation region base
-    pub region_offset: u32,
-}
+pub struct RelocatableOffset(pub usize);
 
 /// A branch target that will be patched by a later instruction
 #[repr(C)]
@@ -450,18 +446,20 @@ define_encodings! {
         ASNNONSCALARINV (u32) = 0x24,
 
         /// ## ASNSTR ()
-        /// (description)
+        /// Assigns `rhs` into a precomputed `lhs` destination.
+        /// Verifies that `lhs` will fit into the required `size` bytes.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( lhs:addrint rhs:addrint size:u32 -- )`
         ///
         ASNSTR () = 0x2D,
 
         /// ## ASNSTRINV ()
-        /// (description)
+        /// Assigns `rhs` into a **post**computed `lhs` destination.
+        /// Verifies that `lhs` will fit into the required `size` bytes.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( rhs:addrint lhs:addrint size:u32 -- )`
         ///
         ASNSTRINV () = 0x2E,
 
@@ -944,10 +942,11 @@ define_encodings! {
         FETCHSET (u32) = 0x67,
 
         /// ## FETCHSTR ()
-        /// (description)
+        /// Fetches `value` from `addr`, and pushes it onto the data stack.
+        /// `value` points to the string's storage.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( addr:addrint -- value:addrint )`
         ///
         FETCHSTR () = 0x68,
 
@@ -1667,10 +1666,10 @@ define_encodings! {
         PUSHADDR (u32) = 0xBB,
 
         /// ## PUSHADDR1 (patchLink:offset, imm:addrint)
-        /// (description)
+        /// Pushes the `imm` address (after relocation fixup) onto the data stack.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- imm:addrint )`
         ///
         PUSHADDR1 (RelocatableOffset) = 0xBC,
 

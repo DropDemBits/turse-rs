@@ -1,6 +1,7 @@
 //! Code generation backend based on the HIR tree
 
 use indexmap::IndexSet;
+use instruction::RelocatableOffset;
 use toc_analysis::db::HirAnalysis;
 use toc_analysis::ty;
 use toc_ast_db::db::SpanMapping;
@@ -17,14 +18,56 @@ use crate::instruction::{
 
 mod instruction;
 
-#[derive(Default)]
-pub struct CodeBlob {
-    file_map: IndexSet<FileId>,
-}
-
 pub trait CodeGenDB: HirAnalysis + SpanMapping {}
 
 impl<T> CodeGenDB for T where T: HirAnalysis + SpanMapping {}
+
+#[derive(Default)]
+pub struct CodeBlob {
+    file_map: IndexSet<FileId>,
+
+    reloc_table: Vec<RelocInfo>,
+    const_bytes: Vec<u8>,
+}
+
+impl CodeBlob {
+    fn add_const_str(&mut self, str: &str) -> RelocatableOffset {
+        // reserve space for str bytes & null terminator
+        let storage_len = str.len() + 1;
+        let reloc_at = self.reserve_const_bytes(storage_len);
+
+        // str data + null terminator
+        self.const_bytes.extend_from_slice(str.as_bytes());
+        self.const_bytes.push(0);
+
+        reloc_at
+    }
+
+    fn reserve_const_bytes(&mut self, len: usize) -> RelocatableOffset {
+        let start_at = self.const_bytes.len();
+        self.const_bytes.reserve(len);
+
+        let reloc_id = self.reloc_table.len();
+        self.reloc_table.push(RelocInfo {
+            section: RelocSection::Manifest,
+            offset: start_at,
+        });
+
+        RelocatableOffset(reloc_id)
+    }
+}
+
+struct RelocInfo {
+    section: RelocSection,
+    offset: usize,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RelocSection {
+    Manifest,
+    Code,
+    Global,
+}
 
 /// Generates code from the given HIR database,
 /// or producing nothing if an error was encountered before code generation.
@@ -281,7 +324,7 @@ impl BodyCodeGenerator<'_> {
             self.generate_expr(stmt.rhs)
         };
 
-        self.code_fragment.emit_assign(&lhs_ty);
+        self.code_fragment.emit_assign(&lhs_ty, self.db);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
     }
@@ -344,9 +387,8 @@ impl BodyCodeGenerator<'_> {
                     }
                 }
                 ty::TypeKind::Char => PutKind::Char(),
-                ty::TypeKind::String => todo!(),
+                ty::TypeKind::String | ty::TypeKind::StringN(_) => PutKind::String(),
                 ty::TypeKind::CharN(_) => todo!(),
-                ty::TypeKind::StringN(_) => todo!(),
                 // TODO: Add case for enums
                 _ => unreachable!(),
             };
@@ -410,6 +452,7 @@ impl BodyCodeGenerator<'_> {
                 .peel_ref();
             let ty_size = size_of_ty(self.db, get_ty.id()) as u32;
 
+            let mut get_width = None;
             let get_kind = match get_ty.kind() {
                 ty::TypeKind::Boolean => GetKind::Boolean(),
                 ty::TypeKind::Int(_) => GetKind::Int(ty_size),
@@ -417,9 +460,15 @@ impl BodyCodeGenerator<'_> {
                 ty::TypeKind::Real(_) => GetKind::Real(ty_size),
                 ty::TypeKind::Integer => unreachable!("type must be concrete"),
                 ty::TypeKind::Char => GetKind::Char(),
-                ty::TypeKind::String => todo!(),
+                ty::TypeKind::StringN(_) | ty::TypeKind::String => match item.width {
+                    hir_stmt::GetWidth::Token => GetKind::StringToken(ty_size),
+                    hir_stmt::GetWidth::Line => GetKind::StringLine(ty_size),
+                    hir_stmt::GetWidth::Chars(width) => {
+                        get_width = Some(width);
+                        GetKind::StringExact(ty_size)
+                    }
+                },
                 ty::TypeKind::CharN(_) => todo!(),
-                ty::TypeKind::StringN(_) => todo!(),
                 _ => unreachable!(),
             };
 
@@ -427,6 +476,19 @@ impl BodyCodeGenerator<'_> {
 
             // Put reference onto the stack
             self.generate_ref_expr(item.expr);
+
+            if matches!(
+                get_kind,
+                GetKind::StringToken(_) | GetKind::StringLine(_) | GetKind::StringExact(_)
+            ) {
+                // push max width
+                if let Some(width) = get_width {
+                    self.generate_expr(width);
+                }
+
+                // and max length
+                self.code_fragment.emit_opcode(Opcode::PUSHINT(ty_size - 1));
+            }
 
             self.code_fragment.emit_locate_temp(stream_handle);
             self.code_fragment.emit_opcode(Opcode::GET(get_kind));
@@ -614,7 +676,8 @@ impl BodyCodeGenerator<'_> {
             .code_fragment
             .allocate_temporary_space(size_of_ty(self.db, discrim_ty.id()));
         self.code_fragment.emit_locate_temp(discrim_value);
-        self.code_fragment.emit_assign_into_var(&discrim_ty);
+        self.code_fragment
+            .emit_assign_into_var(&discrim_ty, self.db);
 
         let mut arm_targets = vec![];
         let mut has_default = false;
@@ -709,7 +772,7 @@ impl BodyCodeGenerator<'_> {
             eprintln!("assigning def {:?} to previously produced value", init_body);
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
-            self.code_fragment.emit_assign_into_var(&def_ty);
+            self.code_fragment.emit_assign_into_var(&def_ty, self.db);
         } else if has_uninit(&def_ty) {
             eprintln!(
                 "assigning def {:?} to uninit pattern for type `{}`",
@@ -785,7 +848,10 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::Literal::CharSeq(_) => todo!(),
-            hir_expr::Literal::String(_) => todo!(),
+            hir_expr::Literal::String(value) => {
+                let str_at = self.code_blob.add_const_str(value);
+                self.code_fragment.emit_opcode(Opcode::PUSHADDR1(str_at));
+            }
             hir_expr::Literal::Boolean(value) => self.code_fragment.emit_opcode(
                 value
                     .then(Opcode::PUSHVAL1)
@@ -1299,7 +1365,7 @@ impl CodeFragment {
         self.emit_opcode(Opcode::LOCATETEMP(temp));
     }
 
-    fn emit_assign_into_var(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>) {
+    fn emit_assign_into_var(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>, db: &dyn CodeGenDB) {
         let opcode = match into_tyref.kind() {
             ty::TypeKind::Boolean => Opcode::ASNINT1INV(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::ASNINT1INV(),
@@ -1316,16 +1382,30 @@ impl CodeFragment {
             ty::TypeKind::Real(ty::RealSize::Real) => Opcode::ASNREALINV(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
             ty::TypeKind::Char => Opcode::ASNINT1INV(),
-            ty::TypeKind::String => todo!(),
+            ty::TypeKind::String => {
+                // Push full storage size
+                self.emit_opcode(Opcode::PUSHINT(255));
+                Opcode::ASNSTRINV()
+            }
             ty::TypeKind::CharN(_) => todo!(),
-            ty::TypeKind::StringN(_) => todo!(),
+            ty::TypeKind::StringN(seq_size) => {
+                // Push corresponding storage size
+                let char_len = seq_size
+                    .fixed_len(db, Span::default())
+                    .ok()
+                    .flatten()
+                    .expect("eval should succeed and not be dyn");
+
+                self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
+                Opcode::ASNSTRINV()
+            }
             ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
         };
 
         self.emit_opcode(opcode);
     }
 
-    fn emit_assign(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>) {
+    fn emit_assign(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>, db: &dyn CodeGenDB) {
         let opcode = match into_tyref.kind() {
             ty::TypeKind::Boolean => Opcode::ASNINT1(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::ASNINT1(),
@@ -1342,9 +1422,23 @@ impl CodeFragment {
             ty::TypeKind::Real(ty::RealSize::Real) => Opcode::ASNREAL(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
             ty::TypeKind::Char => Opcode::ASNINT1(),
-            ty::TypeKind::String => todo!(),
+            ty::TypeKind::String => {
+                // Push full storage size
+                self.emit_opcode(Opcode::PUSHINT(255));
+                Opcode::ASNSTR()
+            }
             ty::TypeKind::CharN(_) => todo!(),
-            ty::TypeKind::StringN(_) => todo!(),
+            ty::TypeKind::StringN(seq_size) => {
+                // Push corresponding storage size
+                let char_len = seq_size
+                    .fixed_len(db, Span::default())
+                    .ok()
+                    .flatten()
+                    .expect("eval should succeed and not be dyn");
+
+                self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
+                Opcode::ASNSTR()
+            }
             ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
         };
 
@@ -1383,9 +1477,8 @@ impl CodeFragment {
             ty::TypeKind::Real(ty::RealSize::Real) => Opcode::FETCHREAL(),
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
-            ty::TypeKind::String => todo!(),
+            ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => todo!(),
-            ty::TypeKind::StringN(_) => todo!(),
             ty::TypeKind::Error | ty::TypeKind::Ref(_, _) => unreachable!(),
         };
 
@@ -1432,9 +1525,22 @@ fn size_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> usize {
         ty::TypeKind::Real(ty::RealSize::Real) => 8,
         ty::TypeKind::Integer => unreachable!("type should be concrete"),
         ty::TypeKind::Char => 1,
-        ty::TypeKind::String => 255,
+        ty::TypeKind::String => {
+            // max chars (including null terminator)
+            256
+        }
         ty::TypeKind::CharN(_seq_size) => todo!(),
-        ty::TypeKind::StringN(_seq_size) => todo!(),
+        ty::TypeKind::StringN(seq_size) => {
+            let char_len = seq_size
+                .fixed_len(db, Span::default())
+                .ok()
+                .flatten()
+                .expect("eval should succeed and not be dyn");
+
+            // Storage size includes the always present null terminator
+            let char_len = (char_len.into_u32().expect("size should be a u32")) as usize;
+            char_len + 1
+        }
         ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
     }
 }
