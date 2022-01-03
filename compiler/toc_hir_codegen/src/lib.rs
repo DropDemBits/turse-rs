@@ -1,7 +1,7 @@
 //! Code generation backend based on the HIR tree
 
 use indexmap::IndexSet;
-use instruction::RelocatableOffset;
+use instruction::{CheckKind, RelocatableOffset};
 use toc_analysis::db::HirAnalysis;
 use toc_analysis::ty;
 use toc_ast_db::db::SpanMapping;
@@ -581,7 +581,8 @@ impl BodyCodeGenerator<'_> {
         // ... and the step by
         if let Some(step_by) = stmt.step_by {
             self.generate_expr(step_by);
-            // TODO: Emit CHKRANGE, within positive int4 bounds
+            self.code_fragment
+                .emit_opcode(Opcode::CHKRANGE(0, 0, i32::MAX, CheckKind::LoopStep()));
         } else {
             self.code_fragment.emit_opcode(Opcode::PUSHVAL1());
         }

@@ -570,42 +570,45 @@ define_encodings! {
         CHARTOSTRLEFT () = 0x3B,
 
         /// ## CHKCHRSTRSIZE (reqLen:offset)
-        /// (description)
+        /// Asserts that the `length` of a char(N) is equal to `reqLen`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( length:u32 -- )`
         ///
         CHKCHRSTRSIZE (u32) = 0x3C,
 
         /// ## CHKCSTRRANGE (reqLen:offset)
-        /// (description)
+        /// Asserts that `chars` has `reqLen` number of chars.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( chars:addrint -- chars:addrint )`
         ///
         CHKCSTRRANGE (u32) = 0x3D,
 
         /// ## CHKRANGE (stackOff:offset, lower:i32, upper:i32, checkKind:u8)
-        /// (description)
+        /// Asserts that `value` at `stackOff` is in the range `[lower, upper]`.
+        /// If not, an abort corresponding to `checkKind` is performed.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( value:i32 -- value:i32 )`
         ///
-        CHKRANGE (u32, i32, i32, u8) = 0x3E,
+        /// The stack effect is relative to `stackOff`.
+        ///
+        CHKRANGE (u32, i32, i32, CheckKind) = 0x3E,
 
         /// ## CHKSTRRANGE (maxLen:u16)
-        /// (description)
+        /// Asserts that `value` is at most `maxLen` chars long.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( value:addrint -- value:addrint )`
         ///
         CHKSTRRANGE (u16) = 0x3F,
 
         /// ## CHKSTRSIZE (reqLen:offset)
-        /// (description)
+        /// Asserts that `value` is exactly `reqLen` chars long.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( value:addrint -- value:addrint )`
         ///
         CHKSTRSIZE (u32) = 0x40,
 
@@ -2574,5 +2577,32 @@ define_encodings! {
         Put() = 2,
         Read() = 3,
         Write() = 4,
+    }
+}
+
+define_encodings! {
+    #[derive(Debug, Clone, Copy)]
+    #[allow(dead_code)] // We aren't using all of the variants right now
+    pub enum CheckKind {
+        /// Range check as part of an assignemt
+        Assign() = 0,
+        /// Negative or zero char(*) length
+        DynChar() = 1,
+        /// Value passed to `chr` is not in `[0,255]`
+        Chr() = 2,
+        /// After an arithmetic operation
+        IntOverflow() = 3,
+        /// Range check as part of an assignemt into a range
+        RangeAssign() = 4,
+        /// Computation of a for-loop step
+        LoopStep() = 5,
+        /// Asserting that `pred` isn't applied on the first element of a sequence
+        Pred() = 6,
+        /// Asserting that `succ` isn't applied on the last element of a sequence
+        Succ() = 7,
+        /// Asserting that a value is a valid tag for a given union
+        TagValue() = 8,
+        // Range check as part of range parameter passing
+        ValueParam() = 9,
     }
 }
