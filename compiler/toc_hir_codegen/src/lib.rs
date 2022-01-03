@@ -438,12 +438,8 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_stmt_get(&mut self, stmt: &hir_stmt::Get) {
-        let stream_handle = self.generate_set_stream(
-            stmt.stream_num,
-            None,
-            StdStream::Stdout(),
-            StreamKind::Get(),
-        );
+        let stream_handle =
+            self.generate_set_stream(stmt.stream_num, None, StdStream::Stdin(), StreamKind::Get());
 
         for item in &stmt.items {
             let item = match item {

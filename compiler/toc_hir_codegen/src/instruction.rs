@@ -2560,7 +2560,6 @@ define_encodings! {
     #[derive(Debug, Clone, Copy)]
     pub enum StdStream {
         /// Standard In (default handle = -2)
-        #[allow(dead_code)] // We aren't using the `Stdin` variant yet
         Stdin() = 1,
         /// Standard Out (default handle = -1)
         Stdout() = 2,
