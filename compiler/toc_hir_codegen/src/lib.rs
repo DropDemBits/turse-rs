@@ -307,21 +307,40 @@ impl BodyCodeGenerator<'_> {
             .type_of((self.library_id, self.body_id, stmt.lhs).into())
             .in_db(self.db)
             .peel_ref();
-
-        let coerce_to = if matches!(lhs_ty.kind(), ty::TypeKind::Real(_)) {
-            Some(CoerceTo::Real)
-        } else {
-            None
-        };
+        let rhs_ty = self
+            .db
+            .type_of((self.library_id, self.body_id, stmt.rhs).into())
+            .in_db(self.db)
+            .peel_ref();
 
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
         self.generate_ref_expr(stmt.lhs);
-        self.generate_coerced_expr(stmt.rhs, coerce_to);
+        self.generate_expr(stmt.rhs);
+        self.generate_coerced_assignment(lhs_ty.id(), rhs_ty.id());
 
         self.code_fragment.emit_assign(&lhs_ty, self.db);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
+    }
+
+    fn generate_coerced_assignment(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
+        let lhs_ty = lhs_ty.in_db(self.db).peel_ref();
+
+        let coerce_to = match lhs_ty.kind() {
+            ty::TypeKind::Real(_) => Some(CoerceTo::Real),
+            ty::TypeKind::Char => Some(CoerceTo::Char),
+            ty::TypeKind::CharN(ty::SeqSize::Fixed(_)) => {
+                let len = length_of_ty(self.db, lhs_ty.id()).expect("never dyn");
+                Some(CoerceTo::CharN(len.try_into().unwrap()))
+            }
+            ty::TypeKind::CharN(ty::SeqSize::Dynamic) => {
+                unreachable!("dyn is not a valid storage type")
+            }
+            _ => None,
+        };
+
+        self.coerce_expr_into(rhs_ty, coerce_to);
     }
 
     fn generate_stmt_put(&mut self, stmt: &hir_stmt::Put) {
@@ -794,6 +813,9 @@ impl BodyCodeGenerator<'_> {
             eprintln!("inlining init body {:?}", init_body);
             self.inline_body(init_body);
 
+            let body_ty = self.db.type_of((self.library_id, init_body).into());
+            self.generate_coerced_assignment(def_ty.id(), body_ty);
+
             eprintln!("assigning def {:?} to previously produced value", init_body);
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
@@ -810,11 +832,17 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: Option<CoerceTo>) {
+        self.generate_expr(expr_id);
+
         let expr_ty = self
             .db
-            .type_of((self.library_id, self.body_id, expr_id).into())
-            .in_db(self.db)
-            .peel_ref();
+            .type_of((self.library_id, self.body_id, expr_id).into());
+
+        self.coerce_expr_into(expr_ty, coerce_to);
+    }
+
+    fn coerce_expr_into(&mut self, from_ty: ty::TypeId, coerce_to: Option<CoerceTo>) {
+        let expr_ty = from_ty.in_db(self.db).peel_ref();
 
         let coerce_op = coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind()) {
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
@@ -835,6 +863,26 @@ impl BodyCodeGenerator<'_> {
                 todo!()
             }
 
+            (CoerceTo::CharN(len), ty::TypeKind::Char) => {
+                // Compile-time checked to always fit
+                assert_eq!(len, 1, "never dyn or not 1");
+
+                // Reserve enough space for the temporary char_n
+                // Note: This is size is rounded up to char_n's alignemnt size.
+                let reserve_size = len + 1;
+
+                let temp_str = self
+                    .code_fragment
+                    .allocate_temporary_space(reserve_size as usize);
+                self.code_fragment.emit_locate_temp(temp_str);
+
+                Some(Opcode::CHARTOCSTR())
+            }
+            (CoerceTo::CharN(len), ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
+                // Only need to verify that rhs is of the required length
+                Some(Opcode::CHKSTRSIZE(len))
+            }
+
             (CoerceTo::String, ty::TypeKind::Char) => {
                 // Reserve enough space for a `string(1)`
                 let temp_str = self.code_fragment.allocate_temporary_space(2);
@@ -853,6 +901,7 @@ impl BodyCodeGenerator<'_> {
                 let temp_str = self.code_fragment.allocate_temporary_space(reserve_size);
                 self.code_fragment.emit_locate_temp(temp_str);
 
+                self.code_fragment.emit_opcode(Opcode::PUSHINT(len as u32));
                 Some(Opcode::CSTRTOSTR())
             }
             (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Dynamic)) => {
@@ -860,8 +909,6 @@ impl BodyCodeGenerator<'_> {
             }
             _ => None,
         });
-
-        self.generate_expr(expr_id);
 
         if let Some(opcode) = coerce_op {
             eprintln!("coercing into {:?}", coerce_op);
@@ -1354,6 +1401,7 @@ impl BodyCodeGenerator<'_> {
 enum CoerceTo {
     Real,
     Char,
+    CharN(u32),
     String,
 }
 

@@ -546,10 +546,11 @@ define_encodings! {
         CHARSUBSTR2 (u8) = 0x38,
 
         /// ## CHARTOCSTR ()
-        /// (description)
+        /// Converts the given `char` into a cstr by copying it
+        /// into `storage`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( storage:addrint char:u8 -- storage:addrint )`
         ///
         CHARTOCSTR () = 0x39,
 
