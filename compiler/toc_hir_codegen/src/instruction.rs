@@ -631,10 +631,11 @@ define_encodings! {
         COPYARRAYDESC () = 0x42,
 
         /// ## CSTRTOCHAR ()
-        /// (description)
+        /// Converts `chars` into a single `char`.
+        /// Asserts that `chars` is of length 1 (by checking `len`).
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( chars:addrint len:u32 -- char:u8 )`
         ///
         CSTRTOCHAR () = 0x43,
 
@@ -1990,10 +1991,11 @@ define_encodings! {
         STRNATOK () = 0xE0,
 
         /// ## STRTOCHAR ()
-        /// (description)
+        /// Converts `chars` into a single `char`.
+        /// Asserts that `chars` is of length 1.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( chars:addrint -- char:u8 )`
         ///
         STRTOCHAR () = 0xE1,
 

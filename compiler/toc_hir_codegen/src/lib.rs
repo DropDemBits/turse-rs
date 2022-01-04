@@ -317,12 +317,7 @@ impl BodyCodeGenerator<'_> {
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
         self.generate_ref_expr(stmt.lhs);
-
-        if let Some(coerce_to) = coerce_to {
-            self.generate_coerced_expr(stmt.rhs, coerce_to)
-        } else {
-            self.generate_expr(stmt.rhs)
-        };
+        self.generate_coerced_expr(stmt.rhs, coerce_to);
 
         self.code_fragment.emit_assign(&lhs_ty, self.db);
 
@@ -691,6 +686,12 @@ impl BodyCodeGenerator<'_> {
             .in_db(self.db)
             .peel_ref();
 
+        let coerce_to = match discrim_ty.kind() {
+            ty::TypeKind::String | ty::TypeKind::StringN(_) => Some(CoerceTo::String),
+            ty::TypeKind::Char => Some(CoerceTo::Char),
+            _ => None,
+        };
+
         let discrim_value = self
             .code_fragment
             .allocate_temporary_space(size_of_ty(self.db, discrim_ty.id()));
@@ -708,8 +709,7 @@ impl BodyCodeGenerator<'_> {
             match &arm.selectors {
                 hir_stmt::CaseSelector::Exprs(exprs) => {
                     for expr in exprs {
-                        // TODO: Coerce expr into the correct type
-                        self.generate_expr(*expr);
+                        self.generate_coerced_expr(*expr, coerce_to);
                         self.code_fragment.emit_locate_temp(discrim_value);
 
                         let expr_ty = self
@@ -718,7 +718,13 @@ impl BodyCodeGenerator<'_> {
                             .in_db(self.db)
                             .peel_ref();
 
-                        let eq_op = self.select_eq_op(expr_ty.kind(), discrim_ty.kind());
+                        let eq_op = if matches!(coerce_to, Some(CoerceTo::Char)) {
+                            // Always keep coerced char type as an EQNAT
+                            Opcode::EQNAT()
+                        } else {
+                            // Reuse normal eq selection
+                            self.select_eq_op(expr_ty.kind(), discrim_ty.kind())
+                        };
                         self.code_fragment.emit_opcode(eq_op);
 
                         // Branch if any are true
@@ -803,16 +809,31 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
-    fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: CoerceTo) {
+    fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: Option<CoerceTo>) {
         let expr_ty = self
             .db
             .type_of((self.library_id, self.body_id, expr_id).into())
             .in_db(self.db)
             .peel_ref();
 
-        let coerce_op = match (coerce_to, expr_ty.kind()) {
+        let coerce_op = coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind()) {
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
             (CoerceTo::Real, int) if int.is_integer() => Some(Opcode::INTREAL()),
+
+            (CoerceTo::Char, ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
+                Some(Opcode::STRTOCHAR())
+            }
+            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
+                // Compile-time checked to always fit
+                let len = length_of_ty(self.db, expr_ty.id());
+                assert_eq!(len, Some(1), "never dyn or not 1");
+
+                // Fetch the first char
+                Some(Opcode::FETCHNAT1())
+            }
+            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Dynamic)) => {
+                todo!()
+            }
 
             (CoerceTo::String, ty::TypeKind::Char) => {
                 // Reserve enough space for a `string(1)`
@@ -838,7 +859,7 @@ impl BodyCodeGenerator<'_> {
                 todo!()
             }
             _ => None,
-        };
+        });
 
         self.generate_expr(expr_id);
 
@@ -946,8 +967,8 @@ impl BodyCodeGenerator<'_> {
                 .unwrap(),
             hir_expr::BinaryOp::Mul => match (lhs_ty.kind(), rhs_ty.kind()) {
                 (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                    self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
+                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                     Opcode::MULREAL()
                 }
                 (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
@@ -964,8 +985,8 @@ impl BodyCodeGenerator<'_> {
             },
             hir_expr::BinaryOp::Div => match (lhs_ty.kind(), rhs_ty.kind()) {
                 (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                    self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
+                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                     Opcode::DIVREAL()
                 }
                 (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
@@ -981,14 +1002,14 @@ impl BodyCodeGenerator<'_> {
                 _ => unreachable!(),
             },
             hir_expr::BinaryOp::RealDiv => {
-                self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
+                self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                 Opcode::REALDIVIDE()
             }
             hir_expr::BinaryOp::Mod => match (lhs_ty.kind(), rhs_ty.kind()) {
                 (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                    self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
+                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                     Opcode::MODREAL()
                 }
                 (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
@@ -1005,8 +1026,8 @@ impl BodyCodeGenerator<'_> {
             },
             hir_expr::BinaryOp::Rem => match (lhs_ty.kind(), rhs_ty.kind()) {
                 (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                    self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
+                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                     Opcode::REMREAL()
                 }
                 (ty::TypeKind::Int(_) | ty::TypeKind::Integer, _)
@@ -1034,8 +1055,8 @@ impl BodyCodeGenerator<'_> {
                     Opcode::EXPREALINT()
                 }
                 (ty::TypeKind::Real(_), ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                    self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
+                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
+                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                     Opcode::EXPREALREAL()
                 }
                 _ => unreachable!(),
@@ -1206,13 +1227,8 @@ impl BodyCodeGenerator<'_> {
             _ => None,
         };
 
-        if let Some(coerce_to) = coerce_to {
-            self.generate_coerced_expr(expr.lhs, coerce_to);
-            self.generate_coerced_expr(expr.rhs, coerce_to);
-        } else {
-            self.generate_expr(expr.lhs);
-            self.generate_expr(expr.rhs);
-        }
+        self.generate_coerced_expr(expr.lhs, coerce_to);
+        self.generate_coerced_expr(expr.rhs, coerce_to);
     }
 
     fn select_eq_op(&self, lhs_kind: &ty::TypeKind, rhs_kind: &ty::TypeKind) -> Opcode {
@@ -1337,6 +1353,7 @@ impl BodyCodeGenerator<'_> {
 #[derive(Clone, Copy)]
 enum CoerceTo {
     Real,
+    Char,
     String,
 }
 
