@@ -813,6 +813,30 @@ impl BodyCodeGenerator<'_> {
         let coerce_op = match (coerce_to, expr_ty.kind()) {
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
             (CoerceTo::Real, int) if int.is_integer() => Some(Opcode::INTREAL()),
+
+            (CoerceTo::String, ty::TypeKind::Char) => {
+                // Reserve enough space for a `string(1)`
+                let temp_str = self.code_fragment.allocate_temporary_space(2);
+                self.code_fragment.emit_locate_temp(temp_str);
+
+                Some(Opcode::CHARTOSTR())
+            }
+            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
+                // Reserve enough space for the given char_n
+                let len = length_of_ty(self.db, expr_ty.id()).expect("never dyn");
+
+                // Include the null terminator in the reservation size
+                // Never let it exceed the maximum length of a string
+                let reserve_size = (len + 1).min(256);
+
+                let temp_str = self.code_fragment.allocate_temporary_space(reserve_size);
+                self.code_fragment.emit_locate_temp(temp_str);
+
+                Some(Opcode::CSTRTOSTR())
+            }
+            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Dynamic)) => {
+                todo!()
+            }
             _ => None,
         };
 
@@ -1056,11 +1080,13 @@ impl BodyCodeGenerator<'_> {
                 ) {
                     cmp_op
                 } else {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
+                    self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
 
                     match (lhs_ty.kind(), rhs_ty.kind()) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::GENAT(),
+                        (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
+                            Opcode::GESTR()
+                        }
                         _ => unreachable!(),
                     }
                 };
@@ -1085,11 +1111,13 @@ impl BodyCodeGenerator<'_> {
                 ) {
                     cmp_op
                 } else {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
+                    self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
 
                     match (lhs_ty.kind(), rhs_ty.kind()) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::LENAT(),
+                        (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
+                            Opcode::LESTR()
+                        }
                         _ => unreachable!(),
                     }
                 };
@@ -1169,15 +1197,21 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn coerce_to_same(&mut self, expr: &hir_expr::Binary, lhs: &ty::TypeKind, rhs: &ty::TypeKind) {
-        match (lhs, rhs) {
-            (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                self.generate_coerced_expr(expr.lhs, CoerceTo::Real);
-                self.generate_coerced_expr(expr.rhs, CoerceTo::Real);
-            }
-            _ => {
-                self.generate_expr(expr.lhs);
-                self.generate_expr(expr.rhs);
-            }
+        let coerce_to = match (lhs, rhs) {
+            (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => Some(CoerceTo::Real),
+
+            // For string comparisons, leave char, char untouched
+            (ty::TypeKind::Char, ty::TypeKind::Char) => None,
+            (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Some(CoerceTo::String),
+            _ => None,
+        };
+
+        if let Some(coerce_to) = coerce_to {
+            self.generate_coerced_expr(expr.lhs, coerce_to);
+            self.generate_coerced_expr(expr.rhs, coerce_to);
+        } else {
+            self.generate_expr(expr.lhs);
+            self.generate_expr(expr.rhs);
         }
     }
 
@@ -1195,6 +1229,8 @@ impl BodyCodeGenerator<'_> {
         } else {
             match (lhs_kind, rhs_kind) {
                 (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQNAT(),
+                // All other comparable charseqs are converted into string
+                (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Opcode::EQSTR(),
                 _ => unreachable!(),
             }
         }
@@ -1298,8 +1334,10 @@ impl BodyCodeGenerator<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
 enum CoerceTo {
     Real,
+    String,
 }
 
 #[derive(Debug, Clone, Copy)]

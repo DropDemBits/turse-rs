@@ -554,10 +554,12 @@ define_encodings! {
         CHARTOCSTR () = 0x39,
 
         /// ## CHARTOSTR ()
-        /// (description)
+        /// Converts the given `char` into a string by copying it
+        /// as a null-terminated string in `storage`.
+        /// Performs the appropriate uninitialized check for `char`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( char:u8 storage:addrint -- storage:addrint )`
         ///
         CHARTOSTR () = 0x3A,
 
@@ -637,10 +639,12 @@ define_encodings! {
         CSTRTOCHAR () = 0x43,
 
         /// ## CSTRTOSTR ()
-        /// (description)
+        /// Converts the given `chars` into a string by copying it
+        /// as a null-terminated string in `storage`.
+        /// Performs the appropriate uninitialized check for `char`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( chars:addrint len:u32 storage:addrint -- storage:addrint )`
         ///
         CSTRTOSTR () = 0x44,
 
