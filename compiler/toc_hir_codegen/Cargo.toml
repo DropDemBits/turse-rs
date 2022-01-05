@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+byteorder = "1.4.3"
 indexmap = "1.7.0"
 toc_analysis = { path = "../toc_analysis" }
 toc_ast_db = { path = "../toc_ast_db" }

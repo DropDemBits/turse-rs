@@ -1,5 +1,9 @@
 //! Code generation backend based on the HIR tree
 
+use std::collections::HashMap;
+use std::io;
+
+use byteorder::{LittleEndian as LE, WriteBytesExt};
 use indexmap::IndexSet;
 use instruction::{CheckKind, RelocatableOffset};
 use toc_analysis::db::HirAnalysis;
@@ -28,9 +32,192 @@ pub struct CodeBlob {
 
     reloc_table: Vec<RelocInfo>,
     const_bytes: Vec<u8>,
+
+    body_fragments: HashMap<(hir_library::LibraryId, hir_body::BodyId), BodyCode>,
 }
 
 impl CodeBlob {
+    pub fn encode_to(&self, db: &dyn CodeGenDB, out: &mut impl io::Write) -> io::Result<()> {
+        const HEADER_SIG: &[u8] = b"TWEST\0";
+        const MAIN_MAGIC: &[u8] = b"***MAIN PROGRAM***\0";
+        // Write out bytecode header
+        // Signature //
+        out.write_all(HEADER_SIG)?;
+
+        // TProlog Section //
+        // close_window_on_terminate
+        out.write_u32::<LE>(0)?;
+        // run_with_args
+        out.write_u32::<LE>(0)?;
+        // center_window
+        out.write_u32::<LE>(0)?;
+        // dont_terminate
+        out.write_u32::<LE>(0)?;
+
+        // Main header //
+        out.write_all(&[0; 0x1010 - 4 * 4 - HEADER_SIG.len() * 2])?;
+        // Header tail //
+        out.write_all(HEADER_SIG)?;
+
+        // Write out file info
+        assert!(self.file_map.len() < (u16::MAX - 2).into());
+
+        // Emit "<No File>" (only for fprolog, should work for TProlog & tulip-vm)
+        {
+            // file_id
+            out.write_u16::<LE>(0)?;
+            // filename
+            {
+                const MAIN_FILE_NAME: &[u8] = b"<No File>";
+                let mut encoded_filename = [0; 255];
+                encoded_filename[..MAIN_FILE_NAME.len()].copy_from_slice(MAIN_FILE_NAME);
+                out.write_all(&encoded_filename)?;
+            }
+            // body_unit
+            out.write_u16::<LE>(0)?;
+            // stub_unit
+            out.write_u16::<LE>(0)?;
+
+            // code_table
+            // can't use an empty table since TProlog & tulip-vm assumes that
+            // a code table of at least 4 bytes is present
+            out.write_u32::<LE>(4)?;
+            out.write_u32::<LE>(0xAAAAAAAA)?;
+            // manifest_table
+            out.write_u32::<LE>(0)?;
+            // globals_size
+            out.write_u32::<LE>(0)?;
+
+            // manifest_patches
+            out.write_u32::<LE>(0xFFFFFFFF)?;
+
+            // local_code_patch_head
+            out.write_u32::<LE>(0)?;
+            // local_manifest_patch_head
+            out.write_u32::<LE>(0)?;
+            // local_globals_patch_head
+            out.write_u32::<LE>(0)?;
+
+            // external_code_patches
+            out.write_u16::<LE>(0xFFFF)?;
+            // external_manifest_patches
+            out.write_u16::<LE>(0xFFFF)?;
+            // external_global_patches
+            out.write_u16::<LE>(0xFFFF)?;
+        }
+
+        for (idx, file_id) in self.file_map.iter().enumerate() {
+            // Guaranteed to have less than u16::MAX files per the assert above
+            let blob_id = u16::try_from(idx).unwrap() + 1;
+
+            // file_id
+            out.write_u16::<LE>(blob_id)?;
+            // filename
+            let filename = db.file_path(*file_id);
+            let mut encoded_filename = [0; 255];
+            // trunc to 256 bytes
+            let filename_len = filename.len().min(encoded_filename.len());
+            encoded_filename[..filename_len].copy_from_slice(&filename.as_bytes()[..filename_len]);
+            out.write_all(&encoded_filename)?;
+            // body_unit
+            out.write_u16::<LE>(0)?;
+            // stub_unit
+            out.write_u16::<LE>(0)?;
+
+            // code_table
+            // can't use an empty table since TProlog & tulip-vm assumes that
+            // a code table of at least 4 bytes is present
+            out.write_u32::<LE>(4)?;
+            out.write_u32::<LE>(0xAAAAAAAA)?;
+            // manifest_table
+            out.write_u32::<LE>(0)?;
+            // globals_size
+            out.write_u32::<LE>(0)?;
+
+            // manifest_patches
+            out.write_u32::<LE>(0xFFFFFFFF)?;
+
+            // local_code_patch_head
+            out.write_u32::<LE>(0)?;
+            // local_manifest_patch_head
+            out.write_u32::<LE>(0)?;
+            // local_globals_patch_head
+            out.write_u32::<LE>(0)?;
+
+            // external_code_patches
+            out.write_u16::<LE>(0xFFFF)?;
+            // external_manifest_patches
+            out.write_u16::<LE>(0xFFFF)?;
+            // external_global_patches
+            out.write_u16::<LE>(0xFFFF)?;
+        }
+
+        // Write out main bytecode file
+        // Guaranteed to have less than u16::MAX files per the assert above
+        let main_id = u16::try_from(self.file_map.len()).unwrap() + 1;
+
+        // file_id
+        out.write_u16::<LE>(main_id)?;
+        // filename
+        {
+            const MAIN_FILE_NAME: &[u8] = b"<MAIN FILE>";
+            let mut encoded_filename = [0; 255];
+            encoded_filename[..MAIN_FILE_NAME.len()].copy_from_slice(MAIN_FILE_NAME);
+            out.write_all(&encoded_filename)?;
+        }
+        // body_unit
+        out.write_u16::<LE>(0)?;
+        // stub_unit
+        out.write_u16::<LE>(0)?;
+
+        // code_table
+        let mut reloc_tracker = RelocationTracker::new(self);
+        let mut code_table = vec![0xAA; 4]; // (initial bytes overwritten later)
+
+        let main_blob = self.body_fragments.iter().next().unwrap().1;
+        main_blob.encode_to(&mut reloc_tracker, &mut code_table)?;
+
+        out.write_u32::<LE>(
+            code_table
+                .len()
+                .try_into()
+                .expect("code table is too large"),
+        )?;
+        out.write_all(&code_table)?;
+        // manifest_table
+        out.write_u32::<LE>(
+            self.const_bytes
+                .len()
+                .try_into()
+                .expect("manifest table is too large"),
+        )?;
+        out.write_all(&self.const_bytes)?;
+        // globals_size
+        out.write_u32::<LE>(0)?;
+
+        // manifest_patches
+        out.write_u32::<LE>(0xFFFFFFFF)?;
+
+        // local_code_patch_head, local_manifest_patch_head, local_globals_patch_head
+        for offset in &reloc_tracker.last_location {
+            let starting_at: u32 = offset.unwrap_or(0).try_into().unwrap();
+            out.write_u32::<LE>(starting_at)?;
+        }
+
+        // external_code_patches
+        out.write_u16::<LE>(0xFFFF)?;
+        // external_manifest_patches
+        out.write_u16::<LE>(0xFFFF)?;
+        // external_global_patches
+        out.write_u16::<LE>(0xFFFF)?;
+
+        // Write out main footer
+        out.write_u16::<LE>(main_id)?;
+        out.write_all(MAIN_MAGIC)?;
+
+        Ok(())
+    }
+
     fn add_const_str(&mut self, str: &str) -> RelocatableOffset {
         // reserve space for str bytes & null terminator
         let storage_len = str.len() + 1;
@@ -64,8 +251,8 @@ struct RelocInfo {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RelocSection {
-    Manifest,
     Code,
+    Manifest,
     Global,
 }
 
@@ -123,6 +310,8 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                     for (idx, off) in body_code.0.temps.iter().enumerate() {
                         println!("{:4}    {:?}", idx, off);
                     }
+
+                    blob.body_fragments.insert((library_id, body_id), body_code);
                 }
                 hir_body::BodyKind::Exprs(_expr) => {
                     // We don't start code generation from expr bodies
@@ -133,9 +322,11 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
         }
     }
 
+    // ???: How do we figure out which file will serve as the main body?
+    // For now, we only deal with one file, so that will always serve as the main body
     // TODO: toposort calls to module initialization bodies
 
-    res.map(|_| None)
+    res.map(|_| Some(blob))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -159,8 +350,383 @@ impl ForDescriptorSlot {
     }
 }
 
+struct RelocationTracker<'a> {
+    last_location: [Option<usize>; 3],
+    code_blob: &'a CodeBlob,
+}
+
+impl<'a> RelocationTracker<'a> {
+    fn new(code_blob: &'a CodeBlob) -> Self {
+        Self {
+            last_location: [None; 3],
+            code_blob,
+        }
+    }
+
+    fn add_reloc(&mut self, relative_to: usize, reloc_offset: RelocatableOffset) -> (u32, u32) {
+        let reloc_info = &self.code_blob.reloc_table[reloc_offset.0];
+        let offset = reloc_info.offset;
+
+        // Point to the 1st operand (patch_link, skipping opcode)
+        let last_location =
+            self.last_location[reloc_info.section as usize].replace(relative_to + 4);
+        let patch_jump = last_location.unwrap_or(0);
+
+        (patch_jump as u32, offset as u32)
+    }
+}
+
+struct OffsetTable {
+    instruction_offsets: Vec<u32>,
+}
+
+impl OffsetTable {
+    fn build_table(code_fragment: &CodeFragment) -> Self {
+        let mut instruction_pointer = 0x04;
+        let offsets: Vec<_> = code_fragment
+            .opcodes
+            .iter()
+            .map(move |op| {
+                let at = instruction_pointer;
+                instruction_pointer += op.size() as u32;
+                at
+            })
+            .collect();
+
+        Self {
+            instruction_offsets: offsets,
+        }
+    }
+
+    fn relative_address(&self, at: usize) -> usize {
+        self.instruction_offsets[at] as usize
+    }
+
+    fn backward_offset(&self, from: usize, to: usize) -> usize {
+        todo!()
+    }
+
+    fn forward_offset(&self, from: usize, to: usize) -> usize {
+        todo!()
+    }
+}
+
 #[derive(Default)]
 struct BodyCode(CodeFragment);
+
+impl BodyCode {
+    fn encode_to(
+        &self,
+        reloc_tracker: &mut RelocationTracker,
+        out: &mut impl io::Write,
+    ) -> io::Result<()> {
+        // Build table for resolving code offsets
+        let offset_table = OffsetTable::build_table(&self.0);
+
+        for (pc, op) in self.0.opcodes.iter().enumerate() {
+            self.write_opcode(pc, *op, out, reloc_tracker, &offset_table)?;
+        }
+
+        Ok(())
+    }
+
+    fn write_opcode(
+        &self,
+        pc: usize,
+        opcode: Opcode,
+        out: &mut impl io::Write,
+        reloc_tracker: &mut RelocationTracker<'_>,
+        offset_table: &OffsetTable,
+    ) -> io::Result<()> {
+        // Emit opcode
+        out.write_u32::<LE>(opcode.encoding_kind().into())?;
+
+        // Emit operands
+        match opcode {
+            Opcode::ABORT(_) => todo!(),
+            Opcode::ABORTCOND(_) => todo!(),
+            Opcode::ABSINT() => {}
+            Opcode::ABSREAL() => {}
+            Opcode::ADDINT() => {}
+            Opcode::ADDINTNAT() => {}
+            Opcode::ADDNAT() => {}
+            Opcode::ADDNATINT() => {}
+            Opcode::ADDREAL() => {}
+            Opcode::ADDSET(_) => todo!(),
+            Opcode::ALLOCFLEXARRAY() => {}
+            Opcode::ALLOCGLOB() => {}
+            Opcode::ALLOCGLOBARRAY() => {}
+            Opcode::ALLOCLOC() => {}
+            Opcode::ALLOCLOCARRAY() => {}
+            Opcode::AND() => {}
+            Opcode::ARRAYUPPER(_) => todo!(),
+            Opcode::ASNADDR() => {}
+            Opcode::ASNINT() => {}
+            Opcode::ASNINT1() => {}
+            Opcode::ASNINT2() => {}
+            Opcode::ASNINT4() => {}
+            Opcode::ASNNAT() => {}
+            Opcode::ASNNAT1() => {}
+            Opcode::ASNNAT2() => {}
+            Opcode::ASNNAT4() => {}
+            Opcode::ASNPTR() => {}
+            Opcode::ASNREAL() => {}
+            Opcode::ASNREAL4() => {}
+            Opcode::ASNREAL8() => {}
+            Opcode::ASNADDRINV() => {}
+            Opcode::ASNINTINV() => {}
+            Opcode::ASNINT1INV() => {}
+            Opcode::ASNINT2INV() => {}
+            Opcode::ASNINT4INV() => {}
+            Opcode::ASNNATINV() => {}
+            Opcode::ASNNAT1INV() => {}
+            Opcode::ASNNAT2INV() => {}
+            Opcode::ASNNAT4INV() => {}
+            Opcode::ASNPTRINV() => {}
+            Opcode::ASNREALINV() => {}
+            Opcode::ASNREAL4INV() => {}
+            Opcode::ASNREAL8INV() => {}
+            Opcode::ASNNONSCALAR(_) => todo!(),
+            Opcode::ASNNONSCALARINV(_) => todo!(),
+            Opcode::ASNSTR() => {}
+            Opcode::ASNSTRINV() => {}
+            Opcode::BEGINHANDLER(_, _) => todo!(),
+            Opcode::BITSASSIGN(_, _, _) => todo!(),
+            Opcode::BITSEXTRACT(_, _) => todo!(),
+            Opcode::CALL(_) => todo!(),
+            Opcode::CALLEXTERNAL(_) => todo!(),
+            Opcode::CALLIMPLEMENTBY(_) => todo!(),
+            Opcode::CASE(_) => todo!(),
+            Opcode::CAT() => {}
+            Opcode::CHARSUBSTR1(_) => todo!(),
+            Opcode::CHARSUBSTR2(_) => todo!(),
+            Opcode::CHARTOCSTR() => {}
+            Opcode::CHARTOSTR() => {}
+            Opcode::CHARTOSTRLEFT() => {}
+            Opcode::CHKCHRSTRSIZE(_) => todo!(),
+            Opcode::CHKCSTRRANGE(_) => todo!(),
+            Opcode::CHKRANGE(_, _, _, _) => todo!(),
+            Opcode::CHKSTRRANGE(_) => todo!(),
+            Opcode::CHKSTRSIZE(_) => todo!(),
+            Opcode::CLOSE() => {}
+            Opcode::COPYARRAYDESC() => {}
+            Opcode::CSTRTOCHAR() => {}
+            Opcode::CSTRTOSTR() => {}
+            Opcode::CSTRTOSTRLEFT() => {}
+            Opcode::DEALLOCFLEXARRAY() => {}
+            Opcode::DECSP(_) => todo!(),
+            Opcode::DIVINT() => {}
+            Opcode::DIVNAT() => {}
+            Opcode::DIVREAL() => {}
+            Opcode::EMPTY() => {}
+            Opcode::ENDFOR(_) => todo!(),
+            Opcode::EOF() => {}
+            Opcode::EQADDR() => {}
+            Opcode::EQCHARN(_) => todo!(),
+            Opcode::EQINT() => {}
+            Opcode::EQINTNAT() => {}
+            Opcode::EQNAT() => {}
+            Opcode::EQREAL() => {}
+            Opcode::EQSTR() => {}
+            Opcode::EQSET(_) => todo!(),
+            Opcode::EXPINTINT() => {}
+            Opcode::EXPREALINT() => {}
+            Opcode::EXPREALREAL() => {}
+            Opcode::FETCHADDR() => {}
+            Opcode::FETCHBOOL() => {}
+            Opcode::FETCHINT() => {}
+            Opcode::FETCHINT1() => {}
+            Opcode::FETCHINT2() => {}
+            Opcode::FETCHINT4() => {}
+            Opcode::FETCHNAT() => {}
+            Opcode::FETCHNAT1() => {}
+            Opcode::FETCHNAT2() => {}
+            Opcode::FETCHNAT4() => {}
+            Opcode::FETCHPTR() => {}
+            Opcode::FETCHREAL() => {}
+            Opcode::FETCHREAL4() => {}
+            Opcode::FETCHREAL8() => {}
+            Opcode::FETCHSET(_) => todo!(),
+            Opcode::FETCHSTR() => {}
+            Opcode::FIELD(_) => todo!(),
+            Opcode::FOR(_) => todo!(),
+            Opcode::FORK(_, _) => todo!(),
+            Opcode::FREE(_) => todo!(),
+            Opcode::FREECLASS(_) => todo!(),
+            Opcode::FREEU() => {}
+            Opcode::GECLASS() => {}
+            Opcode::GECHARN(_) => todo!(),
+            Opcode::GEINT() => {}
+            Opcode::GEINTNAT() => {}
+            Opcode::GENAT() => {}
+            Opcode::GENATINT() => {}
+            Opcode::GEREAL() => {}
+            Opcode::GESTR() => {}
+            Opcode::GESET(_) => todo!(),
+            Opcode::GET(_) => todo!(),
+            Opcode::GETPRIORITY() => {}
+            Opcode::GTCLASS() => {}
+            Opcode::IF(_) => todo!(),
+            Opcode::IN(_, _, _) => todo!(),
+            Opcode::INCLINENO() => {}
+            Opcode::INCSP(_) => todo!(),
+            Opcode::INFIXAND(_) => todo!(),
+            Opcode::INFIXOR(_) => todo!(),
+            Opcode::INITARRAYDESC() => {}
+            Opcode::INITCONDITION(_) => todo!(),
+            Opcode::INITMONITOR(_) => todo!(),
+            Opcode::INITUNIT(_, _, _) => todo!(),
+            Opcode::INTREAL() => {}
+            Opcode::INTREALLEFT() => {}
+            Opcode::INTSTR() => {}
+            Opcode::JSR(_) => todo!(),
+            Opcode::JUMP(_) => todo!(),
+            Opcode::JUMPB(_) => todo!(),
+            Opcode::LECLASS() => {}
+            Opcode::LECHARN(_) => todo!(),
+            Opcode::LEINT() => {}
+            Opcode::LEINTNAT() => {}
+            Opcode::LENAT() => {}
+            Opcode::LENATINT() => {}
+            Opcode::LEREAL() => {}
+            Opcode::LESTR() => {}
+            Opcode::LESET(_) => todo!(),
+            Opcode::LOCATEARG(_) => todo!(),
+            Opcode::LOCATECLASS(_) => todo!(),
+            Opcode::LOCATELOCAL(_) => todo!(),
+            Opcode::LOCATEPARM(_) => todo!(),
+            Opcode::LOCATETEMP(temp_slot) => {
+                let slot_info = self.0.temps.get(temp_slot.0).unwrap();
+
+                // locals_area
+                out.write_u32::<LE>(self.0.frame_size())?;
+                // temporary
+                out.write_u32::<LE>(slot_info.offset)?;
+            }
+            Opcode::LTCLASS() => {}
+            Opcode::MAXINT() => {}
+            Opcode::MAXNAT() => {}
+            Opcode::MAXREAL() => {}
+            Opcode::MININT() => {}
+            Opcode::MINNAT() => {}
+            Opcode::MINREAL() => {}
+            Opcode::MODINT() => {}
+            Opcode::MODNAT() => {}
+            Opcode::MODREAL() => {}
+            Opcode::MONITORENTER() => {}
+            Opcode::MONITOREXIT() => {}
+            Opcode::MULINT() => {}
+            Opcode::MULNAT() => {}
+            Opcode::MULREAL() => {}
+            Opcode::MULSET(_) => todo!(),
+            Opcode::NATREAL() => {}
+            Opcode::NATREALLEFT() => {}
+            Opcode::NATSTR() => {}
+            Opcode::NEGINT() => {}
+            Opcode::NEGREAL() => {}
+            Opcode::NEW() => {}
+            Opcode::NEWARRAY() => {}
+            Opcode::NEWCLASS() => {}
+            Opcode::NEWU() => {}
+            Opcode::NOT() => {}
+            Opcode::NUMARRAYELEMENTS() => {}
+            Opcode::OBJCLASS() => {}
+            Opcode::OPEN(_, _) => todo!(),
+            Opcode::OR() => {}
+            Opcode::ORD() => {}
+            Opcode::PAUSE() => {}
+            Opcode::PRED() => {}
+            Opcode::PROC(frame_size) => {
+                out.write_u32::<LE>(frame_size)?;
+            }
+            Opcode::PUSHADDR(_) => todo!(),
+            Opcode::PUSHADDR1(reloc_offset) => {
+                let relative_to = offset_table.relative_address(pc);
+                let (patch_link, offset) = reloc_tracker.add_reloc(relative_to, reloc_offset);
+
+                out.write_u32::<LE>(patch_link)?;
+                out.write_u32::<LE>(offset)?;
+            }
+            Opcode::PUSHCOPY() => {}
+            Opcode::PUSHINT(_) => todo!(),
+            Opcode::PUSHINT1(_) => todo!(),
+            Opcode::PUSHINT2(_) => todo!(),
+            Opcode::PUSHREAL(_) => todo!(),
+            Opcode::PUSHVAL0() => {}
+            Opcode::PUSHVAL1() => {}
+            Opcode::PUT(kind) => {
+                out.write_u32::<LE>(kind.encoding_kind().into())?;
+            }
+            Opcode::QUIT() => {}
+            Opcode::READ() => {}
+            Opcode::REALDIVIDE() => {}
+            Opcode::REMINT() => {}
+            Opcode::REMREAL() => {}
+            Opcode::RESOLVEDEF(_) => todo!(),
+            Opcode::RESOLVEPTR() => {}
+            Opcode::RESTORESP() => {}
+            Opcode::RETURN() => {}
+            Opcode::RTS() => {}
+            Opcode::SAVESP() => {}
+            Opcode::SEEK() => {}
+            Opcode::SEEKSTAR() => {}
+            Opcode::SETALL(_, _) => todo!(),
+            Opcode::SETCLR(_) => todo!(),
+            Opcode::SETELEMENT(_, _, _) => todo!(),
+            Opcode::SETFILENO(file_no, line_no) => {
+                out.write_u32::<LE>(file_no.into())?;
+                out.write_u32::<LE>(line_no.into())?;
+            }
+            Opcode::SETLINENO(line_no) => {
+                out.write_u32::<LE>(line_no.into())?;
+            }
+            Opcode::SETPRIORITY() => {}
+            Opcode::SETSTDSTREAM(stream) => {
+                out.write_u32::<LE>(stream.encoding_kind().into())?;
+            }
+            Opcode::SETSTREAM(_) => todo!(),
+            Opcode::SHL() => {}
+            Opcode::SHR() => {}
+            Opcode::SIGNAL(_) => todo!(),
+            Opcode::STRINT() => {}
+            Opcode::STRINTOK() => {}
+            Opcode::STRNAT() => {}
+            Opcode::STRNATOK() => {}
+            Opcode::STRTOCHAR() => {}
+            Opcode::SUBINT() => {}
+            Opcode::SUBINTNAT() => {}
+            Opcode::SUBNAT() => {}
+            Opcode::SUBNATINT() => {}
+            Opcode::SUBREAL() => {}
+            Opcode::SUBSCRIPT() => {}
+            Opcode::SUBSET(_) => todo!(),
+            Opcode::SUBSTR1(_) => todo!(),
+            Opcode::SUBSTR2(_) => todo!(),
+            Opcode::SUCC() => {}
+            Opcode::TAG(_) => todo!(),
+            Opcode::TELL() => {}
+            Opcode::UFIELD(_, _, _) => todo!(),
+            Opcode::UNINIT() => {}
+            Opcode::UNINITADDR() => {}
+            Opcode::UNINITBOOLEAN() => {}
+            Opcode::UNINITINT() => {}
+            Opcode::UNINITNAT() => {}
+            Opcode::UNINITREAL() => {}
+            Opcode::UNINITSTR() => {}
+            Opcode::UNLINKHANDLER() => {}
+            Opcode::VSUBSCRIPT(_, _, _) => todo!(),
+            Opcode::WAIT(_) => todo!(),
+            Opcode::WRITE() => {}
+            Opcode::XOR() => {}
+            Opcode::XORSET(_) => {}
+            Opcode::BREAK() => {}
+            Opcode::SYSEXIT() => {}
+            Opcode::ILLEGAL() => {}
+        }
+
+        Ok(())
+    }
+}
 
 struct BodyCodeGenerator<'a> {
     db: &'a dyn CodeGenDB,
@@ -197,10 +763,15 @@ impl BodyCodeGenerator<'_> {
             branch_stack: vec![],
         };
 
+        gen.code_fragment.emit_opcode(Opcode::PROC(0));
+
         match &library.body(body_id).kind {
             hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
+
+        gen.code_fragment.emit_opcode(Opcode::RETURN());
+        gen.code_fragment.fix_frame_size();
 
         BodyCode(code_fragment)
     }
@@ -235,7 +806,8 @@ impl BodyCodeGenerator<'_> {
             .map_byte_index(file, span.range.start().into())
             .unwrap();
 
-        let code_file = self.code_blob.file_map.insert_full(file).0;
+        // `0` is reserved for "<No File>"
+        let code_file = self.code_blob.file_map.insert_full(file).0 + 1;
         // `LineInfo` line is zero-based, so adjust it
         let (new_file, new_line) = (code_file as u16, info.line as u16 + 1);
 
@@ -1630,6 +2202,19 @@ impl CodeFragment {
 
     fn anchor_branch_to(&mut self, offset: CodeOffset, to_opcode: usize) {
         *self.code_offsets.get_mut(offset.0).unwrap() = OffsetTarget::Branch(Some(to_opcode))
+    }
+
+    fn fix_frame_size(&mut self) {
+        let frame_size = self.frame_size();
+        let first_opcode = self.opcodes.first_mut();
+        assert!(matches!(first_opcode, Some(Opcode::PROC(0))));
+        let first_opcode = first_opcode.unwrap();
+
+        *first_opcode = Opcode::PROC(frame_size);
+    }
+
+    fn frame_size(&self) -> u32 {
+        self.locals_size + self.temps_size
     }
 }
 

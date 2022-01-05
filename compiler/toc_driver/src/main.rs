@@ -18,6 +18,7 @@ fn main() {
     let str_path: String = env::args().nth(1).expect("Missing path to source file");
     let path = std::path::Path::new(&str_path);
     let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
+    let output_path = path.with_extension("tbc");
     let mut db = MainDatabase::default();
 
     // Add the root path to the db
@@ -86,8 +87,11 @@ fn main() {
         emit_message(&db, &mut cache, msg);
     }
 
-    if let Some(_blob) = codegen_res.result() {
-        // TODO: Write blob out to a file
+    if let Some(blob) = codegen_res.result() {
+        let mut encoded = vec![];
+        blob.encode_to(&db, &mut encoded)
+            .expect("failed to encode bytecode");
+        std::fs::write(output_path, encoded).expect("failed to write bytecode");
     }
 
     std::process::exit(if msgs.has_errors() { -1 } else { 0 });
