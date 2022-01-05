@@ -63,7 +63,7 @@ impl CodeBlob {
         assert!(self.file_map.len() < (u16::MAX - 2).into());
 
         // Emit "<No File>" (only for fprolog, should work for TProlog & tulip-vm)
-        {
+        if false {
             // file_id
             out.write_u16::<LE>(0)?;
             // filename
@@ -213,7 +213,9 @@ impl CodeBlob {
 
         // Write out main footer
         out.write_u16::<LE>(main_id)?;
-        out.write_all(MAIN_MAGIC)?;
+        let mut encoded_magic = [0; 255];
+        encoded_magic[..MAIN_MAGIC.len()].copy_from_slice(MAIN_MAGIC);
+        out.write_all(&encoded_magic)?;
 
         Ok(())
     }
