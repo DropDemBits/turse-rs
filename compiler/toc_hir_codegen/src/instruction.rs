@@ -768,6 +768,11 @@ define_encodings! {
         /// ## EQNAT ()
         /// Compares `lhs` with `rhs`, producing a `compare` of true if `lhs = rhs`.
         ///
+        /// ### Usage Note
+        ///
+        /// This opcode isn't used as it isn't implemented in TProlog, and is only here
+        /// for the sake of completeness.
+        ///
         /// ### Stack Effect
         /// `( lhs:u32 rhs:u32 -- compare:bool )`
         ///

@@ -1398,18 +1398,19 @@ impl BodyCodeGenerator<'_> {
             match &arm.selectors {
                 hir_stmt::CaseSelector::Exprs(exprs) => {
                     for expr in exprs {
-                        self.generate_coerced_expr(*expr, coerce_to);
-                        self.code_fragment.emit_locate_temp(discrim_value);
-
                         let expr_ty = self
                             .db
                             .type_of((self.library_id, self.body_id, *expr).into())
                             .in_db(self.db)
                             .peel_ref();
 
+                        self.generate_coerced_expr(*expr, coerce_to);
+                        self.code_fragment.emit_locate_temp(discrim_value);
+                        self.code_fragment.emit_fetch_value(&discrim_ty);
+
                         let eq_op = if matches!(coerce_to, Some(CoerceTo::Char)) {
-                            // Always keep coerced char type as an EQNAT
-                            Opcode::EQNAT()
+                            // Always keep coerced char type as an EQINT
+                            Opcode::EQINT()
                         } else {
                             // Reuse normal eq selection
                             self.select_eq_op(expr_ty.kind(), discrim_ty.kind())
@@ -1961,7 +1962,7 @@ impl BodyCodeGenerator<'_> {
             cmp_op
         } else {
             match (lhs_kind, rhs_kind) {
-                (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQNAT(),
+                (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::EQINT(),
                 // All other comparable charseqs are converted into string
                 (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Opcode::EQSTR(),
                 _ => unreachable!(),
