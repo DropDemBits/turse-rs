@@ -945,6 +945,7 @@ impl BodyCodeGenerator<'_> {
         let span = self.library.lookup_span(stmt.span);
         self.emit_location(span);
 
+        self.code_fragment.bump_temp_allocs();
         match &stmt.kind {
             hir_stmt::StmtKind::Item(item_id) => self.generate_item(*item_id),
             hir_stmt::StmtKind::Assign(stmt) => self.generate_stmt_assign(stmt),
@@ -957,6 +958,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
         }
+        self.code_fragment.unbump_temp_allocs();
     }
 
     fn generate_stmt_list(&mut self, stmts: &[hir_stmt::StmtId]) {
@@ -2089,6 +2091,8 @@ struct CodeFragment {
     locals: indexmap::IndexMap<DefId, StackSlot>,
     locals_size: u32,
     temps: Vec<StackSlot>,
+    temp_bumps: Vec<u32>,
+    temps_current_size: u32,
     temps_size: u32,
 
     opcodes: Vec<Opcode>,
@@ -2118,7 +2122,7 @@ impl CodeFragment {
     fn allocate_temporary_space(&mut self, size: usize) -> TemporarySlot {
         // Align to the nearest stack slot
         let size = align_up_to(size, 4).try_into().unwrap();
-        let offset = self.temps_size;
+        let offset = self.temps_current_size;
         let handle = self.temps.len();
 
         self.temps.push(StackSlot {
@@ -2126,8 +2130,17 @@ impl CodeFragment {
             _size: size,
         });
 
-        self.temps_size += size;
+        self.temps_current_size += size;
+        self.temps_size = self.temps_size.max(self.temps_current_size);
         TemporarySlot(handle)
+    }
+
+    fn bump_temp_allocs(&mut self) {
+        self.temp_bumps.push(self.temps_current_size);
+    }
+
+    fn unbump_temp_allocs(&mut self) {
+        self.temps_current_size = self.temp_bumps.pop().expect("too many unbumps");
     }
 
     fn emit_opcode(&mut self, opcode: Opcode) {
