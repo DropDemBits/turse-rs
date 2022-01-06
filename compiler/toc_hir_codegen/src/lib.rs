@@ -60,51 +60,7 @@ impl CodeBlob {
         out.write_all(HEADER_SIG)?;
 
         // Write out file info
-        assert!(self.file_map.len() < (u16::MAX - 2).into());
-
-        // Emit "<No File>" (only for fprolog, should work for TProlog & tulip-vm)
-        if false {
-            // file_id
-            out.write_u16::<LE>(0)?;
-            // filename
-            {
-                const MAIN_FILE_NAME: &[u8] = b"<No File>";
-                let mut encoded_filename = [0; 255];
-                encoded_filename[..MAIN_FILE_NAME.len()].copy_from_slice(MAIN_FILE_NAME);
-                out.write_all(&encoded_filename)?;
-            }
-            // body_unit
-            out.write_u16::<LE>(0)?;
-            // stub_unit
-            out.write_u16::<LE>(0)?;
-
-            // code_table
-            // can't use an empty table since TProlog & tulip-vm assumes that
-            // a code table of at least 4 bytes is present
-            out.write_u32::<LE>(4)?;
-            out.write_u32::<LE>(0xAAAAAAAA)?;
-            // manifest_table
-            out.write_u32::<LE>(0)?;
-            // globals_size
-            out.write_u32::<LE>(0)?;
-
-            // manifest_patches
-            out.write_u32::<LE>(0xFFFFFFFF)?;
-
-            // local_code_patch_head
-            out.write_u32::<LE>(0)?;
-            // local_manifest_patch_head
-            out.write_u32::<LE>(0)?;
-            // local_globals_patch_head
-            out.write_u32::<LE>(0)?;
-
-            // external_code_patches
-            out.write_u16::<LE>(0xFFFF)?;
-            // external_manifest_patches
-            out.write_u16::<LE>(0xFFFF)?;
-            // external_global_patches
-            out.write_u16::<LE>(0xFFFF)?;
-        }
+        assert!(self.file_map.len() < (u16::MAX - 1).into());
 
         for (idx, file_id) in self.file_map.iter().enumerate() {
             // Guaranteed to have less than u16::MAX files per the assert above
@@ -153,8 +109,8 @@ impl CodeBlob {
         }
 
         // Write out main bytecode file
-        // Guaranteed to have less than u16::MAX files per the assert above
-        let main_id = u16::try_from(self.file_map.len()).unwrap() + 1;
+        // Always occupies file section 0
+        let main_id = 0;
 
         // file_id
         out.write_u16::<LE>(main_id)?;
