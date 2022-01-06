@@ -1999,7 +1999,7 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::UnaryOp::Negate => match rhs_ty.kind() {
-                ty::TypeKind::Int(_) | ty::TypeKind::Nat(_) => {
+                ty::TypeKind::Integer | ty::TypeKind::Int(_) | ty::TypeKind::Nat(_) => {
                     // should already be dealing with promoted types
                     self.code_fragment.emit_opcode(Opcode::NEGINT())
                 }
