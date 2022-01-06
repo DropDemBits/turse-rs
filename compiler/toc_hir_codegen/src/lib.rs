@@ -405,11 +405,27 @@ impl OffsetTable {
     }
 
     fn backward_offset(&self, from: usize, to: usize) -> usize {
-        todo!()
+        // account for already adjusted pc
+        let from_offset = self.instruction_offsets[from] + 4;
+        let to_offset = self.instruction_offsets[to];
+
+        let offset = from_offset
+            .checked_sub(to_offset)
+            .expect("forward branch computed with backward offset");
+
+        offset.try_into().unwrap()
     }
 
     fn forward_offset(&self, from: usize, to: usize) -> usize {
-        todo!()
+        // account for already adjusted pc
+        let from_offset = self.instruction_offsets[from] + 4;
+        let to_offset = self.instruction_offsets[to];
+
+        let offset = to_offset
+            .checked_sub(from_offset)
+            .expect("backward branch computed with forward offset");
+
+        offset.try_into().unwrap()
     }
 }
 
@@ -488,8 +504,9 @@ impl BodyCode {
             Opcode::ASNREALINV() => {}
             Opcode::ASNREAL4INV() => {}
             Opcode::ASNREAL8INV() => {}
-            Opcode::ASNNONSCALAR(_) => todo!(),
-            Opcode::ASNNONSCALARINV(_) => todo!(),
+            Opcode::ASNNONSCALAR(len) | Opcode::ASNNONSCALARINV(len) => {
+                out.write_u32::<LE>(len)?;
+            }
             Opcode::ASNSTR() => {}
             Opcode::ASNSTRINV() => {}
             Opcode::BEGINHANDLER(_, _) => todo!(),
@@ -505,11 +522,21 @@ impl BodyCode {
             Opcode::CHARTOCSTR() => {}
             Opcode::CHARTOSTR() => {}
             Opcode::CHARTOSTRLEFT() => {}
-            Opcode::CHKCHRSTRSIZE(_) => todo!(),
-            Opcode::CHKCSTRRANGE(_) => todo!(),
-            Opcode::CHKRANGE(_, _, _, _) => todo!(),
-            Opcode::CHKSTRRANGE(_) => todo!(),
-            Opcode::CHKSTRSIZE(_) => todo!(),
+            Opcode::CHKCHRSTRSIZE(len) | Opcode::CHKCSTRRANGE(len) => {
+                out.write_u32::<LE>(len)?;
+            }
+            Opcode::CHKRANGE(peek_at, min, max, kind) => {
+                out.write_u32::<LE>(peek_at)?;
+                out.write_i32::<LE>(min)?;
+                out.write_i32::<LE>(max)?;
+                out.write_u32::<LE>(kind.encoding_kind().into())?;
+            }
+            Opcode::CHKSTRRANGE(len) => {
+                out.write_u32::<LE>(len.into())?;
+            }
+            Opcode::CHKSTRSIZE(len) => {
+                out.write_u32::<LE>(len)?;
+            }
             Opcode::CLOSE() => {}
             Opcode::COPYARRAYDESC() => {}
             Opcode::CSTRTOCHAR() => {}
@@ -521,7 +548,10 @@ impl BodyCode {
             Opcode::DIVNAT() => {}
             Opcode::DIVREAL() => {}
             Opcode::EMPTY() => {}
-            Opcode::ENDFOR(_) => todo!(),
+            Opcode::ENDFOR(back_to) => {
+                let offset = self.resolve_backward_target(pc, back_to, offset_table);
+                out.write_u32::<LE>(offset.try_into().unwrap())?;
+            }
             Opcode::EOF() => {}
             Opcode::EQADDR() => {}
             Opcode::EQCHARN(_) => todo!(),
@@ -551,7 +581,10 @@ impl BodyCode {
             Opcode::FETCHSET(_) => todo!(),
             Opcode::FETCHSTR() => {}
             Opcode::FIELD(_) => todo!(),
-            Opcode::FOR(_) => todo!(),
+            Opcode::FOR(skip_to) => {
+                let offset = self.resolve_forward_target(pc, skip_to, offset_table);
+                out.write_u32::<LE>(offset.try_into().unwrap())?;
+            }
             Opcode::FORK(_, _) => todo!(),
             Opcode::FREE(_) => todo!(),
             Opcode::FREECLASS(_) => todo!(),
@@ -565,15 +598,42 @@ impl BodyCode {
             Opcode::GEREAL() => {}
             Opcode::GESTR() => {}
             Opcode::GESET(_) => todo!(),
-            Opcode::GET(_) => todo!(),
+            Opcode::GET(kind) => {
+                out.write_u32::<LE>(kind.encoding_kind().into())?;
+
+                match kind {
+                    GetKind::Skip() => {}
+                    GetKind::Boolean() | GetKind::Char() => {
+                        out.write_u32::<LE>(1)?;
+                    }
+                    GetKind::CharRange(min, max) => {
+                        out.write_u32::<LE>(1)?;
+                        out.write_i32::<LE>(min)?;
+                        out.write_i32::<LE>(max)?;
+                    }
+                    GetKind::CharN(size)
+                    | GetKind::Enum(size)
+                    | GetKind::Int(size)
+                    | GetKind::Nat(size)
+                    | GetKind::Real(size)
+                    | GetKind::StringExact(size)
+                    | GetKind::StringLine(size)
+                    | GetKind::StringToken(size) => {
+                        out.write_u32::<LE>(size)?;
+                    }
+                    GetKind::EnumRange(size, min, max) | GetKind::IntRange(size, min, max) => {
+                        out.write_u32::<LE>(size)?;
+                        out.write_i32::<LE>(min)?;
+                        out.write_i32::<LE>(max)?;
+                    }
+                }
+            }
             Opcode::GETPRIORITY() => {}
             Opcode::GTCLASS() => {}
-            Opcode::IF(_) => todo!(),
             Opcode::IN(_, _, _) => todo!(),
             Opcode::INCLINENO() => {}
             Opcode::INCSP(_) => todo!(),
             Opcode::INFIXAND(_) => todo!(),
-            Opcode::INFIXOR(_) => todo!(),
             Opcode::INITARRAYDESC() => {}
             Opcode::INITCONDITION(_) => todo!(),
             Opcode::INITMONITOR(_) => todo!(),
@@ -582,8 +642,14 @@ impl BodyCode {
             Opcode::INTREALLEFT() => {}
             Opcode::INTSTR() => {}
             Opcode::JSR(_) => todo!(),
-            Opcode::JUMP(_) => todo!(),
-            Opcode::JUMPB(_) => todo!(),
+            Opcode::IF(skip_to) | Opcode::INFIXOR(skip_to) | Opcode::JUMP(skip_to) => {
+                let offset = self.resolve_forward_target(pc, skip_to, offset_table);
+                out.write_u32::<LE>(offset.try_into().unwrap())?;
+            }
+            Opcode::JUMPB(back_to) => {
+                let offset = self.resolve_backward_target(pc, back_to, offset_table);
+                out.write_u32::<LE>(offset.try_into().unwrap())?;
+            }
             Opcode::LECLASS() => {}
             Opcode::LECHARN(_) => todo!(),
             Opcode::LEINT() => {}
@@ -595,7 +661,9 @@ impl BodyCode {
             Opcode::LESET(_) => todo!(),
             Opcode::LOCATEARG(_) => todo!(),
             Opcode::LOCATECLASS(_) => todo!(),
-            Opcode::LOCATELOCAL(_) => todo!(),
+            Opcode::LOCATELOCAL(offset) => {
+                out.write_u32::<LE>(offset)?;
+            }
             Opcode::LOCATEPARM(_) => todo!(),
             Opcode::LOCATETEMP(temp_slot) => {
                 let slot_info = self.0.temps.get(temp_slot.0).unwrap();
@@ -650,10 +718,18 @@ impl BodyCode {
                 out.write_u32::<LE>(offset)?;
             }
             Opcode::PUSHCOPY() => {}
-            Opcode::PUSHINT(_) => todo!(),
-            Opcode::PUSHINT1(_) => todo!(),
-            Opcode::PUSHINT2(_) => todo!(),
-            Opcode::PUSHREAL(_) => todo!(),
+            Opcode::PUSHINT(value) => {
+                out.write_u32::<LE>(value.into())?;
+            }
+            Opcode::PUSHINT1(value) => {
+                out.write_u32::<LE>(value.into())?;
+            }
+            Opcode::PUSHINT2(value) => {
+                out.write_u32::<LE>(value.into())?;
+            }
+            Opcode::PUSHREAL(value) => {
+                out.write_f64::<LE>(value)?;
+            }
             Opcode::PUSHVAL0() => {}
             Opcode::PUSHVAL1() => {}
             Opcode::PUT(kind) => {
@@ -727,6 +803,24 @@ impl BodyCode {
         }
 
         Ok(())
+    }
+
+    fn resolve_backward_target(&self, from: usize, to: CodeOffset, offsets: &OffsetTable) -> u32 {
+        let jump_to = match self.0.code_offsets[to.0] {
+            OffsetTarget::Branch(to) => to.expect("unresolved branch"),
+        };
+        let offset = offsets.backward_offset(from, jump_to);
+
+        offset.try_into().unwrap()
+    }
+
+    fn resolve_forward_target(&self, from: usize, to: CodeOffset, offsets: &OffsetTable) -> u32 {
+        let jump_to = match self.0.code_offsets[to.0] {
+            OffsetTarget::Branch(to) => to.expect("unresolved branch"),
+        };
+        let offset = offsets.forward_offset(from, jump_to);
+
+        offset.try_into().unwrap()
     }
 }
 
