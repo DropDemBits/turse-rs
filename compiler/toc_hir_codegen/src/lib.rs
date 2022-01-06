@@ -2078,7 +2078,7 @@ enum CoerceTo {
 #[derive(Debug, Clone, Copy)]
 struct StackSlot {
     offset: u32,
-    _size: u32,
+    size: u32,
 }
 
 #[derive(Debug)]
@@ -2109,13 +2109,7 @@ impl CodeFragment {
         let size = align_up_to(size, 4).try_into().unwrap();
         let offset = self.locals_size;
 
-        self.locals.insert(
-            def_id,
-            StackSlot {
-                offset,
-                _size: size,
-            },
-        );
+        self.locals.insert(def_id, StackSlot { offset, size });
         self.locals_size += size;
     }
 
@@ -2125,10 +2119,7 @@ impl CodeFragment {
         let offset = self.temps_current_size;
         let handle = self.temps.len();
 
-        self.temps.push(StackSlot {
-            offset,
-            _size: size,
-        });
+        self.temps.push(StackSlot { offset, size });
 
         self.temps_current_size += size;
         self.temps_size = self.temps_size.max(self.temps_current_size);
@@ -2157,7 +2148,7 @@ impl CodeFragment {
 
     fn emit_locate_local(&mut self, def_id: DefId) {
         let slot_info = self.locals.get(&def_id).expect("def not reserved yet");
-        let offset = slot_info.offset;
+        let offset = slot_info.offset + slot_info.size;
 
         self.emit_opcode(Opcode::LOCATELOCAL(offset));
     }
