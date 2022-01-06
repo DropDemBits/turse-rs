@@ -253,9 +253,9 @@ struct RelocInfo {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RelocSection {
-    Code,
+    _Code,
     Manifest,
-    Global,
+    _Global,
 }
 
 /// Generates code from the given HIR database,
@@ -550,7 +550,7 @@ impl BodyCode {
             Opcode::EMPTY() => {}
             Opcode::ENDFOR(back_to) => {
                 let offset = self.resolve_backward_target(pc, back_to, offset_table);
-                out.write_u32::<LE>(offset.try_into().unwrap())?;
+                out.write_u32::<LE>(offset)?;
             }
             Opcode::EOF() => {}
             Opcode::EQADDR() => {}
@@ -583,7 +583,7 @@ impl BodyCode {
             Opcode::FIELD(_) => todo!(),
             Opcode::FOR(skip_to) => {
                 let offset = self.resolve_forward_target(pc, skip_to, offset_table);
-                out.write_u32::<LE>(offset.try_into().unwrap())?;
+                out.write_u32::<LE>(offset)?;
             }
             Opcode::FORK(_, _) => todo!(),
             Opcode::FREE(_) => todo!(),
@@ -644,11 +644,11 @@ impl BodyCode {
             Opcode::JSR(_) => todo!(),
             Opcode::IF(skip_to) | Opcode::INFIXOR(skip_to) | Opcode::JUMP(skip_to) => {
                 let offset = self.resolve_forward_target(pc, skip_to, offset_table);
-                out.write_u32::<LE>(offset.try_into().unwrap())?;
+                out.write_u32::<LE>(offset)?;
             }
             Opcode::JUMPB(back_to) => {
                 let offset = self.resolve_backward_target(pc, back_to, offset_table);
-                out.write_u32::<LE>(offset.try_into().unwrap())?;
+                out.write_u32::<LE>(offset)?;
             }
             Opcode::LECLASS() => {}
             Opcode::LECHARN(_) => todo!(),
@@ -719,7 +719,7 @@ impl BodyCode {
             }
             Opcode::PUSHCOPY() => {}
             Opcode::PUSHINT(value) => {
-                out.write_u32::<LE>(value.into())?;
+                out.write_u32::<LE>(value)?;
             }
             Opcode::PUSHINT1(value) => {
                 out.write_u32::<LE>(value.into())?;
@@ -2380,8 +2380,7 @@ fn length_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> Option<usize> {
                 .flatten()
                 .expect("eval should succeed and not be dyn");
 
-            let char_len = (char_len.into_u32().expect("size should be a u32")) as usize;
-            char_len
+            (char_len.into_u32().expect("size should be a u32")) as usize
         }
         ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
         _ => return None,
