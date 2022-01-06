@@ -60,7 +60,7 @@ define_encodings! {
 
         /// ## ABORT (abortKind:u32)
         /// Aborts the program.
-        /// The message to abort with is dependent on [`AbortKind`]
+        /// The message to abort with is dependent on [`AbortSource`].
         ///
         /// ### Stack Effect
         /// ( -- )
@@ -68,7 +68,8 @@ define_encodings! {
         ABORT (AbortSource) = 0x00,
 
         /// ## ABORTCOND (abortKind:u32)
-        /// (Aborts the program if `do_abort` is true.
+        /// Aborts the program if `do_abort` is true.
+        /// The message to abort with is dependent on [`AbortSource`].
         ///
         /// ### Stack Effect
         /// ( do_abort:bool -- )
