@@ -5,7 +5,6 @@ use toc_span::Span;
 
 use crate::ty;
 use crate::{
-    const_eval::{ConstInt, ConstResult},
     db,
     ty::{Mutability, SeqSize, TypeId, TypeKind},
 };
@@ -126,25 +125,6 @@ where
             Ok(to) => to,
             Err(_self) => _self,
         }
-    }
-}
-
-impl SeqSize {
-    pub fn fixed_len<T: db::ConstEval + ?Sized>(
-        &self,
-        db: &T,
-        span: Span,
-    ) -> ConstResult<Option<ConstInt>> {
-        let size = match self {
-            SeqSize::Dynamic => return Ok(None),
-            SeqSize::Fixed(size) => size,
-        };
-
-        // Always eagerly evaluate the expr
-        // Never allow 64-bit ops (size is always less than 2^32)
-        db.evaluate_const(size.clone(), Default::default())
-            .and_then(|v| v.into_int(span))
-            .map(Some)
     }
 }
 

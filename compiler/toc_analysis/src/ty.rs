@@ -3,7 +3,9 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use crate::const_eval::Const;
+use toc_span::Span;
+
+use crate::const_eval::{Const, ConstInt, ConstResult};
 
 pub(crate) mod db;
 mod lower;
@@ -129,6 +131,25 @@ pub enum SeqSize {
     Fixed(Const),
 }
 
+impl SeqSize {
+    pub fn fixed_len<T: crate::db::ConstEval + ?Sized>(
+        &self,
+        db: &T,
+        span: Span,
+    ) -> ConstResult<Option<ConstInt>> {
+        let size = match self {
+            SeqSize::Dynamic => return Ok(None),
+            SeqSize::Fixed(size) => size,
+        };
+
+        // Always eagerly evaluate the expr
+        // Never allow 64-bit ops (size is always less than 2^32)
+        db.evaluate_const(size.clone(), Default::default())
+            .and_then(|v| v.into_int(span))
+            .map(Some)
+    }
+}
+
 toc_salsa::create_intern_key!(
     /// Id referencing an interned type.
     pub TypeId;
@@ -183,4 +204,113 @@ impl<'db, DB: ?Sized + 'db> TyRef<'db, DB> {
     pub fn id(&self) -> TypeId {
         self.id
     }
+
+    pub fn has_uninit(&self) -> bool {
+        matches!(
+            self.kind(),
+            TypeKind::Boolean
+                | TypeKind::Int(IntSize::Int)
+                | TypeKind::Nat(NatSize::AddressInt | NatSize::Nat)
+                | TypeKind::Real(RealSize::Real)
+                | TypeKind::String
+        )
+    }
+}
+
+impl<'db, DB> TyRef<'db, DB>
+where
+    DB: crate::db::ConstEval + ?Sized + 'db,
+{
+    pub fn align_of(&self) -> Option<usize> {
+        let align_of = match self.kind() {
+            TypeKind::Error => return None,
+            TypeKind::Boolean => 1,
+            TypeKind::Int(IntSize::Int1) => 1,
+            TypeKind::Int(IntSize::Int2) => 2,
+            TypeKind::Int(IntSize::Int4) => 4,
+            TypeKind::Int(IntSize::Int) => 4,
+            TypeKind::Nat(NatSize::Nat1) => 1,
+            TypeKind::Nat(NatSize::Nat2) => 2,
+            TypeKind::Nat(NatSize::Nat4) => 4,
+            TypeKind::Nat(NatSize::Nat) => 4,
+            TypeKind::Nat(NatSize::AddressInt) => 4,
+            TypeKind::Real(RealSize::Real4) => 4,
+            TypeKind::Real(RealSize::Real8) => 4,
+            TypeKind::Real(RealSize::Real) => 4,
+            TypeKind::Integer => return None,
+            TypeKind::Char => 1,
+            TypeKind::String => 1,
+            TypeKind::CharN(_) => 1,
+            TypeKind::StringN(_) => 1,
+            TypeKind::Ref(_, _) => return None,
+        };
+
+        Some(align_of)
+    }
+
+    pub fn size_of(&self) -> Option<usize> {
+        let size_of = match self.kind() {
+            TypeKind::Boolean => 1,
+            TypeKind::Int(IntSize::Int1) => 1,
+            TypeKind::Int(IntSize::Int2) => 2,
+            TypeKind::Int(IntSize::Int4) => 4,
+            TypeKind::Int(IntSize::Int) => 4,
+            TypeKind::Nat(NatSize::Nat1) => 1,
+            TypeKind::Nat(NatSize::Nat2) => 2,
+            TypeKind::Nat(NatSize::Nat4) => 4,
+            TypeKind::Nat(NatSize::Nat) => 4,
+            TypeKind::Nat(NatSize::AddressInt) => 4,
+            TypeKind::Real(RealSize::Real4) => 4,
+            TypeKind::Real(RealSize::Real8) => 8,
+            TypeKind::Real(RealSize::Real) => 8,
+            TypeKind::Char => 1,
+            TypeKind::String | TypeKind::StringN(_) | TypeKind::CharN(_) => {
+                let length_of = self.length_of()?;
+
+                if matches!(self.kind(), TypeKind::String | TypeKind::StringN(_)) {
+                    // Storage size for strings includes the always present null terminator
+                    length_of + 1
+                } else {
+                    // Storage size for char(N)'s is always rounded up to the nearest 2-byte boundary
+                    // ???: This can always be to the nearest byte boundary, but this depends on the
+                    // alignment of char(N)
+                    // TODO: Align up sizes for other types according to the type's alignment
+                    align_up_to(length_of, 2)
+                }
+            }
+            TypeKind::Integer | TypeKind::Ref(_, _) | TypeKind::Error => return None,
+        };
+
+        Some(size_of)
+    }
+
+    pub fn length_of(&self) -> Option<usize> {
+        let length = match self.kind() {
+            TypeKind::String => {
+                // max chars (excluding null terminator)
+                255
+            }
+            TypeKind::CharN(seq_size) | TypeKind::StringN(seq_size) => {
+                let char_len = seq_size
+                    .fixed_len(self.db, Span::default())
+                    .ok()
+                    .flatten()?;
+
+                (char_len.into_u32()?) as usize
+            }
+            TypeKind::Ref(_, _) | TypeKind::Error => unreachable!(),
+            _ => return None,
+        };
+
+        Some(length)
+    }
+}
+
+/// Aligns `size` up to the next `align` boundary.
+/// `align` must be a power of two.
+pub fn align_up_to(size: usize, align: usize) -> usize {
+    assert!(align.is_power_of_two());
+    let mask = align - 1;
+
+    (size + mask) & !mask
 }
