@@ -205,6 +205,7 @@ impl<'db, DB: ?Sized + 'db> TyRef<'db, DB> {
         self.id
     }
 
+    /// If this type has an uninitialized pattern
     pub fn has_uninit(&self) -> bool {
         matches!(
             self.kind(),
@@ -221,6 +222,7 @@ impl<'db, DB> TyRef<'db, DB>
 where
     DB: crate::db::ConstEval + ?Sized + 'db,
 {
+    /// Alignment of a type, or `None` if it isn't representable
     pub fn align_of(&self) -> Option<usize> {
         let align_of = match self.kind() {
             TypeKind::Error => return None,
@@ -248,6 +250,7 @@ where
         Some(align_of)
     }
 
+    /// Size of a type, or `None` if it isn't representable
     pub fn size_of(&self) -> Option<usize> {
         let size_of = match self.kind() {
             TypeKind::Boolean => 1,
@@ -284,6 +287,7 @@ where
         Some(size_of)
     }
 
+    /// Length of a type, or `None` if it isn't representable or a charseq
     pub fn length_of(&self) -> Option<usize> {
         let length = match self.kind() {
             TypeKind::String => {
