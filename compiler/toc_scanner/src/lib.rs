@@ -179,72 +179,72 @@ mod test {
             "[",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "]",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "{",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "}",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "!",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "$",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "?",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "`",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         expect_with_error(
             "\\",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..1: invalid character
-                | error for 0..1: here"#]],
+                error in file FileId(1) at 0..1: invalid character
+                | error in file FileId(1) for 0..1: here"#]],
         );
         // Was originally `🧑‍🔬` but that gets split up into multiple tokens
         expect_with_error(
             "🧑",
             &TokenKind::Error,
             expect![[r#"
-                error at 0..4: invalid character
-                | error for 0..4: here"#]],
+                error in file FileId(1) at 0..4: invalid character
+                | error in file FileId(1) for 0..4: here"#]],
         );
     }
 
@@ -637,8 +637,8 @@ mod test {
             "/* ",
             &TokenKind::Comment,
             expect![[r#"
-                error at 0..3: unterminated block comment
-                | error for 0..3: block comment is missing terminating ’*/’"#]],
+                error in file FileId(1) at 0..3: unterminated block comment
+                | error in file FileId(1) for 0..3: block comment is missing terminating ’*/’"#]],
         );
 
         // Respecting nesting
@@ -646,8 +646,8 @@ mod test {
             "/* /* abcd */",
             &TokenKind::Comment,
             expect![[r#"
-                error at 0..13: unterminated block comment
-                | error for 0..13: block comment is missing terminating ’*/’"#]],
+                error in file FileId(1) at 0..13: unterminated block comment
+                | error in file FileId(1) for 0..13: block comment is missing terminating ’*/’"#]],
         );
 
         // With trailing spaces
@@ -655,8 +655,8 @@ mod test {
             "/* /* abcd */ ",
             &TokenKind::Comment,
             expect![[r#"
-                error at 0..14: unterminated block comment
-                | error for 0..14: block comment is missing terminating ’*/’"#]],
+                error in file FileId(1) at 0..14: unterminated block comment
+                | error in file FileId(1) for 0..14: block comment is missing terminating ’*/’"#]],
         );
     }
 
@@ -773,8 +773,8 @@ mod test {
             "/*/*",
             &TokenKind::Comment,
             expect![[r#"
-                error at 0..4: unterminated block comment
-                | error for 0..4: block comment is missing terminating ’*/’"#]],
+                error in file FileId(1) at 0..4: unterminated block comment
+                | error in file FileId(1) for 0..4: block comment is missing terminating ’*/’"#]],
         );
     }
 
@@ -784,8 +784,8 @@ mod test {
             "2#پ",
             &[(TokenKind::RadixLiteral, "2#"), (TokenKind::Error, "پ")],
             expect![[r#"
-                error at 2..4: invalid character
-                | error for 2..4: here"#]],
+                error in file FileId(1) at 2..4: invalid character
+                | error in file FileId(1) for 2..4: here"#]],
         );
     }
 }
