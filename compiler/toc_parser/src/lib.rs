@@ -19,7 +19,7 @@ use crate::sink::Sink;
 pub use depends::{Dependency, DependencyKind, FileDepends};
 
 /// Parse a regular file into a [`ParseTree`]
-pub fn parse(file: Option<FileId>, source: &str) -> CompileResult<ParseTree> {
+pub fn parse(file: FileId, source: &str) -> CompileResult<ParseTree> {
     let (tokens, scanner_msgs) = Scanner::new(file, source).collect_all();
 
     let source = Source::new(&tokens);
@@ -31,7 +31,7 @@ pub fn parse(file: Option<FileId>, source: &str) -> CompileResult<ParseTree> {
 }
 
 /// Parse the dependencies of a file
-pub fn parse_depends(file: Option<FileId>, syntax: SyntaxNode) -> CompileResult<FileDepends> {
+pub fn parse_depends(file: FileId, syntax: SyntaxNode) -> CompileResult<FileDepends> {
     depends::gather_dependencies(file, syntax)
 }
 
@@ -60,7 +60,8 @@ impl ParseTree {
 #[cfg(test)]
 #[track_caller]
 pub(crate) fn check(source: &str, expected: expect_test::Expect) {
-    let res = parse(None, source);
+    let dummy_file = FileId::new_testing(1).unwrap();
+    let res = parse(dummy_file, source);
 
     let mut debug_tree = res.result().dump_tree();
 

@@ -85,8 +85,8 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     fn display_span(&self, span: SpanId) -> String {
         let span = self.library.span_map.lookup_span(span);
 
-        if let Some(file_id) = span.file {
-            format!("({:?}, {:?})", file_id, span.range)
+        if let Some((file_id, range)) = span.into_parts() {
+            format!("({:?}, {:?})", file_id, range)
         } else {
             "(dummy)".to_string()
         }

@@ -89,7 +89,7 @@ impl super::BodyLowering<'_, '_> {
             let mut message = self.ctx.messages.error_detailed(errors.header(), span);
 
             for (msg, range) in errors.parts(range) {
-                let span = Span::new(Some(self.ctx.file), range);
+                let span = Span::new(self.ctx.file, range);
                 message = message.with_error(&msg, span);
             }
 

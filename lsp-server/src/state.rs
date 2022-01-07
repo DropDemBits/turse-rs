@@ -139,7 +139,7 @@ impl ServerState {
             );
 
             // Only accept diagnostics with files attached
-            let file = if let Some(file) = msg.span().file {
+            let file = if let Some((file, _)) = msg.span().into_parts() {
                 file
             } else {
                 // FIXME: Log a warning in this situation
@@ -169,9 +169,9 @@ impl ServerState {
 
     fn map_span_to_location(&self, span: toc_span::Span) -> Location {
         let db = &self.db;
-        let (start, end) = (u32::from(span.range.start()), u32::from(span.range.end()));
 
-        let file = span.file.unwrap();
+        let (file, range) = span.into_parts().unwrap();
+        let (start, end) = (u32::from(range.start()), u32::from(range.end()));
 
         let start = db.map_byte_index_to_position(file, start as usize).unwrap();
         let end = db.map_byte_index_to_position(file, end as usize).unwrap();

@@ -100,7 +100,7 @@ const STMT_START_RECOVERY_SET: &[TokenKind] = &[
 ];
 
 pub(crate) struct Parser<'t, 'src> {
-    file: Option<FileId>,
+    file: FileId,
     source: Source<'t, 'src>,
     events: Vec<Event>,
     msg_sink: MessageSink,
@@ -110,7 +110,7 @@ pub(crate) struct Parser<'t, 'src> {
 }
 
 impl<'t, 'src> Parser<'t, 'src> {
-    pub(crate) fn new(file: Option<FileId>, source: Source<'t, 'src>) -> Self {
+    pub(crate) fn new(file: FileId, source: Source<'t, 'src>) -> Self {
         Self {
             file,
             source,

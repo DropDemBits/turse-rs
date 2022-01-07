@@ -34,10 +34,7 @@ pub enum DependencyKind {
     Import,
 }
 
-pub(crate) fn gather_dependencies(
-    file: Option<FileId>,
-    syntax: SyntaxNode,
-) -> CompileResult<FileDepends> {
+pub(crate) fn gather_dependencies(file: FileId, syntax: SyntaxNode) -> CompileResult<FileDepends> {
     let mut messages = toc_reporting::MessageSink::new();
     let mut dependencies = vec![];
 
@@ -106,7 +103,7 @@ pub(crate) fn gather_dependencies(
 
 fn extract_relative_path(
     path: ast::LiteralExpr,
-    file: Option<FileId>,
+    file: FileId,
     messages: &mut MessageSink,
 ) -> Option<String> {
     let (value, errors) = path.literal().unwrap();
@@ -137,95 +134,94 @@ fn extract_relative_path(
     }
 }
 
-#[test]
-fn gather_no_deps() {
-    let parsed = super::parse(None, r#"moot"#);
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
-    assert!(dependencies.is_empty());
-}
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[test]
-fn gather_includes() {
-    let parsed = super::parse(
-        None,
-        r#"
+    fn get_deps(source: &str) -> CompileResult<FileDepends> {
+        let file_id = FileId::new_testing(1).unwrap();
+        let parsed = crate::parse(file_id, source);
+        gather_dependencies(file_id, parsed.result().syntax())
+    }
+
+    #[test]
+    fn gather_no_deps() {
+        let depend_res = get_deps(r#"moot"#);
+        let dependencies = depend_res.result().dependencies();
+        assert!(dependencies.is_empty());
+    }
+
+    #[test]
+    fn gather_includes() {
+        let depend_res = get_deps(
+            r#"
     include "\uD2\u77\uD3_whats_this"
     include "me_time"
     include 'bad!' % Invalid include stmt
     "#,
-    );
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
+        );
+        let dependencies = depend_res.result().dependencies();
 
-    assert!(!dependencies.is_empty());
-    assert_eq!(
-        dependencies[0],
-        Dependency {
-            kind: DependencyKind::Include,
-            relative_path: "\u{D2}\u{77}\u{D3}_whats_this".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[1],
-        Dependency {
-            kind: DependencyKind::Include,
-            relative_path: "me_time".to_string()
-        }
-    );
-    assert_eq!(dependencies.get(2), None);
-}
+        assert!(!dependencies.is_empty());
+        assert_eq!(
+            dependencies[0],
+            Dependency {
+                kind: DependencyKind::Include,
+                relative_path: "\u{D2}\u{77}\u{D3}_whats_this".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[1],
+            Dependency {
+                kind: DependencyKind::Include,
+                relative_path: "me_time".to_string()
+            }
+        );
+        assert_eq!(dependencies.get(2), None);
+    }
 
-#[test]
-fn gather_main_imports() {
-    let parsed = super::parse(
-        None,
-        r#"
-    import "a", name, and_ in "external_place"
-    "#,
-    );
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
+    #[test]
+    fn gather_main_imports() {
+        let depend_res = get_deps(r#"import "a", name, and_ in "external_place""#);
+        let dependencies = depend_res.result().dependencies();
 
-    assert!(!dependencies.is_empty());
-    assert_eq!(
-        dependencies[0],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "a".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[1],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "name".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[2],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "external_place".to_string()
-        }
-    );
-}
+        assert!(!dependencies.is_empty());
+        assert_eq!(
+            dependencies[0],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "a".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[1],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "name".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[2],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "external_place".to_string()
+            }
+        );
+    }
 
-#[test]
-fn gather_no_deps_with_module() {
-    // Module is not the root module
-    let parsed = super::parse(None, r#"module b import c end b"#);
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
-    assert!(dependencies.is_empty());
-}
+    #[test]
+    fn gather_no_deps_with_module() {
+        // Module is not the root module
+        let depend_res = get_deps(r#"module b import c end b"#);
+        let dependencies = depend_res.result().dependencies();
+        assert!(dependencies.is_empty());
+    }
 
-#[test]
-fn gather_deps_child_class() {
-    // Module is not the root module
-    let parsed = super::parse(
-        None,
-        r#"
+    #[test]
+    fn gather_deps_child_class() {
+        // Module is not the root module
+        let depend_res = get_deps(
+            r#"
     unit class b
         inherit a
         implement b
@@ -233,96 +229,92 @@ fn gather_deps_child_class() {
         import d
         export e
     end b"#,
-    );
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
+        );
+        let dependencies = depend_res.result().dependencies();
 
-    assert_eq!(
-        dependencies[0],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "a".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[1],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "b".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[2],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "c".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[3],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "d".to_string()
-        }
-    );
-    assert_eq!(dependencies.get(4), None);
-}
+        assert_eq!(
+            dependencies[0],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "a".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[1],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "b".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[2],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "c".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[3],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "d".to_string()
+            }
+        );
+        assert_eq!(dependencies.get(4), None);
+    }
 
-#[test]
-fn gather_main_mixed_deps() {
-    let parsed = super::parse(
-        None,
-        r#"
+    #[test]
+    fn gather_main_mixed_deps() {
+        let depend_res = get_deps(
+            r#"
     import "a", name, and_ in "external_place"
     include "bob"
     "#,
-    );
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
+        );
+        let dependencies = depend_res.result().dependencies();
 
-    assert!(!dependencies.is_empty());
-    assert_eq!(
-        dependencies[0],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "a".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[1],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "name".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[2],
-        Dependency {
-            kind: DependencyKind::Import,
-            relative_path: "external_place".to_string()
-        }
-    );
-    assert_eq!(
-        dependencies[3],
-        Dependency {
-            kind: DependencyKind::Include,
-            relative_path: "bob".to_string()
-        }
-    );
-}
+        assert!(!dependencies.is_empty());
+        assert_eq!(
+            dependencies[0],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "a".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[1],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "name".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[2],
+            Dependency {
+                kind: DependencyKind::Import,
+                relative_path: "external_place".to_string()
+            }
+        );
+        assert_eq!(
+            dependencies[3],
+            Dependency {
+                kind: DependencyKind::Include,
+                relative_path: "bob".to_string()
+            }
+        );
+    }
 
-#[test]
-fn gather_bad_paths() {
-    let parsed = super::parse(
-        None,
-        r#"
+    #[test]
+    fn gather_bad_paths() {
+        let depend_res = get_deps(
+            r#"
     import "a^"
     include "k\!"
     "#,
-    );
-    let depend_res = gather_dependencies(None, parsed.result().syntax());
-    let dependencies = depend_res.result().dependencies();
+        );
+        let dependencies = depend_res.result().dependencies();
 
-    assert!(dependencies.is_empty(), "{:?}", dependencies);
-    eprintln!("{:?}", depend_res.messages())
+        assert!(dependencies.is_empty(), "{:?}", dependencies);
+        eprintln!("{:?}", depend_res.messages())
+    }
 }

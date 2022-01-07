@@ -133,9 +133,7 @@ impl<'ctx> FileLowering<'ctx> {
             self.library.span_map.dummy_span(),
             symbol::SymbolKind::Declared,
         );
-        let module_span = self
-            .library
-            .intern_span(Span::new(Some(self.file), root.syntax().text_range()));
+        let module_span = self.intern_range(root.syntax().text_range());
         let module = item::Module {
             as_monitor: false,
             def_id: module_def,
@@ -176,7 +174,7 @@ impl<'ctx> FileLowering<'ctx> {
         };
 
         // Actually make the body
-        let span = self.library.intern_span(Span::new(Some(self.file), span));
+        let span = self.intern_range(span);
 
         let body = body.finish_stmts(body_stmts, param_defs, span);
         let body = self.library.add_body(body);
@@ -209,7 +207,7 @@ impl<'ctx> FileLowering<'ctx> {
     }
 
     fn mk_span(&self, range: toc_span::TextRange) -> Span {
-        Span::new(Some(self.file), range)
+        Span::new(self.file, range)
     }
 
     fn intern_range(&mut self, range: toc_span::TextRange) -> SpanId {
@@ -241,10 +239,7 @@ impl<'ctx: 'body, 'body> BodyLowering<'ctx, 'body> {
                 continue;
             };
 
-            let span = self
-                .ctx
-                .library
-                .intern_span(Span::new(Some(self.ctx.file), range));
+            let span = self.ctx.intern_range(range);
 
             let mut add_kind = |kind| {
                 let id = self.body.add_stmt(Stmt { kind, span });

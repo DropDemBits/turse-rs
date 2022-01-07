@@ -23,32 +23,31 @@ impl FileId {
     pub fn raw_id(&self) -> NonZeroU32 {
         self.0
     }
+
+    /// Constructs a new file id, for testing purposes
+    pub fn new_testing(id: u32) -> Option<Self> {
+        NonZeroU32::new(id).map(Self::new)
+    }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
-    pub file: Option<FileId>,
-    pub range: TextRange,
-}
-
-impl Ord for Span {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // Sorted by file, then by start range
-        self.file
-            .cmp(&other.file)
-            .then(self.range.start().cmp(&other.range.start()))
-    }
-}
-
-impl PartialOrd for Span {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
+    file: Option<FileId>,
+    range: TextRange,
 }
 
 impl Span {
-    pub fn new(file: Option<FileId>, range: TextRange) -> Self {
-        Span { file, range }
+    pub fn new(file: FileId, range: TextRange) -> Self {
+        Span {
+            file: Some(file),
+            range,
+        }
+    }
+
+    /// Deconstructs a span into its components, optionally referring
+    /// to an actual span.
+    pub fn into_parts(self) -> Option<(FileId, TextRange)> {
+        self.file.map(|file| (file, self.range))
     }
 
     /// Makes a new span covering both text ranges.
@@ -70,9 +69,18 @@ impl Span {
     }
 }
 
-impl Default for Span {
-    fn default() -> Self {
-        Span::new(None, TextRange::default())
+impl Ord for Span {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Sorted by file, then by start range
+        self.file
+            .cmp(&other.file)
+            .then(self.range.start().cmp(&other.range.start()))
+    }
+}
+
+impl PartialOrd for Span {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
