@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use toc_span::Span;
 
-use crate::const_eval::{Const, ConstInt, ConstResult};
+use crate::const_eval::{Const, ConstError, ConstInt};
 
 pub(crate) mod db;
 mod lower;
@@ -132,13 +132,17 @@ pub enum SeqSize {
 }
 
 impl SeqSize {
+    /// Tries to compute a compile-time size from this sequence size.
+    ///
+    /// If this is a dynamic length sequence, `NotFixedLen::DynSize` is produced.
+    /// If an error occurs during length computation, `NotFixedLen::ConstError(err)` is produced.
     pub fn fixed_len<T: crate::db::ConstEval + ?Sized>(
         &self,
         db: &T,
         span: Span,
-    ) -> ConstResult<Option<ConstInt>> {
+    ) -> Result<ConstInt, NotFixedLen> {
         let size = match self {
-            SeqSize::Dynamic => return Ok(None),
+            SeqSize::Dynamic => return Err(NotFixedLen::DynSize),
             SeqSize::Fixed(size) => size,
         };
 
@@ -146,46 +150,16 @@ impl SeqSize {
         // Never allow 64-bit ops (size is always less than 2^32)
         db.evaluate_const(size.clone(), Default::default())
             .and_then(|v| v.into_int(span))
-            .map(Some)
+            .map_err(NotFixedLen::ConstError)
     }
 }
 
-toc_salsa::create_intern_key!(
-    /// Id referencing an interned type.
-    pub TypeId;
-);
-
-impl TypeId {
-    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
-    where
-        DB: db::TypeDatabase + ?Sized + 'db,
-    {
-        TyRef {
-            db,
-            id: self,
-            data: db.lookup_intern_type(self),
-        }
-    }
-}
-
-/// Interned type data
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeData {
-    data: Arc<Type>,
-}
-
-impl std::ops::Deref for TypeData {
-    type Target = Type;
-
-    fn deref(&self) -> &Self::Target {
-        self.data.deref()
-    }
-}
-
-impl From<Type> for TypeData {
-    fn from(ty: Type) -> Self {
-        Self { data: Arc::new(ty) }
-    }
+/// Error from trying to compute the fixed length of a [`SeqSize`].
+pub enum NotFixedLen {
+    /// Trying to compute from a dynamically sized sequence
+    DynSize,
+    /// Error while trying to evaluate the sequence
+    ConstError(ConstError),
 }
 
 /// Wrapper type for making it easier to work with TypeIds
@@ -295,10 +269,7 @@ where
                 255
             }
             TypeKind::CharN(seq_size) | TypeKind::StringN(seq_size) => {
-                let char_len = seq_size
-                    .fixed_len(self.db, Span::default())
-                    .ok()
-                    .flatten()?;
+                let char_len = seq_size.fixed_len(self.db, Span::default()).ok()?;
 
                 (char_len.into_u32()?) as usize
             }
@@ -317,4 +288,42 @@ pub fn align_up_to(size: usize, align: usize) -> usize {
     let mask = align - 1;
 
     (size + mask) & !mask
+}
+
+toc_salsa::create_intern_key!(
+    /// Id referencing an interned type.
+    pub TypeId;
+);
+
+impl TypeId {
+    pub fn in_db<'db, DB>(self, db: &'db DB) -> TyRef<'db, DB>
+    where
+        DB: db::TypeDatabase + ?Sized + 'db,
+    {
+        TyRef {
+            db,
+            id: self,
+            data: db.lookup_intern_type(self),
+        }
+    }
+}
+
+/// Interned type data
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeData {
+    data: Arc<Type>,
+}
+
+impl std::ops::Deref for TypeData {
+    type Target = Type;
+
+    fn deref(&self) -> &Self::Target {
+        self.data.deref()
+    }
+}
+
+impl From<Type> for TypeData {
+    fn from(ty: Type) -> Self {
+        Self { data: Arc::new(ty) }
+    }
 }

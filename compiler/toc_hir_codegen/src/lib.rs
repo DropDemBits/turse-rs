@@ -1040,7 +1040,6 @@ impl BodyCodeGenerator<'_> {
                 let length = seq_size
                     .fixed_len(self.db, Span::default())
                     .ok()
-                    .flatten()
                     .expect("const should succeed and not be dyn");
                 let length = length.into_u32().expect("should be int representable");
 
@@ -2146,7 +2145,6 @@ impl CodeFragment {
                 let char_len = seq_size
                     .fixed_len(db, Span::default())
                     .ok()
-                    .flatten()
                     .expect("eval should succeed and not be dyn");
 
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
@@ -2189,7 +2187,6 @@ impl CodeFragment {
                 let char_len = seq_size
                     .fixed_len(db, Span::default())
                     .ok()
-                    .flatten()
                     .expect("eval should succeed and not be dyn");
 
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
