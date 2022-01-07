@@ -957,7 +957,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Real(_) => Some(CoerceTo::Real),
             ty::TypeKind::Char => Some(CoerceTo::Char),
             ty::TypeKind::CharN(ty::SeqSize::Fixed(_)) => {
-                let len = length_of_ty(self.db, lhs_ty.id()).expect("never dyn");
+                let len = lhs_ty.length_of().expect("never dyn");
                 Some(CoerceTo::CharN(len.try_into().unwrap()))
             }
             ty::TypeKind::CharN(ty::SeqSize::Dynamic) => {
@@ -1040,7 +1040,6 @@ impl BodyCodeGenerator<'_> {
                 let length = seq_size
                     .fixed_len(self.db, Span::default())
                     .ok()
-                    .flatten()
                     .expect("const should succeed and not be dyn");
                 let length = length.into_u32().expect("should be int representable");
 
@@ -1097,7 +1096,7 @@ impl BodyCodeGenerator<'_> {
                 .type_of((self.library_id, self.body_id, item.expr).into())
                 .in_db(self.db)
                 .peel_ref();
-            let ty_size = size_of_ty(self.db, get_ty.id()) as u32;
+            let ty_size = get_ty.size_of().expect("type must be concrete") as u32;
 
             let mut get_width = None;
             let get_kind = match get_ty.kind() {
@@ -1105,7 +1104,7 @@ impl BodyCodeGenerator<'_> {
                 ty::TypeKind::Int(_) => GetKind::Int(ty_size),
                 ty::TypeKind::Nat(_) => GetKind::Nat(ty_size),
                 ty::TypeKind::Real(_) => GetKind::Real(ty_size),
-                ty::TypeKind::Integer => unreachable!("type must be concrete"),
+                ty::TypeKind::Integer => unreachable!(),
                 ty::TypeKind::Char => GetKind::Char(),
                 ty::TypeKind::StringN(_) | ty::TypeKind::String => match item.width {
                     hir_stmt::GetWidth::Token => GetKind::StringToken(ty_size),
@@ -1144,7 +1143,7 @@ impl BodyCodeGenerator<'_> {
                 }
 
                 // and max length
-                let max_len = length_of_ty(self.db, get_ty.id()).expect("is a charseq") as u32;
+                let max_len = get_ty.length_of().expect("is a charseq") as u32;
                 self.code_fragment.emit_opcode(Opcode::PUSHINT(max_len));
             }
 
@@ -1339,7 +1338,7 @@ impl BodyCodeGenerator<'_> {
 
         let discrim_value = self
             .code_fragment
-            .allocate_temporary_space(size_of_ty(self.db, discrim_ty.id()));
+            .allocate_temporary_space(discrim_ty.size_of().expect("is concrete"));
         self.code_fragment.emit_locate_temp(discrim_value);
         self.code_fragment
             .emit_assign_into_var(&discrim_ty, self.db);
@@ -1447,7 +1446,7 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
             self.code_fragment.emit_assign_into_var(&def_ty, self.db);
-        } else if has_uninit(&def_ty) {
+        } else if def_ty.has_uninit() {
             eprintln!(
                 "assigning def {:?} to uninit pattern for type `{}`",
                 item.def_id, def_ty
@@ -1480,7 +1479,7 @@ impl BodyCodeGenerator<'_> {
             }
             (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
                 // Compile-time checked to always fit
-                let len = length_of_ty(self.db, expr_ty.id());
+                let len = expr_ty.length_of();
                 assert_eq!(len, Some(1), "never dyn or not 1");
 
                 // Fetch the first char
@@ -1519,7 +1518,7 @@ impl BodyCodeGenerator<'_> {
             }
             (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Fixed(_))) => {
                 // Reserve enough space for the given char_n
-                let len = length_of_ty(self.db, expr_ty.id()).expect("never dyn");
+                let len = expr_ty.length_of().expect("never dyn");
 
                 // Include the null terminator in the reservation size
                 // Never let it exceed the maximum length of a string
@@ -2058,12 +2057,12 @@ struct CodeFragment {
 
 impl CodeFragment {
     fn allocate_local(&mut self, db: &dyn CodeGenDB, def_id: DefId, def_ty: ty::TypeId) {
-        self.allocate_local_space(def_id, size_of_ty(db, def_ty));
+        self.allocate_local_space(def_id, def_ty.in_db(db).size_of().expect("is concrete"));
     }
 
     fn allocate_local_space(&mut self, def_id: DefId, size: usize) {
         // Align to the nearest stack slot
-        let size = align_up_to(size, 4).try_into().unwrap();
+        let size = ty::align_up_to(size, 4).try_into().unwrap();
         let offset = self.locals_size;
 
         self.locals.insert(def_id, StackSlot { offset, size });
@@ -2072,7 +2071,7 @@ impl CodeFragment {
 
     fn allocate_temporary_space(&mut self, size: usize) -> TemporarySlot {
         // Align to the nearest stack slot
-        let size = align_up_to(size, 4).try_into().unwrap();
+        let size = ty::align_up_to(size, 4).try_into().unwrap();
         let offset = self.temps_current_size;
         let handle = self.temps.len();
 
@@ -2138,7 +2137,7 @@ impl CodeFragment {
                 Opcode::ASNSTRINV()
             }
             ty::TypeKind::CharN(_) => {
-                let storage_size = size_of_ty(db, into_tyref.id()) as u32;
+                let storage_size = into_tyref.size_of().expect("not dyn") as u32;
                 Opcode::ASNNONSCALARINV(storage_size)
             }
             ty::TypeKind::StringN(seq_size) => {
@@ -2146,7 +2145,6 @@ impl CodeFragment {
                 let char_len = seq_size
                     .fixed_len(db, Span::default())
                     .ok()
-                    .flatten()
                     .expect("eval should succeed and not be dyn");
 
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
@@ -2181,7 +2179,7 @@ impl CodeFragment {
                 Opcode::ASNSTR()
             }
             ty::TypeKind::CharN(_) => {
-                let storage_size = size_of_ty(db, into_tyref.id()) as u32;
+                let storage_size = into_tyref.size_of().expect("not dyn") as u32;
                 Opcode::ASNNONSCALAR(storage_size)
             }
             ty::TypeKind::StringN(seq_size) => {
@@ -2189,7 +2187,6 @@ impl CodeFragment {
                 let char_len = seq_size
                     .fixed_len(db, Span::default())
                     .ok()
-                    .flatten()
                     .expect("eval should succeed and not be dyn");
 
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
@@ -2273,92 +2270,4 @@ impl CodeFragment {
     fn frame_size(&self) -> u32 {
         self.locals_size + self.temps_size
     }
-}
-
-fn size_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> usize {
-    let ty_ref = ty.in_db(db);
-
-    match ty_ref.kind() {
-        ty::TypeKind::Boolean => 1,
-        ty::TypeKind::Int(ty::IntSize::Int1) => 1,
-        ty::TypeKind::Int(ty::IntSize::Int2) => 2,
-        ty::TypeKind::Int(ty::IntSize::Int4) => 4,
-        ty::TypeKind::Int(ty::IntSize::Int) => 4,
-        ty::TypeKind::Nat(ty::NatSize::Nat1) => 1,
-        ty::TypeKind::Nat(ty::NatSize::Nat2) => 2,
-        ty::TypeKind::Nat(ty::NatSize::Nat4) => 4,
-        ty::TypeKind::Nat(ty::NatSize::Nat) => 4,
-        ty::TypeKind::Nat(ty::NatSize::AddressInt) => 4,
-        ty::TypeKind::Real(ty::RealSize::Real4) => 4,
-        ty::TypeKind::Real(ty::RealSize::Real8) => 8,
-        ty::TypeKind::Real(ty::RealSize::Real) => 8,
-        ty::TypeKind::Integer => unreachable!("type should be concrete"),
-        ty::TypeKind::Char => 1,
-        ty::TypeKind::String => {
-            // max chars (including null terminator)
-            256
-        }
-        ty::TypeKind::CharN(seq_size) | ty::TypeKind::StringN(seq_size) => {
-            let char_len = seq_size
-                .fixed_len(db, Span::default())
-                .ok()
-                .flatten()
-                .expect("eval should succeed and not be dyn");
-
-            let char_len = (char_len.into_u32().expect("size should be a u32")) as usize;
-            if matches!(ty_ref.kind(), ty::TypeKind::StringN(_)) {
-                // Storage size for strings includes the always present null terminator
-                char_len + 1
-            } else {
-                // Storage size for char(N)'s is always rounded up to the nearest 2-byte boundary
-                // ???: This can always be to the nearest byte boundary, but this depends on the
-                // alignment of char(N)
-                // TODO: Align up sizes for other types according to the type's alignment
-                align_up_to(char_len as usize, 2)
-            }
-        }
-        ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
-    }
-}
-
-fn length_of_ty(db: &dyn CodeGenDB, ty: ty::TypeId) -> Option<usize> {
-    let ty_ref = ty.in_db(db);
-
-    let length = match ty_ref.kind() {
-        ty::TypeKind::String => {
-            // max chars (excluding null terminator)
-            255
-        }
-        ty::TypeKind::CharN(seq_size) | ty::TypeKind::StringN(seq_size) => {
-            let char_len = seq_size
-                .fixed_len(db, Span::default())
-                .ok()
-                .flatten()
-                .expect("eval should succeed and not be dyn");
-
-            (char_len.into_u32().expect("size should be a u32")) as usize
-        }
-        ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
-        _ => return None,
-    };
-
-    Some(length)
-}
-
-fn has_uninit(ty_ref: &ty::TyRef<dyn CodeGenDB>) -> bool {
-    matches!(
-        ty_ref.kind(),
-        ty::TypeKind::Boolean
-            | ty::TypeKind::Int(ty::IntSize::Int)
-            | ty::TypeKind::Nat(ty::NatSize::AddressInt | ty::NatSize::Nat)
-            | ty::TypeKind::Real(ty::RealSize::Real)
-            | ty::TypeKind::String
-    )
-}
-
-fn align_up_to(value: usize, align: usize) -> usize {
-    assert!(align.is_power_of_two());
-    let mask = align - 1;
-
-    (value + mask) & !mask
 }

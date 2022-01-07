@@ -3,7 +3,9 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use crate::const_eval::Const;
+use toc_span::Span;
+
+use crate::const_eval::{Const, ConstError, ConstInt};
 
 pub(crate) mod db;
 mod lower;
@@ -129,6 +131,165 @@ pub enum SeqSize {
     Fixed(Const),
 }
 
+impl SeqSize {
+    /// Tries to compute a compile-time size from this sequence size.
+    ///
+    /// If this is a dynamic length sequence, `NotFixedLen::DynSize` is produced.
+    /// If an error occurs during length computation, `NotFixedLen::ConstError(err)` is produced.
+    pub fn fixed_len<T: crate::db::ConstEval + ?Sized>(
+        &self,
+        db: &T,
+        span: Span,
+    ) -> Result<ConstInt, NotFixedLen> {
+        let size = match self {
+            SeqSize::Dynamic => return Err(NotFixedLen::DynSize),
+            SeqSize::Fixed(size) => size,
+        };
+
+        // Always eagerly evaluate the expr
+        // Never allow 64-bit ops (size is always less than 2^32)
+        db.evaluate_const(size.clone(), Default::default())
+            .and_then(|v| v.into_int(span))
+            .map_err(NotFixedLen::ConstError)
+    }
+}
+
+/// Error from trying to compute the fixed length of a [`SeqSize`].
+pub enum NotFixedLen {
+    /// Trying to compute from a dynamically sized sequence
+    DynSize,
+    /// Error while trying to evaluate the sequence
+    ConstError(ConstError),
+}
+
+/// Wrapper type for making it easier to work with TypeIds
+#[derive(PartialEq, Eq)]
+pub struct TyRef<'db, DB: ?Sized + 'db> {
+    db: &'db DB,
+    id: TypeId,
+    data: TypeData,
+}
+
+impl<'db, DB: ?Sized + 'db> TyRef<'db, DB> {
+    pub fn kind(&self) -> &TypeKind {
+        &self.data.kind
+    }
+
+    pub fn id(&self) -> TypeId {
+        self.id
+    }
+
+    /// If this type has an uninitialized pattern
+    pub fn has_uninit(&self) -> bool {
+        matches!(
+            self.kind(),
+            TypeKind::Boolean
+                | TypeKind::Int(IntSize::Int)
+                | TypeKind::Nat(NatSize::AddressInt | NatSize::Nat)
+                | TypeKind::Real(RealSize::Real)
+                | TypeKind::String
+        )
+    }
+}
+
+impl<'db, DB> TyRef<'db, DB>
+where
+    DB: crate::db::ConstEval + ?Sized + 'db,
+{
+    /// Alignment of a type, or `None` if it isn't representable
+    pub fn align_of(&self) -> Option<usize> {
+        let align_of = match self.kind() {
+            TypeKind::Error => return None,
+            TypeKind::Boolean => 1,
+            TypeKind::Int(IntSize::Int1) => 1,
+            TypeKind::Int(IntSize::Int2) => 2,
+            TypeKind::Int(IntSize::Int4) => 4,
+            TypeKind::Int(IntSize::Int) => 4,
+            TypeKind::Nat(NatSize::Nat1) => 1,
+            TypeKind::Nat(NatSize::Nat2) => 2,
+            TypeKind::Nat(NatSize::Nat4) => 4,
+            TypeKind::Nat(NatSize::Nat) => 4,
+            TypeKind::Nat(NatSize::AddressInt) => 4,
+            TypeKind::Real(RealSize::Real4) => 4,
+            TypeKind::Real(RealSize::Real8) => 4,
+            TypeKind::Real(RealSize::Real) => 4,
+            TypeKind::Integer => return None,
+            TypeKind::Char => 1,
+            TypeKind::String => 1,
+            TypeKind::CharN(_) => 1,
+            TypeKind::StringN(_) => 1,
+            TypeKind::Ref(_, _) => return None,
+        };
+
+        Some(align_of)
+    }
+
+    /// Size of a type, or `None` if it isn't representable
+    pub fn size_of(&self) -> Option<usize> {
+        let size_of = match self.kind() {
+            TypeKind::Boolean => 1,
+            TypeKind::Int(IntSize::Int1) => 1,
+            TypeKind::Int(IntSize::Int2) => 2,
+            TypeKind::Int(IntSize::Int4) => 4,
+            TypeKind::Int(IntSize::Int) => 4,
+            TypeKind::Nat(NatSize::Nat1) => 1,
+            TypeKind::Nat(NatSize::Nat2) => 2,
+            TypeKind::Nat(NatSize::Nat4) => 4,
+            TypeKind::Nat(NatSize::Nat) => 4,
+            TypeKind::Nat(NatSize::AddressInt) => 4,
+            TypeKind::Real(RealSize::Real4) => 4,
+            TypeKind::Real(RealSize::Real8) => 8,
+            TypeKind::Real(RealSize::Real) => 8,
+            TypeKind::Char => 1,
+            TypeKind::String | TypeKind::StringN(_) | TypeKind::CharN(_) => {
+                let length_of = self.length_of()?;
+
+                if matches!(self.kind(), TypeKind::String | TypeKind::StringN(_)) {
+                    // Storage size for strings includes the always present null terminator
+                    length_of + 1
+                } else {
+                    // Storage size for char(N)'s is always rounded up to the nearest 2-byte boundary
+                    // ???: This can always be to the nearest byte boundary, but this depends on the
+                    // alignment of char(N)
+                    // TODO: Align up sizes for other types according to the type's alignment
+                    align_up_to(length_of, 2)
+                }
+            }
+            TypeKind::Integer | TypeKind::Ref(_, _) | TypeKind::Error => return None,
+        };
+
+        Some(size_of)
+    }
+
+    /// Length of a type, or `None` if it isn't representable or a charseq
+    pub fn length_of(&self) -> Option<usize> {
+        let length = match self.kind() {
+            TypeKind::String => {
+                // max chars (excluding null terminator)
+                255
+            }
+            TypeKind::CharN(seq_size) | TypeKind::StringN(seq_size) => {
+                let char_len = seq_size.fixed_len(self.db, Span::default()).ok()?;
+
+                (char_len.into_u32()?) as usize
+            }
+            TypeKind::Ref(_, _) | TypeKind::Error => unreachable!(),
+            _ => return None,
+        };
+
+        Some(length)
+    }
+}
+
+/// Aligns `size` up to the next `align` boundary.
+/// `align` must be a power of two.
+pub fn align_up_to(size: usize, align: usize) -> usize {
+    assert!(align.is_power_of_two());
+    let mask = align - 1;
+
+    (size + mask) & !mask
+}
+
 toc_salsa::create_intern_key!(
     /// Id referencing an interned type.
     pub TypeId;
@@ -164,23 +325,5 @@ impl std::ops::Deref for TypeData {
 impl From<Type> for TypeData {
     fn from(ty: Type) -> Self {
         Self { data: Arc::new(ty) }
-    }
-}
-
-/// Wrapper type for making it easier to work with TypeIds
-#[derive(PartialEq, Eq)]
-pub struct TyRef<'db, DB: ?Sized + 'db> {
-    db: &'db DB,
-    id: TypeId,
-    data: TypeData,
-}
-
-impl<'db, DB: ?Sized + 'db> TyRef<'db, DB> {
-    pub fn kind(&self) -> &TypeKind {
-        &self.data.kind
-    }
-
-    pub fn id(&self) -> TypeId {
-        self.id
     }
 }

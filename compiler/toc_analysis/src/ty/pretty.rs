@@ -9,7 +9,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{Mutability, TypeId};
+use super::{Mutability, NotFixedLen, TypeId};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -102,9 +102,9 @@ where
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {
-                Ok(None) => out.write_char('*')?,
-                Ok(Some(v)) => out.write_fmt(format_args!("{}", v))?,
-                Err(_) => unreachable!("should not show errors!"),
+                Ok(v) => out.write_fmt(format_args!("{}", v))?,
+                Err(NotFixedLen::DynSize) => out.write_char('*')?,
+                Err(NotFixedLen::ConstError(_)) => unreachable!("should not show errors!"),
             }
             out.write_char(')')?;
         }

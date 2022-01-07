@@ -3,9 +3,8 @@ use toc_hir::expr;
 use toc_reporting::MessageSink;
 use toc_span::Span;
 
-use crate::ty;
+use crate::ty::{self, NotFixedLen};
 use crate::{
-    const_eval::{ConstInt, ConstResult},
     db,
     ty::{Mutability, SeqSize, TypeId, TypeKind},
 };
@@ -129,25 +128,6 @@ where
     }
 }
 
-impl SeqSize {
-    pub fn fixed_len<T: db::ConstEval + ?Sized>(
-        &self,
-        db: &T,
-        span: Span,
-    ) -> ConstResult<Option<ConstInt>> {
-        let size = match self {
-            SeqSize::Dynamic => return Ok(None),
-            SeqSize::Fixed(size) => size,
-        };
-
-        // Always eagerly evaluate the expr
-        // Never allow 64-bit ops (size is always less than 2^32)
-        db.evaluate_const(size.clone(), Default::default())
-            .and_then(|v| v.into_int(span))
-            .map(Some)
-    }
-}
-
 // TODO: Document type equivalence
 // steal from the old compiler
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
@@ -179,23 +159,24 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         // Dyn sized charseqs are not equivalent to anything
         (TypeKind::CharN(left_sz), TypeKind::CharN(right_sz))
         | (TypeKind::StringN(left_sz), TypeKind::StringN(right_sz)) => {
-            let left_sz = left_sz.fixed_len(db, Default::default()).ok();
-            let right_sz = right_sz.fixed_len(db, Default::default()).ok();
+            let left_sz = left_sz.fixed_len(db, Default::default());
+            let right_sz = right_sz.fixed_len(db, Default::default());
 
-            let (left_sz, right_sz) = if let Some(sizes) = left_sz.zip(right_sz) {
+            match (&left_sz, &right_sz) {
+                // `charseq(*)` treated as not equivalent to either type
+                (Err(NotFixedLen::DynSize), _) | (_, Err(NotFixedLen::DynSize)) => return false,
+                _ => (),
+            }
+
+            let (left_sz, right_sz) = if let Some(sizes) = left_sz.ok().zip(right_sz.ok()) {
                 sizes
             } else {
                 // Invalid evaluations treated as equivalent types
                 return true;
             };
 
-            if let Some((left_sz, right_sz)) = left_sz.zip(right_sz) {
-                // sized charseqs are treated as equivalent types if the sizes are equal
-                left_sz.cmp(right_sz).is_eq()
-            } else {
-                // `charseq(*)` treated as not equivalent to either type
-                false
-            }
+            // sized charseqs are treated as equivalent types if the sizes are equal
+            left_sz.cmp(right_sz).is_eq()
         }
 
         (TypeKind::Ref(_, _), _) | (_, TypeKind::Ref(_, _)) => unreachable!(),
@@ -271,12 +252,13 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
     fn seq_size<T: db::ConstEval + ?Sized>(db: &T, seq_size: &SeqSize) -> Option<u32> {
         match seq_size.fixed_len(db, Default::default()) {
-            Ok(Some(v)) => {
+            Ok(v) => {
                 // if overflow or zero, it's silently ignored (reported in typeck)
                 v.into_u32().filter(|v| *v != 0)
             }
-            Ok(None) => None, // dynamic, runtime checked
-            Err(_) => None,   // silently hide, gets reported in typeck
+            // either dynamic (runtime checked), or an eval error
+            // silently hide eval error, gets reported in typeck
+            Err(_) => None,
         }
     }
 
