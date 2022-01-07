@@ -7,9 +7,9 @@ use toc_reporting::{MessageBundle, MessageSink};
 use toc_span::{FileId, Span};
 use token::{NumberKind, Token, TokenKind};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ErrorFerry {
-    file_id: Option<FileId>,
+    file_id: FileId,
     sink: MessageSink,
 }
 
@@ -32,10 +32,14 @@ pub struct Scanner<'s> {
 }
 
 impl<'s> Scanner<'s> {
-    pub fn new(file: Option<FileId>, source: &'s str) -> Self {
-        let mut inner = TokenKind::lexer(source);
-        // Set up the file id
-        inner.extras.file_id = file;
+    pub fn new(file_id: FileId, source: &'s str) -> Self {
+        let inner = TokenKind::lexer_with_extras(
+            source,
+            ErrorFerry {
+                file_id,
+                sink: MessageSink::default(),
+            },
+        );
 
         Self { inner }
     }
@@ -88,7 +92,8 @@ mod test {
     use expect_test::{expect, Expect};
 
     fn do_scanner(source: &str) -> (Vec<(TokenKind, &str)>, String) {
-        let scanner = Scanner::new(None, source);
+        let dummy_id = FileId::new_testing(1).unwrap();
+        let scanner = Scanner::new(dummy_id, source);
 
         let (toks, errors) = scanner.collect_all();
         let toks: Vec<(TokenKind, &str)> =
@@ -114,7 +119,8 @@ mod test {
     /// Expects no errors to be produced
     #[track_caller] // Issue isn't here, but from caller
     fn expect(source: &str, kind: &TokenKind) {
-        let mut scanner = Scanner::new(None, source);
+        let dummy_id = FileId::new_testing(1).unwrap();
+        let mut scanner = Scanner::new(dummy_id, source);
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();
@@ -145,7 +151,8 @@ mod test {
 
     #[track_caller]
     fn expect_with_error(source: &str, kind: &TokenKind, expecting: Expect) {
-        let mut scanner = Scanner::new(None, source);
+        let dummy_id = FileId::new_testing(1).unwrap();
+        let mut scanner = Scanner::new(dummy_id, source);
 
         // Should be the expected token & the same source text
         let token = scanner.next().unwrap();

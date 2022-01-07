@@ -144,25 +144,26 @@ impl<'a> MessageBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use toc_span::TextRange;
+    use toc_span::{FileId, TextRange};
 
     use super::*;
 
     #[test]
     fn report_message() {
         // Test message sorting as well
+        let file_id = FileId::new_testing(1).unwrap();
         let mut sink = MessageSink::new();
         sink.report(
             AnnotateKind::Warning,
             "a warning message",
-            Span::new(None, TextRange::new(3.into(), 5.into())),
+            Span::new(file_id, TextRange::new(3.into(), 5.into())),
         )
         .finish();
 
         sink.report(
             AnnotateKind::Error,
             "an error message",
-            Span::new(None, TextRange::new(1.into(), 3.into())),
+            Span::new(file_id, TextRange::new(1.into(), 3.into())),
         )
         .finish();
 

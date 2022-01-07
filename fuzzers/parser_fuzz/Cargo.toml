@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 toc_parser = { path = "../../compiler/toc_parser" }
+toc_span = { path = "../../compiler/toc_span" }
 
 [target.'cfg(target_os = "linux")'.dependencies.afl]
 package = "afl"
