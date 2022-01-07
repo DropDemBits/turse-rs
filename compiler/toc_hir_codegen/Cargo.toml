@@ -1,23 +1,16 @@
 [package]
-name = "toc_driver"
+name = "toc_hir_codegen"
 version = "0.1.0"
-authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+byteorder = "1.4.3"
+indexmap = "1.7.0"
 toc_analysis = { path = "../toc_analysis" }
 toc_ast_db = { path = "../toc_ast_db" }
 toc_hir = { path = "../toc_hir" }
-toc_hir_codegen = { path = "../toc_hir_codegen" }
 toc_hir_db = { path = "../toc_hir_db" }
-toc_hir_pretty = { path = "../toc_hir_pretty" }
 toc_reporting = { path = "../toc_reporting" }
-toc_salsa = { path = "../toc_salsa" }
 toc_span = { path = "../toc_span" }
-toc_syntax = { path = "../toc_syntax" }
-toc_vfs = { path = "../toc_vfs" }
-toc_vfs_db = { path = "../toc_vfs_db" }
-
-ariadne = { version = "0.1" }

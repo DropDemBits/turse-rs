@@ -287,7 +287,7 @@ impl PutOpts {
 /// A get item.
 #[derive(Debug, PartialEq, Eq)]
 pub struct GetItem {
-    /// The expression to put.
+    /// The expression to get.
     /// Must be a reference expression.
     pub expr: expr::ExprId,
     /// The amount of text to extract.

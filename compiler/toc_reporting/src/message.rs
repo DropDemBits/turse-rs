@@ -57,6 +57,13 @@ impl MessageBundle {
     fn make_uniform(&mut self) {
         self.messages.sort_by_key(|item| item.span());
     }
+
+    /// Tests if this message bundle contains any error messages
+    pub fn has_errors(&self) -> bool {
+        self.messages
+            .iter()
+            .any(|msg| matches!(msg.kind(), AnnotateKind::Error))
+    }
 }
 
 /// A reported message
