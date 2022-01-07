@@ -1,5 +1,5 @@
 [package]
-name = "lsp-server"
+name = "toc-lsp-server"
 version = "0.1.0"
 authors = ["DropDemBits <r3usrlnd@gmail.com>"]
 edition = "2018"

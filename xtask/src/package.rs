@@ -16,11 +16,11 @@ fn package_server() -> anyhow::Result<()> {
     let manifest_path = project_root().join("Cargo.toml");
 
     // Build server binary
-    cmd!("cargo build --release --bin lsp-server --manifest-path {manifest_path}").run()?;
+    cmd!("cargo build --release --bin toc-lsp-server --manifest-path {manifest_path}").run()?;
 
     let binary = project_root()
         .join("target/release")
-        .join(format!("lsp-server{}", binary_ext()));
+        .join(format!("toc-lsp-server{}", binary_ext()));
     let dest_folder = project_root().join("lsp-client/vscode/server");
     let dest_file = dest_folder.join(format!("turing-lsp-server{}", binary_ext()));
 
