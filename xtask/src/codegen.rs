@@ -3,7 +3,7 @@ mod lowering;
 use std::fs;
 
 use anyhow::{Context, Result};
-use heck::SnakeCase;
+use heck::ToSnakeCase;
 use lowering::LoweredGrammar;
 use quote::{format_ident, quote};
 use xshell::cmd;
