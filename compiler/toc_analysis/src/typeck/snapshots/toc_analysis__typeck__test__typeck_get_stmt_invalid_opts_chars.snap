@@ -1,0 +1,33 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\n%type en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget b : 0\n%get ef : 0\n"
+
+---
+"i"@(FileId(1), 4..5) [Declared]: ref_mut int
+"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
+"r"@(FileId(1), 28..29) [Declared]: ref_mut real
+"c"@(FileId(1), 41..42) [Declared]: ref_mut char
+"b"@(FileId(1), 54..55) [Declared]: ref_mut boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 107..108: invalid get option
+| note in file FileId(1) for 103..104: cannot specify character width for `int`
+| error in file FileId(1) for 107..108: this is the invalid option
+| info: character width can only be specified for `string` and `char(N)` types
+error in file FileId(1) at 117..118: invalid get option
+| note in file FileId(1) for 113..114: cannot specify character width for `nat`
+| error in file FileId(1) for 117..118: this is the invalid option
+| info: character width can only be specified for `string` and `char(N)` types
+error in file FileId(1) at 127..128: invalid get option
+| note in file FileId(1) for 123..124: cannot specify character width for `real`
+| error in file FileId(1) for 127..128: this is the invalid option
+| info: character width can only be specified for `string` and `char(N)` types
+error in file FileId(1) at 137..138: invalid get option
+| note in file FileId(1) for 133..134: cannot specify character width for `char`
+| error in file FileId(1) for 137..138: this is the invalid option
+| info: character width can only be specified for `string` and `char(N)` types
+error in file FileId(1) at 147..148: invalid get option
+| note in file FileId(1) for 143..144: cannot specify character width for `boolean`
+| error in file FileId(1) for 147..148: this is the invalid option
+| info: character width can only be specified for `string` and `char(N)` types

@@ -1,8 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "var a : int get a : a"
+assertion_line: 41
+expression: "var a : int var s : string get s : a"
 
 ---
 "a"@(FileId(1), 4..5) [Declared]: ref_mut int
+"s"@(FileId(1), 16..17) [Declared]: ref_mut string
 "<root>"@(dummy) [Declared]: <error>
 

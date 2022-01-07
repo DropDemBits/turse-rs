@@ -57,12 +57,22 @@ impl TypeKind {
         )
     }
 
+    /// sized charseq types includes `String`, `StringN` (fixed-only), and `CharN` (fixed-only) types
+    pub fn is_sized_charseq(&self) -> bool {
+        matches!(
+            self,
+            TypeKind::String
+                | TypeKind::StringN(SeqSize::Fixed(_))
+                | TypeKind::CharN(SeqSize::Fixed(_))
+        )
+    }
+
     /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
     pub fn is_index(&self) -> bool {
         self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
     }
 
-    /// scalar types are types representable only 1 value
+    /// scalar types are types representing only 1 value
     pub fn is_scalar(&self) -> bool {
         match self {
             TypeKind::Error
@@ -81,6 +91,17 @@ impl TypeKind {
                 false
             }
         }
+    }
+
+    pub fn is_sized_string(&self) -> bool {
+        matches!(
+            self,
+            TypeKind::String | TypeKind::StringN(SeqSize::Fixed(_))
+        )
+    }
+
+    pub fn is_ref_mut(&self) -> bool {
+        matches!(self, TypeKind::Ref(Mutability::Var, _))
     }
 }
 

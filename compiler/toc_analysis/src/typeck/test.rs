@@ -1138,25 +1138,73 @@ test_named_group! { typeck_put_stmt,
 
 test_named_group! { typeck_get_stmt,
     [
+        // TODO: Uncomment enum lines once enum types are lowered & checked
         normal_items => r#"
-        % TODO: Uncomment enum lines once enum types are lowered & checked
         var i : int
         var n : nat
         var r : real
         var c : char
+        var b: boolean
         var cn : char(4)
         var s : string
         var sn : string(4)
+        %type en: enum(a, b) var ef : en
+
+        get i
+        get n
+        get r
+        get c
+        get b
+        get cn
+        get s
+        get sn
+        %get ef
+        "#,
+        valid_opts => r#"
+        var cn : char(4)
+        var s : string
+        var sn : string(4)
+
+        % chars
+        get cn : 0
+        get s : 0
+        get sn : 0
+
+        % lines
+        get s : *
+        get sn : *
+        "#,
+        invalid_opts_chars => r#"
+        var i : int
+        var n : nat
+        var r : real
+        var c : char
+        var b: boolean
         %type en: enum(a, b) var ef : en
 
         get i : 0
         get n : 0
         get r : 0
         get c : 0
-        get cn : 0
-        get s : 0
-        get sn : 0
+        get b : 0
         %get ef : 0
+        "#,
+        invalid_opts_lines => r#"
+        var i : int
+        var n : nat
+        var r : real
+        var c : char
+        var b: boolean
+        var cn : char(4)
+        %type en: enum(a, b) var ef : en
+
+        get i : *
+        get n : *
+        get r : *
+        get c : *
+        get b : *
+        get cn : *
+        %get ef : *
         "#,
         wrong_type_stream => r#"
         var s : real
@@ -1164,8 +1212,8 @@ test_named_group! { typeck_get_stmt,
         "#,
         wrong_type_width => r#"
         var w : real
-        var i : int
-        get i : w
+        var s : string
+        get s : w
         "#,
         wrong_ref_const => r#"
         const i : int := 1
@@ -1292,7 +1340,7 @@ test_named_group! { peel_ref,
         in_unary_expr => r#"var a : int var k := -a"#,
         in_put_stmt => r#"var a : int put a : 0 : 0 : 0"#,
         in_put_arg => r#"var a : int put a : a : a : a"#,
-        in_get_arg => r#"var a : int get a : a"#,
+        in_get_arg => r#"var a : int var s : string get s : a"#,
         in_for_bound => r#"var a : int for : a .. a end for"#
     ]
 }

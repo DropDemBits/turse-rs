@@ -1,14 +1,16 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar i : int\nvar n : nat\nvar r : real\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget cn : 0\nget s : 0\nget sn : 0\n%get ef : 0\n"
+assertion_line: 41
+expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nget i\nget n\nget r\nget c\nget b\nget cn\nget s\nget sn\n%get ef\n"
 
 ---
-"i"@(FileId(1), 71..72) [Declared]: ref_mut int
-"n"@(FileId(1), 83..84) [Declared]: ref_mut nat
-"r"@(FileId(1), 95..96) [Declared]: ref_mut real
-"c"@(FileId(1), 108..109) [Declared]: ref_mut char
-"cn"@(FileId(1), 121..123) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 138..139) [Declared]: ref_mut string
-"sn"@(FileId(1), 153..155) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"i"@(FileId(1), 4..5) [Declared]: ref_mut int
+"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
+"r"@(FileId(1), 28..29) [Declared]: ref_mut real
+"c"@(FileId(1), 41..42) [Declared]: ref_mut char
+"b"@(FileId(1), 54..55) [Declared]: ref_mut boolean
+"cn"@(FileId(1), 69..71) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 86..87) [Declared]: ref_mut string
+"sn"@(FileId(1), 101..103) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
 "<root>"@(dummy) [Declared]: <error>
 

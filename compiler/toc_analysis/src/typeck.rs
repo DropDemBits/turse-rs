@@ -350,7 +350,7 @@ impl TypeCheck<'_> {
                 continue;
             }
 
-            if ty.to_deref_mut().is_err() {
+            if !ty.kind().is_ref_mut() {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 // TODO: Stringify item for more clarity on the error location
@@ -362,8 +362,55 @@ impl TypeCheck<'_> {
                     .finish();
             }
 
-            if let stmt::GetWidth::Chars(expr) = item.width {
-                self.check_text_io_arg(expr.in_body(body_id));
+            let ty = ty.peel_ref();
+
+            // Verify that the item type can use the given width
+            match &item.width {
+                // All item types can use tokens
+                stmt::GetWidth::Token => {}
+                // Only strings can use lines
+                stmt::GetWidth::Line => {
+                    if !ty.kind().is_sized_string() {
+                        // This is one of the times where a HIR -> AST conversion is useful,
+                        // as it allows us to get this span without having to lower it down
+                        // to the HIR level.
+                        //
+                        // For now, we'll just lower the span of the get width
+                        // FIXME: Use the span of the line width token
+                        let item_span = self.library.body(body_id).expr(item.expr).span;
+                        let item_span = self.library.lookup_span(item_span);
+
+                        self.state()
+                            .reporter
+                            .error_detailed("invalid get option used", item_span)
+                            .with_error(
+                                &format!("cannot specify line width for `{ty}`", ty = ty),
+                                item_span,
+                            )
+                            .with_info("line width can only be specified for `string` types")
+                            .finish();
+                    }
+                }
+                // Only strings and charseqs can use exact widths
+                stmt::GetWidth::Chars(expr) => {
+                    if !ty.kind().is_sized_charseq() {
+                        let opt_span = self.library.body(body_id).expr(*expr).span;
+                        let item_span = self.library.body(body_id).expr(item.expr).span;
+
+                        let opt_span = self.library.lookup_span(opt_span);
+                        let item_span = self.library.lookup_span(item_span);
+
+                        self.state()
+                            .reporter
+                            .error_detailed("invalid get option", opt_span)
+                            .with_note(&format!("cannot specify character width for `{ty}`", ty = ty), item_span)
+                            .with_error("this is the invalid option", opt_span)
+                            .with_info("character width can only be specified for `string` and `char(N)` types")
+                            .finish();
+                    }
+
+                    self.check_text_io_arg(expr.in_body(body_id));
+                }
             }
         }
     }

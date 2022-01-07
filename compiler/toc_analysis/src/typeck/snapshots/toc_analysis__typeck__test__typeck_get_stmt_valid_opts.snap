@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "var cn : char(4)\nvar s : string\nvar sn : string(4)\n\n% chars\nget cn : 0\nget s : 0\nget sn : 0\n\n% lines\nget s : *\nget sn : *\n"
+
+---
+"cn"@(FileId(1), 4..6) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 21..22) [Declared]: ref_mut string
+"sn"@(FileId(1), 36..38) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"<root>"@(dummy) [Declared]: <error>
+
