@@ -589,14 +589,18 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", discrim_span)
-                .with_note(&format!("this is of type `{}`", discrim_ty), discrim_span)
-                .with_info("`case` discriminant must be either:")
+                .with_error(
+                    &format!("`{}` cannot be used as a case discriminant", discrim_ty),
+                    discrim_span,
+                )
                 .with_info(&format!(
-                    "- an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range), or",
+                    "`case` discriminant must be either \
+                    an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range), \
+                    or a `{string}`",
                     boolean = ty::TypeKind::Boolean.prefix(),
-                    chr = ty::TypeKind::Char.prefix()
+                    chr = ty::TypeKind::Char.prefix(),
+                    string = ty::TypeKind::String.prefix()
                 ))
-                .with_info(&format!("- a `{}`", ty::TypeKind::String.prefix()))
                 .finish();
         }
 
