@@ -458,25 +458,6 @@ dependencies = [
 
 [[package]]
 name = "lsp-server"
-version = "0.1.0"
-dependencies = [
- "if_chain",
- "lsp-server 0.5.2",
- "lsp-types",
- "serde_json",
- "toc_analysis",
- "toc_ast_db",
- "toc_hir",
- "toc_hir_db",
- "toc_reporting",
- "toc_salsa",
- "toc_span",
- "toc_vfs",
- "toc_vfs_db",
-]
-
-[[package]]
-name = "lsp-server"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c351c75989da23b355226dc188dc2b52538a7f4f218d70fd7393c6b62b110444"
@@ -868,6 +849,25 @@ name = "tinyvec_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
+
+[[package]]
+name = "toc-lsp-server"
+version = "0.1.0"
+dependencies = [
+ "if_chain",
+ "lsp-server",
+ "lsp-types",
+ "serde_json",
+ "toc_analysis",
+ "toc_ast_db",
+ "toc_hir",
+ "toc_hir_db",
+ "toc_reporting",
+ "toc_salsa",
+ "toc_span",
+ "toc_vfs",
+ "toc_vfs_db",
+]
 
 [[package]]
 name = "toc_analysis"

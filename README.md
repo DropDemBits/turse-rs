@@ -32,4 +32,4 @@ cargo build
 
 ## License
 
-Turse is licensed under the MIT license (see [LICENSE](LICENSE) or http://opensource.org/licenses/MIT)
+Turse is licensed under the MIT license (see [LICENSE](LICENSE) or <http://opensource.org/licenses/MIT>)

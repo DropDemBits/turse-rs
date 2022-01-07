@@ -11,6 +11,7 @@
     },
     "displayName": "Turing Language Support",
     "description": "Syntax highlighting & LSP provider for HoltSoft's Turing language",
+    "license": "SEE LICENSE IN LICENSE",
     "engines": {
         "vscode": "^1.46.0"
     },
