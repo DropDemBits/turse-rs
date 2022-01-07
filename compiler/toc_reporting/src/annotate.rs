@@ -55,18 +55,15 @@ impl SourceAnnotation {
 
 impl fmt::Display for SourceAnnotation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.kind())?;
+        let (file_id, range) = self.span.into_parts().expect("missing location info");
+        let (start, end) = (u32::from(range.start()), u32::from(range.end()));
 
-        if let Some((file_id, range)) = self.span.into_parts() {
-            let (start, end) = (u32::from(range.start()), u32::from(range.end()));
+        write!(f, "{} in file {:?}", self.kind(), file_id)?;
 
-            write!(f, " in file {:?}", file_id)?;
-
-            if f.alternate() {
-                write!(f, " for {}..{}: {}", start, end, self.message())?;
-            } else {
-                write!(f, " at {}..{}: {}", start, end, self.message())?;
-            }
+        if f.alternate() {
+            write!(f, " for {}..{}: {}", start, end, self.message())?;
+        } else {
+            write!(f, " at {}..{}: {}", start, end, self.message())?;
         }
 
         Ok(())
