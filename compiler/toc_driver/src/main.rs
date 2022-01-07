@@ -102,9 +102,9 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     use std::ops::Range;
 
     fn mk_range(db: &MainDatabase, span: Span) -> (FileId, Range<usize>) {
-        let file = span.file.unwrap();
-        let start: usize = span.range.start().into();
-        let end: usize = span.range.end().into();
+        let (file, range) = span.into_parts().unwrap();
+        let start: usize = range.start().into();
+        let end: usize = range.end().into();
 
         let start = db.map_byte_index_to_character(file, start).unwrap();
         let end = db.map_byte_index_to_character(file, end).unwrap();

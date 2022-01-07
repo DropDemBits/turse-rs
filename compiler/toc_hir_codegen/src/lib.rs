@@ -852,11 +852,8 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn emit_location(&mut self, span: Span) {
-        let file = span.file.unwrap();
-        let info = self
-            .db
-            .map_byte_index(file, span.range.start().into())
-            .unwrap();
+        let (file, range) = span.into_parts().unwrap();
+        let info = self.db.map_byte_index(file, range.start().into()).unwrap();
 
         // `0` is reserved for "<No File>"
         let code_file = self.code_blob.file_map.insert_full(file).0 + 1;

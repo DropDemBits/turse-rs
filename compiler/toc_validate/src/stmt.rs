@@ -2,7 +2,6 @@
 #[cfg(test)]
 mod test;
 
-use toc_span::Span;
 use toc_syntax::{
     ast::{self, AstNode},
     SyntaxKind,
@@ -49,10 +48,10 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 ty,
                 ast::Type::ArrayType(_) | ast::Type::RecordType(_) | ast::Type::UnionType(_)
             ) {
-                let span = Span::new(ctx.file, ty.syntax().text_range());
-                let init_span = Span::new(ctx.file, init_expr.syntax().text_range());
+                let span = ctx.mk_span(ty.syntax().text_range());
+                let init_span = ctx.mk_span(init_expr.syntax().text_range());
 
-                ctx.push_detailed_error("mismatched initializer", init_span.range)
+                ctx.push_detailed_error("mismatched initializer", init_span)
                     .with_error("‘init’ initializer is not allowed here", init_span)
                     .with_error("cannot use ‘init’ initializer with this type", span)
                     .with_info(
@@ -62,9 +61,9 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
             }
         } else {
             // No type spec, never allowed
-            let span = Span::new(ctx.file, init_expr.syntax().text_range());
+            let span = ctx.mk_span(init_expr.syntax().text_range());
 
-            ctx.push_detailed_error("mismatched initializer", span.range)
+            ctx.push_detailed_error("mismatched initializer", span)
                 .with_error("‘init’ initializer is not allowed here", span)
                 .with_info("‘init’ initializer requires a type to be specified")
                 .finish();
@@ -99,19 +98,19 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 // init expr is required
                 if !matches!(decl.init(), Some(ast::Expr::InitExpr(_))) {
                     // Report at either the initializer expr, or the array type spec
-                    let ty_span = Span::new(ctx.file, array_ty.syntax().text_range());
+                    let ty_span = ctx.mk_span(array_ty.syntax().text_range());
 
                     let (message, report_at) = if let Some(init) = decl.init() {
                         let report_here = init.syntax().text_range();
-                        let span = Span::new(ctx.file, report_here);
+                        let span = ctx.mk_span(report_here);
                         ("‘init’ initializer required here", span)
                     } else {
                         let report_after = array_ty.syntax().text_range();
-                        let span = Span::new(ctx.file, report_after);
+                        let span = ctx.mk_span(report_after);
                         ("‘init’ initializer required after here", span)
                     };
 
-                    ctx.push_detailed_error("mismatched initializer", report_at.range)
+                    ctx.push_detailed_error("mismatched initializer", report_at)
                         .with_error(message, report_at)
                         .with_note("this is an unbounded array type", ty_span)
                         .with_info("unbounded arrays have their upper bounds specified by ‘init’ initializers")
@@ -319,10 +318,11 @@ pub(super) fn validate_new_open(open: ast::NewOpen, ctx: &mut ValidateCtx) {
 
     if let Some((text_cap, binary_cap)) = text_cap.zip(binary_cap) {
         // Conflicting io pair
-        let span = Span::new(ctx.file, binary_cap.1);
+        let text_span = ctx.mk_span(text_cap.1);
+        let binary_span = ctx.mk_span(binary_cap.1);
 
-        ctx.push_detailed_error("cannot use ‘get’/‘put’ with ‘read’/‘write’", text_cap.1)
-            .with_note("first conflicting binary capability", span)
+        ctx.push_detailed_error("cannot use ‘get’/‘put’ with ‘read’/‘write’", text_span)
+            .with_note("first conflicting binary capability", binary_span)
             .finish();
     }
 }
@@ -351,15 +351,15 @@ pub(super) fn validate_for_stmt(stmt: ast::ForStmt, ctx: &mut ValidateCtx) {
 
     // If `decreasing` is present, then the for-loop must have both bounds defined
     if is_decreasing && is_implicit_bounds {
-        let bounds_span = Span::new(ctx.file, for_bounds.syntax().text_range());
-        let decreasing_span = Span::new(ctx.file, stmt.decreasing_token().unwrap().text_range());
+        let bounds_span = ctx.mk_span(for_bounds.syntax().text_range());
+        let decreasing_span = ctx.mk_span(stmt.decreasing_token().unwrap().text_range());
 
         // ???: Are we able to include the potentially implied bounds in the error message?
         // Not during validation since it requires name resolution and type lookup
         // It's only be useful for suggestions on how to fix it
         ctx.push_detailed_error(
             "`decreasing` for-loops cannot use implicit range bounds",
-            bounds_span.range,
+            bounds_span,
         )
         .with_error("range bounds are implied from here", bounds_span)
         .with_note("`decreasing` for-loop specified here", decreasing_span)
@@ -488,17 +488,20 @@ fn check_matching_names(
 ) {
     if let Some(decl_name) = decl_name.and_then(|end| end.identifier_token()) {
         if let Some(end_name) = end_group.and_then(|end| end.identifier_token()) {
-            let decl_span = Span::new(ctx.file, decl_name.text_range());
-            let end_span = Span::new(ctx.file, end_name.text_range());
+            let decl_span = ctx.mk_span(decl_name.text_range());
+            let end_span = ctx.mk_span(end_name.text_range());
 
             if end_name.text() != decl_name.text() {
-                ctx.push_detailed_error("mismatched identifier names", end_name.text_range())
-                    .with_note(
-                        &format!("‘{}’ does not match...", decl_name.text()),
-                        decl_span,
-                    )
-                    .with_note(&format!("...‘{}’ defined here", end_name.text()), end_span)
-                    .finish();
+                ctx.push_detailed_error(
+                    "mismatched identifier names",
+                    ctx.mk_span(end_name.text_range()),
+                )
+                .with_note(
+                    &format!("‘{}’ does not match...", decl_name.text()),
+                    decl_span,
+                )
+                .with_note(&format!("...‘{}’ defined here", end_name.text()), end_span)
+                .finish();
             }
         }
     }

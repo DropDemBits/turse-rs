@@ -32,11 +32,15 @@ struct ValidateCtx {
 
 impl ValidateCtx {
     pub(crate) fn push_error(&mut self, msg: &str, at_span: &str, range: TextRange) {
-        self.sink.error(msg, at_span, Span::new(self.file, range));
+        self.sink.error(msg, at_span, self.mk_span(range));
     }
 
-    pub(crate) fn push_detailed_error(&mut self, msg: &str, range: TextRange) -> MessageBuilder {
-        self.sink.error_detailed(msg, Span::new(self.file, range))
+    pub(crate) fn push_detailed_error(&mut self, msg: &str, span: Span) -> MessageBuilder {
+        self.sink.error_detailed(msg, span)
+    }
+
+    pub(crate) fn mk_span(&self, range: TextRange) -> Span {
+        Span::new(self.file, range)
     }
 
     fn finish(self) -> CompileResult<()> {

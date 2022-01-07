@@ -170,13 +170,13 @@ mod tests {
         let mut iter = msgs.iter();
         let msg = iter.next().unwrap();
         assert_eq!(
-            (msg.message(), msg.span().range),
+            (msg.message(), msg.span().into_parts().unwrap().1),
             ("an error message", TextRange::new(1.into(), 3.into()))
         );
 
         let msg = iter.next().unwrap();
         assert_eq!(
-            (msg.message(), msg.span().range),
+            (msg.message(), msg.span().into_parts().unwrap().1),
             ("a warning message", TextRange::new(3.into(), 5.into()))
         );
     }

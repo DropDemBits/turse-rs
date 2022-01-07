@@ -27,8 +27,8 @@ impl FileId {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
-    pub file: Option<FileId>,
-    pub range: TextRange,
+    file: Option<FileId>,
+    range: TextRange,
 }
 
 impl Ord for Span {
@@ -49,6 +49,12 @@ impl PartialOrd for Span {
 impl Span {
     pub fn new(file: Option<FileId>, range: TextRange) -> Self {
         Span { file, range }
+    }
+
+    /// Deconstructs a span into its components, optionally referring
+    /// to an actual span.
+    pub fn into_parts(self) -> Option<(FileId, TextRange)> {
+        self.file.map(|file| (file, self.range))
     }
 
     /// Makes a new span covering both text ranges.
