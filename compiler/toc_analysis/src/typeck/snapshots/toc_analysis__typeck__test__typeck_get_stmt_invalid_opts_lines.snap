@@ -1,0 +1,32 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\n%type en: enum(a, b) var ef : en\n\nget i : *\nget n : *\nget r : *\nget c : *\nget b : *\nget cn : *\n%get ef : *\n"
+
+---
+"i"@(FileId(1), 4..5) [Declared]: ref_mut int
+"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
+"r"@(FileId(1), 28..29) [Declared]: ref_mut real
+"c"@(FileId(1), 41..42) [Declared]: ref_mut char
+"b"@(FileId(1), 54..55) [Declared]: ref_mut boolean
+"cn"@(FileId(1), 69..71) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 120..121: invalid get option used
+| error in file FileId(1) for 120..121: cannot specify line width for `int`
+| info: line width can only be specified for `string` types
+error in file FileId(1) at 130..131: invalid get option used
+| error in file FileId(1) for 130..131: cannot specify line width for `nat`
+| info: line width can only be specified for `string` types
+error in file FileId(1) at 140..141: invalid get option used
+| error in file FileId(1) for 140..141: cannot specify line width for `real`
+| info: line width can only be specified for `string` types
+error in file FileId(1) at 150..151: invalid get option used
+| error in file FileId(1) for 150..151: cannot specify line width for `char`
+| info: line width can only be specified for `string` types
+error in file FileId(1) at 160..161: invalid get option used
+| error in file FileId(1) for 160..161: cannot specify line width for `boolean`
+| info: line width can only be specified for `string` types
+error in file FileId(1) at 170..172: invalid get option used
+| error in file FileId(1) for 170..172: cannot specify line width for `char(4)`
+| info: line width can only be specified for `string` types

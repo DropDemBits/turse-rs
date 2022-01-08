@@ -1,8 +1,0 @@
----
-source: compiler/toc_analysis/src/const_eval/test.rs
-expression: "const a := 'fun times'"
-
----
-"a"@(FileId(1), 6..7) -> CharN("fun times")
-
-

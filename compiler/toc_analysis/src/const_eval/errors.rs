@@ -55,7 +55,9 @@ impl ConstError {
                         def_span,
                     )
             }
-            _ => reporter.error_detailed(&format!("{}", self.kind), self.span),
+            _ => reporter
+                .error_detailed("cannot compute expression at compile-time", self.span)
+                .with_error(&format!("{}", self.kind), self.span),
         }
         .finish();
     }
@@ -97,6 +99,9 @@ pub(super) enum ErrorKind {
     /// Floating point overflow
     #[error("real overflow in compile-time expression")]
     RealOverflow,
+    /// Value to assign is outside of the type's supported range
+    #[error("value is outside of the type's range")]
+    OutsideRange,
     /// Division by zero
     #[error("division by zero in compile-time expression")]
     DivByZero,

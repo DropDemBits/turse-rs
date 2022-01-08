@@ -1,9 +1,11 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 20
 expression: 1e100 div 1
 
 ---
 "_"@(FileId(1), 6..7) -> ConstError { kind: IntOverflow, span: (FileId(1), 17..20) }
 
-error in file FileId(1) at 17..20: integer overflow in compile-time expression
+error in file FileId(1) at 17..20: cannot compute expression at compile-time
+| error in file FileId(1) for 17..20: integer overflow in compile-time expression
 

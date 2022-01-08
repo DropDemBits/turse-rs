@@ -279,6 +279,81 @@ where
 
         Some(length)
     }
+
+    /// Minimum integer value of this type, or `None` if this is not an integer
+    pub fn min_int_of(&self) -> Option<ConstInt> {
+        let value = match self.kind() {
+            TypeKind::Char => ConstInt::from_unsigned(0, false).expect("const construction"),
+            TypeKind::Boolean => {
+                // acts like 0 in a range
+                ConstInt::from_unsigned(0, false).expect("const construction")
+            }
+            TypeKind::Int(size) => {
+                let (min, allow_64bit_ops) = match size {
+                    IntSize::Int1 => (0x80, false),
+                    IntSize::Int2 => (0x8000, false),
+                    IntSize::Int4 => (0x8000_0000, false),
+                    // 0x8000_0000 is reserved as the uninitialized pattern
+                    IntSize::Int => (0x7FFF_FFFF, false),
+                };
+
+                ConstInt::from_unsigned(min, allow_64bit_ops)
+                    .and_then(ConstInt::negate)
+                    .expect("const construction")
+            }
+            TypeKind::Nat(size) => {
+                let (max, allow_64bit_ops) = match size {
+                    NatSize::Nat1 | NatSize::Nat2 | NatSize::Nat4 | NatSize::Nat => (0, false),
+                    NatSize::AddressInt => (0, false),
+                };
+
+                ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
+            }
+            TypeKind::Integer => unreachable!("integer should be concrete"),
+            _ => return None,
+        };
+
+        Some(value)
+    }
+
+    /// Maximum integer value of this type, or `None` if this is not an integer
+    pub fn max_int_of(&self) -> Option<ConstInt> {
+        let value = match self.kind() {
+            TypeKind::Char => {
+                // Can only hold 1 UTF-8 code scalar
+                ConstInt::from_unsigned(u8::MAX.into(), false).expect("const construction")
+            }
+            TypeKind::Boolean => {
+                // acts like 1 in a range
+                ConstInt::from_unsigned(1, false).expect("const construction")
+            }
+            TypeKind::Int(size) => {
+                let (max, allow_64bit_ops) = match size {
+                    IntSize::Int1 => (0x7F, false),
+                    IntSize::Int2 => (0x7FFF, false),
+                    IntSize::Int4 | IntSize::Int => (0x7FFF_FFFF, false),
+                };
+
+                ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
+            }
+            TypeKind::Nat(size) => {
+                let (max, allow_64bit_ops) = match size {
+                    NatSize::Nat1 => (0xFF, false),
+                    NatSize::Nat2 => (0xFFFF, false),
+                    NatSize::Nat4 => (0xFFFF_FFFF, false),
+                    // 0xFFFF_FFFF is reserved as the uninitialized pattern
+                    NatSize::Nat => (0xFFFF_FFFE, false),
+                    NatSize::AddressInt => (0xFFFF_FFFF, false),
+                };
+
+                ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
+            }
+            TypeKind::Integer => unreachable!("integer should be concrete"),
+            _ => return None,
+        };
+
+        Some(value)
+    }
 }
 
 /// Aligns `size` up to the next `align` boundary.

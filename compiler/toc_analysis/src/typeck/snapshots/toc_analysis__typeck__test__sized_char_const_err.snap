@@ -1,9 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var _ : char(1.0 div 0.0)"
 
 ---
 "_"@(FileId(1), 4..5) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 17..20: division by zero in compile-time expression
+error in file FileId(1) at 17..20: cannot compute expression at compile-time
+| error in file FileId(1) for 17..20: division by zero in compile-time expression

@@ -1,15 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "case 1.0 of label 1, 'd', false end case"
 
 ---
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 5..8: mismatched types
-| note in file FileId(1) for 5..8: this is of type `real`
-| info: `case` discriminant must be either:
-| info: - an index type (an integer, `boolean`, `char`, enumerated type, or a range), or
-| info: - a `string`
+| error in file FileId(1) for 5..8: `real` cannot be used as a case discriminant
+| info: `case` discriminant must be either an index type (an integer, `boolean`, `char`, enumerated type, or a range), or a `string`
 error in file FileId(1) at 21..24: mismatched types
 | note in file FileId(1) for 21..24: this is of type `char`
 | note in file FileId(1) for 5..8: discriminant is of type `real`

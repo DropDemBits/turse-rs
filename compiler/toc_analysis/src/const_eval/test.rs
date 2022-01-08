@@ -702,6 +702,133 @@ fn error_no_const_expr() {
 }
 
 #[test]
+fn error_outside_range_nat() {
+    // FIXME: Uncomment large values once we support 64-bit literals
+    // nat1
+    assert_const_eval(&unindent(
+        "
+        const v0 : nat1 := -1
+        const v1 : nat1 := 0
+        const v2 : nat1 := 16#ff
+        const v3 : nat1 := 16#100
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+    // nat2
+    assert_const_eval(&unindent(
+        "
+        const v0 : nat2 := -1
+        const v1 : nat2 := 0
+        const v2 : nat2 := 16#ffff
+        const v3 : nat2 := 16#10000
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+    // nat4
+    assert_const_eval(&unindent(
+        "
+        const v0 : nat4 := -1
+        const v1 : nat4 := 0
+        const v2 : nat4 := 16#ffffffff
+        %const v3 : nat4 := 16#100000000
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        %const _ := v3
+    ",
+    ));
+    // nat
+    assert_const_eval(&unindent(
+        "
+        const v0 : nat := -1
+        const v1 : nat := 0
+        const v2 : nat := 16#fffffffe
+        const v3 : nat := 16#ffffffff
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+    // addrint
+    assert_const_eval(&unindent(
+        "
+        const v0 : addressint := -1
+        const v1 : addressint := 0
+        const v2 : addressint := 16#ffffffff
+        %const v3 : addressint := 16#100000000
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        %const _ := v3
+    ",
+    ));
+}
+
+#[test]
+fn error_outside_range_int() {
+    // FIXME: Uncomment large values once we support 64-bit literals
+    // int1
+    assert_const_eval(&unindent(
+        "
+        const v0 : int1 := -16#81
+        const v1 : int1 := -16#80
+        const v2 : int1 := 16#7f
+        const v3 : int1 := 16#80
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+    // int2
+    assert_const_eval(&unindent(
+        "
+        const v0 : int2 := -16#8001
+        const v1 : int2 := -16#8000
+        const v2 : int2 := 16#7fff
+        const v3 : int2 := 16#8000
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+    // int4
+    assert_const_eval(&unindent(
+        "
+        %const v0 : int4 := -16#80000001
+        const v1 : int4 := -16#80000000
+        const v2 : int4 := 16#7fffffff
+        const v3 : int4 := 16#80000000
+        %const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+    // int
+    assert_const_eval(&unindent(
+        "
+        const v0 : int := -16#80000000
+        const v1 : int := -16#7fffffff
+        const v2 : int := 16#7fffffff
+        const v3 : int := 16#80000000
+        const _ := v0
+        const _ := v1
+        const _ := v2
+        const _ := v3
+    ",
+    ));
+}
+
+#[test]
 fn error_propagation() {
     // Propagation of errors
     assert_const_eval(&unindent(

@@ -1,9 +1,11 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 20
 expression: "\"✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨\"+\"✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨aaaaaaaaaaaaaaaa\""
 
 ---
 "_"@(FileId(1), 6..7) -> ConstError { kind: StringTooBig, span: (FileId(1), 142..143) }
 
-error in file FileId(1) at 142..143: produced a string that is too large
+error in file FileId(1) at 142..143: cannot compute expression at compile-time
+| error in file FileId(1) for 142..143: produced a string that is too large
 
