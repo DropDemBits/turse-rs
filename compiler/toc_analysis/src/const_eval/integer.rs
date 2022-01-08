@@ -500,12 +500,11 @@ impl ConstInt {
     /// Compares this integer with another integer
     pub fn cmp(self, rhs: ConstInt) -> Ordering {
         match (self.sign, rhs.sign) {
-            (Sign::Positive, Sign::Positive) => Ordering::Equal,
+            (Sign::Positive, Sign::Positive) => self.magnitude.cmp(&rhs.magnitude),
             (Sign::Positive, Sign::Negative) => Ordering::Greater,
             (Sign::Negative, Sign::Positive) => Ordering::Less,
-            (Sign::Negative, Sign::Negative) => Ordering::Equal,
+            (Sign::Negative, Sign::Negative) => self.magnitude.cmp(&rhs.magnitude).reverse(),
         }
-        .then(self.magnitude.cmp(&rhs.magnitude))
     }
 
     /// Negates the sign of the integer.
@@ -604,6 +603,18 @@ impl fmt::Display for ConstInt {
         };
 
         f.pad_integral(matches!(self.sign, Sign::Positive), "", &magnitude)
+    }
+}
+
+impl PartialOrd for ConstInt {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(Self::cmp(*self, *other))
+    }
+}
+
+impl Ord for ConstInt {
+    fn cmp(&self, other: &Self) -> Ordering {
+        Self::cmp(*self, *other)
     }
 }
 

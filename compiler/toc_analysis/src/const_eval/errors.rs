@@ -97,6 +97,9 @@ pub(super) enum ErrorKind {
     /// Floating point overflow
     #[error("real overflow in compile-time expression")]
     RealOverflow,
+    /// Value to assign is outside of the type's supported range
+    #[error("value is outside of the type's range")]
+    OutsideRange,
     /// Division by zero
     #[error("division by zero in compile-time expression")]
     DivByZero,

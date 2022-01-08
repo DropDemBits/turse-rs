@@ -157,7 +157,35 @@ pub(crate) fn evaluate_const(
                             return Err(ConstError::new(ErrorKind::WrongResultType, span));
                         }
 
-                        // TODO: If `left` is a range type, check if `right` is in the range
+                        // If bounds of `left` is known, check if `right` is in the range
+                        let left_ty = left.in_db(db).peel_ref();
+
+                        if let Some((min, max)) = left_ty.min_int_of().zip(left_ty.max_int_of()) {
+                            // Since right is assignable into left, we can treat right as ConstInt
+                            let as_ordinal = match &value {
+                                ConstValue::Integer(val) => *val,
+                                ConstValue::Bool(val) => {
+                                    if *val {
+                                        ConstInt::from_unsigned(0, false)
+                                            .expect("const construction")
+                                    } else {
+                                        ConstInt::from_unsigned(1, false)
+                                            .expect("const construction")
+                                    }
+                                }
+                                ConstValue::Char(val) => {
+                                    ConstInt::from_unsigned(u64::from(*val), false)
+                                        .expect("const construction")
+                                }
+                                _ => unreachable!(),
+                            };
+
+                            if !(min..=max).contains(&as_ordinal) {
+                                // Is outside of value range
+                                let span = library.body(body).span.lookup_in(&library.span_map);
+                                return Err(ConstError::new(ErrorKind::OutsideRange, span));
+                            }
+                        }
 
                         // Push (cached) value to the operand stack
                         operand_stack.push(value);
