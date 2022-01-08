@@ -14,8 +14,8 @@ impl super::BodyLowering<'_, '_> {
         let kind = match stmt {
             // `ConstVarDecl` is the only decl that can produce multiple stmts
             ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
+            ast::Stmt::TypeDecl(decl) => self.lower_type_decl(decl),
 
-            ast::Stmt::TypeDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::BindDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::FcnDecl(_) => self.unsupported_stmt(span),
@@ -89,8 +89,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<LoweredStmt> {
         // is actually an item
-        let span = self.ctx.mk_span(decl.syntax().text_range());
-        let span = self.ctx.library.intern_span(span);
+        let span = self.ctx.intern_range(decl.syntax().text_range());
 
         let is_pervasive = decl.pervasive_attr().is_some();
         let is_register = decl.register_attr().is_some();
@@ -139,6 +138,31 @@ impl super::BodyLowering<'_, '_> {
         };
 
         Some(lowered)
+    }
+
+    fn lower_type_decl(&mut self, decl: ast::TypeDecl) -> Option<stmt::StmtKind> {
+        let is_pervasive = decl.pervasive_attr().is_some();
+
+        let type_def = if let Some(forward) = decl.forward_token() {
+            let token_span = self.ctx.intern_range(forward.text_range());
+            item::DefinedType::Forward(token_span)
+        } else {
+            let ty = self.lower_required_type(decl.named_ty());
+            item::DefinedType::Alias(ty)
+        };
+
+        // Declare name after type to prevent def-use cycles
+        let def_id = self.lower_name_def(decl.decl_name()?, is_pervasive);
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Type(item::Type { def_id, type_def }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {

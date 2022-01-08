@@ -724,3 +724,15 @@ fn lower_case_stmt() {
     "#,
     );
 }
+
+#[test]
+fn lower_type_def() {
+    // with type
+    assert_lower("type alias : int");
+    // with forward
+    assert_lower("type alias : forward");
+    // missing defined
+    assert_lower("type alias : ");
+    // missing name
+    assert_lower("type : forward");
+}

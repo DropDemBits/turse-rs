@@ -2,7 +2,7 @@
 
 use std::{
     cell::{Cell, RefCell},
-    fmt,
+    fmt::{self, Write},
 };
 
 use toc_hir::{
@@ -150,8 +150,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
     // Items //
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
-        use fmt::Write;
-
         let span = self.item_span(id);
         let def_id = self.def_of(id);
 
@@ -171,6 +169,20 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         self.emit_node("ConstVar", span, Some(format_args!("{}", extra)))
     }
+    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        let span = self.item_span(id);
+        let def_id = self.def_of(id);
+
+        let mut extra = String::new();
+
+        if let item::DefinedType::Forward(_) = item.type_def {
+            write!(extra, "forward ").unwrap()
+        }
+
+        write!(extra, "{}", self.display_def(def_id)).unwrap();
+
+        self.emit_node("Type", span, Some(format_args!("{}", extra)));
+    }
     fn visit_module(&self, id: item::ItemId, _item: &item::Module) {
         let span = self.item_span(id);
         let def_id = self.def_of(id);
@@ -182,8 +194,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {
-        use fmt::Write;
-
         let span = self.body_span(id);
         match &body.kind {
             body::BodyKind::Stmts(_, params) => {

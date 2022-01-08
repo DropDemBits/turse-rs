@@ -1,0 +1,13 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type alias : forward"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..20): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..20): []
+        StmtItem@(FileId(1), 0..20): ItemId(0)
+          Type@(FileId(1), 0..20): forward "alias"@(FileId(1), 5..10)
+
