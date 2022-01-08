@@ -55,7 +55,9 @@ impl ConstError {
                         def_span,
                     )
             }
-            _ => reporter.error_detailed(&format!("{}", self.kind), self.span),
+            _ => reporter
+                .error_detailed("cannot compute expression at compile-time", self.span)
+                .with_error(&format!("{}", self.kind), self.span),
         }
         .finish();
     }

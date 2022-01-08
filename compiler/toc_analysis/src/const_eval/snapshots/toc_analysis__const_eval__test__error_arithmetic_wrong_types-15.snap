@@ -1,9 +1,11 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 20
 expression: false * 1.0
 
 ---
 "_"@(FileId(1), 6..7) -> ConstError { kind: WrongOperandType, span: (FileId(1), 17..18) }
 
-error in file FileId(1) at 17..18: wrong type for compile-time expression
+error in file FileId(1) at 17..18: cannot compute expression at compile-time
+| error in file FileId(1) for 17..18: wrong type for compile-time expression
 

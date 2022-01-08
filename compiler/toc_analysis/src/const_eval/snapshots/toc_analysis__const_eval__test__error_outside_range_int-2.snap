@@ -13,6 +13,8 @@ expression: "const v0 : int2 := -16#8001\nconst v1 : int2 := -16#8000\nconst v2 
 "_"@(FileId(1), 144..145) -> Integer(ConstInt { magnitude: 32767, sign: Positive, width: As32 })
 "_"@(FileId(1), 158..159) -> ConstError { kind: OutsideRange, span: (FileId(1), 102..109) }
 
-error in file FileId(1) at 19..27: value is outside of the type's range
-error in file FileId(1) at 102..109: value is outside of the type's range
+error in file FileId(1) at 19..27: cannot compute expression at compile-time
+| error in file FileId(1) for 19..27: value is outside of the type's range
+error in file FileId(1) at 102..109: cannot compute expression at compile-time
+| error in file FileId(1) for 102..109: value is outside of the type's range
 

@@ -1,8 +1,0 @@
----
-source: compiler/toc_analysis/src/const_eval/test.rs
-expression: "const a := 'e'"
-
----
-"a"@(FileId(1), 6..7) -> Char('e')
-
-

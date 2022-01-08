@@ -1,9 +1,11 @@
 ---
 source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 20
 expression: "-1e308 + (-1e308)"
 
 ---
 "_"@(FileId(1), 6..7) -> ConstError { kind: RealOverflow, span: (FileId(1), 18..19) }
 
-error in file FileId(1) at 18..19: real overflow in compile-time expression
+error in file FileId(1) at 18..19: cannot compute expression at compile-time
+| error in file FileId(1) for 18..19: real overflow in compile-time expression
 

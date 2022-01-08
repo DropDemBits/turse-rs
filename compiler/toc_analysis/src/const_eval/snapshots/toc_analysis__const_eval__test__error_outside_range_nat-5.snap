@@ -11,5 +11,6 @@ expression: "const v0 : addressint := -1\nconst v1 : addressint := 0\nconst v2 :
 "_"@(FileId(1), 151..152) -> Integer(ConstInt { magnitude: 0, sign: Positive, width: As32 })
 "_"@(FileId(1), 165..166) -> Integer(ConstInt { magnitude: 4294967295, sign: Positive, width: As32 })
 
-error in file FileId(1) at 25..27: value is outside of the type's range
+error in file FileId(1) at 25..27: cannot compute expression at compile-time
+| error in file FileId(1) for 25..27: value is outside of the type's range
 
