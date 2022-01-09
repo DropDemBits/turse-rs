@@ -5,7 +5,7 @@
 - [ ] HIR Lowering
   - [ ] Stmt
     - [x] ConstVarDecl
-    - [ ] TypeDecl
+    - [x] TypeDecl
     - [ ] BindDecl
     - [ ] ProcDecl
     - [ ] FcnDecl
@@ -99,7 +99,7 @@
     - [ ] ConstVar
       - [x] Binding type to def
       - [ ] Handling `init()` as the initialzer expression
-    - [ ] Type
+    - [x] Type
     - [ ] Bind
     - [ ] Proc
     - [ ] Fcn
@@ -165,7 +165,7 @@
       - [x] String concatenation
       - [ ] Set manipulation
     - [x] Unary
-    - [ ] Name
+    - [x] Name
     - [ ] Self
     - [ ] Field
     - [ ] Deref
@@ -177,7 +177,7 @@
     - [ ] Call
   - [ ] Type
     - [x] Prim (SeqLength)
-    - [ ] Name
+    - [~] Name
     - [ ] Range
     - [ ] Enum
     - [ ] Array
