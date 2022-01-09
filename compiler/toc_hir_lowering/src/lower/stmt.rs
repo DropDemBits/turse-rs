@@ -1,6 +1,10 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::Assign;
-use toc_hir::{expr, item, stmt, symbol};
+use toc_hir::symbol::ForwardKind;
+use toc_hir::{
+    expr, item, stmt,
+    symbol::{self, SymbolKind},
+};
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
@@ -141,18 +145,34 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_type_decl(&mut self, decl: ast::TypeDecl) -> Option<stmt::StmtKind> {
+        // Procedure for resolving forward declarations (general)
+        // - declare them as a forward
+        //   - ScopeTracker records that there's an unresolved forward decl here
+        //   - Duplicate forward reported as error, but kept track of as eventually resolving to the same thing
+        // - when declaring a resolution
+        //   - resolve any forwards in the same scope level
+        //   - If there's already a resolution, change error report based on what the old decl was
+        //     - Resolved / Declared -> Duplicate def
+        //     - Forward -> Must resolve in the same scope
+
         let is_pervasive = decl.pervasive_attr().is_some();
 
-        let type_def = if let Some(forward) = decl.forward_token() {
+        let (type_def, sym_kind) = if let Some(forward) = decl.forward_token() {
             let token_span = self.ctx.intern_range(forward.text_range());
-            item::DefinedType::Forward(token_span)
+            (
+                item::DefinedType::Forward(token_span),
+                SymbolKind::Forward(ForwardKind::Type, None),
+            )
         } else {
             let ty = self.lower_required_type(decl.named_ty());
-            item::DefinedType::Alias(ty)
+            (
+                item::DefinedType::Alias(ty),
+                SymbolKind::Resolved(ForwardKind::Type),
+            )
         };
 
         // Declare name after type to prevent def-use cycles
-        let def_id = self.lower_name_def(decl.decl_name()?, is_pervasive);
+        let def_id = self.lower_name_def(decl.decl_name()?, sym_kind, is_pervasive);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
@@ -324,7 +344,8 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.scopes.push_scope(ScopeKind::Loop);
         {
             // counter is only available inside of the loop body
-            counter_def = name.map(|name| self.lower_name_def(name, false));
+            counter_def =
+                name.map(|name| self.lower_name_def(name, symbol::SymbolKind::Declared, false));
             body_stmts = self.lower_stmt_list(stmt.stmt_list().unwrap());
         }
         self.ctx.scopes.pop_scope();
@@ -470,43 +491,125 @@ impl super::BodyLowering<'_, '_> {
     ) -> Option<Vec<symbol::LocalDefId>> {
         let names = name_list?
             .names()
-            .map(|name| self.lower_name_def(name, is_pervasive))
+            .map(|name| self.lower_name_def(name, symbol::SymbolKind::Declared, is_pervasive))
             .collect::<Vec<_>>();
 
         // Invariant: Names list must contain at least one name
         Some(names).filter(|names| !names.is_empty())
     }
 
-    fn lower_name_def(&mut self, name: ast::Name, is_pervasive: bool) -> symbol::LocalDefId {
+    fn lower_name_def(
+        &mut self,
+        name: ast::Name,
+        kind: symbol::SymbolKind,
+        is_pervasive: bool,
+    ) -> symbol::LocalDefId {
+        // Can't declare an undefined symbol from a name def
+        assert_ne!(kind, SymbolKind::Undeclared);
+
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
-        let def_id = self
-            .ctx
-            .library
-            .add_def(token.text(), span, symbol::SymbolKind::Declared);
+        let def_id = self.ctx.library.add_def(token.text(), span, kind);
 
         // Bring into scope
-        let old_def = self.ctx.scopes.def_sym(token.text(), def_id, is_pervasive);
+        let old_def = self
+            .ctx
+            .scopes
+            .def_sym(token.text(), def_id, kind, is_pervasive);
+
+        // Resolve any associated forward decls
+        if let SymbolKind::Resolved(resolve_kind) = kind {
+            let forward_list = self
+                .ctx
+                .scopes
+                .take_resolved_forwards(token.text(), resolve_kind);
+
+            if let Some(forward_list) = forward_list {
+                // Point all of these local defs to this one
+                for forward_def in forward_list {
+                    let def_info = self.ctx.library.local_def_mut(forward_def);
+
+                    match &mut def_info.kind {
+                        SymbolKind::Forward(_, resolve_to) => *resolve_to = Some(def_id),
+                        _ => unreachable!("not a forward def"),
+                    }
+                }
+            }
+        }
 
         if let Some(old_def) = old_def {
+            // Report redeclares, specializing based on what kind of declaration it is
             let old_def_info = self.ctx.library.local_def(old_def);
-            if old_def_info.kind == symbol::SymbolKind::Declared {
-                // Redeclaring over an older def
-                let new_span = self.ctx.library.lookup_span(span);
-                let old_span = self.ctx.library.lookup_span(old_def_info.name.span());
 
-                // Just use the name from the old def
-                let name = old_def_info.name.item();
+            let old_span = self.ctx.library.lookup_span(old_def_info.name.span());
+            let new_span = self.ctx.library.lookup_span(span);
 
-                self.ctx
-                    .messages
-                    .error_detailed(
-                        &format!("`{}` is already declared in this scope", name),
-                        new_span,
-                    )
-                    .with_note(&format!("`{}` previously declared here", name), old_span)
-                    .with_error(&format!("`{}` redeclared here", name), new_span)
-                    .finish();
+            // Just use the name from the old def for both, since by definition they are the same
+            let name = old_def_info.name.item();
+
+            match (old_def_info.kind, kind) {
+                (SymbolKind::Undeclared, _) | (_, SymbolKind::Undeclared) => {
+                    // Always ok to declare over undeclared symbols
+                }
+                (SymbolKind::Forward(other_kind, _), SymbolKind::Forward(this_kind, _))
+                    if other_kind == this_kind =>
+                {
+                    // Duplicate forward declare
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            &format!("`{}` is already a forward declaration", name),
+                            new_span,
+                        )
+                        .with_note("previous forward declaration here", old_span)
+                        .with_error("new one here", new_span)
+                        .finish();
+                }
+                (SymbolKind::Forward(other_kind, resolve_to), SymbolKind::Resolved(this_kind))
+                    if other_kind == this_kind =>
+                {
+                    // resolve_to: none -> didn't change
+                    // resolve_to: some(== def_id) -> did change, this resolved it
+                    // resolve_to: some(!= def_id) -> didn't change, this didn't resolve it (ok to note as redeclare)
+
+                    if resolve_to.is_none() {
+                        // Forwards must be resolved to the same scope
+                        // This declaration didn't resolve it, which only happens if they're not in the same scope
+                        self.ctx
+                            .messages
+                            .error_detailed(
+                                &format!("`{}` must be resolved in the same scope", name),
+                                new_span,
+                            )
+                            .with_note(&format!("forward declaration of `{}` here", name), old_span)
+                            .with_error(
+                                &format!("resolution of `{}` is not in the same scope", name),
+                                new_span,
+                            )
+                            .finish();
+                    } else {
+                        // This shouldn't ever fail, since if a symbol is moving from
+                        // forward to resolved, this is the declaration that should've
+                        // done it.
+                        assert_eq!(
+                            resolve_to,
+                            Some(def_id),
+                            "encountered a forward not resolved by this definition"
+                        );
+                    }
+                }
+                _ => {
+                    // Redeclaring over an older def
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            &format!("`{}` is already declared in this scope", name),
+                            new_span,
+                        )
+                        .with_note(&format!("`{}` previously declared here", name), old_span)
+                        .with_error(&format!("`{}` redeclared here", name), new_span)
+                        .finish();
+                }
             }
         }
 

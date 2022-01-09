@@ -736,3 +736,44 @@ fn lower_type_def() {
     // missing name
     assert_lower("type : forward");
 }
+
+#[test]
+fn lower_type_def_forward() {
+    // Normal
+    assert_lower(
+        "
+    type a : forward
+    type a : int
+    type use_it : a
+    ",
+    );
+    // Duplicate forward declare
+    assert_lower(
+        "
+    type a : forward
+    type a : forward
+    type a : int
+    type use_it : a
+    ",
+    );
+    // Must be resolved in the same scope
+    assert_lower(
+        "
+    type a : forward
+    begin
+        type a : int
+    end
+    type use_it : a
+    ",
+    );
+    // Different declarations should leave forwards unresolved
+    assert_lower(
+        "
+    type a : forward
+    type use_it : a % should not be resolved to latter a
+    var a : int
+    type a : char
+    ",
+    );
+    // TODO: Add test for different forward kinds
+}

@@ -1,0 +1,25 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    type a : forward\n    type a : forward\n    type a : int\n    type use_it : a\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(4)
+    Module@(FileId(1), 0..84): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..79): []
+        StmtItem@(FileId(1), 5..21): ItemId(0)
+          Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
+        StmtItem@(FileId(1), 26..42): ItemId(1)
+          Type@(FileId(1), 26..42): forward "a"@(FileId(1), 31..32)
+        StmtItem@(FileId(1), 47..59): ItemId(2)
+          Type@(FileId(1), 47..59): "a"@(FileId(1), 52..53)
+            Primitive@(FileId(1), 56..59): Int
+        StmtItem@(FileId(1), 64..79): ItemId(3)
+          Type@(FileId(1), 64..79): "use_it"@(FileId(1), 69..75)
+error in file FileId(1) at 31..32: `a` is already a forward declaration
+| note in file FileId(1) for 10..11: previous forward declaration here
+| error in file FileId(1) for 31..32: new one here
+error in file FileId(1) at 78..79: unsupported type
+| error in file FileId(1) for 78..79: this type is not handled yet
+

@@ -41,11 +41,21 @@ pub enum SymbolKind {
     Undeclared,
     /// The symbol is a normal declaration at the point of definition.
     Declared,
-    /// The symbol is a forward reference to a later declaration.
-    Forward,
-    /// The symbol is a resolution of a forward declaration, with a `DefId`
-    /// pointing back to the original forward declaration symbol.
-    Resolved(DefId),
+    /// The symbol is a forward reference to a later declaration,
+    /// with a [`LocaLDefId`] pointing to the resolving definition.
+    Forward(ForwardKind, Option<LocalDefId>),
+    /// The symbol is a resolution of a forward declaration.
+    Resolved(ForwardKind),
+}
+
+/// Disambiguates between different forward declaration kinds
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForwardKind {
+    /// `type` forward declaration
+    Type,
+    /// `procedure` forward declaration
+    // Only constructed in tests right now
+    _Procedure,
 }
 
 /// Any HIR node that contains a definition

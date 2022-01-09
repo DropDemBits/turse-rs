@@ -8,7 +8,7 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol;
+use toc_hir::symbol::{self, ForwardKind, SymbolKind};
 
 #[derive(Debug)]
 pub(crate) struct Scope {
@@ -16,6 +16,8 @@ pub(crate) struct Scope {
     kind: ScopeKind,
     /// All symbols declared in a scope.
     symbols: HashMap<String, symbol::LocalDefId>,
+    /// Any symbols within this scope that relate to a forward declaration.
+    forward_symbols: HashMap<String, (ForwardKind, Vec<symbol::LocalDefId>)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,6 +46,7 @@ impl Scope {
         Self {
             kind,
             symbols: HashMap::new(),
+            forward_symbols: HashMap::new(),
         }
     }
 
@@ -102,15 +105,50 @@ impl ScopeTracker {
     /// Bring the definition into scope with the name `name`
     ///
     /// # Returns
-    /// The definition that previously held this `name`, if present
+    /// The definition in scope that previously held this `name`, if present
     pub fn def_sym(
         &mut self,
         name: &str,
         def_id: symbol::LocalDefId,
+        kind: SymbolKind,
         is_pervasive: bool,
     ) -> Option<symbol::LocalDefId> {
+        use std::collections::hash_map::Entry;
+
         let last_def = self.lookup_def(name);
-        self.scopes.last_mut().unwrap().def_in(name, def_id);
+        let def_scope = self.scopes.last_mut().unwrap();
+        def_scope.def_in(name, def_id);
+
+        // Update the forward decl list
+        match kind {
+            SymbolKind::Forward(forward_kind, _) => {
+                // Add to this scope's forward declaration list
+                let forward_group = def_scope.forward_symbols.entry(name.to_string());
+
+                match forward_group {
+                    Entry::Occupied(entry) => {
+                        let forward_group = entry.into_mut();
+
+                        // Only add to the same list if it's the same forward kind
+                        // Any different forward declarations always drop the old resolved types
+                        if forward_kind == forward_group.0 {
+                            forward_group.1.push(def_id);
+                        } else {
+                            *forward_group = (forward_kind, vec![def_id])
+                        }
+                    }
+                    Entry::Vacant(entry) => {
+                        // New forward group, can insert without any issues
+                        entry.insert((forward_kind, vec![def_id]));
+                    }
+                }
+            }
+            SymbolKind::Declared => {
+                // Remove it completely, leaving any forward decls unresolved
+                def_scope.forward_symbols.remove(name);
+            }
+            _ => (),
+        }
 
         if is_pervasive {
             self.pervasive_tracker.insert(def_id);
@@ -139,12 +177,42 @@ impl ScopeTracker {
             // However, if ScopeTracker has access to the complete export tables, then we
             // can disambiguate between unqualified imports and undeclared definitions,
             // leaving us free to always have all of the undeclared defs share a LocalDefId.
+            //
+            // Addendum:
+            // This conveniently deals with deduplicating undeclared identifier errors, so
+            // not doing this would mean that we'd have to handle that undeclared tracking
+            // elsewhere.
 
             // Declare at the import boundary
             let def_id = or_undeclared();
             Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
             def_id
         })
+    }
+
+    pub fn take_resolved_forwards(
+        &mut self,
+        name: &str,
+        resolve_kind: ForwardKind,
+    ) -> Option<Vec<symbol::LocalDefId>> {
+        use std::collections::hash_map::Entry;
+
+        let def_scope = self.scopes.last_mut().unwrap();
+        let forward_group = def_scope.forward_symbols.entry(name.to_string());
+
+        match forward_group {
+            Entry::Occupied(entry) => {
+                let (forward_kind, resolve_list) = entry.remove_entry().1;
+
+                // Forward entries are only returned if it's being resolved to the same kind of forward decl
+                // Otherwise, they should be left unresolved
+                (resolve_kind == forward_kind).then(|| resolve_list)
+            }
+            Entry::Vacant(_) => {
+                // No forward entries to return
+                None
+            }
+        }
     }
 
     /// Looks up a DefId, with respect to scoping rules
