@@ -141,6 +141,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_unary(id.0, expr);
     }
 
+    fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
+        self.typeck_name_expr(id, expr);
+    }
+
     fn visit_primitive(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Primitive) {
         self.typeck_primitive(id, ty);
     }
@@ -781,6 +785,31 @@ impl TypeCheck<'_> {
                 right_span,
                 &mut self.state().reporter,
             );
+        }
+    }
+
+    fn typeck_name_expr(&self, id: expr::BodyExpr, expr: &expr::Name) {
+        match expr {
+            expr::Name::Name(def_id) => {
+                // Validate it's a ref to a storage location
+                let ty_ref = self
+                    .db
+                    .type_of(DefId(self.library_id, *def_id).into())
+                    .in_db(self.db);
+
+                if !matches!(ty_ref.kind(), ty::TypeKind::Ref(_, _)) {
+                    let span = self.library.body(id.0).expr(id.1).span;
+                    let span = self.library.lookup_span(span);
+                    let name = self.library.local_def(*def_id).name.item();
+
+                    self.state().reporter.error(
+                        &format!("cannot use `{}` as an expression", name),
+                        &format!("`{}` is a reference to a type", name),
+                        span,
+                    );
+                }
+            }
+            expr::Name::Self_ => todo!(),
         }
     }
 

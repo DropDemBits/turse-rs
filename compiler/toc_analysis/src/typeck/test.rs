@@ -1363,6 +1363,7 @@ test_named_group! { typeck_type_alias,
         unresolved_forward => "
         type fowo : forward
         type a : fowo",
+        as_expr => "type k : int var a := k",
     ]
 }
 
