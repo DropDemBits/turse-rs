@@ -71,10 +71,11 @@ pub(crate) mod internals {
     }
 }
 
+pub(crate) mod ids;
+
 pub mod body;
 pub mod builder;
 pub mod expr;
-pub mod ids;
 pub mod item;
 pub mod library;
 pub mod library_graph;
