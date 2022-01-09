@@ -186,13 +186,21 @@ where
             _ => self,
         }
     }
+
+    /// Transforms the type into its base representation.
+    ///
+    /// Turns ranges into its common type, and peels aliases.
+    pub fn to_base_type(self) -> Self {
+        // TODO: Range -> base type
+        self.peel_aliases()
+    }
 }
 
 // TODO: Document type equivalence
 // steal from the old compiler
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
-    let left = left.in_db(db).peel_ref();
-    let right = right.in_db(db).peel_ref();
+    let left = left.in_db(db).peel_ref().to_base_type();
+    let right = right.in_db(db).peel_ref().to_base_type();
 
     // Quick bailout
     if left.id() == right.id() {
@@ -305,8 +313,8 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     // | String(*) [runtime checked]
     //
 
-    let left = lhs.in_db(db).peel_ref();
-    let right = rhs.in_db(db).peel_ref();
+    let left = lhs.in_db(db).peel_ref().to_base_type();
+    let right = rhs.in_db(db).peel_ref().to_base_type();
 
     /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
@@ -567,8 +575,8 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    let left = left.in_db(db).peel_ref();
-    let right = right.in_db(db).peel_ref();
+    let left = left.in_db(db).peel_ref().to_base_type();
+    let right = right.in_db(db).peel_ref().to_base_type();
 
     // Propagate error type as complete so that we don't duplicate the error
     if left.kind().is_error() || right.kind().is_error() {
@@ -809,6 +817,9 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
         })
     };
 
+    let left = left.to_base_type();
+    let right = right.to_base_type();
+
     // Start from the inference code
     match infer_binary_op(db, left.id(), op, right.id()) {
         InferTy::Complete(_) => return Ok(()),
@@ -887,6 +898,8 @@ pub fn infer_unary_op<T: ?Sized + db::TypeDatabase>(
     if right.kind().is_error() {
         return InferTy::Complete(db.mk_error());
     }
+
+    let right = right.to_base_type();
 
     match op {
         expr::UnaryOp::Not => {
@@ -1043,19 +1056,19 @@ pub fn report_invalid_bin_op<'db, DB>(
     let msg = reporter
         .error_detailed(&format!("mismatched types for {}", op_name), op_span)
         .with_note(
-            &format!("this is of type `{left}`", left = left_ty),
-            left_span,
-        )
-        .with_note(
             &format!("this is of type `{right}`", right = right_ty),
             right_span,
+        )
+        .with_note(
+            &format!("this is of type `{left}`", left = left_ty),
+            left_span,
         )
         .with_error(
             &format!(
                 "`{left}` cannot be {verb_phrase} `{right}`",
-                left = left_ty,
+                left = left_ty.clone().peel_aliases(),
                 verb_phrase = verb_phrase,
-                right = right_ty
+                right = right_ty.clone().peel_aliases()
             ),
             op_span,
         );
@@ -1149,7 +1162,7 @@ pub fn report_invalid_unary_op<'db, DB>(
             &format!(
                 "cannot apply {verb_phrase} to `{right}`",
                 verb_phrase = verb_phrase,
-                right = right_ty
+                right = right_ty.peel_aliases()
             ),
             op_span,
         );

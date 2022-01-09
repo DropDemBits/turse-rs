@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b / r\n    var _bi := b / i\n    var _bn := b / n\n    var _rb := r / b\n    var _ib := i / b\n    var _nb := n / b\n    var _bb := b / b\n"
 
 ---
@@ -17,37 +18,37 @@ expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 87..88: mismatched types for real division
-| note in file FileId(1) for 85..86: this is of type `boolean`
 | note in file FileId(1) for 89..90: this is of type `real`
+| note in file FileId(1) for 85..86: this is of type `boolean`
 | error in file FileId(1) for 87..88: `boolean` cannot be divided by `real`
 | info: operands must both be numbers
 error in file FileId(1) at 108..109: mismatched types for real division
-| note in file FileId(1) for 106..107: this is of type `boolean`
 | note in file FileId(1) for 110..111: this is of type `int`
+| note in file FileId(1) for 106..107: this is of type `boolean`
 | error in file FileId(1) for 108..109: `boolean` cannot be divided by `int`
 | info: operands must both be numbers
 error in file FileId(1) at 129..130: mismatched types for real division
-| note in file FileId(1) for 127..128: this is of type `boolean`
 | note in file FileId(1) for 131..132: this is of type `nat`
+| note in file FileId(1) for 127..128: this is of type `boolean`
 | error in file FileId(1) for 129..130: `boolean` cannot be divided by `nat`
 | info: operands must both be numbers
 error in file FileId(1) at 150..151: mismatched types for real division
-| note in file FileId(1) for 148..149: this is of type `real`
 | note in file FileId(1) for 152..153: this is of type `boolean`
+| note in file FileId(1) for 148..149: this is of type `real`
 | error in file FileId(1) for 150..151: `real` cannot be divided by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 171..172: mismatched types for real division
-| note in file FileId(1) for 169..170: this is of type `int`
 | note in file FileId(1) for 173..174: this is of type `boolean`
+| note in file FileId(1) for 169..170: this is of type `int`
 | error in file FileId(1) for 171..172: `int` cannot be divided by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 192..193: mismatched types for real division
-| note in file FileId(1) for 190..191: this is of type `nat`
 | note in file FileId(1) for 194..195: this is of type `boolean`
+| note in file FileId(1) for 190..191: this is of type `nat`
 | error in file FileId(1) for 192..193: `nat` cannot be divided by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 213..214: mismatched types for real division
-| note in file FileId(1) for 211..212: this is of type `boolean`
 | note in file FileId(1) for 215..216: this is of type `boolean`
+| note in file FileId(1) for 211..212: this is of type `boolean`
 | error in file FileId(1) for 213..214: `boolean` cannot be divided by `boolean`
 | info: operands must both be numbers

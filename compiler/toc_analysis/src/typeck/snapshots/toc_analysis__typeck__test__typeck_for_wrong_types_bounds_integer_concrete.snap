@@ -1,12 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var r : real for : 1 .. r end for"
 
 ---
 "r"@(FileId(1), 4..5) [Declared]: ref_mut real
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 19..25: range bounds are not index types
-| note in file FileId(1) for 19..20: this is of type `{integer}`
+error in file FileId(1) at 19..25: mismatched types
 | note in file FileId(1) for 24..25: this is of type `real`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
+| note in file FileId(1) for 19..20: this is of type `{integer}`
+| error in file FileId(1) for 19..25: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)

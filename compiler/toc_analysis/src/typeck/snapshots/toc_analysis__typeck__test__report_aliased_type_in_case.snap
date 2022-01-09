@@ -11,7 +11,7 @@ expression: "type a0 : char\ntype a1 : char(6)\nvar ca0 : a0\nconst cna1 : a1 :=
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 93..97: mismatched types
-| note in file FileId(1) for 93..97: this is of type `char(6)`
-| note in file FileId(1) for 80..83: discriminant is of type `char`
-| info: `char(6)` is not a `char`
+| note in file FileId(1) for 80..83: discriminant is of type `a0 (alias of char)`
+| note in file FileId(1) for 93..97: selector is of type `a1 (alias of char(6))`
+| error in file FileId(1) for 93..97: `char(6)` is not a `char`
 | info: selector type must match discriminant type

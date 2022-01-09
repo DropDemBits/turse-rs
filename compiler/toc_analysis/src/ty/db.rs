@@ -26,16 +26,8 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     fn from_hir_type(&self, type_id: InLibrary<HirTypeId>) -> ty::TypeId;
 
     /// Gets the type of the given type source.
-    ///
-    /// This automatically pokes through aliases.
     #[salsa::invoke(ty::query::type_of)]
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
-
-    /// Gets the type of the given type source, preserving alias types.
-    ///
-    /// This is primarily used for displaying the type without any transformations.
-    #[salsa::invoke(ty::query::aliased_type_of)]
-    fn aliased_type_of(&self, source: TypeSource) -> ty::TypeId;
 }
 
 /// Helpers for working with the type interner

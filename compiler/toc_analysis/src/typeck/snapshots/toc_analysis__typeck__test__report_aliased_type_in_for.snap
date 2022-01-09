@@ -1,7 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 41
-expression: "type a0 : string\nvar sa0 : a0\nvar s : string\n\nfor : sa0 .. sa0 end for\nfor : s .. sa0 end for\nfor : sa0 .. s end for\n"
+expression: "type a0 : string\nvar sa0 : a0\nvar s : string\n\nfor : sa0 .. sa0 end for\nfor : s .. sa0 end for\nfor : sa0 .. s end for\n\nfor : 1 .. sa0 end for\nfor : sa0 .. 1 end for\n"
 
 ---
 "a0"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of string
@@ -9,15 +9,28 @@ expression: "type a0 : string\nvar sa0 : a0\nvar s : string\n\nfor : sa0 .. sa0 
 "s"@(FileId(1), 34..35) [Declared]: ref_mut string
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 52..62: range bounds are not index types
-| note in file FileId(1) for 52..55: this is of type `string`
-| note in file FileId(1) for 59..62: this is also of type `string`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
-error in file FileId(1) at 77..85: range bounds are not index types
+error in file FileId(1) at 52..62: mismatched types
+| note in file FileId(1) for 59..62: this is of type `a0 (alias of string)`
+| note in file FileId(1) for 52..55: this is also of type `a0 (alias of string)`
+| error in file FileId(1) for 52..62: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
+error in file FileId(1) at 77..85: mismatched types
+| note in file FileId(1) for 82..85: this is of type `a0 (alias of string)`
 | note in file FileId(1) for 77..78: this is of type `string`
-| note in file FileId(1) for 82..85: this is also of type `string`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
-error in file FileId(1) at 100..108: range bounds are not index types
-| note in file FileId(1) for 100..103: this is of type `string`
-| note in file FileId(1) for 107..108: this is also of type `string`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
+| error in file FileId(1) for 77..85: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
+error in file FileId(1) at 100..108: mismatched types
+| note in file FileId(1) for 107..108: this is of type `string`
+| note in file FileId(1) for 100..103: this is of type `a0 (alias of string)`
+| error in file FileId(1) for 100..108: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
+error in file FileId(1) at 124..132: mismatched types
+| note in file FileId(1) for 129..132: this is of type `a0 (alias of string)`
+| note in file FileId(1) for 124..125: this is of type `{integer}`
+| error in file FileId(1) for 124..132: `string` is not equivalent to `{integer}`
+| info: range bounds types must be equivalent
+error in file FileId(1) at 147..155: mismatched types
+| note in file FileId(1) for 154..155: this is of type `{integer}`
+| note in file FileId(1) for 147..150: this is of type `a0 (alias of string)`
+| error in file FileId(1) for 147..155: `{integer}` is not equivalent to `string`
+| info: range bounds types must be equivalent

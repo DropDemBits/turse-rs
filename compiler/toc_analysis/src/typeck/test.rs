@@ -62,7 +62,7 @@ fn stringify_typeck_results(
         let def_info = library.local_def(did);
         let name = def_info.name.item();
         let name_span = library.lookup_span(def_info.name.span());
-        let ty = db.aliased_type_of(DefId(lib, did).into());
+        let ty = db.type_of(DefId(lib, did).into());
         let name_fmt = format!("{:?}@{:?} [{:?}]: ", name, name_span, def_info.kind);
 
         s.push_str(&name_fmt);
@@ -1370,22 +1370,25 @@ test_named_group! { report_aliased_type,
     [
         in_inferred_ty => r#"
         type a0 : real
+        type a1 : int
         var k : a0
-        var i : int := k"#,
+        var i : a1 := k"#,
         in_assign => r#"
         type a0 : real
+        type a1 : int
         var k : a0
-        var i : int
+        var i : a1
         i := k"#,
         in_binary_expr => r#"
         type a0 : real
+        type a1 : int
         var k : a0
         var i : int
-        i := i + k"#,
+        i := i + k % unchanged"#,
         in_unary_expr => r#"
         type a0 : real
         var k : a0
-        var _ := not k
+        var _ := not k % unchanged
         "#,
         in_for => r#"
         type a0 : string
@@ -1395,6 +1398,9 @@ test_named_group! { report_aliased_type,
         for : sa0 .. sa0 end for
         for : s .. sa0 end for
         for : sa0 .. s end for
+
+        for : 1 .. sa0 end for
+        for : sa0 .. 1 end for
         "#,
         in_case => r#"
         type a0 : char

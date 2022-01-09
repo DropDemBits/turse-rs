@@ -370,6 +370,16 @@ where
     }
 }
 
+impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
+    fn clone(&self) -> Self {
+        Self {
+            db: self.db,
+            id: self.id,
+            data: self.data.clone(),
+        }
+    }
+}
+
 /// Aligns `size` up to the next `align` boundary.
 /// `align` must be a power of two.
 pub fn align_up_to(size: usize, align: usize) -> usize {

@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b ** r\n    var _bi := b ** i\n    var _bn := b ** n\n    var _rb := r ** b\n    var _ib := i ** b\n    var _nb := n ** b\n    var _bb := b ** b\n"
 
 ---
@@ -17,37 +18,37 @@ expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 87..89: mismatched types for exponentiation
-| note in file FileId(1) for 85..86: this is of type `boolean`
 | note in file FileId(1) for 90..91: this is of type `real`
+| note in file FileId(1) for 85..86: this is of type `boolean`
 | error in file FileId(1) for 87..89: `boolean` cannot be exponentiated by `real`
 | info: operands must both be numbers
 error in file FileId(1) at 109..111: mismatched types for exponentiation
-| note in file FileId(1) for 107..108: this is of type `boolean`
 | note in file FileId(1) for 112..113: this is of type `int`
+| note in file FileId(1) for 107..108: this is of type `boolean`
 | error in file FileId(1) for 109..111: `boolean` cannot be exponentiated by `int`
 | info: operands must both be numbers
 error in file FileId(1) at 131..133: mismatched types for exponentiation
-| note in file FileId(1) for 129..130: this is of type `boolean`
 | note in file FileId(1) for 134..135: this is of type `nat`
+| note in file FileId(1) for 129..130: this is of type `boolean`
 | error in file FileId(1) for 131..133: `boolean` cannot be exponentiated by `nat`
 | info: operands must both be numbers
 error in file FileId(1) at 153..155: mismatched types for exponentiation
-| note in file FileId(1) for 151..152: this is of type `real`
 | note in file FileId(1) for 156..157: this is of type `boolean`
+| note in file FileId(1) for 151..152: this is of type `real`
 | error in file FileId(1) for 153..155: `real` cannot be exponentiated by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 175..177: mismatched types for exponentiation
-| note in file FileId(1) for 173..174: this is of type `int`
 | note in file FileId(1) for 178..179: this is of type `boolean`
+| note in file FileId(1) for 173..174: this is of type `int`
 | error in file FileId(1) for 175..177: `int` cannot be exponentiated by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 197..199: mismatched types for exponentiation
-| note in file FileId(1) for 195..196: this is of type `nat`
 | note in file FileId(1) for 200..201: this is of type `boolean`
+| note in file FileId(1) for 195..196: this is of type `nat`
 | error in file FileId(1) for 197..199: `nat` cannot be exponentiated by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 219..221: mismatched types for exponentiation
-| note in file FileId(1) for 217..218: this is of type `boolean`
 | note in file FileId(1) for 222..223: this is of type `boolean`
+| note in file FileId(1) for 217..218: this is of type `boolean`
 | error in file FileId(1) for 219..221: `boolean` cannot be exponentiated by `boolean`
 | info: operands must both be numbers
