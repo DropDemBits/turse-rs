@@ -1367,6 +1367,13 @@ test_named_group! { typeck_type_alias,
     ]
 }
 
+test_named_group! { require_resolved_type,
+    [
+        in_type_decl => "type fowo : forward type _ : fowo",
+        in_constvar => "type fowo : forward var _ : fowo",
+    ]
+}
+
 test_named_group! { report_aliased_type,
     [
         in_inferred_ty => r#"

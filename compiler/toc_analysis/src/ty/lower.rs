@@ -119,7 +119,7 @@ fn constvar_ty(
         // Integer decomposes into a normal `int`
         db.mk_int(IntSize::Int)
     } else {
-        item_ty.id()
+        require_resolved_type(db, item_ty.id())
     };
 
     // Use the appropriate reference mutability
@@ -147,6 +147,7 @@ fn type_def_ty(
                 .peel_aliases();
 
             // Specialize based on the kind
+            // TODO: Specialize type when it's a record or union
             match base_ty.kind() {
                 // Forward base types get propagated as errors
                 ty::TypeKind::Forward => db.mk_error(),
@@ -263,5 +264,15 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
         expr::Name::Self_ => {
             todo!()
         }
+    }
+}
+
+/// Requires that a type is resolved at this point, otherwise produces
+/// a type error
+fn require_resolved_type(db: &dyn TypeDatabase, ty: TypeId) -> TypeId {
+    if ty.in_db(db).peel_aliases().kind().is_forward() {
+        db.mk_error()
+    } else {
+        ty
     }
 }

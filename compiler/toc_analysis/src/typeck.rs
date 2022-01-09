@@ -152,6 +152,11 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
+        // Type spec must be resolved at this point
+        if let Some(ty_spec) = item.type_spec {
+            self.require_resolved_type(ty_spec);
+        }
+
         // Check the initializer expression
         let (ty_spec, init) = if let Some(bundle) = item.type_spec.zip(item.init_expr) {
             bundle
@@ -190,26 +195,7 @@ impl TypeCheck<'_> {
 
     fn typeck_type_decl(&self, _id: item::ItemId, item: &item::Type) {
         if let item::DefinedType::Alias(ty) = &item.type_def {
-            let ty_ref = self
-                .db
-                .from_hir_type((*ty).in_library(self.library_id))
-                .in_db(self.db);
-
-            if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind() {
-                if to_ty.in_db(self.db).kind().is_forward() {
-                    let def_span = self.library.lookup_type(*ty).span;
-                    let def_span = self.library.lookup_span(def_span);
-
-                    let def_library = self.db.library(def_id.0);
-                    let name = def_library.local_def(def_id.1).name.item();
-
-                    self.state().reporter.error(
-                        &format!("`{}` has not been resolved at this point", name),
-                        &format!("`{}` is required to be resolved at this point", name),
-                        def_span,
-                    );
-                }
-            }
+            self.require_resolved_type(*ty)
         }
     }
 
@@ -908,6 +894,29 @@ impl TypeCheck<'_> {
                     expected_ty.kind().prefix()
                 ))
                 .finish();
+        }
+    }
+
+    fn require_resolved_type(&self, ty: toc_hir::ty::TypeId) {
+        let ty_ref = self
+            .db
+            .from_hir_type(ty.in_library(self.library_id))
+            .in_db(self.db);
+
+        if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind() {
+            if to_ty.in_db(self.db).kind().is_forward() {
+                let ty_span = self.library.lookup_type(ty).span;
+                let ty_span = self.library.lookup_span(ty_span);
+
+                let def_library = self.db.library(def_id.0);
+                let name = def_library.local_def(def_id.1).name.item();
+
+                self.state().reporter.error(
+                    &format!("`{}` has not been resolved at this point", name),
+                    &format!("`{}` is required to be resolved at this point", name),
+                    ty_span,
+                );
+            }
         }
     }
 }
