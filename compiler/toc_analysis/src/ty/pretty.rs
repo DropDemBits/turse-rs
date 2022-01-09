@@ -35,6 +35,7 @@ impl TypeKind {
             // Sized charseqs use the parent type as the basename
             TypeKind::CharN(_) => "char",
             TypeKind::StringN(_) => "string",
+            TypeKind::Alias(_, _) => "",
             // Refs are not shown to the user
             TypeKind::Ref(_, _) => unreachable!("refs should be peeled before display"),
             _ => self.debug_prefix(),
@@ -62,6 +63,8 @@ impl TypeKind {
             TypeKind::String => "string",
             TypeKind::CharN(_) => "char_n",
             TypeKind::StringN(_) => "string_n",
+            TypeKind::Alias(_, _) => "alias",
+            TypeKind::Forward => "forward",
             TypeKind::Ref(Mutability::Const, _) => "ref",
             TypeKind::Ref(Mutability::Var, _) => "ref_mut",
         }
@@ -79,6 +82,10 @@ where
     match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_fmt(format_args!(" {:?}", seq))?
+        }
+        TypeKind::Alias(def_id, to) => {
+            out.write_fmt(format_args!("[{:?}] of ", def_id))?;
+            emit_debug_ty(db, out, *to)?
         }
         TypeKind::Ref(_, to) => {
             out.write_char(' ')?;
@@ -106,6 +113,13 @@ where
                 Err(NotFixedLen::DynSize) => out.write_char('*')?,
                 Err(NotFixedLen::ConstError(_)) => unreachable!("should not show errors!"),
             }
+            out.write_char(')')?;
+        }
+        TypeKind::Alias(def_id, to) => {
+            let library = db.library(def_id.0);
+            let name = library.local_def(def_id.1).name.item();
+            out.write_fmt(format_args!("{} (alias of ", name))?;
+            emit_display_ty(db, out, *to)?;
             out.write_char(')')?;
         }
         TypeKind::Ref(_, to) => emit_display_ty(db, out, *to)?,

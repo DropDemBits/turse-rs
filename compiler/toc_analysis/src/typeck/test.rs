@@ -1066,6 +1066,22 @@ test_named_group! { equivalence_of,
         for : n .. 1 end for
         for : i .. 1 end for
         for : r .. 1 end for
+        "#,
+        aliases => r#"
+        type a0 : int
+        type a1 : int
+        var i : int
+        var ia0 : a0
+        var ia1 : a1
+
+        % base type & alias
+        for : i .. ia0 end for
+        for : i .. ia1 end for
+        for : ia0 .. i end for
+        for : ia1 .. i end for
+        % alias with same base type
+        for : ia0 .. ia1 end for
+        for : ia1 .. ia0 end for
         "#
     ]
 }
@@ -1329,6 +1345,24 @@ test_named_group! {
         var k : int
         case 1 of label k + 1: end case
         "#
+    ]
+}
+
+test_named_group! { typeck_type_alias,
+    [
+        normal => "type a : int var _ : a",
+        chained => "
+        type a : int
+        type b : a
+        type c : a",
+        resolved_forward => "
+        type fowo : forward
+        type fowo : int
+        var _ : fowo",
+        // unresolved forwards can't even be used in type decls
+        unresolved_forward => "
+        type fowo : forward
+        type a : fowo",
     ]
 }
 

@@ -90,6 +90,15 @@ impl TypeKind {
             TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) | TypeKind::Ref(_, _) => {
                 false
             }
+            TypeKind::Alias(_, _) => {
+                // Aliases should be peeled first, but it's okay to conservatively treat it as
+                // not one
+                false
+            }
+            TypeKind::Forward => {
+                // Forward types are never scalars, since they never represent any type
+                false
+            }
         }
     }
 
@@ -145,6 +154,27 @@ where
         match self.to_deref() {
             Ok(to) => to,
             Err(_self) => _self,
+        }
+    }
+
+    /// Returns the type id pointed to by an alias, or itself if it's not an alias type.
+    /// This peels through all aliases.
+    ///
+    /// # Example
+    ///
+    /// ```text
+    /// Boolean -> Boolean
+    /// Alias(Boolean) -> Boolean
+    /// Alias(Alias(Boolean)) -> Boolean
+    /// ```
+    pub fn peel_aliases(self) -> Self {
+        match self.kind() {
+            TypeKind::Alias(_, to_ty) => {
+                let ty = to_ty.in_db(self.db);
+                assert!(!matches!(ty.kind(), TypeKind::Alias(_, _)));
+                ty
+            }
+            _ => self,
         }
     }
 }

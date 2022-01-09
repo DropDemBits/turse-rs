@@ -67,6 +67,10 @@ impl HirVisitor for DefCollector {
         self.add_owner(item.def_id, DefOwner::Item(id));
     }
 
+    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        self.add_owner(item.def_id, DefOwner::Item(id));
+    }
+
     fn visit_for(&self, id: stmt::BodyStmt, stmt: &stmt::For) {
         if let Some(def_id) = stmt.counter_def {
             self.add_owner(def_id, DefOwner::Stmt(id))

@@ -155,6 +155,24 @@ where
         )
     }
 
+    fn mk_alias(&self, def_id: DefId, base_ty: TypeId) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Alias(def_id, base_ty),
+            }
+            .into(),
+        )
+    }
+
+    fn mk_forward(&self) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Forward,
+            }
+            .into(),
+        )
+    }
+
     fn mk_ref(&self, mutability: Mutability, to: TypeId) -> TypeId {
         self.intern_type(
             Type {

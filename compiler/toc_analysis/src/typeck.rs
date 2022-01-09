@@ -424,7 +424,7 @@ impl TypeCheck<'_> {
 
     fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
         let db = self.db;
-        let ty_dat = ty.in_db(db).peel_ref();
+        let ty_dat = ty.in_db(db).peel_ref().peel_aliases();
 
         // Must be a valid put/get type
         // Can be one of the following:
@@ -441,6 +441,7 @@ impl TypeCheck<'_> {
         // For now, all lowered types satisfy this condition
         match ty_dat.kind() {
             ty::TypeKind::Error
+            | ty::TypeKind::Forward // accept since it's like error
             | ty::TypeKind::Boolean
             | ty::TypeKind::Int(_)
             | ty::TypeKind::Nat(_)
@@ -452,6 +453,8 @@ impl TypeCheck<'_> {
             | ty::TypeKind::StringN(_) => true,
             // Already deref'd
             ty::TypeKind::Ref(_, _) => unreachable!(),
+            // Already de-aliased
+            ty::TypeKind::Alias(_, _) => unreachable!(),
         }
     }
 

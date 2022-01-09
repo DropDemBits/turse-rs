@@ -2148,7 +2148,10 @@ impl CodeFragment {
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
                 Opcode::ASNSTRINV()
             }
-            ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
+            ty::TypeKind::Ref(_, _)
+            | ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _) => unreachable!(),
         };
 
         self.emit_opcode(opcode);
@@ -2190,7 +2193,10 @@ impl CodeFragment {
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
                 Opcode::ASNSTR()
             }
-            ty::TypeKind::Ref(_, _) | ty::TypeKind::Error => unreachable!(),
+            ty::TypeKind::Ref(_, _)
+            | ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _) => unreachable!(),
         };
 
         self.emit_opcode(opcode);
@@ -2230,7 +2236,10 @@ impl CodeFragment {
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
-            ty::TypeKind::Error | ty::TypeKind::Ref(_, _) => unreachable!(),
+            ty::TypeKind::Ref(_, _)
+            | ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _) => unreachable!(),
         };
 
         self.emit_opcode(opcode);

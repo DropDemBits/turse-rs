@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "type fowo : forward\ntype a : fowo"
+
+---
+"fowo"@(FileId(1), 5..9) [Forward(Type, None)]: forward
+"a"@(FileId(1), 25..26) [Resolved(Type)]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
