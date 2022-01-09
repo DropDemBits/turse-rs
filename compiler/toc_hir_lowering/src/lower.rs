@@ -214,6 +214,22 @@ impl<'ctx> FileLowering<'ctx> {
         let span = self.mk_span(range);
         self.library.intern_span(span)
     }
+
+    // Helper for using a symbol, handling undeclared reporting
+    fn use_sym(&mut self, name: &str, span: Span) -> LocalDefId {
+        self.scopes.use_sym(name, || {
+            // make an undeclared
+            self.messages.error(
+                &format!("`{}` is undeclared", name),
+                &format!("no definitions of `{}` are in scope", name),
+                span,
+            );
+
+            let span = self.library.intern_span(span);
+            self.library
+                .add_def(name, span, symbol::SymbolKind::Undeclared)
+        })
+    }
 }
 
 /// For lowering things within a body

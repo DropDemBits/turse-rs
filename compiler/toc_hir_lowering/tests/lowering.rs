@@ -738,13 +738,41 @@ fn lower_type_def() {
 }
 
 #[test]
+fn lower_type_alias() {
+    assert_lower(
+        "
+    type a : int
+    type use_it : a
+    var _ : a
+    ",
+    );
+    // type aliases also cover general expressions in type position, which are invalid
+    assert_lower(
+        "
+    type a : 1 + 1
+    ",
+    );
+}
+
+#[test]
+fn lower_type_path() {
+    // Type paths aren't supported yet
+    assert_lower(
+        "
+    type a : int
+    type not_yet: a.b.c.d.e
+    ",
+    );
+}
+
+#[test]
 fn lower_type_def_forward() {
     // Normal
     assert_lower(
         "
     type a : forward
-    type a : int
     type use_it : a
+    type a : int
     ",
     );
     // Duplicate forward declare
@@ -752,8 +780,8 @@ fn lower_type_def_forward() {
         "
     type a : forward
     type a : forward
-    type a : int
     type use_it : a
+    type a : int
     ",
     );
     // Must be resolved in the same scope

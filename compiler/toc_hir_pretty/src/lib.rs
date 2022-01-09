@@ -98,6 +98,31 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         format!("{:?}@{}", name.item(), def_span)
     }
 
+    fn display_extra_def(&self, def_id: LocalDefId) -> String {
+        let def_info = self.library.local_def(def_id);
+        let def_display = self.display_def(def_id);
+        match def_info.kind {
+            toc_hir::symbol::SymbolKind::Undeclared => {
+                format!("{}, undeclared", def_display)
+            }
+            toc_hir::symbol::SymbolKind::Forward(kind, None) => {
+                format!("{}, unresolved forward({:?})", def_display, kind)
+            }
+            toc_hir::symbol::SymbolKind::Forward(kind, Some(resolve_to)) => {
+                format!(
+                    "{}, forward({:?}) -> {}",
+                    def_display,
+                    kind,
+                    self.display_def(resolve_to)
+                )
+            }
+            toc_hir::symbol::SymbolKind::Resolved(kind) => {
+                format!("{}, resolved({:?})", def_display, kind)
+            }
+            _ => def_display,
+        }
+    }
+
     fn item_span(&self, id: item::ItemId) -> SpanId {
         self.library.item(id).span
     }
@@ -286,14 +311,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.expr_span(id);
         match expr {
             expr::Name::Name(def_id) => {
-                let def_info = self.library.local_def(*def_id);
-                let def_display = self.display_def(*def_id);
-                let extra = if matches!(def_info.kind, toc_hir::symbol::SymbolKind::Undeclared) {
-                    format!("{}, undeclared", def_display)
-                } else {
-                    def_display
-                };
-
+                let extra = self.display_extra_def(*def_id);
                 self.emit_node("Name", span, Some(format_args!("{}", extra)))
             }
             expr::Name::Self_ => self.emit_node("Self", span, None),
@@ -303,5 +321,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
         let span = self.type_span(id);
         self.emit_node("Primitive", span, Some(format_args!("{:?}", ty)))
+    }
+    fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
+        let span = self.type_span(id);
+        let def_id = &ty.0;
+        let extra = self.display_extra_def(*def_id);
+        self.emit_node("Alias", span, Some(format_args!("{}", extra)))
     }
 }

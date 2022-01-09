@@ -7,8 +7,8 @@ use toc_span::SpanId;
 
 pub use crate::ids::TypeId;
 
-use crate::body;
 use crate::ids::TypeIndex;
+use crate::{body, symbol};
 
 /// An interner for HIR types
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -47,6 +47,8 @@ pub enum TypeKind {
     Missing,
     /// Primitive Type
     Primitive(Primitive),
+    /// Alias Type
+    Alias(Alias),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -78,3 +80,7 @@ pub enum SeqLength {
     /// that might be computable at compile time.
     Expr(body::BodyId),
 }
+
+// FIXME: Use the proper representation of an item path
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Alias(pub symbol::LocalDefId);

@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    type a : 1 + 1\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..24): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..19): []
+        StmtItem@(FileId(1), 5..19): ItemId(0)
+          Type@(FileId(1), 5..19): "a"@(FileId(1), 10..11)
+error in file FileId(1) at 14..19: invalid type
+| error in file FileId(1) for 14..19: expressions can't be used as types
+

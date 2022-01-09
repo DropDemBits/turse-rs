@@ -53,6 +53,7 @@ pub trait HirVisitor {
         self.specify_type(id, ty);
     }
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
+    fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
 
     // Node specification //
 
@@ -93,6 +94,7 @@ pub trait HirVisitor {
         match &ty.kind {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.visit_primitive(id, ty),
+            ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
         }
     }
 }
@@ -442,6 +444,7 @@ impl<'hir> Walker<'hir> {
         match &node.kind {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.walk_primitive(ty),
+            ty::TypeKind::Alias(_) => {}
         }
     }
 

@@ -1,7 +1,7 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
 assertion_line: 59
-expression: "\n    type a : forward\n    type a : forward\n    type a : int\n    type use_it : a\n    "
+expression: "\n    type a : forward\n    type a : forward\n    type use_it : a\n    type a : int\n    "
 
 ---
 Library@(dummy)
@@ -12,14 +12,13 @@ Library@(dummy)
           Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
         StmtItem@(FileId(1), 26..42): ItemId(1)
           Type@(FileId(1), 26..42): forward "a"@(FileId(1), 31..32)
-        StmtItem@(FileId(1), 47..59): ItemId(2)
-          Type@(FileId(1), 47..59): "a"@(FileId(1), 52..53)
-            Primitive@(FileId(1), 56..59): Int
-        StmtItem@(FileId(1), 64..79): ItemId(3)
-          Type@(FileId(1), 64..79): "use_it"@(FileId(1), 69..75)
+        StmtItem@(FileId(1), 47..62): ItemId(2)
+          Type@(FileId(1), 47..62): "use_it"@(FileId(1), 52..58)
+            Alias@(FileId(1), 61..62): "a"@(FileId(1), 31..32), forward(Type) -> "a"@(FileId(1), 72..73)
+        StmtItem@(FileId(1), 67..79): ItemId(3)
+          Type@(FileId(1), 67..79): "a"@(FileId(1), 72..73)
+            Primitive@(FileId(1), 76..79): Int
 error in file FileId(1) at 31..32: `a` is already a forward declaration
 | note in file FileId(1) for 10..11: previous forward declaration here
 | error in file FileId(1) for 31..32: new one here
-error in file FileId(1) at 78..79: unsupported type
-| error in file FileId(1) for 78..79: this type is not handled yet
 

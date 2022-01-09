@@ -12,14 +12,13 @@ Library@(dummy)
           Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
         StmtItem@(FileId(1), 26..41): ItemId(1)
           Type@(FileId(1), 26..41): "use_it"@(FileId(1), 31..37)
+            Alias@(FileId(1), 40..41): "a"@(FileId(1), 10..11), unresolved forward(Type)
         StmtItem@(FileId(1), 83..94): ItemId(2)
           ConstVar@(FileId(1), 83..94): var "a"@(FileId(1), 87..88)
             Primitive@(FileId(1), 91..94): Int
         StmtItem@(FileId(1), 99..112): ItemId(3)
           Type@(FileId(1), 99..112): "a"@(FileId(1), 104..105)
             Primitive@(FileId(1), 108..112): Char
-error in file FileId(1) at 40..41: unsupported type
-| error in file FileId(1) for 40..41: this type is not handled yet
 error in file FileId(1) at 87..88: `a` is already declared in this scope
 | note in file FileId(1) for 10..11: `a` previously declared here
 | error in file FileId(1) for 87..88: `a` redeclared here
