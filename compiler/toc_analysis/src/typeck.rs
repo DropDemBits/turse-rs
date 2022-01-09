@@ -257,14 +257,14 @@ impl TypeCheck<'_> {
             .reporter
             .error_detailed("mismatched types", asn_span)
             .with_note(
-                &format!("this is of type `{right}`", right = right_ty),
+                format!("this is of type `{right}`", right = right_ty),
                 right_span,
             )
             .with_note(
-                &format!("this is of type `{left}`", left = left_ty),
+                format!("this is of type `{left}`", left = left_ty),
                 left_span,
             )
-            .with_info(&format!(
+            .with_info(format!(
                 "`{right}` is not assignable into `{left}`",
                 left = left_ty.peel_aliases(),
                 right = right_ty.peel_aliases()
@@ -308,7 +308,7 @@ impl TypeCheck<'_> {
                         .reporter
                         .error_detailed("invalid put option", span)
                         .with_note(
-                            &format!("cannot specify fraction width for `{}`", put_ty),
+                            format!("cannot specify fraction width for `{}`", put_ty),
                             item_span,
                         )
                         .with_error("this is the invalid option", span)
@@ -323,7 +323,7 @@ impl TypeCheck<'_> {
                         .reporter
                         .error_detailed("invalid put option", span)
                         .with_note(
-                            &format!("cannot specify exponent width for `{}`", put_ty),
+                            format!("cannot specify exponent width for `{}`", put_ty),
                             item_span,
                         )
                         .with_error("this is the invalid option", span)
@@ -403,7 +403,7 @@ impl TypeCheck<'_> {
                             .reporter
                             .error_detailed("invalid get option used", item_span)
                             .with_error(
-                                &format!("cannot specify line width for `{ty}`", ty = ty),
+                                format!("cannot specify line width for `{ty}`", ty = ty),
                                 item_span,
                             )
                             .with_info("line width can only be specified for `string` types")
@@ -422,7 +422,7 @@ impl TypeCheck<'_> {
                         self.state()
                             .reporter
                             .error_detailed("invalid get option", opt_span)
-                            .with_note(&format!("cannot specify character width for `{ty}`", ty = ty), item_span)
+                            .with_note(format!("cannot specify character width for `{ty}`", ty = ty), item_span)
                             .with_error("this is the invalid option", opt_span)
                             .with_info("character width can only be specified for `string` and `char(N)` types")
                             .finish();
@@ -520,10 +520,10 @@ impl TypeCheck<'_> {
                         self.state()
                             .reporter
                             .error_detailed("mismatched types", bounds_span)
-                            .with_note(&format!("this is of type `{}`", end_ty), end_span)
-                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .with_note(format!("this is of type `{}`", end_ty), end_span)
+                            .with_note(format!("this is of type `{}`", start_ty), start_span)
                             .with_error(
-                                &format!(
+                                format!(
                                     "`{}` is not equivalent to `{}`",
                                     end_ty.peel_aliases(),
                                     start_ty.peel_aliases(),
@@ -545,18 +545,15 @@ impl TypeCheck<'_> {
 
                         builder = if start_ty != end_ty {
                             builder
-                                .with_note(&format!("this is of type {}", end_ty), end_span)
-                                .with_note(&format!("this is of type {}", start_ty), start_span)
+                                .with_note(format!("this is of type {}", end_ty), end_span)
+                                .with_note(format!("this is of type {}", start_ty), start_span)
                         } else {
                             builder
-                                .with_note(&format!("this is of type {}", end_ty), end_span)
-                                .with_note(
-                                    &format!("this is also of type {}", start_ty),
-                                    start_span,
-                                )
+                                .with_note(format!("this is of type {}", end_ty), end_span)
+                                .with_note(format!("this is also of type {}", start_ty), start_span)
                         };
 
-                        builder.with_error("expected index types", bounds_span).with_info(&format!(
+                        builder.with_error("expected index types", bounds_span).with_info(format!(
                             "range bounds types must both be index types (an integer, `{boolean}`, `{chr}`, enumerated type, or a range)",
                             boolean = ty::TypeKind::Boolean.prefix(),
                             chr = ty::TypeKind::Char.prefix()
@@ -626,13 +623,13 @@ impl TypeCheck<'_> {
                 .reporter
                 .error_detailed("mismatched types", discrim_span)
                 .with_error(
-                    &format!(
+                    format!(
                         "`{}` cannot be used as a case discriminant",
                         discrim_display
                     ),
                     discrim_span,
                 )
-                .with_info(&format!(
+                .with_info(format!(
                     "`case` discriminant must be either \
                     an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range), \
                     or a `{string}`",
@@ -668,15 +665,15 @@ impl TypeCheck<'_> {
                     .reporter
                     .error_detailed("mismatched types", selector_span)
                     .with_note(
-                        &format!("discriminant is of type `{}`", discrim_display),
+                        format!("discriminant is of type `{}`", discrim_display),
                         discrim_span,
                     )
                     .with_note(
-                        &format!("selector is of type `{}`", selector_ty),
+                        format!("selector is of type `{}`", selector_ty),
                         selector_span,
                     )
                     .with_error(
-                        &format!(
+                        format!(
                             "`{}` is not a `{}`",
                             selector_ty.clone().peel_aliases(),
                             discrim_display.clone().peel_aliases()
@@ -706,18 +703,14 @@ impl TypeCheck<'_> {
                             .reporter
                             .error_detailed("mismatched types", selector_span)
                             .with_note(
-                                &format!(
-                                    "this is of type `{}`, of length {}",
-                                    selector_ty,
-                                    s.len()
-                                ),
+                                format!("this is of type `{}`, of length {}", selector_ty, s.len()),
                                 selector_span,
                             )
                             .with_note(
-                                &format!("discriminant is of type `{}`", discrim_display),
+                                format!("discriminant is of type `{}`", discrim_display),
                                 discrim_span,
                             )
-                            .with_info(&format!(
+                            .with_info(format!(
                                 "`{}` only allows `{}` or `{}`s of length 1",
                                 discrim_ty,
                                 ty::TypeKind::Char.prefix(),
@@ -789,8 +782,8 @@ impl TypeCheck<'_> {
                     let name = self.library.local_def(*def_id).name.item();
 
                     self.state().reporter.error(
-                        &format!("cannot use `{}` as an expression", name),
-                        &format!("`{}` is a reference to a type", name),
+                        format!("cannot use `{}` as an expression", name),
+                        format!("`{}` is a reference to a type", name),
                         span,
                     );
                 }
@@ -859,8 +852,8 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("invalid character count size", expr_span)
-                .with_error(&format!("computed count is {}", int), expr_span)
-                .with_info(&format!("valid sizes are between 1 to {}", size_limit - 1))
+                .with_error(format!("computed count is {}", int), expr_span)
+                .with_info(format!("valid sizes are between 1 to {}", size_limit - 1))
                 .finish();
         }
     }
@@ -874,8 +867,8 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", span)
-                .with_note(&format!("this is of type `{}`", ty), span)
-                .with_info(&format!("`{}` is not an integer type", ty))
+                .with_note(format!("this is of type `{}`", ty), span)
+                .with_info(format!("`{}` is not an integer type", ty))
                 .finish();
         }
     }
@@ -888,11 +881,8 @@ impl TypeCheck<'_> {
             self.state()
                 .reporter
                 .error_detailed("mismatched types", span)
-                .with_note(&format!("this is of type `{}`", ty), span)
-                .with_info(&format!(
-                    "expected a `{}` type",
-                    expected_ty.kind().prefix()
-                ))
+                .with_note(format!("this is of type `{}`", ty), span)
+                .with_info(format!("expected a `{}` type", expected_ty.kind().prefix()))
                 .finish();
         }
     }
@@ -912,8 +902,8 @@ impl TypeCheck<'_> {
                 let name = def_library.local_def(def_id.1).name.item();
 
                 self.state().reporter.error(
-                    &format!("`{}` has not been resolved at this point", name),
-                    &format!("`{}` is required to be resolved at this point", name),
+                    format!("`{}` has not been resolved at this point", name),
+                    format!("`{}` is required to be resolved at this point", name),
                     ty_span,
                 );
             }

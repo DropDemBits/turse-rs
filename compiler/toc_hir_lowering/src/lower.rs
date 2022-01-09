@@ -220,8 +220,8 @@ impl<'ctx> FileLowering<'ctx> {
         self.scopes.use_sym(name, || {
             // make an undeclared
             self.messages.error(
-                &format!("`{}` is undeclared", name),
-                &format!("no definitions of `{}` are in scope", name),
+                format!("`{}` is undeclared", name),
+                format!("no definitions of `{}` are in scope", name),
                 span,
             );
 

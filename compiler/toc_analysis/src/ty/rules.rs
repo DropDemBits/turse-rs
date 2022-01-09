@@ -1054,17 +1054,17 @@ pub fn report_invalid_bin_op<'db, DB>(
     };
 
     let msg = reporter
-        .error_detailed(&format!("mismatched types for {}", op_name), op_span)
+        .error_detailed(format!("mismatched types for {}", op_name), op_span)
         .with_note(
-            &format!("this is of type `{right}`", right = right_ty),
+            format!("this is of type `{right}`", right = right_ty),
             right_span,
         )
         .with_note(
-            &format!("this is of type `{left}`", left = left_ty),
+            format!("this is of type `{left}`", left = left_ty),
             left_span,
         )
         .with_error(
-            &format!(
+            format!(
                 "`{left}` cannot be {verb_phrase} `{right}`",
                 left = left_ty.clone().peel_aliases(),
                 verb_phrase = verb_phrase,
@@ -1153,13 +1153,13 @@ pub fn report_invalid_unary_op<'db, DB>(
     };
 
     let msg = reporter
-        .error_detailed(&format!("mismatched types for {}", op_name), op_span)
+        .error_detailed(format!("mismatched types for {}", op_name), op_span)
         .with_note(
-            &format!("this is of type `{right}`", right = right_ty),
+            format!("this is of type `{right}`", right = right_ty),
             right_span,
         )
         .with_error(
-            &format!(
+            format!(
                 "cannot apply {verb_phrase} to `{right}`",
                 verb_phrase = verb_phrase,
                 right = right_ty.peel_aliases()

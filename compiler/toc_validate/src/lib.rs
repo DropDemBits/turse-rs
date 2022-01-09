@@ -31,12 +31,22 @@ struct ValidateCtx {
 }
 
 impl ValidateCtx {
-    pub(crate) fn push_error(&mut self, msg: &str, at_span: &str, range: TextRange) {
-        self.sink.error(msg, at_span, self.mk_span(range));
+    pub(crate) fn push_error(
+        &mut self,
+        msg: impl Into<String>,
+        at_span: impl Into<String>,
+        range: TextRange,
+    ) {
+        self.sink
+            .error(msg.into(), at_span.into(), self.mk_span(range));
     }
 
-    pub(crate) fn push_detailed_error(&mut self, msg: &str, span: Span) -> MessageBuilder {
-        self.sink.error_detailed(msg, span)
+    pub(crate) fn push_detailed_error(
+        &mut self,
+        msg: impl Into<String>,
+        span: Span,
+    ) -> MessageBuilder {
+        self.sink.error_detailed(msg.into(), span)
     }
 
     pub(crate) fn mk_span(&self, range: TextRange) -> Span {
@@ -146,8 +156,8 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
 pub(crate) fn without_matching(node: &SyntaxNode, thing: &str, ctx: &mut ValidateCtx) {
     let first = node.first_token().unwrap();
     ctx.push_error(
-        &format!("found dangling ‘{}’", first.text()),
-        &format!(
+        format!("found dangling ‘{}’", first.text()),
+        format!(
             "this ‘{}’ does not have a matching ‘{}’",
             first.text(),
             thing

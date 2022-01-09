@@ -51,13 +51,13 @@ impl ConstError {
                 reporter
                     .error_detailed("reference cannot be computed at compile-time", self.span)
                     .with_note(
-                        &format!("`{}` declared here", def_info.name.item()),
+                        format!("`{}` declared here", def_info.name.item()),
                         def_span,
                     )
             }
             _ => reporter
                 .error_detailed("cannot compute expression at compile-time", self.span)
-                .with_error(&format!("{}", self.kind), self.span),
+                .with_error(format!("{}", self.kind), self.span),
         }
         .finish();
     }

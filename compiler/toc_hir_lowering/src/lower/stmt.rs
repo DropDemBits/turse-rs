@@ -558,7 +558,7 @@ impl super::BodyLowering<'_, '_> {
                     self.ctx
                         .messages
                         .error_detailed(
-                            &format!("`{}` is already a forward declaration", name),
+                            format!("`{}` is already a forward declaration", name),
                             new_span,
                         )
                         .with_note("previous forward declaration here", old_span)
@@ -578,12 +578,12 @@ impl super::BodyLowering<'_, '_> {
                         self.ctx
                             .messages
                             .error_detailed(
-                                &format!("`{}` must be resolved in the same scope", name),
+                                format!("`{}` must be resolved in the same scope", name),
                                 new_span,
                             )
-                            .with_note(&format!("forward declaration of `{}` here", name), old_span)
+                            .with_note(format!("forward declaration of `{}` here", name), old_span)
                             .with_error(
-                                &format!("resolution of `{}` is not in the same scope", name),
+                                format!("resolution of `{}` is not in the same scope", name),
                                 new_span,
                             )
                             .finish();
@@ -603,11 +603,11 @@ impl super::BodyLowering<'_, '_> {
                     self.ctx
                         .messages
                         .error_detailed(
-                            &format!("`{}` is already declared in this scope", name),
+                            format!("`{}` is already declared in this scope", name),
                             new_span,
                         )
-                        .with_note(&format!("`{}` previously declared here", name), old_span)
-                        .with_error(&format!("`{}` redeclared here", name), new_span)
+                        .with_note(format!("`{}` previously declared here", name), old_span)
+                        .with_error(format!("`{}` redeclared here", name), new_span)
                         .finish();
                 }
             }
