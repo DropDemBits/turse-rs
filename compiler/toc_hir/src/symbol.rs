@@ -42,7 +42,7 @@ pub enum SymbolKind {
     /// The symbol is a normal declaration at the point of definition.
     Declared,
     /// The symbol is a forward reference to a later declaration,
-    /// with a [`LocaLDefId`] pointing to the resolving definition.
+    /// with a [`LocalDefId`] pointing to the resolving definition.
     Forward(ForwardKind, Option<LocalDefId>),
     /// The symbol is a resolution of a forward declaration.
     Resolved(ForwardKind),
