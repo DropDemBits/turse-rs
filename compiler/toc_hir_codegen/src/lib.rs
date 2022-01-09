@@ -929,12 +929,14 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, stmt.lhs).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, stmt.rhs).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
 
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
@@ -948,7 +950,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_coerced_assignment(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
-        let lhs_ty = lhs_ty.in_db(self.db).peel_ref();
+        let lhs_ty = lhs_ty.in_db(self.db).peel_ref().to_base_type();
 
         let coerce_to = match lhs_ty.kind() {
             ty::TypeKind::Real(_) => Some(CoerceTo::Real),
@@ -992,7 +994,8 @@ impl BodyCodeGenerator<'_> {
                 .db
                 .type_of((self.library_id, self.body_id, item.expr).into())
                 .in_db(self.db)
-                .peel_ref();
+                .peel_ref()
+                .to_base_type();
 
             let put_kind = match put_ty.kind() {
                 ty::TypeKind::Boolean => PutKind::Boolean(),
@@ -1092,7 +1095,8 @@ impl BodyCodeGenerator<'_> {
                 .db
                 .type_of((self.library_id, self.body_id, item.expr).into())
                 .in_db(self.db)
-                .peel_ref();
+                .peel_ref()
+                .to_base_type();
             let ty_size = get_ty.size_of().expect("type must be concrete") as u32;
 
             let mut get_width = None;
@@ -1325,7 +1329,8 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, stmt.discriminant).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
 
         let coerce_to = match discrim_ty.kind() {
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Some(CoerceTo::String),
@@ -1354,7 +1359,8 @@ impl BodyCodeGenerator<'_> {
                             .db
                             .type_of((self.library_id, self.body_id, *expr).into())
                             .in_db(self.db)
-                            .peel_ref();
+                            .peel_ref()
+                            .to_base_type();
 
                         self.generate_coerced_expr(*expr, coerce_to);
                         self.code_fragment.emit_locate_temp(discrim_value);
@@ -1426,7 +1432,8 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of(DefId(self.library_id, item.def_id).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
         self.code_fragment.allocate_local(
             self.db,
             DefId(self.library_id, item.def_id),
@@ -1466,7 +1473,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn coerce_expr_into(&mut self, from_ty: ty::TypeId, coerce_to: Option<CoerceTo>) {
-        let expr_ty = from_ty.in_db(self.db).peel_ref();
+        let expr_ty = from_ty.in_db(self.db).peel_ref().to_base_type();
 
         let coerce_op = coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind()) {
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
@@ -1604,12 +1611,14 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, expr.lhs).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, expr.rhs).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
 
         let opcode = match expr.op.item() {
             hir_expr::BinaryOp::Add => self
@@ -1937,7 +1946,8 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, expr.rhs).into())
             .in_db(self.db)
-            .peel_ref();
+            .peel_ref()
+            .to_base_type();
 
         self.generate_expr(expr.rhs);
 
@@ -1975,7 +1985,8 @@ impl BodyCodeGenerator<'_> {
                     .db
                     .type_of(DefId(self.library_id, *def_id).into())
                     .in_db(self.db)
-                    .peel_ref();
+                    .peel_ref()
+                    .to_base_type();
 
                 self.code_fragment
                     .emit_locate_local(DefId(self.library_id, *def_id));
@@ -2055,7 +2066,14 @@ struct CodeFragment {
 
 impl CodeFragment {
     fn allocate_local(&mut self, db: &dyn CodeGenDB, def_id: DefId, def_ty: ty::TypeId) {
-        self.allocate_local_space(def_id, def_ty.in_db(db).size_of().expect("is concrete"));
+        self.allocate_local_space(
+            def_id,
+            def_ty
+                .in_db(db)
+                .to_base_type()
+                .size_of()
+                .expect("is concrete"),
+        );
     }
 
     fn allocate_local_space(&mut self, def_id: DefId, size: usize) {
