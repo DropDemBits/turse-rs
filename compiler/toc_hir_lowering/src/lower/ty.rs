@@ -4,12 +4,26 @@ use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
 impl super::BodyLowering<'_, '_> {
+    /// Lowers a required type. If not present, constructs a `Type::Missing` node in-place
+    pub(super) fn lower_required_type(&mut self, ty: Option<ast::Type>) -> ty::TypeId {
+        ty.and_then(|ty| self.lower_type(ty)).unwrap_or_else(|| {
+            // Allocate a generic span
+            let ty = ty::Type {
+                kind: ty::TypeKind::Missing,
+                span: self.ctx.library.span_map.dummy_span(),
+            };
+            self.ctx.library.intern_type(ty)
+        })
+    }
+
+    /// Lowers a type.
     pub(super) fn lower_type(&mut self, ty: ast::Type) -> Option<ty::TypeId> {
         let span = self.ctx.mk_span(ty.syntax().text_range());
 
         let kind = match ty {
             ast::Type::PrimType(ty) => self.lower_prim_type(ty),
-            ast::Type::NameType(_) => self.unsupported_ty(span),
+            ast::Type::NameType(ty) => self.lower_name_type(ty),
+
             ast::Type::RangeType(_) => self.unsupported_ty(span),
             ast::Type::EnumType(_) => self.unsupported_ty(span),
             ast::Type::ArrayType(_) => self.unsupported_ty(span),
@@ -70,6 +84,35 @@ impl super::BodyLowering<'_, '_> {
                 let expr = seq_length.and_then(|node| node.expr());
                 let body = self.lower_required_expr_body(expr);
                 ty::SeqLength::Expr(body)
+            }
+        }
+    }
+
+    fn lower_name_type(&mut self, ty: ast::NameType) -> Option<ty::TypeKind> {
+        // First node should either be a NameExpr or a FieldExpr
+        let span = self.ctx.mk_span(ty.syntax().text_range());
+
+        match ty.expr()? {
+            ast::Expr::NameExpr(expr) => {
+                // simple alias
+                let name = expr.name()?.identifier_token()?;
+                let def_id = self.ctx.use_sym(name.text(), span);
+
+                Some(ty::TypeKind::Alias(ty::Alias(def_id)))
+            }
+            ast::Expr::FieldExpr(_expr) => {
+                // (type) path, which is not supported yet
+                self.ctx
+                    .messages
+                    .error("unsupported type", "type paths are not handled yet", span);
+                None
+            }
+            _ => {
+                // Not a valid named type
+                self.ctx
+                    .messages
+                    .error("invalid type", "expressions can't be used as types", span);
+                None
             }
         }
     }

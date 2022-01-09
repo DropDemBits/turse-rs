@@ -3,6 +3,7 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
+use toc_hir::symbol::DefId;
 use toc_span::Span;
 
 use crate::const_eval::{Const, ConstError, ConstInt};
@@ -65,6 +66,12 @@ pub enum TypeKind {
     CharN(SeqSize),
     /// Fixed-size string type.
     StringN(SeqSize),
+    /// Named alias to another type, pointing to the base (un-aliased) type
+    Alias(DefId, TypeId),
+    /// Forward declaration of a type.
+    /// This is used to prevent cyclic type declarations, which we can't detect
+    /// yet.
+    Forward,
     /// Reference type.
     ///
     /// This type does not appear in syntax (except for parameter binding),
@@ -218,6 +225,9 @@ where
             TypeKind::String => 1,
             TypeKind::CharN(_) => 1,
             TypeKind::StringN(_) => 1,
+            // Defer to the aliased type
+            TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
+            TypeKind::Forward => return None,
             TypeKind::Ref(_, _) => return None,
         };
 
@@ -255,7 +265,11 @@ where
                     align_up_to(length_of, 2)
                 }
             }
-            TypeKind::Integer | TypeKind::Ref(_, _) | TypeKind::Error => return None,
+            // Defer to the aliased type
+            TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
+            TypeKind::Integer | TypeKind::Ref(_, _) | TypeKind::Forward | TypeKind::Error => {
+                return None
+            }
         };
 
         Some(size_of)
@@ -353,6 +367,16 @@ where
         };
 
         Some(value)
+    }
+}
+
+impl<'db, DB: ?Sized + 'db> Clone for TyRef<'db, DB> {
+    fn clone(&self) -> Self {
+        Self {
+            db: self.db,
+            id: self.id,
+            data: self.data.clone(),
+        }
     }
 }
 

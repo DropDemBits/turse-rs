@@ -1,0 +1,20 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    type a : int\n    type use_it : a\n    var _ : a\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..56): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..51): []
+        StmtItem@(FileId(1), 5..17): ItemId(0)
+          Type@(FileId(1), 5..17): "a"@(FileId(1), 10..11)
+            Primitive@(FileId(1), 14..17): Int
+        StmtItem@(FileId(1), 22..37): ItemId(1)
+          Type@(FileId(1), 22..37): "use_it"@(FileId(1), 27..33)
+            Alias@(FileId(1), 36..37): "a"@(FileId(1), 10..11), resolved(Type)
+        StmtItem@(FileId(1), 42..51): ItemId(2)
+          ConstVar@(FileId(1), 42..51): var "_"@(FileId(1), 46..47)
+            Alias@(FileId(1), 50..51): "a"@(FileId(1), 10..11), resolved(Type)
+

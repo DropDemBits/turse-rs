@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
 
 ---
@@ -10,7 +11,7 @@ expression: "var a : int\nvar b : string\nvar c := a + b\nvar j := c + a\n"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 38..39: mismatched types for string concatenation
-| note in file FileId(1) for 36..37: this is of type `int`
 | note in file FileId(1) for 40..41: this is of type `string`
+| note in file FileId(1) for 36..37: this is of type `int`
 | error in file FileId(1) for 38..39: `int` cannot be concatenated to `string`
 | info: operands must both be numbers, strings, or sets

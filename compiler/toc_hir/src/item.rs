@@ -32,7 +32,8 @@ pub enum ItemKind {
     /// Combined representation for `const` and `var` declarations
     /// (disambiguated by `mutability`)
     ConstVar(ConstVar),
-    // Type { .. },
+    /// Type alias & forward declaration
+    Type(Type),
     // Bind { .. },
     /// general function, rolls up function, procedure, and process
     /// distinguished by return type
@@ -72,32 +73,19 @@ pub struct ConstVar {
     pub init_expr: Option<body::BodyId>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConstVarTail {
-    /// Only the type spec is specified
-    TypeSpec(ty::TypeId),
-    /// Only the initializer is specified
-    InitExpr(body::BodyId),
-    /// Both the type spec and init expr are specified
-    Both(ty::TypeId, body::BodyId),
+#[derive(Debug, PartialEq, Eq)]
+pub struct Type {
+    pub def_id: symbol::LocalDefId,
+    pub type_def: DefinedType,
 }
 
-impl ConstVarTail {
-    pub fn type_spec(self) -> Option<ty::TypeId> {
-        match self {
-            ConstVarTail::TypeSpec(ty_spec) => Some(ty_spec),
-            ConstVarTail::InitExpr(_) => None,
-            ConstVarTail::Both(ty_spec, _) => Some(ty_spec),
-        }
-    }
-
-    pub fn init_expr(self) -> Option<body::BodyId> {
-        match self {
-            ConstVarTail::TypeSpec(_) => None,
-            ConstVarTail::InitExpr(init_expr) => Some(init_expr),
-            ConstVarTail::Both(_, init_expr) => Some(init_expr),
-        }
-    }
+#[derive(Debug, PartialEq, Eq)]
+pub enum DefinedType {
+    /// Declaring an alias of a type
+    Alias(ty::TypeId),
+    /// Declaring a forward declaration of a type.
+    /// Provided SpanId is the span of the token
+    Forward(SpanId),
 }
 
 #[derive(Debug, PartialEq, Eq)]

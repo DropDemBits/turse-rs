@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b mod r\n    var _bi := b mod i\n    var _bn := b mod n\n    var _rb := r mod b\n    var _ib := i mod b\n    var _nb := n mod b\n    var _bb := b mod b\n"
 
 ---
@@ -17,37 +18,37 @@ expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 87..90: mismatched types for modulus
-| note in file FileId(1) for 85..86: this is of type `boolean`
 | note in file FileId(1) for 91..92: this is of type `real`
+| note in file FileId(1) for 85..86: this is of type `boolean`
 | error in file FileId(1) for 87..90: `boolean` cannot be `mod`'d by `real`
 | info: operands must both be numbers
 error in file FileId(1) at 110..113: mismatched types for modulus
-| note in file FileId(1) for 108..109: this is of type `boolean`
 | note in file FileId(1) for 114..115: this is of type `int`
+| note in file FileId(1) for 108..109: this is of type `boolean`
 | error in file FileId(1) for 110..113: `boolean` cannot be `mod`'d by `int`
 | info: operands must both be numbers
 error in file FileId(1) at 133..136: mismatched types for modulus
-| note in file FileId(1) for 131..132: this is of type `boolean`
 | note in file FileId(1) for 137..138: this is of type `nat`
+| note in file FileId(1) for 131..132: this is of type `boolean`
 | error in file FileId(1) for 133..136: `boolean` cannot be `mod`'d by `nat`
 | info: operands must both be numbers
 error in file FileId(1) at 156..159: mismatched types for modulus
-| note in file FileId(1) for 154..155: this is of type `real`
 | note in file FileId(1) for 160..161: this is of type `boolean`
+| note in file FileId(1) for 154..155: this is of type `real`
 | error in file FileId(1) for 156..159: `real` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 179..182: mismatched types for modulus
-| note in file FileId(1) for 177..178: this is of type `int`
 | note in file FileId(1) for 183..184: this is of type `boolean`
+| note in file FileId(1) for 177..178: this is of type `int`
 | error in file FileId(1) for 179..182: `int` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 202..205: mismatched types for modulus
-| note in file FileId(1) for 200..201: this is of type `nat`
 | note in file FileId(1) for 206..207: this is of type `boolean`
+| note in file FileId(1) for 200..201: this is of type `nat`
 | error in file FileId(1) for 202..205: `nat` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers
 error in file FileId(1) at 225..228: mismatched types for modulus
-| note in file FileId(1) for 223..224: this is of type `boolean`
 | note in file FileId(1) for 229..230: this is of type `boolean`
+| note in file FileId(1) for 223..224: this is of type `boolean`
 | error in file FileId(1) for 225..228: `boolean` cannot be `mod`'d by `boolean`
 | info: operands must both be numbers

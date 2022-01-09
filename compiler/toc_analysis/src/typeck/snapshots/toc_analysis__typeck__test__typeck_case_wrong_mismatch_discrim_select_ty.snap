@@ -10,12 +10,12 @@ error in file FileId(1) at 5..8: mismatched types
 | error in file FileId(1) for 5..8: `real` cannot be used as a case discriminant
 | info: `case` discriminant must be either an index type (an integer, `boolean`, `char`, enumerated type, or a range), or a `string`
 error in file FileId(1) at 21..24: mismatched types
-| note in file FileId(1) for 21..24: this is of type `char`
 | note in file FileId(1) for 5..8: discriminant is of type `real`
-| info: `char` is not a `real`
+| note in file FileId(1) for 21..24: selector is of type `char`
+| error in file FileId(1) for 21..24: `char` is not a `real`
 | info: selector type must match discriminant type
 error in file FileId(1) at 26..31: mismatched types
-| note in file FileId(1) for 26..31: this is of type `boolean`
 | note in file FileId(1) for 5..8: discriminant is of type `real`
-| info: `boolean` is not a `real`
+| note in file FileId(1) for 26..31: selector is of type `boolean`
+| error in file FileId(1) for 26..31: `boolean` is not a `real`
 | info: selector type must match discriminant type

@@ -1,11 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "for : \"no\" .. \"yes\" end for"
 
 ---
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 6..19: range bounds are not index types
-| note in file FileId(1) for 6..10: this is of type `string`
-| note in file FileId(1) for 14..19: this is also of type `string`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
+error in file FileId(1) at 6..19: mismatched types
+| note in file FileId(1) for 14..19: this is of type `string`
+| note in file FileId(1) for 6..10: this is also of type `string`
+| error in file FileId(1) for 6..19: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)

@@ -22,6 +22,7 @@ pub trait HirVisitor {
         self.specify_item(id, item);
     }
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {}
+    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {}
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {}
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {}
@@ -52,12 +53,14 @@ pub trait HirVisitor {
         self.specify_type(id, ty);
     }
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
+    fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
 
     // Node specification //
 
     fn specify_item(&self, id: item::ItemId, item: &item::Item) {
         match &item.kind {
             item::ItemKind::ConstVar(item) => self.visit_constvar(id, item),
+            item::ItemKind::Type(item) => self.visit_type_decl(id, item),
             item::ItemKind::Module(item) => self.visit_module(id, item),
         }
     }
@@ -91,6 +94,7 @@ pub trait HirVisitor {
         match &ty.kind {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.visit_primitive(id, ty),
+            ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
         }
     }
 }
@@ -270,6 +274,7 @@ impl<'hir> Walker<'hir> {
     fn walk_item(&mut self, item: &item::Item) {
         match &item.kind {
             item::ItemKind::ConstVar(item) => self.walk_constvar(item),
+            item::ItemKind::Type(item) => self.walk_type_decl(item),
             item::ItemKind::Module(item) => self.walk_module(item),
         }
     }
@@ -281,6 +286,13 @@ impl<'hir> Walker<'hir> {
 
         if let Some(id) = node.init_expr {
             self.enter_body(id, self.lib.body(id));
+        }
+    }
+
+    fn walk_type_decl(&mut self, node: &item::Type) {
+        match node.type_def {
+            item::DefinedType::Alias(ty) => self.enter_type(ty, self.lib.lookup_type(ty)),
+            item::DefinedType::Forward(_) => {}
         }
     }
 
@@ -432,6 +444,7 @@ impl<'hir> Walker<'hir> {
         match &node.kind {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.walk_primitive(ty),
+            ty::TypeKind::Alias(_) => {}
         }
     }
 

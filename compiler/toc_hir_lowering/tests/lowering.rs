@@ -724,3 +724,84 @@ fn lower_case_stmt() {
     "#,
     );
 }
+
+#[test]
+fn lower_type_def() {
+    // with type
+    assert_lower("type alias : int");
+    // with forward
+    assert_lower("type alias : forward");
+    // missing defined
+    assert_lower("type alias : ");
+    // missing name
+    assert_lower("type : forward");
+}
+
+#[test]
+fn lower_type_alias() {
+    assert_lower(
+        "
+    type a : int
+    type use_it : a
+    var _ : a
+    ",
+    );
+    // type aliases also cover general expressions in type position, which are invalid
+    assert_lower(
+        "
+    type a : 1 + 1
+    ",
+    );
+}
+
+#[test]
+fn lower_type_path() {
+    // Type paths aren't supported yet
+    assert_lower(
+        "
+    type a : int
+    type not_yet: a.b.c.d.e
+    ",
+    );
+}
+
+#[test]
+fn lower_type_def_forward() {
+    // Normal
+    assert_lower(
+        "
+    type a : forward
+    type use_it : a
+    type a : int
+    ",
+    );
+    // Duplicate forward declare
+    assert_lower(
+        "
+    type a : forward
+    type a : forward
+    type use_it : a
+    type a : int
+    ",
+    );
+    // Must be resolved in the same scope
+    assert_lower(
+        "
+    type a : forward
+    begin
+        type a : int
+    end
+    type use_it : a
+    ",
+    );
+    // Different declarations should leave forwards unresolved
+    assert_lower(
+        "
+    type a : forward
+    type use_it : a % should not be resolved to latter a
+    var a : int
+    type a : char
+    ",
+    );
+    // TODO: Add test for different forward kinds
+}

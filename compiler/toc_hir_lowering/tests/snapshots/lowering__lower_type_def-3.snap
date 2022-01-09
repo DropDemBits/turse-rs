@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type alias : "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..13): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..12): []
+        StmtItem@(FileId(1), 0..12): ItemId(0)
+          Type@(FileId(1), 0..12): "alias"@(FileId(1), 5..10)
+error in file FileId(1) at 11..12: unexpected end of file
+| error in file FileId(1) for 11..12: expected type specifier after here
+

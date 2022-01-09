@@ -2,7 +2,7 @@
 
 use std::{
     cell::{Cell, RefCell},
-    fmt,
+    fmt::{self, Write},
 };
 
 use toc_hir::{
@@ -98,6 +98,31 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         format!("{:?}@{}", name.item(), def_span)
     }
 
+    fn display_extra_def(&self, def_id: LocalDefId) -> String {
+        let def_info = self.library.local_def(def_id);
+        let def_display = self.display_def(def_id);
+        match def_info.kind {
+            toc_hir::symbol::SymbolKind::Undeclared => {
+                format!("{}, undeclared", def_display)
+            }
+            toc_hir::symbol::SymbolKind::Forward(kind, None) => {
+                format!("{}, unresolved forward({:?})", def_display, kind)
+            }
+            toc_hir::symbol::SymbolKind::Forward(kind, Some(resolve_to)) => {
+                format!(
+                    "{}, forward({:?}) -> {}",
+                    def_display,
+                    kind,
+                    self.display_def(resolve_to)
+                )
+            }
+            toc_hir::symbol::SymbolKind::Resolved(kind) => {
+                format!("{}, resolved({:?})", def_display, kind)
+            }
+            _ => def_display,
+        }
+    }
+
     fn item_span(&self, id: item::ItemId) -> SpanId {
         self.library.item(id).span
     }
@@ -150,8 +175,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
     // Items //
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
-        use fmt::Write;
-
         let span = self.item_span(id);
         let def_id = self.def_of(id);
 
@@ -171,6 +194,20 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         self.emit_node("ConstVar", span, Some(format_args!("{}", extra)))
     }
+    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        let span = self.item_span(id);
+        let def_id = self.def_of(id);
+
+        let mut extra = String::new();
+
+        if let item::DefinedType::Forward(_) = item.type_def {
+            write!(extra, "forward ").unwrap()
+        }
+
+        write!(extra, "{}", self.display_def(def_id)).unwrap();
+
+        self.emit_node("Type", span, Some(format_args!("{}", extra)));
+    }
     fn visit_module(&self, id: item::ItemId, _item: &item::Module) {
         let span = self.item_span(id);
         let def_id = self.def_of(id);
@@ -182,8 +219,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {
-        use fmt::Write;
-
         let span = self.body_span(id);
         match &body.kind {
             body::BodyKind::Stmts(_, params) => {
@@ -276,14 +311,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.expr_span(id);
         match expr {
             expr::Name::Name(def_id) => {
-                let def_info = self.library.local_def(*def_id);
-                let def_display = self.display_def(*def_id);
-                let extra = if matches!(def_info.kind, toc_hir::symbol::SymbolKind::Undeclared) {
-                    format!("{}, undeclared", def_display)
-                } else {
-                    def_display
-                };
-
+                let extra = self.display_extra_def(*def_id);
                 self.emit_node("Name", span, Some(format_args!("{}", extra)))
             }
             expr::Name::Self_ => self.emit_node("Self", span, None),
@@ -293,5 +321,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
         let span = self.type_span(id);
         self.emit_node("Primitive", span, Some(format_args!("{:?}", ty)))
+    }
+    fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
+        let span = self.type_span(id);
+        let def_id = &ty.0;
+        let extra = self.display_extra_def(*def_id);
+        self.emit_node("Alias", span, Some(format_args!("{}", extra)))
     }
 }

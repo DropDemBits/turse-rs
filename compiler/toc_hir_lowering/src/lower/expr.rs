@@ -1,5 +1,5 @@
 //! Lowering into `Expr` HIR nodes
-use toc_hir::{body, expr, symbol};
+use toc_hir::{body, expr};
 use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 use toc_syntax::LiteralValue;
@@ -131,19 +131,8 @@ impl super::BodyLowering<'_, '_> {
     fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::ExprKind> {
         let name = expr.name()?.identifier_token()?;
         let span = self.ctx.mk_span(name.text_range());
+        let def_id = self.ctx.use_sym(name.text(), span);
 
-        let def_id = self.ctx.scopes.use_sym(name.text(), || {
-            // make an undeclared
-            self.ctx.messages.error(
-                &format!("`{}` is undeclared", name.text()),
-                &format!("no definitions of `{}` are in scope", name.text()),
-                span,
-            );
-
-            let library = &mut self.ctx.library;
-            let span = library.intern_span(span);
-            library.add_def(name.text(), span, symbol::SymbolKind::Undeclared)
-        });
         Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
     }
 }

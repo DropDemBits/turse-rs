@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var k := 20 + false\nvar l : int := k   % Nothing reported here\n"
 
 ---
@@ -8,7 +9,7 @@ expression: "var k := 20 + false\nvar l : int := k   % Nothing reported here\n"
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 12..13: mismatched types for addition
-| note in file FileId(1) for 9..11: this is of type `{integer}`
 | note in file FileId(1) for 14..19: this is of type `boolean`
+| note in file FileId(1) for 9..11: this is of type `{integer}`
 | error in file FileId(1) for 12..13: `{integer}` cannot be added to `boolean`
 | info: operands must both be numbers, strings, or sets

@@ -68,6 +68,10 @@ impl LibraryBuilder {
         self.add_body(body)
     }
 
+    pub fn local_def_mut(&mut self, def_id: symbol::LocalDefId) -> &mut symbol::DefInfo {
+        &mut self.defs[def_id.into()]
+    }
+
     pub fn finish(self, root_items: Vec<(FileId, item::ItemId)>) -> library::Library {
         let Self { library } = self;
 
@@ -154,7 +158,7 @@ impl BodyBuilder {
         }
     }
 
-    /// Finish as a statment group body
+    /// Finish as a statement group body
     pub fn finish_stmts(
         self,
         body_stmts: Vec<stmt::StmtId>,

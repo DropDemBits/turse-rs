@@ -1,4 +1,4 @@
-//! Lowering HIR entities into anaylsis types
+//! Lowering HIR entities into analysis types
 
 use std::convert::TryInto;
 
@@ -19,6 +19,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
     match &hir_ty.kind {
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
     }
 }
 
@@ -56,12 +57,22 @@ fn lower_seq_len(library: LibraryId, seq_len: hir_ty::SeqLength) -> SeqSize {
     }
 }
 
+fn alias_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Alias,
+) -> TypeId {
+    // Defer to the type's definition
+    db.type_of(DefId(hir_id.0, ty.0).into())
+}
+
 pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemId>) -> TypeId {
     let library = db.library(item_id.0);
     let item = library.item(item_id.1);
 
     match &item.kind {
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
+        item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
         item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
     }
 }
@@ -108,7 +119,7 @@ fn constvar_ty(
         // Integer decomposes into a normal `int`
         db.mk_int(IntSize::Int)
     } else {
-        item_ty.id()
+        require_resolved_type(db, item_ty.id())
     };
 
     // Use the appropriate reference mutability
@@ -118,6 +129,33 @@ fn constvar_ty(
     };
 
     db.mk_ref(mutability, item_ty)
+}
+
+fn type_def_ty(
+    db: &dyn TypeDatabase,
+    item_id: InLibrary<item::ItemId>,
+    item: &item::Type,
+) -> TypeId {
+    let def_id = DefId(item_id.0, item.def_id);
+
+    match &item.type_def {
+        item::DefinedType::Alias(to_ty) => {
+            // Peel any aliases that are encountered
+            let base_ty = db
+                .from_hir_type((*to_ty).in_library(item_id.0))
+                .in_db(db)
+                .peel_aliases();
+
+            // Specialize based on the kind
+            // TODO: Specialize type when it's a record or union
+            match base_ty.kind() {
+                // Forward base types get propagated as errors
+                ty::TypeKind::Forward => db.mk_error(),
+                _ => db.mk_alias(def_id, base_ty.id()),
+            }
+        }
+        item::DefinedType::Forward(_) => db.mk_alias(def_id, db.mk_forward()),
+    }
 }
 
 fn for_counter_ty(
@@ -226,5 +264,15 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
         expr::Name::Self_ => {
             todo!()
         }
+    }
+}
+
+/// Requires that a type is resolved at this point, otherwise produces
+/// a type error
+fn require_resolved_type(db: &dyn TypeDatabase, ty: TypeId) -> TypeId {
+    if ty.in_db(db).peel_aliases().kind().is_forward() {
+        db.mk_error()
+    } else {
+        ty
     }
 }

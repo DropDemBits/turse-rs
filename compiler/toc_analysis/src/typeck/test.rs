@@ -1066,6 +1066,22 @@ test_named_group! { equivalence_of,
         for : n .. 1 end for
         for : i .. 1 end for
         for : r .. 1 end for
+        "#,
+        aliases => r#"
+        type a0 : int
+        type a1 : int
+        var i : int
+        var ia0 : a0
+        var ia1 : a1
+
+        % base type & alias
+        for : i .. ia0 end for
+        for : i .. ia1 end for
+        for : ia0 .. i end for
+        for : ia1 .. i end for
+        % alias with same base type
+        for : ia0 .. ia1 end for
+        for : ia1 .. ia0 end for
         "#
     ]
 }
@@ -1329,6 +1345,81 @@ test_named_group! {
         var k : int
         case 1 of label k + 1: end case
         "#
+    ]
+}
+
+test_named_group! { typeck_type_alias,
+    [
+        normal => "type a : int var _ : a",
+        chained => "
+        type a : int
+        type b : a
+        type c : a",
+        resolved_forward => "
+        type fowo : forward
+        type fowo : int
+        var _ : fowo",
+        // unresolved forwards can't even be used in type decls
+        unresolved_forward => "
+        type fowo : forward
+        type a : fowo",
+        as_expr => "type k : int var a := k",
+    ]
+}
+
+test_named_group! { require_resolved_type,
+    [
+        in_type_decl => "type fowo : forward type _ : fowo",
+        in_constvar => "type fowo : forward var _ : fowo",
+    ]
+}
+
+test_named_group! { report_aliased_type,
+    [
+        in_inferred_ty => r#"
+        type a0 : real
+        type a1 : int
+        var k : a0
+        var i : a1 := k"#,
+        in_assign => r#"
+        type a0 : real
+        type a1 : int
+        var k : a0
+        var i : a1
+        i := k"#,
+        in_binary_expr => r#"
+        type a0 : real
+        type a1 : int
+        var k : a0
+        var i : int
+        i := i + k % unchanged"#,
+        in_unary_expr => r#"
+        type a0 : real
+        var k : a0
+        var _ := not k % unchanged
+        "#,
+        in_for => r#"
+        type a0 : string
+        var sa0 : a0
+        var s : string
+
+        for : sa0 .. sa0 end for
+        for : s .. sa0 end for
+        for : sa0 .. s end for
+
+        for : 1 .. sa0 end for
+        for : sa0 .. 1 end for
+        "#,
+        in_case => r#"
+        type a0 : char
+        type a1 : char(6)
+        var ca0 : a0
+        const cna1 : a1 := 'aaaaaa'
+
+        case ca0 of
+        label cna1:
+        end case
+        "#,
     ]
 }
 

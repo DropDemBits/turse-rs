@@ -101,6 +101,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_constvar(id, item);
     }
 
+    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        self.typeck_type_decl(id, item);
+    }
+
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
         self.typeck_assign(id.0, stmt);
     }
@@ -137,6 +141,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_unary(id.0, expr);
     }
 
+    fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
+        self.typeck_name_expr(id, expr);
+    }
+
     fn visit_primitive(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Primitive) {
         self.typeck_primitive(id, ty);
     }
@@ -144,6 +152,11 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
+        // Type spec must be resolved at this point
+        if let Some(ty_spec) = item.type_spec {
+            self.require_resolved_type(ty_spec);
+        }
+
         // Check the initializer expression
         let (ty_spec, init) = if let Some(bundle) = item.type_spec.zip(item.init_expr) {
             bundle
@@ -177,6 +190,12 @@ impl TypeCheck<'_> {
             // since that should be handled by const eval type restrictions
             // However, there should still be an assert here
             // TODO: Add assert ensuring there is no valid ConstValue
+        }
+    }
+
+    fn typeck_type_decl(&self, _id: item::ItemId, item: &item::Type) {
+        if let item::DefinedType::Alias(ty) = &item.type_def {
+            self.require_resolved_type(*ty)
         }
     }
 
@@ -247,8 +266,8 @@ impl TypeCheck<'_> {
             )
             .with_info(&format!(
                 "`{right}` is not assignable into `{left}`",
-                left = left_ty,
-                right = right_ty
+                left = left_ty.peel_aliases(),
+                right = right_ty.peel_aliases()
             ))
             .finish();
     }
@@ -441,6 +460,7 @@ impl TypeCheck<'_> {
         // For now, all lowered types satisfy this condition
         match ty_dat.kind() {
             ty::TypeKind::Error
+            | ty::TypeKind::Forward // accept since it's like error
             | ty::TypeKind::Boolean
             | ty::TypeKind::Int(_)
             | ty::TypeKind::Nat(_)
@@ -452,6 +472,8 @@ impl TypeCheck<'_> {
             | ty::TypeKind::StringN(_) => true,
             // Already deref'd
             ty::TypeKind::Ref(_, _) => unreachable!(),
+            // Already de-aliased
+            ty::TypeKind::Alias(_, _) => unreachable!(),
         }
     }
 
@@ -488,44 +510,57 @@ impl TypeCheck<'_> {
 
                 let bounds_span = start_span.cover(end_span);
 
-                let is_index_ty = |ty_kind: &ty::TypeKind| ty_kind.is_index() || ty_kind.is_error();
-
                 // Only report if both bounds are not `Missing`
                 if let Some(bounds_span) = bounds_span {
-                    if !ty::rules::is_either_coercible(db, start_ty.id(), end_ty.id()) {
+                    let base_start = start_ty.clone().to_base_type();
+                    let base_end = end_ty.clone().to_base_type();
+
+                    if !ty::rules::is_either_coercible(db, base_start.id(), base_end.id()) {
                         // Bounds are not equivalent for our purposes
                         self.state()
                             .reporter
-                            .error_detailed("range bounds are not the same type", bounds_span)
-                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .error_detailed("mismatched types", bounds_span)
                             .with_note(&format!("this is of type `{}`", end_ty), end_span)
-                            .with_info(&format!("`{}` is not equivalent to `{}`", start_ty, end_ty))
+                            .with_note(&format!("this is of type `{}`", start_ty), start_span)
+                            .with_error(
+                                &format!(
+                                    "`{}` is not equivalent to `{}`",
+                                    end_ty.peel_aliases(),
+                                    start_ty.peel_aliases(),
+                                ),
+                                bounds_span,
+                            )
+                            .with_info("range bounds types must be equivalent")
                             .finish();
-                    } else if !is_index_ty(start_ty.kind()) || !is_index_ty(end_ty.kind()) {
+                    } else if !base_start.kind().is_index() || !base_end.kind().is_index() {
                         // Neither is an index type
                         let mut state = self.state();
                         let mut builder = state
                             .reporter
-                            .error_detailed("range bounds are not index types", bounds_span);
+                            .error_detailed("mismatched types", bounds_span);
 
-                        // Specialize when reporting a non-concrete type
-                        if matches!(start_ty.kind(), ty::TypeKind::Integer)
-                            || matches!(end_ty.kind(), ty::TypeKind::Integer)
-                        {
-                            builder = builder
-                                .with_note(&format!("this is of type `{}`", start_ty), start_span)
-                                .with_note(&format!("this is of type `{}`", end_ty), end_span);
+                        // Specialize when reporting different types
+                        let start_ty = format!("`{}`", start_ty);
+                        let end_ty = format!("`{}`", end_ty);
+
+                        builder = if start_ty != end_ty {
+                            builder
+                                .with_note(&format!("this is of type {}", end_ty), end_span)
+                                .with_note(&format!("this is of type {}", start_ty), start_span)
                         } else {
-                            builder = builder
-                                .with_note(&format!("this is of type `{}`", start_ty), start_span)
-                                .with_note(&format!("this is also of type `{}`", end_ty), end_span);
-                        }
+                            builder
+                                .with_note(&format!("this is of type {}", end_ty), end_span)
+                                .with_note(
+                                    &format!("this is also of type {}", start_ty),
+                                    start_span,
+                                )
+                        };
 
-                        builder.with_info(&format!(
-                            "expected an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range)",
+                        builder.with_error("expected index types", bounds_span).with_info(&format!(
+                            "range bounds types must both be index types (an integer, `{boolean}`, `{chr}`, enumerated type, or a range)",
                             boolean = ty::TypeKind::Boolean.prefix(),
                             chr = ty::TypeKind::Char.prefix()
-                        ))
+                        ), )
                         .finish();
                     }
                 }
@@ -574,10 +609,11 @@ impl TypeCheck<'_> {
         // - label selectors must be compile-time exprs
         let db = self.db;
 
-        let discrim_ty = db
+        let discrim_display = db
             .type_of((self.library_id, body_id, stmt.discriminant).into())
             .in_db(db)
             .peel_ref();
+        let discrim_ty = discrim_display.clone().to_base_type();
         let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
         let discrim_span = self.library.lookup_span(discrim_span);
 
@@ -590,7 +626,10 @@ impl TypeCheck<'_> {
                 .reporter
                 .error_detailed("mismatched types", discrim_span)
                 .with_error(
-                    &format!("`{}` cannot be used as a case discriminant", discrim_ty),
+                    &format!(
+                        "`{}` cannot be used as a case discriminant",
+                        discrim_display
+                    ),
                     discrim_span,
                 )
                 .with_info(&format!(
@@ -628,12 +667,22 @@ impl TypeCheck<'_> {
                 self.state()
                     .reporter
                     .error_detailed("mismatched types", selector_span)
-                    .with_note(&format!("this is of type `{}`", selector_ty), selector_span)
                     .with_note(
-                        &format!("discriminant is of type `{}`", discrim_ty),
+                        &format!("discriminant is of type `{}`", discrim_display),
                         discrim_span,
                     )
-                    .with_info(&format!("`{}` is not a `{}`", selector_ty, discrim_ty))
+                    .with_note(
+                        &format!("selector is of type `{}`", selector_ty),
+                        selector_span,
+                    )
+                    .with_error(
+                        &format!(
+                            "`{}` is not a `{}`",
+                            selector_ty.clone().peel_aliases(),
+                            discrim_display.clone().peel_aliases()
+                        ),
+                        selector_span,
+                    )
                     .with_info("selector type must match discriminant type")
                     .finish();
             }
@@ -665,7 +714,7 @@ impl TypeCheck<'_> {
                                 selector_span,
                             )
                             .with_note(
-                                &format!("discriminant is of type `{}`", discrim_ty),
+                                &format!("discriminant is of type `{}`", discrim_display),
                                 discrim_span,
                             )
                             .with_info(&format!(
@@ -722,6 +771,31 @@ impl TypeCheck<'_> {
                 right_span,
                 &mut self.state().reporter,
             );
+        }
+    }
+
+    fn typeck_name_expr(&self, id: expr::BodyExpr, expr: &expr::Name) {
+        match expr {
+            expr::Name::Name(def_id) => {
+                // Validate it's a ref to a storage location
+                let ty_ref = self
+                    .db
+                    .type_of(DefId(self.library_id, *def_id).into())
+                    .in_db(self.db);
+
+                if !matches!(ty_ref.kind(), ty::TypeKind::Ref(_, _)) {
+                    let span = self.library.body(id.0).expr(id.1).span;
+                    let span = self.library.lookup_span(span);
+                    let name = self.library.local_def(*def_id).name.item();
+
+                    self.state().reporter.error(
+                        &format!("cannot use `{}` as an expression", name),
+                        &format!("`{}` is a reference to a type", name),
+                        span,
+                    );
+                }
+            }
+            expr::Name::Self_ => todo!(),
         }
     }
 
@@ -820,6 +894,29 @@ impl TypeCheck<'_> {
                     expected_ty.kind().prefix()
                 ))
                 .finish();
+        }
+    }
+
+    fn require_resolved_type(&self, ty: toc_hir::ty::TypeId) {
+        let ty_ref = self
+            .db
+            .from_hir_type(ty.in_library(self.library_id))
+            .in_db(self.db);
+
+        if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind() {
+            if to_ty.in_db(self.db).kind().is_forward() {
+                let ty_span = self.library.lookup_type(ty).span;
+                let ty_span = self.library.lookup_span(ty_span);
+
+                let def_library = self.db.library(def_id.0);
+                let name = def_library.local_def(def_id.1).name.item();
+
+                self.state().reporter.error(
+                    &format!("`{}` has not been resolved at this point", name),
+                    &format!("`{}` is required to be resolved at this point", name),
+                    ty_span,
+                );
+            }
         }
     }
 }

@@ -1,0 +1,23 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    type a : forward\n    begin\n        type a : int\n    end\n    type use_it : a\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..85): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..80): []
+        StmtItem@(FileId(1), 5..21): ItemId(0)
+          Type@(FileId(1), 5..21): forward "a"@(FileId(1), 10..11)
+        Block@(FileId(1), 26..60): Normal
+          StmtItem@(FileId(1), 40..52): ItemId(1)
+            Type@(FileId(1), 40..52): "a"@(FileId(1), 45..46)
+              Primitive@(FileId(1), 49..52): Int
+        StmtItem@(FileId(1), 65..80): ItemId(2)
+          Type@(FileId(1), 65..80): "use_it"@(FileId(1), 70..76)
+            Alias@(FileId(1), 79..80): "a"@(FileId(1), 10..11), unresolved forward(Type)
+error in file FileId(1) at 45..46: `a` must be resolved in the same scope
+| note in file FileId(1) for 10..11: forward declaration of `a` here
+| error in file FileId(1) for 45..46: resolution of `a` is not in the same scope
+

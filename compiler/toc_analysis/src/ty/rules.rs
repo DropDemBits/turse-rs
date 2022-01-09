@@ -38,6 +38,14 @@ impl TypeKind {
         matches!(self, TypeKind::Error)
     }
 
+    pub fn is_forward(&self) -> bool {
+        matches!(self, TypeKind::Forward)
+    }
+
+    pub fn is_alias(&self) -> bool {
+        matches!(self, TypeKind::Alias(_, _))
+    }
+
     /// charseq types includes `String`, `StringN`, `Char`, and `CharN` types
     pub fn is_charseq(&self) -> bool {
         matches!(
@@ -87,7 +95,17 @@ impl TypeKind {
             // - subrange
             // - pointer
             // - enum
-            TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) | TypeKind::Ref(_, _) => {
+            TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
+                // Aggregate types of characters
+                false
+            }
+            TypeKind::Ref(_, _) | TypeKind::Alias(_, _) => {
+                // These should be peeled first, but it's okay to conservatively treat it as
+                // not one
+                false
+            }
+            TypeKind::Forward => {
+                // Forward types are never scalars, since they never represent any type
                 false
             }
         }
@@ -147,13 +165,42 @@ where
             Err(_self) => _self,
         }
     }
+
+    /// Returns the type id pointed to by an alias, or itself if it's not an alias type.
+    /// This peels through all aliases, since they never point to other aliases.
+    ///
+    /// # Example
+    ///
+    /// ```text
+    /// Boolean -> Boolean
+    /// Alias(Boolean) -> Boolean
+    /// Alias(Alias(Boolean)) -> ! (never happens)
+    /// ```
+    pub fn peel_aliases(self) -> Self {
+        match self.kind() {
+            TypeKind::Alias(_, to_ty) => {
+                let ty = to_ty.in_db(self.db);
+                assert!(!ty.kind().is_alias());
+                ty
+            }
+            _ => self,
+        }
+    }
+
+    /// Transforms the type into its base representation.
+    ///
+    /// Turns ranges into its common type, and peels aliases.
+    pub fn to_base_type(self) -> Self {
+        // TODO: Range -> base type
+        self.peel_aliases()
+    }
 }
 
 // TODO: Document type equivalence
 // steal from the old compiler
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
-    let left = left.in_db(db).peel_ref();
-    let right = right.in_db(db).peel_ref();
+    let left = left.in_db(db).peel_ref().to_base_type();
+    let right = right.in_db(db).peel_ref().to_base_type();
 
     // Quick bailout
     if left.id() == right.id() {
@@ -266,8 +313,8 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     // | String(*) [runtime checked]
     //
 
-    let left = lhs.in_db(db).peel_ref();
-    let right = rhs.in_db(db).peel_ref();
+    let left = lhs.in_db(db).peel_ref().to_base_type();
+    let right = rhs.in_db(db).peel_ref().to_base_type();
 
     /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
@@ -528,8 +575,8 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    let left = left.in_db(db).peel_ref();
-    let right = right.in_db(db).peel_ref();
+    let left = left.in_db(db).peel_ref().to_base_type();
+    let right = right.in_db(db).peel_ref().to_base_type();
 
     // Propagate error type as complete so that we don't duplicate the error
     if left.kind().is_error() || right.kind().is_error() {
@@ -752,7 +799,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     let right = right.in_db(db).peel_ref();
 
     // Use the peeled versions of the types for reporting
-    let mk_type_error = || {
+    let mk_type_error = move || {
         Err(InvalidBinaryOp {
             left: left.id,
             op,
@@ -761,7 +808,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
         })
     };
 
-    let unsupported_op = || {
+    let unsupported_op = move || {
         Err(InvalidBinaryOp {
             left: left.id,
             op,
@@ -769,6 +816,9 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             unsupported: true,
         })
     };
+
+    let left = left.to_base_type();
+    let right = right.to_base_type();
 
     // Start from the inference code
     match infer_binary_op(db, left.id(), op, right.id()) {
@@ -848,6 +898,8 @@ pub fn infer_unary_op<T: ?Sized + db::TypeDatabase>(
     if right.kind().is_error() {
         return InferTy::Complete(db.mk_error());
     }
+
+    let right = right.to_base_type();
 
     match op {
         expr::UnaryOp::Not => {
@@ -1004,19 +1056,19 @@ pub fn report_invalid_bin_op<'db, DB>(
     let msg = reporter
         .error_detailed(&format!("mismatched types for {}", op_name), op_span)
         .with_note(
-            &format!("this is of type `{left}`", left = left_ty),
-            left_span,
-        )
-        .with_note(
             &format!("this is of type `{right}`", right = right_ty),
             right_span,
+        )
+        .with_note(
+            &format!("this is of type `{left}`", left = left_ty),
+            left_span,
         )
         .with_error(
             &format!(
                 "`{left}` cannot be {verb_phrase} `{right}`",
-                left = left_ty,
+                left = left_ty.clone().peel_aliases(),
                 verb_phrase = verb_phrase,
-                right = right_ty
+                right = right_ty.clone().peel_aliases()
             ),
             op_span,
         );
@@ -1110,7 +1162,7 @@ pub fn report_invalid_unary_op<'db, DB>(
             &format!(
                 "cannot apply {verb_phrase} to `{right}`",
                 verb_phrase = verb_phrase,
-                right = right_ty
+                right = right_ty.peel_aliases()
             ),
             op_span,
         );

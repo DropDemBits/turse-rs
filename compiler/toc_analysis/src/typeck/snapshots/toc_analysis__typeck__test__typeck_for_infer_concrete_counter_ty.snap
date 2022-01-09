@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "% Both should fail\nfor c : 1.0 .. 1 var k : int := c end for\nfor c : 1 .. 1.0 var k : int := c end for\n"
 
 ---
@@ -9,18 +10,20 @@ expression: "% Both should fail\nfor c : 1.0 .. 1 var k : int := c end for\nfor 
 "k"@(FileId(1), 82..83) [Declared]: ref_mut int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 27..35: range bounds are not index types
-| note in file FileId(1) for 27..30: this is of type `real`
+error in file FileId(1) at 27..35: mismatched types
 | note in file FileId(1) for 34..35: this is of type `{integer}`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
+| note in file FileId(1) for 27..30: this is of type `real`
+| error in file FileId(1) for 27..35: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
 error in file FileId(1) at 51..52: mismatched types
 | note in file FileId(1) for 51..52: this is of type `real`
 | note in file FileId(1) for 44..47: this is of type `int`
 | info: `real` is not assignable into `int`
-error in file FileId(1) at 69..77: range bounds are not index types
-| note in file FileId(1) for 69..70: this is of type `{integer}`
+error in file FileId(1) at 69..77: mismatched types
 | note in file FileId(1) for 74..77: this is of type `real`
-| info: expected an index type (an integer, `boolean`, `char`, enumerated type, or a range)
+| note in file FileId(1) for 69..70: this is of type `{integer}`
+| error in file FileId(1) for 69..77: expected index types
+| info: range bounds types must both be index types (an integer, `boolean`, `char`, enumerated type, or a range)
 error in file FileId(1) at 93..94: mismatched types
 | note in file FileId(1) for 93..94: this is of type `real`
 | note in file FileId(1) for 86..89: this is of type `int`
