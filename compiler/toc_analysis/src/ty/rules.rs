@@ -38,6 +38,14 @@ impl TypeKind {
         matches!(self, TypeKind::Error)
     }
 
+    pub fn is_forward(&self) -> bool {
+        matches!(self, TypeKind::Forward)
+    }
+
+    pub fn is_alias(&self) -> bool {
+        matches!(self, TypeKind::Alias(_, _))
+    }
+
     /// charseq types includes `String`, `StringN`, `Char`, and `CharN` types
     pub fn is_charseq(&self) -> bool {
         matches!(
@@ -87,11 +95,12 @@ impl TypeKind {
             // - subrange
             // - pointer
             // - enum
-            TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) | TypeKind::Ref(_, _) => {
+            TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
+                // Aggregate types of characters
                 false
             }
-            TypeKind::Alias(_, _) => {
-                // Aliases should be peeled first, but it's okay to conservatively treat it as
+            TypeKind::Ref(_, _) | TypeKind::Alias(_, _) => {
+                // These should be peeled first, but it's okay to conservatively treat it as
                 // not one
                 false
             }
@@ -158,20 +167,20 @@ where
     }
 
     /// Returns the type id pointed to by an alias, or itself if it's not an alias type.
-    /// This peels through all aliases.
+    /// This peels through all aliases, since they never point to other aliases.
     ///
     /// # Example
     ///
     /// ```text
     /// Boolean -> Boolean
     /// Alias(Boolean) -> Boolean
-    /// Alias(Alias(Boolean)) -> Boolean
+    /// Alias(Alias(Boolean)) -> ! (never happens)
     /// ```
     pub fn peel_aliases(self) -> Self {
         match self.kind() {
             TypeKind::Alias(_, to_ty) => {
                 let ty = to_ty.in_db(self.db);
-                assert!(!matches!(ty.kind(), TypeKind::Alias(_, _)));
+                assert!(!ty.kind().is_alias());
                 ty
             }
             _ => self,
@@ -782,7 +791,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     let right = right.in_db(db).peel_ref();
 
     // Use the peeled versions of the types for reporting
-    let mk_type_error = || {
+    let mk_type_error = move || {
         Err(InvalidBinaryOp {
             left: left.id,
             op,
@@ -791,7 +800,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
         })
     };
 
-    let unsupported_op = || {
+    let unsupported_op = move || {
         Err(InvalidBinaryOp {
             left: left.id,
             op,

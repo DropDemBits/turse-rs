@@ -62,7 +62,7 @@ fn stringify_typeck_results(
         let def_info = library.local_def(did);
         let name = def_info.name.item();
         let name_span = library.lookup_span(def_info.name.span());
-        let ty = db.type_of(DefId(lib, did).into());
+        let ty = db.aliased_type_of(DefId(lib, did).into());
         let name_fmt = format!("{:?}@{:?} [{:?}]: ", name, name_span, def_info.kind);
 
         s.push_str(&name_fmt);
@@ -1363,6 +1363,49 @@ test_named_group! { typeck_type_alias,
         unresolved_forward => "
         type fowo : forward
         type a : fowo",
+    ]
+}
+
+test_named_group! { report_aliased_type,
+    [
+        in_inferred_ty => r#"
+        type a0 : real
+        var k : a0
+        var i : int := k"#,
+        in_assign => r#"
+        type a0 : real
+        var k : a0
+        var i : int
+        i := k"#,
+        in_binary_expr => r#"
+        type a0 : real
+        var k : a0
+        var i : int
+        i := i + k"#,
+        in_unary_expr => r#"
+        type a0 : real
+        var k : a0
+        var _ := not k
+        "#,
+        in_for => r#"
+        type a0 : string
+        var sa0 : a0
+        var s : string
+
+        for : sa0 .. sa0 end for
+        for : s .. sa0 end for
+        for : sa0 .. s end for
+        "#,
+        in_case => r#"
+        type a0 : char
+        type a1 : char(6)
+        var ca0 : a0
+        const cna1 : a1 := 'aaaaaa'
+
+        case ca0 of
+        label cna1:
+        end case
+        "#,
     ]
 }
 

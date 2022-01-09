@@ -453,7 +453,7 @@ impl TypeCheck<'_> {
 
     fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
         let db = self.db;
-        let ty_dat = ty.in_db(db).peel_ref().peel_aliases();
+        let ty_dat = ty.in_db(db).peel_ref();
 
         // Must be a valid put/get type
         // Can be one of the following:

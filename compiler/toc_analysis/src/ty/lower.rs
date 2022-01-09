@@ -63,7 +63,7 @@ fn alias_ty(
     ty: &hir_ty::Alias,
 ) -> TypeId {
     // Defer to the type's definition
-    db.type_of(DefId(hir_id.0, ty.0).into())
+    db.aliased_type_of(DefId(hir_id.0, ty.0).into())
 }
 
 pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemId>) -> TypeId {
@@ -106,7 +106,9 @@ fn constvar_ty(
         (_, Some(body)) => {
             // From inferred init expr
             // Peel any refs
-            db.type_of((item_id.0, body).into()).in_db(db).peel_ref()
+            db.aliased_type_of((item_id.0, body).into())
+                .in_db(db)
+                .peel_ref()
         }
         (None, None) => {
             // No place to infer from, make an error
@@ -145,7 +147,6 @@ fn type_def_ty(
                 .from_hir_type((*to_ty).in_library(item_id.0))
                 .in_db(db)
                 .peel_aliases();
-            let def_id = DefId(item_id.0, item.def_id);
 
             // Specialize based on the kind
             match base_ty.kind() {

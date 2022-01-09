@@ -1,0 +1,15 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "type a0 : real\nvar k : a0\nvar i : int\ni := i + k"
+
+---
+"a0"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"k"@(FileId(1), 19..20) [Declared]: ref_mut alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"i"@(FileId(1), 30..31) [Declared]: ref_mut int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 40..42: mismatched types
+| note in file FileId(1) for 43..48: this is of type `real`
+| note in file FileId(1) for 38..39: this is of type `int`
+| info: `real` is not assignable into `int`

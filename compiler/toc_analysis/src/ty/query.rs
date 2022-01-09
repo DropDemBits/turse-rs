@@ -18,6 +18,18 @@ pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTyp
 }
 
 pub(crate) fn type_of(db: &dyn db::TypeDatabase, source: db::TypeSource) -> TypeId {
+    let ty = db.aliased_type_of(source).in_db(db);
+
+    // punch through any aliases
+    if let TypeKind::Ref(mutability, real_ty) = ty.kind() {
+        // Carry the ref through
+        db.mk_ref(*mutability, real_ty.in_db(db).peel_aliases().id())
+    } else {
+        ty.peel_aliases().id()
+    }
+}
+
+pub(crate) fn aliased_type_of(db: &dyn db::TypeDatabase, source: db::TypeSource) -> TypeId {
     match source {
         db::TypeSource::Def(def_id) => ty_of_def(db, def_id),
         db::TypeSource::BodyExpr(id, expr) => ty_of_expr(db, InLibrary(id, expr)),
