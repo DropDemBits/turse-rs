@@ -136,6 +136,8 @@ fn type_def_ty(
     item_id: InLibrary<item::ItemId>,
     item: &item::Type,
 ) -> TypeId {
+    let def_id = DefId(item_id.0, item.def_id);
+
     match &item.type_def {
         item::DefinedType::Alias(to_ty) => {
             // Peel any aliases that are encountered
@@ -152,7 +154,7 @@ fn type_def_ty(
                 _ => db.mk_alias(def_id, base_ty.id()),
             }
         }
-        item::DefinedType::Forward(_) => db.mk_forward(),
+        item::DefinedType::Forward(_) => db.mk_alias(def_id, db.mk_forward()),
     }
 }
 

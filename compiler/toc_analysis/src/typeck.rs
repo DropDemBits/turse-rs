@@ -101,6 +101,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_constvar(id, item);
     }
 
+    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        self.typeck_type_decl(id, item);
+    }
+
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
         self.typeck_assign(id.0, stmt);
     }
@@ -177,6 +181,31 @@ impl TypeCheck<'_> {
             // since that should be handled by const eval type restrictions
             // However, there should still be an assert here
             // TODO: Add assert ensuring there is no valid ConstValue
+        }
+    }
+
+    fn typeck_type_decl(&self, _id: item::ItemId, item: &item::Type) {
+        if let item::DefinedType::Alias(ty) = &item.type_def {
+            let ty_ref = self
+                .db
+                .from_hir_type((*ty).in_library(self.library_id))
+                .in_db(self.db);
+
+            if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind() {
+                if to_ty.in_db(self.db).kind().is_forward() {
+                    let def_span = self.library.lookup_type(*ty).span;
+                    let def_span = self.library.lookup_span(def_span);
+
+                    let def_library = self.db.library(def_id.0);
+                    let name = def_library.local_def(def_id.1).name.item();
+
+                    self.state().reporter.error(
+                        &format!("`{}` has not been resolved at this point", name),
+                        &format!("`{}` is required to be resolved at this point", name),
+                        def_span,
+                    );
+                }
+            }
         }
     }
 
