@@ -16,35 +16,40 @@ impl MessageSink {
     }
 
     /// Reports an error message
-    pub fn error(&mut self, message: &str, at_span: &str, span: Span) {
-        self.report(AnnotateKind::Error, message, span)
-            .with_error(at_span, span)
+    pub fn error(&mut self, message: impl Into<String>, at_span: impl Into<String>, span: Span) {
+        self.report(AnnotateKind::Error, message.into(), span)
+            .with_error(at_span.into(), span)
             .finish()
     }
 
     /// Reports a detailed error message
-    pub fn error_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
-        self.report(AnnotateKind::Error, message, span)
+    pub fn error_detailed(&mut self, message: impl Into<String>, span: Span) -> MessageBuilder {
+        self.report(AnnotateKind::Error, message.into(), span)
     }
 
     /// Reports a warning message
-    pub fn warn(&mut self, message: &str, at_span: &str, span: Span) {
-        self.report(AnnotateKind::Warning, message, span)
-            .with_warn(at_span, span)
+    pub fn warn(&mut self, message: impl Into<String>, at_span: impl Into<String>, span: Span) {
+        self.report(AnnotateKind::Warning, message.into(), span)
+            .with_warn(at_span.into(), span)
             .finish()
     }
 
     /// Reports a detailed warning message
-    pub fn warn_detailed(&mut self, message: &str, span: Span) -> MessageBuilder {
-        self.report(AnnotateKind::Warning, message, span)
+    pub fn warn_detailed(&mut self, message: impl Into<String>, span: Span) -> MessageBuilder {
+        self.report(AnnotateKind::Warning, message.into(), span)
     }
 
     /// Reports a detailed message
     ///
     /// Returns a builder for adding annotations
     #[must_use = "message is not reported until `finish()` is called"]
-    fn report(&mut self, kind: AnnotateKind, message: &str, span: Span) -> MessageBuilder {
-        MessageBuilder::new(self, kind, message, span)
+    fn report(
+        &mut self,
+        kind: AnnotateKind,
+        message: impl Into<String>,
+        span: Span,
+    ) -> MessageBuilder {
+        MessageBuilder::new(self, kind, message.into(), span)
     }
 
     /// Finishes reporting any messages, giving back the final message list
@@ -69,14 +74,14 @@ impl<'a> MessageBuilder<'a> {
     pub fn new(
         reporter: &'a mut MessageSink,
         kind: AnnotateKind,
-        message: &str,
+        message: impl Into<String>,
         span: Span,
     ) -> Self {
         Self {
             drop_bomb: drop_bomb::DropBomb::new("Missing `finish()` for MessageBuilder"),
             reporter,
             kind,
-            message: message.to_string(),
+            message: message.into(),
             span,
             annotations: vec![],
             footer: vec![],
@@ -84,30 +89,27 @@ impl<'a> MessageBuilder<'a> {
     }
 
     /// Each inserted info is treated as a separate line
-    pub fn with_info(self, message: &str) -> Self {
-        self.with_annotation(AnnotateKind::Info, message, None)
+    pub fn with_info(self, message: impl Into<String>) -> Self {
+        self.with_annotation(AnnotateKind::Info, message.into(), None)
     }
 
-    pub fn with_note(self, message: &str, span: Span) -> Self {
-        self.with_annotation(AnnotateKind::Note, message, span)
+    pub fn with_note(self, message: impl Into<String>, span: Span) -> Self {
+        self.with_annotation(AnnotateKind::Note, message.into(), span)
     }
 
-    pub fn with_warn(self, message: &str, span: Span) -> Self {
-        self.with_annotation(AnnotateKind::Warning, message, span)
+    pub fn with_warn(self, message: impl Into<String>, span: Span) -> Self {
+        self.with_annotation(AnnotateKind::Warning, message.into(), span)
     }
 
-    pub fn with_error(self, message: &str, span: Span) -> Self {
-        self.with_annotation(AnnotateKind::Error, message, span)
+    pub fn with_error(self, message: impl Into<String>, span: Span) -> Self {
+        self.with_annotation(AnnotateKind::Error, message.into(), span)
     }
 
-    fn with_annotation<R>(mut self, kind: AnnotateKind, message: &str, span: R) -> Self
+    fn with_annotation<R>(mut self, kind: AnnotateKind, message: String, span: R) -> Self
     where
         R: Into<Option<Span>>,
     {
-        let annotation = Annotation {
-            kind,
-            msg: message.to_string(),
-        };
+        let annotation = Annotation { kind, msg: message };
 
         match span.into() {
             Some(span) => self.annotations.push(SourceAnnotation { annotation, span }),

@@ -442,8 +442,8 @@ pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
             };
 
             ctx.push_error(
-                &format!("extra ‘label’ {} found after default arm", arms),
-                &format!("extra ‘label’ {}", arms),
+                format!("extra ‘label’ {} found after default arm", arms),
+                format!("extra ‘label’ {}", arms),
                 full_range,
             );
         }
@@ -464,8 +464,8 @@ pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut Valida
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_module_kind() {
         ctx.push_error(
-            &format!("cannot use {} here", kind),
-            &format!("{} is only allowed in module-like blocks", kind),
+            format!("cannot use {} here", kind),
+            format!("{} is only allowed in module-like blocks", kind),
             node.text_range(),
         );
     }
@@ -474,8 +474,8 @@ pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut V
 pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_top_level() {
         ctx.push_error(
-            &format!("cannot use {} here", kind),
-            &format!("{} is only allowed at module-like or program level", kind),
+            format!("cannot use {} here", kind),
+            format!("{} is only allowed at module-like or program level", kind),
             node.text_range(),
         );
     }
@@ -497,10 +497,10 @@ fn check_matching_names(
                     ctx.mk_span(end_name.text_range()),
                 )
                 .with_note(
-                    &format!("‘{}’ does not match...", decl_name.text()),
+                    format!("‘{}’ does not match...", decl_name.text()),
                     decl_span,
                 )
-                .with_note(&format!("...‘{}’ defined here", end_name.text()), end_span)
+                .with_note(format!("...‘{}’ defined here", end_name.text()), end_span)
                 .finish();
             }
         }
