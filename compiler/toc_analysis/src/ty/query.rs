@@ -11,7 +11,7 @@ use toc_hir::{
 use crate::db;
 
 use super::lower;
-use super::{IntSize, Mutability, NatSize, RealSize, SeqSize, Type, TypeId, TypeKind};
+use super::{IntSize, NatSize, RealSize, SeqSize, Type, TypeId, TypeKind};
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
@@ -168,15 +168,6 @@ where
         self.intern_type(
             Type {
                 kind: TypeKind::Forward,
-            }
-            .into(),
-        )
-    }
-
-    fn mk_ref(&self, mutability: Mutability, to: TypeId) -> TypeId {
-        self.intern_type(
-            Type {
-                kind: TypeKind::Ref(mutability, to),
             }
             .into(),
         )

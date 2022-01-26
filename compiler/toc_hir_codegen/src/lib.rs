@@ -929,13 +929,11 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, stmt.lhs).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, stmt.rhs).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
 
         // Evaluation order is important, side effects from the rhs are visible when looking at lhs
@@ -950,7 +948,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_coerced_assignment(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
-        let lhs_ty = lhs_ty.in_db(self.db).peel_ref().to_base_type();
+        let lhs_ty = lhs_ty.in_db(self.db).to_base_type();
 
         let coerce_to = match lhs_ty.kind() {
             ty::TypeKind::Real(_) => Some(CoerceTo::Real),
@@ -994,7 +992,6 @@ impl BodyCodeGenerator<'_> {
                 .db
                 .type_of((self.library_id, self.body_id, item.expr).into())
                 .in_db(self.db)
-                .peel_ref()
                 .to_base_type();
 
             let put_kind = match put_ty.kind() {
@@ -1095,7 +1092,6 @@ impl BodyCodeGenerator<'_> {
                 .db
                 .type_of((self.library_id, self.body_id, item.expr).into())
                 .in_db(self.db)
-                .peel_ref()
                 .to_base_type();
             let ty_size = get_ty.size_of().expect("type must be concrete") as u32;
 
@@ -1329,7 +1325,6 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, stmt.discriminant).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
 
         let coerce_to = match discrim_ty.kind() {
@@ -1359,7 +1354,6 @@ impl BodyCodeGenerator<'_> {
                             .db
                             .type_of((self.library_id, self.body_id, *expr).into())
                             .in_db(self.db)
-                            .peel_ref()
                             .to_base_type();
 
                         self.generate_coerced_expr(*expr, coerce_to);
@@ -1432,7 +1426,6 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of(DefId(self.library_id, item.def_id).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
         self.code_fragment.allocate_local(
             self.db,
@@ -1473,7 +1466,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn coerce_expr_into(&mut self, from_ty: ty::TypeId, coerce_to: Option<CoerceTo>) {
-        let expr_ty = from_ty.in_db(self.db).peel_ref().to_base_type();
+        let expr_ty = from_ty.in_db(self.db).to_base_type();
 
         let coerce_op = coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind()) {
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
@@ -1611,13 +1604,11 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, expr.lhs).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
         let rhs_ty = self
             .db
             .type_of((self.library_id, self.body_id, expr.rhs).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
 
         let opcode = match expr.op.item() {
@@ -1946,7 +1937,6 @@ impl BodyCodeGenerator<'_> {
             .db
             .type_of((self.library_id, self.body_id, expr.rhs).into())
             .in_db(self.db)
-            .peel_ref()
             .to_base_type();
 
         self.generate_expr(expr.rhs);
@@ -1985,7 +1975,6 @@ impl BodyCodeGenerator<'_> {
                     .db
                     .type_of(DefId(self.library_id, *def_id).into())
                     .in_db(self.db)
-                    .peel_ref()
                     .to_base_type();
 
                 self.code_fragment
@@ -2166,10 +2155,9 @@ impl CodeFragment {
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
                 Opcode::ASNSTRINV()
             }
-            ty::TypeKind::Ref(_, _)
-            | ty::TypeKind::Error
-            | ty::TypeKind::Forward
-            | ty::TypeKind::Alias(_, _) => unreachable!(),
+            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+                unreachable!()
+            }
         };
 
         self.emit_opcode(opcode);
@@ -2211,10 +2199,9 @@ impl CodeFragment {
                 self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
                 Opcode::ASNSTR()
             }
-            ty::TypeKind::Ref(_, _)
-            | ty::TypeKind::Error
-            | ty::TypeKind::Forward
-            | ty::TypeKind::Alias(_, _) => unreachable!(),
+            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+                unreachable!()
+            }
         };
 
         self.emit_opcode(opcode);
@@ -2254,10 +2241,9 @@ impl CodeFragment {
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
-            ty::TypeKind::Ref(_, _)
-            | ty::TypeKind::Error
-            | ty::TypeKind::Forward
-            | ty::TypeKind::Alias(_, _) => unreachable!(),
+            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+                unreachable!()
+            }
         };
 
         self.emit_opcode(opcode);

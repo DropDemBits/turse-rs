@@ -149,16 +149,14 @@ pub(crate) fn evaluate_const(
                         let left = db.type_of(DefId(library_id, def_id).into());
                         let right = db.type_of((library_id, body).into());
 
-                        if !ty::rules::is_assignable(db, left, right, true)
-                            .expect("ignores mutability")
-                        {
+                        if !ty::rules::is_assignable(db, left, right) {
                             // Wrong types
                             let span = library.body(body).span.lookup_in(&library.span_map);
                             return Err(ConstError::new(ErrorKind::WrongResultType, span));
                         }
 
                         // If bounds of `left` is known, check if `right` is in the range
-                        let left_ty = left.in_db(db).peel_ref();
+                        let left_ty = left.in_db(db);
 
                         if let Some((min, max)) = left_ty.min_int_of().zip(left_ty.max_int_of()) {
                             // Since right is assignable into left, we can treat right as ConstInt

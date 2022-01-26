@@ -6,7 +6,7 @@ use toc_span::Span;
 use crate::ty::{self, NotFixedLen};
 use crate::{
     db,
-    ty::{Mutability, SeqSize, TypeId, TypeKind},
+    ty::{SeqSize, TypeId, TypeKind},
 };
 
 use super::TyRef;
@@ -99,8 +99,8 @@ impl TypeKind {
                 // Aggregate types of characters
                 false
             }
-            TypeKind::Ref(_, _) | TypeKind::Alias(_, _) => {
-                // These should be peeled first, but it's okay to conservatively treat it as
+            TypeKind::Alias(_, _) => {
+                // This should be peeled first, but it's okay to conservatively treat it as
                 // not one
                 false
             }
@@ -117,10 +117,6 @@ impl TypeKind {
             TypeKind::String | TypeKind::StringN(SeqSize::Fixed(_))
         )
     }
-
-    pub fn is_ref_mut(&self) -> bool {
-        matches!(self, TypeKind::Ref(Mutability::Var, _))
-    }
 }
 
 // Conversions of type
@@ -128,44 +124,6 @@ impl<'db, DB> TyRef<'db, DB>
 where
     DB: db::TypeDatabase + ?Sized + 'db,
 {
-    /// Applies a deref transformation
-    ///
-    /// Returns `Ok(deref_ty)`, otherwise `Err(self)`
-    pub fn to_deref(self) -> Result<Self, Self> {
-        match self.kind() {
-            TypeKind::Error => Ok(self), // Propagate error
-            TypeKind::Ref(_, ty) => Ok(ty.in_db(self.db)),
-            _ => Err(self),
-        }
-    }
-
-    /// Applies a deref transformation, requiring var mutability
-    ///
-    /// Returns `Ok(deref_ty)`, otherwise `Err(self)`
-    pub fn to_deref_mut(self) -> Result<Self, Self> {
-        match self.kind() {
-            TypeKind::Error => Ok(self), // Propagate error
-            TypeKind::Ref(Mutability::Var, ty) => Ok(ty.in_db(self.db)),
-            _ => Err(self),
-        }
-    }
-
-    /// Returns the type id pointed to by a ref, or itself if it's not a ref type
-    ///
-    /// # Example
-    ///
-    /// ```text
-    /// Boolean -> Boolean
-    /// Ref(Var, Boolean) -> Boolean
-    /// Ref(Const, Ref(Const, Boolean)) -> Ref(Const, Boolean)
-    /// ```
-    pub fn peel_ref(self) -> Self {
-        match self.to_deref() {
-            Ok(to) => to,
-            Err(_self) => _self,
-        }
-    }
-
     /// Returns the type id pointed to by an alias, or itself if it's not an alias type.
     /// This peels through all aliases, since they never point to other aliases.
     ///
@@ -199,8 +157,8 @@ where
 // TODO: Document type equivalence
 // steal from the old compiler
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
-    let left = left.in_db(db).peel_ref().to_base_type();
-    let right = right.in_db(db).peel_ref().to_base_type();
+    let left = left.in_db(db).to_base_type();
+    let right = right.in_db(db).to_base_type();
 
     // Quick bailout
     if left.id() == right.id() {
@@ -246,8 +204,6 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
             // sized charseqs are treated as equivalent types if the sizes are equal
             left_sz.cmp(right_sz).is_eq()
         }
-
-        (TypeKind::Ref(_, _), _) | (_, TypeKind::Ref(_, _)) => unreachable!(),
         _ => false,
     }
 }
@@ -313,8 +269,8 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
     // | String(*) [runtime checked]
     //
 
-    let left = lhs.in_db(db).peel_ref().to_base_type();
-    let right = rhs.in_db(db).peel_ref().to_base_type();
+    let left = lhs.in_db(db).to_base_type();
+    let right = rhs.in_db(db).to_base_type();
 
     /// Gets a sequence size suitable for coercion checking.
     /// All errors (overflow, other const error) and dynamic sizes are ignored.
@@ -435,28 +391,13 @@ pub fn is_either_coercible<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, righ
 
 // TODO: Document type assignability
 // steal from the old compiler
-/// Returns `Some(is_assignable)`, or `None` if the the l_value is not deref'able.
-/// `ignore_mut` is only to be used during initializers
-///
-/// l_value should be left as a ref it is one.
-pub fn is_assignable<T: ?Sized + db::ConstEval>(
-    db: &T,
-    left: TypeId,
-    right: TypeId,
-    ignore_mut: bool,
-) -> Option<bool> {
+/// Alias of [`is_coercible_into`]
+pub fn is_assignable<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, right: TypeId) -> bool {
     let left = left.in_db(db);
     let right = right.in_db(db);
 
-    let left = if ignore_mut {
-        left.to_deref().ok()?
-    } else {
-        left.to_deref_mut().ok()?
-    };
-    let right = right.peel_ref();
-
     // Defer to the coercion rules
-    Some(is_coercible_into(db, left.id(), right.id()))
+    is_coercible_into(db, left.id(), right.id())
 }
 
 /// Result of inferring a type from an operation
@@ -575,8 +516,8 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         }
     }
 
-    let left = left.in_db(db).peel_ref().to_base_type();
-    let right = right.in_db(db).peel_ref().to_base_type();
+    let left = left.in_db(db).to_base_type();
+    let right = right.in_db(db).to_base_type();
 
     // Propagate error type as complete so that we don't duplicate the error
     if left.kind().is_error() || right.kind().is_error() {
@@ -795,8 +736,8 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
     op: expr::BinaryOp,
     right: TypeId,
 ) -> Result<(), InvalidBinaryOp> {
-    let left = left.in_db(db).peel_ref();
-    let right = right.in_db(db).peel_ref();
+    let left = left.in_db(db);
+    let right = right.in_db(db);
 
     // Use the peeled versions of the types for reporting
     let mk_type_error = move || {
@@ -892,7 +833,7 @@ pub fn infer_unary_op<T: ?Sized + db::TypeDatabase>(
 ) -> InferTy {
     use crate::ty::{IntSize, NatSize, RealSize};
 
-    let right = right.in_db(db).peel_ref();
+    let right = right.in_db(db);
 
     // Propagate error type as complete so that we don't duplicate the error
     if right.kind().is_error() {
@@ -938,7 +879,7 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
     op: expr::UnaryOp,
     right: TypeId,
 ) -> Result<(), InvalidUnaryOp> {
-    let right = right.in_db(db).peel_ref();
+    let right = right.in_db(db);
 
     // Infer unary type currently does all of the work
     match infer_unary_op(db, op, right.id()) {

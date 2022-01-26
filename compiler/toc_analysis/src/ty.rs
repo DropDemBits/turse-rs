@@ -72,11 +72,6 @@ pub enum TypeKind {
     /// This is used to prevent cyclic type declarations, which we can't detect
     /// yet.
     Forward,
-    /// Reference type.
-    ///
-    /// This type does not appear in syntax (except for parameter binding),
-    /// and is an implementation detail.
-    Ref(Mutability, TypeId),
 }
 
 // Other types to add:
@@ -228,7 +223,6 @@ where
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Forward => return None,
-            TypeKind::Ref(_, _) => return None,
         };
 
         Some(align_of)
@@ -267,9 +261,7 @@ where
             }
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
-            TypeKind::Integer | TypeKind::Ref(_, _) | TypeKind::Forward | TypeKind::Error => {
-                return None
-            }
+            TypeKind::Integer | TypeKind::Forward | TypeKind::Error => return None,
         };
 
         Some(size_of)
@@ -287,7 +279,7 @@ where
 
                 (char_len.into_u32()?) as usize
             }
-            TypeKind::Ref(_, _) | TypeKind::Error => unreachable!(),
+            TypeKind::Error => unreachable!(),
             _ => return None,
         };
 

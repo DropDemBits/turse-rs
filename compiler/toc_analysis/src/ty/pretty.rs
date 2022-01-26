@@ -9,7 +9,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{Mutability, NotFixedLen, TypeId};
+use super::{NotFixedLen, TypeId};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -36,8 +36,6 @@ impl TypeKind {
             TypeKind::CharN(_) => "char",
             TypeKind::StringN(_) => "string",
             TypeKind::Alias(_, _) => "",
-            // Refs are not shown to the user
-            TypeKind::Ref(_, _) => unreachable!("refs should be peeled before display"),
             _ => self.debug_prefix(),
         }
     }
@@ -65,8 +63,6 @@ impl TypeKind {
             TypeKind::StringN(_) => "string_n",
             TypeKind::Alias(_, _) => "alias",
             TypeKind::Forward => "forward",
-            TypeKind::Ref(Mutability::Const, _) => "ref",
-            TypeKind::Ref(Mutability::Var, _) => "ref_mut",
         }
     }
 }
@@ -85,10 +81,6 @@ where
         }
         TypeKind::Alias(def_id, to) => {
             out.write_fmt(format_args!("[{:?}] of ", def_id))?;
-            emit_debug_ty(db, out, *to)?
-        }
-        TypeKind::Ref(_, to) => {
-            out.write_char(' ')?;
             emit_debug_ty(db, out, *to)?
         }
         _ => {}
@@ -122,7 +114,6 @@ where
             emit_display_ty(db, out, *to)?;
             out.write_char(')')?;
         }
-        TypeKind::Ref(_, to) => emit_display_ty(db, out, *to)?,
         _ => {}
     }
 
