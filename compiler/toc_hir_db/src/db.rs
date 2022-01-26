@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use toc_hir::body;
-use toc_hir::symbol::{DefOwner, DefTable};
+use toc_hir::symbol::{self, DefOwner, DefTable};
+use toc_hir::{body, expr};
 use toc_hir::{
     item,
     library::{InLibrary, LibraryId, LoweredLibrary},
@@ -43,6 +43,10 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// Gets all of the bodies in the given library
     #[salsa::invoke(query::lookup_bodies)]
     fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
+
+    /// Gets the binding kind of a [`BindingSource`], or `None` if it isn't one.
+    #[salsa::invoke(query::binding_kind)]
+    fn binding_kind(&self, ref_src: BindingSource) -> Option<symbol::BindingKind>;
 }
 
 /// Salsa-backed type interner
@@ -50,4 +54,29 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
 pub trait InternedType {
     #[salsa::interned]
     fn intern_type(&self, ty: Arc<ty::Type>) -> salsa::InternId;
+}
+
+/// Anything that can produce a reference to a binding
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BindingSource {
+    DefId(DefId),
+    BodyExpr(LibraryId, expr::BodyExpr),
+}
+
+impl From<symbol::DefId> for BindingSource {
+    fn from(def_id: symbol::DefId) -> Self {
+        Self::DefId(def_id)
+    }
+}
+
+impl From<(LibraryId, expr::BodyExpr)> for BindingSource {
+    fn from(expr: (LibraryId, expr::BodyExpr)) -> Self {
+        Self::BodyExpr(expr.0, expr.1)
+    }
+}
+
+impl From<(LibraryId, body::BodyId, expr::ExprId)> for BindingSource {
+    fn from(expr: (LibraryId, body::BodyId, expr::ExprId)) -> Self {
+        Self::BodyExpr(expr.0, expr::BodyExpr(expr.1, expr.2))
+    }
 }

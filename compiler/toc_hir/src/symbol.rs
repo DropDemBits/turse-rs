@@ -5,6 +5,7 @@ use la_arena::ArenaMap;
 use toc_span::Spanned;
 
 pub use crate::ids::{DefId, LocalDefId};
+use crate::item::Mutability;
 use crate::{
     ids::{ItemId, LocalDefIndex},
     stmt::BodyStmt,
@@ -13,7 +14,7 @@ use crate::{
 /// Information associated with a `LocalDefId` or `DefId`.
 #[derive(Debug, PartialEq, Eq)]
 pub struct DefInfo {
-    /// The name of the definition, along with the span of the identifer.
+    /// The name of the definition, along with the span of the identifier.
     pub name: Spanned<String>,
     /// The kind of symbol.
     pub kind: SymbolKind,
@@ -63,6 +64,13 @@ pub enum ForwardKind {
 pub enum DefOwner {
     Item(ItemId),
     Stmt(BodyStmt),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BindingKind {
+    Storage(Mutability),
+    Type,
+    Module,
 }
 
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
