@@ -1,19 +1,20 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Compatibility with all variant of numbers\n    var r : real\n    var i : int\n    var n : nat\n    var _rr := r + r\n    var _ri := r + i\n    var _ir := i + r\n    var _rn := r + n\n    var _nr := n + r\n    var _ii := i + i\n    var _in := i + n\n    var _ni := n + i\n    var _nn := n + n\n"
 
 ---
-"r"@(FileId(1), 57..58) [Declared]: ref_mut real
-"i"@(FileId(1), 74..75) [Declared]: ref_mut int
-"n"@(FileId(1), 90..91) [Declared]: ref_mut nat
-"_rr"@(FileId(1), 106..109) [Declared]: ref_mut real
-"_ri"@(FileId(1), 127..130) [Declared]: ref_mut real
-"_ir"@(FileId(1), 148..151) [Declared]: ref_mut real
-"_rn"@(FileId(1), 169..172) [Declared]: ref_mut real
-"_nr"@(FileId(1), 190..193) [Declared]: ref_mut real
-"_ii"@(FileId(1), 211..214) [Declared]: ref_mut int
-"_in"@(FileId(1), 232..235) [Declared]: ref_mut int
-"_ni"@(FileId(1), 253..256) [Declared]: ref_mut int
-"_nn"@(FileId(1), 274..277) [Declared]: ref_mut nat
+"r"@(FileId(1), 57..58) [Declared]: real
+"i"@(FileId(1), 74..75) [Declared]: int
+"n"@(FileId(1), 90..91) [Declared]: nat
+"_rr"@(FileId(1), 106..109) [Declared]: real
+"_ri"@(FileId(1), 127..130) [Declared]: real
+"_ir"@(FileId(1), 148..151) [Declared]: real
+"_rn"@(FileId(1), 169..172) [Declared]: real
+"_nr"@(FileId(1), 190..193) [Declared]: real
+"_ii"@(FileId(1), 211..214) [Declared]: int
+"_in"@(FileId(1), 232..235) [Declared]: int
+"_ni"@(FileId(1), 253..256) [Declared]: int
+"_nn"@(FileId(1), 274..277) [Declared]: nat
 "<root>"@(dummy) [Declared]: <error>
 

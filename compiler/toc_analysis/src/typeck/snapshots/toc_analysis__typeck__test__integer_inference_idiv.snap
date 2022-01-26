@@ -1,17 +1,18 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Inferred integer types should pass\n    % Decl should be a concrete type\n    var a := 1 div 1\n    % Types of operands should make the type concrete\n    var r : real\n    var i : int\n    var n : nat\n    var _r0 := 1 div r\n    var _r1 := r div 1\n    var _i0 := 1 div i\n    var _i1 := i div 1\n    var _n0 := 1 div n\n    var _n1 := n div 1\n"
 
 ---
-"a"@(FileId(1), 87..88) [Declared]: ref_mut int
-"r"@(FileId(1), 162..163) [Declared]: ref_mut real
-"i"@(FileId(1), 179..180) [Declared]: ref_mut int
-"n"@(FileId(1), 195..196) [Declared]: ref_mut nat
-"_r0"@(FileId(1), 211..214) [Declared]: ref_mut int
-"_r1"@(FileId(1), 234..237) [Declared]: ref_mut int
-"_i0"@(FileId(1), 257..260) [Declared]: ref_mut int
-"_i1"@(FileId(1), 280..283) [Declared]: ref_mut int
-"_n0"@(FileId(1), 303..306) [Declared]: ref_mut nat
-"_n1"@(FileId(1), 326..329) [Declared]: ref_mut nat
+"a"@(FileId(1), 87..88) [Declared]: int
+"r"@(FileId(1), 162..163) [Declared]: real
+"i"@(FileId(1), 179..180) [Declared]: int
+"n"@(FileId(1), 195..196) [Declared]: nat
+"_r0"@(FileId(1), 211..214) [Declared]: int
+"_r1"@(FileId(1), 234..237) [Declared]: int
+"_i0"@(FileId(1), 257..260) [Declared]: int
+"_i1"@(FileId(1), 280..283) [Declared]: int
+"_n0"@(FileId(1), 303..306) [Declared]: nat
+"_n1"@(FileId(1), 326..329) [Declared]: nat
 "<root>"@(dummy) [Declared]: <error>
 

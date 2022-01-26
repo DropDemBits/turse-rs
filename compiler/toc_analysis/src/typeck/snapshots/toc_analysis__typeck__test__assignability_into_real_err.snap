@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var b : boolean\n\nvar _e00 : real := b\n"
 
 ---
-"b"@(FileId(1), 4..5) [Declared]: ref_mut boolean
-"_e00"@(FileId(1), 21..25) [Declared]: ref_mut real
+"b"@(FileId(1), 4..5) [Declared]: boolean
+"_e00"@(FileId(1), 21..25) [Declared]: real
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 36..37: mismatched types

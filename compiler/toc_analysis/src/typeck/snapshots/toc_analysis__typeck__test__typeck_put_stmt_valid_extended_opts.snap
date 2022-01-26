@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var i : int\nvar n : nat\nvar r : real\n\nput i : 0 : 0 : 0\nput n : 0 : 0 : 0\nput r : 0 : 0 : 0\n"
 
 ---
-"i"@(FileId(1), 4..5) [Declared]: ref_mut int
-"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
-"r"@(FileId(1), 28..29) [Declared]: ref_mut real
+"i"@(FileId(1), 4..5) [Declared]: int
+"n"@(FileId(1), 16..17) [Declared]: nat
+"r"@(FileId(1), 28..29) [Declared]: real
 "<root>"@(dummy) [Declared]: <error>
 

@@ -1,13 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Compatibility with all variant of integers\n    var i : int\n    var n : nat\n    var _ii := i or i\n    var _in := i or n\n    var _ni := n or i\n    var _nn := n or n\n"
 
 ---
-"i"@(FileId(1), 58..59) [Declared]: ref_mut int
-"n"@(FileId(1), 74..75) [Declared]: ref_mut nat
-"_ii"@(FileId(1), 90..93) [Declared]: ref_mut nat
-"_in"@(FileId(1), 112..115) [Declared]: ref_mut nat
-"_ni"@(FileId(1), 134..137) [Declared]: ref_mut nat
-"_nn"@(FileId(1), 156..159) [Declared]: ref_mut nat
+"i"@(FileId(1), 58..59) [Declared]: int
+"n"@(FileId(1), 74..75) [Declared]: nat
+"_ii"@(FileId(1), 90..93) [Declared]: nat
+"_in"@(FileId(1), 112..115) [Declared]: nat
+"_ni"@(FileId(1), 134..137) [Declared]: nat
+"_nn"@(FileId(1), 156..159) [Declared]: nat
 "<root>"@(dummy) [Declared]: <error>
 

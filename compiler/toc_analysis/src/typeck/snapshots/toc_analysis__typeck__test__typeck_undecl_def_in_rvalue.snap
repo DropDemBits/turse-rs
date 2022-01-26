@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "var lvalue := undecl"
+
+---
+"undecl"@(FileId(1), 14..20) [Undeclared]: <error>
+"lvalue"@(FileId(1), 4..10) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+

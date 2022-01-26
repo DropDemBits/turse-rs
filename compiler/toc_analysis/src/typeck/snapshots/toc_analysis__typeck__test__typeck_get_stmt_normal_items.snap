@@ -4,13 +4,13 @@ assertion_line: 41
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nget i\nget n\nget r\nget c\nget b\nget cn\nget s\nget sn\n%get ef\n"
 
 ---
-"i"@(FileId(1), 4..5) [Declared]: ref_mut int
-"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
-"r"@(FileId(1), 28..29) [Declared]: ref_mut real
-"c"@(FileId(1), 41..42) [Declared]: ref_mut char
-"b"@(FileId(1), 54..55) [Declared]: ref_mut boolean
-"cn"@(FileId(1), 69..71) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 86..87) [Declared]: ref_mut string
-"sn"@(FileId(1), 101..103) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"i"@(FileId(1), 4..5) [Declared]: int
+"n"@(FileId(1), 16..17) [Declared]: nat
+"r"@(FileId(1), 28..29) [Declared]: real
+"c"@(FileId(1), 41..42) [Declared]: char
+"b"@(FileId(1), 54..55) [Declared]: boolean
+"cn"@(FileId(1), 69..71) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 86..87) [Declared]: string
+"sn"@(FileId(1), 101..103) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
 "<root>"@(dummy) [Declared]: <error>
 

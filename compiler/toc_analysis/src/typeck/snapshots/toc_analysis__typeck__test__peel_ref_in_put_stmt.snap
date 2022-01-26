@@ -1,8 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var a : int put a : 0 : 0 : 0"
 
 ---
-"a"@(FileId(1), 4..5) [Declared]: ref_mut int
+"a"@(FileId(1), 4..5) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

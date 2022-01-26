@@ -1,49 +1,50 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var c : char\n    var c_dyn : char(*)\n    var c_sz : char(6)\n    var s : string\n    var s_dyn : string(*)\n    var s_sz : string(6)\n\n    % special cases first\n    var _t00 := c + c\n    var _t02 := c + c_sz\n    var _t20 := c_sz + c\n    var _t22 := c_sz + c_sz\n\n    % the rest of them down here (should produce string)\n    var _t01 := c + c_dyn\n    var _t03 := c + s\n    var _t04 := c + s_dyn\n    var _t05 := c + s_sz\n\n    var _t10 := c_dyn + c\n    var _t30 := s + c\n    var _t40 := s_dyn + c\n    var _t50 := s_sz + c\n\n    var _t11 := c_dyn + c_dyn\n    var _t12 := c_dyn + c_sz\n    var _t13 := c_dyn + s\n    var _t14 := c_dyn + s_dyn\n    var _t15 := c_dyn + s_sz\n\n    var _t21 := c_sz + c_dyn\n    var _t31 := s + c_dyn\n    var _t41 := s_dyn + c_dyn\n    var _t51 := s_sz + c_dyn\n\n    var _t23 := c_sz + s\n    var _t24 := c_sz + s_dyn\n    var _t25 := c_sz + s_sz\n\n    var _t32 := s + c_sz\n    var _t42 := s_dyn + c_sz\n    var _t52 := s_sz + c_sz\n\n    var _t33 := s + s\n    var _t34 := s + s_dyn\n    var _t35 := s + s_sz\n\n    var _t43 := s_dyn + s\n    var _t53 := s_sz + s\n\n    var _t44 := s_dyn + s_dyn\n    var _t45 := s_dyn + s_sz\n\n    var _t54 := s_sz + s_dyn\n\n    var _t55 := s_sz + s_sz\n    "
 
 ---
-"c"@(FileId(1), 9..10) [Declared]: ref_mut char
-"c_dyn"@(FileId(1), 26..31) [Declared]: ref_mut char_n Dynamic
-"c_sz"@(FileId(1), 50..54) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 73..74) [Declared]: ref_mut string
-"s_dyn"@(FileId(1), 92..97) [Declared]: ref_mut string_n Dynamic
-"s_sz"@(FileId(1), 118..122) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_t00"@(FileId(1), 170..174) [Declared]: ref_mut string
-"_t02"@(FileId(1), 192..196) [Declared]: ref_mut string
-"_t20"@(FileId(1), 217..221) [Declared]: ref_mut string
-"_t22"@(FileId(1), 242..246) [Declared]: ref_mut string
-"_t01"@(FileId(1), 328..332) [Declared]: ref_mut string
-"_t03"@(FileId(1), 354..358) [Declared]: ref_mut string
-"_t04"@(FileId(1), 376..380) [Declared]: ref_mut string
-"_t05"@(FileId(1), 402..406) [Declared]: ref_mut string
-"_t10"@(FileId(1), 428..432) [Declared]: ref_mut string
-"_t30"@(FileId(1), 454..458) [Declared]: ref_mut string
-"_t40"@(FileId(1), 476..480) [Declared]: ref_mut string
-"_t50"@(FileId(1), 502..506) [Declared]: ref_mut string
-"_t11"@(FileId(1), 528..532) [Declared]: ref_mut string
-"_t12"@(FileId(1), 558..562) [Declared]: ref_mut string
-"_t13"@(FileId(1), 587..591) [Declared]: ref_mut string
-"_t14"@(FileId(1), 613..617) [Declared]: ref_mut string
-"_t15"@(FileId(1), 643..647) [Declared]: ref_mut string
-"_t21"@(FileId(1), 673..677) [Declared]: ref_mut string
-"_t31"@(FileId(1), 702..706) [Declared]: ref_mut string
-"_t41"@(FileId(1), 728..732) [Declared]: ref_mut string
-"_t51"@(FileId(1), 758..762) [Declared]: ref_mut string
-"_t23"@(FileId(1), 788..792) [Declared]: ref_mut string
-"_t24"@(FileId(1), 813..817) [Declared]: ref_mut string
-"_t25"@(FileId(1), 842..846) [Declared]: ref_mut string
-"_t32"@(FileId(1), 871..875) [Declared]: ref_mut string
-"_t42"@(FileId(1), 896..900) [Declared]: ref_mut string
-"_t52"@(FileId(1), 925..929) [Declared]: ref_mut string
-"_t33"@(FileId(1), 954..958) [Declared]: ref_mut string
-"_t34"@(FileId(1), 976..980) [Declared]: ref_mut string
-"_t35"@(FileId(1), 1002..1006) [Declared]: ref_mut string
-"_t43"@(FileId(1), 1028..1032) [Declared]: ref_mut string
-"_t53"@(FileId(1), 1054..1058) [Declared]: ref_mut string
-"_t44"@(FileId(1), 1080..1084) [Declared]: ref_mut string
-"_t45"@(FileId(1), 1110..1114) [Declared]: ref_mut string
-"_t54"@(FileId(1), 1140..1144) [Declared]: ref_mut string
-"_t55"@(FileId(1), 1170..1174) [Declared]: ref_mut string
+"c"@(FileId(1), 9..10) [Declared]: char
+"c_dyn"@(FileId(1), 26..31) [Declared]: char_n Dynamic
+"c_sz"@(FileId(1), 50..54) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 73..74) [Declared]: string
+"s_dyn"@(FileId(1), 92..97) [Declared]: string_n Dynamic
+"s_sz"@(FileId(1), 118..122) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_t00"@(FileId(1), 170..174) [Declared]: string
+"_t02"@(FileId(1), 192..196) [Declared]: string
+"_t20"@(FileId(1), 217..221) [Declared]: string
+"_t22"@(FileId(1), 242..246) [Declared]: string
+"_t01"@(FileId(1), 328..332) [Declared]: string
+"_t03"@(FileId(1), 354..358) [Declared]: string
+"_t04"@(FileId(1), 376..380) [Declared]: string
+"_t05"@(FileId(1), 402..406) [Declared]: string
+"_t10"@(FileId(1), 428..432) [Declared]: string
+"_t30"@(FileId(1), 454..458) [Declared]: string
+"_t40"@(FileId(1), 476..480) [Declared]: string
+"_t50"@(FileId(1), 502..506) [Declared]: string
+"_t11"@(FileId(1), 528..532) [Declared]: string
+"_t12"@(FileId(1), 558..562) [Declared]: string
+"_t13"@(FileId(1), 587..591) [Declared]: string
+"_t14"@(FileId(1), 613..617) [Declared]: string
+"_t15"@(FileId(1), 643..647) [Declared]: string
+"_t21"@(FileId(1), 673..677) [Declared]: string
+"_t31"@(FileId(1), 702..706) [Declared]: string
+"_t41"@(FileId(1), 728..732) [Declared]: string
+"_t51"@(FileId(1), 758..762) [Declared]: string
+"_t23"@(FileId(1), 788..792) [Declared]: string
+"_t24"@(FileId(1), 813..817) [Declared]: string
+"_t25"@(FileId(1), 842..846) [Declared]: string
+"_t32"@(FileId(1), 871..875) [Declared]: string
+"_t42"@(FileId(1), 896..900) [Declared]: string
+"_t52"@(FileId(1), 925..929) [Declared]: string
+"_t33"@(FileId(1), 954..958) [Declared]: string
+"_t34"@(FileId(1), 976..980) [Declared]: string
+"_t35"@(FileId(1), 1002..1006) [Declared]: string
+"_t43"@(FileId(1), 1028..1032) [Declared]: string
+"_t53"@(FileId(1), 1054..1058) [Declared]: string
+"_t44"@(FileId(1), 1080..1084) [Declared]: string
+"_t45"@(FileId(1), 1110..1114) [Declared]: string
+"_t54"@(FileId(1), 1140..1144) [Declared]: string
+"_t55"@(FileId(1), 1170..1174) [Declared]: string
 "<root>"@(dummy) [Declared]: <error>
 

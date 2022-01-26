@@ -1,11 +1,12 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : nat\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := 1 not= 1\n    _v_res := 1 not= 1.0\n    _v_res := 1 not= r\n    _v_res := 1 not= i\n    _v_res := 1 not= n\n\n    _v_res := 1.0 not= 1\n    _v_res := 1.0 not= 1.0\n    _v_res := 1.0 not= r\n    _v_res := 1.0 not= i\n    _v_res := 1.0 not= n\n\n    _v_res := r not= 1\n    _v_res := r not= 1.0\n    _v_res := r not= r\n    _v_res := r not= i\n    _v_res := r not= n\n\n    _v_res := i not= 1\n    _v_res := i not= 1.0\n    _v_res := i not= r\n    _v_res := i not= i\n    _v_res := i not= n\n\n    _v_res := n not= 1\n    _v_res := n not= 1.0\n    _v_res := n not= r\n    _v_res := n not= i\n    _v_res := n not= n\n    "
 
 ---
-"r"@(FileId(1), 24..25) [Declared]: ref_mut real
-"i"@(FileId(1), 41..42) [Declared]: ref_mut int
-"n"@(FileId(1), 57..58) [Declared]: ref_mut nat
-"_v_res"@(FileId(1), 108..114) [Declared]: ref_mut boolean
+"r"@(FileId(1), 24..25) [Declared]: real
+"i"@(FileId(1), 41..42) [Declared]: int
+"n"@(FileId(1), 57..58) [Declared]: nat
+"_v_res"@(FileId(1), 108..114) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 

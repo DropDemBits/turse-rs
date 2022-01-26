@@ -4,11 +4,11 @@ assertion_line: 41
 expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\n%type en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget b : 0\n%get ef : 0\n"
 
 ---
-"i"@(FileId(1), 4..5) [Declared]: ref_mut int
-"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
-"r"@(FileId(1), 28..29) [Declared]: ref_mut real
-"c"@(FileId(1), 41..42) [Declared]: ref_mut char
-"b"@(FileId(1), 54..55) [Declared]: ref_mut boolean
+"i"@(FileId(1), 4..5) [Declared]: int
+"n"@(FileId(1), 16..17) [Declared]: nat
+"r"@(FileId(1), 28..29) [Declared]: real
+"c"@(FileId(1), 41..42) [Declared]: char
+"b"@(FileId(1), 54..55) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 107..108: invalid get option

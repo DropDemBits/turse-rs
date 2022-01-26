@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const i : int := 1\nget i\n"
 
 ---
-"i"@(FileId(1), 6..7) [Declared]: ref int
+"i"@(FileId(1), 6..7) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 23..24: cannot assign into expression

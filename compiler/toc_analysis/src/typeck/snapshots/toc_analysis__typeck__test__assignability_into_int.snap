@@ -1,12 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var i : int\nvar n : nat\n\nvar _v00 : int := 1\nvar _v01 : int := i\nvar _v02 : int := n\n"
 
 ---
-"i"@(FileId(1), 4..5) [Declared]: ref_mut int
-"n"@(FileId(1), 16..17) [Declared]: ref_mut nat
-"_v00"@(FileId(1), 29..33) [Declared]: ref_mut int
-"_v01"@(FileId(1), 49..53) [Declared]: ref_mut int
-"_v02"@(FileId(1), 69..73) [Declared]: ref_mut int
+"i"@(FileId(1), 4..5) [Declared]: int
+"n"@(FileId(1), 16..17) [Declared]: nat
+"_v00"@(FileId(1), 29..33) [Declared]: int
+"_v01"@(FileId(1), 49..53) [Declared]: int
+"_v02"@(FileId(1), 69..73) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

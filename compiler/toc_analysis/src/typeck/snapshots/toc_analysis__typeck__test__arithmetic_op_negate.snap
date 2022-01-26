@@ -1,13 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var r : real\n    var i : int\n    var n : nat\n    var _r := - r\n    var _i := - i\n    var _n := - n\n    "
 
 ---
-"r"@(FileId(1), 9..10) [Declared]: ref_mut real
-"i"@(FileId(1), 26..27) [Declared]: ref_mut int
-"n"@(FileId(1), 42..43) [Declared]: ref_mut nat
-"_r"@(FileId(1), 58..60) [Declared]: ref_mut real
-"_i"@(FileId(1), 76..78) [Declared]: ref_mut int
-"_n"@(FileId(1), 94..96) [Declared]: ref_mut nat
+"r"@(FileId(1), 9..10) [Declared]: real
+"i"@(FileId(1), 26..27) [Declared]: int
+"n"@(FileId(1), 42..43) [Declared]: nat
+"_r"@(FileId(1), 58..60) [Declared]: real
+"_i"@(FileId(1), 76..78) [Declared]: int
+"_n"@(FileId(1), 94..96) [Declared]: nat
 "<root>"@(dummy) [Declared]: <error>
 

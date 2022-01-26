@@ -1,12 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Sized charseqs\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := c = c\n    _v_res := c = c_sz\n    _v_res := c = s\n    _v_res := c = s_sz\n\n    _v_res := c_sz = c\n    _v_res := c_sz = c_sz\n    _v_res := c_sz = s\n    _v_res := c_sz = s_sz\n\n    _v_res := s = c\n    _v_res := s = c_sz\n    _v_res := s = s\n    _v_res := s = s_sz\n\n    _v_res := s_sz = c\n    _v_res := s_sz = c_sz\n    _v_res := s_sz = s\n    _v_res := s_sz = s_sz\n    "
 
 ---
-"c"@(FileId(1), 30..31) [Declared]: ref_mut char
-"c_sz"@(FileId(1), 47..51) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 70..71) [Declared]: ref_mut string
-"s_sz"@(FileId(1), 89..93) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_v_res"@(FileId(1), 149..155) [Declared]: ref_mut boolean
+"c"@(FileId(1), 30..31) [Declared]: char
+"c_sz"@(FileId(1), 47..51) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 70..71) [Declared]: string
+"s_sz"@(FileId(1), 89..93) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_v_res"@(FileId(1), 149..155) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 

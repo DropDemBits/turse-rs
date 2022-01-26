@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var i1 : int1\nvar i : int\nvar _res : boolean\nfor : i .. i1 end for\n"
 
 ---
-"i1"@(FileId(1), 4..6) [Declared]: ref_mut int1
-"i"@(FileId(1), 18..19) [Declared]: ref_mut int
-"_res"@(FileId(1), 30..34) [Declared]: ref_mut boolean
+"i1"@(FileId(1), 4..6) [Declared]: int1
+"i"@(FileId(1), 18..19) [Declared]: int
+"_res"@(FileId(1), 30..34) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 

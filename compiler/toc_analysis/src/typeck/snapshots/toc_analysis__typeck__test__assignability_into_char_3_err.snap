@@ -1,17 +1,18 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const N := 3\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar s1 : string(1)\n\nvar _e00 : char(N) := c\nvar _e01 : char(N) := c1\nvar _e02 : char(N) := c5\nvar _e03 : char(N) := s1 % [not captured by ctc]\n"
 
 ---
-"N"@(FileId(1), 6..7) [Declared]: ref int
-"c"@(FileId(1), 17..18) [Declared]: ref_mut char
-"c1"@(FileId(1), 30..32) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"c5"@(FileId(1), 47..49) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"s1"@(FileId(1), 64..66) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
-"_e00"@(FileId(1), 84..88) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
-"_e01"@(FileId(1), 108..112) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
-"_e02"@(FileId(1), 133..137) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
-"_e03"@(FileId(1), 158..162) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
+"N"@(FileId(1), 6..7) [Declared]: int
+"c"@(FileId(1), 17..18) [Declared]: char
+"c1"@(FileId(1), 30..32) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c5"@(FileId(1), 47..49) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s1"@(FileId(1), 64..66) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"_e00"@(FileId(1), 84..88) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_e01"@(FileId(1), 108..112) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(6)))
+"_e02"@(FileId(1), 133..137) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(8)))
+"_e03"@(FileId(1), 158..162) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(10)))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 102..103: mismatched types

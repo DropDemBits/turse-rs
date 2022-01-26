@@ -1,18 +1,19 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "% all runtime checked\nvar c_dyn : string(*)\n\nvar _v00 : char := c_dyn\nvar _v01 : char(1) := c_dyn\nvar _v02 : char(5) := c_dyn\nvar _v03 : char(255) := c_dyn\nvar _v04 : char(256) := c_dyn\nvar _v05 : char(*) := c_dyn\nvar _v06 : string := c_dyn\nvar _v07 : string(1) := c_dyn\nvar _v08 : string(5) := c_dyn\nvar _v09 : string(*) := c_dyn\n"
 
 ---
-"c_dyn"@(FileId(1), 26..31) [Declared]: ref_mut string_n Dynamic
-"_v00"@(FileId(1), 49..53) [Declared]: ref_mut char
-"_v01"@(FileId(1), 74..78) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_v02"@(FileId(1), 102..106) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
-"_v03"@(FileId(1), 130..134) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(5)))
-"_v04"@(FileId(1), 160..164) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(7)))
-"_v05"@(FileId(1), 190..194) [Declared]: ref_mut char_n Dynamic
-"_v06"@(FileId(1), 218..222) [Declared]: ref_mut string
-"_v07"@(FileId(1), 245..249) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(11)))
-"_v08"@(FileId(1), 275..279) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(13)))
-"_v09"@(FileId(1), 305..309) [Declared]: ref_mut string_n Dynamic
+"c_dyn"@(FileId(1), 26..31) [Declared]: string_n Dynamic
+"_v00"@(FileId(1), 49..53) [Declared]: char
+"_v01"@(FileId(1), 74..78) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_v02"@(FileId(1), 102..106) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"_v03"@(FileId(1), 130..134) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(5)))
+"_v04"@(FileId(1), 160..164) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(7)))
+"_v05"@(FileId(1), 190..194) [Declared]: char_n Dynamic
+"_v06"@(FileId(1), 218..222) [Declared]: string
+"_v07"@(FileId(1), 245..249) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(11)))
+"_v08"@(FileId(1), 275..279) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(13)))
+"_v09"@(FileId(1), 305..309) [Declared]: string_n Dynamic
 "<root>"@(dummy) [Declared]: <error>
 

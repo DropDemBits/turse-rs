@@ -4,7 +4,7 @@ assertion_line: 41
 expression: "var r : real for : 1 .. r end for"
 
 ---
-"r"@(FileId(1), 4..5) [Declared]: ref_mut real
+"r"@(FileId(1), 4..5) [Declared]: real
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 19..25: mismatched types

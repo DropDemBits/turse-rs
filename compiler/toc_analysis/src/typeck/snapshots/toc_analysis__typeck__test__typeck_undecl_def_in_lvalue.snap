@@ -1,9 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 41
-expression: "var a : int put a : a : a : a"
+expression: "undecl := 1"
 
 ---
-"a"@(FileId(1), 4..5) [Declared]: int
+"undecl"@(FileId(1), 0..6) [Undeclared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 

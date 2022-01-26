@@ -1,8 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const ke : int := ()"
 
 ---
-"ke"@(FileId(1), 6..8) [Declared]: ref int
+"ke"@(FileId(1), 6..8) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

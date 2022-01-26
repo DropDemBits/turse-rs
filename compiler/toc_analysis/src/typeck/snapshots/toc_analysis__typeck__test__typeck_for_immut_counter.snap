@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "for i : false .. true i := false end for"
 
 ---
-"i"@(FileId(1), 4..5) [Declared]: ref boolean
+"i"@(FileId(1), 4..5) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 24..26: cannot assign into expression

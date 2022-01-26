@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const j : int := 2\nconst k : int := 3\nk := j\n"
 
 ---
-"j"@(FileId(1), 6..7) [Declared]: ref int
-"k"@(FileId(1), 25..26) [Declared]: ref int
+"j"@(FileId(1), 6..7) [Declared]: int
+"k"@(FileId(1), 25..26) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 40..42: cannot assign into expression

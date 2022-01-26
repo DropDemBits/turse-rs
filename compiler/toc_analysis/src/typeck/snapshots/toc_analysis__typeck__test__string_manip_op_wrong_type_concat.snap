@@ -4,25 +4,25 @@ assertion_line: 41
 expression: "\n    var c : char\n    var c_dyn : char(*)\n    var c_sz : char(6)\n    var s : string\n    var s_dyn : string(*)\n    var s_sz : string(6)\n    var i : int\n\n    var _e00 := c + i\n    var _e01 := c_dyn + i\n    var _e02 := c_sz + i\n    var _e03 := s + i\n    var _e04 := s_dyn + i\n    var _e05 := s_sz + i\n\n    var _e10 := i + c\n    var _e11 := i + c_dyn\n    var _e12 := i + c_sz\n    var _e13 := i + s\n    var _e14 := i + s_dyn\n    var _e15 := i + s_sz\n\n    % TODO: Uncomment to verify incompatible types\n    /*\n    var _e20 : char(13) := c_sz + c_sz\n    var _e21 : char(8) := c_sz + c\n    var _e22 : char(8) := c + c_sz\n    var _e23 : char(3) := c + c\n    var _e24 : char := c + c\n    */\n    "
 
 ---
-"c"@(FileId(1), 9..10) [Declared]: ref_mut char
-"c_dyn"@(FileId(1), 26..31) [Declared]: ref_mut char_n Dynamic
-"c_sz"@(FileId(1), 50..54) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 73..74) [Declared]: ref_mut string
-"s_dyn"@(FileId(1), 92..97) [Declared]: ref_mut string_n Dynamic
-"s_sz"@(FileId(1), 118..122) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"i"@(FileId(1), 143..144) [Declared]: ref_mut int
-"_e00"@(FileId(1), 160..164) [Declared]: ref_mut <error>
-"_e01"@(FileId(1), 182..186) [Declared]: ref_mut <error>
-"_e02"@(FileId(1), 208..212) [Declared]: ref_mut <error>
-"_e03"@(FileId(1), 233..237) [Declared]: ref_mut <error>
-"_e04"@(FileId(1), 255..259) [Declared]: ref_mut <error>
-"_e05"@(FileId(1), 281..285) [Declared]: ref_mut <error>
-"_e10"@(FileId(1), 307..311) [Declared]: ref_mut <error>
-"_e11"@(FileId(1), 329..333) [Declared]: ref_mut <error>
-"_e12"@(FileId(1), 355..359) [Declared]: ref_mut <error>
-"_e13"@(FileId(1), 380..384) [Declared]: ref_mut <error>
-"_e14"@(FileId(1), 402..406) [Declared]: ref_mut <error>
-"_e15"@(FileId(1), 428..432) [Declared]: ref_mut <error>
+"c"@(FileId(1), 9..10) [Declared]: char
+"c_dyn"@(FileId(1), 26..31) [Declared]: char_n Dynamic
+"c_sz"@(FileId(1), 50..54) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 73..74) [Declared]: string
+"s_dyn"@(FileId(1), 92..97) [Declared]: string_n Dynamic
+"s_sz"@(FileId(1), 118..122) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"i"@(FileId(1), 143..144) [Declared]: int
+"_e00"@(FileId(1), 160..164) [Declared]: <error>
+"_e01"@(FileId(1), 182..186) [Declared]: <error>
+"_e02"@(FileId(1), 208..212) [Declared]: <error>
+"_e03"@(FileId(1), 233..237) [Declared]: <error>
+"_e04"@(FileId(1), 255..259) [Declared]: <error>
+"_e05"@(FileId(1), 281..285) [Declared]: <error>
+"_e10"@(FileId(1), 307..311) [Declared]: <error>
+"_e11"@(FileId(1), 329..333) [Declared]: <error>
+"_e12"@(FileId(1), 355..359) [Declared]: <error>
+"_e13"@(FileId(1), 380..384) [Declared]: <error>
+"_e14"@(FileId(1), 402..406) [Declared]: <error>
+"_e15"@(FileId(1), 428..432) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 170..171: mismatched types for string concatenation

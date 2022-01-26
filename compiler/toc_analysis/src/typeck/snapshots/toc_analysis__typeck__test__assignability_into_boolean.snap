@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var b : boolean\n\nvar _v00 : boolean := b\n"
 
 ---
-"b"@(FileId(1), 4..5) [Declared]: ref_mut boolean
-"_v00"@(FileId(1), 21..25) [Declared]: ref_mut boolean
+"b"@(FileId(1), 4..5) [Declared]: boolean
+"_v00"@(FileId(1), 21..25) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 

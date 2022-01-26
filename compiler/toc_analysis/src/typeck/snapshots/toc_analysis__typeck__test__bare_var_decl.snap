@@ -1,8 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var k k := 3"
 
 ---
-"k"@(FileId(1), 4..5) [Declared]: ref_mut <error>
+"k"@(FileId(1), 4..5) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
