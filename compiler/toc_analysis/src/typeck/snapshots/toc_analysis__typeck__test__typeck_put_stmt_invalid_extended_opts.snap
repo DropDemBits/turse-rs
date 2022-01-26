@@ -1,12 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\n%put ef : 0 : 0 : 0\n"
 
 ---
-"c"@(FileId(1), 71..72) [Declared]: ref_mut char
-"cn"@(FileId(1), 84..86) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 101..102) [Declared]: ref_mut string
-"sn"@(FileId(1), 116..118) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c"@(FileId(1), 71..72) [Declared]: char
+"cn"@(FileId(1), 84..86) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 101..102) [Declared]: string
+"sn"@(FileId(1), 116..118) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 177..178: invalid put option

@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use toc_hir::expr::{self, BodyExpr};
 use toc_hir::library::{self, LibraryId, WrapInLibrary};
 use toc_hir::stmt::BodyStmt;
-use toc_hir::symbol::DefId;
+use toc_hir::symbol::{BindingKind, DefId};
 use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -169,9 +169,7 @@ impl TypeCheck<'_> {
         let left = self.db.type_of(def_id.into());
         let right = self.db.type_of((self.library_id, init).into());
 
-        // Ignore mutability because we're checking an initializer
-        let valid_asn = ty::rules::is_assignable(self.db, left, right, true);
-        if !valid_asn.expect("lhs ty not from reference") {
+        if !ty::rules::is_assignable(self.db, left, right) {
             // Incompatible, report it
             let init_span = self
                 .library
@@ -202,41 +200,42 @@ impl TypeCheck<'_> {
     fn typeck_assign(&self, in_body: body::BodyId, item: &stmt::Assign) {
         let lib_id = self.library_id;
         let db = self.db;
-
-        let left = db.type_of((lib_id, in_body, item.lhs).into());
-        let right = db.type_of((lib_id, in_body, item.rhs).into());
-
-        // Check if types are assignable
-        // Leave error types as "always assignable"
-        let asn_able = ty::rules::is_assignable(db, left, right, false);
         let asn_span = item.asn.lookup_in(&self.library.span_map);
 
-        match asn_able {
-            Some(true) => {} // Valid
-            Some(false) => {
+        // Check if we're assigning into a mut ref
+        if !db
+            .binding_kind((lib_id, in_body, item.lhs).into())
+            .map(BindingKind::is_ref_mut)
+            .unwrap_or(false)
+        {
+            // Not a mut ref
+            let left_span = self
+                .library
+                .body(in_body)
+                .expr(item.lhs)
+                .span
+                .lookup_in(&self.library.span_map);
+
+            // TODO: Stringify lhs for more clarity on the error location
+            // TODO: If it's a ref expr, get the definition point
+            self.state()
+                .reporter
+                .error_detailed("cannot assign into expression", asn_span)
+                .with_note("not a reference to a variable", left_span)
+                .finish();
+        } else {
+            let left = db.type_of((lib_id, in_body, item.lhs).into());
+            let right = db.type_of((lib_id, in_body, item.rhs).into());
+
+            // Check if types are assignable
+            // Leave error types as "always assignable"
+            if !ty::rules::is_assignable(db, left, right) {
                 // Invalid types!
                 let body = self.library.body(in_body);
                 let left_span = body.expr(item.lhs).span.lookup_in(&self.library.span_map);
                 let right_span = body.expr(item.rhs).span.lookup_in(&self.library.span_map);
 
                 self.report_mismatched_assign_tys(left, right, asn_span, left_span, right_span);
-            }
-            None => {
-                // Not a mut ref
-                let left_span = self
-                    .library
-                    .body(in_body)
-                    .expr(item.lhs)
-                    .span
-                    .lookup_in(&self.library.span_map);
-
-                // TODO: Stringify lhs for more clarity on the error location
-                // TODO: If it's a ref expr, get the definition point
-                self.state()
-                    .reporter
-                    .error_detailed("cannot assign into expression", asn_span)
-                    .with_note("not a reference to a variable", left_span)
-                    .finish();
             }
         }
     }
@@ -250,8 +249,8 @@ impl TypeCheck<'_> {
         right_span: toc_span::Span,
     ) {
         let db = self.db;
-        let left_ty = left.in_db(db).peel_ref();
-        let right_ty = right.in_db(db).peel_ref();
+        let left_ty = left.in_db(db);
+        let right_ty = right.in_db(db);
 
         self.state()
             .reporter
@@ -288,8 +287,7 @@ impl TypeCheck<'_> {
             let put_ty = self
                 .db
                 .type_of((self.library_id, body_id, item.expr).into())
-                .in_db(self.db)
-                .peel_ref();
+                .in_db(self.db);
 
             if !self.is_text_io_item(put_ty.id()) {
                 continue;
@@ -365,11 +363,11 @@ impl TypeCheck<'_> {
             let body_expr = item.expr.in_body(body_id);
             let ty = db.type_of((self.library_id, body_expr).into()).in_db(db);
 
-            if !self.is_text_io_item(ty.id()) {
-                continue;
-            }
-
-            if !ty.kind().is_ref_mut() {
+            if !db
+                .binding_kind((self.library_id, body_expr).into())
+                .map(BindingKind::is_ref_mut)
+                .unwrap_or(false)
+            {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 // TODO: Stringify item for more clarity on the error location
@@ -381,7 +379,9 @@ impl TypeCheck<'_> {
                     .finish();
             }
 
-            let ty = ty.peel_ref();
+            if !self.is_text_io_item(ty.id()) {
+                continue;
+            }
 
             // Verify that the item type can use the given width
             match &item.width {
@@ -443,7 +443,7 @@ impl TypeCheck<'_> {
 
     fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
         let db = self.db;
-        let ty_dat = ty.in_db(db).peel_ref();
+        let ty_dat = ty.in_db(db);
 
         // Must be a valid put/get type
         // Can be one of the following:
@@ -470,8 +470,6 @@ impl TypeCheck<'_> {
             | ty::TypeKind::String
             | ty::TypeKind::CharN(_)
             | ty::TypeKind::StringN(_) => true,
-            // Already deref'd
-            ty::TypeKind::Ref(_, _) => unreachable!(),
             // Already de-aliased
             ty::TypeKind::Alias(_, _) => unreachable!(),
         }
@@ -497,8 +495,7 @@ impl TypeCheck<'_> {
                 let end_ty = db.type_of((self.library_id, body_id, end).into());
 
                 // Wrap up both types
-                let (start_ty, end_ty) =
-                    (start_ty.in_db(db).peel_ref(), end_ty.in_db(db).peel_ref());
+                let (start_ty, end_ty) = (start_ty.in_db(db), end_ty.in_db(db));
 
                 let start_span = self.library.body(body_id).expr(start).span;
                 let end_span = self.library.body(body_id).expr(end).span;
@@ -608,8 +605,7 @@ impl TypeCheck<'_> {
 
         let discrim_display = db
             .type_of((self.library_id, body_id, stmt.discriminant).into())
-            .in_db(db)
-            .peel_ref();
+            .in_db(db);
         let discrim_ty = discrim_display.clone().to_base_type();
         let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
         let discrim_span = self.library.lookup_span(discrim_span);
@@ -659,7 +655,7 @@ impl TypeCheck<'_> {
 
             // Must match discriminant type
             if !ty::rules::is_coercible_into(db, discrim_ty.id(), selector_ty) {
-                let selector_ty = selector_ty.in_db(db).peel_ref();
+                let selector_ty = selector_ty.in_db(db);
 
                 self.state()
                     .reporter
@@ -697,7 +693,7 @@ impl TypeCheck<'_> {
                 Ok(ConstValue::String(s)) if matches!(discrim_ty.kind(), ty::TypeKind::Char) => {
                     // Check that it's a length 1 string
                     if s.len() != 1 {
-                        let selector_ty = selector_ty.in_db(db).peel_ref();
+                        let selector_ty = selector_ty.in_db(db);
 
                         self.state()
                             .reporter
@@ -771,19 +767,26 @@ impl TypeCheck<'_> {
         match expr {
             expr::Name::Name(def_id) => {
                 // Validate it's a ref to a storage location
-                let ty_ref = self
+                let binding_kind = self
                     .db
-                    .type_of(DefId(self.library_id, *def_id).into())
-                    .in_db(self.db);
+                    .binding_kind(DefId(self.library_id, *def_id).into())
+                    .expect("undecl defs are bindings");
 
-                if !matches!(ty_ref.kind(), ty::TypeKind::Ref(_, _)) {
+                if !binding_kind.is_ref() {
                     let span = self.library.body(id.0).expr(id.1).span;
                     let span = self.library.lookup_span(span);
                     let name = self.library.local_def(*def_id).name.item();
+                    let reason = match binding_kind {
+                        BindingKind::Undeclared | BindingKind::Storage(_) => unreachable!(),
+                        BindingKind::Type => format!("`{}` is a reference to a type", name),
+                        BindingKind::Module => {
+                            format!("`{}` is a reference to a module", name)
+                        }
+                    };
 
                     self.state().reporter.error(
                         format!("cannot use `{}` as an expression", name),
-                        format!("`{}` is a reference to a type", name),
+                        reason,
                         span,
                     );
                 }
@@ -861,7 +864,7 @@ impl TypeCheck<'_> {
     // TODO: Replace `expect_*_type` with `expect_type` once we have `ty::rules::is_equivalent`
 
     fn expect_integer_type(&self, type_id: ty::TypeId, span: Span) {
-        let ty = type_id.in_db(self.db).peel_ref();
+        let ty = type_id.in_db(self.db);
 
         if !ty.kind().is_integer() && !ty.kind().is_error() {
             self.state()
@@ -874,7 +877,7 @@ impl TypeCheck<'_> {
     }
 
     fn expect_boolean_type(&self, type_id: ty::TypeId, span: Span) {
-        let ty = type_id.in_db(self.db).peel_ref();
+        let ty = type_id.in_db(self.db);
         let expected_ty = self.db.mk_boolean().in_db(self.db);
 
         if !ty.kind().is_boolean() && !ty.kind().is_error() {

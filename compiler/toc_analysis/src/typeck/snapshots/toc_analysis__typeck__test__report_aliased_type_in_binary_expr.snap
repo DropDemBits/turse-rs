@@ -6,8 +6,8 @@ expression: "type a0 : real\ntype a1 : int\nvar k : a0\nvar i : int\ni := i + k 
 ---
 "a0"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
 "a1"@(FileId(1), 20..22) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
-"k"@(FileId(1), 33..34) [Declared]: ref_mut alias[DefId(LibraryId(0), LocalDefId(0))] of real
-"i"@(FileId(1), 44..45) [Declared]: ref_mut int
+"k"@(FileId(1), 33..34) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"i"@(FileId(1), 44..45) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 54..56: mismatched types

@@ -10,7 +10,7 @@ use crate::const_eval::{Const, ConstInt};
 use crate::db::TypeDatabase;
 use crate::ty::{self, TypeId, TypeKind};
 
-use super::{IntSize, Mutability, NatSize, RealSize, SeqSize};
+use super::{IntSize, NatSize, RealSize, SeqSize};
 
 pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>) -> TypeId {
     let library = db.library(hir_id.0);
@@ -105,8 +105,7 @@ fn constvar_ty(
         }
         (_, Some(body)) => {
             // From inferred init expr
-            // Peel any refs
-            db.type_of((item_id.0, body).into()).in_db(db).peel_ref()
+            db.type_of((item_id.0, body).into()).in_db(db)
         }
         (None, None) => {
             // No place to infer from, make an error
@@ -115,20 +114,12 @@ fn constvar_ty(
     };
 
     // Make the type concrete
-    let item_ty = if *item_ty.kind() == TypeKind::Integer {
+    if *item_ty.kind() == TypeKind::Integer {
         // Integer decomposes into a normal `int`
         db.mk_int(IntSize::Int)
     } else {
         require_resolved_type(db, item_ty.id())
-    };
-
-    // Use the appropriate reference mutability
-    let mutability = match item.mutability {
-        item::Mutability::Const => Mutability::Const,
-        item::Mutability::Var => Mutability::Var,
-    };
-
-    db.mk_ref(mutability, item_ty)
+    }
 }
 
 fn type_def_ty(
@@ -174,14 +165,8 @@ fn for_counter_ty(
         stmt::ForBounds::Full(start, end) => {
             // Always infer from the start type
             // We can usually ignore the end type, except if start is not a concrete type
-            let start_ty = db
-                .type_of((library_id, stmt_id.0, start).into())
-                .in_db(db)
-                .peel_ref();
-            let end_ty = db
-                .type_of((library_id, stmt_id.0, end).into())
-                .in_db(db)
-                .peel_ref();
+            let start_ty = db.type_of((library_id, stmt_id.0, start).into()).in_db(db);
+            let end_ty = db.type_of((library_id, stmt_id.0, end).into()).in_db(db);
 
             // Pick the concrete type
             let counter_ty = if *start_ty.kind() != TypeKind::Integer {
@@ -193,7 +178,7 @@ fn for_counter_ty(
                 db.mk_int(IntSize::Int)
             };
 
-            db.mk_ref(Mutability::Const, counter_ty)
+            counter_ty
         }
     }
 }

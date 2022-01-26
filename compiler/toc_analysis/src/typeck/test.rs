@@ -1423,6 +1423,14 @@ test_named_group! { report_aliased_type,
     ]
 }
 
+test_named_group! { typeck_undecl_def,
+    [
+        // don't produce an error
+        in_lvalue => "undecl := 1",
+        in_rvalue => "var lvalue := undecl",
+    ]
+}
+
 test_named_group! { peel_ref,
     [
         in_assign => r#"var a : int var k : int := a"#,

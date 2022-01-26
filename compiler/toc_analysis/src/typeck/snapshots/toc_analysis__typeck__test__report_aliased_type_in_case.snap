@@ -6,8 +6,8 @@ expression: "type a0 : char\ntype a1 : char(6)\nvar ca0 : a0\nconst cna1 : a1 :=
 ---
 "a0"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of char
 "a1"@(FileId(1), 20..22) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"ca0"@(FileId(1), 37..40) [Declared]: ref_mut alias[DefId(LibraryId(0), LocalDefId(0))] of char
-"cna1"@(FileId(1), 52..56) [Declared]: ref alias[DefId(LibraryId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"ca0"@(FileId(1), 37..40) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of char
+"cna1"@(FileId(1), 52..56) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 93..97: mismatched types

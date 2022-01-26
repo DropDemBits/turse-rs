@@ -1,12 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const N := 256\nvar c256 : char(256)\nvar s : string\n\nvar _v00 : char(N) := c256\nvar _v01 : char(N) := s % runtime checked, always fails\n"
 
 ---
-"N"@(FileId(1), 6..7) [Declared]: ref int
-"c256"@(FileId(1), 19..23) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"s"@(FileId(1), 40..41) [Declared]: ref_mut string
-"_v00"@(FileId(1), 56..60) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"_v01"@(FileId(1), 83..87) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"N"@(FileId(1), 6..7) [Declared]: int
+"c256"@(FileId(1), 19..23) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"s"@(FileId(1), 40..41) [Declared]: string
+"_v00"@(FileId(1), 56..60) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"_v01"@(FileId(1), 83..87) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
 "<root>"@(dummy) [Declared]: <error>
 

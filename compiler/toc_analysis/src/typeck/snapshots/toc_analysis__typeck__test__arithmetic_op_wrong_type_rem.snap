@@ -4,17 +4,17 @@ assertion_line: 41
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _br := b rem r\n    var _bi := b rem i\n    var _bn := b rem n\n    var _rb := r rem b\n    var _ib := i rem b\n    var _nb := n rem b\n    var _bb := b rem b\n"
 
 ---
-"b"@(FileId(1), 9..10) [Declared]: ref_mut boolean
-"r"@(FileId(1), 29..30) [Declared]: ref_mut real
-"i"@(FileId(1), 46..47) [Declared]: ref_mut int
-"n"@(FileId(1), 62..63) [Declared]: ref_mut nat
-"_br"@(FileId(1), 78..81) [Declared]: ref_mut <error>
-"_bi"@(FileId(1), 101..104) [Declared]: ref_mut <error>
-"_bn"@(FileId(1), 124..127) [Declared]: ref_mut <error>
-"_rb"@(FileId(1), 147..150) [Declared]: ref_mut <error>
-"_ib"@(FileId(1), 170..173) [Declared]: ref_mut <error>
-"_nb"@(FileId(1), 193..196) [Declared]: ref_mut <error>
-"_bb"@(FileId(1), 216..219) [Declared]: ref_mut <error>
+"b"@(FileId(1), 9..10) [Declared]: boolean
+"r"@(FileId(1), 29..30) [Declared]: real
+"i"@(FileId(1), 46..47) [Declared]: int
+"n"@(FileId(1), 62..63) [Declared]: nat
+"_br"@(FileId(1), 78..81) [Declared]: <error>
+"_bi"@(FileId(1), 101..104) [Declared]: <error>
+"_bn"@(FileId(1), 124..127) [Declared]: <error>
+"_rb"@(FileId(1), 147..150) [Declared]: <error>
+"_ib"@(FileId(1), 170..173) [Declared]: <error>
+"_nb"@(FileId(1), 193..196) [Declared]: <error>
+"_bb"@(FileId(1), 216..219) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 87..90: mismatched types for remainder

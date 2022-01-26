@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var b : boolean\n    var _b := + b\n"
 
 ---
-"b"@(FileId(1), 9..10) [Declared]: ref_mut boolean
-"_b"@(FileId(1), 29..31) [Declared]: ref_mut <error>
+"b"@(FileId(1), 9..10) [Declared]: boolean
+"_b"@(FileId(1), 29..31) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 35..36: mismatched types for unary `+`

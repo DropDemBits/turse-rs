@@ -3,6 +3,9 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
+use toc_hir::expr;
+use toc_hir::item::Mutability;
+use toc_hir::symbol::BindingKind;
 use toc_hir::{
     body, item,
     library::{InLibrary, LibraryId, LoweredLibrary},
@@ -12,7 +15,7 @@ use toc_hir::{
     visitor::HirVisitor,
 };
 
-use crate::db::HirDatabase;
+use crate::db::{BindingSource, HirDatabase};
 
 pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary {
     let file = db.library_graph().file_of(library);
@@ -49,6 +52,49 @@ pub fn lookup_item(db: &dyn HirDatabase, def_id: DefId) -> Option<InLibrary<item
 pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::BodyId>> {
     let library = db.library(library);
     Arc::new(library.body_ids())
+}
+
+pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Option<BindingKind> {
+    match ref_src {
+        BindingSource::DefId(def_id) => {
+            // Take the binding kind from the def owner
+            let def_owner = db.def_owner(def_id);
+            let library = db.library(def_id.0);
+
+            match def_owner {
+                Some(DefOwner::Item(item_id)) => match &library.item(item_id).kind {
+                    item::ItemKind::ConstVar(item) => Some(BindingKind::Storage(item.mutability)),
+                    item::ItemKind::Type(_) => Some(BindingKind::Type),
+                    item::ItemKind::Module(_) => Some(BindingKind::Module),
+                },
+                Some(DefOwner::Stmt(stmt_id)) => {
+                    match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
+                        stmt::StmtKind::Item(_) => {
+                            unreachable!("item def owners shouldn't be stmt def owners")
+                        }
+                        // for-loop counter var is an immutable ref
+                        stmt::StmtKind::For(_) => Some(BindingKind::Storage(Mutability::Const)),
+                        _ => None,
+                    }
+                }
+                // From an undeclared identifier, technically produces a binding
+                None => Some(BindingKind::Undeclared),
+            }
+        }
+        BindingSource::BodyExpr(lib_id, expr) => {
+            // Traverse nodes until we encounter a valid binding kind
+            let library = db.library(lib_id);
+
+            // For now, only name exprs can produce a binding kind
+            match &library.body(expr.0).expr(expr.1).kind {
+                expr::ExprKind::Name(name) => match name {
+                    expr::Name::Name(def_id) => db.binding_kind(DefId(lib_id, *def_id).into()),
+                    expr::Name::Self_ => todo!(),
+                },
+                _ => None,
+            }
+        }
+    }
 }
 
 #[derive(Default)]

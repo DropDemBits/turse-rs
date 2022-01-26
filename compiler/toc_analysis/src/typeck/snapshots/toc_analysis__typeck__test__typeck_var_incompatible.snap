@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var k : char := 20"
 
 ---
-"k"@(FileId(1), 4..5) [Declared]: ref_mut char
+"k"@(FileId(1), 4..5) [Declared]: char
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 16..18: mismatched types

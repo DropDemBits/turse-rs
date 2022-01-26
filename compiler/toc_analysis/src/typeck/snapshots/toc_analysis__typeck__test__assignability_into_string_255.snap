@@ -1,20 +1,21 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const N := 255\nvar c : char\nvar c1 : char(1)\nvar c255 : char(255)\nvar s : string\nvar s1 : string(1)\nvar s255 : string(255)\n\nvar _v00 : string(N) := c\nvar _v01 : string(N) := c1\nvar _v02 : string(N) := c255\nvar _v03 : string(N) := s % runtime checked, always good\nvar _v04 : string(N) := s1\nvar _v05 : string(N) := s255\n"
 
 ---
-"N"@(FileId(1), 6..7) [Declared]: ref int
-"c"@(FileId(1), 19..20) [Declared]: ref_mut char
-"c1"@(FileId(1), 32..34) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"c255"@(FileId(1), 49..53) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
-"s"@(FileId(1), 70..71) [Declared]: ref_mut string
-"s1"@(FileId(1), 85..87) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
-"s255"@(FileId(1), 104..108) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
-"_v00"@(FileId(1), 128..132) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(5)))
-"_v01"@(FileId(1), 154..158) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(7)))
-"_v02"@(FileId(1), 181..185) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(9)))
-"_v03"@(FileId(1), 210..214) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(11)))
-"_v04"@(FileId(1), 267..271) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(13)))
-"_v05"@(FileId(1), 294..298) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(15)))
+"N"@(FileId(1), 6..7) [Declared]: int
+"c"@(FileId(1), 19..20) [Declared]: char
+"c1"@(FileId(1), 32..34) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c255"@(FileId(1), 49..53) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s"@(FileId(1), 70..71) [Declared]: string
+"s1"@(FileId(1), 85..87) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"s255"@(FileId(1), 104..108) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"_v00"@(FileId(1), 128..132) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(5)))
+"_v01"@(FileId(1), 154..158) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(7)))
+"_v02"@(FileId(1), 181..185) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(9)))
+"_v03"@(FileId(1), 210..214) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(11)))
+"_v04"@(FileId(1), 267..271) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(13)))
+"_v05"@(FileId(1), 294..298) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(15)))
 "<root>"@(dummy) [Declared]: <error>
 

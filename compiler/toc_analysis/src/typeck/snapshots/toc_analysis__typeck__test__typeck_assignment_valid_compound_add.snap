@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var lhs : real\nvar rhs : int\nlhs += rhs\n"
 
 ---
-"lhs"@(FileId(1), 4..7) [Declared]: ref_mut real
-"rhs"@(FileId(1), 19..22) [Declared]: ref_mut int
+"lhs"@(FileId(1), 4..7) [Declared]: real
+"rhs"@(FileId(1), 19..22) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

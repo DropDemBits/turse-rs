@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const N := 1\nvar _ : string(N)\n"
 
 ---
-"N"@(FileId(1), 6..7) [Declared]: ref int
-"_"@(FileId(1), 17..18) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"N"@(FileId(1), 6..7) [Declared]: int
+"_"@(FileId(1), 17..18) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
 "<root>"@(dummy) [Declared]: <error>
 

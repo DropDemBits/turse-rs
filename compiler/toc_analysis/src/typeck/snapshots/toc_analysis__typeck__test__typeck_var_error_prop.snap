@@ -4,8 +4,8 @@ assertion_line: 41
 expression: "var k := 20 + false\nvar l : int := k   % Nothing reported here\n"
 
 ---
-"k"@(FileId(1), 4..5) [Declared]: ref_mut <error>
-"l"@(FileId(1), 24..25) [Declared]: ref_mut int
+"k"@(FileId(1), 4..5) [Declared]: <error>
+"l"@(FileId(1), 24..25) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 12..13: mismatched types for addition

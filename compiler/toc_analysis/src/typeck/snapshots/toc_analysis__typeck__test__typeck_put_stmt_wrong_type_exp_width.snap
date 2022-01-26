@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var e : real\nput 1 : 0 : 0 : e\n"
 
 ---
-"e"@(FileId(1), 4..5) [Declared]: ref_mut real
+"e"@(FileId(1), 4..5) [Declared]: real
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 29..30: mismatched types

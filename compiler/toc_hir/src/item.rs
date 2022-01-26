@@ -58,6 +58,7 @@ pub enum ItemKind {
     Module(Module),
 }
 
+// TODO: Move `Mutability` into `symbol`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mutability {
     Const,

@@ -4,15 +4,15 @@ assertion_line: 41
 expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : nat\n\n    % Other scalars\n    var b : boolean\n\n    % Sized charseqs\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := r not= b\n    _v_res := r not= c\n    _v_res := r not= c_sz\n    _v_res := r not= s\n    _v_res := r not= s_sz\n\n    _v_res := i not= b\n    _v_res := i not= c\n    _v_res := i not= c_sz\n    _v_res := i not= s\n    _v_res := i not= s_sz\n\n    _v_res := n not= b\n    _v_res := n not= c\n    _v_res := n not= c_sz\n    _v_res := n not= s\n    _v_res := n not= s_sz\n\n    _v_res := b not= r\n    _v_res := b not= i\n    _v_res := b not= n\n    _v_res := b not= c\n    _v_res := b not= c_sz\n    _v_res := b not= s\n    _v_res := b not= s_sz\n\n    _v_res := c not= r\n    _v_res := c not= i\n    _v_res := c not= n\n    _v_res := c not= b\n\n    _v_res := c_sz not= r\n    _v_res := c_sz not= i\n    _v_res := c_sz not= n\n    _v_res := c_sz not= b\n\n    _v_res := s not= r\n    _v_res := s not= i\n    _v_res := s not= n\n    _v_res := s not= b\n\n    _v_res := s_sz not= r\n    _v_res := s_sz not= i\n    _v_res := s_sz not= n\n    _v_res := s_sz not= b\n    "
 
 ---
-"r"@(FileId(1), 24..25) [Declared]: ref_mut real
-"i"@(FileId(1), 41..42) [Declared]: ref_mut int
-"n"@(FileId(1), 57..58) [Declared]: ref_mut nat
-"b"@(FileId(1), 94..95) [Declared]: ref_mut boolean
-"c"@(FileId(1), 136..137) [Declared]: ref_mut char
-"c_sz"@(FileId(1), 153..157) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 176..177) [Declared]: ref_mut string
-"s_sz"@(FileId(1), 195..199) [Declared]: ref_mut string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_v_res"@(FileId(1), 261..267) [Declared]: ref_mut boolean
+"r"@(FileId(1), 24..25) [Declared]: real
+"i"@(FileId(1), 41..42) [Declared]: int
+"n"@(FileId(1), 57..58) [Declared]: nat
+"b"@(FileId(1), 94..95) [Declared]: boolean
+"c"@(FileId(1), 136..137) [Declared]: char
+"c_sz"@(FileId(1), 153..157) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 176..177) [Declared]: string
+"s_sz"@(FileId(1), 195..199) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_v_res"@(FileId(1), 261..267) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 295..299: mismatched types for `not =`

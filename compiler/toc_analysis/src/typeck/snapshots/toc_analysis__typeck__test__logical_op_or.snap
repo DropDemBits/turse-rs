@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Compatibility with booleans\n    var b : boolean\n    var _bb := b or b\n"
 
 ---
-"b"@(FileId(1), 43..44) [Declared]: ref_mut boolean
-"_bb"@(FileId(1), 63..66) [Declared]: ref_mut boolean
+"b"@(FileId(1), 43..44) [Declared]: boolean
+"_bb"@(FileId(1), 63..66) [Declared]: boolean
 "<root>"@(dummy) [Declared]: <error>
 

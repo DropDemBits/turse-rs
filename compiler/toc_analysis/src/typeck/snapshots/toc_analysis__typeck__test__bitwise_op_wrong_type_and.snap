@@ -4,18 +4,18 @@ assertion_line: 41
 expression: "\n    var b : boolean\n    var r : real\n    var i : int\n    var n : nat\n    var _bi := b and i\n    var _bn := b and n\n    var _ib := i and b\n    var _nb := n and b\n    var _ri := r and i\n    var _rn := r and n\n    var _ir := i and r\n    var _nr := n and r\n"
 
 ---
-"b"@(FileId(1), 9..10) [Declared]: ref_mut boolean
-"r"@(FileId(1), 29..30) [Declared]: ref_mut real
-"i"@(FileId(1), 46..47) [Declared]: ref_mut int
-"n"@(FileId(1), 62..63) [Declared]: ref_mut nat
-"_bi"@(FileId(1), 78..81) [Declared]: ref_mut <error>
-"_bn"@(FileId(1), 101..104) [Declared]: ref_mut <error>
-"_ib"@(FileId(1), 124..127) [Declared]: ref_mut <error>
-"_nb"@(FileId(1), 147..150) [Declared]: ref_mut <error>
-"_ri"@(FileId(1), 170..173) [Declared]: ref_mut <error>
-"_rn"@(FileId(1), 193..196) [Declared]: ref_mut <error>
-"_ir"@(FileId(1), 216..219) [Declared]: ref_mut <error>
-"_nr"@(FileId(1), 239..242) [Declared]: ref_mut <error>
+"b"@(FileId(1), 9..10) [Declared]: boolean
+"r"@(FileId(1), 29..30) [Declared]: real
+"i"@(FileId(1), 46..47) [Declared]: int
+"n"@(FileId(1), 62..63) [Declared]: nat
+"_bi"@(FileId(1), 78..81) [Declared]: <error>
+"_bn"@(FileId(1), 101..104) [Declared]: <error>
+"_ib"@(FileId(1), 124..127) [Declared]: <error>
+"_nb"@(FileId(1), 147..150) [Declared]: <error>
+"_ri"@(FileId(1), 170..173) [Declared]: <error>
+"_rn"@(FileId(1), 193..196) [Declared]: <error>
+"_ir"@(FileId(1), 216..219) [Declared]: <error>
+"_nr"@(FileId(1), 239..242) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 87..90: mismatched types for logical `and`

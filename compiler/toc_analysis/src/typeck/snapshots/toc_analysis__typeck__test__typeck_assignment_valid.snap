@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const j : int := 2\nvar k : int := 1\nk := j\n"
 
 ---
-"j"@(FileId(1), 6..7) [Declared]: ref int
-"k"@(FileId(1), 23..24) [Declared]: ref_mut int
+"j"@(FileId(1), 6..7) [Declared]: int
+"k"@(FileId(1), 23..24) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

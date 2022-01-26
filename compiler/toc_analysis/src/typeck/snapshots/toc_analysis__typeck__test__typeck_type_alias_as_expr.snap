@@ -5,7 +5,7 @@ expression: "type k : int var a := k"
 
 ---
 "k"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"a"@(FileId(1), 17..18) [Declared]: ref_mut alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"a"@(FileId(1), 17..18) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 22..23: cannot use `k` as an expression

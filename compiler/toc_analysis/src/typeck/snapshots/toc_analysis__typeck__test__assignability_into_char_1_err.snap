@@ -1,11 +1,12 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "const N := 1\nvar c5 : char(5)\n\nvar _e00 : char(N) := c5\n"
 
 ---
-"N"@(FileId(1), 6..7) [Declared]: ref int
-"c5"@(FileId(1), 17..19) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_e00"@(FileId(1), 35..39) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"N"@(FileId(1), 6..7) [Declared]: int
+"c5"@(FileId(1), 17..19) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"_e00"@(FileId(1), 35..39) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 53..55: mismatched types

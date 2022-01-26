@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    var r : real\n    var _r := not r\n"
 
 ---
-"r"@(FileId(1), 9..10) [Declared]: ref_mut real
-"_r"@(FileId(1), 26..28) [Declared]: ref_mut <error>
+"r"@(FileId(1), 9..10) [Declared]: real
+"_r"@(FileId(1), 26..28) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 32..35: mismatched types for logical `not`

@@ -45,7 +45,6 @@ pub trait TypeInternExt {
     fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_forward(&self) -> ty::TypeId;
-    fn mk_ref(&self, mutability: ty::Mutability, to: ty::TypeId) -> ty::TypeId;
 }
 
 /// Anything which can produce a type

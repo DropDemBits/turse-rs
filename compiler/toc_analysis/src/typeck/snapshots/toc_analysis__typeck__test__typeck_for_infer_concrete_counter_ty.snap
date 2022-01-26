@@ -4,10 +4,10 @@ assertion_line: 41
 expression: "% Both should fail\nfor c : 1.0 .. 1 var k : int := c end for\nfor c : 1 .. 1.0 var k : int := c end for\n"
 
 ---
-"c"@(FileId(1), 23..24) [Declared]: ref real
-"k"@(FileId(1), 40..41) [Declared]: ref_mut int
-"c"@(FileId(1), 65..66) [Declared]: ref real
-"k"@(FileId(1), 82..83) [Declared]: ref_mut int
+"c"@(FileId(1), 23..24) [Declared]: real
+"k"@(FileId(1), 40..41) [Declared]: int
+"c"@(FileId(1), 65..66) [Declared]: real
+"k"@(FileId(1), 82..83) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 27..35: mismatched types

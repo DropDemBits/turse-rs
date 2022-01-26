@@ -1,14 +1,15 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "\n    % Inferred integer types should pass\n    % Decl should be a concrete type\n    var a := + 1\n    % Types of operands should make the type concrete\n    var r : real\n    var i : int\n    var n : nat\n    var _r0 := + r\n    var _i0 := + i\n    var _n0 := + n\n"
 
 ---
-"a"@(FileId(1), 87..88) [Declared]: ref_mut int
-"r"@(FileId(1), 158..159) [Declared]: ref_mut real
-"i"@(FileId(1), 175..176) [Declared]: ref_mut int
-"n"@(FileId(1), 191..192) [Declared]: ref_mut nat
-"_r0"@(FileId(1), 207..210) [Declared]: ref_mut real
-"_i0"@(FileId(1), 226..229) [Declared]: ref_mut int
-"_n0"@(FileId(1), 245..248) [Declared]: ref_mut nat
+"a"@(FileId(1), 87..88) [Declared]: int
+"r"@(FileId(1), 158..159) [Declared]: real
+"i"@(FileId(1), 175..176) [Declared]: int
+"n"@(FileId(1), 191..192) [Declared]: nat
+"_r0"@(FileId(1), 207..210) [Declared]: real
+"_i0"@(FileId(1), 226..229) [Declared]: int
+"_n0"@(FileId(1), 245..248) [Declared]: nat
 "<root>"@(dummy) [Declared]: <error>
 

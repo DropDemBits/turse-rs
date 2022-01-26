@@ -1,8 +1,9 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var _ : char(1)"
 
 ---
-"_"@(FileId(1), 4..5) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"_"@(FileId(1), 4..5) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "<root>"@(dummy) [Declared]: <error>
 

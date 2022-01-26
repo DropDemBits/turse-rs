@@ -1,9 +1,10 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "for a : 1 .. 10\n    var q : int := a\nend for\n"
 
 ---
-"a"@(FileId(1), 4..5) [Declared]: ref int
-"q"@(FileId(1), 24..25) [Declared]: ref_mut int
+"a"@(FileId(1), 4..5) [Declared]: int
+"q"@(FileId(1), 24..25) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 

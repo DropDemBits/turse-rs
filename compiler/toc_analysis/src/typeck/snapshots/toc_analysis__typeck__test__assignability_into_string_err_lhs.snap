@@ -1,10 +1,11 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
 expression: "var cmx : char(256)\n\nvar _e00 : string(*) := cmx % [not captured by ctc]\n"
 
 ---
-"cmx"@(FileId(1), 4..7) [Declared]: ref_mut char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"_e00"@(FileId(1), 25..29) [Declared]: ref_mut string_n Dynamic
+"cmx"@(FileId(1), 4..7) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"_e00"@(FileId(1), 25..29) [Declared]: string_n Dynamic
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 45..48: mismatched types
