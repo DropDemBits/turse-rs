@@ -1,5 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
 expression: "var _ : int _ := 100.00e100"
 
 ---
@@ -12,5 +13,5 @@ Library@(dummy)
             Primitive@(FileId(1), 8..11): Int
         Assign@(FileId(1), 12..27)
           Name@(FileId(1), 12..13): "_"@(FileId(1), 4..5)
-          Literal@(FileId(1), 17..27): Real(1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0)
+          Literal@(FileId(1), 17..27): Real(1e102)
 
