@@ -772,19 +772,15 @@ impl TypeCheck<'_> {
                     .binding_kind(DefId(self.library_id, *def_id).into())
                     .expect("undecl defs are bindings");
 
-                if !matches!(binding_kind, BindingKind::Storage(_)) {
+                if !binding_kind.is_ref() {
                     let span = self.library.body(id.0).expr(id.1).span;
                     let span = self.library.lookup_span(span);
                     let name = self.library.local_def(*def_id).name.item();
                     let reason = match binding_kind {
-                        BindingKind::Storage(_) => unreachable!(),
+                        BindingKind::Undeclared | BindingKind::Storage(_) => unreachable!(),
                         BindingKind::Type => format!("`{}` is a reference to a type", name),
                         BindingKind::Module => {
                             format!("`{}` is a reference to a module", name)
-                        }
-                        BindingKind::Undeclared => {
-                            // Undeclared identifier, can safely skip
-                            return;
                         }
                     };
 
