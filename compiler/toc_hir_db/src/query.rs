@@ -58,23 +58,27 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
     match ref_src {
         BindingSource::DefId(def_id) => {
             // Take the binding kind from the def owner
-            let def_owner = db.def_owner(def_id)?;
+            let def_owner = db.def_owner(def_id);
             let library = db.library(def_id.0);
 
             match def_owner {
-                DefOwner::Item(item_id) => match &library.item(item_id).kind {
+                Some(DefOwner::Item(item_id)) => match &library.item(item_id).kind {
                     item::ItemKind::ConstVar(item) => Some(BindingKind::Storage(item.mutability)),
                     item::ItemKind::Type(_) => Some(BindingKind::Type),
                     item::ItemKind::Module(_) => Some(BindingKind::Module),
                 },
-                DefOwner::Stmt(stmt_id) => match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
-                    stmt::StmtKind::Item(_) => {
-                        unreachable!("item def owners shouldn't be stmt def owners")
+                Some(DefOwner::Stmt(stmt_id)) => {
+                    match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
+                        stmt::StmtKind::Item(_) => {
+                            unreachable!("item def owners shouldn't be stmt def owners")
+                        }
+                        // for-loop counter var is an immutable ref
+                        stmt::StmtKind::For(_) => Some(BindingKind::Storage(Mutability::Const)),
+                        _ => None,
                     }
-                    // for-loop counter var is an immut ref
-                    stmt::StmtKind::For(_) => Some(BindingKind::Storage(Mutability::Const)),
-                    _ => None,
-                },
+                }
+                // From an undeclared identifier, technically produces a binding
+                None => Some(BindingKind::Undeclared),
             }
         }
         BindingSource::BodyExpr(lib_id, expr) => {

@@ -68,9 +68,32 @@ pub enum DefOwner {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BindingKind {
+    /// A binding to a storage location (e.g. from [`ConstVar`](crate::item::ConstVar))
     Storage(Mutability),
+    /// Binding to a type
     Type,
+    /// Binding to a module
     Module,
+    /// A binding that isn't attached to anything
+    Undeclared,
+}
+
+impl BindingKind {
+    // Undeclared bindings are treated as equivalent to all of the
+    // other binding types, for error reporting purposes.
+    //
+    // While it's still an invalid state, it can theoretically be
+    // any valid binding kind.
+
+    /// If this is a binding to a storage location (mut or immutable)
+    pub fn is_ref(self) -> bool {
+        matches!(self, Self::Undeclared | Self::Storage(_))
+    }
+
+    /// If this is a binding to a mutable storage location
+    pub fn is_ref_mut(self) -> bool {
+        matches!(self, Self::Undeclared | Self::Storage(Mutability::Var))
+    }
 }
 
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
