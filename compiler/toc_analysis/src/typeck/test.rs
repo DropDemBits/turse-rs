@@ -1364,6 +1364,9 @@ test_named_group! { typeck_type_alias,
         type fowo : forward
         type a : fowo",
         as_expr => "type k : int var a := k",
+        // only type bindings are accepted
+        from_var => "var a : int type k : a",
+        from_const => "const a : int type k : a",
     ]
 }
 

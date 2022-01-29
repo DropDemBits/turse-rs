@@ -94,6 +94,11 @@ impl BindingKind {
     pub fn is_ref_mut(self) -> bool {
         matches!(self, Self::Undeclared | Self::Storage(Mutability::Var))
     }
+
+    /// If this is a binding to a type
+    pub fn is_type(self) -> bool {
+        matches!(self, Self::Undeclared | Self::Type)
+    }
 }
 
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]

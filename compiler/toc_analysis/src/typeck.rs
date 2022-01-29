@@ -148,6 +148,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
     fn visit_primitive(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Primitive) {
         self.typeck_primitive(id, ty);
     }
+
+    fn visit_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
+        self.typeck_alias(id, ty);
+    }
 }
 
 impl TypeCheck<'_> {
@@ -858,6 +862,34 @@ impl TypeCheck<'_> {
                 .with_error(format!("computed count is {}", int), expr_span)
                 .with_info(format!("valid sizes are between 1 to {}", size_limit - 1))
                 .finish();
+        }
+    }
+
+    fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
+        let def_id = ty.0;
+        let binding_kind = self
+            .db
+            .binding_kind(DefId(self.library_id, def_id).into())
+            .expect("undecl defs are bindings");
+
+        if !binding_kind.is_type() {
+            let span = self.library.lookup_type(id).span;
+            let span = self.library.lookup_span(span);
+            let name = self.library.local_def(def_id).name.item();
+            let thing = match binding_kind {
+                BindingKind::Undeclared => unreachable!(),
+                BindingKind::Storage(item::Mutability::Var) => "a variable",
+                BindingKind::Storage(item::Mutability::Const) => "a constant",
+                BindingKind::Type => "a type",
+                BindingKind::Module => "a module",
+            };
+
+            // TODO: Add note on where it's declared from
+            self.state().reporter.error(
+                format!("cannot use `{name}` as a type"),
+                format!("`{name}` is a reference to {thing}"),
+                span,
+            );
         }
     }
 
