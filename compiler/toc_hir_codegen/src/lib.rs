@@ -1471,9 +1471,11 @@ impl BodyCodeGenerator<'_> {
         let expr_ty = from_ty.in_db(self.db).to_base_type();
 
         let coerce_op = coerce_to.and_then(|coerce_to| match (coerce_to, expr_ty.kind()) {
+            // To `real`
             (CoerceTo::Real, ty::TypeKind::Nat(_)) => Some(Opcode::NATREAL()),
             (CoerceTo::Real, int) if int.is_integer() => Some(Opcode::INTREAL()),
 
+            // To `char`
             (CoerceTo::Char, ty::TypeKind::String | ty::TypeKind::StringN(_)) => {
                 Some(Opcode::STRTOCHAR())
             }
@@ -1489,6 +1491,7 @@ impl BodyCodeGenerator<'_> {
                 todo!()
             }
 
+            // To `char(N)`
             (CoerceTo::CharN(len), ty::TypeKind::Char) => {
                 // Compile-time checked to always fit
                 assert_eq!(len, 1, "never dyn or not 1");
@@ -1509,6 +1512,7 @@ impl BodyCodeGenerator<'_> {
                 Some(Opcode::CHKSTRSIZE(len))
             }
 
+            // To `string`
             (CoerceTo::String, ty::TypeKind::Char) => {
                 // Reserve enough space for a `string(1)`
                 let temp_str = self.code_fragment.allocate_temporary_space(2);
