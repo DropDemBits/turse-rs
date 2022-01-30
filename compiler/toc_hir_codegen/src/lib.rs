@@ -780,6 +780,12 @@ impl BodyCode {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum AssignOrder {
+    Precomputed,
+    Postcomputed,
+}
+
 struct BodyCodeGenerator<'a> {
     db: &'a dyn CodeGenDB,
     library_id: hir_library::LibraryId,
@@ -942,7 +948,7 @@ impl BodyCodeGenerator<'_> {
         self.generate_expr(stmt.rhs);
         self.generate_coerced_assignment(lhs_ty.id(), rhs_ty.id());
 
-        self.code_fragment.emit_assign(&lhs_ty, self.db);
+        self.generate_assign(lhs_ty.id(), AssignOrder::Precomputed);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
     }
@@ -1337,8 +1343,7 @@ impl BodyCodeGenerator<'_> {
             .code_fragment
             .allocate_temporary_space(discrim_ty.size_of().expect("is concrete"));
         self.code_fragment.emit_locate_temp(discrim_value);
-        self.code_fragment
-            .emit_assign_into_var(&discrim_ty, self.db);
+        self.generate_assign(discrim_ty.id(), AssignOrder::Postcomputed);
 
         let mut arm_targets = vec![];
         let mut has_default = false;
@@ -1358,7 +1363,7 @@ impl BodyCodeGenerator<'_> {
 
                         self.generate_coerced_expr(*expr, coerce_to);
                         self.code_fragment.emit_locate_temp(discrim_value);
-                        self.code_fragment.emit_fetch_value(&discrim_ty);
+                        self.generate_fetch_value(discrim_ty.id());
 
                         let eq_op = if matches!(coerce_to, Some(CoerceTo::Char)) {
                             // Always keep coerced char type as an EQINT
@@ -1443,7 +1448,7 @@ impl BodyCodeGenerator<'_> {
             eprintln!("assigning def {:?} to previously produced value", init_body);
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
-            self.code_fragment.emit_assign_into_var(&def_ty, self.db);
+            self.generate_assign(def_ty.id(), AssignOrder::Postcomputed);
         } else if def_ty.has_uninit() {
             eprintln!(
                 "assigning def {:?} to uninit pattern for type `{}`",
@@ -1451,7 +1456,7 @@ impl BodyCodeGenerator<'_> {
             );
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
-            self.code_fragment.emit_assign_uninit(&def_ty);
+            self.generate_assign_uninit(def_ty.id());
         }
     }
 
@@ -1492,7 +1497,7 @@ impl BodyCodeGenerator<'_> {
                 assert_eq!(len, 1, "never dyn or not 1");
 
                 // Reserve enough space for the temporary char_n
-                // Note: This is size is rounded up to char_n's alignemnt size.
+                // Note: This is size is rounded up to char_n's alignment size.
                 let reserve_size = len + 1;
 
                 let temp_str = self
@@ -1979,7 +1984,7 @@ impl BodyCodeGenerator<'_> {
 
                 self.code_fragment
                     .emit_locate_local(DefId(self.library_id, *def_id));
-                self.code_fragment.emit_fetch_value(&def_ty);
+                self.generate_fetch_value(def_ty.id());
             }
             hir_expr::Name::Self_ => todo!(),
         }
@@ -2018,6 +2023,98 @@ impl BodyCodeGenerator<'_> {
             }
             hir_expr::Name::Self_ => todo!(),
         }
+    }
+
+    fn generate_assign(&mut self, into_ty: ty::TypeId, order: AssignOrder) {
+        let into_tyref = into_ty.in_db(self.db);
+
+        let (pre, post) = match into_tyref.kind() {
+            ty::TypeKind::Boolean => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
+            ty::TypeKind::Int(ty::IntSize::Int1) => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
+            ty::TypeKind::Int(ty::IntSize::Int2) => (Opcode::ASNINT2(), Opcode::ASNINT2INV()),
+            ty::TypeKind::Int(ty::IntSize::Int4) => (Opcode::ASNINT4(), Opcode::ASNINT4INV()),
+            ty::TypeKind::Int(ty::IntSize::Int) => (Opcode::ASNINT(), Opcode::ASNINTINV()),
+            ty::TypeKind::Nat(ty::NatSize::Nat1) => (Opcode::ASNNAT1(), Opcode::ASNNAT1INV()),
+            ty::TypeKind::Nat(ty::NatSize::Nat2) => (Opcode::ASNNAT2(), Opcode::ASNNAT2INV()),
+            ty::TypeKind::Nat(ty::NatSize::Nat4) => (Opcode::ASNNAT4(), Opcode::ASNNAT4INV()),
+            ty::TypeKind::Nat(ty::NatSize::Nat) => (Opcode::ASNNAT(), Opcode::ASNNATINV()),
+            ty::TypeKind::Nat(ty::NatSize::AddressInt) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
+            ty::TypeKind::Real(ty::RealSize::Real4) => (Opcode::ASNREAL4(), Opcode::ASNREAL4INV()),
+            ty::TypeKind::Real(ty::RealSize::Real8) => (Opcode::ASNREAL8(), Opcode::ASNREAL8INV()),
+            ty::TypeKind::Real(ty::RealSize::Real) => (Opcode::ASNREAL(), Opcode::ASNREALINV()),
+            ty::TypeKind::Integer => unreachable!("type should be concrete"),
+            ty::TypeKind::Char => (Opcode::ASNINT1(), Opcode::ASNINT1INV()),
+            ty::TypeKind::CharN(_) => {
+                let storage_size = into_tyref.size_of().expect("not dyn") as u32;
+                (
+                    Opcode::ASNNONSCALAR(storage_size),
+                    Opcode::ASNNONSCALARINV(storage_size),
+                )
+            }
+            ty::TypeKind::String | ty::TypeKind::StringN(_) => {
+                // Push corresponding storage size
+                let char_len = into_tyref.length_of().expect("should not be dyn");
+                self.code_fragment
+                    .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
+                (Opcode::ASNSTR(), Opcode::ASNSTRINV())
+            }
+            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+                unreachable!()
+            }
+        };
+
+        let opcode = match order {
+            AssignOrder::Precomputed => pre,
+            AssignOrder::Postcomputed => post,
+        };
+
+        self.code_fragment.emit_opcode(opcode);
+    }
+
+    // Expects a destination address to be present
+    fn generate_assign_uninit(&mut self, uninit_ty: ty::TypeId) {
+        let uninit_ty = uninit_ty.in_db(self.db);
+
+        let opcode = match uninit_ty.kind() {
+            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
+            ty::TypeKind::Boolean => Opcode::UNINITBOOLEAN(),
+            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::UNINITINT(),
+            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::UNINITNAT(),
+            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::UNINITREAL(),
+            ty::TypeKind::String => Opcode::UNINITSTR(),
+            _ => unreachable!(),
+        };
+
+        self.code_fragment.emit_opcode(opcode);
+    }
+
+    fn generate_fetch_value(&mut self, fetch_ty: ty::TypeId) {
+        let fetch_ty = fetch_ty.in_db(self.db);
+
+        let opcode = match fetch_ty.kind() {
+            ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
+            ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),
+            ty::TypeKind::Int(ty::IntSize::Int2) => Opcode::FETCHINT2(),
+            ty::TypeKind::Int(ty::IntSize::Int4) => Opcode::FETCHINT4(),
+            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::FETCHINT(),
+            ty::TypeKind::Nat(ty::NatSize::Nat1) => Opcode::FETCHNAT1(),
+            ty::TypeKind::Nat(ty::NatSize::Nat2) => Opcode::FETCHNAT2(),
+            ty::TypeKind::Nat(ty::NatSize::Nat4) => Opcode::FETCHNAT4(),
+            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::FETCHNAT(),
+            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::FETCHADDR(),
+            ty::TypeKind::Real(ty::RealSize::Real4) => Opcode::FETCHREAL4(),
+            ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::FETCHREAL8(),
+            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::FETCHREAL(),
+            ty::TypeKind::Integer => unreachable!("type should be concrete"),
+            ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
+            ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
+            ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
+            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+                unreachable!()
+            }
+        };
+
+        self.code_fragment.emit_opcode(opcode);
     }
 }
 
@@ -2117,136 +2214,6 @@ impl CodeFragment {
     fn emit_locate_temp(&mut self, temp: TemporarySlot) {
         // Don't know the final size of temporaries yet, so use temporary slots.
         self.emit_opcode(Opcode::LOCATETEMP(temp));
-    }
-
-    fn emit_assign_into_var(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>, db: &dyn CodeGenDB) {
-        let opcode = match into_tyref.kind() {
-            ty::TypeKind::Boolean => Opcode::ASNINT1INV(),
-            ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::ASNINT1INV(),
-            ty::TypeKind::Int(ty::IntSize::Int2) => Opcode::ASNINT2INV(),
-            ty::TypeKind::Int(ty::IntSize::Int4) => Opcode::ASNINT4INV(),
-            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::ASNINTINV(),
-            ty::TypeKind::Nat(ty::NatSize::Nat1) => Opcode::ASNNAT1INV(),
-            ty::TypeKind::Nat(ty::NatSize::Nat2) => Opcode::ASNNAT2INV(),
-            ty::TypeKind::Nat(ty::NatSize::Nat4) => Opcode::ASNNAT4INV(),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::ASNNATINV(),
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::ASNADDRINV(),
-            ty::TypeKind::Real(ty::RealSize::Real4) => Opcode::ASNREAL4INV(),
-            ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::ASNREAL8INV(),
-            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::ASNREALINV(),
-            ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => Opcode::ASNINT1INV(),
-            ty::TypeKind::String => {
-                // Push full storage size
-                self.emit_opcode(Opcode::PUSHINT(255));
-                Opcode::ASNSTRINV()
-            }
-            ty::TypeKind::CharN(_) => {
-                let storage_size = into_tyref.size_of().expect("not dyn") as u32;
-                Opcode::ASNNONSCALARINV(storage_size)
-            }
-            ty::TypeKind::StringN(seq_size) => {
-                // Push corresponding storage size
-                let char_len = seq_size
-                    .fixed_len(db, Span::default())
-                    .ok()
-                    .expect("eval should succeed and not be dyn");
-
-                self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
-                Opcode::ASNSTRINV()
-            }
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
-                unreachable!()
-            }
-        };
-
-        self.emit_opcode(opcode);
-    }
-
-    fn emit_assign(&mut self, into_tyref: &ty::TyRef<dyn CodeGenDB>, db: &dyn CodeGenDB) {
-        let opcode = match into_tyref.kind() {
-            ty::TypeKind::Boolean => Opcode::ASNINT1(),
-            ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::ASNINT1(),
-            ty::TypeKind::Int(ty::IntSize::Int2) => Opcode::ASNINT2(),
-            ty::TypeKind::Int(ty::IntSize::Int4) => Opcode::ASNINT4(),
-            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::ASNINT(),
-            ty::TypeKind::Nat(ty::NatSize::Nat1) => Opcode::ASNNAT1(),
-            ty::TypeKind::Nat(ty::NatSize::Nat2) => Opcode::ASNNAT2(),
-            ty::TypeKind::Nat(ty::NatSize::Nat4) => Opcode::ASNNAT4(),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::ASNNAT(),
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::ASNADDR(),
-            ty::TypeKind::Real(ty::RealSize::Real4) => Opcode::ASNREAL4(),
-            ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::ASNREAL8(),
-            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::ASNREAL(),
-            ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => Opcode::ASNINT1(),
-            ty::TypeKind::String => {
-                // Push full storage size
-                self.emit_opcode(Opcode::PUSHINT(255));
-                Opcode::ASNSTR()
-            }
-            ty::TypeKind::CharN(_) => {
-                let storage_size = into_tyref.size_of().expect("not dyn") as u32;
-                Opcode::ASNNONSCALAR(storage_size)
-            }
-            ty::TypeKind::StringN(seq_size) => {
-                // Push corresponding storage size
-                let char_len = seq_size
-                    .fixed_len(db, Span::default())
-                    .ok()
-                    .expect("eval should succeed and not be dyn");
-
-                self.emit_opcode(Opcode::PUSHINT(char_len.into_u32().expect("not a u32")));
-                Opcode::ASNSTR()
-            }
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
-                unreachable!()
-            }
-        };
-
-        self.emit_opcode(opcode);
-    }
-
-    // Expects a destination address to be present
-    fn emit_assign_uninit(&mut self, uninit_ty: &ty::TyRef<dyn CodeGenDB>) {
-        let opcode = match uninit_ty.kind() {
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::UNINITADDR(),
-            ty::TypeKind::Boolean => Opcode::UNINITBOOLEAN(),
-            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::UNINITINT(),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::UNINITNAT(),
-            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::UNINITREAL(),
-            ty::TypeKind::String => Opcode::UNINITSTR(),
-            _ => unreachable!(),
-        };
-
-        self.emit_opcode(opcode);
-    }
-
-    fn emit_fetch_value(&mut self, ty_ref: &ty::TyRef<dyn CodeGenDB>) {
-        let opcode = match ty_ref.kind() {
-            ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
-            ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),
-            ty::TypeKind::Int(ty::IntSize::Int2) => Opcode::FETCHINT2(),
-            ty::TypeKind::Int(ty::IntSize::Int4) => Opcode::FETCHINT4(),
-            ty::TypeKind::Int(ty::IntSize::Int) => Opcode::FETCHINT(),
-            ty::TypeKind::Nat(ty::NatSize::Nat1) => Opcode::FETCHNAT1(),
-            ty::TypeKind::Nat(ty::NatSize::Nat2) => Opcode::FETCHNAT2(),
-            ty::TypeKind::Nat(ty::NatSize::Nat4) => Opcode::FETCHNAT4(),
-            ty::TypeKind::Nat(ty::NatSize::Nat) => Opcode::FETCHNAT(),
-            ty::TypeKind::Nat(ty::NatSize::AddressInt) => Opcode::FETCHADDR(),
-            ty::TypeKind::Real(ty::RealSize::Real4) => Opcode::FETCHREAL4(),
-            ty::TypeKind::Real(ty::RealSize::Real8) => Opcode::FETCHREAL8(),
-            ty::TypeKind::Real(ty::RealSize::Real) => Opcode::FETCHREAL(),
-            ty::TypeKind::Integer => unreachable!("type should be concrete"),
-            ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
-            ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
-            ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
-                unreachable!()
-            }
-        };
-
-        self.emit_opcode(opcode);
     }
 
     fn place_branch(&mut self) -> CodeOffset {
