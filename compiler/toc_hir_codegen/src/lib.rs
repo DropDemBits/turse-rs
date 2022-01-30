@@ -947,7 +947,6 @@ impl BodyCodeGenerator<'_> {
         self.generate_ref_expr(stmt.lhs);
         self.generate_expr(stmt.rhs);
         self.generate_coerced_assignment(lhs_ty.id(), rhs_ty.id());
-
         self.generate_assign(lhs_ty.id(), AssignOrder::Precomputed);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
@@ -1127,8 +1126,6 @@ impl BodyCodeGenerator<'_> {
                 },
                 _ => unreachable!(),
             };
-
-            // TODO: Deal with get width once we deal with strings vars
 
             // Put reference onto the stack
             self.generate_ref_expr(item.expr);
@@ -1641,84 +1638,59 @@ impl BodyCodeGenerator<'_> {
                     Opcode::SUBINT(),
                 )
                 .unwrap(),
-            hir_expr::BinaryOp::Mul => match (lhs_ty.kind(), rhs_ty.kind()) {
-                (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-                    Opcode::MULREAL()
-                }
-                (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::MULNAT()
-                }
-                (lhs, rhs) | (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::MULINT()
-                }
-                _ => unreachable!(),
-            },
-            hir_expr::BinaryOp::Div => match (lhs_ty.kind(), rhs_ty.kind()) {
-                (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-                    Opcode::DIVREAL()
-                }
-                (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::DIVNAT()
-                }
-                (ty, _) | (_, ty) if ty.is_integer() => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::DIVINT()
-                }
-                _ => unreachable!(),
-            },
+            hir_expr::BinaryOp::Mul => self
+                .dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::MULREAL(),
+                    Opcode::MULNAT(),
+                    Opcode::MULINT(),
+                    Opcode::MULINT(),
+                    Opcode::MULINT(),
+                )
+                .expect("op over unsupported type"),
+            hir_expr::BinaryOp::Div => self
+                .dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::DIVREAL(),
+                    Opcode::DIVNAT(),
+                    Opcode::DIVINT(),
+                    Opcode::DIVINT(),
+                    Opcode::DIVINT(),
+                )
+                .expect("op over unsupported type"),
             hir_expr::BinaryOp::RealDiv => {
                 self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
                 self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
                 Opcode::REALDIVIDE()
             }
-            hir_expr::BinaryOp::Mod => match (lhs_ty.kind(), rhs_ty.kind()) {
-                (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-                    Opcode::MODREAL()
-                }
-                (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::MODNAT()
-                }
-                (ty, _) | (_, ty) if ty.is_integer() => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::MODINT()
-                }
-                _ => unreachable!(),
-            },
-            hir_expr::BinaryOp::Rem => match (lhs_ty.kind(), rhs_ty.kind()) {
-                (ty::TypeKind::Real(_), _) | (_, ty::TypeKind::Real(_)) => {
-                    self.generate_coerced_expr(expr.lhs, Some(CoerceTo::Real));
-                    self.generate_coerced_expr(expr.rhs, Some(CoerceTo::Real));
-                    Opcode::REMREAL()
-                }
-                (ty::TypeKind::Int(_) | ty::TypeKind::Integer, _)
-                | (_, ty::TypeKind::Int(_) | ty::TypeKind::Integer) => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::REMINT()
-                }
-                (ty::TypeKind::Nat(_), _) | (_, ty::TypeKind::Nat(_)) => {
-                    self.generate_expr(expr.lhs);
-                    self.generate_expr(expr.rhs);
-                    Opcode::MODNAT()
-                }
-                _ => unreachable!(),
-            },
+            hir_expr::BinaryOp::Mod => self
+                .dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::MODREAL(),
+                    Opcode::MODNAT(),
+                    Opcode::MODINT(),
+                    Opcode::MODINT(),
+                    Opcode::MODINT(),
+                )
+                .expect("op over unsupported type"),
+            hir_expr::BinaryOp::Rem => self
+                .dispatch_over_numbers(
+                    expr,
+                    lhs_ty.kind(),
+                    rhs_ty.kind(),
+                    Opcode::REMREAL(),
+                    Opcode::MODNAT(),
+                    Opcode::MODINT(),
+                    Opcode::MODINT(),
+                    Opcode::MODINT(),
+                )
+                .expect("op over unsupported type"),
             hir_expr::BinaryOp::Exp => match (lhs_ty.kind(), rhs_ty.kind()) {
                 (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
                     self.generate_expr(expr.lhs);
@@ -1765,8 +1737,9 @@ impl BodyCodeGenerator<'_> {
                 Opcode::SHR()
             }
             hir_expr::BinaryOp::Less | hir_expr::BinaryOp::GreaterEq => {
-                let cmp_op = if let Some(cmp_op) = self.dispatch_over_numbers(
-                    expr,
+                self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
+
+                let cmp_op = if let Some(cmp_op) = self.select_over_numbers(
                     lhs_ty.kind(),
                     rhs_ty.kind(),
                     Opcode::GEREAL(),
@@ -1777,8 +1750,6 @@ impl BodyCodeGenerator<'_> {
                 ) {
                     cmp_op
                 } else {
-                    self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
-
                     match (lhs_ty.kind(), rhs_ty.kind()) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::GENAT(),
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
@@ -1796,8 +1767,9 @@ impl BodyCodeGenerator<'_> {
                 }
             }
             hir_expr::BinaryOp::Greater | hir_expr::BinaryOp::LessEq => {
-                let cmp_op = if let Some(cmp_op) = self.dispatch_over_numbers(
-                    expr,
+                self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
+
+                let cmp_op = if let Some(cmp_op) = self.select_over_numbers(
                     lhs_ty.kind(),
                     rhs_ty.kind(),
                     Opcode::LEREAL(),
@@ -1808,8 +1780,6 @@ impl BodyCodeGenerator<'_> {
                 ) {
                     cmp_op
                 } else {
-                    self.coerce_to_same(expr, lhs_ty.kind(), rhs_ty.kind());
-
                     match (lhs_ty.kind(), rhs_ty.kind()) {
                         (ty::TypeKind::Char, ty::TypeKind::Char) => Opcode::LENAT(),
                         (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => {
