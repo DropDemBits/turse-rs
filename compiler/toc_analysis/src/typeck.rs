@@ -207,8 +207,9 @@ impl TypeCheck<'_> {
         let asn_span = item.asn.lookup_in(&self.library.span_map);
 
         // Check if we're assigning into a mut ref
+        let target = (lib_id, in_body, item.lhs);
         if !db
-            .binding_kind((lib_id, in_body, item.lhs).into())
+            .binding_kind(target.into())
             .map(BindingKind::is_ref_mut)
             .unwrap_or(false)
         {
@@ -220,13 +221,14 @@ impl TypeCheck<'_> {
                 .span
                 .lookup_in(&self.library.span_map);
 
-            // TODO: Stringify lhs for more clarity on the error location
-            // TODO: If it's a ref expr, get the definition point
-            self.state()
-                .reporter
-                .error_detailed("cannot assign into expression", asn_span)
-                .with_note("not a reference to a variable", left_span)
-                .finish();
+            self.report_mismatched_binding(
+                BindingKind::Storage(item::Mutability::Var),
+                target.into(),
+                asn_span,
+                left_span,
+                |name| format!("cannot assign into `{name}`"),
+                || "cannot assign into expression".to_string(),
+            );
         } else {
             let left = db.type_of((lib_id, in_body, item.lhs).into());
             let right = db.type_of((lib_id, in_body, item.rhs).into());
@@ -374,13 +376,14 @@ impl TypeCheck<'_> {
             {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
-                // TODO: Stringify item for more clarity on the error location
-                // TODO: If it's a ref expr, get the definition point
-                self.state()
-                    .reporter
-                    .error_detailed("cannot assign into expression", get_item_span)
-                    .with_error("not a reference to a variable", get_item_span)
-                    .finish();
+                self.report_mismatched_binding(
+                    BindingKind::Storage(item::Mutability::Var),
+                    (self.library_id, body_expr).into(),
+                    get_item_span,
+                    get_item_span,
+                    |name| format!("cannot assign into `{name}`"),
+                    || "cannot assign into expression".to_string(),
+                );
             }
 
             if !self.is_text_io_item(ty.id()) {
@@ -867,29 +870,86 @@ impl TypeCheck<'_> {
 
     fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
         let def_id = ty.0;
+        let target = DefId(self.library_id, def_id);
         let binding_kind = self
             .db
-            .binding_kind(DefId(self.library_id, def_id).into())
+            .binding_kind(target.into())
             .expect("undecl defs are bindings");
 
         if !binding_kind.is_type() {
             let span = self.library.lookup_type(id).span;
             let span = self.library.lookup_span(span);
-            let name = self.library.local_def(def_id).name.item();
-            let thing = match binding_kind {
-                BindingKind::Undeclared => unreachable!(),
-                BindingKind::Storage(item::Mutability::Var) => "a variable",
-                BindingKind::Storage(item::Mutability::Const) => "a constant",
-                BindingKind::Type => "a type",
-                BindingKind::Module => "a module",
-            };
 
-            // TODO: Add note on where it's declared from
-            self.state().reporter.error(
-                format!("cannot use `{name}` as a type"),
-                format!("`{name}` is a reference to {thing}"),
+            self.report_mismatched_binding(
+                BindingKind::Type,
+                target.into(),
                 span,
+                span,
+                |name| format!("cannot use `{name}` as a type alias"),
+                || unreachable!("never expr"),
             );
+        }
+    }
+
+    fn report_mismatched_binding(
+        &self,
+        expected: BindingKind,
+        binding_source: toc_hir_db::db::BindingSource,
+        report_at: Span,
+        binding_span: Span,
+        from_def: impl FnOnce(&str) -> String,
+        from_expr: impl FnOnce() -> String,
+    ) {
+        use toc_hir_db::db::BindingSource;
+
+        // Looks like:
+        // cannot use `{name}` as {expected_thing} -> from_def
+        // `{name}` is a reference to {thing}
+        // `{name}` defined here
+        //
+        // or
+        //
+        // cannot use expression as {expected_thing} -> from_expr
+        // expression is not a reference to {thing}
+
+        // Lookup the actual referred to binding
+        // This pokes through reference exprs and gets the target binding
+        //
+        // (e.g. if we're passed an expr::Name, we defer to the def_id binding source)
+        let binding_source = self
+            .db
+            .binding_to(binding_source)
+            .map_or(binding_source, BindingSource::DefId);
+
+        match binding_source {
+            BindingSource::DefId(DefId(lib_id, local_def)) => {
+                let library = self.db.library(lib_id);
+                let def_info = library.local_def(local_def);
+
+                let name = def_info.name.item().as_str();
+                let def_at = library.lookup_span(def_info.name.span());
+
+                let binding_kind = self
+                    .db
+                    .binding_kind(binding_source)
+                    .expect("taken from a def_id");
+
+                self.state()
+                    .reporter
+                    .error_detailed(from_def(name), report_at)
+                    .with_error(
+                        format!("`{name}` is a reference to {binding_kind}, not {expected}"),
+                        binding_span,
+                    )
+                    .with_note(format!("`{name}` declared here"), def_at)
+                    .finish();
+            }
+            BindingSource::BodyExpr(_, _) => self
+                .state()
+                .reporter
+                .error_detailed(from_expr(), report_at)
+                .with_error(format!("not a reference to {expected}"), binding_span)
+                .finish(),
         }
     }
 

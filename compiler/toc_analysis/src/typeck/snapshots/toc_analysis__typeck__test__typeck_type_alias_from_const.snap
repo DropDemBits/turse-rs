@@ -8,5 +8,6 @@ expression: "const a : int type k : a"
 "k"@(FileId(1), 19..20) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 23..24: cannot use `a` as a type
-| error in file FileId(1) for 23..24: `a` is a reference to a constant
+error in file FileId(1) at 23..24: cannot use `a` as a type alias
+| error in file FileId(1) for 23..24: `a` is a reference to a constant, not a type
+| note in file FileId(1) for 6..7: `a` declared here

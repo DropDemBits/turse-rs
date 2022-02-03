@@ -7,5 +7,6 @@ expression: "const k k := 3"
 "k"@(FileId(1), 6..7) [Declared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 10..12: cannot assign into expression
-| note in file FileId(1) for 8..9: not a reference to a variable
+error in file FileId(1) at 10..12: cannot assign into `k`
+| error in file FileId(1) for 8..9: `k` is a reference to a constant, not a variable
+| note in file FileId(1) for 6..7: `k` declared here
