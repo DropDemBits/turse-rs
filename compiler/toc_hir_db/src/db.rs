@@ -44,6 +44,10 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     #[salsa::invoke(query::lookup_bodies)]
     fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
 
+    /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
+    #[salsa::invoke(query::binding_to)]
+    fn binding_to(&self, ref_src: BindingSource) -> Option<DefId>;
+
     /// Gets the binding kind of a [`BindingSource`], or `None` if it isn't one.
     #[salsa::invoke(query::binding_kind)]
     fn binding_kind(&self, ref_src: BindingSource) -> Option<symbol::BindingKind>;
