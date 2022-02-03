@@ -206,10 +206,12 @@ impl TypeCheck<'_> {
         let db = self.db;
         let asn_span = item.asn.lookup_in(&self.library.span_map);
 
+        let lhs = (lib_id, in_body, item.lhs);
+        let rhs = (lib_id, in_body, item.rhs);
+
         // Check if we're assigning into a mut ref
-        let target = (lib_id, in_body, item.lhs);
         if !db
-            .binding_kind(target.into())
+            .binding_kind(lhs.into())
             .map(BindingKind::is_ref_mut)
             .unwrap_or(false)
         {
@@ -223,15 +225,15 @@ impl TypeCheck<'_> {
 
             self.report_mismatched_binding(
                 BindingKind::Storage(item::Mutability::Var),
-                target.into(),
+                lhs.into(),
                 asn_span,
                 left_span,
                 |name| format!("cannot assign into `{name}`"),
                 || "cannot assign into expression".to_string(),
             );
         } else {
-            let left = db.type_of((lib_id, in_body, item.lhs).into());
-            let right = db.type_of((lib_id, in_body, item.rhs).into());
+            let left = db.type_of(lhs.into());
+            let right = db.type_of(rhs.into());
 
             // Check if types are assignable
             // Leave error types as "always assignable"
@@ -904,7 +906,7 @@ impl TypeCheck<'_> {
 
         // Looks like:
         // cannot use `{name}` as {expected_thing} -> from_def
-        // `{name}` is a reference to {thing}
+        // `{name}` is a reference to {thing}, not {expected}
         // `{name}` defined here
         //
         // or
