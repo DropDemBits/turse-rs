@@ -35,6 +35,21 @@ impl ConstError {
         db: &DB,
         reporter: &mut toc_reporting::MessageSink,
     ) {
+        // FIXME: This error needs to be clarify where it came from
+        //
+        // In the following code:
+        // ```diff
+        // var a := 1
+        // const b := a
+        // const c := b
+        // + var use : char(c)
+        // ```
+        //
+        // `b` suddenly starts expecting `a` to be computed at compile-time
+        // since it's used in `c`, which is used in a compile-time eval context.
+        //
+        // It would be useful to accumulate where the error comes from.
+
         // Ignore already reported messages, or for missing expressions
         if matches!(self.kind, ErrorKind::Reported | ErrorKind::MissingExpr) {
             return;
@@ -44,16 +59,22 @@ impl ConstError {
         match &self.kind {
             ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
+                let bind_kind = db.binding_kind((*def_id).into()).expect("is a def");
                 let library = db.library(def_id.0);
                 let def_info = library.local_def(def_id.1);
+                let name = def_info.name.item();
                 let def_span = def_info.name.span().lookup_in(&library.span_map);
 
                 reporter
-                    .error_detailed("reference cannot be computed at compile-time", self.span)
-                    .with_note(
-                        format!("`{}` declared here", def_info.name.item()),
-                        def_span,
+                    .error_detailed(
+                        format!("cannot compute `{name}` at compile-time"),
+                        self.span,
                     )
+                    .with_error(
+                        format!("`{name}` is a reference to {bind_kind}, not a constant"),
+                        self.span,
+                    )
+                    .with_note(format!("`{name}` declared here",), def_span)
             }
             _ => reporter
                 .error_detailed("cannot compute expression at compile-time", self.span)
