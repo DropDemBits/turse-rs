@@ -8,5 +8,6 @@ expression: "const j : int := 2\nconst k : int := 3\nk := j\n"
 "k"@(FileId(1), 25..26) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 40..42: cannot assign into expression
-| note in file FileId(1) for 38..39: not a reference to a variable
+error in file FileId(1) at 40..42: cannot assign into `k`
+| error in file FileId(1) for 38..39: `k` is a reference to a constant, not a variable
+| note in file FileId(1) for 25..26: `k` declared here

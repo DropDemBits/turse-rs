@@ -690,6 +690,14 @@ fn error_no_const_expr() {
     "#,
     ));
 
+    // Referencing a type
+    assert_const_eval(&unindent(
+        r#"
+    type a : int
+    const b := a
+    "#,
+    ));
+
     // Referencing `self`
     // TODO: Uncomment when `self` is lowered again
     /*

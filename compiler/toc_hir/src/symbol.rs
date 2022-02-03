@@ -101,6 +101,20 @@ impl BindingKind {
     }
 }
 
+impl std::fmt::Display for BindingKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            BindingKind::Undeclared => unreachable!("undecl bindings should never be reported"),
+            BindingKind::Storage(Mutability::Var) => "a variable",
+            BindingKind::Storage(Mutability::Const) => "a constant",
+            BindingKind::Type => "a type",
+            BindingKind::Module => "a module",
+        };
+
+        f.write_str(name)
+    }
+}
+
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct DefTable {

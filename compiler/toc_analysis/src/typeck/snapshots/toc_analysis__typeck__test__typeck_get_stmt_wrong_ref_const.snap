@@ -7,5 +7,6 @@ expression: "const i : int := 1\nget i\n"
 "i"@(FileId(1), 6..7) [Declared]: int
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 23..24: cannot assign into expression
-| error in file FileId(1) for 23..24: not a reference to a variable
+error in file FileId(1) at 23..24: cannot assign into `i`
+| error in file FileId(1) for 23..24: `i` is a reference to a constant, not a variable
+| note in file FileId(1) for 6..7: `i` declared here

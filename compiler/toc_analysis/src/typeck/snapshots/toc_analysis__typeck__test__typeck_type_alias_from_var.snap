@@ -8,5 +8,6 @@ expression: "var a : int type k : a"
 "k"@(FileId(1), 17..18) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 21..22: cannot use `a` as a type
-| error in file FileId(1) for 21..22: `a` is a reference to a variable
+error in file FileId(1) at 21..22: cannot use `a` as a type alias
+| error in file FileId(1) for 21..22: `a` is a reference to a variable, not a type
+| note in file FileId(1) for 4..5: `a` declared here
