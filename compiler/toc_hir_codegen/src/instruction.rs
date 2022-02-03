@@ -1214,10 +1214,10 @@ define_encodings! {
         INITUNIT (RelocatableOffset, u32, u8) = 0x84,
 
         /// ## INTREAL ()
-        /// (description)
+        /// Converts `int` into `real`
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( int:i32 -- real:f64 )`
         ///
         INTREAL () = 0x85,
 
@@ -1251,7 +1251,7 @@ define_encodings! {
         /// `jumpTo` is computed relative to the address *at* the operand.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         JUMP (CodeOffset) = 0x89,
 
@@ -1525,10 +1525,10 @@ define_encodings! {
         MULSET (u32) = 0xA8,
 
         /// ## NATREAL ()
-        /// (description)
+        /// Converts `nat` into `real`
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( nat:u32 -- real:f64 )`
         ///
         NATREAL () = 0xA9,
 
@@ -2124,50 +2124,50 @@ define_encodings! {
         UNINIT () = 0xEF,
 
         /// ## UNINITADDR ()
-        /// (description)
+        /// Stores the uninitialized pattern for `addrint` in `dest`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- )`
         ///
         UNINITADDR () = 0xF0,
 
         /// ## UNINITBOOLEAN ()
-        /// (description)
+        /// Stores the uninitialized pattern for `boolean` in `dest`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- )`
         ///
         UNINITBOOLEAN () = 0xF1,
 
         /// ## UNINITINT ()
-        /// (description)
+        /// Stores the uninitialized pattern for `int` in `dest`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- )`
         ///
         UNINITINT () = 0xF2,
 
         /// ## UNINITNAT ()
-        /// (description)
+        /// Stores the uninitialized pattern for `nat` in `dest`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- )`
         ///
         UNINITNAT () = 0xF3,
 
         /// ## UNINITREAL ()
-        /// (description)
+        /// Stores the uninitialized pattern for `real` in `dest`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- )`
         ///
         UNINITREAL () = 0xF4,
 
         /// ## UNINITSTR ()
-        /// (description)
+        /// Stores the uninitialized pattern for `string` in `dest`.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( dest:addrint -- )`
         ///
         UNINITSTR () = 0xF5,
 
@@ -2221,10 +2221,10 @@ define_encodings! {
         XORSET (u32) = 0xFB,
 
         /// ## BREAK ()
-        /// (description)
+        /// Inline breakpoint, for debugging.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         BREAK () = 0xFC,
 
@@ -2237,10 +2237,10 @@ define_encodings! {
         SYSEXIT () = 0xFD,
 
         /// ## ILLEGAL ()
-        /// (description)
+        /// Illegal opcode, halting execution immediately.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- )`
         ///
         ILLEGAL () = 0xFE,
 
