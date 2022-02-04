@@ -3,7 +3,10 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use toc_hir::{expr, item::Mutability, symbol::DefId};
+use toc_hir::{
+    expr,
+    symbol::{DefId, Mutability},
+};
 
 use crate::{
     const_eval::{errors::ErrorKind, ops::ConstOp, ConstError, ConstInt},

@@ -4,14 +4,12 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 use toc_hir::expr;
-use toc_hir::item::Mutability;
-use toc_hir::symbol::BindingKind;
 use toc_hir::{
     body, item,
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{DefId, DefOwner, DefTable, LocalDefId},
+    symbol::{BindingKind, DefId, DefOwner, DefTable, LocalDefId, Mutability},
     visitor::HirVisitor,
 };
 

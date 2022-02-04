@@ -58,17 +58,10 @@ pub enum ItemKind {
     Module(Module),
 }
 
-// TODO: Move `Mutability` into `symbol`
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Mutability {
-    Const,
-    Var,
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConstVar {
     pub is_register: bool,
-    pub mutability: Mutability,
+    pub mutability: symbol::Mutability,
     pub def_id: symbol::LocalDefId,
     pub type_spec: Option<ty::TypeId>,
     pub init_expr: Option<body::BodyId>,

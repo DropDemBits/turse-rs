@@ -87,12 +87,6 @@ pub enum TypeKind {
 // - condition
 // - collection
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Mutability {
-    Const,
-    Var,
-}
-
 /// Size variant of an `Int`.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum IntSize {

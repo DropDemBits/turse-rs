@@ -1,6 +1,6 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::Assign;
-use toc_hir::symbol::ForwardKind;
+use toc_hir::symbol::{ForwardKind, Mutability};
 use toc_hir::{
     expr, item, stmt,
     symbol::{self, SymbolKind},
@@ -105,9 +105,9 @@ impl super::BodyLowering<'_, '_> {
         // Declare names after uses to prevent def-use cycles
         let names = self.lower_name_list(decl.decl_list(), is_pervasive)?;
         let mutability = if is_const {
-            item::Mutability::Const
+            Mutability::Const
         } else {
-            item::Mutability::Var
+            Mutability::Var
         };
 
         let stmts: Vec<_> = names

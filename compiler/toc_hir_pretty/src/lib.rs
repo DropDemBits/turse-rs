@@ -11,7 +11,7 @@ use toc_hir::{
     item,
     library::{self, LoweredLibrary},
     stmt::{self, BodyStmt},
-    symbol::LocalDefId,
+    symbol::{LocalDefId, Mutability},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
@@ -181,8 +181,8 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let mut extra = String::new();
 
         match item.mutability {
-            item::Mutability::Var => write!(extra, "var "),
-            item::Mutability::Const => write!(extra, "const "),
+            Mutability::Var => write!(extra, "var "),
+            Mutability::Const => write!(extra, "const "),
         }
         .unwrap();
 

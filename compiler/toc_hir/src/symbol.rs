@@ -5,7 +5,6 @@ use la_arena::ArenaMap;
 use toc_span::Spanned;
 
 pub use crate::ids::{DefId, LocalDefId};
-use crate::item::Mutability;
 use crate::{
     ids::{ItemId, LocalDefIndex},
     stmt::BodyStmt,
@@ -64,6 +63,12 @@ pub enum ForwardKind {
 pub enum DefOwner {
     Item(ItemId),
     Stmt(BodyStmt),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mutability {
+    Const,
+    Var,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

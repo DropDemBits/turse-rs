@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use toc_hir::expr::{self, BodyExpr};
 use toc_hir::library::{self, LibraryId, WrapInLibrary};
 use toc_hir::stmt::BodyStmt;
-use toc_hir::symbol::{BindingKind, DefId};
+use toc_hir::symbol::{BindingKind, DefId, Mutability};
 use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -224,7 +224,7 @@ impl TypeCheck<'_> {
                 .lookup_in(&self.library.span_map);
 
             self.report_mismatched_binding(
-                BindingKind::Storage(item::Mutability::Var),
+                BindingKind::Storage(Mutability::Var),
                 lhs.into(),
                 asn_span,
                 left_span,
@@ -379,7 +379,7 @@ impl TypeCheck<'_> {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 self.report_mismatched_binding(
-                    BindingKind::Storage(item::Mutability::Var),
+                    BindingKind::Storage(Mutability::Var),
                     (self.library_id, body_expr).into(),
                     get_item_span,
                     get_item_span,
