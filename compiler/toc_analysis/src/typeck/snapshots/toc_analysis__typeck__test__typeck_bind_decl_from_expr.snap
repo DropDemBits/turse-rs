@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "begin\nbind you to false\nend"
+
+---
+"you"@(FileId(1), 11..14) [Declared]: boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 6..23: cannot bind `you` to expression
+| error in file FileId(1) for 18..23: not a reference to a variable

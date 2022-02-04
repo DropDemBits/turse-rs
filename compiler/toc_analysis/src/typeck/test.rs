@@ -1374,6 +1374,31 @@ test_named_group! { typeck_type_alias,
     ]
 }
 
+test_named_group! { typeck_bind_decl,
+    [
+        normal => "
+        begin
+        var me : int
+        bind us to me
+        end",
+        require_mut => "
+        begin
+        const me : int := 0
+        bind var us to me
+        end",
+        // only storage bindings are accepted
+        from_expr => "
+        begin
+        bind you to false
+        end",
+        from_ty => "
+        begin
+        type no : int
+        bind you to no
+        end",
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",

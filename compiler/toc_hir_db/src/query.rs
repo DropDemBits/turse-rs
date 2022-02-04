@@ -96,6 +96,16 @@ fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<De
         // Trivial, def bindings are bindings to themselves
         // ???: Do we want to perform canonicalization / symbol resolution here?
         BindingSource::DefId(it) => Ok(it),
+        BindingSource::Body(lib_id, body) => {
+            let library = db.library(lib_id);
+
+            match &library.body(body).kind {
+                // Stmt bodies never produce bindings
+                body::BodyKind::Stmts(..) => Err(NotBinding::NotRef),
+                // Defer to expr form
+                body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
+            }
+        }
         BindingSource::BodyExpr(lib_id, expr) => {
             // Traverse nodes until we encounter a valid binding
             let library = db.library(lib_id);

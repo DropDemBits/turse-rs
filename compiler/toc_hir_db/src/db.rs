@@ -64,12 +64,19 @@ pub trait InternedType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BindingSource {
     DefId(DefId),
+    Body(LibraryId, body::BodyId),
     BodyExpr(LibraryId, expr::BodyExpr),
 }
 
 impl From<symbol::DefId> for BindingSource {
     fn from(def_id: symbol::DefId) -> Self {
         Self::DefId(def_id)
+    }
+}
+
+impl From<(LibraryId, body::BodyId)> for BindingSource {
+    fn from((lib_id, body): (LibraryId, body::BodyId)) -> Self {
+        Self::Body(lib_id, body)
     }
 }
 

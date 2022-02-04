@@ -105,6 +105,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_type_decl(id, item);
     }
 
+    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
+        self.typeck_bind_decl(id, item);
+    }
+
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
         self.typeck_assign(id.0, stmt);
     }
@@ -198,6 +202,48 @@ impl TypeCheck<'_> {
     fn typeck_type_decl(&self, _id: item::ItemId, item: &item::Type) {
         if let item::DefinedType::Alias(ty) = &item.type_def {
             self.require_resolved_type(*ty)
+        }
+    }
+
+    fn typeck_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
+        let db = self.db;
+        let bind_span = self.library.item(id).span;
+        let bind_span = self.library.lookup_span(bind_span);
+
+        let lib_id = self.library_id;
+        let bind_to = (lib_id, item.bind_to);
+
+        // Require that we're binding to (mutable) storage
+        let predicate = match item.mutability {
+            Mutability::Const => BindingKind::is_ref,
+            Mutability::Var => BindingKind::is_ref_mut,
+        };
+
+        // ???: Rules on registers?
+
+        if !db
+            .binding_kind(bind_to.into())
+            .map(predicate)
+            .unwrap_or(false)
+        {
+            // Not a (mut) ref
+            // Use var mutability for a simpler error message
+            // ???: Does it matter to use the real mutability?
+            let from = self.library.local_def(item.def_id).name.item();
+            let bind_to_span = self
+                .library
+                .body(item.bind_to)
+                .span
+                .lookup_in(&self.library.span_map);
+
+            self.report_mismatched_binding(
+                BindingKind::Storage(Mutability::Var),
+                bind_to.into(),
+                bind_span,
+                bind_to_span,
+                |name| format!("cannot bind `{from}` to `{name}`"),
+                || format!("cannot bind `{from}` to expression"),
+            );
         }
     }
 
@@ -946,7 +992,7 @@ impl TypeCheck<'_> {
                     .with_note(format!("`{name}` declared here"), def_at)
                     .finish();
             }
-            BindingSource::BodyExpr(_, _) => self
+            BindingSource::Body(..) | BindingSource::BodyExpr(..) => self
                 .state()
                 .reporter
                 .error_detailed(from_expr(), report_at)

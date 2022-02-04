@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "begin\nvar me : int\nbind us to me\nend"
+
+---
+"me"@(FileId(1), 10..12) [Declared]: int
+"us"@(FileId(1), 24..26) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+

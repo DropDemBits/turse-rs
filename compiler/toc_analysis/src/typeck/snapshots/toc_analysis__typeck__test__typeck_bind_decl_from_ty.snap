@@ -1,0 +1,15 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "begin\ntype no : int\nbind you to no\nend"
+
+---
+"no"@(FileId(1), 11..13) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"you"@(FileId(1), 25..28) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 20..34: cannot bind `you` to `no`
+| error in file FileId(1) for 32..34: `no` is a reference to a type, not a variable
+| note in file FileId(1) for 11..13: `no` declared here
+error in file FileId(1) at 32..34: cannot use `no` as an expression
+| error in file FileId(1) for 32..34: `no` is a reference to a type
