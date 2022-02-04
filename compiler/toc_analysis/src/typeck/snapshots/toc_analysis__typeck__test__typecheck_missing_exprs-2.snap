@@ -1,0 +1,8 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: get ()
+
+---
+"<root>"@(dummy) [Declared]: <error>
+

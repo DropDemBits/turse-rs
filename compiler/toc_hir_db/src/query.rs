@@ -55,28 +55,17 @@ pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::
 }
 
 pub(crate) fn binding_to(db: &dyn HirDatabase, ref_src: BindingSource) -> Option<DefId> {
-    match ref_src {
-        // Trivial, def bindings are bindings to themselves
-        // ???: Do we want to perform canonicalization / symbol resolution here?
-        BindingSource::DefId(it) => Some(it),
-        BindingSource::BodyExpr(lib_id, expr) => {
-            // Traverse nodes until we encounter a valid binding
-            let library = db.library(lib_id);
-
-            // For now, only name exprs can produce a binding
-            match &library.body(expr.0).expr(expr.1).kind {
-                expr::ExprKind::Name(name) => match name {
-                    expr::Name::Name(def_id) => Some(DefId(lib_id, *def_id)),
-                    expr::Name::Self_ => todo!(),
-                },
-                _ => None,
-            }
-        }
-    }
+    lookup_binding_def(db, ref_src).ok()
 }
 
 pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Option<BindingKind> {
-    let def_id = db.binding_to(ref_src)?;
+    let def_id = match lookup_binding_def(db, ref_src) {
+        Ok(def_id) => def_id,
+        // Have missing exprs fall back to the undeclared path
+        // Undeclared bindings are already a fall back, so we have missing exprs piggy-back on this
+        Err(NotBinding::Missing) => return Some(BindingKind::Undeclared),
+        Err(NotBinding::NotRef) => return None,
+    };
 
     // Take the binding kind from the def owner
     let def_owner = db.def_owner(def_id);
@@ -101,6 +90,34 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
         // From an undeclared identifier, technically produces a binding
         None => Some(BindingKind::Undeclared),
     }
+}
+
+fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<DefId, NotBinding> {
+    match ref_src {
+        // Trivial, def bindings are bindings to themselves
+        // ???: Do we want to perform canonicalization / symbol resolution here?
+        BindingSource::DefId(it) => Ok(it),
+        BindingSource::BodyExpr(lib_id, expr) => {
+            // Traverse nodes until we encounter a valid binding
+            let library = db.library(lib_id);
+
+            // For now, only name exprs can produce a binding
+            match &library.body(expr.0).expr(expr.1).kind {
+                expr::ExprKind::Missing => Err(NotBinding::Missing),
+                expr::ExprKind::Name(name) => match name {
+                    expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
+                    expr::Name::Self_ => todo!(),
+                },
+                _ => Err(NotBinding::NotRef),
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum NotBinding {
+    Missing,
+    NotRef,
 }
 
 #[derive(Default)]
