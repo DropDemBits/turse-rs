@@ -34,7 +34,8 @@ pub enum ItemKind {
     ConstVar(ConstVar),
     /// Type alias & forward declaration
     Type(Type),
-    // Bind { .. },
+    /// Binding a definition as something else.
+    Binding(Binding),
     /// general function, rolls up function, procedure, and process
     /// distinguished by return type
     // Function { ty: TypeId, body: BodyId, },
@@ -80,6 +81,18 @@ pub enum DefinedType {
     /// Declaring a forward declaration of a type.
     /// Provided SpanId is the span of the token
     Forward(SpanId),
+}
+
+// Like constvar, bind is split up into multiple distinct items
+#[derive(Debug, PartialEq, Eq)]
+pub struct Binding {
+    pub is_register: bool,
+    /// Bind as a mutable location?
+    pub mutability: symbol::Mutability,
+    /// The definition to bind to
+    pub def_id: symbol::LocalDefId,
+    /// Expression to bind the definition to
+    pub bind_to: body::BodyId,
 }
 
 #[derive(Debug, PartialEq, Eq)]

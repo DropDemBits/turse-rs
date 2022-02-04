@@ -73,6 +73,7 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
         Some(DefOwner::Item(item_id)) => match &library.item(item_id).kind {
             item::ItemKind::ConstVar(item) => Some(BindingKind::Storage(item.mutability)),
             item::ItemKind::Type(_) => Some(BindingKind::Type),
+            item::ItemKind::Binding(item) => Some(BindingKind::Storage(item.mutability)),
             item::ItemKind::Module(_) => Some(BindingKind::Module),
         },
         Some(DefOwner::Stmt(stmt_id)) => {
@@ -135,6 +136,10 @@ impl HirVisitor for DefCollector {
     }
 
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        self.add_owner(item.def_id, DefOwner::Item(id));
+    }
+
+    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
         self.add_owner(item.def_id, DefOwner::Item(id));
     }
 

@@ -23,6 +23,7 @@ pub trait HirVisitor {
     }
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {}
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {}
+    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {}
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {}
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {}
@@ -61,6 +62,7 @@ pub trait HirVisitor {
         match &item.kind {
             item::ItemKind::ConstVar(item) => self.visit_constvar(id, item),
             item::ItemKind::Type(item) => self.visit_type_decl(id, item),
+            item::ItemKind::Binding(item) => self.visit_bind_decl(id, item),
             item::ItemKind::Module(item) => self.visit_module(id, item),
         }
     }
@@ -275,6 +277,7 @@ impl<'hir> Walker<'hir> {
         match &item.kind {
             item::ItemKind::ConstVar(item) => self.walk_constvar(item),
             item::ItemKind::Type(item) => self.walk_type_decl(item),
+            item::ItemKind::Binding(item) => self.walk_bind_decl(item),
             item::ItemKind::Module(item) => self.walk_module(item),
         }
     }
@@ -294,6 +297,10 @@ impl<'hir> Walker<'hir> {
             item::DefinedType::Alias(ty) => self.enter_type(ty, self.lib.lookup_type(ty)),
             item::DefinedType::Forward(_) => {}
         }
+    }
+
+    fn walk_bind_decl(&mut self, node: &item::Binding) {
+        self.enter_body(node.bind_to, self.lib.body(node.bind_to));
     }
 
     fn walk_module(&mut self, node: &item::Module) {

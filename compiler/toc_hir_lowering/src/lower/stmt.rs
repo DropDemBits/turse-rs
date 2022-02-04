@@ -16,11 +16,11 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.intern_range(stmt.syntax().text_range());
 
         let kind = match stmt {
-            // `ConstVarDecl` is the only decl that can produce multiple stmts
+            // `ConstVarDecl` and `BindDecl` are the only decls that can produce multiple stmts
             ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
+            ast::Stmt::BindDecl(decl) => return self.lower_bind_decl(decl),
             ast::Stmt::TypeDecl(decl) => self.lower_type_decl(decl),
 
-            ast::Stmt::BindDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::FcnDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ProcessDecl(_) => self.unsupported_stmt(span),
@@ -183,6 +183,52 @@ impl super::BodyLowering<'_, '_> {
         });
 
         Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_bind_decl(&mut self, decl: ast::BindDecl) -> Option<LoweredStmt> {
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+
+        let stmts: Vec<_> = decl
+            .bindings()
+            .filter_map(|binding| {
+                let mutability = if binding.as_var().is_some() {
+                    Mutability::Var
+                } else {
+                    Mutability::Const
+                };
+                let is_register = binding.to_register().is_some();
+
+                let bind_to = self.lower_required_expr_body(binding.expr());
+                let def_id = self.lower_name_def(binding.bind_as()?, SymbolKind::Declared, false);
+
+                let binding = item::Binding {
+                    is_register,
+                    mutability,
+                    def_id,
+                    bind_to,
+                };
+
+                let item_id = self.ctx.library.add_item(item::Item {
+                    kind: item::ItemKind::Binding(binding),
+                    def_id,
+                    span,
+                });
+
+                Some(stmt::StmtKind::Item(item_id))
+            })
+            .collect();
+
+        let lowered = if stmts.len() == 1 {
+            // Single declaration
+            // Just a little mutable reborrow, as a treat
+            let mut stmts = stmts;
+            LoweredStmt::Single(stmts.pop().unwrap())
+        } else {
+            // Multiple declarations, pack it into a multiple
+            LoweredStmt::Multiple(stmts)
+        };
+
+        Some(lowered)
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {

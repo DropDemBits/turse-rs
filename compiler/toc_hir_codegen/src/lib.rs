@@ -1407,6 +1407,7 @@ impl BodyCodeGenerator<'_> {
         match &item.kind {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
             hir_item::ItemKind::Type(_) => {}
+            hir_item::ItemKind::Binding(_) => todo!(),
             hir_item::ItemKind::Module(_) => {
                 // We already generate code for module bodies as part of walking
                 // over all of the bodies in a library

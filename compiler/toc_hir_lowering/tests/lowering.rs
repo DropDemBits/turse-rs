@@ -805,3 +805,39 @@ fn lower_type_def_forward() {
     );
     // TODO: Add test for different forward kinds
 }
+
+#[test]
+fn lower_binding_def() {
+    // Normal
+    assert_lower(
+        "
+    begin
+    var a : int
+    bind b to a
+    end",
+    );
+    // Multiple
+    assert_lower(
+        "
+    begin
+    var a : int
+    bind b to a, var c to b, var register d to c
+    end",
+    );
+    // Binding to non-ref expr
+    // Accept here, but rejected in typeck
+    assert_lower("begin bind me to true or false end");
+    // Lacking portions
+    assert_lower(
+        "
+    begin
+    bind to 1, k to
+    end",
+    );
+    // In top-level scope
+    assert_lower(
+        "
+    var nothing := 0
+    bind me to nothing",
+    );
+}

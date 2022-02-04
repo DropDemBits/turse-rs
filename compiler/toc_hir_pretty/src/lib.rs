@@ -208,6 +208,26 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         self.emit_node("Type", span, Some(format_args!("{}", extra)));
     }
+    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
+        let span = self.item_span(id);
+        let def_id = self.def_of(id);
+
+        let mut extra = String::new();
+
+        match item.mutability {
+            Mutability::Var => write!(extra, "var "),
+            Mutability::Const => write!(extra, "const "),
+        }
+        .unwrap();
+
+        if item.is_register {
+            write!(extra, "register ").unwrap();
+        }
+
+        write!(extra, "{}", self.display_def(def_id)).unwrap();
+
+        self.emit_node("Bind", span, Some(format_args!("{}", extra)))
+    }
     fn visit_module(&self, id: item::ItemId, _item: &item::Module) {
         let span = self.item_span(id);
         let def_id = self.def_of(id);

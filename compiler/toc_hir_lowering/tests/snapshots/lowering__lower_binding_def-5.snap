@@ -1,0 +1,21 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    var nothing := 0\n    bind me to nothing"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..44): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..44): []
+        StmtItem@(FileId(1), 5..21): ItemId(0)
+          ConstVar@(FileId(1), 5..21): var "nothing"@(FileId(1), 9..16)
+            ExprBody@(FileId(1), 20..21)
+              Literal@(FileId(1), 20..21): Integer(0)
+        StmtItem@(FileId(1), 26..44): ItemId(1)
+          Bind@(FileId(1), 26..44): const "me"@(FileId(1), 31..33)
+            ExprBody@(FileId(1), 37..44)
+              Name@(FileId(1), 37..44): "nothing"@(FileId(1), 9..16)
+error in file FileId(1) at 26..44: cannot use ‘bind’ here
+| error in file FileId(1) for 26..44: ‘bind’ declaration is not allowed at module-like or program level
+

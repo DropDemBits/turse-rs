@@ -81,6 +81,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
     match &item.kind {
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
         item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
+        item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
         item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
     }
 }
@@ -155,6 +156,16 @@ fn type_def_ty(
         }
         item::DefinedType::Forward(_) => db.mk_alias(def_id, db.mk_forward()),
     }
+}
+
+fn bind_def_ty(
+    db: &dyn TypeDatabase,
+    item_id: InLibrary<item::ItemId>,
+    item: &item::Binding,
+) -> TypeId {
+    // Takes the type from what it's bound to
+    let item_ty = db.type_of((item_id.0, item.bind_to).into());
+    require_resolved_type(db, item_ty)
 }
 
 fn for_counter_ty(

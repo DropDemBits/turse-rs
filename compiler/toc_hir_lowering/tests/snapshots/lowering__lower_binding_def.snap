@@ -1,0 +1,19 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    begin\n    var a : int\n    bind b to a\n    end"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..50): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..50): []
+        Block@(FileId(1), 5..50): Normal
+          StmtItem@(FileId(1), 15..26): ItemId(0)
+            ConstVar@(FileId(1), 15..26): var "a"@(FileId(1), 19..20)
+              Primitive@(FileId(1), 23..26): Int
+          StmtItem@(FileId(1), 31..42): ItemId(1)
+            Bind@(FileId(1), 31..42): const "b"@(FileId(1), 36..37)
+              ExprBody@(FileId(1), 41..42)
+                Name@(FileId(1), 41..42): "a"@(FileId(1), 19..20)
+
