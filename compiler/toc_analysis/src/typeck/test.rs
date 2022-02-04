@@ -121,7 +121,7 @@ fn typecheck_missing_exprs() {
 
     assert_typecheck("get ()");
 
-    // FIXME: use bind exprs to test for missing bodies
+    assert_typecheck("begin var aaaa : int bind aaaa to end");
 }
 
 #[test]
