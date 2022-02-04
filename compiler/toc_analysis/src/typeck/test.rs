@@ -118,6 +118,10 @@ fn typecheck_error_prop() {
 fn typecheck_missing_exprs() {
     // Be resilient against missing expressions
     assert_typecheck("const ke : int := ()");
+
+    assert_typecheck("get ()");
+
+    // FIXME: use bind exprs to test for missing bodies
 }
 
 #[test]
