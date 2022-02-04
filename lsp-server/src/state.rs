@@ -104,14 +104,32 @@ impl ServerState {
 
         for msg in msgs.iter() {
             // Convert each message into a `Diagnostic`
-            let range = self.map_span_to_location(msg.span()).range;
+            let range = if let Some(span) = self.map_span_to_location(msg.span()) {
+                span.range
+            } else {
+                eprintln!("BUG: Encountered bad message span (Original message: {msg:#?})");
+                continue;
+            };
+
             let severity = to_diag_level(msg.kind());
             let annotations = msg
                 .annotations()
                 .iter()
-                .map(|annotate| DiagnosticRelatedInformation {
-                    location: self.map_span_to_location(annotate.span()),
-                    message: annotate.message().to_string(),
+                .filter_map(|annotate| {
+                    let location =
+                        if let Some(location) = self.map_span_to_location(annotate.span()) {
+                            location
+                        } else {
+                            eprintln!(
+                                "BUG: Encountered bad annotation span (Original annotation (from {range:?}): {annotate:#?})"
+                            );
+                            return None;
+                        };
+
+                    Some(DiagnosticRelatedInformation {
+                        location,
+                        message: annotate.message().to_string(),
+                    })
                 })
                 .collect();
             let message = if !msg.footer().is_empty() {
@@ -167,21 +185,21 @@ impl ServerState {
             .collect()
     }
 
-    fn map_span_to_location(&self, span: toc_span::Span) -> Location {
+    fn map_span_to_location(&self, span: toc_span::Span) -> Option<Location> {
         let db = &self.db;
 
-        let (file, range) = span.into_parts().unwrap();
+        let (file, range) = span.into_parts()?;
         let (start, end) = (u32::from(range.start()), u32::from(range.end()));
 
-        let start = db.map_byte_index_to_position(file, start as usize).unwrap();
-        let end = db.map_byte_index_to_position(file, end as usize).unwrap();
+        let start = db.map_byte_index_to_position(file, start as usize)?;
+        let end = db.map_byte_index_to_position(file, end as usize)?;
 
         let path = &db.file_path(file);
 
-        Location::new(
+        Some(Location::new(
             lsp_types::Url::from_file_path(path.as_str()).unwrap(),
             lsp_types::Range::new(start.into_position(), end.into_position()),
-        )
+        ))
     }
 }
 

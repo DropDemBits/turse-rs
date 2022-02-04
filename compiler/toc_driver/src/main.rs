@@ -101,15 +101,15 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     use ariadne::{Color, Config, Label, LabelAttach, ReportKind};
     use std::ops::Range;
 
-    fn mk_range(db: &MainDatabase, span: Span) -> (FileId, Range<usize>) {
-        let (file, range) = span.into_parts().unwrap();
+    fn mk_range(db: &MainDatabase, span: Span) -> Option<(FileId, Range<usize>)> {
+        let (file, range) = span.into_parts()?;
         let start: usize = range.start().into();
         let end: usize = range.end().into();
 
         let start = db.map_byte_index_to_character(file, start).unwrap();
         let end = db.map_byte_index_to_character(file, end).unwrap();
 
-        (file, start..end)
+        Some((file, start..end))
     }
 
     fn kind_to_colour(kind: toc_reporting::AnnotateKind) -> Color {
@@ -129,7 +129,14 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     };
 
     let top_span = msg.span();
-    let (file, range) = mk_range(db, top_span);
+    let (file, range) = if let Some(span) = mk_range(db, top_span) {
+        span
+    } else {
+        // Notify that we've encountered a bad span
+        // Missing files don't fall under here, as they use the file they're missing from
+        eprintln!("BUG: Encountered bad message span (Original message: {msg:#?})");
+        return;
+    };
 
     let config = Config::default().with_label_attach(LabelAttach::End);
     let mut builder = ariadne::Report::build(kind, file, range.start)
@@ -137,7 +144,14 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
         .with_config(config);
 
     for (order, annotate) in msg.annotations().iter().enumerate() {
-        let span = mk_range(db, annotate.span());
+        let span = if let Some(span) = mk_range(db, annotate.span()) {
+            span
+        } else {
+            // Notify that we've encountered a bad span
+            // FIXME: replace this with a call to some logging infra (e.g. tracing)
+            eprintln!("BUG: Encountered bad annotation span (Original annotation: {annotate:#?})",);
+            continue;
+        };
 
         builder = builder.with_label(
             Label::new(span)
