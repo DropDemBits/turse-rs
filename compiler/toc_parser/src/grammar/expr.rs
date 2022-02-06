@@ -393,7 +393,7 @@ fn paren_expr(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    self::expect_expr(p);
+    p.with_extra_recovery(&[TokenKind::RightParen], expect_expr);
 
     p.expect_punct(TokenKind::RightParen);
 

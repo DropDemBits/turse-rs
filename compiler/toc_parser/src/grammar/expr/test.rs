@@ -5096,3 +5096,32 @@ fn parse_invalid_not_before_indirect() {
             | error in file FileId(1) for 9..10: expected ‘in’ or ‘=’, but found identifier"#]],
     );
 }
+
+#[test]
+fn recover_empty_parens() {
+    // Should only be one error (expected expression, but found `)`)
+    check(
+        "_ := () q",
+        expect![[r#"
+        Source@0..9
+          StmtList@0..9
+            AssignStmt@0..7
+              NameExpr@0..1
+                Name@0..1
+                  Identifier@0..1 "_"
+              Whitespace@1..2 " "
+              AsnOp@2..4
+                Assign@2..4 ":="
+              Whitespace@4..5 " "
+              ParenExpr@5..7
+                LeftParen@5..6 "("
+                RightParen@6..7 ")"
+            Whitespace@7..8 " "
+            CallStmt@8..9
+              NameExpr@8..9
+                Name@8..9
+                  Identifier@8..9 "q"
+        error in file FileId(1) at 6..7: unexpected token
+        | error in file FileId(1) for 6..7: expected expression, but found ‘)’"#]],
+    );
+}
