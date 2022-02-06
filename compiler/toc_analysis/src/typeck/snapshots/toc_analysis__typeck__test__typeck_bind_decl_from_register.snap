@@ -1,0 +1,19 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "begin\nconst register reg := 1\nbind you to reg\nbind var me to reg\nend\n"
+
+---
+"reg"@(FileId(1), 21..24) [Declared]: int
+"you"@(FileId(1), 35..38) [Declared]: int
+"me"@(FileId(1), 55..57) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 30..45: cannot bind `you` to `reg`
+| error in file FileId(1) for 42..45: `reg` is a reference to a constant register, not a variable
+| note in file FileId(1) for 21..24: `reg` declared here
+| info: registers don't have a location in memory, so they cannot be bound to
+error in file FileId(1) at 46..64: cannot bind `me` to `reg`
+| error in file FileId(1) for 61..64: `reg` is a reference to a constant register, not a variable
+| note in file FileId(1) for 21..24: `reg` declared here
+| info: registers don't have a location in memory, so they cannot be bound to

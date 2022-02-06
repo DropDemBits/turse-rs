@@ -215,17 +215,12 @@ impl TypeCheck<'_> {
 
         // Require that we're binding to (mutable) storage
         let predicate = match item.mutability {
-            Mutability::Const => BindingKind::is_ref,
-            Mutability::Var => BindingKind::is_ref_mut,
+            Mutability::Const => BindingKind::is_storage,
+            Mutability::Var => BindingKind::is_storage_mut,
         };
+        let binding_kind = db.binding_kind(bind_to.into());
 
-        // ???: Rules on registers?
-
-        if !db
-            .binding_kind(bind_to.into())
-            .map(predicate)
-            .unwrap_or(false)
-        {
+        if !binding_kind.map(predicate).unwrap_or(false) {
             // Not a (mut) ref
             // Use var mutability for a simpler error message
             // ???: Does it matter to use the real mutability?
@@ -235,14 +230,17 @@ impl TypeCheck<'_> {
                 .body(item.bind_to)
                 .span
                 .lookup_in(&self.library.span_map);
+            let is_register = matches!(binding_kind, Some(BindingKind::Register(_)));
 
             self.report_mismatched_binding(
                 BindingKind::Storage(Mutability::Var),
                 bind_to.into(),
                 bind_span,
                 bind_to_span,
-                |name| format!("cannot bind `{from}` to `{name}`"),
-                || format!("cannot bind `{from}` to expression"),
+                |thing| format!("cannot bind `{from}` to {thing}"),
+                is_register.then(|| {
+                    "registers don't have a location in memory, so they cannot be bound to"
+                }),
             );
         }
     }
@@ -274,8 +272,8 @@ impl TypeCheck<'_> {
                 lhs.into(),
                 asn_span,
                 left_span,
-                |name| format!("cannot assign into `{name}`"),
-                || "cannot assign into expression".to_string(),
+                |thing| format!("cannot assign into {thing}"),
+                None,
             );
         } else {
             let left = db.type_of(lhs.into());
@@ -429,8 +427,8 @@ impl TypeCheck<'_> {
                     (self.library_id, body_expr).into(),
                     get_item_span,
                     get_item_span,
-                    |name| format!("cannot assign into `{name}`"),
-                    || "cannot assign into expression".to_string(),
+                    |thing| format!("cannot assign into {thing}"),
+                    None,
                 );
             }
 
@@ -820,29 +818,25 @@ impl TypeCheck<'_> {
 
     fn typeck_name_expr(&self, id: expr::BodyExpr, expr: &expr::Name) {
         match expr {
-            expr::Name::Name(def_id) => {
+            expr::Name::Name(local_def) => {
                 // Validate it's a ref to a storage location
+                let def_id = DefId(self.library_id, *local_def);
                 let binding_kind = self
                     .db
-                    .binding_kind(DefId(self.library_id, *def_id).into())
+                    .binding_kind(def_id.into())
                     .expect("undecl defs are bindings");
 
                 if !binding_kind.is_ref() {
                     let span = self.library.body(id.0).expr(id.1).span;
                     let span = self.library.lookup_span(span);
-                    let name = self.library.local_def(*def_id).name.item();
-                    let reason = match binding_kind {
-                        BindingKind::Undeclared | BindingKind::Storage(_) => unreachable!(),
-                        BindingKind::Type => format!("`{}` is a reference to a type", name),
-                        BindingKind::Module => {
-                            format!("`{}` is a reference to a module", name)
-                        }
-                    };
 
-                    self.state().reporter.error(
-                        format!("cannot use `{}` as an expression", name),
-                        reason,
+                    self.report_mismatched_binding(
+                        BindingKind::Storage(Mutability::Var),
+                        def_id.into(),
                         span,
+                        span,
+                        |thing| format!("cannot use {thing} as an expression"),
+                        None,
                     );
                 }
             }
@@ -933,8 +927,8 @@ impl TypeCheck<'_> {
                 target.into(),
                 span,
                 span,
-                |name| format!("cannot use `{name}` as a type alias"),
-                || unreachable!("never expr"),
+                |thing| format!("cannot use {thing} as a type alias"),
+                None,
             );
         }
     }
@@ -945,8 +939,8 @@ impl TypeCheck<'_> {
         binding_source: toc_hir_db::db::BindingSource,
         report_at: Span,
         binding_span: Span,
-        from_def: impl FnOnce(&str) -> String,
-        from_expr: impl FnOnce() -> String,
+        from_thing: impl FnOnce(&str) -> String,
+        additional_info: Option<&str>,
     ) {
         use toc_hir_db::db::BindingSource;
 
@@ -969,7 +963,8 @@ impl TypeCheck<'_> {
             .binding_to(binding_source)
             .map_or(binding_source, BindingSource::DefId);
 
-        match binding_source {
+        let mut state = self.state();
+        let mut builder = match binding_source {
             BindingSource::DefId(DefId(lib_id, local_def)) => {
                 let library = self.db.library(lib_id);
                 let def_info = library.local_def(local_def);
@@ -982,23 +977,26 @@ impl TypeCheck<'_> {
                     .binding_kind(binding_source)
                     .expect("taken from a def_id");
 
-                self.state()
+                state
                     .reporter
-                    .error_detailed(from_def(name), report_at)
+                    .error_detailed(from_thing(&format!("`{name}`")), report_at)
                     .with_error(
                         format!("`{name}` is a reference to {binding_kind}, not {expected}"),
                         binding_span,
                     )
                     .with_note(format!("`{name}` declared here"), def_at)
-                    .finish();
             }
-            BindingSource::Body(..) | BindingSource::BodyExpr(..) => self
-                .state()
+            BindingSource::Body(..) | BindingSource::BodyExpr(..) => state
                 .reporter
-                .error_detailed(from_expr(), report_at)
-                .with_error(format!("not a reference to {expected}"), binding_span)
-                .finish(),
+                .error_detailed(from_thing("expression"), report_at)
+                .with_error(format!("not a reference to {expected}"), binding_span),
+        };
+
+        if let Some(info) = additional_info {
+            builder = builder.with_info(info);
         }
+
+        builder.finish();
     }
 
     // TODO: Replace `expect_*_type` with `expect_type` once we have `ty::rules::is_equivalent`

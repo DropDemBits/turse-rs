@@ -1391,6 +1391,13 @@ test_named_group! { typeck_bind_decl,
         begin
         bind you to false
         end",
+        from_register => "
+        begin
+        const register reg := 1
+        bind you to reg
+        bind var me to reg
+        end
+        ",
         from_ty => "
         begin
         type no : int

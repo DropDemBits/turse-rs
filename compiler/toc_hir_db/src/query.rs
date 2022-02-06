@@ -70,12 +70,18 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
     let library = db.library(def_id.0);
 
     match def_owner {
-        Some(DefOwner::Item(item_id)) => match &library.item(item_id).kind {
-            item::ItemKind::ConstVar(item) => Some(BindingKind::Storage(item.mutability)),
-            item::ItemKind::Type(_) => Some(BindingKind::Type),
-            item::ItemKind::Binding(item) => Some(BindingKind::Storage(item.mutability)),
-            item::ItemKind::Module(_) => Some(BindingKind::Module),
-        },
+        Some(DefOwner::Item(item_id)) => Some(match &library.item(item_id).kind {
+            item::ItemKind::ConstVar(item) if item.is_register => {
+                BindingKind::Register(item.mutability)
+            }
+            item::ItemKind::Binding(item) if item.is_register => {
+                BindingKind::Register(item.mutability)
+            }
+            item::ItemKind::ConstVar(item) => BindingKind::Storage(item.mutability),
+            item::ItemKind::Binding(item) => BindingKind::Storage(item.mutability),
+            item::ItemKind::Type(_) => (BindingKind::Type),
+            item::ItemKind::Module(_) => (BindingKind::Module),
+        }),
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
                 stmt::StmtKind::Item(_) => {
