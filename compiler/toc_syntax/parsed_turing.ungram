@@ -205,7 +205,7 @@ FcnDecl =
   EndGroup
 
 FcnHeader =
-  'function' PervasiveAttr? Name ParamSpec? FcnResult
+  'function' PervasiveAttr? Name params:ParamSpec? FcnResult
 
 FcnResult =
   Name? ':' Type
@@ -239,7 +239,7 @@ BodyKind =
 | FcnHeader
 
 PlainHeader =
-  Name ParamSpec? FcnResult?
+  Name params:ParamSpec? FcnResult?
 
 ProcessDecl =
   ProcessHeader
@@ -247,7 +247,7 @@ ProcessDecl =
   EndGroup
 
 ProcessHeader =
-  'process' PervasiveAttr? Name ParamSpec? ( ':' stack_size:Expr )?
+  'process' PervasiveAttr? Name params:ParamSpec? ( ':' stack_size:Expr )?
 
 ExternalDecl =
   'external' external_spec:Expr? ExternalKind
@@ -825,10 +825,10 @@ Checkedness =
 | 'unchecked'
 
 FcnType =
-  'function' Name? ParamSpec? ':' Type
+  'function' Name? params:ParamSpec? ':' Type
 
 ProcType =
-  'procedure' Name? ParamSpec?
+  'procedure' Name? params:ParamSpec?
 
 SubprogType =
   FcnType

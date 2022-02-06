@@ -1888,7 +1888,7 @@ impl FcnHeader {
     pub fn function_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFunction) }
     pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -1955,7 +1955,7 @@ impl AstNode for PlainHeader {
 }
 impl PlainHeader {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -1980,7 +1980,7 @@ impl ProcessHeader {
     pub fn process_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcess) }
     pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn stack_size(&self) -> Option<Expr> { helper::node(&self.0) }
 }
@@ -3567,7 +3567,7 @@ impl AstNode for FcnType {
 impl FcnType {
     pub fn function_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwFunction) }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
     pub fn ty(&self) -> Option<Type> { helper::node(&self.0) }
 }
@@ -3592,7 +3592,7 @@ impl AstNode for ProcType {
 impl ProcType {
     pub fn procedure_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcedure) }
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn params(&self) -> Option<ParamSpec> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
