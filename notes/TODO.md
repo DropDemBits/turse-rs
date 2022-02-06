@@ -6,7 +6,7 @@
   - [ ] Stmt
     - [x] ConstVarDecl
     - [x] TypeDecl
-    - [ ] BindDecl
+    - [x] BindDecl
     - [ ] ProcDecl
     - [ ] FcnDecl
     - [ ] ProcessDecl
@@ -100,7 +100,7 @@
       - [x] Binding type to def
       - [ ] Handling `init()` as the initialzer expression
     - [x] Type
-    - [ ] Bind
+    - [x] Bind
     - [ ] Proc
     - [ ] Fcn
     - [ ] Process
