@@ -120,8 +120,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ForwardDecl(decl) =>
                 stmt::validate_in_top_level(decl.syntax(), "‘forward’ declaration", ctx),
             ast::DeferredDecl(decl) => stmt::validate_deferred_decl(decl, ctx),
-            ast::BodyDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "‘body’ declaration", ctx),
+            ast::BodyDecl(decl) => stmt::validate_body_decl(decl, ctx),
             ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
             ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),

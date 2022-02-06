@@ -624,12 +624,7 @@ impl AstNode for ProcDecl {
 }
 impl ProcDecl {
     pub fn proc_header(&self) -> Option<ProcHeader> { helper::node(&self.0) }
-    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
-    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
-    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
-    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
-    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -652,12 +647,7 @@ impl AstNode for FcnDecl {
 }
 impl FcnDecl {
     pub fn fcn_header(&self) -> Option<FcnHeader> { helper::node(&self.0) }
-    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
-    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
-    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
-    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
-    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -679,18 +669,8 @@ impl AstNode for ProcessDecl {
     fn syntax(&self) -> &SyntaxNode { &self.0 }
 }
 impl ProcessDecl {
-    pub fn process_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcess) }
-    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
-    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
-    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
-    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
-    pub fn stack_size(&self) -> Option<Expr> { helper::node(&self.0) }
-    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
-    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
-    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
-    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
-    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn process_header(&self) -> Option<ProcessHeader> { helper::node(&self.0) }
+    pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -783,11 +763,7 @@ impl AstNode for BodyDecl {
 impl BodyDecl {
     pub fn body_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwBody) }
     pub fn body_kind(&self) -> Option<BodyKind> { helper::node(&self.0) }
-    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
-    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
-    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
-    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
-    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+    pub fn subprog_body(&self) -> Option<SubprogBody> { helper::node(&self.0) }
     pub fn end_group(&self) -> Option<EndGroup> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -1790,6 +1766,32 @@ impl ProcHeader {
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
+pub struct SubprogBody(SyntaxNode);
+impl AstNode for SubprogBody {
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::SubprogBody => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(syntax: &SyntaxNode) -> bool {
+        match syntax.kind() {
+            SyntaxKind::SubprogBody => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl SubprogBody {
+    pub fn import_stmt(&self) -> Option<ImportStmt> { helper::node(&self.0) }
+    pub fn pre_stmt(&self) -> Option<PreStmt> { helper::node(&self.0) }
+    pub fn init_stmt(&self) -> Option<InitStmt> { helper::node(&self.0) }
+    pub fn post_stmt(&self) -> Option<PostStmt> { helper::node(&self.0) }
+    pub fn handler_stmt(&self) -> Option<HandlerStmt> { helper::node(&self.0) }
+    pub fn stmt_list(&self) -> Option<StmtList> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct EndGroup(SyntaxNode);
 impl AstNode for EndGroup {
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -1955,6 +1957,32 @@ impl PlainHeader {
     pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
     pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
     pub fn fcn_result(&self) -> Option<FcnResult> { helper::node(&self.0) }
+}
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ProcessHeader(SyntaxNode);
+impl AstNode for ProcessHeader {
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        match syntax.kind() {
+            SyntaxKind::ProcessHeader => Some(Self(syntax)),
+            _ => None,
+        }
+    }
+    fn can_cast(syntax: &SyntaxNode) -> bool {
+        match syntax.kind() {
+            SyntaxKind::ProcessHeader => true,
+            _ => false,
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode { &self.0 }
+}
+impl ProcessHeader {
+    pub fn process_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwProcess) }
+    pub fn pervasive_attr(&self) -> Option<PervasiveAttr> { helper::node(&self.0) }
+    pub fn name(&self) -> Option<Name> { helper::node(&self.0) }
+    pub fn param_spec(&self) -> Option<ParamSpec> { helper::node(&self.0) }
+    pub fn colon_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::Colon) }
+    pub fn stack_size(&self) -> Option<Expr> { helper::node(&self.0) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]

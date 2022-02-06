@@ -64,7 +64,9 @@
     - [x] BinaryExpr
     - [x] UnaryExpr
     - [x] ParenExpr
-    - [x] NameExpr
+    - [~] NameExpr
+      - [x] As reference
+      - [ ] As paramless call
     - [x] SelfExpr
     - [ ] FieldExpr
     - [ ] DerefExpr
@@ -178,6 +180,8 @@
   - [ ] Type
     - [x] Prim (SeqLength)
     - [~] Name
+      - [x] Just name
+      - [ ] Through module paths
     - [ ] Range
     - [ ] Enum
     - [ ] Array

@@ -190,6 +190,18 @@ pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut Validate
     validate_in_module_kind(decl.syntax(), "‘deferred’", ctx);
 }
 
+pub(super) fn validate_body_decl(decl: ast::BodyDecl, ctx: &mut ValidateCtx) {
+    validate_in_top_level(decl.syntax(), "‘body’ declaration", ctx);
+
+    if let Some(import) = decl.subprog_body().and_then(|body| body.import_stmt()) {
+        ctx.push_error(
+            "useless ‘import’ statement",
+            "‘import’ statements are ignored in ‘body’ declaration",
+            import.syntax().text_range(),
+        )
+    }
+}
+
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
     // Check contained in location
     if !block_containing_node(decl.syntax()).is_top_level() {

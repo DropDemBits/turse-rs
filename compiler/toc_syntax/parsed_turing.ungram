@@ -190,12 +190,7 @@ BindItem =
   
 ProcDecl =
   ProcHeader
-    ImportStmt?
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+    SubprogBody
   EndGroup
 
 ProcHeader =
@@ -206,12 +201,7 @@ DeviceSpec =
 
 FcnDecl =
   FcnHeader
-    ImportStmt?
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+    SubprogBody
   EndGroup
 
 FcnHeader =
@@ -224,6 +214,14 @@ SubprogHeader =
   ProcHeader
 | FcnHeader
 
+SubprogBody =
+  ImportStmt?
+  PreStmt?
+  InitStmt?
+  PostStmt?
+  HandlerStmt?
+  StmtList
+
 ForwardDecl =
   'forward' SubprogHeader ( 'import' ImportList )?
 
@@ -232,11 +230,7 @@ DeferredDecl =
 
 BodyDecl =
   'body' BodyKind
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+    SubprogBody
   EndGroup
 
 BodyKind =
@@ -248,14 +242,12 @@ PlainHeader =
   Name ParamSpec? FcnResult?
 
 ProcessDecl =
-  'process' PervasiveAttr? Name ParamSpec? ( ':' stack_size:Expr )?
-    ImportStmt?
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+  ProcessHeader
+    SubprogBody
   EndGroup
+
+ProcessHeader =
+  'process' PervasiveAttr? Name ParamSpec? ( ':' stack_size:Expr )?
 
 ExternalDecl =
   'external' external_spec:Expr? ExternalKind

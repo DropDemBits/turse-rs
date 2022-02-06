@@ -4089,12 +4089,13 @@ fn parse_proc_decl() {
                           KwInt@22..25 "int"
                       RightParen@25..26 ")"
                   Whitespace@26..35 "\n        "
-                  StmtList@35..47
-                    AssertStmt@35..47
-                      KwAssert@35..41 "assert"
-                      Whitespace@41..42 " "
-                      LiteralExpr@42..47
-                        KwFalse@42..47 "false"
+                  SubprogBody@35..47
+                    StmtList@35..47
+                      AssertStmt@35..47
+                        KwAssert@35..41 "assert"
+                        Whitespace@41..42 " "
+                        LiteralExpr@42..47
+                          KwFalse@42..47 "false"
                   Whitespace@47..52 "\n    "
                   EndGroup@52..57
                     KwEnd@52..55 "end"
@@ -4146,12 +4147,13 @@ fn parse_proc_decl_opt_devspec() {
                         LiteralExpr@33..34
                           IntLiteral@33..34 "3"
                   Whitespace@34..43 "\n        "
-                  StmtList@43..55
-                    AssertStmt@43..55
-                      KwAssert@43..49 "assert"
-                      Whitespace@49..50 " "
-                      LiteralExpr@50..55
-                        KwFalse@50..55 "false"
+                  SubprogBody@43..55
+                    StmtList@43..55
+                      AssertStmt@43..55
+                        KwAssert@43..49 "assert"
+                        Whitespace@49..50 " "
+                        LiteralExpr@50..55
+                          KwFalse@50..55 "false"
                   Whitespace@55..60 "\n    "
                   EndGroup@60..65
                     KwEnd@60..63 "end"
@@ -4178,12 +4180,13 @@ fn parse_proc_plain() {
                     Name@15..16
                       Identifier@15..16 "a"
                   Whitespace@16..25 "\n        "
-                  StmtList@25..37
-                    AssertStmt@25..37
-                      KwAssert@25..31 "assert"
-                      Whitespace@31..32 " "
-                      LiteralExpr@32..37
-                        KwFalse@32..37 "false"
+                  SubprogBody@25..37
+                    StmtList@25..37
+                      AssertStmt@25..37
+                        KwAssert@25..31 "assert"
+                        Whitespace@31..32 " "
+                        LiteralExpr@32..37
+                          KwFalse@32..37 "false"
                   Whitespace@37..42 "\n    "
                   EndGroup@42..47
                     KwEnd@42..45 "end"
@@ -4206,13 +4209,14 @@ fn parse_proc_decl_embedded_import() {
                     Name@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
-                  ImportStmt@7..16
-                    KwImport@7..13 "import"
-                    Whitespace@13..14 " "
-                    LeftParen@14..15 "("
-                    RightParen@15..16 ")"
-                  Whitespace@16..17 " "
-                  StmtList@17..17
+                  SubprogBody@7..17
+                    ImportStmt@7..16
+                      KwImport@7..13 "import"
+                      Whitespace@13..14 " "
+                      LeftParen@14..15 "("
+                      RightParen@15..16 ")"
+                    Whitespace@16..17 " "
+                    StmtList@17..17
                   EndGroup@17..22
                     KwEnd@17..20 "end"
                     Whitespace@20..21 " "
@@ -4235,12 +4239,13 @@ fn recover_proc_decl_missing_name() {
                   ProcHeader@5..14
                     KwProcedure@5..14 "procedure"
                   Whitespace@14..23 "\n        "
-                  StmtList@23..35
-                    AssertStmt@23..35
-                      KwAssert@23..29 "assert"
-                      Whitespace@29..30 " "
-                      LiteralExpr@30..35
-                        KwFalse@30..35 "false"
+                  SubprogBody@23..35
+                    StmtList@23..35
+                      AssertStmt@23..35
+                        KwAssert@23..29 "assert"
+                        Whitespace@29..30 " "
+                        LiteralExpr@30..35
+                          KwFalse@30..35 "false"
                   Whitespace@35..40 "\n    "
                   EndGroup@40..45
                     KwEnd@40..43 "end"
@@ -4269,12 +4274,13 @@ fn recover_proc_decl_missing_tail_name() {
                     Name@15..16
                       Identifier@15..16 "a"
                   Whitespace@16..25 "\n        "
-                  StmtList@25..37
-                    AssertStmt@25..37
-                      KwAssert@25..31 "assert"
-                      Whitespace@31..32 " "
-                      LiteralExpr@32..37
-                        KwFalse@32..37 "false"
+                  SubprogBody@25..37
+                    StmtList@25..37
+                      AssertStmt@25..37
+                        KwAssert@25..31 "assert"
+                        Whitespace@31..32 " "
+                        LiteralExpr@32..37
+                          KwFalse@32..37 "false"
                   Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
@@ -4311,12 +4317,13 @@ fn recover_on_proc() {
                     Name@28..29
                       Identifier@28..29 "a"
                   Whitespace@29..38 "\n        "
-                  StmtList@38..50
-                    AssertStmt@38..50
-                      KwAssert@38..44 "assert"
-                      Whitespace@44..45 " "
-                      LiteralExpr@45..50
-                        KwFalse@45..50 "false"
+                  SubprogBody@38..50
+                    StmtList@38..50
+                      AssertStmt@38..50
+                        KwAssert@38..44 "assert"
+                        Whitespace@44..45 " "
+                        LiteralExpr@45..50
+                          KwFalse@45..50 "false"
                   Whitespace@50..55 "\n    "
                   EndGroup@55..60
                     KwEnd@55..58 "end"
@@ -4364,12 +4371,13 @@ fn parse_fcn_decl() {
                       PrimType@28..31
                         KwInt@28..31 "int"
                   Whitespace@31..40 "\n        "
-                  StmtList@40..52
-                    AssertStmt@40..52
-                      KwAssert@40..46 "assert"
-                      Whitespace@46..47 " "
-                      LiteralExpr@47..52
-                        KwFalse@47..52 "false"
+                  SubprogBody@40..52
+                    StmtList@40..52
+                      AssertStmt@40..52
+                        KwAssert@40..46 "assert"
+                        Whitespace@46..47 " "
+                        LiteralExpr@47..52
+                          KwFalse@47..52 "false"
                   Whitespace@52..57 "\n    "
                   EndGroup@57..62
                     KwEnd@57..60 "end"
@@ -4418,12 +4426,13 @@ fn parse_fcn_decl_opt_ret_name() {
                       PrimType@26..29
                         KwInt@26..29 "int"
                   Whitespace@29..38 "\n        "
-                  StmtList@38..50
-                    AssertStmt@38..50
-                      KwAssert@38..44 "assert"
-                      Whitespace@44..45 " "
-                      LiteralExpr@45..50
-                        KwFalse@45..50 "false"
+                  SubprogBody@38..50
+                    StmtList@38..50
+                      AssertStmt@38..50
+                        KwAssert@38..44 "assert"
+                        Whitespace@44..45 " "
+                        LiteralExpr@45..50
+                          KwFalse@45..50 "false"
                   Whitespace@50..55 "\n    "
                   EndGroup@55..60
                     KwEnd@55..58 "end"
@@ -4459,12 +4468,13 @@ fn parse_fcn_plain() {
                       PrimType@15..18
                         KwInt@15..18 "int"
                   Whitespace@18..27 "\n        "
-                  StmtList@27..39
-                    AssertStmt@27..39
-                      KwAssert@27..33 "assert"
-                      Whitespace@33..34 " "
-                      LiteralExpr@34..39
-                        KwFalse@34..39 "false"
+                  SubprogBody@27..39
+                    StmtList@27..39
+                      AssertStmt@27..39
+                        KwAssert@27..33 "assert"
+                        Whitespace@33..34 " "
+                        LiteralExpr@34..39
+                          KwFalse@34..39 "false"
                   Whitespace@39..44 "\n    "
                   EndGroup@44..49
                     KwEnd@44..47 "end"
@@ -4493,13 +4503,14 @@ fn parse_fcn_decl_embedded_import() {
                       PrimType@8..11
                         KwInt@8..11 "int"
                   Whitespace@11..12 " "
-                  ImportStmt@12..21
-                    KwImport@12..18 "import"
-                    Whitespace@18..19 " "
-                    LeftParen@19..20 "("
-                    RightParen@20..21 ")"
-                  Whitespace@21..22 " "
-                  StmtList@22..22
+                  SubprogBody@12..22
+                    ImportStmt@12..21
+                      KwImport@12..18 "import"
+                      Whitespace@18..19 " "
+                      LeftParen@19..20 "("
+                      RightParen@20..21 ")"
+                    Whitespace@21..22 " "
+                    StmtList@22..22
                   EndGroup@22..27
                     KwEnd@22..25 "end"
                     Whitespace@25..26 " "
@@ -4527,13 +4538,14 @@ fn parse_fcn_decl_embedded_pre() {
                       PrimType@8..11
                         KwInt@8..11 "int"
                   Whitespace@11..12 " "
-                  PreStmt@12..20
-                    KwPre@12..15 "pre"
-                    Whitespace@15..16 " "
-                    LiteralExpr@16..20
-                      KwTrue@16..20 "true"
-                  Whitespace@20..21 " "
-                  StmtList@21..21
+                  SubprogBody@12..21
+                    PreStmt@12..20
+                      KwPre@12..15 "pre"
+                      Whitespace@15..16 " "
+                      LiteralExpr@16..20
+                        KwTrue@16..20 "true"
+                    Whitespace@20..21 " "
+                    StmtList@21..21
                   EndGroup@21..26
                     KwEnd@21..24 "end"
                     Whitespace@24..25 " "
@@ -4561,19 +4573,20 @@ fn parse_fcn_decl_embedded_init() {
                       PrimType@8..11
                         KwInt@8..11 "int"
                   Whitespace@11..12 " "
-                  InitStmt@12..23
-                    KwInit@12..16 "init"
-                    Whitespace@16..17 " "
-                    InitVar@17..23
-                      Name@17..18
-                        Identifier@17..18 "i"
-                      Whitespace@18..19 " "
-                      Assign@19..21 ":="
-                      Whitespace@21..22 " "
-                      LiteralExpr@22..23
-                        IntLiteral@22..23 "1"
-                  Whitespace@23..24 " "
-                  StmtList@24..24
+                  SubprogBody@12..24
+                    InitStmt@12..23
+                      KwInit@12..16 "init"
+                      Whitespace@16..17 " "
+                      InitVar@17..23
+                        Name@17..18
+                          Identifier@17..18 "i"
+                        Whitespace@18..19 " "
+                        Assign@19..21 ":="
+                        Whitespace@21..22 " "
+                        LiteralExpr@22..23
+                          IntLiteral@22..23 "1"
+                    Whitespace@23..24 " "
+                    StmtList@24..24
                   EndGroup@24..29
                     KwEnd@24..27 "end"
                     Whitespace@27..28 " "
@@ -4601,13 +4614,14 @@ fn parse_fcn_decl_embedded_post() {
                       PrimType@8..11
                         KwInt@8..11 "int"
                   Whitespace@11..12 " "
-                  PostStmt@12..22
-                    KwPost@12..16 "post"
-                    Whitespace@16..17 " "
-                    LiteralExpr@17..22
-                      KwFalse@17..22 "false"
-                  Whitespace@22..23 " "
-                  StmtList@23..23
+                  SubprogBody@12..23
+                    PostStmt@12..22
+                      KwPost@12..16 "post"
+                      Whitespace@16..17 " "
+                      LiteralExpr@17..22
+                        KwFalse@17..22 "false"
+                    Whitespace@22..23 " "
+                    StmtList@23..23
                   EndGroup@23..28
                     KwEnd@23..26 "end"
                     Whitespace@26..27 " "
@@ -4635,21 +4649,22 @@ fn parse_fcn_decl_embedded_handler() {
                       PrimType@8..11
                         KwInt@8..11 "int"
                   Whitespace@11..12 " "
-                  HandlerStmt@12..35
-                    KwHandler@12..19 "handler"
-                    Whitespace@19..20 " "
-                    LeftParen@20..21 "("
-                    Name@21..22
-                      Identifier@21..22 "_"
-                    RightParen@22..23 ")"
-                    Whitespace@23..24 " "
-                    StmtList@24..24
-                    EndGroup@24..35
-                      KwEnd@24..27 "end"
-                      Whitespace@27..28 " "
-                      KwHandler@28..35 "handler"
-                  Whitespace@35..36 " "
-                  StmtList@36..36
+                  SubprogBody@12..36
+                    HandlerStmt@12..35
+                      KwHandler@12..19 "handler"
+                      Whitespace@19..20 " "
+                      LeftParen@20..21 "("
+                      Name@21..22
+                        Identifier@21..22 "_"
+                      RightParen@22..23 ")"
+                      Whitespace@23..24 " "
+                      StmtList@24..24
+                      EndGroup@24..35
+                        KwEnd@24..27 "end"
+                        Whitespace@27..28 " "
+                        KwHandler@28..35 "handler"
+                    Whitespace@35..36 " "
+                    StmtList@36..36
                   EndGroup@36..41
                     KwEnd@36..39 "end"
                     Whitespace@39..40 " "
@@ -4678,12 +4693,13 @@ fn recover_fcn_decl_missing_name() {
                       PrimType@11..14
                         KwInt@11..14 "int"
                   Whitespace@14..23 "\n        "
-                  StmtList@23..35
-                    AssertStmt@23..35
-                      KwAssert@23..29 "assert"
-                      Whitespace@29..30 " "
-                      LiteralExpr@30..35
-                        KwFalse@30..35 "false"
+                  SubprogBody@23..35
+                    StmtList@23..35
+                      AssertStmt@23..35
+                        KwAssert@23..29 "assert"
+                        Whitespace@29..30 " "
+                        LiteralExpr@30..35
+                          KwFalse@30..35 "false"
                   Whitespace@35..40 "\n    "
                   EndGroup@40..45
                     KwEnd@40..43 "end"
@@ -4718,12 +4734,13 @@ fn recover_fcn_decl_missing_tail_name() {
                       PrimType@13..16
                         KwInt@13..16 "int"
                   Whitespace@16..25 "\n        "
-                  StmtList@25..37
-                    AssertStmt@25..37
-                      KwAssert@25..31 "assert"
-                      Whitespace@31..32 " "
-                      LiteralExpr@32..37
-                        KwFalse@32..37 "false"
+                  SubprogBody@25..37
+                    StmtList@25..37
+                      AssertStmt@25..37
+                        KwAssert@25..31 "assert"
+                        Whitespace@31..32 " "
+                        LiteralExpr@32..37
+                          KwFalse@32..37 "false"
                   Whitespace@37..42 "\n    "
                   EndGroup@42..45
                     KwEnd@42..45 "end"
@@ -4753,12 +4770,13 @@ fn recover_fcn_decl_missing_ret_ty() {
                     FcnResult@11..12
                       Colon@11..12 ":"
                   Whitespace@12..21 "\n        "
-                  StmtList@21..33
-                    AssertStmt@21..33
-                      KwAssert@21..27 "assert"
-                      Whitespace@27..28 " "
-                      LiteralExpr@28..33
-                        KwFalse@28..33 "false"
+                  SubprogBody@21..33
+                    StmtList@21..33
+                      AssertStmt@21..33
+                        KwAssert@21..27 "assert"
+                        Whitespace@27..28 " "
+                        LiteralExpr@28..33
+                          KwFalse@28..33 "false"
                   Whitespace@33..38 "\n    "
                   EndGroup@38..43
                     KwEnd@38..41 "end"
@@ -4790,12 +4808,13 @@ fn recover_fcn_decl_missing_colon() {
                     Error@11..14
                       KwInt@11..14 "int"
                   Whitespace@14..23 "\n        "
-                  StmtList@23..35
-                    AssertStmt@23..35
-                      KwAssert@23..29 "assert"
-                      Whitespace@29..30 " "
-                      LiteralExpr@30..35
-                        KwFalse@30..35 "false"
+                  SubprogBody@23..35
+                    StmtList@23..35
+                      AssertStmt@23..35
+                        KwAssert@23..29 "assert"
+                        Whitespace@29..30 " "
+                        LiteralExpr@30..35
+                          KwFalse@30..35 "false"
                   Whitespace@35..40 "\n    "
                   EndGroup@40..45
                     KwEnd@40..43 "end"
@@ -4840,12 +4859,13 @@ fn recover_on_fcn() {
                       PrimType@26..29
                         KwInt@26..29 "int"
                   Whitespace@29..38 "\n        "
-                  StmtList@38..50
-                    AssertStmt@38..50
-                      KwAssert@38..44 "assert"
-                      Whitespace@44..45 " "
-                      LiteralExpr@45..50
-                        KwFalse@45..50 "false"
+                  SubprogBody@38..50
+                    StmtList@38..50
+                      AssertStmt@38..50
+                        KwAssert@38..44 "assert"
+                        Whitespace@44..45 " "
+                        LiteralExpr@45..50
+                          KwFalse@45..50 "false"
                   Whitespace@50..55 "\n    "
                   EndGroup@55..60
                     KwEnd@55..58 "end"
@@ -6466,7 +6486,8 @@ fn parse_body_proc() {
                       LiteralExpr@21..22
                         IntLiteral@21..22 "1"
                   Whitespace@22..27 "\n    "
-                  StmtList@27..27
+                  SubprogBody@27..27
+                    StmtList@27..27
                   EndGroup@27..32
                     KwEnd@27..30 "end"
                     Whitespace@30..31 " "
@@ -6493,7 +6514,8 @@ fn parse_body_proc_bare() {
                     Name@15..16
                       Identifier@15..16 "a"
                   Whitespace@16..21 "\n    "
-                  StmtList@21..21
+                  SubprogBody@21..21
+                    StmtList@21..21
                   EndGroup@21..26
                     KwEnd@21..24 "end"
                     Whitespace@24..25 " "
@@ -6529,7 +6551,8 @@ fn parse_body_fcn() {
                       PrimType@20..23
                         KwInt@20..23 "int"
                   Whitespace@23..28 "\n    "
-                  StmtList@28..28
+                  SubprogBody@28..28
+                    StmtList@28..28
                   EndGroup@28..33
                     KwEnd@28..31 "end"
                     Whitespace@31..32 " "
@@ -6560,7 +6583,8 @@ fn parse_body_fcn_no_ret_ty() {
                       LeftParen@15..16 "("
                       RightParen@16..17 ")"
                   Whitespace@17..22 "\n    "
-                  StmtList@22..22
+                  SubprogBody@22..22
+                    StmtList@22..22
                   EndGroup@22..27
                     KwEnd@22..25 "end"
                     Whitespace@25..26 " "
@@ -6587,7 +6611,8 @@ fn parse_body_fcn_bare() {
                     Name@14..15
                       Identifier@14..15 "a"
                   Whitespace@15..20 "\n    "
-                  StmtList@20..20
+                  SubprogBody@20..20
+                    StmtList@20..20
                   EndGroup@20..25
                     KwEnd@20..23 "end"
                     Whitespace@23..24 " "
@@ -6612,7 +6637,8 @@ fn parse_body_plain() {
                     Name@10..11
                       Identifier@10..11 "a"
                   Whitespace@11..16 "\n    "
-                  StmtList@16..16
+                  SubprogBody@16..16
+                    StmtList@16..16
                   EndGroup@16..21
                     KwEnd@16..19 "end"
                     Whitespace@19..20 " "
@@ -6650,7 +6676,8 @@ fn parse_body_plain_with_params() {
                           KwInt@17..20 "int"
                       RightParen@20..21 ")"
                   Whitespace@21..26 "\n    "
-                  StmtList@26..26
+                  SubprogBody@26..26
+                    StmtList@26..26
                   EndGroup@26..31
                     KwEnd@26..29 "end"
                     Whitespace@29..30 " "
@@ -6694,7 +6721,8 @@ fn parse_body_plain_with_params_and_ret_ty() {
                       PrimType@24..27
                         KwInt@24..27 "int"
                   Whitespace@27..32 "\n    "
-                  StmtList@32..32
+                  SubprogBody@32..32
+                    StmtList@32..32
                   EndGroup@32..37
                     KwEnd@32..35 "end"
                     Whitespace@35..36 " "
@@ -6725,7 +6753,8 @@ fn parse_body_plain_with_ret_ty() {
                       PrimType@14..17
                         KwInt@14..17 "int"
                   Whitespace@17..22 "\n    "
-                  StmtList@22..22
+                  SubprogBody@22..22
+                    StmtList@22..22
                   EndGroup@22..27
                     KwEnd@22..25 "end"
                     Whitespace@25..26 " "
@@ -6773,7 +6802,8 @@ fn parse_body_plain_with_params_and_full_ret_ty() {
                       PrimType@27..30
                         KwInt@27..30 "int"
                   Whitespace@30..35 "\n    "
-                  StmtList@35..35
+                  SubprogBody@35..35
+                    StmtList@35..35
                   EndGroup@35..40
                     KwEnd@35..38 "end"
                     Whitespace@38..39 " "
@@ -6796,13 +6826,14 @@ fn parse_body_decl_and_import() {
                     Name@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
-                  StmtList@7..16
+                  SubprogBody@7..17
                     ImportStmt@7..16
                       KwImport@7..13 "import"
                       Whitespace@13..14 " "
                       LeftParen@14..15 "("
                       RightParen@15..16 ")"
-                  Whitespace@16..17 " "
+                    Whitespace@16..17 " "
+                    StmtList@17..17
                   EndGroup@17..22
                     KwEnd@17..20 "end"
                     Whitespace@20..21 " "
@@ -6824,13 +6855,14 @@ fn parse_body_decl_embedded_pre() {
                     Name@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
-                  PreStmt@7..15
-                    KwPre@7..10 "pre"
-                    Whitespace@10..11 " "
-                    LiteralExpr@11..15
-                      KwTrue@11..15 "true"
-                  Whitespace@15..16 " "
-                  StmtList@16..16
+                  SubprogBody@7..16
+                    PreStmt@7..15
+                      KwPre@7..10 "pre"
+                      Whitespace@10..11 " "
+                      LiteralExpr@11..15
+                        KwTrue@11..15 "true"
+                    Whitespace@15..16 " "
+                    StmtList@16..16
                   EndGroup@16..21
                     KwEnd@16..19 "end"
                     Whitespace@19..20 " "
@@ -6862,7 +6894,8 @@ fn recover_body_plain_missing_name() {
                           KwInt@10..13 "int"
                       RightParen@13..14 ")"
                   Whitespace@14..15 " "
-                  StmtList@15..15
+                  SubprogBody@15..15
+                    StmtList@15..15
                   EndGroup@15..20
                     KwEnd@15..18 "end"
                     Whitespace@18..19 " "
@@ -6882,7 +6915,8 @@ fn recover_just_body() {
                 BodyDecl@0..4
                   KwBody@0..4 "body"
                   PlainHeader@4..4
-                  StmtList@4..4
+                  SubprogBody@4..4
+                    StmtList@4..4
                   EndGroup@4..4
             error in file FileId(1) at 0..4: unexpected end of file
             | error in file FileId(1) for 0..4: expected ‘function’, ‘procedure’ or identifier after here"#]],
@@ -6916,7 +6950,8 @@ fn recover_on_body() {
                     Name@23..24
                       Identifier@23..24 "a"
                   Whitespace@24..29 "\n    "
-                  StmtList@29..29
+                  SubprogBody@29..29
+                    StmtList@29..29
                   EndGroup@29..34
                     KwEnd@29..32 "end"
                     Whitespace@32..33 " "
@@ -7879,26 +7914,28 @@ fn parse_process_decl() {
               Whitespace@0..5 "\n    "
               StmtList@5..45
                 ProcessDecl@5..45
-                  KwProcess@5..12 "process"
-                  Whitespace@12..13 " "
-                  Name@13..14
-                    Identifier@13..14 "a"
-                  Whitespace@14..15 " "
-                  ParamSpec@15..18
-                    LeftParen@15..16 "("
-                    ConstVarParam@16..17
-                      NameList@16..17
-                        Name@16..17
-                          Identifier@16..17 "a"
-                    RightParen@17..18 ")"
+                  ProcessHeader@5..18
+                    KwProcess@5..12 "process"
+                    Whitespace@12..13 " "
+                    Name@13..14
+                      Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                    ParamSpec@15..18
+                      LeftParen@15..16 "("
+                      ConstVarParam@16..17
+                        NameList@16..17
+                          Name@16..17
+                            Identifier@16..17 "a"
+                      RightParen@17..18 ")"
                   Whitespace@18..27 "\n        "
-                  PreStmt@27..35
-                    KwPre@27..30 "pre"
-                    Whitespace@30..31 " "
-                    LiteralExpr@31..35
-                      KwTrue@31..35 "true"
-                  Whitespace@35..40 "\n    "
-                  StmtList@40..40
+                  SubprogBody@27..40
+                    PreStmt@27..35
+                      KwPre@27..30 "pre"
+                      Whitespace@30..31 " "
+                      LiteralExpr@31..35
+                        KwTrue@31..35 "true"
+                    Whitespace@35..40 "\n    "
+                    StmtList@40..40
                   EndGroup@40..45
                     KwEnd@40..43 "end"
                     Whitespace@43..44 " "
@@ -7920,38 +7957,40 @@ fn parse_process_decl_opt_stack_size() {
               Whitespace@0..5 "\n    "
               StmtList@5..53
                 ProcessDecl@5..53
-                  KwProcess@5..12 "process"
-                  Whitespace@12..13 " "
-                  Name@13..14
-                    Identifier@13..14 "a"
-                  Whitespace@14..15 " "
-                  ParamSpec@15..18
-                    LeftParen@15..16 "("
-                    ConstVarParam@16..17
-                      NameList@16..17
-                        Name@16..17
-                          Identifier@16..17 "a"
-                    RightParen@17..18 ")"
-                  Whitespace@18..19 " "
-                  Colon@19..20 ":"
-                  Whitespace@20..21 " "
-                  BinaryExpr@21..26
-                    LiteralExpr@21..22
-                      IntLiteral@21..22 "1"
-                    Whitespace@22..23 " "
-                    Plus@23..24 "+"
-                    Whitespace@24..25 " "
-                    NameExpr@25..26
-                      Name@25..26
-                        Identifier@25..26 "t"
+                  ProcessHeader@5..26
+                    KwProcess@5..12 "process"
+                    Whitespace@12..13 " "
+                    Name@13..14
+                      Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                    ParamSpec@15..18
+                      LeftParen@15..16 "("
+                      ConstVarParam@16..17
+                        NameList@16..17
+                          Name@16..17
+                            Identifier@16..17 "a"
+                      RightParen@17..18 ")"
+                    Whitespace@18..19 " "
+                    Colon@19..20 ":"
+                    Whitespace@20..21 " "
+                    BinaryExpr@21..26
+                      LiteralExpr@21..22
+                        IntLiteral@21..22 "1"
+                      Whitespace@22..23 " "
+                      Plus@23..24 "+"
+                      Whitespace@24..25 " "
+                      NameExpr@25..26
+                        Name@25..26
+                          Identifier@25..26 "t"
                   Whitespace@26..35 "\n        "
-                  PreStmt@35..43
-                    KwPre@35..38 "pre"
-                    Whitespace@38..39 " "
-                    LiteralExpr@39..43
-                      KwTrue@39..43 "true"
-                  Whitespace@43..48 "\n    "
-                  StmtList@48..48
+                  SubprogBody@35..48
+                    PreStmt@35..43
+                      KwPre@35..38 "pre"
+                      Whitespace@38..39 " "
+                      LiteralExpr@39..43
+                        KwTrue@39..43 "true"
+                    Whitespace@43..48 "\n    "
+                    StmtList@48..48
                   EndGroup@48..53
                     KwEnd@48..51 "end"
                     Whitespace@51..52 " "
@@ -7973,18 +8012,20 @@ fn parse_process_no_params() {
               Whitespace@0..5 "\n    "
               StmtList@5..41
                 ProcessDecl@5..41
-                  KwProcess@5..12 "process"
-                  Whitespace@12..13 " "
-                  Name@13..14
-                    Identifier@13..14 "a"
+                  ProcessHeader@5..14
+                    KwProcess@5..12 "process"
+                    Whitespace@12..13 " "
+                    Name@13..14
+                      Identifier@13..14 "a"
                   Whitespace@14..23 "\n        "
-                  PreStmt@23..31
-                    KwPre@23..26 "pre"
-                    Whitespace@26..27 " "
-                    LiteralExpr@27..31
-                      KwTrue@27..31 "true"
-                  Whitespace@31..36 "\n    "
-                  StmtList@36..36
+                  SubprogBody@23..36
+                    PreStmt@23..31
+                      KwPre@23..26 "pre"
+                      Whitespace@26..27 " "
+                      LiteralExpr@27..31
+                        KwTrue@27..31 "true"
+                    Whitespace@31..36 "\n    "
+                    StmtList@36..36
                   EndGroup@36..41
                     KwEnd@36..39 "end"
                     Whitespace@39..40 " "
@@ -8000,18 +8041,20 @@ fn parse_process_decl_embedded_import() {
             Source@0..25
               StmtList@0..25
                 ProcessDecl@0..25
-                  KwProcess@0..7 "process"
-                  Whitespace@7..8 " "
-                  Name@8..9
-                    Identifier@8..9 "a"
+                  ProcessHeader@0..9
+                    KwProcess@0..7 "process"
+                    Whitespace@7..8 " "
+                    Name@8..9
+                      Identifier@8..9 "a"
                   Whitespace@9..10 " "
-                  ImportStmt@10..19
-                    KwImport@10..16 "import"
-                    Whitespace@16..17 " "
-                    LeftParen@17..18 "("
-                    RightParen@18..19 ")"
-                  Whitespace@19..20 " "
-                  StmtList@20..20
+                  SubprogBody@10..20
+                    ImportStmt@10..19
+                      KwImport@10..16 "import"
+                      Whitespace@16..17 " "
+                      LeftParen@17..18 "("
+                      RightParen@18..19 ")"
+                    Whitespace@19..20 " "
+                    StmtList@20..20
                   EndGroup@20..25
                     KwEnd@20..23 "end"
                     Whitespace@23..24 " "
@@ -8030,14 +8073,16 @@ fn recover_process_decl_missing_stack_size_expr() {
               Whitespace@0..5 "\n    "
               StmtList@5..26
                 ProcessDecl@5..26
-                  KwProcess@5..12 "process"
-                  Whitespace@12..13 " "
-                  Name@13..14
-                    Identifier@13..14 "a"
-                  Whitespace@14..15 " "
-                  Colon@15..16 ":"
+                  ProcessHeader@5..16
+                    KwProcess@5..12 "process"
+                    Whitespace@12..13 " "
+                    Name@13..14
+                      Identifier@13..14 "a"
+                    Whitespace@14..15 " "
+                    Colon@15..16 ":"
                   Whitespace@16..21 "\n    "
-                  StmtList@21..21
+                  SubprogBody@21..21
+                    StmtList@21..21
                   EndGroup@21..26
                     KwEnd@21..24 "end"
                     Whitespace@24..25 " "
@@ -8058,9 +8103,11 @@ fn recover_process_decl_missing_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..22
                 ProcessDecl@5..22
-                  KwProcess@5..12 "process"
+                  ProcessHeader@5..12
+                    KwProcess@5..12 "process"
                   Whitespace@12..17 "\n    "
-                  StmtList@17..17
+                  SubprogBody@17..17
+                    StmtList@17..17
                   EndGroup@17..22
                     KwEnd@17..20 "end"
                     Whitespace@20..21 " "
@@ -8081,12 +8128,14 @@ fn recover_process_decl_missing_tail_name() {
               Whitespace@0..5 "\n    "
               StmtList@5..22
                 ProcessDecl@5..22
-                  KwProcess@5..12 "process"
-                  Whitespace@12..13 " "
-                  Name@13..14
-                    Identifier@13..14 "a"
+                  ProcessHeader@5..14
+                    KwProcess@5..12 "process"
+                    Whitespace@12..13 " "
+                    Name@13..14
+                      Identifier@13..14 "a"
                   Whitespace@14..19 "\n    "
-                  StmtList@19..19
+                  SubprogBody@19..19
+                    StmtList@19..19
                   EndGroup@19..22
                     KwEnd@19..22 "end"
             error in file FileId(1) at 19..22: unexpected end of file
@@ -8102,8 +8151,10 @@ fn recover_just_process() {
             Source@0..7
               StmtList@0..7
                 ProcessDecl@0..7
-                  KwProcess@0..7 "process"
-                  StmtList@7..7
+                  ProcessHeader@0..7
+                    KwProcess@0..7 "process"
+                  SubprogBody@7..7
+                    StmtList@7..7
                   EndGroup@7..7
             error in file FileId(1) at 0..7: unexpected end of file
             | error in file FileId(1) for 0..7: expected identifier after here"#]],
@@ -8131,12 +8182,14 @@ fn recover_on_process() {
                   Assign@11..13 ":="
                 Whitespace@13..18 "\n    "
                 ProcessDecl@18..37
-                  KwProcess@18..25 "process"
-                  Whitespace@25..26 " "
-                  Name@26..27
-                    Identifier@26..27 "a"
+                  ProcessHeader@18..27
+                    KwProcess@18..25 "process"
+                    Whitespace@25..26 " "
+                    Name@26..27
+                      Identifier@26..27 "a"
                   Whitespace@27..32 "\n    "
-                  StmtList@32..32
+                  SubprogBody@32..32
+                    StmtList@32..32
                   EndGroup@32..37
                     KwEnd@32..35 "end"
                     Whitespace@35..36 " "
@@ -12077,10 +12130,11 @@ fn recover_fcn_decl_safe_end() {
                       PrimType@8..11
                         KwInt@8..11 "int"
                   Whitespace@11..12 " "
-                  PreStmt@12..15
-                    KwPre@12..15 "pre"
-                  Whitespace@15..16 " "
-                  StmtList@16..16
+                  SubprogBody@12..16
+                    PreStmt@12..15
+                      KwPre@12..15 "pre"
+                    Whitespace@15..16 " "
+                    StmtList@16..16
                   EndGroup@16..21
                     KwEnd@16..19 "end"
                     Whitespace@19..20 " "
@@ -12104,10 +12158,11 @@ fn recover_proc_decl_safe_end() {
                     Name@5..6
                       Identifier@5..6 "a"
                   Whitespace@6..7 " "
-                  PreStmt@7..10
-                    KwPre@7..10 "pre"
-                  Whitespace@10..11 " "
-                  StmtList@11..11
+                  SubprogBody@7..11
+                    PreStmt@7..10
+                      KwPre@7..10 "pre"
+                    Whitespace@10..11 " "
+                    StmtList@11..11
                   EndGroup@11..16
                     KwEnd@11..14 "end"
                     Whitespace@14..15 " "
@@ -12125,15 +12180,17 @@ fn recover_process_decl_safe_end() {
             Source@0..19
               StmtList@0..19
                 ProcessDecl@0..19
-                  KwProcess@0..7 "process"
-                  Whitespace@7..8 " "
-                  Name@8..9
-                    Identifier@8..9 "a"
+                  ProcessHeader@0..9
+                    KwProcess@0..7 "process"
+                    Whitespace@7..8 " "
+                    Name@8..9
+                      Identifier@8..9 "a"
                   Whitespace@9..10 " "
-                  PreStmt@10..13
-                    KwPre@10..13 "pre"
-                  Whitespace@13..14 " "
-                  StmtList@14..14
+                  SubprogBody@10..14
+                    PreStmt@10..13
+                      KwPre@10..13 "pre"
+                    Whitespace@13..14 " "
+                    StmtList@14..14
                   EndGroup@14..19
                     KwEnd@14..17 "end"
                     Whitespace@17..18 " "

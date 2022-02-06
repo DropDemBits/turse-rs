@@ -306,10 +306,6 @@ fn procedure_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     proc_header(p);
-
-    if p.at(TokenKind::Import) {
-        import_stmt(p);
-    }
     subprog_body(p);
     eat_end_group(p, TokenKind::Identifier, None);
 
@@ -321,14 +317,21 @@ fn function_decl(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
 
     fcn_header(p, true);
-
-    if p.at(TokenKind::Import) {
-        import_stmt(p);
-    }
     subprog_body(p);
     eat_end_group(p, TokenKind::Identifier, None);
 
     Some(m.complete(p, SyntaxKind::FcnDecl))
+}
+
+fn process_decl(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Process));
+    let m = p.start();
+
+    process_header(p);
+    subprog_body(p);
+    eat_end_group(p, TokenKind::Identifier, None);
+
+    Some(m.complete(p, SyntaxKind::ProcessDecl))
 }
 
 fn proc_header(p: &mut Parser) -> Option<CompletedMarker> {
@@ -337,15 +340,7 @@ fn proc_header(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    attr_pervasive(p);
-
-    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
-        super::name(p);
-
-        if p.at(TokenKind::LeftParen) {
-            super::param_spec(p);
-        }
-    });
+    named_opt_param_spec(p);
 
     device_spec(p);
 
@@ -358,15 +353,7 @@ fn fcn_header(p: &mut Parser, require_result: bool) -> Option<CompletedMarker> {
     let m = p.start();
     p.bump();
 
-    attr_pervasive(p);
-
-    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
-        super::name(p);
-
-        if p.at(TokenKind::LeftParen) {
-            super::param_spec(p);
-        }
-    });
+    named_opt_param_spec(p);
 
     if fcn_result(p).is_none() && require_result {
         // result ty is needed
@@ -374,6 +361,22 @@ fn fcn_header(p: &mut Parser, require_result: bool) -> Option<CompletedMarker> {
     }
 
     Some(m.complete(p, SyntaxKind::FcnHeader))
+}
+
+fn process_header(p: &mut Parser) -> Option<CompletedMarker> {
+    debug_assert!(p.at(TokenKind::Process));
+
+    let m = p.start();
+    p.bump();
+
+    named_opt_param_spec(p);
+
+    // stack_size
+    if p.eat(TokenKind::Colon) {
+        expr::expect_expr(p);
+    }
+
+    Some(m.complete(p, SyntaxKind::ProcessHeader))
 }
 
 fn device_spec(p: &mut Parser) -> Option<CompletedMarker> {
@@ -407,7 +410,23 @@ fn fcn_result(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::FcnResult))
 }
 
+fn named_opt_param_spec(p: &mut Parser) {
+    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
+        attr_pervasive(p);
+        super::name(p);
+
+        if p.at(TokenKind::LeftParen) {
+            param_spec(p);
+        }
+    });
+}
+
 fn subprog_body(p: &mut Parser) {
+    let m = p.start();
+
+    if p.at(TokenKind::Import) {
+        import_stmt(p);
+    }
     if p.at(TokenKind::Pre) {
         stmt_with_expr(p, TokenKind::Pre, SyntaxKind::PreStmt);
     }
@@ -422,35 +441,8 @@ fn subprog_body(p: &mut Parser) {
     }
 
     stmt_list(p, None);
-}
 
-fn process_decl(p: &mut Parser) -> Option<CompletedMarker> {
-    debug_assert!(p.at(TokenKind::Process));
-
-    let m = p.start();
-    p.bump();
-
-    attr_pervasive(p);
-
-    p.with_extra_recovery(&[TokenKind::LeftParen, TokenKind::Colon], |p| {
-        super::name(p);
-
-        if p.at(TokenKind::LeftParen) {
-            param_spec(p);
-        }
-    });
-
-    if p.eat(TokenKind::Colon) {
-        expr::expect_expr(p);
-    }
-
-    if p.at(TokenKind::Import) {
-        import_stmt(p);
-    }
-    subprog_body(p);
-    eat_end_group(p, TokenKind::Identifier, None);
-
-    Some(m.complete(p, SyntaxKind::ProcessDecl))
+    m.complete(p, SyntaxKind::SubprogBody);
 }
 
 fn external_decl(p: &mut Parser) -> Option<CompletedMarker> {
@@ -577,8 +569,8 @@ fn body_decl(p: &mut Parser) -> Option<CompletedMarker> {
     });
 
     subprog_body(p);
-
     eat_end_group(p, TokenKind::Identifier, None);
+
     Some(m.complete(p, SyntaxKind::BodyDecl))
 }
 

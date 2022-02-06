@@ -851,3 +851,13 @@ fn report_invariant_stmt_in_inner() {
             | error in file FileId(1) for 6..21: ‘invariant’ statement is only allowed in loop statements and module-kind declarations"#]],
     );
 }
+
+#[test]
+fn report_import_stmt_in_body() {
+    check(
+        "body a import nothing end a",
+        expect![[r#"
+        error in file FileId(1) at 7..21: useless ‘import’ statement
+        | error in file FileId(1) for 7..21: ‘import’ statements are ignored in ‘body’ declaration"#]],
+    );
+}
