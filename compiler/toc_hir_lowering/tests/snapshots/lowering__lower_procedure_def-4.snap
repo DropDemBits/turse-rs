@@ -1,21 +1,23 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
 assertion_line: 59
-expression: "\n    procedure pass_me(\n        by_value : int,\n        var by_ref : int,\n        register by_reg : int\n    )\n    end pass_me\n    "
+expression: "\n    procedure pass_me(\n        by_value : int,\n        var by_ref : int,\n        register by_val_to_reg : int,\n        var register by_ref_to_reg : int\n    )\n    end pass_me\n    "
 
 ---
 Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(1)
-    Module@(FileId(1), 0..130): "<root>"@(dummy)
-      StmtBody@(FileId(1), 5..125): []
-        StmtItem@(FileId(1), 5..125): ItemId(0)
-          Subprogram@(FileId(1), 5..125): "pass_me"@(FileId(1), 15..22) [
+    Module@(FileId(1), 0..179): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..174): []
+        StmtItem@(FileId(1), 5..174): ItemId(0)
+          Subprogram@(FileId(1), 5..174): "pass_me"@(FileId(1), 15..22) [
             "by_value"@(FileId(1), 32..40),
             var "by_ref"@(FileId(1), 60..66),
-            register "by_reg"@(FileId(1), 91..97)
+            register "by_val_to_reg"@(FileId(1), 91..104),
+            var register "by_ref_to_reg"@(FileId(1), 133..146)
           ]
             Primitive@(FileId(1), 43..46): Int
             Primitive@(FileId(1), 69..72): Int
-            Primitive@(FileId(1), 100..103): Int
-            StmtBody@(FileId(1), 114..114): ["by_value"@(FileId(1), 32..40), "by_ref"@(FileId(1), 60..66), "by_reg"@(FileId(1), 91..97)]
+            Primitive@(FileId(1), 107..110): Int
+            Primitive@(FileId(1), 149..152): Int
+            StmtBody@(FileId(1), 163..163): ["by_value"@(FileId(1), 32..40), "by_ref"@(FileId(1), 60..66), "by_val_to_reg"@(FileId(1), 91..104), "by_ref_to_reg"@(FileId(1), 133..146)]
 

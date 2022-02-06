@@ -875,7 +875,8 @@ fn lower_procedure_def() {
     procedure pass_me(
         by_value : int,
         var by_ref : int,
-        register by_reg : int
+        register by_val_to_reg : int,
+        var register by_ref_to_reg : int
     )
     end pass_me
     ",
@@ -898,7 +899,4 @@ fn lower_procedure_def() {
         var a : int2
     end pars",
     );
-
-    // Trying to pass by both reference and register
-    assert_lower("procedure pass_me(var register by_both : int) end pass_me");
 }

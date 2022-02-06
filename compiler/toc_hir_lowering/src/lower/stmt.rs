@@ -353,29 +353,10 @@ impl super::BodyLowering<'_, '_> {
             for param_def in formals.param_decl() {
                 match param_def {
                     ast::ParamDecl::ConstVarParam(param) => {
-                        let pass_by = match (param.pass_as_ref(), param.bind_to_register()) {
-                            (None, None) => PassBy::Value,
-                            (None, Some(_)) => PassBy::Register,
-                            (Some(_), None) => PassBy::Reference(Mutability::Var),
-                            (Some(by_ref), Some(by_reg)) => {
-                                // Trying to pass-in as both a register and by value (invalid)
-                                let ref_span = self.ctx.mk_span(by_ref.syntax().text_range());
-                                let reg_span = self.ctx.mk_span(by_reg.syntax().text_range());
-
-                                self.ctx
-                                    .messages
-                                    .error_detailed("incompatible parameter specifiers", reg_span)
-                                    .with_error(
-                                        "cannot pass by reference and by register at the same time",
-                                        reg_span,
-                                    )
-                                    .with_note("passing by reference specified here", ref_span)
-                                    .with_info("registers don't have a location in memory, so they cannot be passed by reference")
-                                    .finish();
-
-                                // by-value wins out
-                                PassBy::Reference(Mutability::Var)
-                            }
+                        let is_register = param.bind_to_register().is_some();
+                        let pass_by = match param.pass_as_ref() {
+                            None => PassBy::Value,
+                            Some(_) => PassBy::Reference(Mutability::Var),
                         };
                         let coerced_type = param.coerce_type().is_some();
                         let param_ty = self.lower_required_type(param.param_ty());
@@ -387,6 +368,7 @@ impl super::BodyLowering<'_, '_> {
                                 param_names.push(name);
 
                                 tys.push(Parameter {
+                                    is_register,
                                     pass_by,
                                     coerced_type,
                                     param_ty,

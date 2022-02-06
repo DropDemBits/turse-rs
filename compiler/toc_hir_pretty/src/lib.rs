@@ -134,9 +134,12 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
         match info.pass_by {
             item::PassBy::Value => {}
-            item::PassBy::Register => write!(extra, "register ").unwrap(),
             item::PassBy::Reference(Mutability::Const) => write!(extra, "const ").unwrap(),
             item::PassBy::Reference(Mutability::Var) => write!(extra, "var ").unwrap(),
+        }
+
+        if info.is_register {
+            write!(extra, "register ").unwrap()
         }
 
         if info.coerced_type {

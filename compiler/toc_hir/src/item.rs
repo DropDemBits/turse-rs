@@ -126,6 +126,8 @@ pub struct ParamList {
 pub struct Parameter {
     /// How the parameter should be passed in as
     pub pass_by: PassBy,
+    /// If the value should be bound to a register
+    pub is_register: bool,
     /// If the passed in value should be coerced to the target's type
     pub coerced_type: bool,
     /// Parameter's type
@@ -136,8 +138,6 @@ pub struct Parameter {
 pub enum PassBy {
     /// Pass by value
     Value,
-    /// Pass by value, but bind to a register
-    Register,
     /// Pass by reference, with the specified mutability
     Reference(symbol::Mutability),
 }
