@@ -1,0 +1,23 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "procedure args(sa, , ba: int) end args"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..38): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..38): []
+        StmtItem@(FileId(1), 0..38): ItemId(0)
+          Subprogram@(FileId(1), 0..38): "args"@(FileId(1), 10..14) [
+            "sa"@(FileId(1), 15..17),
+            "<unnamed>"@(dummy),
+            "ba"@(FileId(1), 21..23)
+          ]
+            Primitive@(FileId(1), 25..28): Int
+            Primitive@(FileId(1), 25..28): Int
+            Primitive@(FileId(1), 25..28): Int
+            StmtBody@(FileId(1), 30..30): ["sa"@(FileId(1), 15..17), "<unnamed>"@(dummy), "ba"@(FileId(1), 21..23)]
+error in file FileId(1) at 19..20: unexpected token
+| error in file FileId(1) for 19..20: expected identifier, but found ‘,’
+

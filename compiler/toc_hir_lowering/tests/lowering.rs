@@ -958,3 +958,23 @@ fn lower_process_def() {
     end pars",
     );
 }
+
+#[test]
+fn lower_formals_intersperse_missing() {
+    // Only 1 arg, with trailing comma
+    assert_lower("procedure args(sa, : int) end args");
+    // Interspersed 1 arg
+    assert_lower("procedure args(sa, , ba: int) end args");
+    // Trailing 3 missing args
+    assert_lower("procedure args(a, , , , : int) end args");
+    // 5 args, with 3 interspersed
+    assert_lower("procedure args(a, , , , b, : int) end args");
+
+    // Only commas (doesn't work right now due to poor recovery)
+    // FIXME: Uncomment when name list recovery gets better
+
+    // Missing, 1 arg
+    // assert_lower("procedure args(, : int) end args");
+    // Missing 4 args
+    // assert_lower("procedure args(, , , , : int) end args");
+}

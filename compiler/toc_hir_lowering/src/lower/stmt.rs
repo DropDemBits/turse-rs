@@ -350,6 +350,12 @@ impl super::BodyLowering<'_, '_> {
         // Prevent duplication of param names
         self.ctx.scopes.push_scope(ScopeKind::Block);
         {
+            let missing_name = self.ctx.library.add_def(
+                "<unnamed>",
+                self.ctx.library.span_map.dummy_span(),
+                SymbolKind::Declared,
+            );
+
             for param_def in formals.param_decl() {
                 match param_def {
                     ast::ParamDecl::ConstVarParam(param) => {
@@ -361,21 +367,21 @@ impl super::BodyLowering<'_, '_> {
                         let coerced_type = param.coerce_type().is_some();
                         let param_ty = self.lower_required_type(param.param_ty());
 
-                        let names = self.lower_name_list(param.param_names(), false);
+                        let names = self.lower_name_list_with_missing(
+                            param.param_names(),
+                            false,
+                            missing_name,
+                        );
 
-                        if let Some(names) = names {
-                            for name in names {
-                                param_names.push(name);
+                        for name in names {
+                            param_names.push(name);
 
-                                tys.push(Parameter {
-                                    is_register,
-                                    pass_by,
-                                    coerced_type,
-                                    param_ty,
-                                });
-                            }
-                        } else {
-                            // FIXME: Use a placeholder name to get the arg count to match
+                            tys.push(Parameter {
+                                is_register,
+                                pass_by,
+                                coerced_type,
+                                param_ty,
+                            });
                         }
                     }
                     ast::ParamDecl::SubprogType(param) => todo!(),
@@ -746,6 +752,33 @@ impl super::BodyLowering<'_, '_> {
 
         // Invariant: Names list must contain at least one name
         Some(names).filter(|names| !names.is_empty())
+    }
+
+    /// Lowers a name list, filling empty name places with `fill_with`
+    fn lower_name_list_with_missing(
+        &mut self,
+        name_list: Option<ast::NameList>,
+        is_pervasive: bool,
+        fill_with: symbol::LocalDefId,
+    ) -> Vec<symbol::LocalDefId> {
+        let names = name_list.map_or_else(
+            || vec![fill_with],
+            |name_list| {
+                name_list
+                    .names_with_missing()
+                    .map(|name| match name {
+                        Some(name) => {
+                            self.lower_name_def(name, symbol::SymbolKind::Declared, is_pervasive)
+                        }
+                        None => fill_with,
+                    })
+                    .collect::<Vec<_>>()
+            },
+        );
+
+        // Invariant: Names list must contain at least one name
+        debug_assert!(!names.is_empty());
+        names
     }
 
     fn lower_name_def(
