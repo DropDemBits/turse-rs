@@ -1,0 +1,14 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    process no_params\n    end no_params"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..40): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..40): []
+        StmtItem@(FileId(1), 5..40): ItemId(0)
+          Subprogram@(FileId(1), 5..40): "no_params"@(FileId(1), 13..22)
+            StmtBody@(FileId(1), 27..27): []
+

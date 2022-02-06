@@ -900,3 +900,61 @@ fn lower_procedure_def() {
     end pars",
     );
 }
+
+#[test]
+fn lower_process_def() {
+    // Without param list
+    assert_lower(
+        "
+    process no_params
+    end no_params",
+    );
+
+    // None specified
+    assert_lower(
+        "
+    process empty_params()
+    end empty_params
+    ",
+    );
+
+    // With params
+    assert_lower(
+        "
+    process some_params(a, b : int)
+        % should be visible
+        var me := a + b
+    end some_params
+    ",
+    );
+
+    // Different passings
+    assert_lower(
+        "
+    process pass_me(
+        by_value : int,
+        var by_ref : int,
+        register by_val_to_reg : int,
+        var register by_ref_to_reg : int
+    )
+    end pass_me
+    ",
+    );
+
+    // Stack size
+    assert_lower(
+        "
+    process a : 4 + 4 end a
+    process b() : 6 + 8 end b
+    process c(k : int) : 9 + 2 end c
+    ",
+    );
+
+    // Redecl over params
+    assert_lower(
+        "
+    process pars(a, a : int, a : int1)
+        var a : int2
+    end pars",
+    );
+}

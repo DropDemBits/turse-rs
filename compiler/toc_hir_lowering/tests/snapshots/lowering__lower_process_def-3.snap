@@ -1,0 +1,25 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    process some_params(a, b : int)\n        % should be visible\n        var me := a + b\n    end some_params\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..113): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..108): []
+        StmtItem@(FileId(1), 5..108): ItemId(1)
+          Subprogram@(FileId(1), 5..108): "some_params"@(FileId(1), 13..24) [
+            "a"@(FileId(1), 25..26),
+            "b"@(FileId(1), 28..29)
+          ]
+            Primitive@(FileId(1), 32..35): Int
+            Primitive@(FileId(1), 32..35): Int
+            StmtBody@(FileId(1), 73..88): ["a"@(FileId(1), 25..26), "b"@(FileId(1), 28..29)]
+              StmtItem@(FileId(1), 73..88): ItemId(0)
+                ConstVar@(FileId(1), 73..88): var "me"@(FileId(1), 77..79)
+                  ExprBody@(FileId(1), 83..88)
+                    Binary@(FileId(1), 83..88): Add
+                      Name@(FileId(1), 83..84): "a"@(FileId(1), 25..26)
+                      Name@(FileId(1), 87..88): "b"@(FileId(1), 28..29)
+
