@@ -10,7 +10,7 @@ Library@(dummy)
       StmtBody@(FileId(1), 5..38): []
         Block@(FileId(1), 5..38): Normal
           StmtItem@(FileId(1), 15..30): ItemId(0)
-            Bind@(FileId(1), 15..30): const "k"@(FileId(1), 26..27)
+            Bind@(FileId(1), 26..30): const "k"@(FileId(1), 26..27)
               ExprBody@(dummy)
 error in file FileId(1) at 20..22: unexpected token
 | error in file FileId(1) for 20..22: expected identifier, but found ‘to’

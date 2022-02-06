@@ -1394,8 +1394,7 @@ test_named_group! { typeck_bind_decl,
         from_register => "
         begin
         const register reg := 1
-        bind you to reg
-        bind var me to reg
+        bind you to reg, var me to reg
         end
         ",
         from_ty => "

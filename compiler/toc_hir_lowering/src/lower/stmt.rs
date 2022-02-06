@@ -186,8 +186,6 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_bind_decl(&mut self, decl: ast::BindDecl) -> Option<LoweredStmt> {
-        let span = self.ctx.intern_range(decl.syntax().text_range());
-
         let stmts: Vec<_> = decl
             .bindings()
             .filter_map(|binding| {
@@ -200,6 +198,7 @@ impl super::BodyLowering<'_, '_> {
 
                 let bind_to = self.lower_required_expr_body(binding.expr());
                 let def_id = self.lower_name_def(binding.bind_as()?, SymbolKind::Declared, false);
+                let span = self.ctx.intern_range(binding.syntax().text_range());
 
                 let binding = item::Binding {
                     is_register,

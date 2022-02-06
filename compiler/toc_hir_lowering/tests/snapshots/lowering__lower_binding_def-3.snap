@@ -10,7 +10,7 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..34): []
         Block@(FileId(1), 0..34): Normal
           StmtItem@(FileId(1), 6..30): ItemId(0)
-            Bind@(FileId(1), 6..30): const "me"@(FileId(1), 11..13)
+            Bind@(FileId(1), 11..30): const "me"@(FileId(1), 11..13)
               ExprBody@(FileId(1), 17..30)
                 Binary@(FileId(1), 17..30): Or
                   Literal@(FileId(1), 17..21): Boolean(true)

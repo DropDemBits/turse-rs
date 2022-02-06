@@ -13,7 +13,7 @@ Library@(dummy)
             ExprBody@(FileId(1), 20..21)
               Literal@(FileId(1), 20..21): Integer(0)
         StmtItem@(FileId(1), 26..44): ItemId(1)
-          Bind@(FileId(1), 26..44): const "me"@(FileId(1), 31..33)
+          Bind@(FileId(1), 31..44): const "me"@(FileId(1), 31..33)
             ExprBody@(FileId(1), 37..44)
               Name@(FileId(1), 37..44): "nothing"@(FileId(1), 9..16)
 error in file FileId(1) at 26..44: cannot use ‘bind’ here
