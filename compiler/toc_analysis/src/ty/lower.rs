@@ -82,6 +82,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
         item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
         item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
+        item::ItemKind::Subprogram(_) => todo!(),
         item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
     }
 }

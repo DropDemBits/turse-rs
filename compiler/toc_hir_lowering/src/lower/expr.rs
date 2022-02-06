@@ -27,6 +27,11 @@ impl super::BodyLowering<'_, '_> {
         }
     }
 
+    /// Lowers an expression body
+    pub(super) fn lower_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+        self.ctx.lower_expr_body(expr)
+    }
+
     /// Lowers an optional expr.
     /// Effectively a mapping function
     pub(super) fn try_lower_expr(&mut self, expr: Option<ast::Expr>) -> Option<expr::ExprId> {

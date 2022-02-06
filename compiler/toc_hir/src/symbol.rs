@@ -81,6 +81,9 @@ pub enum BindingKind {
     Type,
     /// Binding to a module
     Module,
+    /// Binding to a subprogram
+    Subprogram(SubprogramKind),
+
     /// A binding that isn't attached to anything
     Undeclared,
 }
@@ -134,10 +137,20 @@ impl std::fmt::Display for BindingKind {
             BindingKind::Register(Mutability::Const) => "a constant register",
             BindingKind::Type => "a type",
             BindingKind::Module => "a module",
+            BindingKind::Subprogram(SubprogramKind::Procedure) => "a procedure",
+            BindingKind::Subprogram(SubprogramKind::Function) => "a function",
+            BindingKind::Subprogram(SubprogramKind::Process) => "a process",
         };
 
         f.write_str(name)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubprogramKind {
+    Procedure,
+    Function,
+    Process,
 }
 
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]

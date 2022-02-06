@@ -20,10 +20,10 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
             ast::Stmt::BindDecl(decl) => return self.lower_bind_decl(decl),
             ast::Stmt::TypeDecl(decl) => self.lower_type_decl(decl),
+            ast::Stmt::ProcDecl(decl) => self.lower_procedure_decl(decl),
+            ast::Stmt::FcnDecl(decl) => self.lower_function_decl(decl),
+            ast::Stmt::ProcessDecl(decl) => self.lower_process_decl(decl),
 
-            ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
-            ast::Stmt::FcnDecl(_) => self.unsupported_stmt(span),
-            ast::Stmt::ProcessDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ExternalDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ForwardDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::DeferredDecl(_) => self.unsupported_stmt(span),
@@ -89,6 +89,18 @@ impl super::BodyLowering<'_, '_> {
             span,
         );
         None
+    }
+
+    fn unsupported_node<N: AstNode>(&mut self, node: Option<N>) {
+        if let Some(node) = node {
+            let span = self.ctx.mk_span(node.syntax().text_range());
+
+            self.ctx.messages.error(
+                "unsupported statement",
+                "this statement is not handled yet",
+                span,
+            );
+        }
     }
 
     fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<LoweredStmt> {
@@ -228,6 +240,217 @@ impl super::BodyLowering<'_, '_> {
         };
 
         Some(lowered)
+    }
+
+    fn lower_procedure_decl(&mut self, decl: ast::ProcDecl) -> Option<stmt::StmtKind> {
+        let subprog_header = decl.proc_header().unwrap();
+
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id =
+            self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
+        let param_list = self.lower_formals_spec(subprog_header.params());
+        let result = self.none_subprog_result();
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
+
+        let extra = match subprog_header.device_spec().and_then(|spec| spec.expr()) {
+            Some(expr) => item::SubprogramExtra::DeviceSpec(self.lower_expr_body(expr)),
+            None => item::SubprogramExtra::None,
+        };
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Subprogram(item::Subprogram {
+                kind: symbol::SubprogramKind::Procedure,
+                def_id,
+                param_list,
+                result,
+                extra,
+                body,
+            }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_function_decl(&mut self, decl: ast::FcnDecl) -> Option<stmt::StmtKind> {
+        let subprog_header = decl.fcn_header().unwrap();
+
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id =
+            self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
+        let param_list = self.lower_formals_spec(subprog_header.params());
+        let result = self.lower_subprog_result(subprog_header.fcn_result());
+        let extra = item::SubprogramExtra::None;
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, result.name);
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Subprogram(item::Subprogram {
+                kind: symbol::SubprogramKind::Function,
+                def_id,
+                param_list,
+                result,
+                extra,
+                body,
+            }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_process_decl(&mut self, decl: ast::ProcessDecl) -> Option<stmt::StmtKind> {
+        let subprog_header = decl.process_header().unwrap();
+
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id =
+            self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
+        let param_list = self.lower_formals_spec(subprog_header.params());
+        let result = self.none_subprog_result();
+        let extra = match subprog_header.stack_size() {
+            Some(expr) => item::SubprogramExtra::StackSize(self.lower_expr_body(expr)),
+            None => item::SubprogramExtra::None,
+        };
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Subprogram(item::Subprogram {
+                kind: symbol::SubprogramKind::Process,
+                def_id,
+                param_list,
+                result,
+                extra,
+                body,
+            }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_formals_spec(&mut self, formals: Option<ast::ParamSpec>) -> Option<item::ParamList> {
+        use item::{Parameter, PassBy};
+
+        let formals = formals?;
+
+        let mut param_names = vec![];
+        let mut tys = vec![];
+
+        // Prevent duplication of param names
+        self.ctx.scopes.push_scope(ScopeKind::Block);
+        {
+            for param_def in formals.param_decl() {
+                match param_def {
+                    ast::ParamDecl::ConstVarParam(param) => {
+                        let pass_by = match (param.pass_as_ref(), param.bind_to_register()) {
+                            (None, None) => PassBy::Value,
+                            (None, Some(_)) => PassBy::Register,
+                            (Some(_), None) => PassBy::Reference(Mutability::Var),
+                            (Some(by_ref), Some(by_reg)) => {
+                                // Trying to pass-in as both a register and by value (invalid)
+                                let ref_span = self.ctx.mk_span(by_ref.syntax().text_range());
+                                let reg_span = self.ctx.mk_span(by_reg.syntax().text_range());
+
+                                self.ctx
+                                    .messages
+                                    .error_detailed("incompatible parameter specifiers", reg_span)
+                                    .with_error(
+                                        "cannot pass by reference and by register at the same time",
+                                        reg_span,
+                                    )
+                                    .with_note("passing by reference specified here", ref_span)
+                                    .with_info("registers don't have a location in memory, so they cannot be passed by reference")
+                                    .finish();
+
+                                // by-value wins out
+                                PassBy::Reference(Mutability::Var)
+                            }
+                        };
+                        let coerced_type = param.coerce_type().is_some();
+                        let param_ty = self.lower_required_type(param.param_ty());
+
+                        let names = self.lower_name_list(param.param_names(), false);
+
+                        if let Some(names) = names {
+                            for name in names {
+                                param_names.push(name);
+
+                                tys.push(Parameter {
+                                    pass_by,
+                                    coerced_type,
+                                    param_ty,
+                                });
+                            }
+                        } else {
+                            // FIXME: Use a placeholder name to get the arg count to match
+                        }
+                    }
+                    ast::ParamDecl::SubprogType(param) => todo!(),
+                }
+            }
+            self.ctx.scopes.pop_scope();
+        }
+
+        Some(item::ParamList {
+            names: param_names,
+            tys,
+        })
+    }
+
+    fn none_subprog_result(&mut self) -> item::SubprogramResult {
+        use toc_hir::ty;
+
+        // TODO: Use a dedicated void type
+        let span = self.ctx.library.span_map.dummy_span();
+        let void_ty = self.ctx.library.intern_type(ty::Type {
+            kind: ty::TypeKind::Missing,
+            span,
+        });
+
+        item::SubprogramResult {
+            name: None,
+            ty: void_ty,
+        }
+    }
+
+    fn lower_subprog_result(&mut self, result: Option<ast::FcnResult>) -> item::SubprogramResult {
+        todo!()
+    }
+
+    fn lower_subprog_body(
+        &mut self,
+        decl: ast::SubprogBody,
+        param_list: &Option<item::ParamList>,
+        result_name: Option<symbol::LocalDefId>,
+    ) -> item::SubprogramBody {
+        // None of the extra bits are supported yet
+        // TODO: Figure out a way of embedding these into the stmt_list
+        self.unsupported_node(decl.import_stmt());
+        self.unsupported_node(decl.pre_stmt());
+        self.unsupported_node(decl.init_stmt());
+        self.unsupported_node(decl.post_stmt());
+        self.unsupported_node(decl.handler_stmt());
+
+        let param_defs = param_list
+            .as_ref()
+            .map_or(vec![], |params| params.names.clone());
+
+        let (body, _) =
+            self.ctx
+                .lower_stmt_body(decl.stmt_list().unwrap(), param_defs, result_name);
+
+        item::SubprogramBody { body }
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {
@@ -557,17 +780,21 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.ctx.library.add_def(token.text(), span, kind);
 
         // Bring into scope
-        let old_def = self
-            .ctx
-            .scopes
-            .def_sym(token.text(), def_id, kind, is_pervasive);
+        self.introduce_def(def_id, kind, is_pervasive);
+
+        def_id
+    }
+
+    fn introduce_def(&mut self, def_id: symbol::LocalDefId, kind: SymbolKind, is_pervasive: bool) {
+        // Bring into scope
+        let def_info = self.ctx.library.local_def(def_id);
+        let name = def_info.name.item();
+        let span = def_info.name.span();
+        let old_def = self.ctx.scopes.def_sym(name, def_id, kind, is_pervasive);
 
         // Resolve any associated forward decls
         if let SymbolKind::Resolved(resolve_kind) = kind {
-            let forward_list = self
-                .ctx
-                .scopes
-                .take_resolved_forwards(token.text(), resolve_kind);
+            let forward_list = self.ctx.scopes.take_resolved_forwards(name, resolve_kind);
 
             if let Some(forward_list) = forward_list {
                 // Point all of these local defs to this one
@@ -657,8 +884,6 @@ impl super::BodyLowering<'_, '_> {
                 }
             }
         }
-
-        def_id
     }
 }
 

@@ -39,7 +39,7 @@ pub(crate) fn evaluate_const(
 
     let root_expr = match expr {
         Const::Unevaluated(_, _) => match &body.kind {
-            toc_hir::body::BodyKind::Stmts(_, _) => {
+            toc_hir::body::BodyKind::Stmts(..) => {
                 return Err(ConstError::new(
                     ErrorKind::NotConstExpr(None),
                     body.span.lookup_in(span_map),

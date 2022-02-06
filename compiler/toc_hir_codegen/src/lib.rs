@@ -237,7 +237,7 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
             let body = library.body(body_id);
 
             match &body.kind {
-                hir_body::BodyKind::Stmts(_, _) => {
+                hir_body::BodyKind::Stmts(..) => {
                     // For simple statements (e.g invariant, assign, constvar init)
                     // we can deal with them easily as they correspond to a linear
                     // sequence of instructions.
@@ -824,7 +824,7 @@ impl BodyCodeGenerator<'_> {
         gen.code_fragment.emit_opcode(Opcode::PROC(0));
 
         match &library.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
+            hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
@@ -850,7 +850,7 @@ impl BodyCodeGenerator<'_> {
         };
 
         match &self.library.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
+            hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
@@ -1408,6 +1408,7 @@ impl BodyCodeGenerator<'_> {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
             hir_item::ItemKind::Binding(item) => self.generate_item_binding(item),
             hir_item::ItemKind::Type(_) => {}
+            hir_item::ItemKind::Subprogram(_) => todo!(),
             hir_item::ItemKind::Module(_) => {
                 // We already generate code for module bodies as part of walking
                 // over all of the bodies in a library

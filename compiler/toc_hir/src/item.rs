@@ -36,9 +36,9 @@ pub enum ItemKind {
     Type(Type),
     /// Binding a definition as something else.
     Binding(Binding),
-    /// general function, rolls up function, procedure, and process
-    /// distinguished by return type
-    // Function { ty: TypeId, body: BodyId, },
+    /// General function-like, rolls up `function`, `procedure`, and `process`
+    /// Distinguished by return type
+    Subprogram(Subprogram),
     /// Maybe instead Extern(ConstVar) and Extern(Function)
     // ExternVar { .. },
     // ExternFunction { ..  },
@@ -93,6 +93,91 @@ pub struct Binding {
     pub def_id: symbol::LocalDefId,
     /// Expression to bind the definition to
     pub bind_to: body::BodyId,
+}
+
+/// A subprogram item
+#[derive(Debug, PartialEq, Eq)]
+pub struct Subprogram {
+    /// The specific type of subprogram defined
+    pub kind: symbol::SubprogramKind,
+    /// Name of the function
+    pub def_id: symbol::LocalDefId,
+
+    /// Formal parameter list
+    pub param_list: Option<ParamList>,
+    /// Result info
+    pub result: SubprogramResult,
+    /// Extra info associated with the subprogram
+    pub extra: SubprogramExtra,
+
+    /// Executable portion of the subprogram
+    pub body: SubprogramBody,
+    // ???: parameters & result are shared between this and the function header, what do?
+    // - We need to split the function header and function body portions
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParamList {
+    pub names: Vec<symbol::LocalDefId>,
+    pub tys: Vec<Parameter>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Parameter {
+    /// How the parameter should be passed in as
+    pub pass_by: PassBy,
+    /// If the passed in value should be coerced to the target's type
+    pub coerced_type: bool,
+    /// Parameter's type
+    pub param_ty: ty::TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PassBy {
+    /// Pass by value
+    Value,
+    /// Pass by value, but bind to a register
+    Register,
+    /// Pass by reference, with the specified mutability
+    Reference(symbol::Mutability),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SubprogramResult {
+    pub name: Option<symbol::LocalDefId>,
+    pub ty: ty::TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubprogramExtra {
+    /// No extra subprogram info defined
+    None,
+    /// Specific device specification.
+    /// Unused, and of unknown purpose (though checked for const-eval & correct type)
+    DeviceSpec(body::BodyId),
+    /// Stack size to allocate for the new process
+    StackSize(body::BodyId),
+}
+
+impl SubprogramExtra {
+    pub fn device_spec(self) -> Option<body::BodyId> {
+        match self {
+            SubprogramExtra::DeviceSpec(body) => Some(body),
+            _ => None,
+        }
+    }
+
+    pub fn stack_size(self) -> Option<body::BodyId> {
+        match self {
+            SubprogramExtra::StackSize(body) => Some(body),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SubprogramBody {
+    pub body: body::BodyId,
 }
 
 #[derive(Debug, PartialEq, Eq)]

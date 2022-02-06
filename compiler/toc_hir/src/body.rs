@@ -42,12 +42,12 @@ impl Body {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BodyKind {
-    /// Bundle of statements, with the given statement list and parameter definition list.
-    /// (e.g. for module initializers, or function bodies).
+    /// Bundle of statements, with the given statement list, parameter definition list,
+    /// and optional result name (e.g. for module initializers, or function bodies).
     ///
     /// For BodyDecl, the parameter list would be cloned from the associated definition if
     /// not specified.
-    Stmts(Vec<stmt::StmtId>, Vec<LocalDefId>),
+    Stmts(Vec<stmt::StmtId>, Vec<LocalDefId>, Option<LocalDefId>),
     /// Bundle of expressions, with the given expression root
     /// (e.g. for a `ConstVar` initializer, or an expression in a type).
     Exprs(expr::ExprId),

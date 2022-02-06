@@ -79,8 +79,9 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
             }
             item::ItemKind::ConstVar(item) => BindingKind::Storage(item.mutability),
             item::ItemKind::Binding(item) => BindingKind::Storage(item.mutability),
-            item::ItemKind::Type(_) => (BindingKind::Type),
-            item::ItemKind::Module(_) => (BindingKind::Module),
+            item::ItemKind::Subprogram(item) => BindingKind::Subprogram(item.kind),
+            item::ItemKind::Type(_) => BindingKind::Type,
+            item::ItemKind::Module(_) => BindingKind::Module,
         }),
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {

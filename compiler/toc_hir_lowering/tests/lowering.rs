@@ -77,7 +77,7 @@ fn lower_literal_value(expr: &str) -> expr::Literal {
     if_chain! {
         if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
         let body = library.body(*body);
-        if let body::BodyKind::Stmts(stmts, _) = &body.kind;
+        if let body::BodyKind::Stmts(stmts, ..) = &body.kind;
         if let Some(second_stmt) = stmts.get(1);
         if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*second_stmt).kind;
         if let expr::ExprKind::Literal(value) = &body.expr(*rhs).kind;
@@ -840,4 +840,65 @@ fn lower_binding_def() {
     var nothing := 0
     bind me to nothing",
     );
+}
+
+#[test]
+fn lower_procedure_def() {
+    // Without param list
+    assert_lower(
+        "
+    procedure no_params
+    end no_params",
+    );
+
+    // None specified
+    assert_lower(
+        "
+    procedure empty_params()
+    end empty_params
+    ",
+    );
+
+    // With params
+    assert_lower(
+        "
+    procedure some_params(a, b : int)
+        % should be visible
+        var me := a + b
+    end some_params
+    ",
+    );
+
+    // Different passings
+    assert_lower(
+        "
+    procedure pass_me(
+        by_value : int,
+        var by_ref : int,
+        register by_reg : int
+    )
+    end pass_me
+    ",
+    );
+
+    // Device spec
+    // FIXME: Embed in monitor module to get rid of the errors
+    assert_lower(
+        "
+    procedure a : 4 + 4 end a
+    procedure b() : 6 + 8 end b
+    procedure c(k : int) : 9 + 2 end c
+    ",
+    );
+
+    // Redecl over params
+    assert_lower(
+        "
+    procedure pars(a, a : int, a : int1)
+        var a : int2
+    end pars",
+    );
+
+    // Trying to pass by both reference and register
+    assert_lower("procedure pass_me(var register by_both : int) end pass_me");
 }

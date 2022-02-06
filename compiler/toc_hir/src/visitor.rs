@@ -24,6 +24,7 @@ pub trait HirVisitor {
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {}
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {}
     fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {}
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {}
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {}
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {}
@@ -63,6 +64,7 @@ pub trait HirVisitor {
             item::ItemKind::ConstVar(item) => self.visit_constvar(id, item),
             item::ItemKind::Type(item) => self.visit_type_decl(id, item),
             item::ItemKind::Binding(item) => self.visit_bind_decl(id, item),
+            item::ItemKind::Subprogram(item) => self.visit_subprogram_decl(id, item),
             item::ItemKind::Module(item) => self.visit_module(id, item),
         }
     }
@@ -264,7 +266,7 @@ impl<'hir> Walker<'hir> {
 
     fn walk_body(&mut self, id: body::BodyId, body: &'hir body::Body) {
         match &body.kind {
-            body::BodyKind::Stmts(stmts, _) => {
+            body::BodyKind::Stmts(stmts, ..) => {
                 for &stmt in stmts {
                     self.enter_stmt(id, stmt);
                 }
@@ -278,6 +280,7 @@ impl<'hir> Walker<'hir> {
             item::ItemKind::ConstVar(item) => self.walk_constvar(item),
             item::ItemKind::Type(item) => self.walk_type_decl(item),
             item::ItemKind::Binding(item) => self.walk_bind_decl(item),
+            item::ItemKind::Subprogram(item) => self.walk_subprogram_decl(item),
             item::ItemKind::Module(item) => self.walk_module(item),
         }
     }
@@ -301,6 +304,24 @@ impl<'hir> Walker<'hir> {
 
     fn walk_bind_decl(&mut self, node: &item::Binding) {
         self.enter_body(node.bind_to, self.lib.body(node.bind_to));
+    }
+
+    fn walk_subprogram_decl(&mut self, node: &item::Subprogram) {
+        match node.extra {
+            item::SubprogramExtra::None => {}
+            item::SubprogramExtra::DeviceSpec(body) | item::SubprogramExtra::StackSize(body) => {
+                self.enter_body(body, self.lib.body(body))
+            }
+        }
+
+        if let Some(params) = &node.param_list {
+            for param in &params.tys {
+                let ty = param.param_ty;
+                self.enter_type(ty, self.lib.lookup_type(ty));
+            }
+        }
+
+        self.enter_body(node.body.body, self.lib.body(node.body.body));
     }
 
     fn walk_module(&mut self, node: &item::Module) {
