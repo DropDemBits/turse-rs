@@ -329,6 +329,73 @@ pub(self) fn param_decl(p: &mut Parser) -> Option<CompletedMarker> {
     })
 }
 
+fn attr_pervasive(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        [hidden] TokenKind::Pervasive,
+        [hidden] TokenKind::Star => {
+            let m = p.start();
+            p.bump();
+            Some(m.complete(p, SyntaxKind::PervasiveAttr))
+        }
+        _ => None
+    })
+}
+
+fn attr_unqualified(p: &mut Parser) -> Option<CompletedMarker> {
+    match_token!(|p| match {
+        [hidden] TokenKind::Unqualified => {
+            let m = p.start();
+            p.bump();
+            Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
+        }
+        [hidden] TokenKind::Tilde => {
+            // '~' '.'
+            let m = p.start();
+            p.bump();
+
+            if !p.eat(TokenKind::Dot) {
+                p.error_unexpected().with_marker(m).report();
+                return None;
+            }
+
+            Some(m.complete(p, SyntaxKind::UnqualifiedAttr))
+        }
+        _ => None
+    })
+}
+
+macro_rules! make_single_attr {
+    ($i:ident, $tk:expr, $kind:expr ) => {
+        fn $i(p: &mut Parser) -> Option<CompletedMarker> {
+            match_token!(|p| match {
+                [hidden] $tk => {
+                    let m = p.start();
+                    p.bump();
+                    Some(m.complete(p, $kind))
+                }
+                _ => None
+            })
+        }
+    };
+}
+
+make_single_attr!(attr_register, TokenKind::Register, SyntaxKind::RegisterAttr);
+make_single_attr!(attr_var, TokenKind::Var, SyntaxKind::VarAttr);
+make_single_attr!(attr_const, TokenKind::Const, SyntaxKind::ConstAttr);
+make_single_attr!(attr_forward, TokenKind::Forward, SyntaxKind::ForwardAttr);
+make_single_attr!(attr_opaque, TokenKind::Opaque, SyntaxKind::OpaqueAttr);
+
+fn at_stmt_block_end(p: &mut Parser) -> bool {
+    match_token!(|p| match {
+        [hidden] TokenKind::End,
+        [hidden] TokenKind::EndIf,
+        [hidden] TokenKind::EndCase,
+        [hidden] TokenKind::EndFor,
+        [hidden] TokenKind::EndLoop => true,
+        _ => false,
+    })
+}
+
 #[cfg(test)]
 mod test {
     use crate::check;

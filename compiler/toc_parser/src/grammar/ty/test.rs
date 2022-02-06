@@ -2147,9 +2147,11 @@ fn parse_proc_type_all_constvar_attrs() {
                     ParamSpec@22..50
                       LeftParen@22..23 "("
                       ConstVarParam@23..49
-                        KwVar@23..26 "var"
+                        VarAttr@23..26
+                          KwVar@23..26 "var"
                         Whitespace@26..27 " "
-                        KwRegister@27..35 "register"
+                        RegisterAttr@27..35
+                          KwRegister@27..35 "register"
                         Whitespace@35..36 " "
                         NameList@36..37
                           Name@36..37
@@ -2189,9 +2191,11 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                     ParamSpec@22..42
                       LeftParen@22..23 "("
                       ConstVarParam@23..41
-                        KwVar@23..26 "var"
+                        VarAttr@23..26
+                          KwVar@23..26 "var"
                         Whitespace@26..27 " "
-                        KwRegister@27..35 "register"
+                        RegisterAttr@27..35
+                          KwRegister@27..35 "register"
                         Whitespace@35..36 " "
                         NameList@36..36
                         Colon@36..37 ":"
@@ -2224,7 +2228,8 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                     ParamSpec@22..33
                       LeftParen@22..23 "("
                       ConstVarParam@23..32
-                        KwVar@23..26 "var"
+                        VarAttr@23..26
+                          KwVar@23..26 "var"
                         Whitespace@26..27 " "
                         NameList@27..27
                         Colon@27..28 ":"
@@ -2233,7 +2238,7 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                           KwInt@29..32 "int"
                       RightParen@32..33 ")"
             error in file FileId(1) at 27..28: unexpected token
-            | error in file FileId(1) for 27..28: expected ‘register’ or identifier, but found ‘:’"#]],
+            | error in file FileId(1) for 27..28: expected identifier, but found ‘:’"#]],
     );
     check(
         "type _ : procedure _a (register : int)",
@@ -2257,7 +2262,8 @@ fn recover_proc_type_constvar_attrs_missing_name() {
                     ParamSpec@22..38
                       LeftParen@22..23 "("
                       ConstVarParam@23..37
-                        KwRegister@23..31 "register"
+                        RegisterAttr@23..31
+                          KwRegister@23..31 "register"
                         Whitespace@31..32 " "
                         NameList@32..32
                         Colon@32..33 ":"
