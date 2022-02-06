@@ -1406,8 +1406,8 @@ impl BodyCodeGenerator<'_> {
 
         match &item.kind {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
+            hir_item::ItemKind::Binding(item) => self.generate_item_binding(item),
             hir_item::ItemKind::Type(_) => {}
-            hir_item::ItemKind::Binding(_) => todo!(),
             hir_item::ItemKind::Module(_) => {
                 // We already generate code for module bodies as part of walking
                 // over all of the bodies in a library
@@ -1455,6 +1455,20 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
             self.generate_assign_uninit(def_ty.id());
+        }
+    }
+
+    fn generate_item_binding(&mut self, item: &hir_item::Binding) {
+        // We only support def rebindings for now
+        // For bindings to specific storage locations,
+        // it should be treated as introducing a new var that is specially handled
+        // (it's like an addr, though we need to pierce through indirections)
+
+        if let Some(aliased_def) = self.db.binding_to((self.library_id, item.bind_to).into()) {
+            self.code_fragment
+                .alias_local(aliased_def, DefId(self.library_id, item.def_id))
+        } else {
+            todo!("indirection binding not handled yet");
         }
     }
 
@@ -2126,6 +2140,15 @@ struct CodeFragment {
 }
 
 impl CodeFragment {
+    fn alias_local(&mut self, source: DefId, target: DefId) {
+        let slot_info = self
+            .locals
+            .get(&source)
+            .copied()
+            .expect("def not reserved yet");
+        self.locals.insert(target, slot_info);
+    }
+
     fn allocate_local(&mut self, db: &dyn CodeGenDB, def_id: DefId, def_ty: ty::TypeId) {
         self.allocate_local_space(
             def_id,
