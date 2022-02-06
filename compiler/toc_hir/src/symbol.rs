@@ -5,7 +5,6 @@ use la_arena::ArenaMap;
 use toc_span::Spanned;
 
 pub use crate::ids::{DefId, LocalDefId};
-use crate::item::Mutability;
 use crate::{
     ids::{ItemId, LocalDefIndex},
     stmt::BodyStmt,
@@ -67,9 +66,17 @@ pub enum DefOwner {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mutability {
+    Const,
+    Var,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BindingKind {
     /// A binding to a storage location (e.g. from [`ConstVar`](crate::item::ConstVar))
     Storage(Mutability),
+    /// A binding to a register
+    Register(Mutability),
     /// Binding to a type
     Type,
     /// Binding to a module
@@ -85,13 +92,29 @@ impl BindingKind {
     // While it's still an invalid state, it can theoretically be
     // any valid binding kind.
 
-    /// If this is a binding to a storage location (mut or immutable)
+    /// If this is a binding to a value reference (mut or immutable, storage or register)
     pub fn is_ref(self) -> bool {
+        matches!(
+            self,
+            Self::Undeclared | Self::Storage(_) | Self::Register(_)
+        )
+    }
+
+    /// If this is a binding to a mutable value reference (storage or register)
+    pub fn is_ref_mut(self) -> bool {
+        matches!(
+            self,
+            Self::Undeclared | Self::Storage(Mutability::Var) | Self::Register(Mutability::Var)
+        )
+    }
+
+    /// If this is a binding to a storage location (mut or immutable)
+    pub fn is_storage(self) -> bool {
         matches!(self, Self::Undeclared | Self::Storage(_))
     }
 
     /// If this is a binding to a mutable storage location
-    pub fn is_ref_mut(self) -> bool {
+    pub fn is_storage_mut(self) -> bool {
         matches!(self, Self::Undeclared | Self::Storage(Mutability::Var))
     }
 
@@ -107,6 +130,8 @@ impl std::fmt::Display for BindingKind {
             BindingKind::Undeclared => unreachable!("undecl bindings should never be reported"),
             BindingKind::Storage(Mutability::Var) => "a variable",
             BindingKind::Storage(Mutability::Const) => "a constant",
+            BindingKind::Register(Mutability::Var) => "a register",
+            BindingKind::Register(Mutability::Const) => "a constant register",
             BindingKind::Type => "a type",
             BindingKind::Module => "a module",
         };

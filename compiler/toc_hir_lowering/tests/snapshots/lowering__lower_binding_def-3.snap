@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: begin bind me to true or false end
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..34): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..34): []
+        Block@(FileId(1), 0..34): Normal
+          StmtItem@(FileId(1), 6..30): ItemId(0)
+            Bind@(FileId(1), 11..30): const "me"@(FileId(1), 11..13)
+              ExprBody@(FileId(1), 17..30)
+                Binary@(FileId(1), 17..30): Or
+                  Literal@(FileId(1), 17..21): Boolean(true)
+                  Literal@(FileId(1), 25..30): Boolean(false)
+

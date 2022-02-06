@@ -4,14 +4,12 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 use toc_hir::expr;
-use toc_hir::item::Mutability;
-use toc_hir::symbol::BindingKind;
 use toc_hir::{
     body, item,
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{DefId, DefOwner, DefTable, LocalDefId},
+    symbol::{BindingKind, DefId, DefOwner, DefTable, LocalDefId, Mutability},
     visitor::HirVisitor,
 };
 
@@ -72,11 +70,18 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
     let library = db.library(def_id.0);
 
     match def_owner {
-        Some(DefOwner::Item(item_id)) => match &library.item(item_id).kind {
-            item::ItemKind::ConstVar(item) => Some(BindingKind::Storage(item.mutability)),
-            item::ItemKind::Type(_) => Some(BindingKind::Type),
-            item::ItemKind::Module(_) => Some(BindingKind::Module),
-        },
+        Some(DefOwner::Item(item_id)) => Some(match &library.item(item_id).kind {
+            item::ItemKind::ConstVar(item) if item.is_register => {
+                BindingKind::Register(item.mutability)
+            }
+            item::ItemKind::Binding(item) if item.is_register => {
+                BindingKind::Register(item.mutability)
+            }
+            item::ItemKind::ConstVar(item) => BindingKind::Storage(item.mutability),
+            item::ItemKind::Binding(item) => BindingKind::Storage(item.mutability),
+            item::ItemKind::Type(_) => (BindingKind::Type),
+            item::ItemKind::Module(_) => (BindingKind::Module),
+        }),
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
                 stmt::StmtKind::Item(_) => {
@@ -97,6 +102,16 @@ fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<De
         // Trivial, def bindings are bindings to themselves
         // ???: Do we want to perform canonicalization / symbol resolution here?
         BindingSource::DefId(it) => Ok(it),
+        BindingSource::Body(lib_id, body) => {
+            let library = db.library(lib_id);
+
+            match &library.body(body).kind {
+                // Stmt bodies never produce bindings
+                body::BodyKind::Stmts(..) => Err(NotBinding::NotRef),
+                // Defer to expr form
+                body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
+            }
+        }
         BindingSource::BodyExpr(lib_id, expr) => {
             // Traverse nodes until we encounter a valid binding
             let library = db.library(lib_id);
@@ -137,6 +152,10 @@ impl HirVisitor for DefCollector {
     }
 
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
+        self.add_owner(item.def_id, DefOwner::Item(id));
+    }
+
+    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
         self.add_owner(item.def_id, DefOwner::Item(id));
     }
 

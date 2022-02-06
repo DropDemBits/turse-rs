@@ -121,7 +121,7 @@ fn typecheck_missing_exprs() {
 
     assert_typecheck("get ()");
 
-    // FIXME: use bind exprs to test for missing bodies
+    assert_typecheck("begin var aaaa : int bind aaaa to end");
 }
 
 #[test]
@@ -1371,6 +1371,37 @@ test_named_group! { typeck_type_alias,
         // only type bindings are accepted
         from_var => "var a : int type k : a",
         from_const => "const a : int type k : a",
+    ]
+}
+
+test_named_group! { typeck_bind_decl,
+    [
+        normal => "
+        begin
+        var me : int
+        bind us to me
+        end",
+        require_mut => "
+        begin
+        const me : int := 0
+        bind var us to me
+        end",
+        // only storage bindings are accepted
+        from_expr => "
+        begin
+        bind you to false
+        end",
+        from_register => "
+        begin
+        const register reg := 1
+        bind you to reg, var me to reg
+        end
+        ",
+        from_ty => "
+        begin
+        type no : int
+        bind you to no
+        end",
     ]
 }
 
