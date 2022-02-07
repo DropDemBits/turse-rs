@@ -347,7 +347,7 @@ impl super::BodyLowering<'_, '_> {
         let mut tys = vec![];
 
         // Prevent duplication of param names
-        self.ctx.scopes.push_scope(ScopeKind::Block);
+        self.ctx.scopes.push_scope(ScopeKind::SubprogramHeader);
         {
             let missing_name = self.ctx.library.add_def(
                 "<unnamed>",
@@ -443,9 +443,12 @@ impl super::BodyLowering<'_, '_> {
             .as_ref()
             .map_or(vec![], |params| params.names.clone());
 
-        let (body, _) =
-            self.ctx
-                .lower_stmt_body(decl.stmt_list().unwrap(), param_defs, result_name);
+        let (body, _) = self.ctx.lower_stmt_body(
+            ScopeKind::Subprogram,
+            decl.stmt_list().unwrap(),
+            param_defs,
+            result_name,
+        );
 
         item::SubprogramBody { body }
     }

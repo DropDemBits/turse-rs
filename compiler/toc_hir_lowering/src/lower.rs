@@ -126,7 +126,12 @@ impl<'ctx> FileLowering<'ctx> {
         // lower root as a module
         // - lower stmts as part of a body
 
-        let (body, declared_items) = self.lower_stmt_body(root.stmt_list().unwrap(), vec![], None);
+        let (body, declared_items) = self.lower_stmt_body(
+            scopes::ScopeKind::Block,
+            root.stmt_list().unwrap(),
+            vec![],
+            None,
+        );
 
         let module_def = self.library.add_def(
             "<root>",
@@ -150,6 +155,7 @@ impl<'ctx> FileLowering<'ctx> {
 
     fn lower_stmt_body(
         &mut self,
+        scope_kind: scopes::ScopeKind,
         stmt_list: ast::StmtList,
         param_defs: Vec<LocalDefId>,
         result_name: Option<LocalDefId>,
@@ -158,15 +164,14 @@ impl<'ctx> FileLowering<'ctx> {
         let span = stmt_list.syntax().text_range();
         let mut body = builder::BodyBuilder::default();
         let body_stmts = {
-            self.scopes.push_scope(scopes::ScopeKind::Block);
+            self.scopes.push_scope(scope_kind);
 
             // Reintroduce the names
             for def_id in param_defs.iter().copied().chain(result_name) {
                 let def_info = self.library.local_def(def_id);
                 let name = def_info.name.item();
 
-                self.scopes
-                    .def_sym(name, def_id, symbol::SymbolKind::Declared, false);
+                self.scopes.def_sym(name, def_id, def_info.kind, false);
             }
 
             let body_stmts = BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list);

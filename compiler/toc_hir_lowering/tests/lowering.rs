@@ -1034,6 +1034,28 @@ fn lower_process_def() {
 }
 
 #[test]
+fn lower_subprogram_shadow_external() {
+    // Formal names are always allowed to shadow external names (even builtin ones)
+    // Names in subprograms are only allowed to shadow non-pervasive names
+    assert_lower(
+        "
+    var pervasive pv_formal, pv_inner : int
+    var norm_formal, norm_inner : int
+
+    procedure shade(pv_formal : real, norm_formal : real)
+        var _ : real
+        var norm_inner : real
+        var pv_inner : real % only this is rejected
+
+        _ := pv_formal
+        _ := pv_inner
+        _ := norm_formal
+        _ := norm_inner
+    end shade",
+    );
+}
+
+#[test]
 fn lower_formals_intersperse_missing() {
     // Only 1 arg, with trailing comma
     assert_lower("procedure args(sa, : int) end args");

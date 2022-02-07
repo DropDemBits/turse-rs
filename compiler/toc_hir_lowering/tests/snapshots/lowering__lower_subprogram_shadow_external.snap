@@ -1,0 +1,56 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    var pervasive pv_formal, pv_inner : int\n    var norm_formal, norm_inner : int\n\n    procedure shade(pv_formal : real, norm_formal : real)\n        var _ : real\n        var norm_inner : real\n        var pv_inner : real % only this is rejected\n\n        _ := pv_formal\n        _ := pv_inner\n        _ := norm_formal\n        _ := norm_inner\n    end shade"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(8)
+    Module@(FileId(1), 0..353): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..353): []
+        StmtItem@(FileId(1), 5..44): ItemId(0)
+          ConstVar@(FileId(1), 5..44): var "pv_formal"@(FileId(1), 19..28)
+            Primitive@(FileId(1), 41..44): Int
+        StmtItem@(FileId(1), 5..44): ItemId(1)
+          ConstVar@(FileId(1), 5..44): var "pv_inner"@(FileId(1), 30..38)
+            Primitive@(FileId(1), 41..44): Int
+        StmtItem@(FileId(1), 49..82): ItemId(2)
+          ConstVar@(FileId(1), 49..82): var "norm_formal"@(FileId(1), 53..64)
+            Primitive@(FileId(1), 79..82): Int
+        StmtItem@(FileId(1), 49..82): ItemId(3)
+          ConstVar@(FileId(1), 49..82): var "norm_inner"@(FileId(1), 66..76)
+            Primitive@(FileId(1), 79..82): Int
+        StmtItem@(FileId(1), 88..353): ItemId(7)
+          Subprogram@(FileId(1), 88..353): "shade"@(FileId(1), 98..103) [
+            "pv_formal"@(FileId(1), 104..113),
+            "norm_formal"@(FileId(1), 122..133)
+          ]
+            Primitive@(FileId(1), 116..120): Real
+            Primitive@(FileId(1), 136..140): Real
+            Void@(FileId(1), 88..141)
+            StmtBody@(FileId(1), 150..339): ["pv_formal"@(FileId(1), 104..113), "norm_formal"@(FileId(1), 122..133)]
+              StmtItem@(FileId(1), 150..162): ItemId(4)
+                ConstVar@(FileId(1), 150..162): var "_"@(FileId(1), 154..155)
+                  Primitive@(FileId(1), 158..162): Real
+              StmtItem@(FileId(1), 171..192): ItemId(5)
+                ConstVar@(FileId(1), 171..192): var "norm_inner"@(FileId(1), 175..185)
+                  Primitive@(FileId(1), 188..192): Real
+              StmtItem@(FileId(1), 201..220): ItemId(6)
+                ConstVar@(FileId(1), 201..220): var "pv_inner"@(FileId(1), 205..213)
+                  Primitive@(FileId(1), 216..220): Real
+              Assign@(FileId(1), 254..268)
+                Name@(FileId(1), 254..255): "_"@(FileId(1), 154..155)
+                Name@(FileId(1), 259..268): "pv_formal"@(FileId(1), 104..113)
+              Assign@(FileId(1), 277..290)
+                Name@(FileId(1), 277..278): "_"@(FileId(1), 154..155)
+                Name@(FileId(1), 282..290): "pv_inner"@(FileId(1), 205..213)
+              Assign@(FileId(1), 299..315)
+                Name@(FileId(1), 299..300): "_"@(FileId(1), 154..155)
+                Name@(FileId(1), 304..315): "norm_formal"@(FileId(1), 122..133)
+              Assign@(FileId(1), 324..339)
+                Name@(FileId(1), 324..325): "_"@(FileId(1), 154..155)
+                Name@(FileId(1), 329..339): "norm_inner"@(FileId(1), 175..185)
+error in file FileId(1) at 205..213: `pv_inner` is already declared in this scope
+| note in file FileId(1) for 30..38: `pv_inner` previously declared here
+| error in file FileId(1) for 205..213: `pv_inner` redeclared here
+
