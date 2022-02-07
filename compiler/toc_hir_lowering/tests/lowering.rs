@@ -902,6 +902,80 @@ fn lower_procedure_def() {
 }
 
 #[test]
+fn lower_function_def() {
+    // Without param list
+    assert_lower(
+        "
+    function no_params : int
+    end no_params",
+    );
+
+    // None specified
+    assert_lower(
+        "
+    function empty_params() : int
+    end empty_params
+    ",
+    );
+
+    // With params
+    assert_lower(
+        "
+    function some_params(a, b : int) : int
+        % should be visible
+        var me := a + b
+    end some_params
+    ",
+    );
+
+    // Different passings
+    assert_lower(
+        "
+    function pass_me(
+        by_value : int,
+        var by_ref : int,
+        register by_val_to_reg : int,
+        var register by_ref_to_reg : int
+    ) : int
+    end pass_me
+    ",
+    );
+
+    // Named result
+    assert_lower(
+        "
+    function a shambles : int end a
+    function b() quoi : int end b
+    function c(k : int) weh : int end c
+    ",
+    );
+
+    // Redecl over params
+    assert_lower(
+        "
+    function pars(a, a : int, a : int1) : int
+        var a : int2
+    end pars",
+    );
+
+    // Redecl over named result
+    assert_lower(
+        "
+    function pars() res : int
+        var res : int1
+    end pars",
+    );
+
+    // Not using named result in `post` condition
+    assert_lower(
+        "
+    function pars() res : int
+        var use := res
+    end pars",
+    );
+}
+
+#[test]
 fn lower_process_def() {
     // Without param list
     assert_lower(

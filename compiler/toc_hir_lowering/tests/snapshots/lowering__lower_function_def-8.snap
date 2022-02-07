@@ -1,0 +1,21 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    function pars() res : int\n        var use := res\n    end pars"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..66): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..66): []
+        StmtItem@(FileId(1), 5..66): ItemId(1)
+          Subprogram@(FileId(1), 5..66): "pars"@(FileId(1), 14..18) [] -> "res"@(FileId(1), 21..24)
+            Primitive@(FileId(1), 27..30): Int
+            StmtBody@(FileId(1), 39..53): [] -> "res"@(FileId(1), 21..24)
+              StmtItem@(FileId(1), 39..53): ItemId(0)
+                ConstVar@(FileId(1), 39..53): var "use"@(FileId(1), 43..46)
+                  ExprBody@(FileId(1), 50..53)
+                    Name@(FileId(1), 50..53): "res"@(FileId(1), 21..24)
+error in file FileId(1) at 50..53: `cannot use res` here
+| error in file FileId(1) for 50..53: `res` can only be used in a `post` statement
+

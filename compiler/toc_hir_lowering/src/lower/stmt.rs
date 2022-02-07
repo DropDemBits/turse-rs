@@ -1,6 +1,6 @@
 //! Lowering into `Stmt` HIR nodes
 use toc_hir::stmt::Assign;
-use toc_hir::symbol::{ForwardKind, Mutability};
+use toc_hir::symbol::{ForwardKind, LimitedKind, Mutability};
 use toc_hir::{
     expr, item, stmt,
     symbol::{self, SymbolKind},
@@ -411,7 +411,18 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_subprog_result(&mut self, result: Option<ast::FcnResult>) -> item::SubprogramResult {
-        todo!()
+        let (name, ty) = result.map_or((None, None), |result| {
+            let name = result.name().map(|name| {
+                self.name_to_def(
+                    name,
+                    SymbolKind::LimitedDeclared(LimitedKind::PostCondition),
+                )
+            });
+            (name, result.ty())
+        });
+
+        let ty = self.lower_required_type(ty);
+        item::SubprogramResult { name, ty }
     }
 
     fn lower_subprog_body(
@@ -782,27 +793,33 @@ impl super::BodyLowering<'_, '_> {
     fn lower_name_def(
         &mut self,
         name: ast::Name,
-        kind: symbol::SymbolKind,
+        kind: SymbolKind,
         is_pervasive: bool,
     ) -> symbol::LocalDefId {
         // Can't declare an undefined symbol from a name def
         assert_ne!(kind, SymbolKind::Undeclared);
 
-        let token = name.identifier_token().unwrap();
-        let span = self.ctx.intern_range(token.text_range());
-        let def_id = self.ctx.library.add_def(token.text(), span, kind);
+        let def_id = self.name_to_def(name, kind);
 
         // Bring into scope
-        self.introduce_def(def_id, kind, is_pervasive);
+        self.introduce_def(def_id, is_pervasive);
 
         def_id
     }
 
-    fn introduce_def(&mut self, def_id: symbol::LocalDefId, kind: SymbolKind, is_pervasive: bool) {
-        // Bring into scope
+    fn name_to_def(&mut self, name: ast::Name, kind: SymbolKind) -> symbol::LocalDefId {
+        let token = name.identifier_token().unwrap();
+        let span = self.ctx.intern_range(token.text_range());
+        self.ctx.library.add_def(token.text(), span, kind)
+    }
+
+    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
         let def_info = self.ctx.library.local_def(def_id);
         let name = def_info.name.item();
         let span = def_info.name.span();
+        let kind = def_info.kind;
+
+        // Bring into scope
         let old_def = self.ctx.scopes.def_sym(name, def_id, kind, is_pervasive);
 
         // Resolve any associated forward decls

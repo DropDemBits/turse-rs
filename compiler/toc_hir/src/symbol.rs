@@ -41,6 +41,8 @@ pub enum SymbolKind {
     Undeclared,
     /// The symbol is a normal declaration at the point of definition.
     Declared,
+    /// The symbol is declared, but is only usable in certain contexts
+    LimitedDeclared(LimitedKind),
     /// The symbol is a forward reference to a later declaration,
     /// with a [`LocalDefId`] pointing to the resolving definition.
     Forward(ForwardKind, Option<LocalDefId>),
@@ -56,6 +58,13 @@ pub enum ForwardKind {
     /// `procedure` forward declaration
     // Only constructed in tests right now
     _Procedure,
+}
+
+/// Specificity on why a symbol is limited in visibility
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LimitedKind {
+    /// Only usable in post-condition statements
+    PostCondition,
 }
 
 /// Any HIR node that contains a definition

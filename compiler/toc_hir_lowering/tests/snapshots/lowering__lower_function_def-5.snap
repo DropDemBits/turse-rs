@@ -1,0 +1,24 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    function a shambles : int end a\n    function b() quoi : int end b\n    function c(k : int) weh : int end c\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..115): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..110): []
+        StmtItem@(FileId(1), 5..36): ItemId(0)
+          Subprogram@(FileId(1), 5..36): "a"@(FileId(1), 14..15) -> "shambles"@(FileId(1), 16..24)
+            Primitive@(FileId(1), 27..30): Int
+            StmtBody@(FileId(1), 31..31): [] -> "shambles"@(FileId(1), 16..24)
+        StmtItem@(FileId(1), 41..70): ItemId(1)
+          Subprogram@(FileId(1), 41..70): "b"@(FileId(1), 50..51) [] -> "quoi"@(FileId(1), 54..58)
+            Primitive@(FileId(1), 61..64): Int
+            StmtBody@(FileId(1), 65..65): [] -> "quoi"@(FileId(1), 54..58)
+        StmtItem@(FileId(1), 75..110): ItemId(2)
+          Subprogram@(FileId(1), 75..110): "c"@(FileId(1), 84..85) ["k"@(FileId(1), 86..87)] -> "weh"@(FileId(1), 95..98)
+            Primitive@(FileId(1), 90..93): Int
+            Primitive@(FileId(1), 101..104): Int
+            StmtBody@(FileId(1), 105..105): ["k"@(FileId(1), 86..87)] -> "weh"@(FileId(1), 95..98)
+

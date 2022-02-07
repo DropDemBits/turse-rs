@@ -1,4 +1,5 @@
 //! Lowering into `Expr` HIR nodes
+use toc_hir::symbol::{LimitedKind, SymbolKind};
 use toc_hir::{body, expr};
 use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
@@ -137,6 +138,22 @@ impl super::BodyLowering<'_, '_> {
         let name = expr.name()?.identifier_token()?;
         let span = self.ctx.mk_span(name.text_range());
         let def_id = self.ctx.use_sym(name.text(), span);
+
+        let def_info = self.ctx.library.local_def(def_id);
+        if let SymbolKind::LimitedDeclared(kind) = def_info.kind {
+            let name = name.text();
+
+            match kind {
+                LimitedKind::PostCondition => {
+                    // FIXME: If we're in a post condition, don't report this error
+                    self.ctx.messages.error(
+                        format!("`cannot use {name}` here"),
+                        format!("`{name}` can only be used in a `post` statement"),
+                        span,
+                    );
+                }
+            }
+        }
 
         Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
     }
