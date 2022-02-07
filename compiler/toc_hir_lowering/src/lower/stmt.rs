@@ -399,10 +399,9 @@ impl super::BodyLowering<'_, '_> {
     fn none_subprog_result(&mut self) -> item::SubprogramResult {
         use toc_hir::ty;
 
-        // TODO: Use a dedicated void type
         let span = self.ctx.library.span_map.dummy_span();
         let void_ty = self.ctx.library.intern_type(ty::Type {
-            kind: ty::TypeKind::Missing,
+            kind: ty::TypeKind::Void,
             span,
         });
 

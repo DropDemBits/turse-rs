@@ -422,4 +422,8 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let extra = self.display_extra_def(*def_id);
         self.emit_node("Alias", span, Some(format_args!("{}", extra)))
     }
+    fn visit_void(&self, id: ty::TypeId) {
+        let span = self.type_span(id);
+        self.emit_node("Void", span, None)
+    }
 }

@@ -10,5 +10,6 @@ Library@(dummy)
       StmtBody@(FileId(1), 5..42): []
         StmtItem@(FileId(1), 5..42): ItemId(0)
           Subprogram@(FileId(1), 5..42): "no_params"@(FileId(1), 15..24)
+            Void@(dummy)
             StmtBody@(FileId(1), 29..29): []
 

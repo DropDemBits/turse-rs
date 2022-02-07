@@ -14,6 +14,7 @@ Library@(dummy)
               Binary@(FileId(1), 17..22): Add
                 Literal@(FileId(1), 17..18): Integer(4)
                 Literal@(FileId(1), 21..22): Integer(4)
+            Void@(dummy)
             StmtBody@(FileId(1), 23..23): []
         StmtItem@(FileId(1), 33..58): ItemId(1)
           Subprogram@(FileId(1), 33..58): "b"@(FileId(1), 41..42) []
@@ -21,6 +22,7 @@ Library@(dummy)
               Binary@(FileId(1), 47..52): Add
                 Literal@(FileId(1), 47..48): Integer(6)
                 Literal@(FileId(1), 51..52): Integer(8)
+            Void@(dummy)
             StmtBody@(FileId(1), 53..53): []
         StmtItem@(FileId(1), 63..95): ItemId(2)
           Subprogram@(FileId(1), 63..95): "c"@(FileId(1), 71..72) ["k"@(FileId(1), 73..74)]
@@ -29,5 +31,6 @@ Library@(dummy)
                 Literal@(FileId(1), 84..85): Integer(9)
                 Literal@(FileId(1), 88..89): Integer(2)
             Primitive@(FileId(1), 77..80): Int
+            Void@(dummy)
             StmtBody@(FileId(1), 90..90): ["k"@(FileId(1), 73..74)]
 

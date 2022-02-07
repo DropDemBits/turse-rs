@@ -49,6 +49,8 @@ pub enum TypeKind {
     Primitive(Primitive),
     /// Alias Type
     Alias(Alias),
+    /// Void Type, returned from `procedures` and `processes`
+    Void,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

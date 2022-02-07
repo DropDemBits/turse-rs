@@ -19,5 +19,6 @@ Library@(dummy)
             Primitive@(FileId(1), 69..72): Int
             Primitive@(FileId(1), 107..110): Int
             Primitive@(FileId(1), 149..152): Int
+            Void@(dummy)
             StmtBody@(FileId(1), 163..163): ["by_value"@(FileId(1), 32..40), "by_ref"@(FileId(1), 60..66), "by_val_to_reg"@(FileId(1), 91..104), "by_ref_to_reg"@(FileId(1), 133..146)]
 
