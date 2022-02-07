@@ -15,7 +15,7 @@ Library@(dummy)
           ]
             Primitive@(FileId(1), 32..35): Int
             Primitive@(FileId(1), 32..35): Int
-            Void@(dummy)
+            Void@(FileId(1), 5..36)
             StmtBody@(FileId(1), 73..88): ["a"@(FileId(1), 25..26), "b"@(FileId(1), 28..29)]
               StmtItem@(FileId(1), 73..88): ItemId(0)
                 ConstVar@(FileId(1), 73..88): var "me"@(FileId(1), 77..79)

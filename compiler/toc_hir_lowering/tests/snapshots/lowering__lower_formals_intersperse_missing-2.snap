@@ -17,7 +17,7 @@ Library@(dummy)
             Primitive@(FileId(1), 25..28): Int
             Primitive@(FileId(1), 25..28): Int
             Primitive@(FileId(1), 25..28): Int
-            Void@(dummy)
+            Void@(FileId(1), 0..29)
             StmtBody@(FileId(1), 30..30): ["sa"@(FileId(1), 15..17), "<unnamed>"@(dummy), "ba"@(FileId(1), 21..23)]
 error in file FileId(1) at 19..20: unexpected token
 | error in file FileId(1) for 19..20: expected identifier, but found ‘,’

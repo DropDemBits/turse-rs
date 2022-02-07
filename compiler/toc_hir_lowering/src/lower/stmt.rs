@@ -249,14 +249,13 @@ impl super::BodyLowering<'_, '_> {
         let def_id =
             self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
         let param_list = self.lower_formals_spec(subprog_header.params());
-        let result = self.none_subprog_result();
-
-        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
-
+        let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.device_spec().and_then(|spec| spec.expr()) {
             Some(expr) => item::SubprogramExtra::DeviceSpec(self.lower_expr_body(expr)),
             None => item::SubprogramExtra::None,
         };
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
 
@@ -313,7 +312,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id =
             self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
         let param_list = self.lower_formals_spec(subprog_header.params());
-        let result = self.none_subprog_result();
+        let result = self.none_subprog_result(subprog_header.syntax().text_range());
         let extra = match subprog_header.stack_size() {
             Some(expr) => item::SubprogramExtra::StackSize(self.lower_expr_body(expr)),
             None => item::SubprogramExtra::None,
@@ -396,10 +395,10 @@ impl super::BodyLowering<'_, '_> {
         })
     }
 
-    fn none_subprog_result(&mut self) -> item::SubprogramResult {
+    fn none_subprog_result(&mut self, range: toc_span::TextRange) -> item::SubprogramResult {
         use toc_hir::ty;
 
-        let span = self.ctx.library.span_map.dummy_span();
+        let span = self.ctx.intern_range(range);
         let void_ty = self.ctx.library.intern_type(ty::Type {
             kind: ty::TypeKind::Void,
             span,
