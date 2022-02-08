@@ -3,6 +3,8 @@
 // fancy quotes: ‘’
 mod preproc;
 mod stmt;
+mod ty;
+
 #[cfg(test)]
 mod test;
 
@@ -107,7 +109,9 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
     // Indiscriminately go over descendant nodes
     for node in root.descendants() {
         match_ast!(match node {
+            // Preproc
             ast::PreprocGlob(pp_glob) => preproc::validate_preproc_glob(pp_glob, ctx),
+            // Stmts
             ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
             ast::BindDecl(decl) => stmt::validate_bind_decl(decl, ctx),
             ast::ProcDecl(decl) =>
@@ -131,6 +135,8 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ExitStmt(stmt) => stmt::validate_exit_stmt(stmt, ctx),
             ast::CaseStmt(stmt) => stmt::validate_case_stmt(stmt, ctx),
             ast::InvariantStmt(stmt) => stmt::validate_invariant_stmt(stmt, ctx),
+            // Types
+            ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
             _ => (),
         })
     }
