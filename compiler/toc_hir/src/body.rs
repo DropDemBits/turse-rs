@@ -42,8 +42,8 @@ impl Body {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BodyKind {
-    /// Bundle of statements, with the given statement list, parameter definition list,
-    /// and optional result name (e.g. for module initializers, or function bodies).
+    /// Bundle of statements (e.g. for module initializers, or function bodies)
+    /// with the given statement list, parameter definition list, and optional result name.
     ///
     /// For BodyDecl, the parameter list would be cloned from the associated definition if
     /// not specified.

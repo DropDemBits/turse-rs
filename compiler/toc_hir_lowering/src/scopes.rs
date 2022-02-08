@@ -240,7 +240,7 @@ impl ScopeTracker {
             .map(|scope| scope.kind == ScopeKind::SubprogramHeader)
             .unwrap_or_default()
         {
-            // In subprogram, only here for duplicate parameter naming
+            // In subprogram header, only here for duplicate parameter naming
             debug_assert_eq!(
                 lookup_kind,
                 LookupKind::RedeclChecking,

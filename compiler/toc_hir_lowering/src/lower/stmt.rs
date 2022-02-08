@@ -258,7 +258,6 @@ impl super::BodyLowering<'_, '_> {
         let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
-
         let item_id = self.ctx.library.add_item(item::Item {
             kind: item::ItemKind::Subprogram(item::Subprogram {
                 kind: symbol::SubprogramKind::Procedure,
@@ -288,7 +287,6 @@ impl super::BodyLowering<'_, '_> {
         let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, result.name);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
-
         let item_id = self.ctx.library.add_item(item::Item {
             kind: item::ItemKind::Subprogram(item::Subprogram {
                 kind: symbol::SubprogramKind::Function,
@@ -321,7 +319,6 @@ impl super::BodyLowering<'_, '_> {
         let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
-
         let item_id = self.ctx.library.add_item(item::Item {
             kind: item::ItemKind::Subprogram(item::Subprogram {
                 kind: symbol::SubprogramKind::Process,
