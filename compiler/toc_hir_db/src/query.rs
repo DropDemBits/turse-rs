@@ -148,15 +148,7 @@ impl DefCollector {
 }
 
 impl HirVisitor for DefCollector {
-    fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
-        self.add_owner(item.def_id, DefOwner::Item(id));
-    }
-
-    fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
-        self.add_owner(item.def_id, DefOwner::Item(id));
-    }
-
-    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
+    fn visit_item(&self, id: item::ItemId, item: &item::Item) {
         self.add_owner(item.def_id, DefOwner::Item(id));
     }
 
