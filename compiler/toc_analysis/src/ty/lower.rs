@@ -21,6 +21,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Subprogram(_ty) => todo!(),
         hir_ty::TypeKind::Void => todo!(),
     }
 }

@@ -1074,3 +1074,37 @@ fn lower_formals_intersperse_missing() {
     // Missing 4 args
     // assert_lower("procedure args(, , , , : int) end args");
 }
+
+#[test]
+fn lower_procedure_tys() {
+    // Taken from the old compiler
+    assert_lower("type _ : procedure nps");
+    assert_lower("type _ : procedure np   ()");
+    assert_lower("type _ : procedure p1   (a : int)");
+    assert_lower("type _ : procedure p2   (a : int, b : string)");
+    assert_lower("type _ : procedure pisp (a : int, b : string, c : procedure _ ())");
+
+    // Identifier is optional
+    assert_lower("type _ : procedure");
+}
+
+#[test]
+fn lower_function_tys() {
+    // Taken from the old compiler
+    assert_lower("type _ : function np   () : real");
+    assert_lower("type _ : function p1   (a : int) : string");
+    assert_lower("type _ : function p2   (a : int, b : string) : addressint");
+    assert_lower("type _ : function pisf (a : int, b : string, c : function _ () : int) : boolean");
+    // Nesting
+    assert_lower("type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int");
+
+    // Identifier is optional
+    assert_lower("type _ : function () : int");
+
+    // Function type expects `function () : int` instead of `function : int` since it would be uninhabitable
+    // (bare reference would always call the function)
+    //
+    // Treated as a warning, since it's technically valid syntax
+    // Emitted from AST validation
+    assert_lower("type _ : function amphy : int");
+}

@@ -49,6 +49,8 @@ pub enum TypeKind {
     Primitive(Primitive),
     /// Alias Type
     Alias(Alias),
+    /// Subprogram Type
+    Subprogram(Subprogram),
     /// Void Type, returned from `procedures` and `processes`
     Void,
 }
@@ -86,3 +88,30 @@ pub enum SeqLength {
 // FIXME: Use the proper representation of an item path
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Alias(pub symbol::LocalDefId);
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Subprogram {
+    pub kind: symbol::SubprogramKind,
+    pub param_list: Option<Vec<Parameter>>,
+    pub result_ty: TypeId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Parameter {
+    /// How the parameter should be passed in as
+    pub pass_by: PassBy,
+    /// If the value should be bound to a register
+    pub is_register: bool,
+    /// If the passed in value should be coerced to the target's type
+    pub coerced_type: bool,
+    /// Parameter's type
+    pub param_ty: TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PassBy {
+    /// Pass by value
+    Value,
+    /// Pass by reference, with the specified mutability
+    Reference(symbol::Mutability),
+}

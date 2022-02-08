@@ -74,7 +74,7 @@ pub enum DefOwner {
     Stmt(BodyStmt),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mutability {
     Const,
     Var,
@@ -155,7 +155,7 @@ impl std::fmt::Display for BindingKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubprogramKind {
     Procedure,
     Function,

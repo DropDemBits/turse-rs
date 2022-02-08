@@ -6,6 +6,7 @@ use std::{
     fmt::{self, Write},
 };
 
+use toc_hir::symbol::SubprogramKind;
 use toc_hir::{
     body,
     expr::{self, BodyExpr},
@@ -129,13 +130,13 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         }
     }
 
-    fn display_param_info(&self, info: &item::Parameter) -> String {
+    fn display_param_info(&self, info: &ty::Parameter) -> String {
         let mut extra = String::new();
 
         match info.pass_by {
-            item::PassBy::Value => {}
-            item::PassBy::Reference(Mutability::Const) => write!(extra, "const ").unwrap(),
-            item::PassBy::Reference(Mutability::Var) => write!(extra, "var ").unwrap(),
+            ty::PassBy::Value => {}
+            ty::PassBy::Reference(Mutability::Const) => write!(extra, "const ").unwrap(),
+            ty::PassBy::Reference(Mutability::Var) => write!(extra, "var ").unwrap(),
         }
 
         if info.is_register {
@@ -421,6 +422,20 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let def_id = &ty.0;
         let extra = self.display_extra_def(*def_id);
         self.emit_node("Alias", span, Some(format_args!("{}", extra)))
+    }
+    fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {
+        let span = self.type_span(id);
+        let name = match ty.kind {
+            SubprogramKind::Procedure => "Procedure",
+            SubprogramKind::Function => "Function",
+            SubprogramKind::Process => "Process",
+        };
+        let extra = match &ty.param_list {
+            Some(_) => "...",
+            None => "no params",
+        };
+
+        self.emit_node(name, span, Some(format_args!("[{extra}]")));
     }
     fn visit_void(&self, id: ty::TypeId) {
         let span = self.type_span(id);

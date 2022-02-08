@@ -1,9 +1,9 @@
 //! Lowering into `Stmt` HIR nodes
-use toc_hir::stmt::Assign;
-use toc_hir::symbol::{ForwardKind, LimitedKind, Mutability};
 use toc_hir::{
-    expr, item, stmt,
-    symbol::{self, SymbolKind},
+    expr, item,
+    stmt::{self, Assign},
+    symbol::{self, ForwardKind, LimitedKind, Mutability, SymbolKind},
+    ty,
 };
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
@@ -335,8 +335,11 @@ impl super::BodyLowering<'_, '_> {
         Some(stmt::StmtKind::Item(item_id))
     }
 
-    fn lower_formals_spec(&mut self, formals: Option<ast::ParamSpec>) -> Option<item::ParamList> {
-        use item::{Parameter, PassBy};
+    pub(super) fn lower_formals_spec(
+        &mut self,
+        formals: Option<ast::ParamSpec>,
+    ) -> Option<item::ParamList> {
+        use ty::{Parameter, PassBy};
 
         let formals = formals?;
 
@@ -380,7 +383,36 @@ impl super::BodyLowering<'_, '_> {
                             });
                         }
                     }
-                    ast::ParamDecl::SubprogType(param) => todo!(),
+                    ast::ParamDecl::SubprogType(param) => {
+                        let (name, param_ty) = match param {
+                            ast::SubprogType::FcnType(ty) => {
+                                let name = ty.name();
+                                let param_ty = self
+                                    .lower_type(ast::Type::FcnType(ty))
+                                    .expect("from known existing type");
+                                (name, param_ty)
+                            }
+                            ast::SubprogType::ProcType(ty) => {
+                                let name = ty.name();
+                                let param_ty = self
+                                    .lower_type(ast::Type::ProcType(ty))
+                                    .expect("from known existing type");
+                                (name, param_ty)
+                            }
+                        };
+
+                        let name = name.map_or(missing_name, |name| {
+                            self.lower_name_def(name, SymbolKind::Declared, false)
+                        });
+                        param_names.push(name);
+
+                        tys.push(Parameter {
+                            is_register: false,
+                            pass_by: PassBy::Value,
+                            coerced_type: false,
+                            param_ty,
+                        })
+                    }
                 }
             }
             self.ctx.scopes.pop_scope();
@@ -393,8 +425,6 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn none_subprog_result(&mut self, range: toc_span::TextRange) -> item::SubprogramResult {
-        use toc_hir::ty;
-
         let span = self.ctx.intern_range(range);
         let void_ty = self.ctx.library.intern_type(ty::Type {
             kind: ty::TypeKind::Void,

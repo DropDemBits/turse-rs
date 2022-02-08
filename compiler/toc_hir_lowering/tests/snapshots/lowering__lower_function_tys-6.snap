@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type _ : function () : int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..26): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..26): []
+        StmtItem@(FileId(1), 0..26): ItemId(0)
+          Type@(FileId(1), 0..26): "_"@(FileId(1), 5..6)
+            Function@(FileId(1), 9..26): [...]
+              Primitive@(FileId(1), 23..26): Int
+

@@ -56,6 +56,7 @@ pub trait HirVisitor {
     }
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
+    fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {}
     fn visit_void(&self, id: ty::TypeId) {}
 
     // Node specification //
@@ -100,6 +101,7 @@ pub trait HirVisitor {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.visit_primitive(id, ty),
             ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
+            ty::TypeKind::Subprogram(ty) => self.visit_subprogram_ty(id, ty),
             ty::TypeKind::Void => self.visit_void(id),
         }
     }
@@ -478,6 +480,7 @@ impl<'hir> Walker<'hir> {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.walk_primitive(ty),
             ty::TypeKind::Alias(_) => {}
+            ty::TypeKind::Subprogram(ty) => self.walk_subprogram_ty(ty),
             ty::TypeKind::Void => {}
         }
     }
@@ -490,5 +493,15 @@ impl<'hir> Walker<'hir> {
             }
             _ => {}
         }
+    }
+
+    fn walk_subprogram_ty(&mut self, ty: &ty::Subprogram) {
+        if let Some(param_list) = &ty.param_list {
+            for param in param_list {
+                self.enter_type(param.param_ty, self.lib.lookup_type(param.param_ty));
+            }
+        }
+
+        self.enter_type(ty.result_ty, self.lib.lookup_type(ty.result_ty));
     }
 }

@@ -119,27 +119,7 @@ pub struct Subprogram {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParamList {
     pub names: Vec<symbol::LocalDefId>,
-    pub tys: Vec<Parameter>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Parameter {
-    /// How the parameter should be passed in as
-    pub pass_by: PassBy,
-    /// If the value should be bound to a register
-    pub is_register: bool,
-    /// If the passed in value should be coerced to the target's type
-    pub coerced_type: bool,
-    /// Parameter's type
-    pub param_ty: ty::TypeId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PassBy {
-    /// Pass by value
-    Value,
-    /// Pass by reference, with the specified mutability
-    Reference(symbol::Mutability),
+    pub tys: Vec<ty::Parameter>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

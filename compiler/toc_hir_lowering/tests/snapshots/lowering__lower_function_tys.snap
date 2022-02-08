@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type _ : function np   () : real"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..32): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..32): []
+        StmtItem@(FileId(1), 0..32): ItemId(0)
+          Type@(FileId(1), 0..32): "_"@(FileId(1), 5..6)
+            Function@(FileId(1), 9..32): [...]
+              Primitive@(FileId(1), 28..32): Real
+
