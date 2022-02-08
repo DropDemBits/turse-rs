@@ -33,8 +33,13 @@ pub(crate) enum ScopeKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum LookupKind {
-    Normal,
-    RedeclChecking,
+    /// Lookup started from using a definition.
+    /// All normal rules apply.
+    OnUse,
+    /// Lookup started from adding a definition.
+    /// Most rules apply, except that a definition
+    /// can be shadowed if the scope allows it.
+    OnDef,
 }
 
 impl ScopeKind {
@@ -128,7 +133,7 @@ impl ScopeTracker {
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
 
-        let last_def = self.lookup_def(name, LookupKind::RedeclChecking);
+        let last_def = self.lookup_def(name, LookupKind::OnDef);
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
 
@@ -176,32 +181,31 @@ impl ScopeTracker {
         name: &str,
         or_undeclared: impl FnOnce() -> symbol::LocalDefId,
     ) -> symbol::LocalDefId {
-        self.lookup_def(name, LookupKind::Normal)
-            .unwrap_or_else(|| {
-                // ???: Do we still need to declare undecl's at the boundary scope?
-                // Since we plan to run another pass to collect defs for the export tables,
-                // would it make more sense to hoist up to root?
-                //
-                // The original motivation was that undeclared defs may or may not represent
-                // unqualified imports, so it make sense to have the same undeclared names
-                // in an import boundary to share a LocalDefId. Thus, if the undecl def is
-                // really an unqualified import, we'd have done something approximating the
-                // right thing.
-                //
-                // However, if ScopeTracker has access to the complete export tables, then we
-                // can disambiguate between unqualified imports and undeclared definitions,
-                // leaving us free to always have all of the undeclared defs share a LocalDefId.
-                //
-                // Addendum:
-                // This conveniently deals with deduplicating undeclared identifier errors, so
-                // not doing this would mean that we'd have to handle that undeclared tracking
-                // elsewhere.
+        self.lookup_def(name, LookupKind::OnUse).unwrap_or_else(|| {
+            // ???: Do we still need to declare undecl's at the boundary scope?
+            // Since we plan to run another pass to collect defs for the export tables,
+            // would it make more sense to hoist up to root?
+            //
+            // The original motivation was that undeclared defs may or may not represent
+            // unqualified imports, so it make sense to have the same undeclared names
+            // in an import boundary to share a LocalDefId. Thus, if the undecl def is
+            // really an unqualified import, we'd have done something approximating the
+            // right thing.
+            //
+            // However, if ScopeTracker has access to the complete export tables, then we
+            // can disambiguate between unqualified imports and undeclared definitions,
+            // leaving us free to always have all of the undeclared defs share a LocalDefId.
+            //
+            // Addendum:
+            // This conveniently deals with deduplicating undeclared identifier errors, so
+            // not doing this would mean that we'd have to handle that undeclared tracking
+            // elsewhere.
 
-                // Declare at the import boundary
-                let def_id = or_undeclared();
-                Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
-                def_id
-            })
+            // Declare at the import boundary
+            let def_id = or_undeclared();
+            Self::boundary_scope(&mut self.scopes).def_in(name, def_id);
+            def_id
+        })
     }
 
     pub fn take_resolved_forwards(
@@ -243,7 +247,7 @@ impl ScopeTracker {
             // In subprogram header, only here for duplicate parameter naming
             debug_assert_eq!(
                 lookup_kind,
-                LookupKind::RedeclChecking,
+                LookupKind::OnDef,
                 "subprogram header restricted to deduping param names"
             );
 
@@ -263,14 +267,13 @@ impl ScopeTracker {
             }
 
             if scope.kind.is_import_boundary()
-                || (matches!(lookup_kind, LookupKind::RedeclChecking)
-                    && scope.kind.allows_shadowing())
+                || (matches!(lookup_kind, LookupKind::OnDef) && scope.kind.allows_shadowing())
             {
                 // First case: Crossing an import boundary
                 // Restrict search to pervasive identifiers after import boundaries
                 //
                 // Second case: Part of redeclaration checking, allows shadowing
-                // Pervasive identifiers can only be shadowed
+                // Pervasive identifiers are the only things that can't be shadowed
                 restrict_to_pervasive = true;
             }
         }
