@@ -4,7 +4,6 @@ use toc_span::SpanId;
 use crate::{expr, item, symbol, ty};
 
 pub use crate::ids::{BodyStmt, StmtId};
-pub use expr::Call;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Stmt {
@@ -44,7 +43,7 @@ pub enum StmtKind {
     // Invariant { .. }
     // Assert { .. }
     // Calling expression, in statement position
-    Call(expr::Call),
+    Call(Call),
     /// Return statement (`return`, for `procedure`s and `process`es)
     Return(Return),
     /// Result statement (`result (expr)`, only for `function`s)
@@ -307,6 +306,15 @@ pub enum GetWidth {
     Line,
     /// Fetch a specific amount of characters.
     Chars(expr::ExprId),
+}
+
+/// Calling statement
+#[derive(Debug, PartialEq, Eq)]
+pub struct Call {
+    /// Reference to the calling expression
+    pub lhs: expr::ExprId,
+    /// Arguments to the call, which may not be present
+    pub arguments: Option<expr::ArgList>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

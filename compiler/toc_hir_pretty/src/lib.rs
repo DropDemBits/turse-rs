@@ -428,13 +428,9 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             expr::Name::Self_ => self.emit_node("Self", span, None),
         }
     }
-    fn visit_call_expr(&self, id: BodyExpr, stmt: &expr::Call) {
+    fn visit_call_expr(&self, id: BodyExpr, _expr: &expr::Call) {
         let span = self.expr_span(id);
-        let extra = match &stmt.arguments {
-            Some(_) => "...",
-            None => "no params",
-        };
-        self.emit_node("CallExpr", span, Some(format_args!("[{extra}]")));
+        self.emit_node("CallExpr", span, Some(format_args!("[...]")));
     }
 
     // Types //

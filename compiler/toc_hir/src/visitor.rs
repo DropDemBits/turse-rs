@@ -359,7 +359,7 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::If(node) => self.walk_if(in_body, node),
             stmt::StmtKind::Case(node) => self.walk_case(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
-            stmt::StmtKind::Call(node) => self.walk_call(in_body, node),
+            stmt::StmtKind::Call(node) => self.walk_call_stmt(in_body, node),
             stmt::StmtKind::Return(_) => {}
             stmt::StmtKind::Result(node) => self.walk_result(in_body, node),
         }
@@ -471,6 +471,18 @@ impl<'hir> Walker<'hir> {
         self.enter_stmts(in_body, stmts);
     }
 
+    fn walk_call_stmt(&mut self, in_body: body::BodyId, node: &stmt::Call) {
+        self.enter_expr(in_body, node.lhs);
+
+        if let Some(args) = &node.arguments {
+            for arg in args {
+                match arg {
+                    expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
+                }
+            }
+        }
+    }
+
     fn walk_result(&mut self, in_body: body::BodyId, node: &stmt::Result) {
         self.enter_expr(in_body, node.expr);
     }
@@ -482,7 +494,7 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Binary(node) => self.walk_binary(in_body, node),
             expr::ExprKind::Unary(node) => self.walk_unary(in_body, node),
             expr::ExprKind::Name(_) => {}
-            expr::ExprKind::Call(node) => self.walk_call(in_body, node),
+            expr::ExprKind::Call(node) => self.walk_call_expr(in_body, node),
         }
     }
 
@@ -495,14 +507,12 @@ impl<'hir> Walker<'hir> {
         self.enter_expr(in_body, node.rhs);
     }
 
-    fn walk_call(&mut self, in_body: body::BodyId, node: &expr::Call) {
+    fn walk_call_expr(&mut self, in_body: body::BodyId, node: &expr::Call) {
         self.enter_expr(in_body, node.lhs);
 
-        if let Some(args) = &node.arguments {
-            for arg in args {
-                match arg {
-                    expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
-                }
+        for arg in &node.arguments {
+            match arg {
+                expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
             }
         }
     }

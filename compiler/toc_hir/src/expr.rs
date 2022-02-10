@@ -163,7 +163,7 @@ pub struct Call {
     /// Reference to the calling expression
     pub lhs: ExprId,
     /// Arguments to the call
-    pub arguments: Option<ArgList>,
+    pub arguments: ArgList,
 }
 
 // Argument list

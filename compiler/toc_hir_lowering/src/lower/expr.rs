@@ -159,8 +159,9 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_call_expr(&mut self, expr: ast::CallExpr) -> Option<expr::ExprKind> {
+        // ast::CallExpr always has the param list specified
         let lhs = self.lower_required_expr(expr.expr());
-        let arguments = self.lower_expr_arg_list(expr.param_list());
+        let arguments = self.lower_expr_arg_list(expr.param_list()).unwrap();
 
         Some(expr::ExprKind::Call(expr::Call { lhs, arguments }))
     }
