@@ -1,13 +1,13 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 41
-expression: "type fa : function () : int1\nvar fb : function  () : int\n\nvar _ : fa := fb\n"
+expression: "type fa : function () : int1\nfunction fb () : int end fb\n\nvar _ : fa := fb\n"
 
 ---
 "<unnamed>"@(dummy) [Declared]: <error>
 "fa"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> int1
+"fb"@(FileId(1), 38..40) [Declared]: function ( ) -> int
 "<unnamed>"@(dummy) [Declared]: <error>
-"fb"@(FileId(1), 33..35) [Declared]: function ( ) -> int
 "_"@(FileId(1), 62..63) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> int1
 "<root>"@(dummy) [Declared]: <error>
 

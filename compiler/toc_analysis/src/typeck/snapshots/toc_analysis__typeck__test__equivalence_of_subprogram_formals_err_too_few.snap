@@ -1,7 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 41
-expression: "type t_p : procedure(a, b : int, var c : string)\nvar p : procedure (a : int, var c : string)\n\nvar _ : t_p := p\n"
+expression: "type t_p : procedure(a, b : int, var c : string)\nprocedure p(a : int, var c : string) end p\n\nvar _ : t_p := p\n"
 
 ---
 "<unnamed>"@(dummy) [Declared]: <error>
@@ -9,14 +9,14 @@ expression: "type t_p : procedure(a, b : int, var c : string)\nvar p : procedure
 "b"@(FileId(1), 24..25) [Declared]: <error>
 "c"@(FileId(1), 37..38) [Declared]: <error>
 "t_p"@(FileId(1), 5..8) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(4))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
+"p"@(FileId(1), 59..60) [Declared]: procedure ( pass(value) int, pass(var ref) string, ) -> void
 "<unnamed>"@(dummy) [Declared]: <error>
-"a"@(FileId(1), 68..69) [Declared]: <error>
-"c"@(FileId(1), 81..82) [Declared]: <error>
-"p"@(FileId(1), 53..54) [Declared]: procedure ( pass(value) int, pass(var ref) string, ) -> void
-"_"@(FileId(1), 98..99) [Declared]: alias[DefId(LibraryId(0), LocalDefId(4))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
+"a"@(FileId(1), 61..62) [Declared]: int
+"c"@(FileId(1), 74..75) [Declared]: string
+"_"@(FileId(1), 97..98) [Declared]: alias[DefId(LibraryId(0), LocalDefId(4))] of procedure ( pass(value) int, pass(value) int, pass(var ref) string, ) -> void
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 109..110: mismatched types
-| note in file FileId(1) for 109..110: this is of type `procedure (int, var : string)`
-| note in file FileId(1) for 102..105: this is of type `t_p (alias of procedure (int, int, var : string))`
+error in file FileId(1) at 108..109: mismatched types
+| note in file FileId(1) for 108..109: this is of type `procedure (int, var : string)`
+| note in file FileId(1) for 101..104: this is of type `t_p (alias of procedure (int, int, var : string))`
 | info: `procedure (int, var : string)` is not assignable into `procedure (int, int, var : string)`

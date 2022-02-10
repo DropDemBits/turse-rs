@@ -108,11 +108,11 @@ impl BindingKind {
     // While it's still an invalid state, it can theoretically be
     // any valid binding kind.
 
-    /// If this is a binding to a value reference (mut or immutable, storage or register)
+    /// If this is a binding to a value reference (mut or immutable, storage, register, subprogram)
     pub fn is_ref(self) -> bool {
         matches!(
             self,
-            Self::Undeclared | Self::Storage(_) | Self::Register(_)
+            Self::Undeclared | Self::Storage(_) | Self::Register(_) | Self::Subprogram(_)
         )
     }
 

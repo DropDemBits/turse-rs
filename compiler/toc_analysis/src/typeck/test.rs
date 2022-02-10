@@ -1091,7 +1091,7 @@ test_named_group! { equivalence_of,
         // Over subprogram types
         subprogram_formals => r#"
         type t_p : procedure(a, b : int, var c : string)
-        var p : procedure(a, b : int, var c : string)
+        procedure p(a, b : int, var c : string) end p
 
         var _ : t_p := p
         "#,
@@ -1135,31 +1135,31 @@ test_named_group! { equivalence_of,
         "#,
         subprogram_formals_err_too_few => r#"
         type t_p : procedure(a, b : int, var c : string)
-        var p : procedure (a : int, var c : string)
+        procedure p(a : int, var c : string) end p
 
         var _ : t_p := p
         "#,
         subprogram_formals_err_too_many => r#"
         type t_p : procedure(a, b : int, var c : string)
-        var p : procedure (a, b, k : int, var c : string)
+        procedure p(a, b, k : int, var c : string) end p
 
         var _ : t_p := p
         "#,
         subprogram_formals_err_not_var => r#"
         type t_p : procedure(a, b : int, var c : string)
-        var p : procedure (a, b : int, c : string)
+        procedure p(a, b : int, c : string) end p
 
         var _ : t_p := p
         "#,
         subprogram_result => r#"
         type fa : function () : int
-        var fb : function () : int
+        function fb () : int end fb
 
         var _ : fa := fb
         "#,
         subprogram_result_err => r#"
         type fa : function () : int1
-        var fb : function  () : int
+        function fb () : int end fb
 
         var _ : fa := fb
         "#,
