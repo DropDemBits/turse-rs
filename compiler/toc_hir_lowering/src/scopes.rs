@@ -238,19 +238,14 @@ impl ScopeTracker {
         // Top-down search through all scopes for a DefId
         let mut restrict_to_pervasive = false;
 
-        if self
-            .scopes
-            .last()
-            .map(|scope| scope.kind == ScopeKind::SubprogramHeader)
-            .unwrap_or_default()
+        if matches!(lookup_kind, LookupKind::OnDef)
+            && self
+                .scopes
+                .last()
+                .map(|scope| scope.kind == ScopeKind::SubprogramHeader)
+                .unwrap_or_default()
         {
-            // In subprogram header, only here for duplicate parameter naming
-            debug_assert_eq!(
-                lookup_kind,
-                LookupKind::OnDef,
-                "subprogram header restricted to deduping param names"
-            );
-
+            // In subprogram header for new definition, only look in this scope for duplicate parameter naming
             return self.scopes.last().unwrap().symbols.get(name).copied();
         }
 

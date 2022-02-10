@@ -1056,6 +1056,11 @@ fn lower_subprogram_shadow_external() {
 }
 
 #[test]
+fn lower_formals_use_name() {
+    assert_lower("type i : int proc u (j : i) end u");
+}
+
+#[test]
 fn lower_formals_intersperse_missing() {
     // Only 1 arg, with trailing comma
     assert_lower("procedure args(sa, : int) end args");
