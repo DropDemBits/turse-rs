@@ -26,7 +26,7 @@ where
     DB: db::ConstEval + ?Sized + 'db,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        emit_display_ty(self.db, f, self.id)
+        emit_display_ty(self.db, f, self.id, PokeAliases::No)
     }
 }
 
@@ -115,11 +115,24 @@ where
     Ok(())
 }
 
-fn emit_display_ty<'db, DB>(db: &'db DB, out: &mut dyn fmt::Write, type_id: TypeId) -> fmt::Result
+fn emit_display_ty<'db, DB>(
+    db: &'db DB,
+    out: &mut dyn fmt::Write,
+    type_id: TypeId,
+    poke_aliases: PokeAliases,
+) -> fmt::Result
 where
     DB: db::ConstEval + ?Sized + 'db,
 {
-    let ty = type_id.in_db(db);
+    let ty = {
+        let ty = type_id.in_db(db);
+
+        match (poke_aliases, ty.kind()) {
+            (PokeAliases::Yes, TypeKind::Alias(_, ty)) => ty.in_db(db),
+            _ => ty,
+        }
+    };
+
     out.write_str(ty.kind().prefix())?;
 
     // Extra bits
@@ -137,7 +150,7 @@ where
             let library = db.library(def_id.0);
             let name = library.local_def(def_id.1).name.item();
             out.write_fmt(format_args!("{} (alias of ", name))?;
-            emit_display_ty(db, out, *to)?;
+            emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
         }
         TypeKind::Subprogram(kind, params, result) => {
@@ -148,9 +161,9 @@ where
             // function (int, var register : cheat int) : int
             // procedure
 
-            // ???: How should type aliases be handled in this situation?
-
+            // Poke aliases so that we don't get long types
             if let Some(params) = params {
+                write!(out, " (")?;
                 let mut first = true;
 
                 for param in params {
@@ -170,15 +183,16 @@ where
                         write!(out, ", ")?;
                     }
                     write!(out, "{pass_by}{register}{separator}{cheat}")?;
-                    emit_display_ty(db, out, param.param_ty)?;
+                    emit_display_ty(db, out, param.param_ty, PokeAliases::Yes)?;
 
                     first = false;
                 }
+                write!(out, ")")?;
             }
 
             if matches!(kind, SubprogramKind::Function) {
                 write!(out, " : ")?;
-                emit_display_ty(db, out, *result)?;
+                emit_display_ty(db, out, *result, PokeAliases::Yes)?;
             }
         }
         TypeKind::Void => unreachable!("`void` should never be user visible"),
@@ -186,4 +200,10 @@ where
     }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PokeAliases {
+    No,
+    Yes,
 }

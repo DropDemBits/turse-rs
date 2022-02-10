@@ -1498,6 +1498,16 @@ test_named_group! { report_aliased_type,
         label cna1:
         end case
         "#,
+        in_subprog_ty => r#"
+        type i : int
+        type am_in : real
+        type misery : char(*)
+        type eat_em_up : string
+        type f : function(c : i, p : am_in, r : misery) : eat_em_up
+
+        var y : f
+        var _ : int := y
+        "#,
     ]
 }
 
