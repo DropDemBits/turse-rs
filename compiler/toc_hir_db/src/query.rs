@@ -3,10 +3,12 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use toc_hir::expr;
+use toc_hir::item::ParameterInfo;
+use toc_hir::symbol::SymbolKind;
+use toc_hir::ty::PassBy;
 use toc_hir::{
-    body, item,
-    library::{InLibrary, LibraryId, LoweredLibrary},
+    body, expr, item,
+    library::{InLibrary, Library, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
     symbol::{BindingKind, DefId, DefOwner, DefTable, LocalDefId, Mutability},
@@ -30,7 +32,10 @@ pub fn collect_defs(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<DefTable
     let library = db.library(library_id);
 
     // Collect definitions
-    let def_collector = DefCollector::default();
+    let def_collector = DefCollector {
+        def_table: Default::default(),
+        library: &library,
+    };
     Walker::from_library(&library).visit_preorder(&def_collector);
 
     Arc::new(def_collector.def_table.into_inner())
@@ -83,6 +88,37 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
             item::ItemKind::Type(_) => BindingKind::Type,
             item::ItemKind::Module(_) => BindingKind::Module,
         }),
+        Some(DefOwner::ItemParam(item_id, param_def)) => {
+            // Lookup the arg
+            let item = match &library.item(item_id).kind {
+                item::ItemKind::Subprogram(item) => item,
+                _ => unreachable!(),
+            };
+
+            Some(match item.lookup_param_info(param_def) {
+                ParameterInfo::Param(param_info) => {
+                    // This is the real parameters
+
+                    // Pass-by value parameters are always const
+                    // Register parameters become register bindings
+                    match param_info.pass_by {
+                        PassBy::Value if param_info.is_register => {
+                            BindingKind::Register(Mutability::Const)
+                        }
+                        PassBy::Reference(mutability) if param_info.is_register => {
+                            BindingKind::Register(mutability)
+                        }
+                        PassBy::Value => BindingKind::Storage(Mutability::Const),
+                        PassBy::Reference(mutability) => BindingKind::Storage(mutability),
+                    }
+                }
+                ParameterInfo::Result => {
+                    // This is the result parameter
+                    // Always const storage, only modifiable by `result` stmts
+                    BindingKind::Storage(Mutability::Const)
+                }
+            })
+        }
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
                 stmt::StmtKind::Item(_) => {
@@ -136,20 +172,39 @@ enum NotBinding {
     NotRef,
 }
 
-#[derive(Default)]
-struct DefCollector {
+/// Library-local definition collector
+struct DefCollector<'a> {
     def_table: RefCell<DefTable>,
+    library: &'a Library,
 }
 
-impl DefCollector {
+impl DefCollector<'_> {
     fn add_owner(&self, def_id: LocalDefId, owner: DefOwner) {
         self.def_table.borrow_mut().add_owner(def_id, owner);
     }
 }
 
-impl HirVisitor for DefCollector {
+impl HirVisitor for DefCollector<'_> {
     fn visit_item(&self, id: item::ItemId, item: &item::Item) {
         self.add_owner(item.def_id, DefOwner::Item(id));
+    }
+
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
+        if let Some(params) = &item.param_list {
+            for name in &params.names {
+                // Skip the filler args
+                // They are placeholders, and can't be named anyways
+                if !matches!(self.library.local_def(*name).kind, SymbolKind::Declared) {
+                    continue;
+                }
+
+                self.add_owner(*name, DefOwner::ItemParam(id, *name));
+            }
+        }
+
+        if let Some(name) = item.result.name {
+            self.add_owner(name, DefOwner::ItemParam(id, name));
+        }
     }
 
     fn visit_for(&self, id: stmt::BodyStmt, stmt: &stmt::For) {

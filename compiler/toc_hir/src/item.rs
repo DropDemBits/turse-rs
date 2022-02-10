@@ -116,6 +116,39 @@ pub struct Subprogram {
     // - We need to split the function header and function body portions
 }
 
+impl Subprogram {
+    /// Looks up the associated parameter info
+    pub fn lookup_param_info(&self, param_def: symbol::LocalDefId) -> ParameterInfo {
+        let param_list = self
+            .param_list
+            .as_ref()
+            .expect("accessing named arg from no params list");
+        param_list
+            .names
+            .iter()
+            .enumerate()
+            .find_map(|(idx, name)| {
+                (*name == param_def).then(|| ParameterInfo::Param(&param_list.tys[idx]))
+            })
+            .unwrap_or_else(|| {
+                assert_eq!(
+                    self.result.name,
+                    Some(param_def),
+                    "not the named result param"
+                );
+                ParameterInfo::Result
+            })
+    }
+}
+
+#[derive(Debug)]
+pub enum ParameterInfo<'a> {
+    /// For a parameter
+    Param(&'a ty::Parameter),
+    /// For the named result
+    Result,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParamList {
     pub names: Vec<symbol::LocalDefId>,

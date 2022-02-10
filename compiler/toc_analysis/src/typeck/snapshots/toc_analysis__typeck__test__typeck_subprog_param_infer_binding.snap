@@ -1,0 +1,24 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "function ka(register a : int, b : int, var c : int) r : int\n    bind\n        ra to a, % should fail\n        rb to b,\n        rc to c\n    r := 0 % should fail\nend ka"
+
+---
+"ka"@(FileId(1), 9..11) [Declared]: function ( pass(value) register int, pass(value) int, pass(var ref) int, ) -> int
+"<unnamed>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 21..22) [Declared]: int
+"b"@(FileId(1), 30..31) [Declared]: int
+"c"@(FileId(1), 43..44) [Declared]: int
+"r"@(FileId(1), 52..53) [LimitedDeclared(PostCondition)]: int
+"ra"@(FileId(1), 77..79) [Declared]: int
+"rb"@(FileId(1), 108..110) [Declared]: int
+"rc"@(FileId(1), 125..127) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 77..84: cannot bind `ra` to `a`
+| error in file FileId(1) for 83..84: `a` is a reference to a constant register, not a variable
+| note in file FileId(1) for 21..22: `a` declared here
+| info: registers don't have a location in memory, so they cannot be bound to
+error in file FileId(1) at 139..141: cannot assign into `r`
+| error in file FileId(1) for 137..138: `r` is a reference to a constant, not a variable
+| note in file FileId(1) for 52..53: `r` declared here

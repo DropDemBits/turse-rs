@@ -6,7 +6,7 @@ expression: "procedure sha(a : int, b : char) end sha"
 ---
 "sha"@(FileId(1), 10..13) [Declared]: procedure ( pass(value) int, pass(value) char, ) -> void
 "<unnamed>"@(dummy) [Declared]: <error>
-"a"@(FileId(1), 14..15) [Declared]: <error>
-"b"@(FileId(1), 23..24) [Declared]: <error>
+"a"@(FileId(1), 14..15) [Declared]: int
+"b"@(FileId(1), 23..24) [Declared]: char
 "<root>"@(dummy) [Declared]: <error>
 

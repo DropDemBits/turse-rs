@@ -3,7 +3,7 @@
 use std::convert::TryInto;
 
 use toc_hir::library::{LibraryId, WrapInLibrary};
-use toc_hir::symbol::BindingKind;
+use toc_hir::symbol::{BindingKind, LocalDefId};
 use toc_hir::{body, expr, stmt};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
@@ -209,6 +209,33 @@ fn subprogram_item_ty(
     db.mk_subprogram(item.kind, param_ty, result_ty)
 }
 
+pub(crate) fn ty_from_item_param(
+    db: &dyn TypeDatabase,
+    param_id: InLibrary<(item::ItemId, LocalDefId)>,
+) -> TypeId {
+    // Only from subprogram items
+    let InLibrary(library_id, (item_id, param_def)) = param_id;
+    let library = db.library(library_id);
+
+    let item = match &library.item(item_id).kind {
+        item::ItemKind::Subprogram(item) => item,
+        _ => unreachable!(),
+    };
+
+    let hir_ty = match item.lookup_param_info(param_def) {
+        item::ParameterInfo::Param(param_info) => {
+            // From parameter
+            param_info.param_ty
+        }
+        item::ParameterInfo::Result => {
+            // From named result type
+            item.result.ty
+        }
+    };
+
+    require_resolved_hir_type(db, hir_ty.in_library(library_id))
+}
+
 pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
     let library_id = stmt_id.0;
     let stmt_id = stmt_id.1;
@@ -317,7 +344,8 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
     match expr {
         expr::Name::Name(def_id) => {
             let def_id = DefId(body.0, *def_id);
-            // TODO: Perform name resolution
+            // FIXME: Perform name resolution
+            // TODO: Support parameterless fn calls
             db.type_of(def_id.into())
         }
         expr::Name::Self_ => {

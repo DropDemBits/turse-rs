@@ -70,7 +70,11 @@ pub enum LimitedKind {
 /// Any HIR node that contains a definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefOwner {
+    /// Owned directly by an `Item`
     Item(ItemId),
+    /// Parameter on a given `Item`
+    ItemParam(ItemId, LocalDefId),
+    /// Owned by a `Stmt`
     Stmt(BodyStmt),
 }
 

@@ -30,16 +30,14 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
     if let Some(owner) = db.def_owner(def_id) {
         match owner {
             DefOwner::Item(item_id) => lower::ty_from_item(db, InLibrary(def_id.0, item_id)),
+            DefOwner::ItemParam(item_id, param_def) => {
+                lower::ty_from_item_param(db, InLibrary(def_id.0, (item_id, param_def)))
+            }
             DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
         }
     } else {
         // No actual definition owner
-        db.intern_type(
-            Type {
-                kind: TypeKind::Error,
-            }
-            .into(),
-        )
+        db.mk_error()
     }
 }
 

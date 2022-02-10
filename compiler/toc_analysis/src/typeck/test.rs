@@ -1428,6 +1428,23 @@ test_named_group! { typeck_subprog_ty,
     ]
 }
 
+test_named_group! {
+    typeck_subprog_param,
+    [
+        infer_ty => "
+        type tyres : string
+        function own(me : nat, pie : real) sammy : tyres
+        end own",
+        infer_binding => "function ka(register a : int, b : int, var c : int) r : int
+            bind
+                ra to a, % should fail
+                rb to b,
+                rc to c
+            r := 0 % should fail
+        end ka"
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",
