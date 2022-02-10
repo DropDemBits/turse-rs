@@ -3,7 +3,7 @@
 use std::convert::TryInto;
 
 use toc_hir::library::{LibraryId, WrapInLibrary};
-use toc_hir::symbol::{BindingKind, LocalDefId};
+use toc_hir::symbol::{self, BindingKind, LocalDefId};
 use toc_hir::{body, expr, stmt};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
@@ -297,7 +297,7 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr),
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
-        expr::ExprKind::Call(_expr) => todo!(),
+        expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr),
     }
 }
 
@@ -343,14 +343,48 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
     // If self, then fetch type from provided class def id?
     match expr {
         expr::Name::Name(def_id) => {
-            let def_id = DefId(body.0, *def_id);
             // FIXME: Perform name resolution
-            // TODO: Support parameterless fn calls
-            db.type_of(def_id.into())
+            let def_id = DefId(body.0, *def_id);
+
+            // Defer to result type if it's a paren-less function
+            let ty = db.type_of(def_id.into()).in_db(db);
+
+            if let TypeKind::Subprogram(symbol::SubprogramKind::Function, None, result) = ty.kind()
+            {
+                *result
+            } else {
+                ty.id()
+            }
         }
         expr::Name::Self_ => {
             todo!()
         }
+    }
+}
+
+fn call_expr_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Call) -> TypeId {
+    let left = ty_from_expr(db, body, expr.lhs);
+    let subprog_ty = left.in_db(db).to_base_type();
+
+    if let TypeKind::Subprogram(
+        symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
+        _params,
+        result,
+    ) = subprog_ty.kind()
+    {
+        // Is void result? Error! (proc call in expr position)
+        let result = result.in_db(db);
+
+        if matches!(result.kind(), TypeKind::Void) {
+            db.mk_error()
+        } else {
+            // It's okay to always infer as the result type, since that gives
+            // better diagnostics
+            result.id()
+        }
+    } else {
+        // Not a callable subprogram
+        db.mk_error()
     }
 }
 

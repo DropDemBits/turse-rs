@@ -1521,6 +1521,66 @@ test_named_group! {
     ]
 }
 
+test_named_group! { typeck_subprog_call,
+    [
+        as_stmt => "
+        function key() : int end key
+        procedure lime() end lime
+        key() lime()
+        ",
+        as_stmt_bare => "
+        function key : int end key
+        procedure lime end lime
+        key lime
+        key() lime()
+        ",
+        as_stmt_err => "
+        function key() : int end key
+        procedure lime() end lime
+        % can't be used like this, need paren
+        key lime
+        ",
+        as_expr => "
+        function key() : int end key
+        var res := key()
+        ",
+        as_expr_bare => "
+        function key : int end key
+        var res := key
+        ",
+        as_expr_err => "
+        procedure lime() end lime
+        var res := lime()
+        ",
+        // `process`es can never be called like this
+        on_process_err => "
+        process never end never
+        never
+        never()
+        var _ := never()
+        ",
+
+        args_exact => "
+        var tree : int
+        procedure boop(a, b, var c : int) end boop
+        boop(1, 2, tree)
+        ",
+        args_err_wrong_binding => "
+        var tree : int
+        procedure boop(a, b, var c : int) end boop
+        boop(1, 2, 3)
+        ",
+        args_err_few => "
+        procedure boop(a, b, c : int) end boop
+        boop(1, 2)
+        ",
+        args_err_many => "
+        procedure boop(a, b, c : int) end boop
+        boop(1, 2, 3, 4)
+        ",
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",
