@@ -43,6 +43,8 @@ pub trait HirVisitor {
     fn visit_case(&self, id: BodyStmt, stmt: &stmt::Case) {}
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {}
     fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {}
+    fn visit_return_stmt(&self, id: BodyStmt, stmt: &stmt::Return) {}
+    fn visit_result_stmt(&self, id: BodyStmt, stmt: &stmt::Result) {}
     // Exprs
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {
         self.specify_expr(id, expr);
@@ -86,6 +88,8 @@ pub trait HirVisitor {
             stmt::StmtKind::Case(stmt) => self.visit_case(id, stmt),
             stmt::StmtKind::Block(stmt) => self.visit_block(id, stmt),
             stmt::StmtKind::Call(stmt) => self.visit_call_stmt(id, stmt),
+            stmt::StmtKind::Return(stmt) => self.visit_return_stmt(id, stmt),
+            stmt::StmtKind::Result(stmt) => self.visit_result_stmt(id, stmt),
         }
     }
 
@@ -352,6 +356,8 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::Case(node) => self.walk_case(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
             stmt::StmtKind::Call(node) => self.walk_call(in_body, node),
+            stmt::StmtKind::Return(_) => {}
+            stmt::StmtKind::Result(node) => self.walk_result(in_body, node),
         }
     }
 
@@ -459,6 +465,10 @@ impl<'hir> Walker<'hir> {
     fn walk_block(&mut self, in_body: body::BodyId, node: &stmt::Block) {
         let stmts = &node.stmts;
         self.enter_stmts(in_body, stmts);
+    }
+
+    fn walk_result(&mut self, in_body: body::BodyId, node: &stmt::Result) {
+        self.enter_expr(in_body, node.expr);
     }
 
     fn walk_expr(&mut self, in_body: body::BodyId, expr: &expr::Expr) {

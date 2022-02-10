@@ -396,6 +396,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         };
         self.emit_node("CallStmt", span, Some(format_args!("[{extra}]")));
     }
+    fn visit_return_stmt(&self, id: BodyStmt, _stmt: &stmt::Return) {
+        let span = self.stmt_span(id);
+        self.emit_node("Return", span, None)
+    }
+    fn visit_result_stmt(&self, id: BodyStmt, _stmt: &stmt::Result) {
+        let span = self.stmt_span(id);
+        self.emit_node("Result", span, None)
+    }
 
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {

@@ -1146,3 +1146,13 @@ fn lower_call_stmt() {
     // Arbitrary exprs are treated as calls
     assert_lower("1");
 }
+
+#[test]
+fn lower_return_stmt() {
+    assert_lower("return");
+}
+
+#[test]
+fn lower_result_stmt() {
+    assert_lower(r#"result "sus""#);
+}

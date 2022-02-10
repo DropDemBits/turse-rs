@@ -45,8 +45,10 @@ pub enum StmtKind {
     // Assert { .. }
     // Calling expression, in statement position
     Call(expr::Call),
-    // Return { .. }
-    // Result { .. }
+    /// Return statement (`return`, for `procedure`s and `process`es)
+    Return(Return),
+    /// Result statement (`result (expr)`, only for `function`s)
+    Result(Result),
     // New { .. }
     // Free { .. }
     // Tag { .. }
@@ -305,4 +307,12 @@ pub enum GetWidth {
     Line,
     /// Fetch a specific amount of characters.
     Chars(expr::ExprId),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Return;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Result {
+    pub expr: expr::ExprId,
 }

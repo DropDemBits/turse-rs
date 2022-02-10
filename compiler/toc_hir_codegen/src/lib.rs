@@ -917,6 +917,8 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
             hir_stmt::StmtKind::Call(_stmt) => todo!(),
+            hir_stmt::StmtKind::Return(_stmt) => todo!(),
+            hir_stmt::StmtKind::Result(_stmt) => todo!(),
         }
         self.code_fragment.unbump_temp_allocs();
     }

@@ -56,9 +56,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::AssertStmt(_) => self.unsupported_stmt(span),
 
             ast::Stmt::CallStmt(stmt) => self.lower_call_stmt(stmt),
+            ast::Stmt::ReturnStmt(stmt) => self.lower_return_stmt(stmt),
+            ast::Stmt::ResultStmt(stmt) => self.lower_result_stmt(stmt),
 
-            ast::Stmt::ReturnStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ResultStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::NewStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::FreeStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::TagStmt(_) => self.unsupported_stmt(span),
@@ -778,6 +778,16 @@ impl super::BodyLowering<'_, '_> {
         };
 
         Some(stmt::StmtKind::Call(call))
+    }
+
+    fn lower_return_stmt(&mut self, _stmt: ast::ReturnStmt) -> Option<stmt::StmtKind> {
+        Some(stmt::StmtKind::Return(stmt::Return))
+    }
+
+    fn lower_result_stmt(&mut self, stmt: ast::ResultStmt) -> Option<stmt::StmtKind> {
+        Some(stmt::StmtKind::Result(stmt::Result {
+            expr: self.lower_required_expr(stmt.expr()),
+        }))
     }
 }
 

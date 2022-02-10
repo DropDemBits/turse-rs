@@ -1,0 +1,13 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "result \"sus\""
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..12): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..12): []
+        Result@(FileId(1), 0..12)
+          Literal@(FileId(1), 7..12): String("sus")
+
