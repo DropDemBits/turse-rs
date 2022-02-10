@@ -1154,5 +1154,5 @@ fn lower_return_stmt() {
 
 #[test]
 fn lower_result_stmt() {
-    assert_lower(r#"result "sus""#);
+    assert_lower(r#"fcn _ : string result "sus" end _"#);
 }
