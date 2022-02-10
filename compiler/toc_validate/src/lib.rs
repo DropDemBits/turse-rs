@@ -135,6 +135,8 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ExitStmt(stmt) => stmt::validate_exit_stmt(stmt, ctx),
             ast::CaseStmt(stmt) => stmt::validate_case_stmt(stmt, ctx),
             ast::InvariantStmt(stmt) => stmt::validate_invariant_stmt(stmt, ctx),
+            ast::ReturnStmt(stmt) => stmt::validate_return_stmt(stmt, ctx),
+            ast::ResultStmt(stmt) => stmt::validate_result_stmt(stmt, ctx),
             // Types
             ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
             _ => (),
@@ -215,10 +217,23 @@ impl BlockKind {
             Self::Module | Self::Class | Self::Monitor | Self::MonitorClass | Self::MonitorDevice
         )
     }
+
+    fn is_subprogram(self) -> bool {
+        matches!(
+            self,
+            Self::Function | Self::Procedure | Self::Process | Self::Body
+        )
+    }
 }
 
 pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
     walk_blocks(start).next().unwrap()
+}
+
+pub(crate) fn item_block_containing_node(start: &SyntaxNode) -> BlockKind {
+    walk_blocks(start)
+        .find(|kind| !matches!(kind, BlockKind::Inner | BlockKind::Loop))
+        .unwrap()
 }
 
 pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {

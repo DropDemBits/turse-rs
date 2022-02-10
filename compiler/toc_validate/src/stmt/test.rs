@@ -2,6 +2,9 @@
 use crate::check;
 use expect_test::expect;
 
+// FIXME: Something like `monitor p begin monitor j end j end end p` isn't rejected
+// (for some things, we need to check the containing item block)
+
 #[test]
 fn report_dangling_else() {
     check(
@@ -859,5 +862,125 @@ fn report_import_stmt_in_body() {
         expect![[r#"
         error in file FileId(1) at 7..21: useless ‘import’ statement
         | error in file FileId(1) for 7..21: ‘import’ statements are ignored in ‘body’ declaration"#]],
+    );
+}
+
+#[test]
+fn return_stmt_in_main() {
+    check("return", expect![[r#""#]]);
+}
+
+#[test]
+fn report_return_stmt_in_unit() {
+    check(
+        "unit return",
+        expect![[r#"
+        error in file FileId(1) at 5..11: invalid unit file
+        | error in file FileId(1) for 5..11: expected a module, class, or monitor declaration"#]],
+    );
+}
+
+#[test]
+fn return_stmt_in_module_body() {
+    check("module m return end m", expect![[r#""#]]);
+}
+
+#[test]
+fn return_stmt_in_procedure_body() {
+    check("procedure p return end p", expect![[r#""#]]);
+}
+
+#[test]
+fn return_stmt_in_process_body() {
+    check("process p return end p", expect![[r#""#]]);
+}
+
+#[test]
+fn return_stmt_in_body_body() {
+    // Note: see `stmt::validate_result_stmt` on why this is always accepted
+    check("body p return end p", expect![[r#""#]]);
+}
+
+#[test]
+fn report_return_stmt_in_function_body() {
+    check(
+        "function p : int return end p",
+        expect![[r#"
+        error in file FileId(1) at 17..23: cannot use ‘return’ here
+        | error in file FileId(1) for 17..23: ‘result’ statement is used to return values in function bodies"#]],
+    );
+}
+
+#[test]
+fn return_stmt_in_procedure_inner_body() {
+    check("proc p begin return end end p", expect![[r#""#]]);
+}
+
+#[test]
+fn report_result_stmt_in_main() {
+    check(
+        "result 'uwu'",
+        expect![[r#"
+        error in file FileId(1) at 0..12: cannot use ‘result’ here
+        | error in file FileId(1) for 0..12: ‘result’ statement is only allowed in function bodies"#]],
+    );
+}
+
+#[test]
+fn report_result_stmt_in_unit() {
+    check(
+        "unit result 'uwu'",
+        expect![[r#"
+        error in file FileId(1) at 5..17: invalid unit file
+        | error in file FileId(1) for 5..17: expected a module, class, or monitor declaration"#]],
+    );
+}
+
+#[test]
+fn report_result_stmt_in_module_body() {
+    check(
+        "module m result 'uwu' end m",
+        expect![[r#"
+        error in file FileId(1) at 9..21: cannot use ‘result’ here
+        | error in file FileId(1) for 9..21: ‘result’ statement is only allowed in function bodies"#]],
+    );
+}
+
+#[test]
+fn report_result_stmt_in_procedure_body() {
+    check(
+        "procedure p result 'uwu' end p",
+        expect![[r#"
+        error in file FileId(1) at 12..24: cannot use ‘result’ here
+        | error in file FileId(1) for 12..24: ‘result’ statement is only allowed in function bodies"#]],
+    );
+}
+
+#[test]
+fn report_result_stmt_in_process_body() {
+    check(
+        "process p result 'uwu' end p",
+        expect![[r#"
+        error in file FileId(1) at 10..22: cannot use ‘result’ here
+        | error in file FileId(1) for 10..22: ‘result’ statement is only allowed in function bodies"#]],
+    );
+}
+
+#[test]
+fn result_stmt_in_body_body() {
+    // Note: see `stmt::validate_result_stmt` on why this is always accepted
+    check("body p result 'uwu' end p", expect![[r#""#]]);
+}
+
+#[test]
+fn result_stmt_in_function_body() {
+    check("function p : int result 'uwu' end p", expect![[r#""#]]);
+}
+
+#[test]
+fn result_stmt_in_function_inner_body() {
+    check(
+        "function p : int begin result 'uwu' end end p",
+        expect![[r#""#]],
     );
 }
