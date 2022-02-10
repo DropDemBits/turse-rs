@@ -743,6 +743,7 @@ test_named_group! { typeck_assignment,
     ]
 }
 
+// For `is_coercible_into` uses, but in assignment position
 test_named_group! { assignability_into,
     [
         boolean => r#"
@@ -1086,7 +1087,82 @@ test_named_group! { equivalence_of,
         % alias with same base type
         for : ia0 .. ia1 end for
         for : ia1 .. ia0 end for
-        "#
+        "#,
+        // Over subprogram types
+        subprogram_formals => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        var p : procedure(a, b : int, var c : string)
+
+        var _ : t_p := p
+        "#,
+        subprogram_formals_cheat => r#"
+        type t_f : function(a, b : int, var c : string) : int
+        type t_fc : function(a, b : cheat int, var c : cheat string) : int
+        var f : t_f
+        var fc : t_fc
+
+        % transitive
+        f := fc
+        fc := f
+        "#,
+        subprogram_formals_register => r#"
+        type t_f : function(a, b : int, var c : string) : int
+        type t_fr : function(register a, b : int, var register c : string) : int
+        var f : t_f
+        var fc : t_fr
+
+        % transitive
+        f := fc
+        fc := f
+        "#,
+        subprogram_formals_bare => r#"
+        type t_f : function : int
+        type t_p : procedure
+        type t_fp : function() : int
+        type t_pp : procedure()
+
+        var f : t_f
+        var p : t_p
+        var fp : t_fp
+        var pp : t_pp
+
+        % transitive
+        f := fp
+        fp := f
+
+        p := pp
+        pp := p
+        "#,
+        subprogram_formals_err_too_few => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        var p : procedure (a : int, var c : string)
+
+        var _ : t_p := p
+        "#,
+        subprogram_formals_err_too_many => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        var p : procedure (a, b, k : int, var c : string)
+
+        var _ : t_p := p
+        "#,
+        subprogram_formals_err_not_var => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        var p : procedure (a, b : int, c : string)
+
+        var _ : t_p := p
+        "#,
+        subprogram_result => r#"
+        type fa : function () : int
+        var fb : function () : int
+
+        var _ : fa := fb
+        "#,
+        subprogram_result_err => r#"
+        type fa : function () : int1
+        var fb : function  () : int
+
+        var _ : fa := fb
+        "#,
     ]
 }
 

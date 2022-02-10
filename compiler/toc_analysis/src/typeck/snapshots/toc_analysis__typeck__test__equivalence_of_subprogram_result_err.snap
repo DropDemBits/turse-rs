@@ -1,0 +1,17 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "type fa : function () : int1\nvar fb : function  () : int\n\nvar _ : fa := fb\n"
+
+---
+"<unnamed>"@(dummy) [Declared]: <error>
+"fa"@(FileId(1), 5..7) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> int1
+"<unnamed>"@(dummy) [Declared]: <error>
+"fb"@(FileId(1), 33..35) [Declared]: function ( ) -> int
+"_"@(FileId(1), 62..63) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> int1
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 72..74: mismatched types
+| note in file FileId(1) for 72..74: this is of type `function () : int`
+| note in file FileId(1) for 66..68: this is of type `fa (alias of function () : int1)`
+| info: `function () : int` is not assignable into `function () : int1`
