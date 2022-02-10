@@ -54,7 +54,9 @@ impl super::BodyLowering<'_, '_> {
 
             ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::AssertStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::CallStmt(_) => self.unsupported_stmt(span),
+
+            ast::Stmt::CallStmt(stmt) => self.lower_call_stmt(stmt),
+
             ast::Stmt::ReturnStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::ResultStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::NewStmt(_) => self.unsupported_stmt(span),
@@ -756,6 +758,31 @@ impl super::BodyLowering<'_, '_> {
             stmts,
         }))
     }
+
+    fn lower_call_stmt(&mut self, stmt: ast::CallStmt) -> Option<stmt::StmtKind> {
+        let call = match stmt.expr() {
+            Some(ast::Expr::CallExpr(call)) => {
+                let lhs = self.lower_required_expr(call.expr());
+                let arguments = self.lower_expr_arg_list(call.param_list());
+
+                stmt::Call { lhs, arguments }
+            }
+            other_expr => {
+                let lhs = self.lower_required_expr(other_expr);
+
+                stmt::Call {
+                    lhs,
+                    arguments: None,
+                }
+            }
+        };
+
+        Some(stmt::StmtKind::Call(call))
+    }
+}
+
+impl super::BodyLowering<'_, '_> {
+    // Utils //
 
     fn lower_stmt_list_to_block(
         &mut self,

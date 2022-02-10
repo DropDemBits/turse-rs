@@ -42,6 +42,7 @@ pub trait HirVisitor {
     fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {}
     fn visit_case(&self, id: BodyStmt, stmt: &stmt::Case) {}
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {}
+    fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {}
     // Exprs
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {
         self.specify_expr(id, expr);
@@ -50,6 +51,7 @@ pub trait HirVisitor {
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {}
+    fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {}
     // Types
     fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {
         self.specify_type(id, ty);
@@ -83,6 +85,7 @@ pub trait HirVisitor {
             stmt::StmtKind::If(stmt) => self.visit_if(id, stmt),
             stmt::StmtKind::Case(stmt) => self.visit_case(id, stmt),
             stmt::StmtKind::Block(stmt) => self.visit_block(id, stmt),
+            stmt::StmtKind::Call(stmt) => self.visit_call_stmt(id, stmt),
         }
     }
 
@@ -93,6 +96,7 @@ pub trait HirVisitor {
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
             expr::ExprKind::Name(expr) => self.visit_name(id, expr),
+            expr::ExprKind::Call(expr) => self.visit_call_expr(id, expr),
         }
     }
 
@@ -347,6 +351,7 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::If(node) => self.walk_if(in_body, node),
             stmt::StmtKind::Case(node) => self.walk_case(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
+            stmt::StmtKind::Call(node) => self.walk_call(in_body, node),
         }
     }
 
@@ -463,6 +468,7 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Binary(node) => self.walk_binary(in_body, node),
             expr::ExprKind::Unary(node) => self.walk_unary(in_body, node),
             expr::ExprKind::Name(_) => {}
+            expr::ExprKind::Call(node) => self.walk_call(in_body, node),
         }
     }
 
@@ -473,6 +479,18 @@ impl<'hir> Walker<'hir> {
 
     fn walk_unary(&mut self, in_body: body::BodyId, node: &expr::Unary) {
         self.enter_expr(in_body, node.rhs);
+    }
+
+    fn walk_call(&mut self, in_body: body::BodyId, node: &expr::Call) {
+        self.enter_expr(in_body, node.lhs);
+
+        if let Some(args) = &node.arguments {
+            for arg in args {
+                match arg {
+                    expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
+                }
+            }
+        }
     }
 
     fn walk_type(&mut self, node: &ty::Type) {

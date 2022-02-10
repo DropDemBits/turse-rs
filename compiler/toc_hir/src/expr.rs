@@ -33,7 +33,8 @@ pub enum ExprKind {
     //Arrow(Arrow),
     //Indirect(Indirect),
     //Bits(Bits),
-    //Call(Call),
+    /// Calling expression
+    Call(Call),
 }
 
 /// Literal expression
@@ -154,4 +155,21 @@ pub enum Name {
     /// Reference to `self`
     // TODO: Link a use-id to the appropriate class DefId
     Self_,
+}
+
+/// Calling expression
+#[derive(Debug, PartialEq, Eq)]
+pub struct Call {
+    /// Reference to the calling expression
+    pub lhs: ExprId,
+    /// Arguments to the call
+    pub arguments: Option<ArgList>,
+}
+
+// Argument list
+pub type ArgList = Vec<Arg>;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Arg {
+    Expr(ExprId),
 }

@@ -1108,3 +1108,41 @@ fn lower_function_tys() {
     // Emitted from AST validation
     assert_lower("type _ : function amphy : int");
 }
+
+#[test]
+fn lower_call_expr() {
+    // Bare
+    // (treated as name expr, since we need the type to disambiguate between the actual cases)
+    // TODO: Handle parameterless calls
+    assert_lower("proc call end call var _ := call");
+    // No params
+    assert_lower("proc call end call var _ := call()");
+    // Some args
+    assert_lower("proc call end call var _ := call(1,2,3)");
+
+    // Missing trailing
+    assert_lower("proc call end call var _ := call(1,,)");
+    // Missing
+    assert_lower("proc call end call var _ := call(,,)");
+}
+
+#[test]
+fn lower_call_expr_unsupported_arg() {
+    // AllArg
+    assert_lower("proc call end call var _ := call(all)");
+    // RangeArg
+    assert_lower("proc call end call var _ := call(*)");
+    // RangeArg, full
+    assert_lower("proc call end call var _ := call(*..*)");
+}
+
+#[test]
+fn lower_call_stmt() {
+    // Just name
+    assert_lower("proc call end call call");
+    // `Call` is inlined
+    assert_lower("proc call end call call()");
+
+    // Arbitrary exprs are treated as calls
+    assert_lower("1");
+}

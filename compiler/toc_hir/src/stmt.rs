@@ -4,6 +4,7 @@ use toc_span::SpanId;
 use crate::{expr, item, symbol, ty};
 
 pub use crate::ids::{BodyStmt, StmtId};
+pub use expr::Call;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Stmt {
@@ -42,7 +43,8 @@ pub enum StmtKind {
     Block(Block),
     // Invariant { .. }
     // Assert { .. }
-    // Call { .. }
+    // Calling expression, in statement position
+    Call(expr::Call),
     // Return { .. }
     // Result { .. }
     // New { .. }

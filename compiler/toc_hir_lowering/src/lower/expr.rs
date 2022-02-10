@@ -64,7 +64,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::ArrowExpr(_) => self.unsupported_expr(span),
             ast::Expr::IndirectExpr(_) => self.unsupported_expr(span),
             ast::Expr::BitsExpr(_) => self.unsupported_expr(span),
-            ast::Expr::CallExpr(_) => self.unsupported_expr(span),
+            ast::Expr::CallExpr(expr) => self.lower_call_expr(expr),
         }
         .unwrap_or(expr::ExprKind::Missing);
 
@@ -156,6 +156,39 @@ impl super::BodyLowering<'_, '_> {
         }
 
         Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
+    }
+
+    fn lower_call_expr(&mut self, expr: ast::CallExpr) -> Option<expr::ExprKind> {
+        let lhs = self.lower_required_expr(expr.expr());
+        let arguments = self.lower_expr_arg_list(expr.param_list());
+
+        Some(expr::ExprKind::Call(expr::Call { lhs, arguments }))
+    }
+
+    pub(super) fn lower_expr_arg_list(
+        &mut self,
+        args: Option<ast::ParamList>,
+    ) -> Option<expr::ArgList> {
+        let mut arg_list = vec![];
+
+        for arg in args?.param() {
+            let arg = match arg.param_kind() {
+                Some(ast::ParamKind::Expr(expr)) => expr::Arg::Expr(self.lower_expr(expr)),
+                None => expr::Arg::Expr(self.lower_required_expr(None)),
+                Some(node) => {
+                    // Either RangeArg or AllArg
+                    // Unsupported for now
+                    let span = self.ctx.intern_range(node.syntax().text_range());
+                    self.unsupported_expr(span);
+
+                    expr::Arg::Expr(self.lower_required_expr(None))
+                }
+            };
+
+            arg_list.push(arg);
+        }
+
+        Some(arg_list)
     }
 }
 

@@ -388,6 +388,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Block", span, Some(format_args!("{:?}", stmt.kind)))
     }
+    fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {
+        let span = self.stmt_span(id);
+        let extra = match &stmt.arguments {
+            Some(_) => "...",
+            None => "no params",
+        };
+        self.emit_node("CallStmt", span, Some(format_args!("[{extra}]")));
+    }
 
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {
@@ -412,6 +420,15 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             expr::Name::Self_ => self.emit_node("Self", span, None),
         }
     }
+    fn visit_call_expr(&self, id: BodyExpr, stmt: &expr::Call) {
+        let span = self.expr_span(id);
+        let extra = match &stmt.arguments {
+            Some(_) => "...",
+            None => "no params",
+        };
+        self.emit_node("CallExpr", span, Some(format_args!("[{extra}]")));
+    }
+
     // Types //
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
         let span = self.type_span(id);

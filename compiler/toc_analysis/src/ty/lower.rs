@@ -219,6 +219,7 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr),
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
+        expr::ExprKind::Call(_expr) => todo!(),
     }
 }
 

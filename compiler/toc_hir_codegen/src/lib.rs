@@ -916,6 +916,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::If(stmt) => self.generate_stmt_if(stmt),
             hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
+            hir_stmt::StmtKind::Call(_stmt) => todo!(),
         }
         self.code_fragment.unbump_temp_allocs();
     }
@@ -1573,6 +1574,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
             hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr),
+            hir_expr::ExprKind::Call(_expr) => todo!(),
         }
     }
 
@@ -1987,13 +1989,11 @@ impl BodyCodeGenerator<'_> {
         self.emit_location(span);
 
         match &expr.kind {
+            // Right now, only names can produce references
             hir_expr::ExprKind::Name(ref_expr) => self.generate_ref_expr_name(ref_expr),
-            // These can never be in reference producing position
-            hir_expr::ExprKind::Missing
-            | hir_expr::ExprKind::Literal(_)
-            | hir_expr::ExprKind::Binary(_)
-            | hir_expr::ExprKind::Unary(_) => {
-                unreachable!("malformed code reached code generation")
+            // The rest can never be in reference producing position
+            _ => {
+                unreachable!("malformed code reached code generation (producing reference from non-reference expr)")
             }
         }
     }
