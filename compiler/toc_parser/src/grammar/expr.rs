@@ -6,34 +6,62 @@ use super::*;
 use toc_syntax::{InfixOp, PrefixOp, SyntaxKind};
 
 pub(super) fn expect_param_expr(p: &mut Parser) -> Option<CompletedMarker> {
+    // cases:
+    // AllArg: 'all'
+    // ExprArg: Expr
+    // RangeArg: '*' ( '-' Expr)?
+    // RangeArg: RangeBound '..' RangeBound
+
     if p.at(TokenKind::All) {
         let m = p.start();
         p.bump();
         return Some(m.complete(p, SyntaxKind::AllItem));
     }
 
-    let mut lhs = expect_range_bound(p)?;
-
-    if p.at(TokenKind::Range) {
-        let m = lhs.precede(p);
+    let bound = expect_range_bound(p)?;
+    let lhs = if p.at(TokenKind::Range) {
+        let m = bound.marker().precede(p);
         p.bump();
 
         expect_range_bound(p);
 
-        lhs = m.complete(p, SyntaxKind::RangeItem);
-    }
+        m.complete(p, SyntaxKind::RangeItem)
+    } else {
+        match bound {
+            ParsedBound::Expr(m) => m,
+            // Embed the bound in a range expr
+            ParsedBound::Bound(m) => m.precede(p).complete(p, SyntaxKind::RangeItem),
+        }
+    };
 
     Some(lhs)
 }
 
-fn expect_range_bound(p: &mut Parser) -> Option<CompletedMarker> {
-    self::range_bound(p).or_else(|| self::expr(p)).or_else(|| {
-        // not an appropriate primary expr or range bound
-        p.error_unexpected()
-            .with_category(Expected::Expression)
-            .report();
-        None
-    })
+enum ParsedBound {
+    Expr(CompletedMarker),
+    Bound(CompletedMarker),
+}
+
+impl ParsedBound {
+    fn marker(self) -> CompletedMarker {
+        match self {
+            ParsedBound::Expr(m) => m,
+            ParsedBound::Bound(m) => m,
+        }
+    }
+}
+
+fn expect_range_bound(p: &mut Parser) -> Option<ParsedBound> {
+    self::range_bound(p)
+        .map(ParsedBound::Bound)
+        .or_else(|| self::expr(p).map(ParsedBound::Expr))
+        .or_else(|| {
+            // not an appropriate primary expr or range bound
+            p.error_unexpected()
+                .with_category(Expected::Expression)
+                .report();
+            None
+        })
 }
 
 fn range_bound(p: &mut Parser) -> Option<CompletedMarker> {
