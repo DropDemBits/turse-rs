@@ -96,6 +96,7 @@ pub struct Subprogram {
     pub result_ty: TypeId,
 }
 
+/// Parameter for a [`Subprogram`]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Parameter {
     /// How the parameter should be passed in as
@@ -108,6 +109,7 @@ pub struct Parameter {
     pub param_ty: TypeId,
 }
 
+/// How a parameter should be passed in
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PassBy {
     /// Pass by value

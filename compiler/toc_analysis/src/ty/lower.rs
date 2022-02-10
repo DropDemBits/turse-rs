@@ -9,7 +9,7 @@ use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
 use crate::const_eval::{Const, ConstInt};
 use crate::db::TypeDatabase;
-use crate::ty::{self, TypeId, TypeKind};
+use crate::ty::{self, Param, TypeId, TypeKind};
 
 use super::{IntSize, NatSize, RealSize, SeqSize};
 
@@ -21,8 +21,8 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
-        hir_ty::TypeKind::Subprogram(_ty) => todo!(),
-        hir_ty::TypeKind::Void => todo!(),
+        hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Void => db.mk_void(),
     }
 }
 
@@ -75,6 +75,41 @@ fn alias_ty(
         db.mk_error()
     }
 }
+fn subprogram_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Subprogram,
+) -> TypeId {
+    let library_id = hir_id.0;
+    let params = subprogram_param_list(db, library_id, ty.param_list.as_ref());
+    let result = require_resolved_hir_type(db, ty.result_ty.in_library(library_id));
+
+    db.mk_subprogram(ty.kind, params, result)
+}
+
+fn subprogram_param_list(
+    db: &dyn TypeDatabase,
+    library_id: LibraryId,
+    param_list: Option<&Vec<hir_ty::Parameter>>,
+) -> Option<Vec<Param>> {
+    let param_list = param_list?
+        .iter()
+        .map(|param| {
+            let param_ty = require_resolved_hir_type(db, param.param_ty.in_library(library_id));
+            ty::Param {
+                is_register: param.is_register,
+                pass_by: match param.pass_by {
+                    hir_ty::PassBy::Value => ty::PassBy::Value,
+                    hir_ty::PassBy::Reference(kind) => ty::PassBy::Reference(kind),
+                },
+                coerced_type: param.coerced_type,
+                param_ty,
+            }
+        })
+        .collect();
+
+    Some(param_list)
+}
 
 pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemId>) -> TypeId {
     let library = db.library(item_id.0);
@@ -84,21 +119,8 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
         item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
         item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
-        item::ItemKind::Subprogram(_) => todo!(),
+        item::ItemKind::Subprogram(item) => subprogram_item_ty(db, item_id, item),
         item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
-    }
-}
-
-pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
-    let library_id = stmt_id.0;
-    let stmt_id = stmt_id.1;
-
-    let library = db.library(library_id);
-    let stmt = library.body(stmt_id.0).stmt(stmt_id.1);
-
-    match &stmt.kind {
-        stmt::StmtKind::For(stmt) => for_counter_ty(db, library_id, stmt_id, stmt),
-        _ => unreachable!("not a def owner"),
     }
 }
 
@@ -169,6 +191,35 @@ fn bind_def_ty(
     // Takes the type from what it's bound to
     let item_ty = db.type_of((item_id.0, item.bind_to).into());
     require_resolved_type(db, item_ty)
+}
+
+fn subprogram_item_ty(
+    db: &dyn TypeDatabase,
+    item_id: InLibrary<item::ItemId>,
+    item: &item::Subprogram,
+) -> TypeId {
+    let library_id = item_id.0;
+    let param_ty = subprogram_param_list(
+        db,
+        library_id,
+        item.param_list.as_ref().map(|params| &params.tys),
+    );
+    let result_ty = require_resolved_hir_type(db, item.result.ty.in_library(library_id));
+
+    db.mk_subprogram(item.kind, param_ty, result_ty)
+}
+
+pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
+    let library_id = stmt_id.0;
+    let stmt_id = stmt_id.1;
+
+    let library = db.library(library_id);
+    let stmt = library.body(stmt_id.0).stmt(stmt_id.1);
+
+    match &stmt.kind {
+        stmt::StmtKind::For(stmt) => for_counter_ty(db, library_id, stmt_id, stmt),
+        _ => unreachable!("not a def owner"),
+    }
 }
 
 fn for_counter_ty(
@@ -273,6 +324,10 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
             todo!()
         }
     }
+}
+
+fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId>) -> TypeId {
+    require_resolved_type(db, db.from_hir_type(ty))
 }
 
 /// Requires that a type is resolved at this point, otherwise produces

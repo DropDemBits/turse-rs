@@ -12,6 +12,8 @@ use crate::{
 use super::TyRef;
 
 impl TypeKind {
+    // ???: Do we want to move all of these into `TyRef`?
+
     pub fn is_number(&self) -> bool {
         matches!(
             self,
@@ -80,6 +82,34 @@ impl TypeKind {
         self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
     }
 
+    /// If the type can be printed in a `put` stmt
+    ///
+    /// Can be one of the following:
+    /// - Int
+    /// - Nat
+    /// - Real
+    /// - Char
+    /// - Char(N)
+    /// - String
+    /// - String(N)
+    /// - Boolean
+    /// - Enum
+    pub fn is_printable(&self) -> bool {
+        // missing: Enum
+        matches!(
+            self,
+            TypeKind::Boolean
+                | TypeKind::Int(_)
+                | TypeKind::Nat(_)
+                | TypeKind::Real(_)
+                | TypeKind::Integer
+                | TypeKind::Char
+                | TypeKind::CharN(_)
+                | TypeKind::String
+                | TypeKind::StringN(_)
+        )
+    }
+
     /// scalar types are types representing only 1 value
     pub fn is_scalar(&self) -> bool {
         match self {
@@ -89,9 +119,9 @@ impl TypeKind {
             | TypeKind::Nat(_)
             | TypeKind::Real(_)
             | TypeKind::Integer
-            | TypeKind::Char => true,
+            | TypeKind::Char
+            | TypeKind::Subprogram(..) => true,
             // Missing scalars:
-            // - function handle
             // - subrange
             // - pointer
             // - enum
@@ -108,6 +138,7 @@ impl TypeKind {
                 // Forward types are never scalars, since they never represent any type
                 false
             }
+            TypeKind::Void => false,
         }
     }
 

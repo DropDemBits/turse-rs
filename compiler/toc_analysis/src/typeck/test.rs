@@ -1405,6 +1405,29 @@ test_named_group! { typeck_bind_decl,
     ]
 }
 
+test_named_group! { typeck_subprog_ty,
+    [
+        from_function => "function sha(a : int, b : char) : int end sha",
+        from_procedure => "procedure sha(a : int, b : char) end sha",
+        from_process => "process sha(a : int, b : char) end sha",
+        from_alias_function => "type sha : function (a : int, b : char) : int",
+        from_alias_procedure => "type sha : procedure (a : int, b : char)",
+
+        param_attrs => "type _ : procedure (
+            ki : int,
+            var v : int,
+            register r : int,
+            var register vr : int,
+            ci : cheat int,
+            var vci : cheat int,
+            register rci : cheat int,
+            var register vrci : cheat int
+        )",
+        bare_procedure => "type _ : procedure",
+        bare_function => "function a : int end a",
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",

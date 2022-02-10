@@ -510,21 +510,13 @@ impl TypeCheck<'_> {
         // - Boolean
         // - Enum
 
-        // For now, all lowered types satisfy this condition
-        match ty_dat.kind() {
-            ty::TypeKind::Error
-            | ty::TypeKind::Forward // accept since it's like error
-            | ty::TypeKind::Boolean
-            | ty::TypeKind::Int(_)
-            | ty::TypeKind::Nat(_)
-            | ty::TypeKind::Real(_)
-            | ty::TypeKind::Integer
-            | ty::TypeKind::Char
-            | ty::TypeKind::String
-            | ty::TypeKind::CharN(_)
-            | ty::TypeKind::StringN(_) => true,
-            // Already de-aliased
-            ty::TypeKind::Alias(_, _) => unreachable!(),
+        if ty_dat.kind().is_printable()
+            || matches!(ty_dat.kind(), ty::TypeKind::Error | ty::TypeKind::Forward)
+        {
+            true
+        } else {
+            debug_assert!(!matches!(ty_dat.kind(), ty::TypeKind::Alias(..)));
+            todo!("from {ty_dat:?}");
         }
     }
 

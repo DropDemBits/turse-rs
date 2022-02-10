@@ -2050,7 +2050,11 @@ impl BodyCodeGenerator<'_> {
                     .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
             }
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+            ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
+            ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _)
+            | ty::TypeKind::Void => {
                 unreachable!()
             }
         };
@@ -2101,7 +2105,11 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+            ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),
+            ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _)
+            | ty::TypeKind::Void => {
                 unreachable!()
             }
         };

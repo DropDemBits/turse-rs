@@ -1,5 +1,6 @@
 //! Analysis query system definitions
 
+use toc_hir::symbol;
 use toc_hir::{
     body::BodyId,
     expr::{BodyExpr, ExprId},
@@ -45,6 +46,13 @@ pub trait TypeInternExt {
     fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_forward(&self) -> ty::TypeId;
+    fn mk_subprogram(
+        &self,
+        kind: symbol::SubprogramKind,
+        params: Option<Vec<ty::Param>>,
+        result: ty::TypeId,
+    ) -> ty::TypeId;
+    fn mk_void(&self) -> ty::TypeId;
 }
 
 /// Anything which can produce a type

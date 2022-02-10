@@ -1,5 +1,6 @@
 //! Type-related query implementation
 
+use toc_hir::symbol;
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
@@ -11,7 +12,7 @@ use toc_hir::{
 use crate::db;
 
 use super::lower;
-use super::{IntSize, NatSize, RealSize, SeqSize, Type, TypeId, TypeKind};
+use super::{IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
@@ -168,6 +169,29 @@ where
         self.intern_type(
             Type {
                 kind: TypeKind::Forward,
+            }
+            .into(),
+        )
+    }
+
+    fn mk_subprogram(
+        &self,
+        kind: symbol::SubprogramKind,
+        params: Option<Vec<Param>>,
+        result: TypeId,
+    ) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Subprogram(kind, params, result),
+            }
+            .into(),
+        )
+    }
+
+    fn mk_void(&self) -> super::TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Void,
             }
             .into(),
         )
