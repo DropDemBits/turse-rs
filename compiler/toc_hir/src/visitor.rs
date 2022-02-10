@@ -18,9 +18,7 @@ pub trait HirVisitor {
     fn visit_library(&self, library: &library::Library) {}
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {}
     // Items
-    fn visit_item(&self, id: item::ItemId, item: &item::Item) {
-        self.specify_item(id, item);
-    }
+    fn visit_item(&self, id: item::ItemId, item: &item::Item) {}
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {}
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {}
     fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {}
@@ -29,9 +27,7 @@ pub trait HirVisitor {
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {}
     // Stmts
-    fn visit_stmt(&self, id: BodyStmt, stmt: &stmt::Stmt) {
-        self.specify_stmt(id, stmt);
-    }
+    fn visit_stmt(&self, id: BodyStmt, stmt: &stmt::Stmt) {}
     fn visit_item_stmt(&self, id: BodyStmt, item: item::ItemId) {}
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {}
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {}
@@ -46,18 +42,14 @@ pub trait HirVisitor {
     fn visit_return_stmt(&self, id: BodyStmt, stmt: &stmt::Return) {}
     fn visit_result_stmt(&self, id: BodyStmt, stmt: &stmt::Result) {}
     // Exprs
-    fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {
-        self.specify_expr(id, expr);
-    }
+    fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {}
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {}
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {}
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {}
     // Types
-    fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {
-        self.specify_type(id, ty);
-    }
+    fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {}
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {}
@@ -137,11 +129,23 @@ impl WalkNode<'_> {
         match self {
             WalkNode::Library(library) => visitor.visit_library(library),
             WalkNode::FileRoot(file, id) => visitor.visit_file_root(*file, *id),
-            WalkNode::Item(id, item) => visitor.visit_item(*id, item),
             WalkNode::Body(id, body) => visitor.visit_body(*id, body),
-            WalkNode::Stmt(id, stmt) => visitor.visit_stmt(*id, stmt),
-            WalkNode::Expr(id, expr) => visitor.visit_expr(*id, expr),
-            WalkNode::Type(id, ty) => visitor.visit_type(*id, ty),
+            WalkNode::Item(id, item) => {
+                visitor.visit_item(*id, item);
+                visitor.specify_item(*id, item);
+            }
+            WalkNode::Stmt(id, stmt) => {
+                visitor.visit_stmt(*id, stmt);
+                visitor.specify_stmt(*id, stmt);
+            }
+            WalkNode::Expr(id, expr) => {
+                visitor.visit_expr(*id, expr);
+                visitor.specify_expr(*id, expr);
+            }
+            WalkNode::Type(id, ty) => {
+                visitor.visit_type(*id, ty);
+                visitor.specify_type(*id, ty);
+            }
         }
     }
 }
