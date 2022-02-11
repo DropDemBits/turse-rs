@@ -311,36 +311,6 @@ impl TypeCheck<'_> {
         }
     }
 
-    fn report_mismatched_assign_tys(
-        &self,
-        left: ty::TypeId,
-        right: ty::TypeId,
-        report_at: toc_span::Span,
-        left_span: toc_span::Span,
-        right_span: toc_span::Span,
-        target_name: Option<fn(String) -> String>,
-    ) {
-        let db = self.db;
-        let left_ty = left.in_db(db);
-        let right_ty = right.in_db(db);
-        let target_name = target_name.map_or_else(
-            || format!("this is of type `{left_ty}`"),
-            |f| f(format!("`{left_ty}`")),
-        );
-
-        self.state()
-            .reporter
-            .error_detailed("mismatched types", report_at)
-            .with_note(format!("this is of type `{right_ty}`"), right_span)
-            .with_note(target_name, left_span)
-            .with_info(format!(
-                "`{right}` is not assignable into `{left}`",
-                left = left_ty.peel_aliases(),
-                right = right_ty.peel_aliases()
-            ))
-            .finish();
-    }
-
     fn typeck_put(&self, body_id: body::BodyId, stmt: &stmt::Put) {
         let body = self.library.body(body_id);
 
@@ -1222,18 +1192,23 @@ impl TypeCheck<'_> {
                     |thing| format!("cannot pass {thing} to this parameter"),
                     None,
                 );
-            } else if !param.coerced_type
-                && !ty::rules::is_assignable(self.db, param.param_ty, arg_ty)
-            {
-                // ??? Do we ever want to refer to the original type?
-                self.report_mismatched_assign_tys(
-                    param.param_ty,
-                    arg_ty,
-                    arg_span,
-                    arg_span,
-                    arg_span,
-                    Some(|ty| format!("parameter expects type {ty}")),
-                );
+            } else if !param.coerced_type {
+                // Allow coercion for pass by value, but not for ref-args
+                let predicate = match param.pass_by {
+                    ty::PassBy::Value => ty::rules::is_assignable,
+                    ty::PassBy::Reference(_) => ty::rules::is_equivalent,
+                };
+
+                if !predicate(self.db, param.param_ty, arg_ty) {
+                    self.report_mismatched_param_tys(
+                        param.param_ty,
+                        arg_ty,
+                        arg_span,
+                        arg_span,
+                        arg_span,
+                        param.pass_by,
+                    );
+                }
             }
         }
 
@@ -1333,6 +1308,66 @@ impl TypeCheck<'_> {
                 None,
             );
         }
+    }
+
+    fn report_mismatched_assign_tys(
+        &self,
+        left: ty::TypeId,
+        right: ty::TypeId,
+        report_at: toc_span::Span,
+        left_span: toc_span::Span,
+        right_span: toc_span::Span,
+        target_name: Option<fn(String) -> String>,
+    ) {
+        let db = self.db;
+        let left_ty = left.in_db(db);
+        let right_ty = right.in_db(db);
+        let target_name = target_name.map_or_else(
+            || format!("this is of type `{left_ty}`"),
+            |f| f(format!("`{left_ty}`")),
+        );
+
+        self.state()
+            .reporter
+            .error_detailed("mismatched types", report_at)
+            .with_note(format!("this is of type `{right_ty}`"), right_span)
+            .with_note(target_name, left_span)
+            .with_info(format!(
+                "`{right}` is not assignable into `{left}`",
+                left = left_ty.peel_aliases(),
+                right = right_ty.peel_aliases()
+            ))
+            .finish();
+    }
+
+    fn report_mismatched_param_tys(
+        &self,
+        left: ty::TypeId,
+        right: ty::TypeId,
+        report_at: toc_span::Span,
+        left_span: toc_span::Span,
+        right_span: toc_span::Span,
+        pass_by: ty::PassBy,
+    ) {
+        let db = self.db;
+        let left_ty = left.in_db(db);
+        let right_ty = right.in_db(db);
+        let relation = match pass_by {
+            ty::PassBy::Value => "assignable into",
+            ty::PassBy::Reference(_) => "equivalent to",
+        };
+
+        self.state()
+            .reporter
+            .error_detailed("mismatched types", report_at)
+            .with_note(format!("this is of type `{right_ty}`"), right_span)
+            .with_note(format!("parameter expects type `{left_ty}`"), left_span)
+            .with_info(format!(
+                "`{right}` is not {relation} `{left}`",
+                left = left_ty.peel_aliases(),
+                right = right_ty.peel_aliases()
+            ))
+            .finish();
     }
 
     fn report_mismatched_binding(

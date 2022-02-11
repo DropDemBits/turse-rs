@@ -15,4 +15,4 @@ expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop
 error in file FileId(1) at 78..82: mismatched types
 | note in file FileId(1) for 78..82: this is of type `string`
 | note in file FileId(1) for 78..82: parameter expects type `int`
-| info: `string` is not assignable into `int`
+| info: `string` is not equivalent to `int`

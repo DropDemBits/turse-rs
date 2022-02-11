@@ -1600,6 +1600,23 @@ test_named_group! { typeck_subprog_call,
         boop(1, 2, 3, 4)
         boop(1, 2, 3, 4, 5)
         ",
+
+        // Coercion interactions
+        coerce_value_arg => "
+        procedure p(a : real) end p
+        var i : int
+        p(i)
+        ",
+        coerce_ref_arg_err => "
+        procedure p(var a : real) end p
+        var i : int
+        p(i)
+        ",
+        coerce_ref_arg_cheated => "
+        procedure p(var a : cheat real) end p
+        var i : int
+        p(i)
+        ",
     ]
 }
 
