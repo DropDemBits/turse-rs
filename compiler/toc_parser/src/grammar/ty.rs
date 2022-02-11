@@ -298,8 +298,7 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.expect_punct(TokenKind::Colon);
 
-    // optional: `cheat`
-    p.eat(TokenKind::Cheat);
+    attr_cheat(p);
 
     ty::ty(p);
 

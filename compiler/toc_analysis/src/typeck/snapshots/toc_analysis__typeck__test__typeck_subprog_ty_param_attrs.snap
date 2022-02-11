@@ -13,6 +13,6 @@ expression: "type _ : procedure (\n    ki : int,\n    var v : int,\n    register
 "vci"@(FileId(1), 129..132) [Declared]: <error>
 "rci"@(FileId(1), 159..162) [Declared]: <error>
 "vrci"@(FileId(1), 193..197) [Declared]: <error>
-"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(9))] of procedure ( pass(value) int, pass(var ref) int, pass(value) register int, pass(var ref) register int, pass(value) int, pass(var ref) int, pass(value) register int, pass(var ref) register int, ) -> void
+"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(9))] of procedure ( pass(value) int, pass(var ref) int, pass(value) register int, pass(var ref) register int, pass(value) cheat int, pass(var ref) cheat int, pass(value) register cheat int, pass(var ref) register cheat int, ) -> void
 "<root>"@(dummy) [Declared]: <error>
 

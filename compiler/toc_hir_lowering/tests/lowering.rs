@@ -1061,6 +1061,11 @@ fn lower_formals_use_name() {
 }
 
 #[test]
+fn lower_formals_cheat_attr() {
+    assert_lower("proc u (j : cheat int) end u");
+}
+
+#[test]
 fn lower_formals_intersperse_missing() {
     // Only 1 arg, with trailing comma
     assert_lower("procedure args(sa, : int) end args");

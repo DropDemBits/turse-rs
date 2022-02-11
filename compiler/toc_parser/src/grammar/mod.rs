@@ -384,6 +384,7 @@ make_single_attr!(attr_var, TokenKind::Var, SyntaxKind::VarAttr);
 make_single_attr!(attr_const, TokenKind::Const, SyntaxKind::ConstAttr);
 make_single_attr!(attr_forward, TokenKind::Forward, SyntaxKind::ForwardAttr);
 make_single_attr!(attr_opaque, TokenKind::Opaque, SyntaxKind::OpaqueAttr);
+make_single_attr!(attr_cheat, TokenKind::Cheat, SyntaxKind::CheatAttr);
 
 fn at_stmt_block_end(p: &mut Parser) -> bool {
     match_token!(|p| match {

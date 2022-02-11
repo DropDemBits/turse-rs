@@ -1571,12 +1571,11 @@ test_named_group! { typeck_subprog_call,
         procedure boop(a, b : int, var c : int) end boop
         boop(1, 2, tree)
         ",
-        // TODO: Uncomment when `cheat` attr is fixed
-        // args_err_cheat_ty => r#"
-        // var tree : string
-        // procedure boop(a, b : cheat int, var c : cheat int) end boop
-        // boop("tree", tree, tree)
-        // "#,
+        args_err_cheat_ty => r#"
+        var tree : string
+        procedure boop(a, b : cheat int, var c : cheat int) end boop
+        boop("tree", tree, tree)
+        "#,
         args_err_wrong_binding => "
         procedure boop(a, b : int, var c : int) end boop
         boop(1, 2, 3)

@@ -13,8 +13,8 @@ expression: "type t_f : function(a, b : int, var c : string) : int\ntype t_fc : 
 "a"@(FileId(1), 75..76) [Declared]: <error>
 "b"@(FileId(1), 78..79) [Declared]: <error>
 "c"@(FileId(1), 97..98) [Declared]: <error>
-"t_fc"@(FileId(1), 59..63) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"t_fc"@(FileId(1), 59..63) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
 "f"@(FileId(1), 125..126) [Declared]: alias[DefId(LibraryId(0), LocalDefId(4))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
-"fc"@(FileId(1), 137..139) [Declared]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) int, pass(value) int, pass(var ref) string, ) -> int
+"fc"@(FileId(1), 137..139) [Declared]: alias[DefId(LibraryId(0), LocalDefId(9))] of function ( pass(value) cheat int, pass(value) cheat int, pass(var ref) cheat string, ) -> int
 "<root>"@(dummy) [Declared]: <error>
 

@@ -2159,7 +2159,8 @@ fn parse_proc_type_all_constvar_attrs() {
                         Whitespace@37..38 " "
                         Colon@38..39 ":"
                         Whitespace@39..40 " "
-                        KwCheat@40..45 "cheat"
+                        CheatAttr@40..45
+                          KwCheat@40..45 "cheat"
                         Whitespace@45..46 " "
                         PrimType@46..49
                           KwInt@46..49 "int"
