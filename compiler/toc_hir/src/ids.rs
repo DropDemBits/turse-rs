@@ -45,6 +45,8 @@ crate::arena_id_wrapper!(
 crate::arena_id_wrapper!(
     /// A library local reference to a body.
     pub struct BodyId(body::Body);
+    /// Alias for the body arena index
+    pub(crate) type BodyIndex = Index;
 );
 
 crate::arena_id_wrapper!(

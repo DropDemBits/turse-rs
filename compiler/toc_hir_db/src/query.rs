@@ -3,9 +3,10 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
+use toc_hir::body::{BodyOwner, BodyTable};
 use toc_hir::item::ParameterInfo;
 use toc_hir::symbol::SymbolKind;
-use toc_hir::ty::PassBy;
+use toc_hir::ty::{self, PassBy};
 use toc_hir::{
     body, expr, item,
     library::{InLibrary, Library, LibraryId, LoweredLibrary},
@@ -43,6 +44,28 @@ pub fn collect_defs(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<DefTable
 
 pub fn lookup_def_owner(db: &dyn HirDatabase, def_id: DefId) -> Option<DefOwner> {
     db.defs_of(def_id.0).get_owner(def_id.1)
+}
+
+pub fn collect_body_owners(db: &dyn HirDatabase, library_id: LibraryId) -> Arc<BodyTable> {
+    use toc_hir::visitor::Walker;
+
+    let library = db.library(library_id);
+
+    // Collect definitions
+    let body_collector = BodyCollector {
+        body_table: Default::default(),
+        _library: &library,
+    };
+    Walker::from_library(&library).visit_preorder(&body_collector);
+
+    Arc::new(body_collector.body_table.into_inner())
+}
+
+pub fn lookup_body_owner(
+    db: &dyn HirDatabase,
+    body_id: InLibrary<body::BodyId>,
+) -> Option<BodyOwner> {
+    db.body_owners_of(body_id.0).get_owner(body_id.1)
 }
 
 pub fn lookup_item(db: &dyn HirDatabase, def_id: DefId) -> Option<InLibrary<item::ItemId>> {
@@ -210,6 +233,51 @@ impl HirVisitor for DefCollector<'_> {
     fn visit_for(&self, id: stmt::BodyStmt, stmt: &stmt::For) {
         if let Some(def_id) = stmt.counter_def {
             self.add_owner(def_id, DefOwner::Stmt(id))
+        }
+    }
+}
+
+/// Library-local body collector
+struct BodyCollector<'a> {
+    body_table: RefCell<BodyTable>,
+    _library: &'a Library,
+}
+
+impl BodyCollector<'_> {
+    fn add_owner(&self, body_id: body::BodyId, owner: BodyOwner) {
+        self.body_table.borrow_mut().add_owner(body_id, owner);
+    }
+}
+
+impl HirVisitor for BodyCollector<'_> {
+    fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
+        if let Some(init_expr) = item.init_expr {
+            self.add_owner(init_expr, BodyOwner::Item(id));
+        }
+    }
+
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
+        self.add_owner(item.body.body, BodyOwner::Item(id));
+
+        match item.extra {
+            item::SubprogramExtra::DeviceSpec(body) | item::SubprogramExtra::StackSize(body) => {
+                self.add_owner(body, BodyOwner::Item(id));
+            }
+            _ => (),
+        }
+    }
+
+    fn visit_module(&self, id: item::ItemId, item: &item::Module) {
+        self.add_owner(item.body, BodyOwner::Item(id));
+    }
+
+    fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
+        match ty {
+            ty::Primitive::SizedChar(ty::SeqLength::Expr(body))
+            | ty::Primitive::SizedString(ty::SeqLength::Expr(body)) => {
+                self.add_owner(*body, BodyOwner::Type(id));
+            }
+            _ => (),
         }
     }
 }

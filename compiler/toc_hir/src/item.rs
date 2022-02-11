@@ -92,6 +92,7 @@ pub struct Binding {
     /// The definition to bind to
     pub def_id: symbol::LocalDefId,
     /// Expression to bind the definition to
+    // ???: Why is this a body? Does it need to be (it can be a plain expr)?
     pub bind_to: body::BodyId,
 }
 
