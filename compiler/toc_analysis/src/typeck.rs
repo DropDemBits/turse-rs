@@ -142,6 +142,14 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_call_stmt(id.0, stmt);
     }
 
+    fn visit_return_stmt(&self, id: BodyStmt, stmt: &stmt::Return) {
+        self.typeck_return_stmt(id, stmt);
+    }
+
+    fn visit_result_stmt(&self, id: BodyStmt, stmt: &stmt::Result) {
+        self.typeck_result_stmt(id, stmt);
+    }
+
     fn visit_binary(&self, id: BodyExpr, expr: &toc_hir::expr::Binary) {
         self.typeck_binary(id.0, expr);
     }
@@ -199,7 +207,7 @@ impl TypeCheck<'_> {
                 .span
                 .lookup_in(&self.library.span_map);
 
-            self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span);
+            self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span, None);
 
             // Don't need to worry about ConstValue being anything,
             // since that should be handled by const eval type restrictions
@@ -296,7 +304,9 @@ impl TypeCheck<'_> {
                 let left_span = body.expr(item.lhs).span.lookup_in(&self.library.span_map);
                 let right_span = body.expr(item.rhs).span.lookup_in(&self.library.span_map);
 
-                self.report_mismatched_assign_tys(left, right, asn_span, left_span, right_span);
+                self.report_mismatched_assign_tys(
+                    left, right, asn_span, left_span, right_span, None,
+                );
             }
         }
     }
@@ -305,25 +315,24 @@ impl TypeCheck<'_> {
         &self,
         left: ty::TypeId,
         right: ty::TypeId,
-        asn_span: toc_span::Span,
+        report_at: toc_span::Span,
         left_span: toc_span::Span,
         right_span: toc_span::Span,
+        target_name: Option<fn(String) -> String>,
     ) {
         let db = self.db;
         let left_ty = left.in_db(db);
         let right_ty = right.in_db(db);
+        let target_name = target_name.map_or_else(
+            || format!("this is of type `{left_ty}`"),
+            |f| f(format!("`{left_ty}`")),
+        );
 
         self.state()
             .reporter
-            .error_detailed("mismatched types", asn_span)
-            .with_note(
-                format!("this is of type `{right}`", right = right_ty),
-                right_span,
-            )
-            .with_note(
-                format!("this is of type `{left}`", left = left_ty),
-                left_span,
-            )
+            .error_detailed("mismatched types", report_at)
+            .with_note(format!("this is of type `{right_ty}`"), right_span)
+            .with_note(target_name, left_span)
             .with_info(format!(
                 "`{right}` is not assignable into `{left}`",
                 left = left_ty.peel_aliases(),
@@ -778,6 +787,118 @@ impl TypeCheck<'_> {
         self.typeck_call(body, stmt.lhs, stmt.arguments.as_ref(), false);
     }
 
+    fn typeck_return_stmt(&self, id: stmt::BodyStmt, _stmt: &stmt::Return) {
+        // Verify that we're in the correct statement
+        let db = self.db;
+        let body = id.0;
+        let span = self.library.body(id.0).stmt(id.1).span;
+        let span = self.library.lookup_span(span);
+
+        let result_ty = if let Some(owner) = self.db.body_owner(body.in_library(self.library_id)) {
+            match owner {
+                body::BodyOwner::Item(item) => {
+                    let item = self.library.item(item);
+
+                    // FIXME: Get return type from `body` item for compatibility checking
+                    match &item.kind {
+                        item::ItemKind::Subprogram(subprog) => {
+                            Some(db.from_hir_type(subprog.result.ty.in_library(self.library_id)))
+                        }
+                        item::ItemKind::Module(_) => return, // always usable
+                        _ => None,
+                    }
+                }
+                body::BodyOwner::Type(_) => None,
+            }
+        } else {
+            unreachable!()
+        };
+
+        if let Some(result_ty) = result_ty {
+            let result_tyref = result_ty.in_db(db).to_base_type();
+
+            if !matches!(result_tyref.kind(), ty::TypeKind::Void) {
+                // Inside of function
+                self.state().reporter.error(
+                    "cannot use `return` here",
+                    "`result` statement is used to return values in function bodies",
+                    span,
+                );
+            }
+        } else {
+            self.state()
+                .reporter
+                .error("cannot use `return` here", "`return` statement is only allowed in subprogram bodies and module-kind declarations", span);
+        }
+    }
+
+    fn typeck_result_stmt(&self, id: stmt::BodyStmt, stmt: &stmt::Result) {
+        // Verify matching result types
+        let db = self.db;
+        let body = id.0;
+        let span = self.library.body(id.0).stmt(id.1).span;
+        let span = self.library.lookup_span(span);
+
+        let result_ty = if let Some(owner) = self.db.body_owner(body.in_library(self.library_id)) {
+            match owner {
+                body::BodyOwner::Item(item) => {
+                    let item = self.library.item(item);
+
+                    // FIXME: Get return type from `body` item for compatibility checking
+                    if let item::ItemKind::Subprogram(subprog) = &item.kind {
+                        Some(subprog.result.ty)
+                    } else {
+                        None
+                    }
+                }
+                body::BodyOwner::Type(_) => None,
+            }
+        } else {
+            unreachable!()
+        };
+
+        if let Some(hir_ty) = result_ty {
+            let result_ty = db.from_hir_type(hir_ty.in_library(self.library_id));
+            let result_tyref = result_ty.in_db(db).to_base_type();
+
+            if matches!(result_tyref.kind(), ty::TypeKind::Void) {
+                // Not inside of function
+                self.state().reporter.error(
+                    "cannot use `result` here",
+                    "`result` statement is only allowed in function bodies",
+                    span,
+                );
+            } else {
+                let value_expr = (self.library_id, body, stmt.expr);
+                let value_ty = db.type_of(value_expr.into());
+
+                // Check value compatibility
+                if !ty::rules::is_assignable(db, result_ty, value_ty) {
+                    let ty_span = self.library.lookup_type(hir_ty).span;
+                    let ty_span = self.library.lookup_span(ty_span);
+
+                    let value_span = self.library.body(body).expr(stmt.expr).span;
+                    let value_span = self.library.lookup_span(value_span);
+
+                    self.report_mismatched_assign_tys(
+                        result_ty,
+                        value_ty,
+                        value_span,
+                        ty_span,
+                        value_span,
+                        Some(|ty| format!("function expects type {ty}")),
+                    );
+                }
+            }
+        } else {
+            self.state().reporter.error(
+                "cannot use `result` here",
+                "`result` statement is only allowed in function bodies",
+                span,
+            );
+        }
+    }
+
     fn typeck_binary(&self, body: body::BodyId, expr: &expr::Binary) {
         let db = self.db;
         let lib_id = self.library_id;
@@ -1104,20 +1225,15 @@ impl TypeCheck<'_> {
             } else if !param.coerced_type
                 && !ty::rules::is_assignable(self.db, param.param_ty, arg_ty)
             {
-                let param_ty = param.param_ty.in_db(db);
-                let arg_ty = arg_ty.in_db(db);
-
-                self.state()
-                    .reporter
-                    .error_detailed("mismatched types", arg_span)
-                    .with_note(format!("this is of type `{arg_ty}`"), arg_span)
-                    .with_note(format!("parameter expects type `{param_ty}`"), arg_span)
-                    .with_info(format!(
-                        "`{right}` is not assignable into `{left}`",
-                        left = param_ty.to_base_type(),
-                        right = arg_ty.to_base_type()
-                    ))
-                    .finish();
+                // ??? Do we ever want to refer to the original type?
+                self.report_mismatched_assign_tys(
+                    param.param_ty,
+                    arg_ty,
+                    arg_span,
+                    arg_span,
+                    arg_span,
+                    Some(|ty| format!("parameter expects type {ty}")),
+                );
             }
         }
 

@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "fcn oeuf : int result 0 end oeuf"
+
+---
+"oeuf"@(FileId(1), 4..8) [Declared]: function -> int
+"<root>"@(dummy) [Declared]: <error>
+

@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "fcn oeuf : int result 'egg' end oeuf"
+
+---
+"oeuf"@(FileId(1), 4..8) [Declared]: function -> int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 22..27: mismatched types
+| note in file FileId(1) for 22..27: this is of type `char(3)`
+| note in file FileId(1) for 11..14: function expects type `int`
+| info: `char(3)` is not assignable into `int`

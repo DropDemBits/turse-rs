@@ -1603,6 +1603,25 @@ test_named_group! { typeck_subprog_call,
     ]
 }
 
+test_named_group! { typeck_return_stmt,
+    [
+        in_top_level => "return",
+        in_procedure => "proc q return end q",
+        in_process => "proc q return end q",
+        in_function_err => "fcn oeuf : int return end oeuf",
+    ]
+}
+
+test_named_group! { typeck_result_stmt,
+    [
+        in_top_level_err => "result 0",
+        in_procedure_err => "proc q result 0 end q",
+        in_process_err => "proc q result 0 end q",
+        in_function => "fcn oeuf : int result 0 end oeuf",
+        mismatched_types => "fcn oeuf : int result 'egg' end oeuf",
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",
