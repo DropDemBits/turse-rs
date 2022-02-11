@@ -272,8 +272,7 @@ fn lhs(p: &mut Parser) -> Option<CompletedMarker> {
                     // Parse a primary expr
 
                     // Note: This does allow exprs like "1" to be "called",
-                    // but those cases should be reported as errors when validating the AST
-                    // TODO: Report non-callable expressions as errors
+                    // but those cases are reported as errors during typeck
                     primary(p)
                 })
             }

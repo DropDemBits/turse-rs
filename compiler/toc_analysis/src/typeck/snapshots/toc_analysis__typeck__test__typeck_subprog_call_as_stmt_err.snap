@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "function key() : int end key\nprocedure lime() end lime\n% can't be used like this, need paren\nkey lime\n"
+
+---
+"key"@(FileId(1), 9..12) [Declared]: function ( ) -> int
+"<unnamed>"@(dummy) [Declared]: <error>
+"lime"@(FileId(1), 39..43) [Declared]: procedure ( ) -> void
+"<unnamed>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 93..96: cannot use `key` as a statement
+| error in file FileId(1) for 93..96: `key` is callable, but requires adding `()` after here
+error in file FileId(1) at 97..101: cannot use `lime` as a statement
+| error in file FileId(1) for 97..101: `lime` is callable, but requires adding `()` after here

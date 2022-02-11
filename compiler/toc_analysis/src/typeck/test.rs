@@ -1559,24 +1559,47 @@ test_named_group! { typeck_subprog_call,
         never()
         var _ := never()
         ",
+        on_expr_err => "1 1(1, 2, 3)",
+        on_type_err => "type kall : procedure() kall",
+        on_var_err => "var sha : int sha()",
+        on_undecl => "
+        % pass through, since we can't say anything about this
+        no_compile",
 
         args_exact => "
         var tree : int
-        procedure boop(a, b, var c : int) end boop
+        procedure boop(a, b : int, var c : int) end boop
         boop(1, 2, tree)
         ",
+        // TODO: Uncomment when `cheat` attr is fixed
+        // args_err_cheat_ty => r#"
+        // var tree : string
+        // procedure boop(a, b : cheat int, var c : cheat int) end boop
+        // boop("tree", tree, tree)
+        // "#,
         args_err_wrong_binding => "
-        var tree : int
-        procedure boop(a, b, var c : int) end boop
+        procedure boop(a, b : int, var c : int) end boop
         boop(1, 2, 3)
+        ",
+        args_err_not_expr => "
+        type a : int
+        procedure boop(a, b : int, var c : int) end boop
+        boop(1, a, a)
+        ",
+        args_err_wrong_ty => "
+        var tree : string
+        procedure boop(a, b : int, var c : int) end boop
+        boop(1, 2, tree)
         ",
         args_err_few => "
         procedure boop(a, b, c : int) end boop
         boop(1, 2)
+        boop(1)
         ",
         args_err_many => "
         procedure boop(a, b, c : int) end boop
         boop(1, 2, 3, 4)
+        boop(1, 2, 3, 4, 5)
         ",
     ]
 }

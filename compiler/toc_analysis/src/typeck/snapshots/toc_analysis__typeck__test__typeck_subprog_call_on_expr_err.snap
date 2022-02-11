@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "1 1(1, 2, 3)"
+
+---
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 0..1: cannot use expression as a statement
+| error in file FileId(1) for 0..1: expression is not a statement
+error in file FileId(1) at 2..3: cannot call or subscript expression
+| note in file FileId(1) for 2..3: this is of type `{integer}`
+| error in file FileId(1) for 2..3: `{integer}` is not callable
