@@ -680,7 +680,9 @@ impl BodyCode {
             Opcode::GTCLASS() => {}
             Opcode::IN(_, _, _) => todo!(),
             Opcode::INCLINENO() => {}
-            Opcode::INCSP(_) => todo!(),
+            Opcode::INCSP(amount) => {
+                out.write_u32::<LE>(amount)?;
+            }
             Opcode::INFIXAND(_) => todo!(),
             Opcode::INITARRAYDESC() => {}
             Opcode::INITCONDITION(_) => todo!(),
@@ -987,7 +989,7 @@ impl BodyCodeGenerator<'_> {
                     self.code_fragment.bind_argument(
                         DefId(self.library_id, local_def),
                         arg_offset,
-                        Some(Opcode::FETCHADDR()),
+                        true,
                     );
                 }
 
@@ -1000,15 +1002,15 @@ impl BodyCodeGenerator<'_> {
                     // ???: How should we deal with char(*) / string(*)?
                     let param_ty = param_info.param_ty.in_db(db).to_base_type();
                     let size_of = param_ty.size_of().expect("must be sized");
-                    let fetch_op = match param_info.pass_by {
-                        ty::PassBy::Value => self.pick_fetch_op(param_ty.id()),
-                        ty::PassBy::Reference(_) => Some(Opcode::FETCHADDR()),
+                    let indirect = match param_info.pass_by {
+                        ty::PassBy::Value => false,
+                        ty::PassBy::Reference(_) => true,
                     };
 
                     self.code_fragment.bind_argument(
                         DefId(self.library_id, *local_def),
                         arg_offset,
-                        fetch_op,
+                        indirect,
                     );
                     arg_offset += size_of;
                 }
@@ -2182,7 +2184,6 @@ impl BodyCodeGenerator<'_> {
                 unreachable!()
             };
 
-        // TODO: reserve arg for ret values
         let ret_ty_ref = ret_ty.in_db(db).to_base_type();
         let ret_val = if !matches!(ret_ty_ref.kind(), ty::TypeKind::Void) {
             let size_of = ret_ty_ref.size_of().expect("must be sized");
@@ -2200,6 +2201,7 @@ impl BodyCodeGenerator<'_> {
             self.code_fragment.emit_locate_temp(call_to);
             self.generate_assign(lhs_ty, AssignOrder::Postcomputed);
 
+            let mut arg_frame_size = 0;
             let mut arg_temps = vec![];
 
             if let Some(ret_val) = ret_val {
@@ -2212,6 +2214,7 @@ impl BodyCodeGenerator<'_> {
                 self.code_fragment.emit_locate_temp(ret_arg);
                 self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
                 arg_temps.push((ret_arg, None));
+                arg_frame_size += 4;
             }
 
             // Eval args
@@ -2227,11 +2230,13 @@ impl BodyCodeGenerator<'_> {
                             let param_ty = param.param_ty;
                             let size_of = param_ty.in_db(db).size_of().expect("must be sized");
                             let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
+                            self.generate_expr(arg_expr);
                             self.generate_coerced_op(param_ty, arg_ty);
 
                             self.code_fragment.emit_locate_temp(nth_arg);
                             self.generate_assign(param_ty, AssignOrder::Postcomputed);
                             arg_temps.push((nth_arg, Some(param_ty)));
+                            arg_frame_size += size_of;
                         }
                         ty::PassBy::Reference(_) => {
                             // TODO: Replace with the size of the target arch's ptr
@@ -2241,10 +2246,15 @@ impl BodyCodeGenerator<'_> {
                             self.code_fragment.emit_locate_temp(nth_arg);
                             self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
                             arg_temps.push((nth_arg, None));
+                            arg_frame_size += 4;
                         }
                     }
                 }
             }
+
+            // Emit call for later
+            self.code_fragment.emit_locate_temp(call_to);
+            self.code_fragment.emit_opcode(Opcode::FETCHADDR());
 
             // Move args into reverse order
             // ( ... arg0 arg1 arg2 -- arg2 arg1 arg0 ... )
@@ -2258,9 +2268,10 @@ impl BodyCodeGenerator<'_> {
             }
 
             // Do the call
-            self.code_fragment.emit_locate_temp(call_to);
-            self.generate_fetch_value(lhs_ty);
-            self.code_fragment.emit_opcode(Opcode::CALL(0));
+            let arg_frame_size = arg_frame_size.try_into().unwrap();
+            self.code_fragment.emit_opcode(Opcode::CALL(arg_frame_size));
+            self.code_fragment
+                .emit_opcode(Opcode::INCSP(arg_frame_size + 4));
         }
         self.code_fragment.unbump_temp_allocs();
 
@@ -2424,7 +2435,7 @@ enum CoerceTo {
 enum LocalTarget {
     Stack(StackSlot),
     Reloc(RelocatableOffset),
-    Arg(usize, Option<Opcode>),
+    Arg(usize, bool),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -2456,9 +2467,9 @@ impl CodeFragment {
         self.locals.insert(from, LocalTarget::Reloc(to));
     }
 
-    fn bind_argument(&mut self, def_id: DefId, offset: usize, fetch_op: Option<Opcode>) {
+    fn bind_argument(&mut self, def_id: DefId, offset: usize, indirect: bool) {
         self.locals
-            .insert(def_id, LocalTarget::Arg(offset, fetch_op));
+            .insert(def_id, LocalTarget::Arg(offset, indirect));
     }
 
     fn alias_local(&mut self, source: DefId, target: DefId) {
@@ -2536,14 +2547,14 @@ impl CodeFragment {
                 let offset = *offset; // for dealing with borrowck warning
                 self.emit_opcode(Opcode::PUSHADDR1(offset));
             }
-            LocalTarget::Arg(offset, fetch_op) => {
-                // for dealing with borrowck warning
+            LocalTarget::Arg(offset, indirect) => {
+                // for dealing with borrowck warnings
                 let offset = *offset;
-                let fetch_op = *fetch_op;
+                let indirect = *indirect;
 
                 self.emit_opcode(Opcode::LOCATEPARM(offset.try_into().unwrap()));
-                if let Some(op) = fetch_op {
-                    self.emit_opcode(op);
+                if indirect {
+                    self.emit_opcode(Opcode::FETCHADDR());
                 }
             }
         }
