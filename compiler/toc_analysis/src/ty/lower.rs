@@ -85,6 +85,31 @@ fn subprogram_ty(
     let params = subprogram_param_list(db, library_id, ty.param_list.as_ref());
     let result = require_resolved_hir_type(db, ty.result_ty.in_library(library_id));
 
+    // NOTE(ctc-divergence): This is one of the cases where we diverge from `ctc`
+    // `ctc` always promotes param-less types to ones with no parameters,
+    // whereas `toc` carries through the param-less property.
+    //
+    // This divergence becomes apparent when referring to a var with this type.
+    // For example:
+    // ```turing
+    // var a : function thing : int
+    // var target : int := a
+    // ```
+    //
+    // - ctc: Fails to compile, cannot assign `target` with type `function (): int`
+    // - toc: Compiles, since the reference to `a` invokes the function
+
+    // FIXME: This divergent behaviour causes an incorrect report type
+    //
+    // ```turing
+    //   var a : function : int
+    //   function pie() : int result 1 end pie
+    //   a := pie
+    // % ^ this is of type `int`
+    // ```
+    //
+    // Should be incorrect binding kind
+
     db.mk_subprogram(ty.kind, params, result)
 }
 
