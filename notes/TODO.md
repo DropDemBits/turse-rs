@@ -7,9 +7,9 @@
     - [x] ConstVarDecl
     - [x] TypeDecl
     - [x] BindDecl
-    - [ ] ProcDecl
-    - [ ] FcnDecl
-    - [ ] ProcessDecl
+    - [x] ProcDecl
+    - [x] FcnDecl
+    - [x] ProcessDecl
     - [ ] ExternalDecl
     - [ ] ForwardDecl
     - [ ] DeferredDecl
@@ -34,9 +34,13 @@
     - [x] BlockStmt
     - [ ] InvariantStmt
     - [ ] AssertStmt
-    - [ ] CallStmt
-    - [ ] ReturnStmt
-    - [ ] ResultStmt
+    - [~] CallStmt
+      - [x] On subprograms
+      - [ ] On arrays
+      - [ ] On set constructor
+      - [ ] On pointer types
+    - [x] ReturnStmt
+    - [x] ResultStmt
     - [ ] NewStmt
     - [ ] FreeStmt
     - [ ] TagStmt
@@ -64,9 +68,9 @@
     - [x] BinaryExpr
     - [x] UnaryExpr
     - [x] ParenExpr
-    - [~] NameExpr
+    - [x] NameExpr
       - [x] As reference
-      - [ ] As paramless call
+      - [x] As paramless call
     - [x] SelfExpr
     - [ ] FieldExpr
     - [ ] DerefExpr
@@ -75,7 +79,11 @@
     - [ ] ArrowExpr
     - [ ] IndirectExpr
     - [ ] BitsExpr
-    - [ ] CallExpr
+    - [~] CallExpr
+      - [x] On subprograms
+      - [ ] On arrays
+      - [ ] On set constructor
+      - [ ] On pointer types
   - [ ] Type
     - [x] PrimType
     - [ ] NameType
@@ -86,8 +94,8 @@
     - [ ] RecordType
     - [ ] UnionType
     - [ ] PointerType
-    - [ ] FcnType
-    - [ ] ProcType
+    - [x] FcnType
+    - [x] ProcType
     - [ ] CollectionType
     - [ ] ConditionType
   - [ ] Preproc
@@ -103,9 +111,9 @@
       - [ ] Handling `init()` as the initialzer expression
     - [x] Type
     - [x] Bind
-    - [ ] Proc
-    - [ ] Fcn
-    - [ ] Process
+    - [x] Proc
+    - [x] Fcn
+    - [x] Process
     - [ ] External
     - [ ] Forward
     - [ ] Deferred
@@ -132,9 +140,13 @@
     - [x] Block
     - [ ] Invariant
     - [ ] Assert
-    - [ ] Call
-    - [ ] Return
-    - [ ] Result
+    - [~] Call
+      - [x] On subprograms
+      - [ ] On arrays
+      - [ ] On set constructor
+      - [ ] On pointer types
+    - [x] Return
+    - [x] Result
     - [ ] New
     - [ ] Free
     - [ ] Tag
@@ -176,7 +188,11 @@
     - [ ] Arrow
     - [ ] Indirect
     - [ ] Bits
-    - [ ] Call
+    - [~] Call
+      - [x] On subprograms
+      - [ ] On arrays
+      - [ ] On set constructor
+      - [ ] On pointer types
   - [ ] Type
     - [x] Prim (SeqLength)
     - [~] Name
@@ -198,7 +214,7 @@
   - [x] Deferred eval of `const` vars
   - [ ] Evaluate all valid const ops
   - [ ] SizeOf structure size computation
-- [ ] HIR Codegen
+- [~] HIR Codegen
   - [ ] External functions support
 - [x] Additional `ReportMessage` notes
   - [x] Integration with `ariadne`
