@@ -2466,7 +2466,7 @@ impl Opcode {
             Opcode::PUSHINT(_) => 1,
             Opcode::PUSHINT1(_) => 1,
             Opcode::PUSHINT2(_) => 1,
-            Opcode::PUSHREAL(_) => 1,
+            Opcode::PUSHREAL(_) => 2,
             Opcode::PUSHVAL0() => 0,
             Opcode::PUSHVAL1() => 0,
             Opcode::PUT(_) => 1,
