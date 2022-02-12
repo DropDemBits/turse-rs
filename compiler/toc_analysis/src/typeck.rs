@@ -1089,49 +1089,39 @@ impl TypeCheck<'_> {
                     // exact
                     break;
                 }
-                (Some(_), None) => {
+                (Some(_), None) | (None, Some(_)) => {
                     // too few
                     let param_count = param_list.len();
                     let arg_count = arg_list.len();
-                    let missing_count = params.count() + 1;
                     let args = arguments(param_count);
-                    let missing_args = arguments(missing_count);
 
                     // FIXME: Find the last non-missing argument, and use that as the span
-                    self.state()
-                        .reporter
-                        .error_detailed(
-                            format!("expected {param_count} {args}, found {arg_count}",),
-                            lhs_span,
-                        )
-                        .with_error(
-                            format!("call is missing {missing_count} {missing_args}"),
-                            lhs_span,
-                        )
-                        .finish();
+                    let mut state = self.state();
+                    let mut builder = state.reporter.error_detailed(
+                        format!("expected {param_count} {args}, found {arg_count}",),
+                        lhs_span,
+                    );
 
-                    break;
-                }
-                (None, Some(_)) => {
-                    // too many
-                    let param_count = param_list.len();
-                    let arg_count = arg_list.len();
-                    let extra_count = args.count() + 1;
-                    let args = arguments(param_count);
-                    let extra_args = arguments(extra_count);
+                    let difference = if param_count > arg_count {
+                        param_count - arg_count
+                    } else {
+                        arg_count - param_count
+                    };
+                    let diff_arguments = arguments(difference);
 
-                    // FIXME: Find the last non-missing argument, and use that as the span
-                    self.state()
-                        .reporter
-                        .error_detailed(
-                            format!("expected {param_count} {args}, found {arg_count}",),
+                    builder = if param_count > arg_count {
+                        builder.with_error(
+                            format!("call is missing {difference} {diff_arguments}"),
                             lhs_span,
                         )
-                        .with_error(
-                            format!("call has {extra_count} extra {extra_args}"),
+                    } else {
+                        builder.with_error(
+                            format!("call has {difference} extra {diff_arguments}"),
                             lhs_span,
                         )
-                        .finish();
+                    };
+                    builder.finish();
+
                     break;
                 }
                 (Some(param), Some(arg)) => (param, arg),

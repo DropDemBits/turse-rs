@@ -113,8 +113,6 @@ pub struct Subprogram {
 
     /// Executable portion of the subprogram
     pub body: SubprogramBody,
-    // ???: parameters & result are shared between this and the function header, what do?
-    // - We need to split the function header and function body portions
 }
 
 impl Subprogram {

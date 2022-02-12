@@ -75,6 +75,7 @@ fn alias_ty(
         db.mk_error()
     }
 }
+
 fn subprogram_ty(
     db: &dyn TypeDatabase,
     hir_id: InLibrary<hir_ty::TypeId>,
