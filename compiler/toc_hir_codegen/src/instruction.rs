@@ -2249,6 +2249,7 @@ define_encodings! {
 }
 
 impl Opcode {
+    /// Gets the size of the opcode, in bytes
     pub fn size(&self) -> usize {
         let operand_count = match self {
             Opcode::ABORT(_) => 1,
