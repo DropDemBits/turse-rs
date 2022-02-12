@@ -21,6 +21,9 @@ pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTyp
 pub(crate) fn type_of(db: &dyn db::TypeDatabase, source: db::TypeSource) -> TypeId {
     match source {
         db::TypeSource::Def(def_id) => ty_of_def(db, def_id),
+        db::TypeSource::Item(library_id, item_id) => {
+            lower::ty_from_item(db, InLibrary(library_id, item_id))
+        }
         db::TypeSource::BodyExpr(id, expr) => ty_of_expr(db, InLibrary(id, expr)),
         db::TypeSource::Body(id, body) => ty_of_body(db, InLibrary(id, body)),
     }
