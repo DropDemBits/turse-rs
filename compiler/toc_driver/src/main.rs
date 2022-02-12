@@ -65,10 +65,12 @@ fn main() {
     let mut cache = VfsCache::new(&db);
 
     // Report any library roots that loaded incorrectly
+    let mut missing_roots = false;
     for root in db.source_graph().library_roots() {
         let (_, err) = db.file_source(root);
 
         if let Some(err) = err {
+            missing_roots = true;
             let path = db.vfs.lookup_path(root).display();
 
             ariadne::Report::<(FileId, std::ops::Range<usize>)>::build(
@@ -87,7 +89,7 @@ fn main() {
         emit_message(&db, &mut cache, msg);
     }
 
-    if let Some(blob) = codegen_res.result() {
+    if let Some(blob) = codegen_res.result().as_ref().filter(|_| !missing_roots) {
         let mut encoded = vec![];
         blob.encode_to(&db, &mut encoded)
             .expect("failed to encode bytecode");
