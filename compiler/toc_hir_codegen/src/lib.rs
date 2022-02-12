@@ -1796,7 +1796,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Literal(expr) => self.generate_expr_literal(expr),
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
-            hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr),
+            hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr_id, expr),
             hir_expr::ExprKind::Call(expr) => self.generate_expr_call(expr),
         }
     }
@@ -2183,7 +2183,7 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
-    fn generate_expr_name(&mut self, expr: &hir_expr::Name) {
+    fn generate_expr_name(&mut self, expr_id: hir_expr::ExprId, expr: &hir_expr::Name) {
         // Steps
         // - Load value from the referenced def (may need to perform canonical name resolution)
         match expr {
@@ -2197,9 +2197,15 @@ impl BodyCodeGenerator<'_> {
                     .in_db(self.db)
                     .to_base_type();
 
-                self.code_fragment
-                    .emit_locate_local(DefId(self.library_id, *def_id));
-                self.generate_fetch_value(def_ty.id());
+                if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind() {
+                    // as param-less call
+                    self.generate_call(expr_id, None, false);
+                } else {
+                    // As normal fetch
+                    self.code_fragment
+                        .emit_locate_local(DefId(self.library_id, *def_id));
+                    self.generate_fetch_value(def_ty.id());
+                }
             }
             hir_expr::Name::Self_ => todo!(),
         }
@@ -2213,7 +2219,7 @@ impl BodyCodeGenerator<'_> {
         &mut self,
         lhs: hir_expr::ExprId,
         arguments: Option<&Vec<hir_expr::Arg>>,
-        drop_retval: bool,
+        drop_ret_val: bool,
     ) {
         let db = self.db;
         let lhs_expr = (self.library_id, self.body_id, lhs);
@@ -2240,7 +2246,6 @@ impl BodyCodeGenerator<'_> {
             None
         };
 
-        // TODO: Figuring out alignment
         self.code_fragment.bump_temp_allocs();
         {
             // Fetch lhs first
@@ -2324,7 +2329,7 @@ impl BodyCodeGenerator<'_> {
         }
         self.code_fragment.unbump_temp_allocs();
 
-        if let Some(slot_at) = ret_val.filter(|_| !drop_retval) {
+        if let Some(slot_at) = ret_val.filter(|_| !drop_ret_val) {
             self.code_fragment.emit_locate_temp(slot_at);
             self.generate_fetch_value(ret_ty);
         }
