@@ -491,10 +491,10 @@ define_encodings! {
         BITSEXTRACT (u32, u32) = 0x31,
 
         /// ## CALL (stkOff:offset)
-        /// (description)
+        /// Jumps to the address stored at `stkOff`, pushing the return address onto the stack.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( ... call_me:addrint ... -- ... call_me:addrint ... returnTo:addrint )`
         ///
         CALL (u32) = 0x32,
 
@@ -668,10 +668,11 @@ define_encodings! {
         DEALLOCFLEXARRAY () = 0x46,
 
         /// ## DECSP (amount:offset)
-        /// (description)
+        /// Bumps up the data stack pointer by `amount` bytes.
+        /// The newly accessible memory is to be treated as uninitialized memory.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- ...items:bytes(amount) )`
         ///
         DECSP (u32) = 0x47,
 

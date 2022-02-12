@@ -916,7 +916,7 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::If(stmt) => self.generate_stmt_if(stmt),
             hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
-            hir_stmt::StmtKind::Call(_stmt) => todo!(),
+            hir_stmt::StmtKind::Call(stmt) => self.generate_stmt_call(stmt),
             hir_stmt::StmtKind::Return(_stmt) => todo!(),
             hir_stmt::StmtKind::Result(_stmt) => todo!(),
         }
@@ -949,13 +949,13 @@ impl BodyCodeGenerator<'_> {
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
         self.generate_ref_expr(stmt.lhs);
         self.generate_expr(stmt.rhs);
-        self.generate_coerced_assignment(lhs_ty.id(), rhs_ty.id());
+        self.generate_coerced_op(lhs_ty.id(), rhs_ty.id());
         self.generate_assign(lhs_ty.id(), AssignOrder::Precomputed);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
     }
 
-    fn generate_coerced_assignment(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
+    fn generate_coerced_op(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
         let lhs_ty = lhs_ty.in_db(self.db).to_base_type();
 
         let coerce_to = match lhs_ty.kind() {
@@ -1402,6 +1402,87 @@ impl BodyCodeGenerator<'_> {
         self.emit_absolute_location();
     }
 
+    fn generate_stmt_call(&mut self, stmt: &hir_stmt::Call) {
+        let db = self.db;
+        let lhs_expr = (self.library_id, self.body_id, stmt.lhs);
+        let lhs_ty = if let Some(def_id) = db.binding_to(lhs_expr.into()) {
+            // From an item
+            db.type_of(def_id.into())
+        } else {
+            // From an actual expression
+            db.type_of(lhs_expr.into())
+        };
+        let lhs_ty_ref = lhs_ty.in_db(db).to_base_type();
+        let params = if let ty::TypeKind::Subprogram(_, params, _) = lhs_ty_ref.kind() {
+            params
+        } else {
+            unreachable!()
+        };
+
+        // TODO: reserve arg for ret values
+
+        self.code_fragment.bump_temp_allocs();
+        {
+            // Fetch lhs first
+            self.generate_ref_expr(stmt.lhs);
+            // TODO: Replace with the size of the target arch's ptr
+            let call_to = self.code_fragment.allocate_temporary_space(4);
+            self.code_fragment.emit_locate_temp(call_to);
+            self.generate_assign(lhs_ty, AssignOrder::Postcomputed);
+
+            let mut arg_temps = vec![];
+
+            // Eval args
+            if let Some((params, args)) = params.as_ref().zip(stmt.arguments.as_ref()) {
+                for (param, arg) in params.iter().zip(args.iter()) {
+                    let arg_expr = match arg {
+                        hir_expr::Arg::Expr(expr) => *expr,
+                    };
+                    let arg_ty = db.type_of((self.library_id, self.body_id, arg_expr).into());
+
+                    match param.pass_by {
+                        ty::PassBy::Value => {
+                            let param_ty = param.param_ty;
+                            let size_of = param_ty.in_db(db).size_of().expect("must be sized");
+                            let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
+                            self.generate_coerced_op(param_ty, arg_ty);
+
+                            self.code_fragment.emit_locate_temp(nth_arg);
+                            self.generate_assign(param_ty, AssignOrder::Postcomputed);
+                            arg_temps.push((nth_arg, Some(param_ty)));
+                        }
+                        ty::PassBy::Reference(_) => {
+                            // TODO: Replace with the size of the target arch's ptr
+                            let nth_arg = self.code_fragment.allocate_temporary_space(4);
+                            self.generate_ref_expr(arg_expr);
+
+                            self.code_fragment.emit_locate_temp(nth_arg);
+                            self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                            arg_temps.push((nth_arg, None));
+                        }
+                    }
+                }
+            }
+
+            // Move args into reverse order
+            // ( ... arg0 arg1 arg2 -- arg2 arg1 arg0 ... )
+            for (arg, ty) in arg_temps.into_iter().rev() {
+                self.code_fragment.emit_locate_temp(arg);
+                if let Some(ty) = ty {
+                    self.generate_fetch_value(ty);
+                } else {
+                    self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+                }
+            }
+
+            // Do the call
+            self.code_fragment.emit_locate_temp(call_to);
+            self.generate_fetch_value(lhs_ty);
+            self.code_fragment.emit_opcode(Opcode::CALL(0));
+        }
+        self.code_fragment.unbump_temp_allocs();
+    }
+
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
         let item = self.library.item(item_id);
         let span = self.library.lookup_span(item.span);
@@ -1411,9 +1492,8 @@ impl BodyCodeGenerator<'_> {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
             hir_item::ItemKind::Binding(item) => self.generate_item_binding(item),
             hir_item::ItemKind::Type(_) => {}
-            hir_item::ItemKind::Subprogram(_) => todo!(),
-            hir_item::ItemKind::Module(_) => {
-                // We already generate code for module bodies as part of walking
+            hir_item::ItemKind::Subprogram(_) | hir_item::ItemKind::Module(_) => {
+                // We already generate code for module & subprogram bodies as part of walking
                 // over all of the bodies in a library
             }
         }
@@ -1445,7 +1525,7 @@ impl BodyCodeGenerator<'_> {
             self.inline_body(init_body);
 
             let body_ty = self.db.type_of((self.library_id, init_body).into());
-            self.generate_coerced_assignment(def_ty.id(), body_ty);
+            self.generate_coerced_op(def_ty.id(), body_ty);
 
             eprintln!("assigning def {:?} to previously produced value", init_body);
             self.code_fragment
