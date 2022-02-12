@@ -42,9 +42,12 @@ pub enum StmtKind {
     Block(Block),
     // Invariant { .. }
     // Assert { .. }
-    // Call { .. }
-    // Return { .. }
-    // Result { .. }
+    // Calling expression, in statement position
+    Call(Call),
+    /// Return statement (`return`, for `procedure`s and `process`es)
+    Return(Return),
+    /// Result statement (`result (expr)`, only for `function`s)
+    Result(Result),
     // New { .. }
     // Free { .. }
     // Tag { .. }
@@ -303,4 +306,21 @@ pub enum GetWidth {
     Line,
     /// Fetch a specific amount of characters.
     Chars(expr::ExprId),
+}
+
+/// Calling statement
+#[derive(Debug, PartialEq, Eq)]
+pub struct Call {
+    /// Reference to the calling expression
+    pub lhs: expr::ExprId,
+    /// Arguments to the call, which may not be present
+    pub arguments: Option<expr::ArgList>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Return;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Result {
+    pub expr: expr::ExprId,
 }

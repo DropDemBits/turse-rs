@@ -1,5 +1,7 @@
 //! Analysis query system definitions
 
+use toc_hir::item::ItemId;
+use toc_hir::symbol;
 use toc_hir::{
     body::BodyId,
     expr::{BodyExpr, ExprId},
@@ -45,12 +47,20 @@ pub trait TypeInternExt {
     fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_forward(&self) -> ty::TypeId;
+    fn mk_subprogram(
+        &self,
+        kind: symbol::SubprogramKind,
+        params: Option<Vec<ty::Param>>,
+        result: ty::TypeId,
+    ) -> ty::TypeId;
+    fn mk_void(&self) -> ty::TypeId;
 }
 
 /// Anything which can produce a type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TypeSource {
     Def(DefId),
+    Item(LibraryId, ItemId),
     BodyExpr(LibraryId, BodyExpr),
     Body(LibraryId, BodyId),
 }
@@ -58,6 +68,12 @@ pub enum TypeSource {
 impl From<DefId> for TypeSource {
     fn from(id: DefId) -> Self {
         Self::Def(id)
+    }
+}
+
+impl From<InLibrary<ItemId>> for TypeSource {
+    fn from(id: InLibrary<ItemId>) -> Self {
+        Self::Item(id.0, id.1)
     }
 }
 
@@ -88,5 +104,11 @@ impl From<(LibraryId, BodyId, ExprId)> for TypeSource {
 impl From<(LibraryId, BodyId)> for TypeSource {
     fn from(id: (LibraryId, BodyId)) -> Self {
         Self::Body(id.0, id.1)
+    }
+}
+
+impl From<(LibraryId, ItemId)> for TypeSource {
+    fn from(id: (LibraryId, ItemId)) -> Self {
+        Self::Item(id.0, id.1)
     }
 }

@@ -1,0 +1,32 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..107): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..107): []
+        StmtItem@(FileId(1), 0..107): ItemId(0)
+          Type@(FileId(1), 0..107): "_"@(FileId(1), 5..6)
+            Function@(FileId(1), 9..107): [...]
+              Function@(FileId(1), 21..57): [...]
+                Function@(FileId(1), 33..49): [no params]
+                  Primitive@(FileId(1), 46..49): Int
+                Primitive@(FileId(1), 54..57): Int
+              Procedure@(FileId(1), 59..92): [...]
+                Procedure@(FileId(1), 67..91): [...]
+                  Procedure@(FileId(1), 75..90): [...]
+                    Procedure@(FileId(1), 83..89): [no params]
+                      Void@(FileId(1), 83..89)
+                    Void@(FileId(1), 75..90)
+                  Void@(FileId(1), 67..91)
+                Void@(FileId(1), 59..92)
+              Procedure@(FileId(1), 94..100): [no params]
+                Void@(FileId(1), 94..100)
+              Primitive@(FileId(1), 104..107): Int
+warn in file FileId(1) at 33..49: parameterless function types should specify `()`
+| warn in file FileId(1) for 42..43: add `()` after here
+| info: referring to a parameterless function will call it instead of producing a reference to it
+

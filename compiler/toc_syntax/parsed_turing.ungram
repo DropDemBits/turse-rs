@@ -190,12 +190,7 @@ BindItem =
   
 ProcDecl =
   ProcHeader
-    ImportStmt?
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+    SubprogBody
   EndGroup
 
 ProcHeader =
@@ -206,16 +201,11 @@ DeviceSpec =
 
 FcnDecl =
   FcnHeader
-    ImportStmt?
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+    SubprogBody
   EndGroup
 
 FcnHeader =
-  'function' PervasiveAttr? Name ParamSpec? FcnResult
+  'function' PervasiveAttr? Name params:ParamSpec? FcnResult
 
 FcnResult =
   Name? ':' Type
@@ -223,6 +213,14 @@ FcnResult =
 SubprogHeader =
   ProcHeader
 | FcnHeader
+
+SubprogBody =
+  ImportStmt?
+  PreStmt?
+  InitStmt?
+  PostStmt?
+  HandlerStmt?
+  StmtList
 
 ForwardDecl =
   'forward' SubprogHeader ( 'import' ImportList )?
@@ -232,11 +230,7 @@ DeferredDecl =
 
 BodyDecl =
   'body' BodyKind
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+    SubprogBody
   EndGroup
 
 BodyKind =
@@ -245,17 +239,15 @@ BodyKind =
 | FcnHeader
 
 PlainHeader =
-  Name ParamSpec? FcnResult?
+  Name params:ParamSpec? FcnResult?
 
 ProcessDecl =
-  'process' PervasiveAttr? Name ParamSpec? ( ':' stack_size:Expr )?
-    ImportStmt?
-    PreStmt?
-    InitStmt?
-    PostStmt?
-    HandlerStmt?
-    StmtList
+  ProcessHeader
+    SubprogBody
   EndGroup
+
+ProcessHeader =
+  'process' PervasiveAttr? Name params:ParamSpec? ( ':' stack_size:Expr )?
 
 ExternalDecl =
   'external' external_spec:Expr? ExternalKind
@@ -833,10 +825,10 @@ Checkedness =
 | 'unchecked'
 
 FcnType =
-  'function' Name? ParamSpec? ':' Type
+  'function' Name? params:ParamSpec? ':' Type
 
 ProcType =
-  'procedure' Name? ParamSpec?
+  'procedure' Name? params:ParamSpec?
 
 SubprogType =
   FcnType

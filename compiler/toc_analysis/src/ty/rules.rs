@@ -12,6 +12,8 @@ use crate::{
 use super::TyRef;
 
 impl TypeKind {
+    // ???: Do we want to move all of these into `TyRef`?
+
     pub fn is_number(&self) -> bool {
         matches!(
             self,
@@ -80,6 +82,34 @@ impl TypeKind {
         self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
     }
 
+    /// If the type can be printed in a `put` stmt
+    ///
+    /// Can be one of the following:
+    /// - Int
+    /// - Nat
+    /// - Real
+    /// - Char
+    /// - Char(N)
+    /// - String
+    /// - String(N)
+    /// - Boolean
+    /// - Enum
+    pub fn is_printable(&self) -> bool {
+        // missing: Enum
+        matches!(
+            self,
+            TypeKind::Boolean
+                | TypeKind::Int(_)
+                | TypeKind::Nat(_)
+                | TypeKind::Real(_)
+                | TypeKind::Integer
+                | TypeKind::Char
+                | TypeKind::CharN(_)
+                | TypeKind::String
+                | TypeKind::StringN(_)
+        )
+    }
+
     /// scalar types are types representing only 1 value
     pub fn is_scalar(&self) -> bool {
         match self {
@@ -89,9 +119,9 @@ impl TypeKind {
             | TypeKind::Nat(_)
             | TypeKind::Real(_)
             | TypeKind::Integer
-            | TypeKind::Char => true,
+            | TypeKind::Char
+            | TypeKind::Subprogram(..) => true,
             // Missing scalars:
-            // - function handle
             // - subrange
             // - pointer
             // - enum
@@ -108,6 +138,7 @@ impl TypeKind {
                 // Forward types are never scalars, since they never represent any type
                 false
             }
+            TypeKind::Void => false,
         }
     }
 
@@ -204,6 +235,67 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
             // sized charseqs are treated as equivalent types if the sizes are equal
             left_sz.cmp(right_sz).is_eq()
         }
+        // Subprograms are equivalent if:
+        // - they are the same [`SubprogramKind`]
+        // - the formal lists are of the same length
+        // - the formal types are equivalent
+        // - the formal pass-by kinds are equivalent
+        // - the result types are equivalent
+        (
+            TypeKind::Subprogram(left_kind, left_params, left_res),
+            TypeKind::Subprogram(right_kind, right_params, right_res),
+        ) => {
+            let left_params = left_params.as_ref();
+            let right_params = right_params.as_ref();
+
+            if left_kind != right_kind {
+                // Not the same subprogram kind
+                return false;
+            }
+            if left_params.map_or(0, |params| params.len())
+                != right_params.map_or(0, |params| params.len())
+            {
+                // Formal list lengths aren't the same
+                return false;
+            }
+            if !is_equivalent(db, *left_res, *right_res) {
+                // Result types aren't the same
+                return false;
+            }
+
+            if let Some((left_params, right_params)) = left_params.zip(right_params) {
+                if left_params.is_empty() && right_params.is_empty() {
+                    // Both are parameterless
+                    return true;
+                }
+
+                // Formals must have the same `PassBy` and equivalent types.
+                //
+                // Formals do not need to have the same `register` attr presence, since that only affects
+                // behaviour inside of the body.
+                // Formals do not need to have the same `cheat` attr presence, since
+                // - passing non-`cheat` to `cheat` formals already guarantees that they're equivalent types
+                // - passing `cheat` to non-`cheat` formals has the guarantee that they will be reinterpreted
+                //   into equivalent types.
+                left_params
+                    .iter()
+                    .zip(right_params.iter())
+                    .all(|(left, right)| {
+                        left.pass_by == right.pass_by
+                            && is_equivalent(db, left.param_ty, right.param_ty)
+                    })
+            } else {
+                // Either one is bare, and we've checked that the other has no params
+                debug_assert_eq!(
+                    left_params.map_or(0, |params| params.len()),
+                    right_params.map_or(0, |params| params.len())
+                );
+
+                true
+            }
+        }
+        // `void` is equivalent to itself
+        (TypeKind::Void, TypeKind::Void) => true,
         _ => false,
     }
 }

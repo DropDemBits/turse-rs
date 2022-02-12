@@ -4,11 +4,12 @@
 mod test;
 
 use std::cell::RefCell;
+use std::fmt;
 
 use toc_hir::expr::{self, BodyExpr};
 use toc_hir::library::{self, LibraryId, WrapInLibrary};
 use toc_hir::stmt::BodyStmt;
-use toc_hir::symbol::{BindingKind, DefId, Mutability};
+use toc_hir::symbol::{BindingKind, DefId, Mutability, SubprogramKind};
 use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -137,6 +138,18 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_case(id.0, stmt);
     }
 
+    fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {
+        self.typeck_call_stmt(id.0, stmt);
+    }
+
+    fn visit_return_stmt(&self, id: BodyStmt, stmt: &stmt::Return) {
+        self.typeck_return_stmt(id, stmt);
+    }
+
+    fn visit_result_stmt(&self, id: BodyStmt, stmt: &stmt::Result) {
+        self.typeck_result_stmt(id, stmt);
+    }
+
     fn visit_binary(&self, id: BodyExpr, expr: &toc_hir::expr::Binary) {
         self.typeck_binary(id.0, expr);
     }
@@ -147,6 +160,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
         self.typeck_name_expr(id, expr);
+    }
+
+    fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {
+        self.typeck_call_expr(id, expr);
     }
 
     fn visit_primitive(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Primitive) {
@@ -190,7 +207,7 @@ impl TypeCheck<'_> {
                 .span
                 .lookup_in(&self.library.span_map);
 
-            self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span);
+            self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span, None);
 
             // Don't need to worry about ConstValue being anything,
             // since that should be handled by const eval type restrictions
@@ -233,7 +250,7 @@ impl TypeCheck<'_> {
             let is_register = matches!(binding_kind, Some(BindingKind::Register(_)));
 
             self.report_mismatched_binding(
-                BindingKind::Storage(Mutability::Var),
+                ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
                 bind_to.into(),
                 bind_span,
                 bind_to_span,
@@ -268,7 +285,7 @@ impl TypeCheck<'_> {
                 .lookup_in(&self.library.span_map);
 
             self.report_mismatched_binding(
-                BindingKind::Storage(Mutability::Var),
+                ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
                 lhs.into(),
                 asn_span,
                 left_span,
@@ -287,40 +304,11 @@ impl TypeCheck<'_> {
                 let left_span = body.expr(item.lhs).span.lookup_in(&self.library.span_map);
                 let right_span = body.expr(item.rhs).span.lookup_in(&self.library.span_map);
 
-                self.report_mismatched_assign_tys(left, right, asn_span, left_span, right_span);
+                self.report_mismatched_assign_tys(
+                    left, right, asn_span, left_span, right_span, None,
+                );
             }
         }
-    }
-
-    fn report_mismatched_assign_tys(
-        &self,
-        left: ty::TypeId,
-        right: ty::TypeId,
-        asn_span: toc_span::Span,
-        left_span: toc_span::Span,
-        right_span: toc_span::Span,
-    ) {
-        let db = self.db;
-        let left_ty = left.in_db(db);
-        let right_ty = right.in_db(db);
-
-        self.state()
-            .reporter
-            .error_detailed("mismatched types", asn_span)
-            .with_note(
-                format!("this is of type `{right}`", right = right_ty),
-                right_span,
-            )
-            .with_note(
-                format!("this is of type `{left}`", left = left_ty),
-                left_span,
-            )
-            .with_info(format!(
-                "`{right}` is not assignable into `{left}`",
-                left = left_ty.peel_aliases(),
-                right = right_ty.peel_aliases()
-            ))
-            .finish();
     }
 
     fn typeck_put(&self, body_id: body::BodyId, stmt: &stmt::Put) {
@@ -423,7 +411,7 @@ impl TypeCheck<'_> {
                 let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
                 self.report_mismatched_binding(
-                    BindingKind::Storage(Mutability::Var),
+                    ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
                     (self.library_id, body_expr).into(),
                     get_item_span,
                     get_item_span,
@@ -510,21 +498,13 @@ impl TypeCheck<'_> {
         // - Boolean
         // - Enum
 
-        // For now, all lowered types satisfy this condition
-        match ty_dat.kind() {
-            ty::TypeKind::Error
-            | ty::TypeKind::Forward // accept since it's like error
-            | ty::TypeKind::Boolean
-            | ty::TypeKind::Int(_)
-            | ty::TypeKind::Nat(_)
-            | ty::TypeKind::Real(_)
-            | ty::TypeKind::Integer
-            | ty::TypeKind::Char
-            | ty::TypeKind::String
-            | ty::TypeKind::CharN(_)
-            | ty::TypeKind::StringN(_) => true,
-            // Already de-aliased
-            ty::TypeKind::Alias(_, _) => unreachable!(),
+        if ty_dat.kind().is_printable()
+            || matches!(ty_dat.kind(), ty::TypeKind::Error | ty::TypeKind::Forward)
+        {
+            true
+        } else {
+            debug_assert!(!matches!(ty_dat.kind(), ty::TypeKind::Alias(..)));
+            todo!("from {ty_dat:?}");
         }
     }
 
@@ -773,6 +753,102 @@ impl TypeCheck<'_> {
         }
     }
 
+    fn typeck_call_stmt(&self, body: body::BodyId, stmt: &stmt::Call) {
+        self.typeck_call(body, stmt.lhs, stmt.arguments.as_ref(), false);
+    }
+
+    fn typeck_return_stmt(&self, id: stmt::BodyStmt, _stmt: &stmt::Return) {
+        // Verify that we're in the correct statement
+        let db = self.db;
+        let body = id.0;
+        let span = self.library.body(id.0).stmt(id.1).span;
+        let span = self.library.lookup_span(span);
+
+        let result_ty = db.type_of((self.library_id, body).into());
+        let result_ty_ref = result_ty.in_db(db).to_base_type();
+
+        if result_ty_ref.kind().is_error() {
+            self.state()
+            .reporter
+            .error("cannot use `return` here", "`return` statement is only allowed in subprogram bodies and module-kind declarations", span);
+        } else if !matches!(result_ty_ref.kind(), ty::TypeKind::Void) {
+            // Inside of function
+            self.state().reporter.error(
+                "cannot use `return` here",
+                "`result` statement is used to return values in function bodies",
+                span,
+            );
+        }
+    }
+
+    fn typeck_result_stmt(&self, id: stmt::BodyStmt, stmt: &stmt::Result) {
+        // Verify matching result types
+        let db = self.db;
+        let body = id.0;
+        let span = self.library.body(id.0).stmt(id.1).span;
+        let span = self.library.lookup_span(span);
+
+        let result_ty = if let Some(owner) = self.db.body_owner(body.in_library(self.library_id)) {
+            match owner {
+                body::BodyOwner::Item(item) => {
+                    let item = self.library.item(item);
+
+                    // FIXME: Use the type from the `body`
+                    // We currently need this route because we also need the span of the result type
+                    if let item::ItemKind::Subprogram(subprog) = &item.kind {
+                        Some(subprog.result.ty)
+                    } else {
+                        None
+                    }
+                }
+                body::BodyOwner::Type(_) => None,
+            }
+        } else {
+            unreachable!()
+        };
+
+        if let Some(hir_ty) = result_ty {
+            let result_ty = db.from_hir_type(hir_ty.in_library(self.library_id));
+            let result_ty_ref = result_ty.in_db(db).to_base_type();
+
+            if matches!(result_ty_ref.kind(), ty::TypeKind::Void) {
+                // Not inside of function
+                self.state().reporter.error(
+                    "cannot use `result` here",
+                    "`result` statement is only allowed in function bodies",
+                    span,
+                );
+            } else {
+                let value_expr = (self.library_id, body, stmt.expr);
+                let value_ty = db.type_of(value_expr.into());
+
+                // Check value compatibility
+                if !ty::rules::is_assignable(db, result_ty, value_ty) {
+                    let ty_span = self.library.lookup_type(hir_ty).span;
+                    let ty_span = self.library.lookup_span(ty_span);
+
+                    let value_span = self.library.body(body).expr(stmt.expr).span;
+                    let value_span = self.library.lookup_span(value_span);
+
+                    self.report_mismatched_assign_tys(
+                        result_ty,
+                        value_ty,
+                        value_span,
+                        ty_span,
+                        value_span,
+                        Some(|ty| format!("function expects type {ty}")),
+                    );
+                }
+            }
+        } else {
+            self.state().reporter.error(
+                "cannot use `result` here",
+                "`result` statement is only allowed in function bodies",
+                span,
+            );
+        }
+    }
+
     fn typeck_binary(&self, body: body::BodyId, expr: &expr::Binary) {
         let db = self.db;
         let lib_id = self.library_id;
@@ -831,7 +907,7 @@ impl TypeCheck<'_> {
                     let span = self.library.lookup_span(span);
 
                     self.report_mismatched_binding(
-                        BindingKind::Storage(Mutability::Var),
+                        ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
                         def_id.into(),
                         span,
                         span,
@@ -841,6 +917,277 @@ impl TypeCheck<'_> {
                 }
             }
             expr::Name::Self_ => todo!(),
+        }
+    }
+
+    fn typeck_call_expr(&self, id: expr::BodyExpr, expr: &expr::Call) {
+        self.typeck_call(id.0, expr.lhs, Some(&expr.arguments), true);
+    }
+
+    fn typeck_call(
+        &self,
+        body: body::BodyId,
+        lhs: expr::ExprId,
+        arg_list: Option<&expr::ArgList>,
+        require_value: bool,
+    ) {
+        let db = self.db;
+        let lhs_expr = (self.library_id, body, lhs);
+        let lhs_span = self.library.body(body).expr(lhs).span;
+        let lhs_span = self.library.lookup_span(lhs_span);
+
+        let binding_kind = db.binding_kind(lhs_expr.into());
+
+        // Lhs Callable?
+        // - Is ref?
+        // - Is subprog ty?
+
+        // Constrain lhs to expressions (allowing direct values & value references)
+        if !binding_kind.map_or(true, BindingKind::is_ref) {
+            self.report_mismatched_binding(
+                ExpectedBinding::Subprogram,
+                lhs_expr.into(),
+                lhs_span,
+                lhs_span,
+                |thing| format!("cannot call or subscript {thing}"),
+                None,
+            );
+
+            return;
+        }
+
+        // Fetch type of lhs
+        // Always try to do it by `DefId` first, so that we can properly support paren-less functions
+        // We still need to defer to expression type lookup, since things like `expr::Deref` can produce
+        // references to subprograms.
+        let lhs_ty = if let Some(def_id) = db.binding_to(lhs_expr.into()) {
+            // From an item
+            db.type_of(def_id.into())
+        } else {
+            // From an actual expression
+            db.type_of(lhs_expr.into())
+        };
+        let lhs_tyref = lhs_ty.in_db(db).to_base_type();
+
+        // Bail on error types
+        if lhs_tyref.kind().is_error() {
+            return;
+        }
+
+        // Check if lhs is callable
+        let is_callable = match lhs_tyref.kind() {
+            ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => false,
+            ty::TypeKind::Subprogram(..) => true,
+            _ => false,
+        };
+
+        if !is_callable {
+            // can't call expression
+            let full_lhs_tyref = lhs_ty.in_db(db);
+            let is_process = matches!(
+                lhs_tyref.kind(),
+                ty::TypeKind::Subprogram(SubprogramKind::Process, ..)
+            );
+            let thing = match self.db.binding_to(lhs_expr.into()) {
+                Some(def_id) => {
+                    let library = self.db.library(def_id.0);
+                    let def_info = library.local_def(def_id.1);
+                    let name = def_info.name.item();
+                    format!("`{name}`")
+                }
+                None => "expression".to_string(),
+            };
+
+            if arg_list.is_some() {
+                // Trying to call this expression
+                let mut state = self.state();
+                let mut builder = state
+                    .reporter
+                    .error_detailed(format!("cannot call or subscript {thing}"), lhs_span)
+                    .with_note(format!("this is of type `{full_lhs_tyref}`"), lhs_span)
+                    .with_error(format!("`{lhs_tyref}` is not callable"), lhs_span);
+                if is_process {
+                    builder = builder.with_info("to start a new process, use a `fork` statement");
+                }
+
+                builder.finish();
+            } else {
+                // Just the expression by itself
+                self.state().reporter.error(
+                    format!("cannot use {thing} as a statement"),
+                    format!("{thing} is not a statement"),
+                    lhs_span,
+                );
+            }
+
+            return;
+        }
+
+        // Arg list match?
+        // - Arg ty?
+        // - Arg binding?
+        // - Arg count?
+
+        let (kind, param_list) = if let ty::TypeKind::Subprogram(kind, params, _) = lhs_tyref.kind()
+        {
+            debug_assert_ne!(*kind, SubprogramKind::Process);
+            (*kind, params.as_ref())
+        } else {
+            // Already checked that it's callable, or that it's an error
+            return;
+        };
+
+        // Check if parens are required
+        if param_list.is_some() && arg_list.is_none() {
+            // Just referencing it bare
+            let thing = match self.db.binding_to(lhs_expr.into()) {
+                Some(def_id) => {
+                    let library = self.db.library(def_id.0);
+                    let def_info = library.local_def(def_id.1);
+                    let name = def_info.name.item();
+                    format!("`{name}`")
+                }
+                None => "this expression".to_string(),
+            };
+
+            self.state().reporter.error(
+                format!("cannot use {thing} as a statement"),
+                format!("{thing} is callable, but requires adding `()` after here"),
+                lhs_span,
+            );
+        }
+
+        let (empty_params, empty_args); // extends lifetime of empty lists
+        let (param_list, arg_list) = match (param_list, arg_list) {
+            (None, None) => {
+                // both bare
+                return;
+            }
+            (None, Some(arg_list)) => {
+                empty_params = vec![];
+                (&empty_params, arg_list)
+            }
+            (Some(param_list), None) => {
+                empty_args = vec![];
+                (param_list, &empty_args)
+            }
+            (Some(param_list), Some(arg_list)) => (param_list, arg_list),
+        };
+        let (mut params, mut args) = (param_list.iter(), arg_list.iter());
+
+        fn arguments(count: usize) -> &'static str {
+            if count == 1 {
+                "argument"
+            } else {
+                "arguments"
+            }
+        }
+
+        loop {
+            let (param, arg) = match (params.next(), args.next()) {
+                (None, None) => {
+                    // exact
+                    break;
+                }
+                (Some(_), None) | (None, Some(_)) => {
+                    // too few
+                    let param_count = param_list.len();
+                    let arg_count = arg_list.len();
+                    let args = arguments(param_count);
+
+                    // FIXME: Find the last non-missing argument, and use that as the span
+                    let mut state = self.state();
+                    let mut builder = state.reporter.error_detailed(
+                        format!("expected {param_count} {args}, found {arg_count}",),
+                        lhs_span,
+                    );
+
+                    let difference = if param_count > arg_count {
+                        param_count - arg_count
+                    } else {
+                        arg_count - param_count
+                    };
+                    let diff_arguments = arguments(difference);
+
+                    builder = if param_count > arg_count {
+                        builder.with_error(
+                            format!("call is missing {difference} {diff_arguments}"),
+                            lhs_span,
+                        )
+                    } else {
+                        builder.with_error(
+                            format!("call has {difference} extra {diff_arguments}"),
+                            lhs_span,
+                        )
+                    };
+                    builder.finish();
+
+                    break;
+                }
+                (Some(param), Some(arg)) => (param, arg),
+            };
+
+            // Check type & binding
+            let &expr::Arg::Expr(arg) = arg;
+            let arg_expr = (self.library_id, body, arg);
+            let arg_ty = self.db.type_of(arg_expr.into());
+            let arg_binding = self.db.binding_kind(arg_expr.into());
+            let arg_span = self.library.body(body).expr(arg).span;
+            let arg_span = self.library.lookup_span(arg_span);
+
+            let (matches_binding, mutability) = match param.pass_by {
+                ty::PassBy::Value => {
+                    // Accept any expressions
+                    (
+                        arg_binding.map_or(true, BindingKind::is_ref),
+                        Mutability::Var,
+                    )
+                }
+                ty::PassBy::Reference(mutability) => {
+                    // Only accept storage locations
+                    let predicate = match mutability {
+                        Mutability::Const => BindingKind::is_storage,
+                        Mutability::Var => BindingKind::is_storage_mut,
+                    };
+                    (arg_binding.map_or(false, predicate), mutability)
+                }
+            };
+
+            if !matches_binding {
+                self.report_mismatched_binding(
+                    ExpectedBinding::Kind(BindingKind::Storage(mutability)),
+                    arg_expr.into(),
+                    arg_span,
+                    arg_span,
+                    |thing| format!("cannot pass {thing} to this parameter"),
+                    None,
+                );
+            } else if !param.coerced_type {
+                // Allow coercion for pass by value, but not for ref-args
+                let predicate = match param.pass_by {
+                    ty::PassBy::Value => ty::rules::is_assignable,
+                    ty::PassBy::Reference(_) => ty::rules::is_equivalent,
+                };
+
+                if !predicate(self.db, param.param_ty, arg_ty) {
+                    self.report_mismatched_param_tys(
+                        param.param_ty,
+                        arg_ty,
+                        arg_span,
+                        arg_span,
+                        arg_span,
+                        param.pass_by,
+                    );
+                }
+            }
+        }
+
+        if require_value && !matches!(kind, SubprogramKind::Function) {
+            self.state().reporter.error(
+                "cannot call procedure here",
+                "procedure calls cannot be used as expressions",
+                lhs_span,
+            );
         }
     }
 
@@ -923,7 +1270,7 @@ impl TypeCheck<'_> {
             let span = self.library.lookup_span(span);
 
             self.report_mismatched_binding(
-                BindingKind::Type,
+                ExpectedBinding::Kind(BindingKind::Type),
                 target.into(),
                 span,
                 span,
@@ -933,9 +1280,69 @@ impl TypeCheck<'_> {
         }
     }
 
+    fn report_mismatched_assign_tys(
+        &self,
+        left: ty::TypeId,
+        right: ty::TypeId,
+        report_at: toc_span::Span,
+        left_span: toc_span::Span,
+        right_span: toc_span::Span,
+        target_name: Option<fn(String) -> String>,
+    ) {
+        let db = self.db;
+        let left_ty = left.in_db(db);
+        let right_ty = right.in_db(db);
+        let target_name = target_name.map_or_else(
+            || format!("this is of type `{left_ty}`"),
+            |f| f(format!("`{left_ty}`")),
+        );
+
+        self.state()
+            .reporter
+            .error_detailed("mismatched types", report_at)
+            .with_note(format!("this is of type `{right_ty}`"), right_span)
+            .with_note(target_name, left_span)
+            .with_info(format!(
+                "`{right}` is not assignable into `{left}`",
+                left = left_ty.peel_aliases(),
+                right = right_ty.peel_aliases()
+            ))
+            .finish();
+    }
+
+    fn report_mismatched_param_tys(
+        &self,
+        left: ty::TypeId,
+        right: ty::TypeId,
+        report_at: toc_span::Span,
+        left_span: toc_span::Span,
+        right_span: toc_span::Span,
+        pass_by: ty::PassBy,
+    ) {
+        let db = self.db;
+        let left_ty = left.in_db(db);
+        let right_ty = right.in_db(db);
+        let relation = match pass_by {
+            ty::PassBy::Value => "assignable into",
+            ty::PassBy::Reference(_) => "equivalent to",
+        };
+
+        self.state()
+            .reporter
+            .error_detailed("mismatched types", report_at)
+            .with_note(format!("this is of type `{right_ty}`"), right_span)
+            .with_note(format!("parameter expects type `{left_ty}`"), left_span)
+            .with_info(format!(
+                "`{right}` is not {relation} `{left}`",
+                left = left_ty.peel_aliases(),
+                right = right_ty.peel_aliases()
+            ))
+            .finish();
+    }
+
     fn report_mismatched_binding(
         &self,
-        expected: BindingKind,
+        expected: ExpectedBinding,
         binding_source: toc_hir_db::db::BindingSource,
         report_at: Span,
         binding_span: Span,
@@ -1048,6 +1455,21 @@ impl TypeCheck<'_> {
                     ty_span,
                 );
             }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ExpectedBinding {
+    Kind(BindingKind),
+    Subprogram,
+}
+
+impl fmt::Display for ExpectedBinding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExpectedBinding::Kind(kind) => kind.fmt(f),
+            ExpectedBinding::Subprogram => write!(f, "a subprogram"),
         }
     }
 }

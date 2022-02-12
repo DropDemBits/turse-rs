@@ -41,6 +41,8 @@ pub enum SymbolKind {
     Undeclared,
     /// The symbol is a normal declaration at the point of definition.
     Declared,
+    /// The symbol is declared, but is only usable in certain contexts
+    LimitedDeclared(LimitedKind),
     /// The symbol is a forward reference to a later declaration,
     /// with a [`LocalDefId`] pointing to the resolving definition.
     Forward(ForwardKind, Option<LocalDefId>),
@@ -58,14 +60,25 @@ pub enum ForwardKind {
     _Procedure,
 }
 
+/// Specificity on why a symbol is limited in visibility
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LimitedKind {
+    /// Only usable in post-condition statements
+    PostCondition,
+}
+
 /// Any HIR node that contains a definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefOwner {
+    /// Owned directly by an `Item`
     Item(ItemId),
+    /// Parameter on a given `Item`
+    ItemParam(ItemId, LocalDefId),
+    /// Owned by a `Stmt`
     Stmt(BodyStmt),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mutability {
     Const,
     Var,
@@ -81,6 +94,9 @@ pub enum BindingKind {
     Type,
     /// Binding to a module
     Module,
+    /// Binding to a subprogram
+    Subprogram(SubprogramKind),
+
     /// A binding that isn't attached to anything
     Undeclared,
 }
@@ -92,11 +108,11 @@ impl BindingKind {
     // While it's still an invalid state, it can theoretically be
     // any valid binding kind.
 
-    /// If this is a binding to a value reference (mut or immutable, storage or register)
+    /// If this is a binding to a value reference (mut or immutable, storage, register, subprogram)
     pub fn is_ref(self) -> bool {
         matches!(
             self,
-            Self::Undeclared | Self::Storage(_) | Self::Register(_)
+            Self::Undeclared | Self::Storage(_) | Self::Register(_) | Self::Subprogram(_)
         )
     }
 
@@ -134,10 +150,20 @@ impl std::fmt::Display for BindingKind {
             BindingKind::Register(Mutability::Const) => "a constant register",
             BindingKind::Type => "a type",
             BindingKind::Module => "a module",
+            BindingKind::Subprogram(SubprogramKind::Procedure) => "a procedure",
+            BindingKind::Subprogram(SubprogramKind::Function) => "a function",
+            BindingKind::Subprogram(SubprogramKind::Process) => "a process",
         };
 
         f.write_str(name)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SubprogramKind {
+    Procedure,
+    Function,
+    Process,
 }
 
 /// Mapping between a [`LocalDefId`] and the corresponding [`DefOwner`]

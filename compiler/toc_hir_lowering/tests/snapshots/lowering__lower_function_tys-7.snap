@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type _ : function amphy : int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..29): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..29): []
+        StmtItem@(FileId(1), 0..29): ItemId(0)
+          Type@(FileId(1), 0..29): "_"@(FileId(1), 5..6)
+            Function@(FileId(1), 9..29): [no params]
+              Primitive@(FileId(1), 26..29): Int
+warn in file FileId(1) at 9..29: parameterless function types should specify `()`
+| warn in file FileId(1) for 18..23: add `()` after here
+| info: referring to a parameterless function will call it instead of producing a reference to it
+

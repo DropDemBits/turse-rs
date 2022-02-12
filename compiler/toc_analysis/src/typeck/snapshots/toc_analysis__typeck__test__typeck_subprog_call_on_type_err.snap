@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "type kall : procedure() kall"
+
+---
+"<unnamed>"@(dummy) [Declared]: <error>
+"kall"@(FileId(1), 5..9) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of procedure ( ) -> void
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 24..28: cannot use `kall` as an expression
+| error in file FileId(1) for 24..28: `kall` is a reference to a type, not a variable
+| note in file FileId(1) for 5..9: `kall` declared here

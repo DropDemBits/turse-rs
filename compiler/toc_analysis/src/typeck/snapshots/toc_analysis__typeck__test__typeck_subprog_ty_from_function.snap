@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "function sha(a : int, b : char) : int end sha"
+
+---
+"sha"@(FileId(1), 9..12) [Declared]: function ( pass(value) int, pass(value) char, ) -> int
+"<unnamed>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 13..14) [Declared]: int
+"b"@(FileId(1), 22..23) [Declared]: char
+"<root>"@(dummy) [Declared]: <error>
+

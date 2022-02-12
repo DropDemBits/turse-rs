@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use toc_hir::body::BodyTable;
 use toc_hir::symbol::{self, DefOwner, DefTable};
 use toc_hir::{body, expr};
 use toc_hir::{
@@ -29,9 +30,18 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     #[salsa::invoke(query::collect_defs)]
     fn defs_of(&self, library: LibraryId) -> Arc<DefTable>;
 
+    /// Gets all of the body owners in the library,
+    /// providing a mapping between bodies and body owners
+    #[salsa::invoke(query::collect_body_owners)]
+    fn body_owners_of(&self, library: LibraryId) -> Arc<BodyTable>;
+
     /// Gets the corresponding [`DefOwner`] to the given [`DefId`]
     #[salsa::invoke(query::lookup_def_owner)]
     fn def_owner(&self, def_id: DefId) -> Option<DefOwner>;
+
+    /// Gets the corresponding [`BodyOwner`](body::BodyOwner) to the given [`BodyId`](body::BodyId)
+    #[salsa::invoke(query::lookup_body_owner)]
+    fn body_owner(&self, body: InLibrary<body::BodyId>) -> Option<body::BodyOwner>;
 
     /// Looks up the corresponding item for the given `DefId`,
     /// or `None` if it doesn't exist.

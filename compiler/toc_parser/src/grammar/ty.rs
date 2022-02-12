@@ -289,8 +289,8 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Var) || p.at(TokenKind::Register) || p.at(TokenKind::Identifier));
 
     let m = p.start();
-    p.eat(TokenKind::Var);
-    p.eat(TokenKind::Register);
+    attr_var(p);
+    attr_register(p);
 
     p.with_extra_recovery(&[TokenKind::Colon], |p| {
         super::name_list(p);
@@ -298,8 +298,7 @@ pub(super) fn constvar_param(p: &mut Parser) -> Option<CompletedMarker> {
 
     p.expect_punct(TokenKind::Colon);
 
-    // optional: `cheat`
-    p.eat(TokenKind::Cheat);
+    attr_cheat(p);
 
     ty::ty(p);
 

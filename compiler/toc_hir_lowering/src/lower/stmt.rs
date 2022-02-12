@@ -1,9 +1,9 @@
 //! Lowering into `Stmt` HIR nodes
-use toc_hir::stmt::Assign;
-use toc_hir::symbol::{ForwardKind, Mutability};
 use toc_hir::{
-    expr, item, stmt,
-    symbol::{self, SymbolKind},
+    expr, item,
+    stmt::{self, Assign},
+    symbol::{self, ForwardKind, LimitedKind, Mutability, SymbolKind},
+    ty,
 };
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
@@ -20,10 +20,10 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ConstVarDecl(decl) => return self.lower_constvar_decl(decl),
             ast::Stmt::BindDecl(decl) => return self.lower_bind_decl(decl),
             ast::Stmt::TypeDecl(decl) => self.lower_type_decl(decl),
+            ast::Stmt::ProcDecl(decl) => self.lower_procedure_decl(decl),
+            ast::Stmt::FcnDecl(decl) => self.lower_function_decl(decl),
+            ast::Stmt::ProcessDecl(decl) => self.lower_process_decl(decl),
 
-            ast::Stmt::ProcDecl(_) => self.unsupported_stmt(span),
-            ast::Stmt::FcnDecl(_) => self.unsupported_stmt(span),
-            ast::Stmt::ProcessDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ExternalDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::ForwardDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::DeferredDecl(_) => self.unsupported_stmt(span),
@@ -54,9 +54,11 @@ impl super::BodyLowering<'_, '_> {
 
             ast::Stmt::InvariantStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::AssertStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::CallStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ReturnStmt(_) => self.unsupported_stmt(span),
-            ast::Stmt::ResultStmt(_) => self.unsupported_stmt(span),
+
+            ast::Stmt::CallStmt(stmt) => self.lower_call_stmt(stmt),
+            ast::Stmt::ReturnStmt(stmt) => self.lower_return_stmt(stmt),
+            ast::Stmt::ResultStmt(stmt) => self.lower_result_stmt(stmt),
+
             ast::Stmt::NewStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::FreeStmt(_) => self.unsupported_stmt(span),
             ast::Stmt::TagStmt(_) => self.unsupported_stmt(span),
@@ -89,6 +91,18 @@ impl super::BodyLowering<'_, '_> {
             span,
         );
         None
+    }
+
+    fn unsupported_node<N: AstNode>(&mut self, node: Option<N>) {
+        if let Some(node) = node {
+            let span = self.ctx.mk_span(node.syntax().text_range());
+
+            self.ctx.messages.error(
+                "unsupported statement",
+                "this statement is not handled yet",
+                span,
+            );
+        }
     }
 
     fn lower_constvar_decl(&mut self, decl: ast::ConstVarDecl) -> Option<LoweredStmt> {
@@ -228,6 +242,244 @@ impl super::BodyLowering<'_, '_> {
         };
 
         Some(lowered)
+    }
+
+    fn lower_procedure_decl(&mut self, decl: ast::ProcDecl) -> Option<stmt::StmtKind> {
+        let subprog_header = decl.proc_header().unwrap();
+
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id =
+            self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
+        let param_list = self.lower_formals_spec(subprog_header.params());
+        let result = self.none_subprog_result(subprog_header.syntax().text_range());
+        let extra = match subprog_header.device_spec().and_then(|spec| spec.expr()) {
+            Some(expr) => item::SubprogramExtra::DeviceSpec(self.lower_expr_body(expr)),
+            None => item::SubprogramExtra::None,
+        };
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Subprogram(item::Subprogram {
+                kind: symbol::SubprogramKind::Procedure,
+                def_id,
+                param_list,
+                result,
+                extra,
+                body,
+            }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_function_decl(&mut self, decl: ast::FcnDecl) -> Option<stmt::StmtKind> {
+        let subprog_header = decl.fcn_header().unwrap();
+
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id =
+            self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
+        let param_list = self.lower_formals_spec(subprog_header.params());
+        let result = self.lower_subprog_result(subprog_header.fcn_result());
+        let extra = item::SubprogramExtra::None;
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, result.name);
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Subprogram(item::Subprogram {
+                kind: symbol::SubprogramKind::Function,
+                def_id,
+                param_list,
+                result,
+                extra,
+                body,
+            }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_process_decl(&mut self, decl: ast::ProcessDecl) -> Option<stmt::StmtKind> {
+        let subprog_header = decl.process_header().unwrap();
+
+        let is_pervasive = subprog_header.pervasive_attr().is_some();
+        let def_id =
+            self.lower_name_def(subprog_header.name()?, SymbolKind::Declared, is_pervasive);
+        let param_list = self.lower_formals_spec(subprog_header.params());
+        let result = self.none_subprog_result(subprog_header.syntax().text_range());
+        let extra = match subprog_header.stack_size() {
+            Some(expr) => item::SubprogramExtra::StackSize(self.lower_expr_body(expr)),
+            None => item::SubprogramExtra::None,
+        };
+
+        let body = self.lower_subprog_body(decl.subprog_body().unwrap(), &param_list, None);
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+        let item_id = self.ctx.library.add_item(item::Item {
+            kind: item::ItemKind::Subprogram(item::Subprogram {
+                kind: symbol::SubprogramKind::Process,
+                def_id,
+                param_list,
+                result,
+                extra,
+                body,
+            }),
+            def_id,
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    pub(super) fn lower_formals_spec(
+        &mut self,
+        formals: Option<ast::ParamSpec>,
+    ) -> Option<item::ParamList> {
+        use ty::{Parameter, PassBy};
+
+        let formals = formals?;
+
+        let mut param_names = vec![];
+        let mut tys = vec![];
+
+        // Prevent duplication of param names
+        self.ctx.scopes.push_scope(ScopeKind::SubprogramHeader);
+        {
+            let missing_name = self.ctx.library.add_def(
+                "<unnamed>",
+                self.ctx.library.span_map.dummy_span(),
+                SymbolKind::Declared,
+            );
+
+            for param_def in formals.param_decl() {
+                match param_def {
+                    ast::ParamDecl::ConstVarParam(param) => {
+                        let is_register = param.bind_to_register().is_some();
+                        let pass_by = match param.pass_as_ref() {
+                            None => PassBy::Value,
+                            Some(_) => PassBy::Reference(Mutability::Var),
+                        };
+                        let coerced_type = param.coerce_type().is_some();
+                        let param_ty = self.lower_required_type(param.param_ty());
+
+                        let names = self.lower_name_list_with_missing(
+                            param.param_names(),
+                            false,
+                            missing_name,
+                        );
+
+                        for name in names {
+                            param_names.push(name);
+
+                            tys.push(Parameter {
+                                is_register,
+                                pass_by,
+                                coerced_type,
+                                param_ty,
+                            });
+                        }
+                    }
+                    ast::ParamDecl::SubprogType(param) => {
+                        let (name, param_ty) = match param {
+                            ast::SubprogType::FcnType(ty) => {
+                                let name = ty.name();
+                                let param_ty = self
+                                    .lower_type(ast::Type::FcnType(ty))
+                                    .expect("from known existing type");
+                                (name, param_ty)
+                            }
+                            ast::SubprogType::ProcType(ty) => {
+                                let name = ty.name();
+                                let param_ty = self
+                                    .lower_type(ast::Type::ProcType(ty))
+                                    .expect("from known existing type");
+                                (name, param_ty)
+                            }
+                        };
+
+                        let name = name.map_or(missing_name, |name| {
+                            self.lower_name_def(name, SymbolKind::Declared, false)
+                        });
+                        param_names.push(name);
+
+                        tys.push(Parameter {
+                            is_register: false,
+                            pass_by: PassBy::Value,
+                            coerced_type: false,
+                            param_ty,
+                        })
+                    }
+                }
+            }
+            self.ctx.scopes.pop_scope();
+        }
+
+        Some(item::ParamList {
+            names: param_names,
+            tys,
+        })
+    }
+
+    fn none_subprog_result(&mut self, range: toc_span::TextRange) -> item::SubprogramResult {
+        let span = self.ctx.intern_range(range);
+        let void_ty = self.ctx.library.intern_type(ty::Type {
+            kind: ty::TypeKind::Void,
+            span,
+        });
+
+        item::SubprogramResult {
+            name: None,
+            ty: void_ty,
+        }
+    }
+
+    fn lower_subprog_result(&mut self, result: Option<ast::FcnResult>) -> item::SubprogramResult {
+        let (name, ty) = result.map_or((None, None), |result| {
+            let name = result.name().map(|name| {
+                self.name_to_def(
+                    name,
+                    SymbolKind::LimitedDeclared(LimitedKind::PostCondition),
+                )
+            });
+            (name, result.ty())
+        });
+
+        let ty = self.lower_required_type(ty);
+        item::SubprogramResult { name, ty }
+    }
+
+    fn lower_subprog_body(
+        &mut self,
+        decl: ast::SubprogBody,
+        param_list: &Option<item::ParamList>,
+        result_name: Option<symbol::LocalDefId>,
+    ) -> item::SubprogramBody {
+        // None of the extra bits are supported yet
+        // TODO: Figure out a way of embedding these into the stmt_list
+        self.unsupported_node(decl.import_stmt());
+        self.unsupported_node(decl.pre_stmt());
+        self.unsupported_node(decl.init_stmt());
+        self.unsupported_node(decl.post_stmt());
+        self.unsupported_node(decl.handler_stmt());
+
+        let param_defs = param_list
+            .as_ref()
+            .map_or(vec![], |params| params.names.clone());
+
+        let (body, _) = self.ctx.lower_stmt_body(
+            ScopeKind::Subprogram,
+            decl.stmt_list().unwrap(),
+            param_defs,
+            result_name,
+        );
+
+        item::SubprogramBody { body }
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {
@@ -507,6 +759,41 @@ impl super::BodyLowering<'_, '_> {
         }))
     }
 
+    fn lower_call_stmt(&mut self, stmt: ast::CallStmt) -> Option<stmt::StmtKind> {
+        let call = match stmt.expr() {
+            Some(ast::Expr::CallExpr(call)) => {
+                let lhs = self.lower_required_expr(call.expr());
+                let arguments = self.lower_expr_arg_list(call.param_list());
+
+                stmt::Call { lhs, arguments }
+            }
+            other_expr => {
+                let lhs = self.lower_required_expr(other_expr);
+
+                stmt::Call {
+                    lhs,
+                    arguments: None,
+                }
+            }
+        };
+
+        Some(stmt::StmtKind::Call(call))
+    }
+
+    fn lower_return_stmt(&mut self, _stmt: ast::ReturnStmt) -> Option<stmt::StmtKind> {
+        Some(stmt::StmtKind::Return(stmt::Return))
+    }
+
+    fn lower_result_stmt(&mut self, stmt: ast::ResultStmt) -> Option<stmt::StmtKind> {
+        Some(stmt::StmtKind::Result(stmt::Result {
+            expr: self.lower_required_expr(stmt.expr()),
+        }))
+    }
+}
+
+impl super::BodyLowering<'_, '_> {
+    // Utils //
+
     fn lower_stmt_list_to_block(
         &mut self,
         stmt_list: ast::StmtList,
@@ -543,31 +830,68 @@ impl super::BodyLowering<'_, '_> {
         Some(names).filter(|names| !names.is_empty())
     }
 
+    /// Lowers a name list, filling empty name places with `fill_with`
+    fn lower_name_list_with_missing(
+        &mut self,
+        name_list: Option<ast::NameList>,
+        is_pervasive: bool,
+        fill_with: symbol::LocalDefId,
+    ) -> Vec<symbol::LocalDefId> {
+        let names = name_list.map_or_else(
+            || vec![fill_with],
+            |name_list| {
+                name_list
+                    .names_with_missing()
+                    .map(|name| match name {
+                        Some(name) => {
+                            self.lower_name_def(name, symbol::SymbolKind::Declared, is_pervasive)
+                        }
+                        None => fill_with,
+                    })
+                    .collect::<Vec<_>>()
+            },
+        );
+
+        // Invariant: Names list must contain at least one name
+        debug_assert!(!names.is_empty());
+        names
+    }
+
     fn lower_name_def(
         &mut self,
         name: ast::Name,
-        kind: symbol::SymbolKind,
+        kind: SymbolKind,
         is_pervasive: bool,
     ) -> symbol::LocalDefId {
         // Can't declare an undefined symbol from a name def
         assert_ne!(kind, SymbolKind::Undeclared);
 
-        let token = name.identifier_token().unwrap();
-        let span = self.ctx.intern_range(token.text_range());
-        let def_id = self.ctx.library.add_def(token.text(), span, kind);
+        let def_id = self.name_to_def(name, kind);
 
         // Bring into scope
-        let old_def = self
-            .ctx
-            .scopes
-            .def_sym(token.text(), def_id, kind, is_pervasive);
+        self.introduce_def(def_id, is_pervasive);
+
+        def_id
+    }
+
+    fn name_to_def(&mut self, name: ast::Name, kind: SymbolKind) -> symbol::LocalDefId {
+        let token = name.identifier_token().unwrap();
+        let span = self.ctx.intern_range(token.text_range());
+        self.ctx.library.add_def(token.text(), span, kind)
+    }
+
+    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
+        let def_info = self.ctx.library.local_def(def_id);
+        let name = def_info.name.item();
+        let span = def_info.name.span();
+        let kind = def_info.kind;
+
+        // Bring into scope
+        let old_def = self.ctx.scopes.def_sym(name, def_id, kind, is_pervasive);
 
         // Resolve any associated forward decls
         if let SymbolKind::Resolved(resolve_kind) = kind {
-            let forward_list = self
-                .ctx
-                .scopes
-                .take_resolved_forwards(token.text(), resolve_kind);
+            let forward_list = self.ctx.scopes.take_resolved_forwards(name, resolve_kind);
 
             if let Some(forward_list) = forward_list {
                 // Point all of these local defs to this one
@@ -657,8 +981,6 @@ impl super::BodyLowering<'_, '_> {
                 }
             }
         }
-
-        def_id
     }
 }
 

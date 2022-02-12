@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "function a : int end a"
+
+---
+"a"@(FileId(1), 9..10) [Declared]: function -> int
+"<root>"@(dummy) [Declared]: <error>
+

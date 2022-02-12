@@ -743,6 +743,7 @@ test_named_group! { typeck_assignment,
     ]
 }
 
+// For `is_coercible_into` uses, but in assignment position
 test_named_group! { assignability_into,
     [
         boolean => r#"
@@ -1086,7 +1087,82 @@ test_named_group! { equivalence_of,
         % alias with same base type
         for : ia0 .. ia1 end for
         for : ia1 .. ia0 end for
-        "#
+        "#,
+        // Over subprogram types
+        subprogram_formals => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        procedure p(a, b : int, var c : string) end p
+
+        var _ : t_p := p
+        "#,
+        subprogram_formals_cheat => r#"
+        type t_f : function(a, b : int, var c : string) : int
+        type t_fc : function(a, b : cheat int, var c : cheat string) : int
+        var f : t_f
+        var fc : t_fc
+
+        % transitive
+        f := fc
+        fc := f
+        "#,
+        subprogram_formals_register => r#"
+        type t_f : function(a, b : int, var c : string) : int
+        type t_fr : function(register a, b : int, var register c : string) : int
+        var f : t_f
+        var fc : t_fr
+
+        % transitive
+        f := fc
+        fc := f
+        "#,
+        subprogram_formals_bare => r#"
+        type t_f : function : int
+        type t_p : procedure
+        type t_fp : function() : int
+        type t_pp : procedure()
+
+        var f : t_f
+        var p : t_p
+        var fp : t_fp
+        var pp : t_pp
+
+        % transitive
+        f := fp
+        fp := f
+
+        p := pp
+        pp := p
+        "#,
+        subprogram_formals_err_too_few => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        procedure p(a : int, var c : string) end p
+
+        var _ : t_p := p
+        "#,
+        subprogram_formals_err_too_many => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        procedure p(a, b, k : int, var c : string) end p
+
+        var _ : t_p := p
+        "#,
+        subprogram_formals_err_not_var => r#"
+        type t_p : procedure(a, b : int, var c : string)
+        procedure p(a, b : int, c : string) end p
+
+        var _ : t_p := p
+        "#,
+        subprogram_result => r#"
+        type fa : function () : int
+        function fb () : int end fb
+
+        var _ : fa := fb
+        "#,
+        subprogram_result_err => r#"
+        type fa : function () : int1
+        function fb () : int end fb
+
+        var _ : fa := fb
+        "#,
     ]
 }
 
@@ -1405,6 +1481,164 @@ test_named_group! { typeck_bind_decl,
     ]
 }
 
+test_named_group! { typeck_subprog_ty,
+    [
+        from_function => "function sha(a : int, b : char) : int end sha",
+        from_procedure => "procedure sha(a : int, b : char) end sha",
+        from_process => "process sha(a : int, b : char) end sha",
+        from_alias_function => "type sha : function (a : int, b : char) : int",
+        from_alias_procedure => "type sha : procedure (a : int, b : char)",
+
+        param_attrs => "type _ : procedure (
+            ki : int,
+            var v : int,
+            register r : int,
+            var register vr : int,
+            ci : cheat int,
+            var vci : cheat int,
+            register rci : cheat int,
+            var register vrci : cheat int
+        )",
+        bare_procedure => "type _ : procedure",
+        bare_function => "function a : int end a",
+    ]
+}
+
+test_named_group! {
+    typeck_subprog_param,
+    [
+        infer_ty => "
+        type tyres : string
+        function own(me : nat, pie : real) sammy : tyres
+        end own",
+        infer_binding => "function ka(register a : int, b : int, var c : int) r : int
+            bind
+                ra to a, % should fail
+                rb to b,
+                rc to c
+            r := 0 % should fail
+        end ka"
+    ]
+}
+
+test_named_group! { typeck_subprog_call,
+    [
+        as_stmt => "
+        function key() : int end key
+        procedure lime() end lime
+        key() lime()
+        ",
+        as_stmt_bare => "
+        function key : int end key
+        procedure lime end lime
+        key lime
+        key() lime()
+        ",
+        as_stmt_err => "
+        function key() : int end key
+        procedure lime() end lime
+        % can't be used like this, need paren
+        key lime
+        ",
+        as_expr => "
+        function key() : int end key
+        var res := key()
+        ",
+        as_expr_bare => "
+        function key : int end key
+        var res := key
+        ",
+        as_expr_err => "
+        procedure lime() end lime
+        var res := lime()
+        ",
+        // `process`es can never be called like this
+        on_process_err => "
+        process never end never
+        never
+        never()
+        var _ := never()
+        ",
+        on_expr_err => "1 1(1, 2, 3)",
+        on_type_err => "type kall : procedure() kall",
+        on_var_err => "var sha : int sha()",
+        on_undecl => "
+        % pass through, since we can't say anything about this
+        no_compile",
+
+        args_exact => "
+        var tree : int
+        procedure boop(a, b : int, var c : int) end boop
+        boop(1, 2, tree)
+        ",
+        args_err_cheat_ty => r#"
+        var tree : string
+        procedure boop(a, b : cheat int, var c : cheat int) end boop
+        boop("tree", tree, tree)
+        "#,
+        args_err_wrong_binding => "
+        procedure boop(a, b : int, var c : int) end boop
+        boop(1, 2, 3)
+        ",
+        args_err_not_expr => "
+        type a : int
+        procedure boop(a, b : int, var c : int) end boop
+        boop(1, a, a)
+        ",
+        args_err_wrong_ty => "
+        var tree : string
+        procedure boop(a, b : int, var c : int) end boop
+        boop(1, 2, tree)
+        ",
+        args_err_few => "
+        procedure boop(a, b, c : int) end boop
+        boop(1, 2)
+        boop(1)
+        ",
+        args_err_many => "
+        procedure boop(a, b, c : int) end boop
+        boop(1, 2, 3, 4)
+        boop(1, 2, 3, 4, 5)
+        ",
+
+        // Coercion interactions
+        coerce_value_arg => "
+        procedure p(a : real) end p
+        var i : int
+        p(i)
+        ",
+        coerce_ref_arg_err => "
+        procedure p(var a : real) end p
+        var i : int
+        p(i)
+        ",
+        coerce_ref_arg_cheated => "
+        procedure p(var a : cheat real) end p
+        var i : int
+        p(i)
+        ",
+    ]
+}
+
+test_named_group! { typeck_return_stmt,
+    [
+        in_top_level => "return",
+        in_procedure => "proc q return end q",
+        in_process => "proc q return end q",
+        in_function_err => "fcn oeuf : int return end oeuf",
+    ]
+}
+
+test_named_group! { typeck_result_stmt,
+    [
+        in_top_level_err => "result 0",
+        in_procedure_err => "proc q result 0 end q",
+        in_process_err => "proc q result 0 end q",
+        in_function => "fcn oeuf : int result 0 end oeuf",
+        mismatched_types => "fcn oeuf : int result 'egg' end oeuf",
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",
@@ -1457,6 +1691,16 @@ test_named_group! { report_aliased_type,
         case ca0 of
         label cna1:
         end case
+        "#,
+        in_subprog_ty => r#"
+        type i : int
+        type am_in : real
+        type misery : char(*)
+        type eat_em_up : string
+        type f : function(c : i, p : am_in, r : misery) : eat_em_up
+
+        var y : f
+        var _ : int := y
         "#,
     ]
 }

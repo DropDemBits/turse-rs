@@ -1,10 +1,12 @@
 //! Pretty printer(s) for HIR trees
 
+use std::ops::DerefMut;
 use std::{
     cell::{Cell, RefCell},
     fmt::{self, Write},
 };
 
+use toc_hir::symbol::SubprogramKind;
 use toc_hir::{
     body,
     expr::{self, BodyExpr},
@@ -66,10 +68,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     ) -> fmt::Result {
         let mut out = self.out.borrow_mut();
 
-        // Emit indentation
-        for _ in 0..self.indent_level.get() {
-            write!(out, "  ")?;
-        }
+        self.emit_indent(out.deref_mut())?;
 
         // Tree format is:
         // $node_name@($file_id, $span): $additional_info
@@ -80,6 +79,14 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         }
 
         writeln!(out)
+    }
+
+    fn emit_indent(&self, out: &mut dyn fmt::Write) -> fmt::Result {
+        for _ in 0..self.indent_level.get() {
+            write!(out, "  ")?;
+        }
+
+        Ok(())
     }
 
     fn display_span(&self, span: SpanId) -> String {
@@ -121,6 +128,26 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
             }
             _ => def_display,
         }
+    }
+
+    fn display_param_info(&self, info: &ty::Parameter) -> String {
+        let mut extra = String::new();
+
+        match info.pass_by {
+            ty::PassBy::Value => {}
+            ty::PassBy::Reference(Mutability::Const) => write!(extra, "const ").unwrap(),
+            ty::PassBy::Reference(Mutability::Var) => write!(extra, "var ").unwrap(),
+        }
+
+        if info.is_register {
+            write!(extra, "register ").unwrap()
+        }
+
+        if info.coerced_type {
+            write!(extra, "cheat ").unwrap()
+        }
+
+        extra
     }
 
     fn item_span(&self, id: item::ItemId) -> SpanId {
@@ -228,6 +255,50 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         self.emit_node("Bind", span, Some(format_args!("{}", extra)))
     }
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
+        let span = self.item_span(id);
+        let def_id = self.def_of(id);
+
+        let mut extra = String::new();
+
+        write!(extra, "{}", self.display_def(def_id)).unwrap();
+
+        if let Some(params) = &item.param_list {
+            let param_count = params.tys.len();
+            let mut params = params.names.iter().zip(params.tys.iter());
+
+            write!(extra, " [").unwrap();
+            if param_count > 1 {
+                self.indent();
+                writeln!(extra).unwrap();
+                self.emit_indent(&mut extra).unwrap();
+            }
+
+            if let Some(first) = params.next() {
+                write!(extra, "{}", self.display_param_info(first.1)).unwrap();
+                write!(extra, "{}", self.display_def(*first.0)).unwrap();
+            }
+            for rest in params {
+                writeln!(extra, ",").unwrap();
+                self.emit_indent(&mut extra).unwrap();
+                write!(extra, "{}", self.display_param_info(rest.1)).unwrap();
+                write!(extra, "{}", self.display_def(*rest.0)).unwrap();
+            }
+
+            if param_count > 1 {
+                self.unindent();
+                writeln!(extra).unwrap();
+                self.emit_indent(&mut extra).unwrap();
+            }
+            write!(extra, "]").unwrap();
+        }
+
+        if let Some(result) = item.result.name {
+            write!(extra, " -> {}", self.display_def(result)).unwrap();
+        }
+
+        self.emit_node("Subprogram", span, Some(format_args!("{}", extra)))
+    }
     fn visit_module(&self, id: item::ItemId, _item: &item::Module) {
         let span = self.item_span(id);
         let def_id = self.def_of(id);
@@ -241,7 +312,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {
         let span = self.body_span(id);
         match &body.kind {
-            body::BodyKind::Stmts(_, params) => {
+            body::BodyKind::Stmts(_, params, result_name) => {
                 let mut params = params.iter();
                 let mut extra = String::new();
                 write!(extra, "[").unwrap();
@@ -252,6 +323,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                     write!(extra, ", {}", self.display_def(*rest)).unwrap();
                 }
                 write!(extra, "]").unwrap();
+
+                if let Some(result) = result_name {
+                    write!(extra, " -> {}", self.display_def(*result)).unwrap();
+                }
 
                 self.emit_node("StmtBody", span, Some(format_args!("{}", extra)))
             }
@@ -313,6 +388,22 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.stmt_span(id);
         self.emit_node("Block", span, Some(format_args!("{:?}", stmt.kind)))
     }
+    fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {
+        let span = self.stmt_span(id);
+        let extra = match &stmt.arguments {
+            Some(_) => "...",
+            None => "no params",
+        };
+        self.emit_node("CallStmt", span, Some(format_args!("[{extra}]")));
+    }
+    fn visit_return_stmt(&self, id: BodyStmt, _stmt: &stmt::Return) {
+        let span = self.stmt_span(id);
+        self.emit_node("Return", span, None)
+    }
+    fn visit_result_stmt(&self, id: BodyStmt, _stmt: &stmt::Result) {
+        let span = self.stmt_span(id);
+        self.emit_node("Result", span, None)
+    }
 
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {
@@ -337,6 +428,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             expr::Name::Self_ => self.emit_node("Self", span, None),
         }
     }
+    fn visit_call_expr(&self, id: BodyExpr, _expr: &expr::Call) {
+        let span = self.expr_span(id);
+        self.emit_node("CallExpr", span, Some(format_args!("[...]")));
+    }
+
     // Types //
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
         let span = self.type_span(id);
@@ -347,5 +443,23 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let def_id = &ty.0;
         let extra = self.display_extra_def(*def_id);
         self.emit_node("Alias", span, Some(format_args!("{}", extra)))
+    }
+    fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {
+        let span = self.type_span(id);
+        let name = match ty.kind {
+            SubprogramKind::Procedure => "Procedure",
+            SubprogramKind::Function => "Function",
+            SubprogramKind::Process => "Process",
+        };
+        let extra = match &ty.param_list {
+            Some(_) => "...",
+            None => "no params",
+        };
+
+        self.emit_node(name, span, Some(format_args!("[{extra}]")));
+    }
+    fn visit_void(&self, id: ty::TypeId) {
+        let span = self.type_span(id);
+        self.emit_node("Void", span, None)
     }
 }

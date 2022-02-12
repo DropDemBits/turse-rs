@@ -36,9 +36,9 @@ pub enum ItemKind {
     Type(Type),
     /// Binding a definition as something else.
     Binding(Binding),
-    /// general function, rolls up function, procedure, and process
-    /// distinguished by return type
-    // Function { ty: TypeId, body: BodyId, },
+    /// General function-like, rolls up `function`, `procedure`, and `process`
+    /// Distinguished by return type
+    Subprogram(Subprogram),
     /// Maybe instead Extern(ConstVar) and Extern(Function)
     // ExternVar { .. },
     // ExternFunction { ..  },
@@ -92,7 +92,104 @@ pub struct Binding {
     /// The definition to bind to
     pub def_id: symbol::LocalDefId,
     /// Expression to bind the definition to
+    // ???: Why is this a body? Does it need to be (it can be a plain expr)?
     pub bind_to: body::BodyId,
+}
+
+/// A subprogram item
+#[derive(Debug, PartialEq, Eq)]
+pub struct Subprogram {
+    /// The specific type of subprogram defined
+    pub kind: symbol::SubprogramKind,
+    /// Name of the function
+    pub def_id: symbol::LocalDefId,
+
+    /// Formal parameter list
+    pub param_list: Option<ParamList>,
+    /// Result info
+    pub result: SubprogramResult,
+    /// Extra info associated with the subprogram
+    pub extra: SubprogramExtra,
+
+    /// Executable portion of the subprogram
+    pub body: SubprogramBody,
+}
+
+impl Subprogram {
+    /// Looks up the associated parameter info
+    pub fn lookup_param_info(&self, param_def: symbol::LocalDefId) -> ParameterInfo {
+        let param_list = self
+            .param_list
+            .as_ref()
+            .expect("accessing named arg from no params list");
+        param_list
+            .names
+            .iter()
+            .enumerate()
+            .find_map(|(idx, name)| {
+                (*name == param_def).then(|| ParameterInfo::Param(&param_list.tys[idx]))
+            })
+            .unwrap_or_else(|| {
+                assert_eq!(
+                    self.result.name,
+                    Some(param_def),
+                    "not the named result param"
+                );
+                ParameterInfo::Result
+            })
+    }
+}
+
+#[derive(Debug)]
+pub enum ParameterInfo<'a> {
+    /// For a parameter
+    Param(&'a ty::Parameter),
+    /// For the named result
+    Result,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParamList {
+    pub names: Vec<symbol::LocalDefId>,
+    pub tys: Vec<ty::Parameter>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SubprogramResult {
+    pub name: Option<symbol::LocalDefId>,
+    pub ty: ty::TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubprogramExtra {
+    /// No extra subprogram info defined
+    None,
+    /// Specific device specification.
+    /// Unused, and of unknown purpose (though checked for const-eval & correct type)
+    DeviceSpec(body::BodyId),
+    /// Stack size to allocate for the new process
+    StackSize(body::BodyId),
+}
+
+impl SubprogramExtra {
+    pub fn device_spec(self) -> Option<body::BodyId> {
+        match self {
+            SubprogramExtra::DeviceSpec(body) => Some(body),
+            _ => None,
+        }
+    }
+
+    pub fn stack_size(self) -> Option<body::BodyId> {
+        match self {
+            SubprogramExtra::StackSize(body) => Some(body),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SubprogramBody {
+    pub body: body::BodyId,
 }
 
 #[derive(Debug, PartialEq, Eq)]

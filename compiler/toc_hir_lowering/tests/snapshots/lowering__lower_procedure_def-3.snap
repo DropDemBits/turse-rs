@@ -1,0 +1,26 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    procedure some_params(a, b : int)\n        % should be visible\n        var me := a + b\n    end some_params\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..115): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..110): []
+        StmtItem@(FileId(1), 5..110): ItemId(1)
+          Subprogram@(FileId(1), 5..110): "some_params"@(FileId(1), 15..26) [
+            "a"@(FileId(1), 27..28),
+            "b"@(FileId(1), 30..31)
+          ]
+            Primitive@(FileId(1), 34..37): Int
+            Primitive@(FileId(1), 34..37): Int
+            Void@(FileId(1), 5..38)
+            StmtBody@(FileId(1), 75..90): ["a"@(FileId(1), 27..28), "b"@(FileId(1), 30..31)]
+              StmtItem@(FileId(1), 75..90): ItemId(0)
+                ConstVar@(FileId(1), 75..90): var "me"@(FileId(1), 79..81)
+                  ExprBody@(FileId(1), 85..90)
+                    Binary@(FileId(1), 85..90): Add
+                      Name@(FileId(1), 85..86): "a"@(FileId(1), 27..28)
+                      Name@(FileId(1), 89..90): "b"@(FileId(1), 30..31)
+

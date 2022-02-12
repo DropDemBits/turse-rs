@@ -3,6 +3,8 @@
 // fancy quotes: ‘’
 mod preproc;
 mod stmt;
+mod ty;
+
 #[cfg(test)]
 mod test;
 
@@ -107,7 +109,9 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
     // Indiscriminately go over descendant nodes
     for node in root.descendants() {
         match_ast!(match node {
+            // Preproc
             ast::PreprocGlob(pp_glob) => preproc::validate_preproc_glob(pp_glob, ctx),
+            // Stmts
             ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
             ast::BindDecl(decl) => stmt::validate_bind_decl(decl, ctx),
             ast::ProcDecl(decl) =>
@@ -120,8 +124,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ForwardDecl(decl) =>
                 stmt::validate_in_top_level(decl.syntax(), "‘forward’ declaration", ctx),
             ast::DeferredDecl(decl) => stmt::validate_deferred_decl(decl, ctx),
-            ast::BodyDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "‘body’ declaration", ctx),
+            ast::BodyDecl(decl) => stmt::validate_body_decl(decl, ctx),
             ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
             ast::ClassDecl(decl) => stmt::validate_class_decl(decl, ctx),
             ast::MonitorDecl(decl) => stmt::validate_monitor_decl(decl, ctx),
@@ -132,6 +135,10 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ExitStmt(stmt) => stmt::validate_exit_stmt(stmt, ctx),
             ast::CaseStmt(stmt) => stmt::validate_case_stmt(stmt, ctx),
             ast::InvariantStmt(stmt) => stmt::validate_invariant_stmt(stmt, ctx),
+            ast::ReturnStmt(stmt) => stmt::validate_return_stmt(stmt, ctx),
+            ast::ResultStmt(stmt) => stmt::validate_result_stmt(stmt, ctx),
+            // Types
+            ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
             _ => (),
         })
     }
@@ -210,10 +217,23 @@ impl BlockKind {
             Self::Module | Self::Class | Self::Monitor | Self::MonitorClass | Self::MonitorDevice
         )
     }
+
+    fn is_subprogram(self) -> bool {
+        matches!(
+            self,
+            Self::Function | Self::Procedure | Self::Process | Self::Body
+        )
+    }
 }
 
 pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
     walk_blocks(start).next().unwrap()
+}
+
+pub(crate) fn item_block_containing_node(start: &SyntaxNode) -> BlockKind {
+    walk_blocks(start)
+        .find(|kind| !matches!(kind, BlockKind::Inner | BlockKind::Loop))
+        .unwrap()
 }
 
 pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {

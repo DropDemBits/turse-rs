@@ -1,0 +1,20 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "process never end never\nnever\nnever()\nvar _ := never()\n"
+
+---
+"never"@(FileId(1), 8..13) [Declared]: process -> void
+"_"@(FileId(1), 42..43) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 24..29: cannot use `never` as a statement
+| error in file FileId(1) for 24..29: `never` is not a statement
+error in file FileId(1) at 30..35: cannot call or subscript `never`
+| note in file FileId(1) for 30..35: this is of type `process`
+| error in file FileId(1) for 30..35: `process` is not callable
+| info: to start a new process, use a `fork` statement
+error in file FileId(1) at 47..52: cannot call or subscript `never`
+| note in file FileId(1) for 47..52: this is of type `process`
+| error in file FileId(1) for 47..52: `process` is not callable
+| info: to start a new process, use a `fork` statement

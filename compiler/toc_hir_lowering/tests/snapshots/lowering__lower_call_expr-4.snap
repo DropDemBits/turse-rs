@@ -1,0 +1,25 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "proc call end call var _ := call(1,,)"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..37): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..37): []
+        StmtItem@(FileId(1), 0..18): ItemId(0)
+          Subprogram@(FileId(1), 0..18): "call"@(FileId(1), 5..9)
+            Void@(FileId(1), 0..9)
+            StmtBody@(FileId(1), 10..10): []
+        StmtItem@(FileId(1), 19..37): ItemId(1)
+          ConstVar@(FileId(1), 19..37): var "_"@(FileId(1), 23..24)
+            ExprBody@(FileId(1), 28..37)
+              CallExpr@(FileId(1), 28..37): [...]
+                Name@(FileId(1), 28..32): "call"@(FileId(1), 5..9)
+                Literal@(FileId(1), 33..34): Integer(1)
+error in file FileId(1) at 35..36: unexpected token
+| error in file FileId(1) for 35..36: expected expression, but found ‘,’
+error in file FileId(1) at 36..37: unexpected token
+| error in file FileId(1) for 36..37: expected expression, but found ‘)’
+

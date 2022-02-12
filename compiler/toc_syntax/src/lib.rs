@@ -235,6 +235,7 @@ pub enum SyntaxKind {
     ProcDecl,
     FcnDecl,
     ProcessDecl,
+    ProcessHeader,
     ExternalDecl,
     ExternalVar,
     ForwardDecl,

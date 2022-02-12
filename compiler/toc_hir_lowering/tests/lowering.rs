@@ -77,7 +77,7 @@ fn lower_literal_value(expr: &str) -> expr::Literal {
     if_chain! {
         if let item::ItemKind::Module(item::Module { body, .. }) = &root_item.kind;
         let body = library.body(*body);
-        if let body::BodyKind::Stmts(stmts, _) = &body.kind;
+        if let body::BodyKind::Stmts(stmts, ..) = &body.kind;
         if let Some(second_stmt) = stmts.get(1);
         if let stmt::StmtKind::Assign(stmt::Assign { rhs, .. }) = &body.stmt(*second_stmt).kind;
         if let expr::ExprKind::Literal(value) = &body.expr(*rhs).kind;
@@ -840,4 +840,329 @@ fn lower_binding_def() {
     var nothing := 0
     bind me to nothing",
     );
+}
+
+#[test]
+fn lower_procedure_def() {
+    // Without param list
+    assert_lower(
+        "
+    procedure no_params
+    end no_params",
+    );
+
+    // None specified
+    assert_lower(
+        "
+    procedure empty_params()
+    end empty_params
+    ",
+    );
+
+    // With params
+    assert_lower(
+        "
+    procedure some_params(a, b : int)
+        % should be visible
+        var me := a + b
+    end some_params
+    ",
+    );
+
+    // Different passings
+    assert_lower(
+        "
+    procedure pass_me(
+        by_value : int,
+        var by_ref : int,
+        register by_val_to_reg : int,
+        var register by_ref_to_reg : int
+    )
+    end pass_me
+    ",
+    );
+
+    // Device spec
+    // FIXME: Embed in monitor module to get rid of the errors
+    assert_lower(
+        "
+    procedure a : 4 + 4 end a
+    procedure b() : 6 + 8 end b
+    procedure c(k : int) : 9 + 2 end c
+    ",
+    );
+
+    // Redecl over params
+    assert_lower(
+        "
+    procedure pars(a, a : int, a : int1)
+        var a : int2
+    end pars",
+    );
+}
+
+#[test]
+fn lower_function_def() {
+    // Without param list
+    assert_lower(
+        "
+    function no_params : int
+    end no_params",
+    );
+
+    // None specified
+    assert_lower(
+        "
+    function empty_params() : int
+    end empty_params
+    ",
+    );
+
+    // With params
+    assert_lower(
+        "
+    function some_params(a, b : int) : int
+        % should be visible
+        var me := a + b
+    end some_params
+    ",
+    );
+
+    // Different passings
+    assert_lower(
+        "
+    function pass_me(
+        by_value : int,
+        var by_ref : int,
+        register by_val_to_reg : int,
+        var register by_ref_to_reg : int
+    ) : int
+    end pass_me
+    ",
+    );
+
+    // Named result
+    assert_lower(
+        "
+    function a shambles : int end a
+    function b() quoi : int end b
+    function c(k : int) weh : int end c
+    ",
+    );
+
+    // Redecl over params
+    assert_lower(
+        "
+    function pars(a, a : int, a : int1) : int
+        var a : int2
+    end pars",
+    );
+
+    // Redecl over named result
+    assert_lower(
+        "
+    function pars() res : int
+        var res : int1
+    end pars",
+    );
+
+    // Not using named result in `post` condition
+    assert_lower(
+        "
+    function pars() res : int
+        var use := res
+    end pars",
+    );
+}
+
+#[test]
+fn lower_process_def() {
+    // Without param list
+    assert_lower(
+        "
+    process no_params
+    end no_params",
+    );
+
+    // None specified
+    assert_lower(
+        "
+    process empty_params()
+    end empty_params
+    ",
+    );
+
+    // With params
+    assert_lower(
+        "
+    process some_params(a, b : int)
+        % should be visible
+        var me := a + b
+    end some_params
+    ",
+    );
+
+    // Different passings
+    assert_lower(
+        "
+    process pass_me(
+        by_value : int,
+        var by_ref : int,
+        register by_val_to_reg : int,
+        var register by_ref_to_reg : int
+    )
+    end pass_me
+    ",
+    );
+
+    // Stack size
+    assert_lower(
+        "
+    process a : 4 + 4 end a
+    process b() : 6 + 8 end b
+    process c(k : int) : 9 + 2 end c
+    ",
+    );
+
+    // Redecl over params
+    assert_lower(
+        "
+    process pars(a, a : int, a : int1)
+        var a : int2
+    end pars",
+    );
+}
+
+#[test]
+fn lower_subprogram_shadow_external() {
+    // Formal names are always allowed to shadow external names (even builtin ones)
+    // Names in subprograms are only allowed to shadow non-pervasive names
+    assert_lower(
+        "
+    var pervasive pv_formal, pv_inner : int
+    var norm_formal, norm_inner : int
+
+    procedure shade(pv_formal : real, norm_formal : real)
+        var _ : real
+        var norm_inner : real
+        var pv_inner : real % only this is rejected
+
+        _ := pv_formal
+        _ := pv_inner
+        _ := norm_formal
+        _ := norm_inner
+    end shade",
+    );
+}
+
+#[test]
+fn lower_formals_use_name() {
+    assert_lower("type i : int proc u (j : i) end u");
+}
+
+#[test]
+fn lower_formals_cheat_attr() {
+    assert_lower("proc u (j : cheat int) end u");
+}
+
+#[test]
+fn lower_formals_intersperse_missing() {
+    // Only 1 arg, with trailing comma
+    assert_lower("procedure args(sa, : int) end args");
+    // Interspersed 1 arg
+    assert_lower("procedure args(sa, , ba: int) end args");
+    // Trailing 3 missing args
+    assert_lower("procedure args(a, , , , : int) end args");
+    // 5 args, with 3 interspersed
+    assert_lower("procedure args(a, , , , b, : int) end args");
+
+    // Only commas (doesn't work right now due to poor recovery)
+    // FIXME: Uncomment when name list recovery gets better
+
+    // Missing, 1 arg
+    // assert_lower("procedure args(, : int) end args");
+    // Missing 4 args
+    // assert_lower("procedure args(, , , , : int) end args");
+}
+
+#[test]
+fn lower_procedure_tys() {
+    // Taken from the old compiler
+    assert_lower("type _ : procedure nps");
+    assert_lower("type _ : procedure np   ()");
+    assert_lower("type _ : procedure p1   (a : int)");
+    assert_lower("type _ : procedure p2   (a : int, b : string)");
+    assert_lower("type _ : procedure pisp (a : int, b : string, c : procedure _ ())");
+
+    // Identifier is optional
+    assert_lower("type _ : procedure");
+}
+
+#[test]
+fn lower_function_tys() {
+    // Taken from the old compiler
+    assert_lower("type _ : function np   () : real");
+    assert_lower("type _ : function p1   (a : int) : string");
+    assert_lower("type _ : function p2   (a : int, b : string) : addressint");
+    assert_lower("type _ : function pisf (a : int, b : string, c : function _ () : int) : boolean");
+    // Nesting
+    assert_lower("type _ : function _ (function a (function a : int ) : int, proc b (proc a (proc a( proc a))), proc c) : int");
+
+    // Identifier is optional
+    assert_lower("type _ : function () : int");
+
+    // Function type expects `function () : int` instead of `function : int` since it would be uninhabitable
+    // (bare reference would always call the function)
+    //
+    // Treated as a warning, since it's technically valid syntax
+    // Emitted from AST validation
+    assert_lower("type _ : function amphy : int");
+}
+
+#[test]
+fn lower_call_expr() {
+    // Bare
+    // (treated as name expr, since we need the type to disambiguate between the actual cases)
+    // TODO: Handle parameterless calls
+    assert_lower("proc call end call var _ := call");
+    // No params
+    assert_lower("proc call end call var _ := call()");
+    // Some args
+    assert_lower("proc call end call var _ := call(1,2,3)");
+
+    // Missing trailing
+    assert_lower("proc call end call var _ := call(1,,)");
+    // Missing
+    assert_lower("proc call end call var _ := call(,,)");
+}
+
+#[test]
+fn lower_call_expr_unsupported_arg() {
+    // AllArg
+    assert_lower("proc call end call var _ := call(all)");
+    // RangeArg
+    assert_lower("proc call end call var _ := call(*)");
+    // RangeArg, full
+    assert_lower("proc call end call var _ := call(*..*)");
+}
+
+#[test]
+fn lower_call_stmt() {
+    // Just name
+    assert_lower("proc call end call call");
+    // `Call` is inlined
+    assert_lower("proc call end call call()");
+
+    // Arbitrary exprs are treated as calls
+    assert_lower("1");
+}
+
+#[test]
+fn lower_return_stmt() {
+    assert_lower("return");
+}
+
+#[test]
+fn lower_result_stmt() {
+    assert_lower(r#"fcn _ : string result "sus" end _"#);
 }

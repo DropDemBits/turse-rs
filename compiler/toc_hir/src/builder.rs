@@ -163,12 +163,13 @@ impl BodyBuilder {
         self,
         body_stmts: Vec<stmt::StmtId>,
         param_defs: Vec<symbol::LocalDefId>,
+        result_name: Option<symbol::LocalDefId>,
         span: SpanId,
     ) -> body::Body {
         let Self { exprs, stmts } = self;
 
         body::Body {
-            kind: body::BodyKind::Stmts(body_stmts, param_defs),
+            kind: body::BodyKind::Stmts(body_stmts, param_defs, result_name),
             span,
             exprs,
             stmts,

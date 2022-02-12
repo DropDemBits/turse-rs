@@ -1,4 +1,5 @@
 //! Lowering into `Expr` HIR nodes
+use toc_hir::symbol::{LimitedKind, SymbolKind};
 use toc_hir::{body, expr};
 use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
@@ -25,6 +26,11 @@ impl super::BodyLowering<'_, '_> {
             Some(expr) => self.ctx.lower_expr_body(expr),
             None => self.ctx.lower_empty_expr_body(),
         }
+    }
+
+    /// Lowers an expression body
+    pub(super) fn lower_expr_body(&mut self, expr: ast::Expr) -> body::BodyId {
+        self.ctx.lower_expr_body(expr)
     }
 
     /// Lowers an optional expr.
@@ -58,7 +64,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::ArrowExpr(_) => self.unsupported_expr(span),
             ast::Expr::IndirectExpr(_) => self.unsupported_expr(span),
             ast::Expr::BitsExpr(_) => self.unsupported_expr(span),
-            ast::Expr::CallExpr(_) => self.unsupported_expr(span),
+            ast::Expr::CallExpr(expr) => self.lower_call_expr(expr),
         }
         .unwrap_or(expr::ExprKind::Missing);
 
@@ -133,7 +139,57 @@ impl super::BodyLowering<'_, '_> {
         let span = self.ctx.mk_span(name.text_range());
         let def_id = self.ctx.use_sym(name.text(), span);
 
+        let def_info = self.ctx.library.local_def(def_id);
+        if let SymbolKind::LimitedDeclared(kind) = def_info.kind {
+            let name = name.text();
+
+            match kind {
+                LimitedKind::PostCondition => {
+                    // FIXME: If we're in a post condition, don't report this error
+                    self.ctx.messages.error(
+                        format!("`cannot use {name}` here"),
+                        format!("`{name}` can only be used in a `post` statement"),
+                        span,
+                    );
+                }
+            }
+        }
+
         Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
+    }
+
+    fn lower_call_expr(&mut self, expr: ast::CallExpr) -> Option<expr::ExprKind> {
+        // ast::CallExpr always has the param list specified
+        let lhs = self.lower_required_expr(expr.expr());
+        let arguments = self.lower_expr_arg_list(expr.param_list()).unwrap();
+
+        Some(expr::ExprKind::Call(expr::Call { lhs, arguments }))
+    }
+
+    pub(super) fn lower_expr_arg_list(
+        &mut self,
+        args: Option<ast::ParamList>,
+    ) -> Option<expr::ArgList> {
+        let mut arg_list = vec![];
+
+        for arg in args?.param() {
+            let arg = match arg.param_kind() {
+                Some(ast::ParamKind::Expr(expr)) => expr::Arg::Expr(self.lower_expr(expr)),
+                None => expr::Arg::Expr(self.lower_required_expr(None)),
+                Some(node) => {
+                    // Either RangeArg or AllArg
+                    // Unsupported for now
+                    let span = self.ctx.intern_range(node.syntax().text_range());
+                    self.unsupported_expr(span);
+
+                    expr::Arg::Expr(self.lower_required_expr(None))
+                }
+            };
+
+            arg_list.push(arg);
+        }
+
+        Some(arg_list)
     }
 }
 

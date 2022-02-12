@@ -18,19 +18,16 @@ pub trait HirVisitor {
     fn visit_library(&self, library: &library::Library) {}
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {}
     // Items
-    fn visit_item(&self, id: item::ItemId, item: &item::Item) {
-        self.specify_item(id, item);
-    }
+    fn visit_item(&self, id: item::ItemId, item: &item::Item) {}
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {}
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {}
     fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {}
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {}
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {}
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {}
     // Stmts
-    fn visit_stmt(&self, id: BodyStmt, stmt: &stmt::Stmt) {
-        self.specify_stmt(id, stmt);
-    }
+    fn visit_stmt(&self, id: BodyStmt, stmt: &stmt::Stmt) {}
     fn visit_item_stmt(&self, id: BodyStmt, item: item::ItemId) {}
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {}
     fn visit_put(&self, id: BodyStmt, stmt: &stmt::Put) {}
@@ -41,20 +38,22 @@ pub trait HirVisitor {
     fn visit_if(&self, id: BodyStmt, stmt: &stmt::If) {}
     fn visit_case(&self, id: BodyStmt, stmt: &stmt::Case) {}
     fn visit_block(&self, id: BodyStmt, stmt: &stmt::Block) {}
+    fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {}
+    fn visit_return_stmt(&self, id: BodyStmt, stmt: &stmt::Return) {}
+    fn visit_result_stmt(&self, id: BodyStmt, stmt: &stmt::Result) {}
     // Exprs
-    fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {
-        self.specify_expr(id, expr);
-    }
+    fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {}
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {}
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {}
+    fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {}
     // Types
-    fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {
-        self.specify_type(id, ty);
-    }
+    fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {}
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
+    fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {}
+    fn visit_void(&self, id: ty::TypeId) {}
 
     // Node specification //
 
@@ -63,6 +62,7 @@ pub trait HirVisitor {
             item::ItemKind::ConstVar(item) => self.visit_constvar(id, item),
             item::ItemKind::Type(item) => self.visit_type_decl(id, item),
             item::ItemKind::Binding(item) => self.visit_bind_decl(id, item),
+            item::ItemKind::Subprogram(item) => self.visit_subprogram_decl(id, item),
             item::ItemKind::Module(item) => self.visit_module(id, item),
         }
     }
@@ -79,6 +79,9 @@ pub trait HirVisitor {
             stmt::StmtKind::If(stmt) => self.visit_if(id, stmt),
             stmt::StmtKind::Case(stmt) => self.visit_case(id, stmt),
             stmt::StmtKind::Block(stmt) => self.visit_block(id, stmt),
+            stmt::StmtKind::Call(stmt) => self.visit_call_stmt(id, stmt),
+            stmt::StmtKind::Return(stmt) => self.visit_return_stmt(id, stmt),
+            stmt::StmtKind::Result(stmt) => self.visit_result_stmt(id, stmt),
         }
     }
 
@@ -89,6 +92,7 @@ pub trait HirVisitor {
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
             expr::ExprKind::Name(expr) => self.visit_name(id, expr),
+            expr::ExprKind::Call(expr) => self.visit_call_expr(id, expr),
         }
     }
 
@@ -97,6 +101,8 @@ pub trait HirVisitor {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.visit_primitive(id, ty),
             ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
+            ty::TypeKind::Subprogram(ty) => self.visit_subprogram_ty(id, ty),
+            ty::TypeKind::Void => self.visit_void(id),
         }
     }
 }
@@ -123,11 +129,23 @@ impl WalkNode<'_> {
         match self {
             WalkNode::Library(library) => visitor.visit_library(library),
             WalkNode::FileRoot(file, id) => visitor.visit_file_root(*file, *id),
-            WalkNode::Item(id, item) => visitor.visit_item(*id, item),
             WalkNode::Body(id, body) => visitor.visit_body(*id, body),
-            WalkNode::Stmt(id, stmt) => visitor.visit_stmt(*id, stmt),
-            WalkNode::Expr(id, expr) => visitor.visit_expr(*id, expr),
-            WalkNode::Type(id, ty) => visitor.visit_type(*id, ty),
+            WalkNode::Item(id, item) => {
+                visitor.visit_item(*id, item);
+                visitor.specify_item(*id, item);
+            }
+            WalkNode::Stmt(id, stmt) => {
+                visitor.visit_stmt(*id, stmt);
+                visitor.specify_stmt(*id, stmt);
+            }
+            WalkNode::Expr(id, expr) => {
+                visitor.visit_expr(*id, expr);
+                visitor.specify_expr(*id, expr);
+            }
+            WalkNode::Type(id, ty) => {
+                visitor.visit_type(*id, ty);
+                visitor.specify_type(*id, ty);
+            }
         }
     }
 }
@@ -264,7 +282,7 @@ impl<'hir> Walker<'hir> {
 
     fn walk_body(&mut self, id: body::BodyId, body: &'hir body::Body) {
         match &body.kind {
-            body::BodyKind::Stmts(stmts, _) => {
+            body::BodyKind::Stmts(stmts, ..) => {
                 for &stmt in stmts {
                     self.enter_stmt(id, stmt);
                 }
@@ -278,6 +296,7 @@ impl<'hir> Walker<'hir> {
             item::ItemKind::ConstVar(item) => self.walk_constvar(item),
             item::ItemKind::Type(item) => self.walk_type_decl(item),
             item::ItemKind::Binding(item) => self.walk_bind_decl(item),
+            item::ItemKind::Subprogram(item) => self.walk_subprogram_decl(item),
             item::ItemKind::Module(item) => self.walk_module(item),
         }
     }
@@ -303,6 +322,27 @@ impl<'hir> Walker<'hir> {
         self.enter_body(node.bind_to, self.lib.body(node.bind_to));
     }
 
+    fn walk_subprogram_decl(&mut self, node: &item::Subprogram) {
+        match node.extra {
+            item::SubprogramExtra::None => {}
+            item::SubprogramExtra::DeviceSpec(body) | item::SubprogramExtra::StackSize(body) => {
+                self.enter_body(body, self.lib.body(body))
+            }
+        }
+
+        if let Some(params) = &node.param_list {
+            for param in &params.tys {
+                let ty = param.param_ty;
+                self.enter_type(ty, self.lib.lookup_type(ty));
+            }
+        }
+
+        let result_ty = node.result.ty;
+        self.enter_type(result_ty, self.lib.lookup_type(result_ty));
+
+        self.enter_body(node.body.body, self.lib.body(node.body.body));
+    }
+
     fn walk_module(&mut self, node: &item::Module) {
         self.enter_body(node.body, self.lib.body(node.body))
     }
@@ -319,6 +359,9 @@ impl<'hir> Walker<'hir> {
             stmt::StmtKind::If(node) => self.walk_if(in_body, node),
             stmt::StmtKind::Case(node) => self.walk_case(in_body, node),
             stmt::StmtKind::Block(node) => self.walk_block(in_body, node),
+            stmt::StmtKind::Call(node) => self.walk_call_stmt(in_body, node),
+            stmt::StmtKind::Return(_) => {}
+            stmt::StmtKind::Result(node) => self.walk_result(in_body, node),
         }
     }
 
@@ -428,6 +471,22 @@ impl<'hir> Walker<'hir> {
         self.enter_stmts(in_body, stmts);
     }
 
+    fn walk_call_stmt(&mut self, in_body: body::BodyId, node: &stmt::Call) {
+        self.enter_expr(in_body, node.lhs);
+
+        if let Some(args) = &node.arguments {
+            for arg in args {
+                match arg {
+                    expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
+                }
+            }
+        }
+    }
+
+    fn walk_result(&mut self, in_body: body::BodyId, node: &stmt::Result) {
+        self.enter_expr(in_body, node.expr);
+    }
+
     fn walk_expr(&mut self, in_body: body::BodyId, expr: &expr::Expr) {
         match &expr.kind {
             expr::ExprKind::Missing => {}
@@ -435,6 +494,7 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Binary(node) => self.walk_binary(in_body, node),
             expr::ExprKind::Unary(node) => self.walk_unary(in_body, node),
             expr::ExprKind::Name(_) => {}
+            expr::ExprKind::Call(node) => self.walk_call_expr(in_body, node),
         }
     }
 
@@ -447,11 +507,23 @@ impl<'hir> Walker<'hir> {
         self.enter_expr(in_body, node.rhs);
     }
 
+    fn walk_call_expr(&mut self, in_body: body::BodyId, node: &expr::Call) {
+        self.enter_expr(in_body, node.lhs);
+
+        for arg in &node.arguments {
+            match arg {
+                expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
+            }
+        }
+    }
+
     fn walk_type(&mut self, node: &ty::Type) {
         match &node.kind {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.walk_primitive(ty),
             ty::TypeKind::Alias(_) => {}
+            ty::TypeKind::Subprogram(ty) => self.walk_subprogram_ty(ty),
+            ty::TypeKind::Void => {}
         }
     }
 
@@ -463,5 +535,15 @@ impl<'hir> Walker<'hir> {
             }
             _ => {}
         }
+    }
+
+    fn walk_subprogram_ty(&mut self, ty: &ty::Subprogram) {
+        if let Some(param_list) = &ty.param_list {
+            for param in param_list {
+                self.enter_type(param.param_ty, self.lib.lookup_type(param.param_ty));
+            }
+        }
+
+        self.enter_type(ty.result_ty, self.lib.lookup_type(ty.result_ty));
     }
 }

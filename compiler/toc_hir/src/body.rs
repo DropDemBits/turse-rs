@@ -2,10 +2,12 @@
 
 use std::fmt;
 
-use la_arena::Arena;
+use la_arena::{Arena, ArenaMap};
 use toc_span::SpanId;
 
+use crate::ids::BodyIndex;
 use crate::{expr, stmt, symbol::LocalDefId};
+use crate::{item, ty};
 
 pub use crate::ids::BodyId;
 
@@ -42,13 +44,36 @@ impl Body {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BodyKind {
-    /// Bundle of statements, with the given statement list and parameter definition list.
-    /// (e.g. for module initializers, or function bodies).
+    /// Bundle of statements (e.g. for module initializers, or function bodies)
+    /// with the given statement list, parameter definition list, and optional result name.
     ///
     /// For BodyDecl, the parameter list would be cloned from the associated definition if
     /// not specified.
-    Stmts(Vec<stmt::StmtId>, Vec<LocalDefId>),
+    Stmts(Vec<stmt::StmtId>, Vec<LocalDefId>, Option<LocalDefId>),
     /// Bundle of expressions, with the given expression root
     /// (e.g. for a `ConstVar` initializer, or an expression in a type).
     Exprs(expr::ExprId),
+}
+
+/// Owner of a [`Body`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BodyOwner {
+    Item(item::ItemId),
+    Type(ty::TypeId),
+}
+
+/// Mapping between a [`BodyId`] and the corresponding [`BodyOwner`]
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct BodyTable {
+    body_owners: ArenaMap<BodyIndex, BodyOwner>,
+}
+
+impl BodyTable {
+    pub fn add_owner(&mut self, body_id: BodyId, owner: BodyOwner) {
+        self.body_owners.insert(body_id.0, owner);
+    }
+
+    pub fn get_owner(&self, body_id: BodyId) -> Option<BodyOwner> {
+        self.body_owners.get(body_id.0).copied()
+    }
 }

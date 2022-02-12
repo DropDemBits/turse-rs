@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "fcn oeuf : int return end oeuf"
+
+---
+"oeuf"@(FileId(1), 4..8) [Declared]: function -> int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 15..21: cannot use `return` here
+| error in file FileId(1) for 15..21: `result` statement is used to return values in function bodies

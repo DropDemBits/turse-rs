@@ -3,13 +3,13 @@
 use std::convert::TryInto;
 
 use toc_hir::library::{LibraryId, WrapInLibrary};
-use toc_hir::symbol::BindingKind;
+use toc_hir::symbol::{self, BindingKind, LocalDefId};
 use toc_hir::{body, expr, stmt};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
 use crate::const_eval::{Const, ConstInt};
 use crate::db::TypeDatabase;
-use crate::ty::{self, TypeId, TypeKind};
+use crate::ty::{self, Param, TypeId, TypeKind};
 
 use super::{IntSize, NatSize, RealSize, SeqSize};
 
@@ -21,6 +21,8 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Void => db.mk_void(),
     }
 }
 
@@ -74,6 +76,67 @@ fn alias_ty(
     }
 }
 
+fn subprogram_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Subprogram,
+) -> TypeId {
+    let library_id = hir_id.0;
+    let params = subprogram_param_list(db, library_id, ty.param_list.as_ref());
+    let result = require_resolved_hir_type(db, ty.result_ty.in_library(library_id));
+
+    // NOTE(ctc-divergence): This is one of the cases where we diverge from `ctc`
+    // `ctc` always promotes param-less types to ones with no parameters,
+    // whereas `toc` carries through the param-less property.
+    //
+    // This divergence becomes apparent when referring to a var with this type.
+    // For example:
+    // ```turing
+    // var a : function thing : int
+    // var target : int := a
+    // ```
+    //
+    // - ctc: Fails to compile, cannot assign `target` with type `function (): int`
+    // - toc: Compiles, since the reference to `a` invokes the function
+
+    // FIXME: This divergent behaviour causes an incorrect report type
+    //
+    // ```turing
+    //   var a : function : int
+    //   function pie() : int result 1 end pie
+    //   a := pie
+    // % ^ this is of type `int`
+    // ```
+    //
+    // Should be incorrect binding kind
+
+    db.mk_subprogram(ty.kind, params, result)
+}
+
+fn subprogram_param_list(
+    db: &dyn TypeDatabase,
+    library_id: LibraryId,
+    param_list: Option<&Vec<hir_ty::Parameter>>,
+) -> Option<Vec<Param>> {
+    let param_list = param_list?
+        .iter()
+        .map(|param| {
+            let param_ty = require_resolved_hir_type(db, param.param_ty.in_library(library_id));
+            ty::Param {
+                is_register: param.is_register,
+                pass_by: match param.pass_by {
+                    hir_ty::PassBy::Value => ty::PassBy::Value,
+                    hir_ty::PassBy::Reference(kind) => ty::PassBy::Reference(kind),
+                },
+                coerced_type: param.coerced_type,
+                param_ty,
+            }
+        })
+        .collect();
+
+    Some(param_list)
+}
+
 pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemId>) -> TypeId {
     let library = db.library(item_id.0);
     let item = library.item(item_id.1);
@@ -82,20 +145,8 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
         item::ItemKind::ConstVar(item) => constvar_ty(db, item_id, item),
         item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
         item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
+        item::ItemKind::Subprogram(item) => subprogram_item_ty(db, item_id, item),
         item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
-    }
-}
-
-pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
-    let library_id = stmt_id.0;
-    let stmt_id = stmt_id.1;
-
-    let library = db.library(library_id);
-    let stmt = library.body(stmt_id.0).stmt(stmt_id.1);
-
-    match &stmt.kind {
-        stmt::StmtKind::For(stmt) => for_counter_ty(db, library_id, stmt_id, stmt),
-        _ => unreachable!("not a def owner"),
     }
 }
 
@@ -168,6 +219,62 @@ fn bind_def_ty(
     require_resolved_type(db, item_ty)
 }
 
+fn subprogram_item_ty(
+    db: &dyn TypeDatabase,
+    item_id: InLibrary<item::ItemId>,
+    item: &item::Subprogram,
+) -> TypeId {
+    let library_id = item_id.0;
+    let param_ty = subprogram_param_list(
+        db,
+        library_id,
+        item.param_list.as_ref().map(|params| &params.tys),
+    );
+    let result_ty = require_resolved_hir_type(db, item.result.ty.in_library(library_id));
+
+    db.mk_subprogram(item.kind, param_ty, result_ty)
+}
+
+pub(crate) fn ty_from_item_param(
+    db: &dyn TypeDatabase,
+    param_id: InLibrary<(item::ItemId, LocalDefId)>,
+) -> TypeId {
+    // Only from subprogram items
+    let InLibrary(library_id, (item_id, param_def)) = param_id;
+    let library = db.library(library_id);
+
+    let item = match &library.item(item_id).kind {
+        item::ItemKind::Subprogram(item) => item,
+        _ => unreachable!(),
+    };
+
+    let hir_ty = match item.lookup_param_info(param_def) {
+        item::ParameterInfo::Param(param_info) => {
+            // From parameter
+            param_info.param_ty
+        }
+        item::ParameterInfo::Result => {
+            // From named result type
+            item.result.ty
+        }
+    };
+
+    require_resolved_hir_type(db, hir_ty.in_library(library_id))
+}
+
+pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
+    let library_id = stmt_id.0;
+    let stmt_id = stmt_id.1;
+
+    let library = db.library(library_id);
+    let stmt = library.body(stmt_id.0).stmt(stmt_id.1);
+
+    match &stmt.kind {
+        stmt::StmtKind::For(stmt) => for_counter_ty(db, library_id, stmt_id, stmt),
+        _ => unreachable!("not a def owner"),
+    }
+}
+
 fn for_counter_ty(
     db: &dyn TypeDatabase,
     library_id: LibraryId,
@@ -216,6 +323,7 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr),
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
+        expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr),
     }
 }
 
@@ -261,14 +369,86 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
     // If self, then fetch type from provided class def id?
     match expr {
         expr::Name::Name(def_id) => {
+            // FIXME: Perform name resolution
             let def_id = DefId(body.0, *def_id);
-            // TODO: Perform name resolution
-            db.type_of(def_id.into())
+
+            // Defer to result type if it's a paren-less function
+            let ty = db.type_of(def_id.into()).in_db(db);
+
+            if let TypeKind::Subprogram(symbol::SubprogramKind::Function, None, result) = ty.kind()
+            {
+                *result
+            } else {
+                ty.id()
+            }
         }
         expr::Name::Self_ => {
             todo!()
         }
     }
+}
+
+fn call_expr_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Call) -> TypeId {
+    let left = ty_from_expr(db, body, expr.lhs);
+    let subprog_ty = left.in_db(db).to_base_type();
+
+    if let TypeKind::Subprogram(
+        symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
+        _params,
+        result,
+    ) = subprog_ty.kind()
+    {
+        // Is void result? Error! (proc call in expr position)
+        let result = result.in_db(db);
+
+        if matches!(result.kind(), TypeKind::Void) {
+            db.mk_error()
+        } else {
+            // It's okay to always infer as the result type, since that gives
+            // better diagnostics
+            result.id()
+        }
+    } else {
+        // Not a callable subprogram
+        db.mk_error()
+    }
+}
+
+pub(super) fn ty_from_body_owner(
+    db: &dyn TypeDatabase,
+    library_id: LibraryId,
+    body_owner: Option<body::BodyOwner>,
+) -> TypeId {
+    let body_owner = if let Some(body_owner) = body_owner {
+        body_owner
+    } else {
+        unreachable!("all bodies should have owners")
+    };
+
+    match body_owner {
+        body::BodyOwner::Item(item_id) => {
+            // Take from the item
+            let library = db.library(library_id);
+            let item = library.item(item_id);
+
+            match &item.kind {
+                item::ItemKind::Subprogram(subprog) => {
+                    // From result type
+                    db.from_hir_type(subprog.result.ty.in_library(library_id))
+                }
+                item::ItemKind::Module(_) => {
+                    // Modules are always procedure-like bodies
+                    db.mk_void()
+                }
+                _ => db.mk_error(),
+            }
+        }
+        body::BodyOwner::Type(_) => db.mk_error(),
+    }
+}
+
+fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId>) -> TypeId {
+    require_resolved_type(db, db.from_hir_type(ty))
 }
 
 /// Requires that a type is resolved at this point, otherwise produces

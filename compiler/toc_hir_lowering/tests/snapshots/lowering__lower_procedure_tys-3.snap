@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "type _ : procedure p1   (a : int)"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..33): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..33): []
+        StmtItem@(FileId(1), 0..33): ItemId(0)
+          Type@(FileId(1), 0..33): "_"@(FileId(1), 5..6)
+            Procedure@(FileId(1), 9..33): [...]
+              Primitive@(FileId(1), 29..32): Int
+              Void@(FileId(1), 9..33)
+

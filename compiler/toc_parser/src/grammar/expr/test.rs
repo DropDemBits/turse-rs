@@ -2215,6 +2215,7 @@ fn recover_call_expr_missing_closing_paren() {
 
 #[test]
 fn recover_call_expr_missing_last_arg() {
+    // FIXME: Rename once we accept trailing commas
     check(
         "_:=a(1,)",
         expect![[r#"
@@ -4039,8 +4040,9 @@ fn parse_call_expr_end_bound() {
                     ParamList@4..7
                       LeftParen@4..5 "("
                       Param@5..6
-                        RelativeBound@5..6
-                          Star@5..6 "*"
+                        RangeItem@5..6
+                          RelativeBound@5..6
+                            Star@5..6 "*"
                       RightParen@6..7 ")""#]],
     );
 }
@@ -4065,13 +4067,14 @@ fn parse_call_expr_relative_bound() {
                     ParamList@4..11
                       LeftParen@4..5 "("
                       Param@5..10
-                        RelativeBound@5..10
-                          Star@5..6 "*"
-                          Whitespace@6..7 " "
-                          Minus@7..8 "-"
-                          Whitespace@8..9 " "
-                          LiteralExpr@9..10
-                            IntLiteral@9..10 "1"
+                        RangeItem@5..10
+                          RelativeBound@5..10
+                            Star@5..6 "*"
+                            Whitespace@6..7 " "
+                            Minus@7..8 "-"
+                            Whitespace@8..9 " "
+                            LiteralExpr@9..10
+                              IntLiteral@9..10 "1"
                       RightParen@10..11 ")""#]],
     );
 }
@@ -4279,10 +4282,11 @@ fn recover_call_expr_relative_bound_missing_expr() {
                     ParamList@4..10
                       LeftParen@4..5 "("
                       Param@5..8
-                        RelativeBound@5..8
-                          Star@5..6 "*"
-                          Whitespace@6..7 " "
-                          Minus@7..8 "-"
+                        RangeItem@5..8
+                          RelativeBound@5..8
+                            Star@5..6 "*"
+                            Whitespace@6..7 " "
+                            Minus@7..8 "-"
                       Whitespace@8..9 " "
                       RightParen@9..10 ")"
             error in file FileId(1) at 9..10: unexpected token
@@ -4310,8 +4314,9 @@ fn recover_call_expr_relative_bound_missing_minus() {
                     ParamList@4..6
                       LeftParen@4..5 "("
                       Param@5..6
-                        RelativeBound@5..6
-                          Star@5..6 "*"
+                        RangeItem@5..6
+                          RelativeBound@5..6
+                            Star@5..6 "*"
                 Whitespace@6..7 " "
                 CallStmt@7..8
                   LiteralExpr@7..8

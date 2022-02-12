@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "function key() : int end key\nprocedure lime() end lime\nkey() lime()\n"
+
+---
+"key"@(FileId(1), 9..12) [Declared]: function ( ) -> int
+"<unnamed>"@(dummy) [Declared]: <error>
+"lime"@(FileId(1), 39..43) [Declared]: procedure ( ) -> void
+"<unnamed>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+

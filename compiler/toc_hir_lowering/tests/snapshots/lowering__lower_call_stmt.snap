@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: proc call end call call
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..23): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..23): []
+        StmtItem@(FileId(1), 0..18): ItemId(0)
+          Subprogram@(FileId(1), 0..18): "call"@(FileId(1), 5..9)
+            Void@(FileId(1), 0..9)
+            StmtBody@(FileId(1), 10..10): []
+        CallStmt@(FileId(1), 19..23): [no params]
+          Name@(FileId(1), 19..23): "call"@(FileId(1), 5..9)
+

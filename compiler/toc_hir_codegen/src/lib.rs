@@ -1,15 +1,15 @@
 //! Code generation backend based on the HIR tree
 
-use std::collections::HashMap;
 use std::io;
 
 use byteorder::{LittleEndian as LE, WriteBytesExt};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use instruction::{CheckKind, RelocatableOffset};
 use toc_analysis::db::HirAnalysis;
 use toc_analysis::ty;
 use toc_ast_db::db::SpanMapping;
-use toc_hir::symbol::DefId;
+use toc_hir::library::InLibrary;
+use toc_hir::symbol::{DefId, LocalDefId};
 use toc_hir::{
     body as hir_body, expr as hir_expr, item as hir_item, library as hir_library, stmt as hir_stmt,
 };
@@ -17,7 +17,8 @@ use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
 use crate::instruction::{
-    CodeOffset, ForDescriptor, GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot,
+    AbortSource, CodeOffset, ForDescriptor, GetKind, Opcode, PutKind, StdStream, StreamKind,
+    TemporarySlot,
 };
 
 mod instruction;
@@ -33,7 +34,8 @@ pub struct CodeBlob {
     reloc_table: Vec<RelocInfo>,
     const_bytes: Vec<u8>,
 
-    body_fragments: HashMap<(hir_library::LibraryId, hir_body::BodyId), BodyCode>,
+    main_body: Option<(hir_library::LibraryId, hir_body::BodyId)>,
+    body_fragments: IndexMap<(hir_library::LibraryId, hir_body::BodyId), BodyCode>,
 }
 
 impl CodeBlob {
@@ -130,8 +132,31 @@ impl CodeBlob {
         let mut reloc_tracker = RelocationTracker::new(self);
         let mut code_table = vec![0xAA; 4]; // (initial bytes overwritten later)
 
-        let main_blob = self.body_fragments.iter().next().unwrap().1;
-        main_blob.encode_to(&mut reloc_tracker, &mut code_table)?;
+        // Emit trampoline
+        if let Some(main_body) = self.main_body {
+            let main_body = self
+                .body_fragments
+                .get(&main_body)
+                .expect("missing main body offset");
+            let target: u32 = main_body
+                .base_offset
+                .try_into()
+                .expect("code table is too large");
+            // Account for location fixup
+            let offset = target - (4 + 4);
+            eprintln!("main body at {offset:x}");
+
+            code_table.write_u32::<LE>(Opcode::JUMP(CodeOffset(0)).encoding_kind().into())?;
+            code_table.write_u32::<LE>(offset)?;
+        } else {
+            // FIXME: This is very reachable once we lower unit modules
+            unreachable!("trying to run a unit body");
+        }
+
+        // Emit bodies
+        for body_code in self.body_fragments.values() {
+            body_code.encode_to(&mut reloc_tracker, &mut code_table)?;
+        }
 
         out.write_u32::<LE>(
             code_table
@@ -195,21 +220,51 @@ impl CodeBlob {
         let reloc_id = self.reloc_table.len();
         self.reloc_table.push(RelocInfo {
             section: RelocSection::Manifest,
-            offset: start_at,
+            target: RelocTarget::Offset(start_at),
         });
 
         RelocatableOffset(reloc_id)
+    }
+
+    fn reloc_to_code_body(
+        &mut self,
+        library_id: hir_library::LibraryId,
+        body_id: hir_body::BodyId,
+    ) -> RelocatableOffset {
+        let reloc_id = self.reloc_table.len();
+        self.reloc_table.push(RelocInfo {
+            section: RelocSection::Code,
+            target: RelocTarget::Body(library_id, body_id),
+        });
+
+        RelocatableOffset(reloc_id)
+    }
+
+    fn freeze_body_offsets(&mut self) {
+        // Initial 4 bytes are for the `CALLIMPLEMENTBY` opcode
+        // Next bytes are for the trampoline to the main body
+        let mut next_offset = 4 + Opcode::JUMP(CodeOffset(0)).size();
+
+        for (_, body) in &mut self.body_fragments {
+            body.base_offset = next_offset;
+            next_offset += body.size();
+        }
     }
 }
 
 struct RelocInfo {
     section: RelocSection,
-    offset: usize,
+    target: RelocTarget,
+}
+
+enum RelocTarget {
+    Offset(usize),
+    Body(hir_library::LibraryId, hir_body::BodyId),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RelocSection {
-    _Code,
+    Code,
     Manifest,
     _Global,
 }
@@ -229,15 +284,29 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
     let lib_graph = db.library_graph();
     let mut blob = CodeBlob::default();
 
-    if let Some((_, library_id)) = lib_graph.library_roots().next() {
+    if let Some((root_file, library_id)) = lib_graph.library_roots().next() {
+        // This library will act as the main file
         let library = db.library(library_id);
+        let main_body = {
+            let item_id = library
+                .root_items
+                .get(&root_file)
+                .expect("no item for this file");
+            if let hir_item::ItemKind::Module(a) = &library.item(*item_id).kind {
+                a.body
+            } else {
+                unreachable!()
+            }
+        };
+
+        blob.main_body = Some((library_id, main_body));
 
         // Generate code for each statement body
         for body_id in library.body_ids() {
             let body = library.body(body_id);
 
             match &body.kind {
-                hir_body::BodyKind::Stmts(_, _) => {
+                hir_body::BodyKind::Stmts(_, params, ret_param) => {
                     // For simple statements (e.g invariant, assign, constvar init)
                     // we can deal with them easily as they correspond to a linear
                     // sequence of instructions.
@@ -250,22 +319,24 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                         library_id,
                         library.as_ref(),
                         body_id,
+                        params,
+                        *ret_param,
                     );
 
                     println!("gen code:");
-                    for (idx, opc) in body_code.0.opcodes.iter().enumerate() {
+                    for (idx, opc) in body_code.fragment.opcodes.iter().enumerate() {
                         println!("{:4}    {:?}", idx, opc);
                     }
                     println!("\noffsets:");
-                    for (idx, off) in body_code.0.code_offsets.iter().enumerate() {
+                    for (idx, off) in body_code.fragment.code_offsets.iter().enumerate() {
                         println!("{:4}    {:?}", idx, off);
                     }
-                    println!("\nlocals ({} bytes):", body_code.0.locals_size);
-                    for (idx, off) in body_code.0.locals.iter().enumerate() {
+                    println!("\nlocals ({} bytes):", body_code.fragment.locals_size);
+                    for (idx, off) in body_code.fragment.locals.iter().enumerate() {
                         println!("{:4}    ({:?})> {:?}", idx, off.0, off.1);
                     }
-                    println!("\ntemporaries ({} bytes):", body_code.0.temps_size);
-                    for (idx, off) in body_code.0.temps.iter().enumerate() {
+                    println!("\ntemporaries ({} bytes):", body_code.fragment.temps_size);
+                    for (idx, off) in body_code.fragment.temps.iter().enumerate() {
                         println!("{:4}    {:?}", idx, off);
                     }
 
@@ -278,7 +349,11 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
                 }
             }
         }
+    } else {
+        unreachable!()
     }
+
+    blob.freeze_body_offsets();
 
     // ???: How do we figure out which file will serve as the main body?
     // For now, we only deal with one file, so that will always serve as the main body
@@ -323,7 +398,15 @@ impl<'a> RelocationTracker<'a> {
 
     fn add_reloc(&mut self, relative_to: usize, reloc_offset: RelocatableOffset) -> (u32, u32) {
         let reloc_info = &self.code_blob.reloc_table[reloc_offset.0];
-        let offset = reloc_info.offset;
+        let offset = match reloc_info.target {
+            RelocTarget::Offset(offset) => offset,
+            RelocTarget::Body(library_id, body_id) => self
+                .code_blob
+                .body_fragments
+                .get(&(library_id, body_id))
+                .map(|body| body.base_offset)
+                .expect("missing body code"),
+        };
 
         // Point to the 1st operand (patch_link, skipping opcode)
         let last_location =
@@ -339,8 +422,8 @@ struct OffsetTable {
 }
 
 impl OffsetTable {
-    fn build_table(code_fragment: &CodeFragment) -> Self {
-        let mut instruction_pointer = 0x04;
+    fn build_table(code_fragment: &CodeFragment, base_offset: usize) -> Self {
+        let mut instruction_pointer = base_offset.try_into().expect("code table is too big");
         let offsets: Vec<_> = code_fragment
             .opcodes
             .iter()
@@ -386,18 +469,26 @@ impl OffsetTable {
 }
 
 #[derive(Default)]
-struct BodyCode(CodeFragment);
+struct BodyCode {
+    fragment: CodeFragment,
+    base_offset: usize,
+}
 
 impl BodyCode {
+    /// Gets the size of the body code, in bytes
+    fn size(&self) -> usize {
+        self.fragment.opcodes.iter().map(Opcode::size).sum()
+    }
+
     fn encode_to(
         &self,
         reloc_tracker: &mut RelocationTracker,
         out: &mut impl io::Write,
     ) -> io::Result<()> {
         // Build table for resolving code offsets
-        let offset_table = OffsetTable::build_table(&self.0);
+        let offset_table = OffsetTable::build_table(&self.fragment, self.base_offset);
 
-        for (pc, op) in self.0.opcodes.iter().enumerate() {
+        for (pc, op) in self.fragment.opcodes.iter().enumerate() {
             self.write_opcode(pc, *op, out, reloc_tracker, &offset_table)?;
         }
 
@@ -417,8 +508,9 @@ impl BodyCode {
 
         // Emit operands
         match opcode {
-            Opcode::ABORT(_) => todo!(),
-            Opcode::ABORTCOND(_) => todo!(),
+            Opcode::ABORT(kind) | Opcode::ABORTCOND(kind) => {
+                out.write_u32::<LE>(kind.encoding_kind().into())?;
+            }
             Opcode::ABSINT() => {}
             Opcode::ABSREAL() => {}
             Opcode::ADDINT() => {}
@@ -468,7 +560,9 @@ impl BodyCode {
             Opcode::BEGINHANDLER(_, _) => todo!(),
             Opcode::BITSASSIGN(_, _, _) => todo!(),
             Opcode::BITSEXTRACT(_, _) => todo!(),
-            Opcode::CALL(_) => todo!(),
+            Opcode::CALL(offset) => {
+                out.write_u32::<LE>(offset)?;
+            }
             Opcode::CALLEXTERNAL(_) => todo!(),
             Opcode::CALLIMPLEMENTBY(_) => todo!(),
             Opcode::CASE(_) => todo!(),
@@ -588,7 +682,9 @@ impl BodyCode {
             Opcode::GTCLASS() => {}
             Opcode::IN(_, _, _) => todo!(),
             Opcode::INCLINENO() => {}
-            Opcode::INCSP(_) => todo!(),
+            Opcode::INCSP(amount) => {
+                out.write_u32::<LE>(amount)?;
+            }
             Opcode::INFIXAND(_) => todo!(),
             Opcode::INITARRAYDESC() => {}
             Opcode::INITCONDITION(_) => todo!(),
@@ -620,12 +716,14 @@ impl BodyCode {
             Opcode::LOCATELOCAL(offset) => {
                 out.write_u32::<LE>(offset)?;
             }
-            Opcode::LOCATEPARM(_) => todo!(),
+            Opcode::LOCATEPARM(offset) => {
+                out.write_u32::<LE>(offset)?;
+            }
             Opcode::LOCATETEMP(temp_slot) => {
-                let slot_info = self.0.temps.get(temp_slot.0).unwrap();
+                let slot_info = self.fragment.temps.get(temp_slot.0).unwrap();
 
                 // locals_area
-                out.write_u32::<LE>(self.0.frame_size())?;
+                out.write_u32::<LE>(self.fragment.frame_size())?;
                 // temporary
                 out.write_u32::<LE>(slot_info.offset)?;
             }
@@ -762,7 +860,7 @@ impl BodyCode {
     }
 
     fn resolve_backward_target(&self, from: usize, to: CodeOffset, offsets: &OffsetTable) -> u32 {
-        let jump_to = match self.0.code_offsets[to.0] {
+        let jump_to = match self.fragment.code_offsets[to.0] {
             OffsetTarget::Branch(to) => to.expect("unresolved branch"),
         };
         let offset = offsets.backward_offset(from, jump_to);
@@ -771,7 +869,7 @@ impl BodyCode {
     }
 
     fn resolve_forward_target(&self, from: usize, to: CodeOffset, offsets: &OffsetTable) -> u32 {
-        let jump_to = match self.0.code_offsets[to.0] {
+        let jump_to = match self.fragment.code_offsets[to.0] {
             OffsetTarget::Branch(to) => to.expect("unresolved branch"),
         };
         let offset = offsets.forward_offset(from, jump_to);
@@ -806,8 +904,11 @@ impl BodyCodeGenerator<'_> {
         library_id: hir_library::LibraryId,
         library: &hir_library::Library,
         body_id: hir_body::BodyId,
+        param_defs: &[LocalDefId],
+        ret_param: Option<LocalDefId>,
     ) -> BodyCode {
-        let mut code_fragment = Default::default();
+        let mut code_fragment = CodeFragment::default();
+
         let mut gen = BodyCodeGenerator {
             db,
             library_id,
@@ -821,17 +922,48 @@ impl BodyCodeGenerator<'_> {
             branch_stack: vec![],
         };
 
+        // FIXME: Bind imported defs
+        gen.bind_inputs(param_defs, ret_param);
+
         gen.code_fragment.emit_opcode(Opcode::PROC(0));
 
         match &library.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
+            hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
-        gen.code_fragment.emit_opcode(Opcode::RETURN());
+        // Generate the appropriate footer
+        {
+            let item_owner = match gen
+                .db
+                .body_owner(InLibrary(gen.library_id, gen.body_id))
+                .expect("from stmt thing")
+            {
+                hir_body::BodyOwner::Item(item_id) => item_id,
+                hir_body::BodyOwner::Type(_) => unreachable!(),
+            };
+            let item_ty = gen
+                .db
+                .type_of((gen.library_id, item_owner).into())
+                .in_db(gen.db)
+                .to_base_type();
+
+            if matches!(
+                item_ty.kind(),
+                ty::TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Function, ..)
+            ) {
+                gen.code_fragment
+                    .emit_opcode(Opcode::ABORT(AbortSource::MissingResult()));
+            } else {
+                gen.code_fragment.emit_opcode(Opcode::RETURN());
+            }
+        }
         gen.code_fragment.fix_frame_size();
 
-        BodyCode(code_fragment)
+        BodyCode {
+            fragment: code_fragment,
+            base_offset: 0,
+        }
     }
 
     fn inline_body(&mut self, body_id: hir_body::BodyId) {
@@ -850,11 +982,66 @@ impl BodyCodeGenerator<'_> {
         };
 
         match &self.library.body(body_id).kind {
-            hir_body::BodyKind::Stmts(stmts, _) => gen.generate_stmt_list(stmts),
+            hir_body::BodyKind::Stmts(stmts, ..) => gen.generate_stmt_list(stmts),
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
         self.last_location = gen.last_location;
+    }
+
+    fn bind_inputs(&mut self, param_defs: &[LocalDefId], ret_param: Option<LocalDefId>) {
+        let db = self.db;
+
+        let item_owner = db
+            .body_owner(InLibrary(self.library_id, self.body_id))
+            .expect("unowned body");
+        let item_owner = match item_owner {
+            hir_body::BodyOwner::Item(item) => item,
+            hir_body::BodyOwner::Type(_) => unreachable!(),
+        };
+        let item_ty = db
+            .type_of((self.library_id, item_owner).into())
+            .in_db(db)
+            .to_base_type();
+
+        if let ty::TypeKind::Subprogram(_, params, result_ty) = item_ty.kind() {
+            let mut arg_offset = 0;
+
+            // Feed in ret ty
+            let ret_ty = result_ty.in_db(db).to_base_type();
+
+            if !matches!(ret_ty.kind(), ty::TypeKind::Void) {
+                if let Some(local_def) = ret_param {
+                    self.code_fragment.bind_argument(
+                        DefId(self.library_id, local_def),
+                        arg_offset,
+                        true,
+                    );
+                }
+
+                arg_offset += 4;
+            }
+
+            // Feed in params
+            if let Some(param_infos) = params.as_ref() {
+                for (local_def, param_info) in param_defs.iter().zip(param_infos) {
+                    // ???: How should we deal with char(*) / string(*)?
+                    let param_ty = param_info.param_ty.in_db(db).to_base_type();
+                    let size_of = param_ty.size_of().expect("must be sized");
+                    let indirect = match param_info.pass_by {
+                        ty::PassBy::Value => false,
+                        ty::PassBy::Reference(_) => true,
+                    };
+
+                    self.code_fragment.bind_argument(
+                        DefId(self.library_id, *local_def),
+                        arg_offset,
+                        indirect,
+                    );
+                    arg_offset += if indirect { 4 } else { size_of };
+                }
+            }
+        }
     }
 
     fn emit_location(&mut self, span: Span) {
@@ -916,6 +1103,9 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::If(stmt) => self.generate_stmt_if(stmt),
             hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
+            hir_stmt::StmtKind::Call(stmt) => self.generate_stmt_call(stmt),
+            hir_stmt::StmtKind::Return(stmt) => self.generate_stmt_return(stmt),
+            hir_stmt::StmtKind::Result(stmt) => self.generate_stmt_result(stmt),
         }
         self.code_fragment.unbump_temp_allocs();
     }
@@ -946,13 +1136,13 @@ impl BodyCodeGenerator<'_> {
         // For assignment, we don't want side effects from rhs eval to be visible during lookup
         self.generate_ref_expr(stmt.lhs);
         self.generate_expr(stmt.rhs);
-        self.generate_coerced_assignment(lhs_ty.id(), rhs_ty.id());
+        self.generate_coerced_op(lhs_ty.id(), rhs_ty.id());
         self.generate_assign(lhs_ty.id(), AssignOrder::Precomputed);
 
         eprintln!("assigning reference (first operand) to value (second operand)");
     }
 
-    fn generate_coerced_assignment(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
+    fn generate_coerced_op(&mut self, lhs_ty: ty::TypeId, rhs_ty: ty::TypeId) {
         let lhs_ty = lhs_ty.in_db(self.db).to_base_type();
 
         let coerce_to = match lhs_ty.kind() {
@@ -1399,6 +1589,32 @@ impl BodyCodeGenerator<'_> {
         self.emit_absolute_location();
     }
 
+    fn generate_stmt_call(&mut self, stmt: &hir_stmt::Call) {
+        self.generate_call(stmt.lhs, stmt.arguments.as_ref(), true);
+    }
+
+    fn generate_stmt_return(&mut self, _stmt: &hir_stmt::Return) {
+        self.code_fragment.emit_opcode(Opcode::RETURN());
+    }
+
+    fn generate_stmt_result(&mut self, stmt: &hir_stmt::Result) {
+        let db = self.db;
+
+        let ret_ty = db.type_of((self.library_id, self.body_id).into());
+        let expr_ty = db.type_of((self.library_id, self.body_id, stmt.expr).into());
+
+        // Generate return value
+        self.generate_expr(stmt.expr);
+        self.generate_coerced_op(ret_ty, expr_ty);
+
+        // Perform assignment
+        self.code_fragment.emit_opcode(Opcode::LOCATEPARM(0));
+        self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+        self.generate_assign(ret_ty, AssignOrder::Postcomputed);
+
+        self.code_fragment.emit_opcode(Opcode::RETURN());
+    }
+
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
         let item = self.library.item(item_id);
         let span = self.library.lookup_span(item.span);
@@ -1408,6 +1624,7 @@ impl BodyCodeGenerator<'_> {
             hir_item::ItemKind::ConstVar(item) => self.generate_item_constvar(item),
             hir_item::ItemKind::Binding(item) => self.generate_item_binding(item),
             hir_item::ItemKind::Type(_) => {}
+            hir_item::ItemKind::Subprogram(item) => self.generate_item_subprogram(item),
             hir_item::ItemKind::Module(_) => {
                 // We already generate code for module bodies as part of walking
                 // over all of the bodies in a library
@@ -1441,7 +1658,7 @@ impl BodyCodeGenerator<'_> {
             self.inline_body(init_body);
 
             let body_ty = self.db.type_of((self.library_id, init_body).into());
-            self.generate_coerced_assignment(def_ty.id(), body_ty);
+            self.generate_coerced_op(def_ty.id(), body_ty);
 
             eprintln!("assigning def {:?} to previously produced value", init_body);
             self.code_fragment
@@ -1470,6 +1687,14 @@ impl BodyCodeGenerator<'_> {
         } else {
             todo!("indirection binding not handled yet");
         }
+    }
+
+    fn generate_item_subprogram(&mut self, item: &hir_item::Subprogram) {
+        let reloc_body = self
+            .code_blob
+            .reloc_to_code_body(self.library_id, item.body.body);
+        self.code_fragment
+            .bind_reloc_local(DefId(self.library_id, item.def_id), reloc_body);
     }
 
     fn generate_coerced_expr(&mut self, expr_id: hir_expr::ExprId, coerce_to: Option<CoerceTo>) {
@@ -1571,7 +1796,8 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Literal(expr) => self.generate_expr_literal(expr),
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
-            hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr),
+            hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr_id, expr),
+            hir_expr::ExprKind::Call(expr) => self.generate_expr_call(expr),
         }
     }
 
@@ -1957,7 +2183,7 @@ impl BodyCodeGenerator<'_> {
         }
     }
 
-    fn generate_expr_name(&mut self, expr: &hir_expr::Name) {
+    fn generate_expr_name(&mut self, expr_id: hir_expr::ExprId, expr: &hir_expr::Name) {
         // Steps
         // - Load value from the referenced def (may need to perform canonical name resolution)
         match expr {
@@ -1971,11 +2197,141 @@ impl BodyCodeGenerator<'_> {
                     .in_db(self.db)
                     .to_base_type();
 
-                self.code_fragment
-                    .emit_locate_local(DefId(self.library_id, *def_id));
-                self.generate_fetch_value(def_ty.id());
+                if let ty::TypeKind::Subprogram(_, None, _) = def_ty.kind() {
+                    // as param-less call
+                    self.generate_call(expr_id, None, false);
+                } else {
+                    // As normal fetch
+                    self.code_fragment
+                        .emit_locate_local(DefId(self.library_id, *def_id));
+                    self.generate_fetch_value(def_ty.id());
+                }
             }
             hir_expr::Name::Self_ => todo!(),
+        }
+    }
+
+    fn generate_expr_call(&mut self, expr: &hir_expr::Call) {
+        self.generate_call(expr.lhs, Some(&expr.arguments), false);
+    }
+
+    fn generate_call(
+        &mut self,
+        lhs: hir_expr::ExprId,
+        arguments: Option<&Vec<hir_expr::Arg>>,
+        drop_ret_val: bool,
+    ) {
+        let db = self.db;
+        let lhs_expr = (self.library_id, self.body_id, lhs);
+        let lhs_ty = if let Some(def_id) = db.binding_to(lhs_expr.into()) {
+            // From an item
+            db.type_of(def_id.into())
+        } else {
+            // From an actual expression
+            db.type_of(lhs_expr.into())
+        };
+        let lhs_ty_ref = lhs_ty.in_db(db).to_base_type();
+        let (params, ret_ty) =
+            if let ty::TypeKind::Subprogram(_, params, ret_ty) = lhs_ty_ref.kind() {
+                (params, *ret_ty)
+            } else {
+                unreachable!()
+            };
+
+        let ret_ty_ref = ret_ty.in_db(db).to_base_type();
+        let ret_val = if !matches!(ret_ty_ref.kind(), ty::TypeKind::Void) {
+            let size_of = ret_ty_ref.size_of().expect("must be sized");
+            Some(self.code_fragment.allocate_temporary_space(size_of))
+        } else {
+            None
+        };
+
+        self.code_fragment.bump_temp_allocs();
+        {
+            // Fetch lhs first
+            self.generate_ref_expr(lhs);
+            // TODO: Replace with the size of the target arch's ptr
+            let call_to = self.code_fragment.allocate_temporary_space(4);
+            self.code_fragment.emit_locate_temp(call_to);
+            self.generate_assign(lhs_ty, AssignOrder::Postcomputed);
+
+            let mut arg_frame_size = 0;
+            let mut arg_temps = vec![];
+
+            if let Some(ret_val) = ret_val {
+                // Treat return argument as a pass by ref
+                let ret_arg = self
+                    .code_fragment
+                    .allocate_temporary_space(ret_ty_ref.size_of().expect("must be sized"));
+
+                self.code_fragment.emit_locate_temp(ret_val);
+                self.code_fragment.emit_locate_temp(ret_arg);
+                self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                arg_temps.push((ret_arg, None));
+                arg_frame_size += 4;
+            }
+
+            // Eval args
+            if let Some((params, args)) = params.as_ref().zip(arguments) {
+                for (param, arg) in params.iter().zip(args.iter()) {
+                    let arg_expr = match arg {
+                        hir_expr::Arg::Expr(expr) => *expr,
+                    };
+                    let arg_ty = db.type_of((self.library_id, self.body_id, arg_expr).into());
+
+                    match param.pass_by {
+                        ty::PassBy::Value => {
+                            let param_ty = param.param_ty;
+                            let size_of = param_ty.in_db(db).size_of().expect("must be sized");
+                            let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
+                            self.generate_expr(arg_expr);
+                            self.generate_coerced_op(param_ty, arg_ty);
+
+                            self.code_fragment.emit_locate_temp(nth_arg);
+                            self.generate_assign(param_ty, AssignOrder::Postcomputed);
+                            arg_temps.push((nth_arg, Some(param_ty)));
+                            arg_frame_size += size_of;
+                        }
+                        ty::PassBy::Reference(_) => {
+                            // TODO: Replace with the size of the target arch's ptr
+                            let nth_arg = self.code_fragment.allocate_temporary_space(4);
+                            self.generate_ref_expr(arg_expr);
+
+                            self.code_fragment.emit_locate_temp(nth_arg);
+                            self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                            arg_temps.push((nth_arg, None));
+                            arg_frame_size += 4;
+                        }
+                    }
+                }
+            }
+
+            // Emit call for later
+            self.code_fragment.emit_locate_temp(call_to);
+            self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+
+            // Move args into reverse order
+            // ( ... arg0 arg1 arg2 -- arg2 arg1 arg0 ... )
+            for (arg, ty) in arg_temps.into_iter().rev() {
+                self.code_fragment.emit_locate_temp(arg);
+                if let Some(ty) = ty {
+                    self.generate_fetch_value(ty);
+                } else {
+                    self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+                }
+            }
+
+            // Do the call
+            let arg_frame_size = arg_frame_size.try_into().unwrap();
+            self.code_fragment.emit_opcode(Opcode::CALL(arg_frame_size));
+            self.code_fragment
+                .emit_opcode(Opcode::INCSP(arg_frame_size + 4));
+        }
+        self.code_fragment.unbump_temp_allocs();
+
+        if let Some(slot_at) = ret_val.filter(|_| !drop_ret_val) {
+            self.code_fragment.emit_locate_temp(slot_at);
+            self.generate_fetch_value(ret_ty);
         }
     }
 
@@ -1986,13 +2342,11 @@ impl BodyCodeGenerator<'_> {
         self.emit_location(span);
 
         match &expr.kind {
+            // Right now, only names can produce references
             hir_expr::ExprKind::Name(ref_expr) => self.generate_ref_expr_name(ref_expr),
-            // These can never be in reference producing position
-            hir_expr::ExprKind::Missing
-            | hir_expr::ExprKind::Literal(_)
-            | hir_expr::ExprKind::Binary(_)
-            | hir_expr::ExprKind::Unary(_) => {
-                unreachable!("malformed code reached code generation")
+            // The rest can never be in reference producing position
+            _ => {
+                unreachable!("malformed code reached code generation (producing reference from non-reference expr)")
             }
         }
     }
@@ -2047,7 +2401,11 @@ impl BodyCodeGenerator<'_> {
                     .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
             }
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+            ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
+            ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _)
+            | ty::TypeKind::Void => {
                 unreachable!()
             }
         };
@@ -2078,8 +2436,16 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_fetch_value(&mut self, fetch_ty: ty::TypeId) {
-        let fetch_ty = fetch_ty.in_db(self.db);
+        let opcode = match self.pick_fetch_op(fetch_ty) {
+            Some(value) => value,
+            None => return,
+        };
 
+        self.code_fragment.emit_opcode(opcode);
+    }
+
+    fn pick_fetch_op(&mut self, fetch_ty: ty::TypeId) -> Option<Opcode> {
+        let fetch_ty = fetch_ty.in_db(self.db);
         let opcode = match fetch_ty.kind() {
             ty::TypeKind::Boolean => Opcode::FETCHBOOL(),
             ty::TypeKind::Int(ty::IntSize::Int1) => Opcode::FETCHINT1(),
@@ -2097,13 +2463,17 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Integer => unreachable!("type should be concrete"),
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
-            ty::TypeKind::CharN(_) => return, // don't need to dereference the pointer to storage
-            ty::TypeKind::Error | ty::TypeKind::Forward | ty::TypeKind::Alias(_, _) => {
+            ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
+            ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),
+            ty::TypeKind::Error
+            | ty::TypeKind::Forward
+            | ty::TypeKind::Alias(_, _)
+            | ty::TypeKind::Void => {
                 unreachable!()
             }
         };
 
-        self.code_fragment.emit_opcode(opcode);
+        Some(opcode)
     }
 }
 
@@ -2113,6 +2483,13 @@ enum CoerceTo {
     Char,
     CharN(u32),
     String,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum LocalTarget {
+    Stack(StackSlot),
+    Reloc(RelocatableOffset),
+    Arg(usize, bool),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -2128,7 +2505,7 @@ enum OffsetTarget {
 
 #[derive(Default)]
 struct CodeFragment {
-    locals: indexmap::IndexMap<DefId, StackSlot>,
+    locals: indexmap::IndexMap<DefId, LocalTarget>,
     locals_size: u32,
     temps: Vec<StackSlot>,
     temp_bumps: Vec<u32>,
@@ -2140,6 +2517,15 @@ struct CodeFragment {
 }
 
 impl CodeFragment {
+    fn bind_reloc_local(&mut self, from: DefId, to: RelocatableOffset) {
+        self.locals.insert(from, LocalTarget::Reloc(to));
+    }
+
+    fn bind_argument(&mut self, def_id: DefId, offset: usize, indirect: bool) {
+        self.locals
+            .insert(def_id, LocalTarget::Arg(offset, indirect));
+    }
+
     fn alias_local(&mut self, source: DefId, target: DefId) {
         let slot_info = self
             .locals
@@ -2165,7 +2551,8 @@ impl CodeFragment {
         let size = ty::align_up_to(size, 4).try_into().unwrap();
         let offset = self.locals_size;
 
-        self.locals.insert(def_id, StackSlot { offset, size });
+        self.locals
+            .insert(def_id, LocalTarget::Stack(StackSlot { offset, size }));
         self.locals_size += size;
     }
 
@@ -2204,9 +2591,27 @@ impl CodeFragment {
 
     fn emit_locate_local(&mut self, def_id: DefId) {
         let slot_info = self.locals.get(&def_id).expect("def not reserved yet");
-        let offset = slot_info.offset + slot_info.size;
 
-        self.emit_opcode(Opcode::LOCATELOCAL(offset));
+        match slot_info {
+            LocalTarget::Stack(slot_info) => {
+                let offset = slot_info.offset + slot_info.size;
+                self.emit_opcode(Opcode::LOCATELOCAL(offset));
+            }
+            LocalTarget::Reloc(offset) => {
+                let offset = *offset; // for dealing with borrowck warning
+                self.emit_opcode(Opcode::PUSHADDR1(offset));
+            }
+            LocalTarget::Arg(offset, indirect) => {
+                // for dealing with borrowck warnings
+                let offset = *offset;
+                let indirect = *indirect;
+
+                self.emit_opcode(Opcode::LOCATEPARM(offset.try_into().unwrap()));
+                if indirect {
+                    self.emit_opcode(Opcode::FETCHADDR());
+                }
+            }
+        }
     }
 
     fn emit_locate_temp(&mut self, temp: TemporarySlot) {

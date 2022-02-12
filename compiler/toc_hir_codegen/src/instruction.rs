@@ -491,10 +491,10 @@ define_encodings! {
         BITSEXTRACT (u32, u32) = 0x31,
 
         /// ## CALL (stkOff:offset)
-        /// (description)
+        /// Jumps to the address stored at `stkOff`, pushing the return address onto the stack.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( ... call_me:addrint ... -- ... call_me:addrint ... returnTo:addrint )`
         ///
         CALL (u32) = 0x32,
 
@@ -668,10 +668,11 @@ define_encodings! {
         DEALLOCFLEXARRAY () = 0x46,
 
         /// ## DECSP (amount:offset)
-        /// (description)
+        /// Bumps up the data stack pointer by `amount` bytes.
+        /// The newly accessible memory is to be treated as uninitialized memory.
         ///
         /// ### Stack Effect
-        /// `( ??? -- ??? )`
+        /// `( -- ...items:bytes(amount) )`
         ///
         DECSP (u32) = 0x47,
 
@@ -2248,6 +2249,7 @@ define_encodings! {
 }
 
 impl Opcode {
+    /// Gets the size of the opcode, in bytes
     pub fn size(&self) -> usize {
         let operand_count = match self {
             Opcode::ABORT(_) => 1,
@@ -2464,7 +2466,7 @@ impl Opcode {
             Opcode::PUSHINT(_) => 1,
             Opcode::PUSHINT1(_) => 1,
             Opcode::PUSHINT2(_) => 1,
-            Opcode::PUSHREAL(_) => 1,
+            Opcode::PUSHREAL(_) => 2,
             Opcode::PUSHVAL0() => 0,
             Opcode::PUSHVAL1() => 0,
             Opcode::PUT(_) => 1,

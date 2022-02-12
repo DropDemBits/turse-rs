@@ -27,6 +27,19 @@ pub(crate) enum ScopeKind {
     Module,
     Block,
     Loop,
+    Subprogram,
+    SubprogramHeader,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LookupKind {
+    /// Lookup started from using a definition.
+    /// All normal rules apply.
+    OnUse,
+    /// Lookup started from adding a definition.
+    /// Most rules apply, except that a definition
+    /// can be shadowed if the scope allows it.
+    OnDef,
 }
 
 impl ScopeKind {
@@ -38,6 +51,11 @@ impl ScopeKind {
         // Only the root scope and modules forms an import boundary,
         // everything else isn't one
         matches!(self, ScopeKind::Root | ScopeKind::Module)
+    }
+
+    /// If the scope allows shadowing of identifiers.
+    fn allows_shadowing(&self) -> bool {
+        self.is_import_boundary() || matches!(self, ScopeKind::Subprogram)
     }
 }
 
@@ -115,7 +133,7 @@ impl ScopeTracker {
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
 
-        let last_def = self.lookup_def(name);
+        let last_def = self.lookup_def(name, LookupKind::OnDef);
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
 
@@ -163,7 +181,7 @@ impl ScopeTracker {
         name: &str,
         or_undeclared: impl FnOnce() -> symbol::LocalDefId,
     ) -> symbol::LocalDefId {
-        self.lookup_def(name).unwrap_or_else(|| {
+        self.lookup_def(name, LookupKind::OnUse).unwrap_or_else(|| {
             // ???: Do we still need to declare undecl's at the boundary scope?
             // Since we plan to run another pass to collect defs for the export tables,
             // would it make more sense to hoist up to root?
@@ -216,9 +234,20 @@ impl ScopeTracker {
     }
 
     /// Looks up a DefId, with respect to scoping rules
-    fn lookup_def(&self, name: &str) -> Option<symbol::LocalDefId> {
+    fn lookup_def(&self, name: &str, lookup_kind: LookupKind) -> Option<symbol::LocalDefId> {
         // Top-down search through all scopes for a DefId
         let mut restrict_to_pervasive = false;
+
+        if matches!(lookup_kind, LookupKind::OnDef)
+            && self
+                .scopes
+                .last()
+                .map(|scope| scope.kind == ScopeKind::SubprogramHeader)
+                .unwrap_or_default()
+        {
+            // In subprogram header for new definition, only look in this scope for duplicate parameter naming
+            return self.scopes.last().unwrap().symbols.get(name).copied();
+        }
 
         for scope in self.scopes.iter().rev() {
             if let Some(def_id) = scope.symbols.get(name) {
@@ -232,9 +261,14 @@ impl ScopeTracker {
                 }
             }
 
-            if scope.kind.is_import_boundary() {
-                // Crossing an import boundary
+            if scope.kind.is_import_boundary()
+                || (matches!(lookup_kind, LookupKind::OnDef) && scope.kind.allows_shadowing())
+            {
+                // First case: Crossing an import boundary
                 // Restrict search to pervasive identifiers after import boundaries
+                //
+                // Second case: Part of redeclaration checking, allows shadowing
+                // Pervasive identifiers are the only things that can't be shadowed
                 restrict_to_pervasive = true;
             }
         }

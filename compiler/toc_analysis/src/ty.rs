@@ -3,7 +3,7 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use toc_hir::symbol::DefId;
+use toc_hir::symbol::{self, DefId};
 use toc_span::Span;
 
 use crate::const_eval::{Const, ConstError, ConstInt};
@@ -72,6 +72,10 @@ pub enum TypeKind {
     /// This is used to prevent cyclic type declarations, which we can't detect
     /// yet.
     Forward,
+    /// Subprogram type, from (`procedure`, `function`, and `process`).
+    Subprogram(symbol::SubprogramKind, Option<Vec<Param>>, TypeId),
+    /// Void type, returned from (`procedure` and `process`)
+    Void,
 }
 
 // Other types to add:
@@ -82,8 +86,6 @@ pub enum TypeKind {
 // - record
 // - set
 // - pointer
-// - alias
-// - function (fcn/proc/process)
 // - condition
 // - collection
 
@@ -158,6 +160,28 @@ pub enum NotFixedLen {
     ConstError(ConstError),
 }
 
+/// Parameter for a [`TypeKind::Subprogram`]
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Param {
+    /// How the parameter should be passed in as
+    pub pass_by: PassBy,
+    /// If the value should be bound to a register
+    pub is_register: bool,
+    /// If the passed in value should be coerced to the target's type
+    pub coerced_type: bool,
+    /// Parameter's type
+    pub param_ty: TypeId,
+}
+
+/// How a parameter should be passed in
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PassBy {
+    /// Pass by value
+    Value,
+    /// Pass by reference
+    Reference(symbol::Mutability),
+}
+
 /// Wrapper type for making it easier to work with TypeIds
 #[derive(PartialEq, Eq)]
 pub struct TyRef<'db, DB: ?Sized + 'db> {
@@ -194,6 +218,8 @@ where
 {
     /// Alignment of a type, or `None` if it isn't representable
     pub fn align_of(&self) -> Option<usize> {
+        const POINTER_ALIGNMENT: usize = 4;
+
         let align_of = match self.kind() {
             TypeKind::Error => return None,
             TypeKind::Boolean => 1,
@@ -205,7 +231,7 @@ where
             TypeKind::Nat(NatSize::Nat2) => 2,
             TypeKind::Nat(NatSize::Nat4) => 4,
             TypeKind::Nat(NatSize::Nat) => 4,
-            TypeKind::Nat(NatSize::AddressInt) => 4,
+            TypeKind::Nat(NatSize::AddressInt) => POINTER_ALIGNMENT,
             TypeKind::Real(RealSize::Real4) => 4,
             TypeKind::Real(RealSize::Real8) => 4,
             TypeKind::Real(RealSize::Real) => 4,
@@ -214,6 +240,8 @@ where
             TypeKind::String => 1,
             TypeKind::CharN(_) => 1,
             TypeKind::StringN(_) => 1,
+            TypeKind::Subprogram(..) => POINTER_ALIGNMENT,
+            TypeKind::Void => return None,
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Forward => return None,
@@ -224,6 +252,7 @@ where
 
     /// Size of a type, or `None` if it isn't representable
     pub fn size_of(&self) -> Option<usize> {
+        const POINTER_SIZE: usize = 4;
         let size_of = match self.kind() {
             TypeKind::Boolean => 1,
             TypeKind::Int(IntSize::Int1) => 1,
@@ -234,7 +263,7 @@ where
             TypeKind::Nat(NatSize::Nat2) => 2,
             TypeKind::Nat(NatSize::Nat4) => 4,
             TypeKind::Nat(NatSize::Nat) => 4,
-            TypeKind::Nat(NatSize::AddressInt) => 4,
+            TypeKind::Nat(NatSize::AddressInt) => POINTER_SIZE,
             TypeKind::Real(RealSize::Real4) => 4,
             TypeKind::Real(RealSize::Real8) => 8,
             TypeKind::Real(RealSize::Real) => 8,
@@ -253,6 +282,8 @@ where
                     align_up_to(length_of, 2)
                 }
             }
+            TypeKind::Subprogram(..) => POINTER_SIZE,
+            TypeKind::Void => return None,
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Integer | TypeKind::Forward | TypeKind::Error => return None,

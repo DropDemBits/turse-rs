@@ -1,0 +1,20 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "proc call end call var _ := call()"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..34): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..34): []
+        StmtItem@(FileId(1), 0..18): ItemId(0)
+          Subprogram@(FileId(1), 0..18): "call"@(FileId(1), 5..9)
+            Void@(FileId(1), 0..9)
+            StmtBody@(FileId(1), 10..10): []
+        StmtItem@(FileId(1), 19..34): ItemId(1)
+          ConstVar@(FileId(1), 19..34): var "_"@(FileId(1), 23..24)
+            ExprBody@(FileId(1), 28..34)
+              CallExpr@(FileId(1), 28..34): [...]
+                Name@(FileId(1), 28..32): "call"@(FileId(1), 5..9)
+

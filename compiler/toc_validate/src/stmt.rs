@@ -8,7 +8,7 @@ use toc_syntax::{
 };
 use toc_syntax::{IoKind, SyntaxNode};
 
-use crate::{block_containing_node, walk_blocks, without_matching};
+use crate::{block_containing_node, item_block_containing_node, walk_blocks, without_matching};
 use crate::{BlockKind, ValidateCtx};
 
 pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut ValidateCtx) {
@@ -188,6 +188,18 @@ pub(super) fn validate_external_var(decl: ast::ExternalVar, ctx: &mut ValidateCt
 
 pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut ValidateCtx) {
     validate_in_module_kind(decl.syntax(), "‘deferred’", ctx);
+}
+
+pub(super) fn validate_body_decl(decl: ast::BodyDecl, ctx: &mut ValidateCtx) {
+    validate_in_top_level(decl.syntax(), "‘body’ declaration", ctx);
+
+    if let Some(import) = decl.subprog_body().and_then(|body| body.import_stmt()) {
+        ctx.push_error(
+            "useless ‘import’ statement",
+            "‘import’ statements are ignored in ‘body’ declaration",
+            import.syntax().text_range(),
+        )
+    }
 }
 
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
@@ -456,6 +468,38 @@ pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut Valida
         ctx.push_error(
             "cannot use ‘invariant’ here",
             "‘invariant’ statement is only allowed in loop statements and module-kind declarations",
+            stmt.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_return_stmt(stmt: ast::ReturnStmt, ctx: &mut ValidateCtx) {
+    // Note: see `validate_result_stmt` for why we don't check exactly what kind of body we're in
+    let kind = item_block_containing_node(stmt.syntax());
+    if !kind.is_subprogram() && !kind.is_module_kind() && !matches!(kind, BlockKind::Main) {
+        ctx.push_error(
+            "cannot use ‘return’ here",
+            "‘return’ statement is only allowed in subprogram bodies and module-kind declarations",
+            stmt.syntax().text_range(),
+        );
+    } else if matches!(kind, BlockKind::Function) {
+        ctx.push_error(
+            "cannot use ‘return’ here",
+            "‘result’ statement is used to return values in function bodies",
+            stmt.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_result_stmt(stmt: ast::ResultStmt, ctx: &mut ValidateCtx) {
+    // Note: We can't reject `result` from all `procedure` bodies, since that requires
+    // either binding kind lookup, or knowing the return type as `ty::Void` disambiguates
+    // between functions and procedures
+    let kind = item_block_containing_node(stmt.syntax());
+    if !matches!(kind, BlockKind::Function | BlockKind::Body) {
+        ctx.push_error(
+            "cannot use ‘result’ here",
+            "‘result’ statement is only allowed in function bodies",
             stmt.syntax().text_range(),
         );
     }

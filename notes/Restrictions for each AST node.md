@@ -198,6 +198,7 @@ node restrictions.
 
 - Accepted only in top-level blocks
 - (Enforced by Parser) The following nodes are allowed as the first statements in the specified order:
+  - `ImportStmt` (though it is explicitly rejected)
   - `PreStmt`
   - `InitStmt`
   - `PostStmt`

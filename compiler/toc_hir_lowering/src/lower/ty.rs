@@ -1,5 +1,5 @@
 //! Lowering into `Type` HIR nodes
-use toc_hir::ty;
+use toc_hir::{symbol, ty};
 use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
 
@@ -31,8 +31,10 @@ impl super::BodyLowering<'_, '_> {
             ast::Type::RecordType(_) => self.unsupported_ty(span),
             ast::Type::UnionType(_) => self.unsupported_ty(span),
             ast::Type::PointerType(_) => self.unsupported_ty(span),
-            ast::Type::FcnType(_) => self.unsupported_ty(span),
-            ast::Type::ProcType(_) => self.unsupported_ty(span),
+
+            ast::Type::FcnType(ty) => self.lower_fcn_type(ty),
+            ast::Type::ProcType(ty) => self.lower_proc_type(ty),
+
             ast::Type::CollectionType(_) => self.unsupported_ty(span),
             ast::Type::ConditionType(_) => self.unsupported_ty(span),
         }?;
@@ -115,5 +117,37 @@ impl super::BodyLowering<'_, '_> {
                 None
             }
         }
+    }
+
+    fn lower_proc_type(&mut self, ty: ast::ProcType) -> Option<ty::TypeKind> {
+        let param_list = self
+            .lower_formals_spec(ty.params())
+            .map(|params| params.tys);
+        let return_ty = {
+            let span = self.ctx.intern_range(ty.syntax().text_range());
+            self.ctx.library.intern_type(ty::Type {
+                kind: ty::TypeKind::Void,
+                span,
+            })
+        };
+
+        Some(ty::TypeKind::Subprogram(ty::Subprogram {
+            kind: symbol::SubprogramKind::Procedure,
+            param_list,
+            result_ty: return_ty,
+        }))
+    }
+
+    fn lower_fcn_type(&mut self, ty: ast::FcnType) -> Option<ty::TypeKind> {
+        let param_list = self
+            .lower_formals_spec(ty.params())
+            .map(|params| params.tys);
+        let return_ty = self.lower_required_type(ty.ty());
+
+        Some(ty::TypeKind::Subprogram(ty::Subprogram {
+            kind: symbol::SubprogramKind::Function,
+            param_list,
+            result_ty: return_ty,
+        }))
     }
 }

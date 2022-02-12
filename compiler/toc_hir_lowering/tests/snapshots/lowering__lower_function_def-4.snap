@@ -1,0 +1,24 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    function pass_me(\n        by_value : int,\n        var by_ref : int,\n        register by_val_to_reg : int,\n        var register by_ref_to_reg : int\n    ) : int\n    end pass_me\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..184): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..179): []
+        StmtItem@(FileId(1), 5..179): ItemId(0)
+          Subprogram@(FileId(1), 5..179): "pass_me"@(FileId(1), 14..21) [
+            "by_value"@(FileId(1), 31..39),
+            var "by_ref"@(FileId(1), 59..65),
+            register "by_val_to_reg"@(FileId(1), 90..103),
+            var register "by_ref_to_reg"@(FileId(1), 132..145)
+          ]
+            Primitive@(FileId(1), 42..45): Int
+            Primitive@(FileId(1), 68..71): Int
+            Primitive@(FileId(1), 106..109): Int
+            Primitive@(FileId(1), 148..151): Int
+            Primitive@(FileId(1), 160..163): Int
+            StmtBody@(FileId(1), 168..168): ["by_value"@(FileId(1), 31..39), "by_ref"@(FileId(1), 59..65), "by_val_to_reg"@(FileId(1), 90..103), "by_ref_to_reg"@(FileId(1), 132..145)]
+

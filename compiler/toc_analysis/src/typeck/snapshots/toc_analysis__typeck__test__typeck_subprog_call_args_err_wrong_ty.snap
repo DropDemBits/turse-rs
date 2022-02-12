@@ -1,0 +1,18 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: "var tree : string\nprocedure boop(a, b : int, var c : int) end boop\nboop(1, 2, tree)\n"
+
+---
+"tree"@(FileId(1), 4..8) [Declared]: string
+"boop"@(FileId(1), 28..32) [Declared]: procedure ( pass(value) int, pass(value) int, pass(var ref) int, ) -> void
+"<unnamed>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 33..34) [Declared]: int
+"b"@(FileId(1), 36..37) [Declared]: int
+"c"@(FileId(1), 49..50) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 78..82: mismatched types
+| note in file FileId(1) for 78..82: this is of type `string`
+| note in file FileId(1) for 78..82: parameter expects type `int`
+| info: `string` is not equivalent to `int`

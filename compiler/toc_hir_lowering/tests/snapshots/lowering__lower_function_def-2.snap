@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "\n    function empty_params() : int\n    end empty_params\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..60): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..55): []
+        StmtItem@(FileId(1), 5..55): ItemId(0)
+          Subprogram@(FileId(1), 5..55): "empty_params"@(FileId(1), 14..26) []
+            Primitive@(FileId(1), 31..34): Int
+            StmtBody@(FileId(1), 39..39): []
+

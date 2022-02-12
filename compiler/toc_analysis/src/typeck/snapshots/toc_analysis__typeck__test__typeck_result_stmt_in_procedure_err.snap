@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 41
+expression: proc q result 0 end q
+
+---
+"q"@(FileId(1), 5..6) [Declared]: procedure -> void
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 7..15: cannot use `result` here
+| error in file FileId(1) for 7..15: `result` statement is only allowed in function bodies
