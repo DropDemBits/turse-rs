@@ -17,7 +17,8 @@ use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};
 
 use crate::instruction::{
-    CodeOffset, ForDescriptor, GetKind, Opcode, PutKind, StdStream, StreamKind, TemporarySlot,
+    AbortSource, CodeOffset, ForDescriptor, GetKind, Opcode, PutKind, StdStream, StreamKind,
+    TemporarySlot,
 };
 
 mod instruction;
@@ -507,8 +508,9 @@ impl BodyCode {
 
         // Emit operands
         match opcode {
-            Opcode::ABORT(_) => todo!(),
-            Opcode::ABORTCOND(_) => todo!(),
+            Opcode::ABORT(kind) | Opcode::ABORTCOND(kind) => {
+                out.write_u32::<LE>(kind.encoding_kind().into())?;
+            }
             Opcode::ABSINT() => {}
             Opcode::ABSREAL() => {}
             Opcode::ADDINT() => {}
@@ -929,7 +931,32 @@ impl BodyCodeGenerator<'_> {
             hir_body::BodyKind::Exprs(expr) => gen.generate_expr(*expr),
         }
 
-        gen.code_fragment.emit_opcode(Opcode::RETURN());
+        // Generate the appropriate footer
+        {
+            let item_owner = match gen
+                .db
+                .body_owner(InLibrary(gen.library_id, gen.body_id))
+                .expect("from stmt thing")
+            {
+                hir_body::BodyOwner::Item(item_id) => item_id,
+                hir_body::BodyOwner::Type(_) => unreachable!(),
+            };
+            let item_ty = gen
+                .db
+                .type_of((gen.library_id, item_owner).into())
+                .in_db(gen.db)
+                .to_base_type();
+
+            if matches!(
+                item_ty.kind(),
+                ty::TypeKind::Subprogram(toc_hir::symbol::SubprogramKind::Function, ..)
+            ) {
+                gen.code_fragment
+                    .emit_opcode(Opcode::ABORT(AbortSource::MissingResult()));
+            } else {
+                gen.code_fragment.emit_opcode(Opcode::RETURN());
+            }
+        }
         gen.code_fragment.fix_frame_size();
 
         BodyCode {
@@ -983,8 +1010,6 @@ impl BodyCodeGenerator<'_> {
             let ret_ty = result_ty.in_db(db).to_base_type();
 
             if !matches!(ret_ty.kind(), ty::TypeKind::Void) {
-                let size_of = ret_ty.size_of().expect("must be sized");
-
                 if let Some(local_def) = ret_param {
                     self.code_fragment.bind_argument(
                         DefId(self.library_id, local_def),
@@ -993,7 +1018,7 @@ impl BodyCodeGenerator<'_> {
                     );
                 }
 
-                arg_offset += size_of;
+                arg_offset += 4;
             }
 
             // Feed in params
@@ -1012,7 +1037,7 @@ impl BodyCodeGenerator<'_> {
                         arg_offset,
                         indirect,
                     );
-                    arg_offset += size_of;
+                    arg_offset += if indirect { 4 } else { size_of };
                 }
             }
         }
@@ -1078,8 +1103,8 @@ impl BodyCodeGenerator<'_> {
             hir_stmt::StmtKind::Case(stmt) => self.generate_stmt_case(stmt),
             hir_stmt::StmtKind::Block(stmt) => self.generate_stmt_list(&stmt.stmts),
             hir_stmt::StmtKind::Call(stmt) => self.generate_stmt_call(stmt),
-            hir_stmt::StmtKind::Return(_stmt) => todo!(),
-            hir_stmt::StmtKind::Result(_stmt) => todo!(),
+            hir_stmt::StmtKind::Return(stmt) => self.generate_stmt_return(stmt),
+            hir_stmt::StmtKind::Result(stmt) => self.generate_stmt_result(stmt),
         }
         self.code_fragment.unbump_temp_allocs();
     }
@@ -1565,6 +1590,47 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_stmt_call(&mut self, stmt: &hir_stmt::Call) {
         self.generate_call(stmt.lhs, stmt.arguments.as_ref(), true);
+    }
+
+    fn generate_stmt_return(&mut self, _stmt: &hir_stmt::Return) {
+        self.code_fragment.emit_opcode(Opcode::RETURN());
+    }
+
+    fn generate_stmt_result(&mut self, stmt: &hir_stmt::Result) {
+        let item_owner = match self
+            .db
+            .body_owner(InLibrary(self.library_id, self.body_id))
+            .expect("from stmt thing")
+        {
+            hir_body::BodyOwner::Item(item_id) => item_id,
+            hir_body::BodyOwner::Type(_) => unreachable!(),
+        };
+        let item_ty = self
+            .db
+            .type_of((self.library_id, item_owner).into())
+            .in_db(self.db)
+            .to_base_type();
+
+        let ret_ty = if let ty::TypeKind::Subprogram(.., result_ty) = &item_ty.kind() {
+            *result_ty
+        } else {
+            unreachable!()
+        };
+
+        let expr_ty = self
+            .db
+            .type_of((self.library_id, self.body_id, stmt.expr).into());
+
+        // Generate return value
+        self.generate_expr(stmt.expr);
+        self.generate_coerced_op(ret_ty, expr_ty);
+
+        // Perform assignment
+        self.code_fragment.emit_opcode(Opcode::LOCATEPARM(0));
+        self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+        self.generate_assign(ret_ty, AssignOrder::Postcomputed);
+
+        self.code_fragment.emit_opcode(Opcode::RETURN());
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
@@ -2192,6 +2258,7 @@ impl BodyCodeGenerator<'_> {
             None
         };
 
+        // TODO: Figuring out alignment
         self.code_fragment.bump_temp_allocs();
         {
             // Fetch lhs first
