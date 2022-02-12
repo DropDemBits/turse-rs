@@ -124,10 +124,8 @@
     - [ ] Assign
     - [ ] Open
     - [ ] Close
-    - [ ] Put
-      - Waiting on non-put-able items to be lowered
-    - [ ] Get
-      - Waiting on non-get-able items to be lowered
+    - [x] Put
+    - [x] Get
     - [ ] Read
     - [ ] Write
     - [ ] Seek

@@ -328,8 +328,15 @@ impl TypeCheck<'_> {
                 .db
                 .type_of((self.library_id, body_id, item.expr).into())
                 .in_db(self.db);
+            let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
             if !self.is_text_io_item(put_ty.id()) {
+                self.state().reporter.error(
+                    "invalid put type",
+                    format!("cannot put a value of `{put_ty}`"),
+                    item_span,
+                );
+
                 continue;
             }
 
@@ -338,7 +345,6 @@ impl TypeCheck<'_> {
             // - Nat
             // - Real
             if !put_ty.kind().is_number() {
-                let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
                 if let Some(expr) = item.opts.precision() {
                     let span = body.expr(expr).span.lookup_in(&self.library.span_map);
 
@@ -402,25 +408,30 @@ impl TypeCheck<'_> {
             // Item expression must be a variable ref
             let body_expr = item.expr.in_body(body_id);
             let ty = db.type_of((self.library_id, body_expr).into()).in_db(db);
+            let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
             if !db
                 .binding_kind((self.library_id, body_expr).into())
                 .map(BindingKind::is_ref_mut)
                 .unwrap_or(false)
             {
-                let get_item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
-
                 self.report_mismatched_binding(
                     ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
                     (self.library_id, body_expr).into(),
-                    get_item_span,
-                    get_item_span,
+                    item_span,
+                    item_span,
                     |thing| format!("cannot assign into {thing}"),
                     None,
                 );
             }
 
             if !self.is_text_io_item(ty.id()) {
+                self.state().reporter.error(
+                    "invalid get type",
+                    format!("cannot get a value of `{ty}`"),
+                    item_span,
+                );
+
                 continue;
             }
 
@@ -455,10 +466,7 @@ impl TypeCheck<'_> {
                 stmt::GetWidth::Chars(expr) => {
                     if !ty.kind().is_sized_charseq() {
                         let opt_span = self.library.body(body_id).expr(*expr).span;
-                        let item_span = self.library.body(body_id).expr(item.expr).span;
-
                         let opt_span = self.library.lookup_span(opt_span);
-                        let item_span = self.library.lookup_span(item_span);
 
                         self.state()
                             .reporter
@@ -484,7 +492,7 @@ impl TypeCheck<'_> {
 
     fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
         let db = self.db;
-        let ty_dat = ty.in_db(db);
+        let ty_dat = ty.in_db(db).to_base_type();
 
         // Must be a valid put/get type
         // Can be one of the following:
@@ -504,7 +512,7 @@ impl TypeCheck<'_> {
             true
         } else {
             debug_assert!(!matches!(ty_dat.kind(), ty::TypeKind::Alias(..)));
-            todo!("from {ty_dat:?}");
+            false
         }
     }
 
