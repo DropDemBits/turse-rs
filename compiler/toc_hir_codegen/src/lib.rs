@@ -468,7 +468,9 @@ impl BodyCode {
             Opcode::BEGINHANDLER(_, _) => todo!(),
             Opcode::BITSASSIGN(_, _, _) => todo!(),
             Opcode::BITSEXTRACT(_, _) => todo!(),
-            Opcode::CALL(_) => todo!(),
+            Opcode::CALL(offset) => {
+                out.write_u32::<LE>(offset)?;
+            }
             Opcode::CALLEXTERNAL(_) => todo!(),
             Opcode::CALLIMPLEMENTBY(_) => todo!(),
             Opcode::CASE(_) => todo!(),
@@ -1403,84 +1405,7 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_stmt_call(&mut self, stmt: &hir_stmt::Call) {
-        let db = self.db;
-        let lhs_expr = (self.library_id, self.body_id, stmt.lhs);
-        let lhs_ty = if let Some(def_id) = db.binding_to(lhs_expr.into()) {
-            // From an item
-            db.type_of(def_id.into())
-        } else {
-            // From an actual expression
-            db.type_of(lhs_expr.into())
-        };
-        let lhs_ty_ref = lhs_ty.in_db(db).to_base_type();
-        let params = if let ty::TypeKind::Subprogram(_, params, _) = lhs_ty_ref.kind() {
-            params
-        } else {
-            unreachable!()
-        };
-
-        // TODO: reserve arg for ret values
-
-        self.code_fragment.bump_temp_allocs();
-        {
-            // Fetch lhs first
-            self.generate_ref_expr(stmt.lhs);
-            // TODO: Replace with the size of the target arch's ptr
-            let call_to = self.code_fragment.allocate_temporary_space(4);
-            self.code_fragment.emit_locate_temp(call_to);
-            self.generate_assign(lhs_ty, AssignOrder::Postcomputed);
-
-            let mut arg_temps = vec![];
-
-            // Eval args
-            if let Some((params, args)) = params.as_ref().zip(stmt.arguments.as_ref()) {
-                for (param, arg) in params.iter().zip(args.iter()) {
-                    let arg_expr = match arg {
-                        hir_expr::Arg::Expr(expr) => *expr,
-                    };
-                    let arg_ty = db.type_of((self.library_id, self.body_id, arg_expr).into());
-
-                    match param.pass_by {
-                        ty::PassBy::Value => {
-                            let param_ty = param.param_ty;
-                            let size_of = param_ty.in_db(db).size_of().expect("must be sized");
-                            let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
-                            self.generate_coerced_op(param_ty, arg_ty);
-
-                            self.code_fragment.emit_locate_temp(nth_arg);
-                            self.generate_assign(param_ty, AssignOrder::Postcomputed);
-                            arg_temps.push((nth_arg, Some(param_ty)));
-                        }
-                        ty::PassBy::Reference(_) => {
-                            // TODO: Replace with the size of the target arch's ptr
-                            let nth_arg = self.code_fragment.allocate_temporary_space(4);
-                            self.generate_ref_expr(arg_expr);
-
-                            self.code_fragment.emit_locate_temp(nth_arg);
-                            self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
-                            arg_temps.push((nth_arg, None));
-                        }
-                    }
-                }
-            }
-
-            // Move args into reverse order
-            // ( ... arg0 arg1 arg2 -- arg2 arg1 arg0 ... )
-            for (arg, ty) in arg_temps.into_iter().rev() {
-                self.code_fragment.emit_locate_temp(arg);
-                if let Some(ty) = ty {
-                    self.generate_fetch_value(ty);
-                } else {
-                    self.code_fragment.emit_opcode(Opcode::FETCHADDR());
-                }
-            }
-
-            // Do the call
-            self.code_fragment.emit_locate_temp(call_to);
-            self.generate_fetch_value(lhs_ty);
-            self.code_fragment.emit_opcode(Opcode::CALL(0));
-        }
-        self.code_fragment.unbump_temp_allocs();
+        self.generate_call(stmt.lhs, stmt.arguments.as_ref(), true);
     }
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
@@ -1656,7 +1581,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
             hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr),
-            hir_expr::ExprKind::Call(_expr) => todo!(),
+            hir_expr::ExprKind::Call(expr) => self.generate_expr_call(expr),
         }
     }
 
@@ -2061,6 +1986,121 @@ impl BodyCodeGenerator<'_> {
                 self.generate_fetch_value(def_ty.id());
             }
             hir_expr::Name::Self_ => todo!(),
+        }
+    }
+
+    fn generate_expr_call(&mut self, expr: &hir_expr::Call) {
+        self.generate_call(expr.lhs, Some(&expr.arguments), false);
+    }
+
+    fn generate_call(
+        &mut self,
+        lhs: hir_expr::ExprId,
+        arguments: Option<&Vec<hir_expr::Arg>>,
+        drop_retval: bool,
+    ) {
+        let db = self.db;
+        let lhs_expr = (self.library_id, self.body_id, lhs);
+        let lhs_ty = if let Some(def_id) = db.binding_to(lhs_expr.into()) {
+            // From an item
+            db.type_of(def_id.into())
+        } else {
+            // From an actual expression
+            db.type_of(lhs_expr.into())
+        };
+        let lhs_ty_ref = lhs_ty.in_db(db).to_base_type();
+        let (params, ret_ty) =
+            if let ty::TypeKind::Subprogram(_, params, ret_ty) = lhs_ty_ref.kind() {
+                (params, *ret_ty)
+            } else {
+                unreachable!()
+            };
+
+        // TODO: reserve arg for ret values
+        let ret_ty_ref = ret_ty.in_db(db).to_base_type();
+        let ret_val = if !matches!(ret_ty_ref.kind(), ty::TypeKind::Void) {
+            let size_of = ret_ty_ref.size_of().expect("must be sized");
+            Some(self.code_fragment.allocate_temporary_space(size_of))
+        } else {
+            None
+        };
+
+        self.code_fragment.bump_temp_allocs();
+        {
+            // Fetch lhs first
+            self.generate_ref_expr(lhs);
+            // TODO: Replace with the size of the target arch's ptr
+            let call_to = self.code_fragment.allocate_temporary_space(4);
+            self.code_fragment.emit_locate_temp(call_to);
+            self.generate_assign(lhs_ty, AssignOrder::Postcomputed);
+
+            let mut arg_temps = vec![];
+
+            if let Some(ret_val) = ret_val {
+                // Treat return argument as a pass by ref
+                let ret_arg = self
+                    .code_fragment
+                    .allocate_temporary_space(ret_ty_ref.size_of().expect("must be sized"));
+
+                self.code_fragment.emit_locate_temp(ret_val);
+                self.code_fragment.emit_locate_temp(ret_arg);
+                self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                arg_temps.push((ret_arg, None));
+            }
+
+            // Eval args
+            if let Some((params, args)) = params.as_ref().zip(arguments) {
+                for (param, arg) in params.iter().zip(args.iter()) {
+                    let arg_expr = match arg {
+                        hir_expr::Arg::Expr(expr) => *expr,
+                    };
+                    let arg_ty = db.type_of((self.library_id, self.body_id, arg_expr).into());
+
+                    match param.pass_by {
+                        ty::PassBy::Value => {
+                            let param_ty = param.param_ty;
+                            let size_of = param_ty.in_db(db).size_of().expect("must be sized");
+                            let nth_arg = self.code_fragment.allocate_temporary_space(size_of);
+                            self.generate_coerced_op(param_ty, arg_ty);
+
+                            self.code_fragment.emit_locate_temp(nth_arg);
+                            self.generate_assign(param_ty, AssignOrder::Postcomputed);
+                            arg_temps.push((nth_arg, Some(param_ty)));
+                        }
+                        ty::PassBy::Reference(_) => {
+                            // TODO: Replace with the size of the target arch's ptr
+                            let nth_arg = self.code_fragment.allocate_temporary_space(4);
+                            self.generate_ref_expr(arg_expr);
+
+                            self.code_fragment.emit_locate_temp(nth_arg);
+                            self.code_fragment.emit_opcode(Opcode::ASNADDRINV());
+                            arg_temps.push((nth_arg, None));
+                        }
+                    }
+                }
+            }
+
+            // Move args into reverse order
+            // ( ... arg0 arg1 arg2 -- arg2 arg1 arg0 ... )
+            for (arg, ty) in arg_temps.into_iter().rev() {
+                self.code_fragment.emit_locate_temp(arg);
+                if let Some(ty) = ty {
+                    self.generate_fetch_value(ty);
+                } else {
+                    self.code_fragment.emit_opcode(Opcode::FETCHADDR());
+                }
+            }
+
+            // Do the call
+            self.code_fragment.emit_locate_temp(call_to);
+            self.generate_fetch_value(lhs_ty);
+            self.code_fragment.emit_opcode(Opcode::CALL(0));
+        }
+        self.code_fragment.unbump_temp_allocs();
+
+        if let Some(slot_at) = ret_val.filter(|_| !drop_retval) {
+            self.code_fragment.emit_locate_temp(slot_at);
+            self.generate_fetch_value(ret_ty);
         }
     }
 
