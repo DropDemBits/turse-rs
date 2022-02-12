@@ -922,6 +922,7 @@ impl BodyCodeGenerator<'_> {
             branch_stack: vec![],
         };
 
+        // FIXME: Bind imported defs
         gen.bind_inputs(param_defs, ret_param);
 
         gen.code_fragment.emit_opcode(Opcode::PROC(0));
@@ -1597,29 +1598,10 @@ impl BodyCodeGenerator<'_> {
     }
 
     fn generate_stmt_result(&mut self, stmt: &hir_stmt::Result) {
-        let item_owner = match self
-            .db
-            .body_owner(InLibrary(self.library_id, self.body_id))
-            .expect("from stmt thing")
-        {
-            hir_body::BodyOwner::Item(item_id) => item_id,
-            hir_body::BodyOwner::Type(_) => unreachable!(),
-        };
-        let item_ty = self
-            .db
-            .type_of((self.library_id, item_owner).into())
-            .in_db(self.db)
-            .to_base_type();
+        let db = self.db;
 
-        let ret_ty = if let ty::TypeKind::Subprogram(.., result_ty) = &item_ty.kind() {
-            *result_ty
-        } else {
-            unreachable!()
-        };
-
-        let expr_ty = self
-            .db
-            .type_of((self.library_id, self.body_id, stmt.expr).into());
+        let ret_ty = db.type_of((self.library_id, self.body_id).into());
+        let expr_ty = db.type_of((self.library_id, self.body_id, stmt.expr).into());
 
         // Generate return value
         self.generate_expr(stmt.expr);

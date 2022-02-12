@@ -58,7 +58,9 @@ fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
     let body = library.body(body_id.1);
 
     match &body.kind {
-        toc_hir::body::BodyKind::Stmts(..) => db.mk_error(), // This is where we'd evaluate a const fn
+        toc_hir::body::BodyKind::Stmts(..) => {
+            lower::ty_from_body_owner(db, body_id.0, db.body_owner(body_id))
+        }
         toc_hir::body::BodyKind::Exprs(expr) => db.type_of((body_id.0, body_id.1, *expr).into()),
     }
 }

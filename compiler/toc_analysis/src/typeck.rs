@@ -764,41 +764,20 @@ impl TypeCheck<'_> {
         let span = self.library.body(id.0).stmt(id.1).span;
         let span = self.library.lookup_span(span);
 
-        let result_ty = if let Some(owner) = self.db.body_owner(body.in_library(self.library_id)) {
-            match owner {
-                body::BodyOwner::Item(item) => {
-                    let item = self.library.item(item);
+        let result_ty = db.type_of((self.library_id, body).into());
+        let result_ty_ref = result_ty.in_db(db).to_base_type();
 
-                    // FIXME: Get return type from `body` item for compatibility checking
-                    match &item.kind {
-                        item::ItemKind::Subprogram(subprog) => {
-                            Some(db.from_hir_type(subprog.result.ty.in_library(self.library_id)))
-                        }
-                        item::ItemKind::Module(_) => return, // always usable
-                        _ => None,
-                    }
-                }
-                body::BodyOwner::Type(_) => None,
-            }
-        } else {
-            unreachable!()
-        };
-
-        if let Some(result_ty) = result_ty {
-            let result_tyref = result_ty.in_db(db).to_base_type();
-
-            if !matches!(result_tyref.kind(), ty::TypeKind::Void) {
-                // Inside of function
-                self.state().reporter.error(
-                    "cannot use `return` here",
-                    "`result` statement is used to return values in function bodies",
-                    span,
-                );
-            }
-        } else {
+        if result_ty_ref.kind().is_error() {
             self.state()
-                .reporter
-                .error("cannot use `return` here", "`return` statement is only allowed in subprogram bodies and module-kind declarations", span);
+            .reporter
+            .error("cannot use `return` here", "`return` statement is only allowed in subprogram bodies and module-kind declarations", span);
+        } else if !matches!(result_ty_ref.kind(), ty::TypeKind::Void) {
+            // Inside of function
+            self.state().reporter.error(
+                "cannot use `return` here",
+                "`result` statement is used to return values in function bodies",
+                span,
+            );
         }
     }
 
@@ -814,7 +793,8 @@ impl TypeCheck<'_> {
                 body::BodyOwner::Item(item) => {
                     let item = self.library.item(item);
 
-                    // FIXME: Get return type from `body` item for compatibility checking
+                    // FIXME: Use the type from the `body`
+                    // We currently need this route because we also need the span of the result type
                     if let item::ItemKind::Subprogram(subprog) = &item.kind {
                         Some(subprog.result.ty)
                     } else {
@@ -829,9 +809,9 @@ impl TypeCheck<'_> {
 
         if let Some(hir_ty) = result_ty {
             let result_ty = db.from_hir_type(hir_ty.in_library(self.library_id));
-            let result_tyref = result_ty.in_db(db).to_base_type();
+            let result_ty_ref = result_ty.in_db(db).to_base_type();
 
-            if matches!(result_tyref.kind(), ty::TypeKind::Void) {
+            if matches!(result_ty_ref.kind(), ty::TypeKind::Void) {
                 // Not inside of function
                 self.state().reporter.error(
                     "cannot use `result` here",

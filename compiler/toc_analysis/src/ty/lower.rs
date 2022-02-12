@@ -388,6 +388,39 @@ fn call_expr_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr
     }
 }
 
+pub(super) fn ty_from_body_owner(
+    db: &dyn TypeDatabase,
+    library_id: LibraryId,
+    body_owner: Option<body::BodyOwner>,
+) -> TypeId {
+    let body_owner = if let Some(body_owner) = body_owner {
+        body_owner
+    } else {
+        unreachable!("all bodies should have owners")
+    };
+
+    match body_owner {
+        body::BodyOwner::Item(item_id) => {
+            // Take from the item
+            let library = db.library(library_id);
+            let item = library.item(item_id);
+
+            match &item.kind {
+                item::ItemKind::Subprogram(subprog) => {
+                    // From result type
+                    db.from_hir_type(subprog.result.ty.in_library(library_id))
+                }
+                item::ItemKind::Module(_) => {
+                    // Modules are always procedure-like bodies
+                    db.mk_void()
+                }
+                _ => db.mk_error(),
+            }
+        }
+        body::BodyOwner::Type(_) => db.mk_error(),
+    }
+}
+
 fn require_resolved_hir_type(db: &dyn TypeDatabase, ty: InLibrary<hir_ty::TypeId>) -> TypeId {
     require_resolved_type(db, db.from_hir_type(ty))
 }
