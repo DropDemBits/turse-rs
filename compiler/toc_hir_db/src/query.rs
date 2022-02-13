@@ -175,7 +175,7 @@ fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<De
 
             // For now, only name exprs can produce a binding
             match &library.body(expr.0).expr(expr.1).kind {
-                expr::ExprKind::Missing => Err(NotBinding::NotReference),
+                expr::ExprKind::Missing => Err(NotBinding::Missing),
                 expr::ExprKind::Name(name) => match name {
                     expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
                     expr::Name::Self_ => todo!(),

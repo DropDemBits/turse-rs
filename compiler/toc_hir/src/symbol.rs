@@ -160,7 +160,9 @@ impl std::fmt::Display for BindingKind {
 pub enum NotBinding {
     /// Refers to an undeclared definition
     Undeclared,
-    /// Not a reference to a binding (e.g. a plain value, an error expression)
+    /// Is an error expression
+    Missing,
+    /// Not a reference to a binding (e.g. a plain value)
     NotReference,
 }
 
@@ -173,9 +175,13 @@ pub trait BindingResultExt: seal_me::Sealed {
 }
 
 impl BindingResultExt for Result<bool, NotBinding> {
+    // Treat error exprs as the same as error
+    // It can be any kind of expression
+
     fn or_undeclared(self) -> bool {
         self.unwrap_or_else(|err| match err {
             NotBinding::Undeclared => true,
+            NotBinding::Missing => true,
             NotBinding::NotReference => false,
         })
     }
@@ -183,6 +189,7 @@ impl BindingResultExt for Result<bool, NotBinding> {
     fn or_value(self) -> bool {
         self.unwrap_or_else(|err| match err {
             NotBinding::Undeclared => true,
+            NotBinding::Missing => true,
             NotBinding::NotReference => true,
         })
     }

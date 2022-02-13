@@ -332,13 +332,15 @@ impl TypeCheck<'_> {
                 .in_db(self.db);
             let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
-            if !self.is_text_io_item(put_ty.id()) {
+            let is_item = self.expect_text_io_item(put_ty.id(), || {
                 self.state().reporter.error(
                     "invalid put type",
                     format!("cannot put a value of `{put_ty}`"),
                     item_span,
                 );
+            });
 
+            if !is_item {
                 continue;
             }
 
@@ -425,15 +427,19 @@ impl TypeCheck<'_> {
                     |thing| format!("cannot assign into {thing}"),
                     None,
                 );
+
+                continue;
             }
 
-            if !self.is_text_io_item(ty.id()) {
+            let is_item = self.expect_text_io_item(ty.id(), || {
                 self.state().reporter.error(
                     "invalid get type",
                     format!("cannot get a value of `{ty}`"),
                     item_span,
                 );
+            });
 
+            if !is_item {
                 continue;
             }
 
@@ -492,7 +498,7 @@ impl TypeCheck<'_> {
         self.expect_integer_type(ty_ref, self.library.lookup_span(span));
     }
 
-    fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
+    fn expect_text_io_item(&self, ty: ty::TypeId, not_ty: impl FnOnce()) -> bool {
         let db = self.db;
         let ty_dat = ty.in_db(db).to_base_type();
 
@@ -508,14 +514,14 @@ impl TypeCheck<'_> {
         // - Boolean
         // - Enum
 
-        if ty_dat.kind().is_printable()
-            || matches!(ty_dat.kind(), ty::TypeKind::Error | ty::TypeKind::Forward)
-        {
-            true
-        } else {
+        if ty_dat.kind().is_printable() {
+            return true;
+        } else if !matches!(ty_dat.kind(), ty::TypeKind::Error | ty::TypeKind::Forward) {
             debug_assert!(!matches!(ty_dat.kind(), ty::TypeKind::Alias(..)));
-            false
+            not_ty()
         }
+
+        false
     }
 
     fn typeck_for(&self, body_id: body::BodyId, stmt: &stmt::For) {
@@ -1385,7 +1391,7 @@ impl TypeCheck<'_> {
 
                 let binding_kind = match self.db.binding_kind(binding_source) {
                     Ok(kind) => kind,
-                    Err(NotBinding::Undeclared) => return, // already covered by an undeclared def error
+                    Err(NotBinding::Undeclared | NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
                     Err(NotBinding::NotReference) => unreachable!("taken from a def_id"),
                 };
 
