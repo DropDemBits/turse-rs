@@ -9,7 +9,9 @@ use std::fmt;
 use toc_hir::expr::{self, BodyExpr};
 use toc_hir::library::{self, LibraryId, WrapInLibrary};
 use toc_hir::stmt::BodyStmt;
-use toc_hir::symbol::{BindingKind, DefId, Mutability, SubprogramKind};
+use toc_hir::symbol::{
+    BindingKind, BindingResultExt, DefId, Mutability, NotBinding, SubprogramKind,
+};
 use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
@@ -237,7 +239,7 @@ impl TypeCheck<'_> {
         };
         let binding_kind = db.binding_kind(bind_to.into());
 
-        if !binding_kind.map(predicate).unwrap_or(false) {
+        if !binding_kind.map(predicate).or_undeclared() {
             // Not a (mut) ref
             // Use var mutability for a simpler error message
             // ???: Does it matter to use the real mutability?
@@ -247,7 +249,7 @@ impl TypeCheck<'_> {
                 .body(item.bind_to)
                 .span
                 .lookup_in(&self.library.span_map);
-            let is_register = matches!(binding_kind, Some(BindingKind::Register(_)));
+            let is_register = matches!(binding_kind, Ok(BindingKind::Register(_)));
 
             self.report_mismatched_binding(
                 ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
@@ -274,7 +276,7 @@ impl TypeCheck<'_> {
         if !db
             .binding_kind(lhs.into())
             .map(BindingKind::is_ref_mut)
-            .unwrap_or(false)
+            .or_undeclared()
         {
             // Not a mut ref
             let left_span = self
@@ -330,13 +332,15 @@ impl TypeCheck<'_> {
                 .in_db(self.db);
             let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
-            if !self.is_text_io_item(put_ty.id()) {
+            let is_item = self.expect_text_io_item(put_ty.id(), || {
                 self.state().reporter.error(
                     "invalid put type",
                     format!("cannot put a value of `{put_ty}`"),
                     item_span,
                 );
+            });
 
+            if !is_item {
                 continue;
             }
 
@@ -413,7 +417,7 @@ impl TypeCheck<'_> {
             if !db
                 .binding_kind((self.library_id, body_expr).into())
                 .map(BindingKind::is_ref_mut)
-                .unwrap_or(false)
+                .or_undeclared()
             {
                 self.report_mismatched_binding(
                     ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
@@ -423,15 +427,19 @@ impl TypeCheck<'_> {
                     |thing| format!("cannot assign into {thing}"),
                     None,
                 );
+
+                continue;
             }
 
-            if !self.is_text_io_item(ty.id()) {
+            let is_item = self.expect_text_io_item(ty.id(), || {
                 self.state().reporter.error(
                     "invalid get type",
                     format!("cannot get a value of `{ty}`"),
                     item_span,
                 );
+            });
 
+            if !is_item {
                 continue;
             }
 
@@ -490,7 +498,7 @@ impl TypeCheck<'_> {
         self.expect_integer_type(ty_ref, self.library.lookup_span(span));
     }
 
-    fn is_text_io_item(&self, ty: ty::TypeId) -> bool {
+    fn expect_text_io_item(&self, ty: ty::TypeId, not_ty: impl FnOnce()) -> bool {
         let db = self.db;
         let ty_dat = ty.in_db(db).to_base_type();
 
@@ -506,14 +514,14 @@ impl TypeCheck<'_> {
         // - Boolean
         // - Enum
 
-        if ty_dat.kind().is_printable()
-            || matches!(ty_dat.kind(), ty::TypeKind::Error | ty::TypeKind::Forward)
-        {
-            true
-        } else {
+        if ty_dat.kind().is_printable() {
+            return true;
+        } else if !matches!(ty_dat.kind(), ty::TypeKind::Error | ty::TypeKind::Forward) {
             debug_assert!(!matches!(ty_dat.kind(), ty::TypeKind::Alias(..)));
-            false
+            not_ty()
         }
+
+        false
     }
 
     fn typeck_for(&self, body_id: body::BodyId, stmt: &stmt::For) {
@@ -905,12 +913,9 @@ impl TypeCheck<'_> {
             expr::Name::Name(local_def) => {
                 // Validate it's a ref to a storage location
                 let def_id = DefId(self.library_id, *local_def);
-                let binding_kind = self
-                    .db
-                    .binding_kind(def_id.into())
-                    .expect("undecl defs are bindings");
+                let binding_kind = self.db.binding_kind(def_id.into());
 
-                if !binding_kind.is_ref() {
+                if !binding_kind.map(BindingKind::is_ref).or_undeclared() {
                     let span = self.library.body(id.0).expr(id.1).span;
                     let span = self.library.lookup_span(span);
 
@@ -951,7 +956,7 @@ impl TypeCheck<'_> {
         // - Is subprog ty?
 
         // Constrain lhs to expressions (allowing direct values & value references)
-        if !binding_kind.map_or(true, BindingKind::is_ref) {
+        if !binding_kind.map(BindingKind::is_ref).or_value() {
             self.report_mismatched_binding(
                 ExpectedBinding::Subprogram,
                 lhs_expr.into(),
@@ -1147,7 +1152,7 @@ impl TypeCheck<'_> {
                 ty::PassBy::Value => {
                     // Accept any expressions
                     (
-                        arg_binding.map_or(true, BindingKind::is_ref),
+                        arg_binding.map(BindingKind::is_ref).or_value(),
                         Mutability::Var,
                     )
                 }
@@ -1157,7 +1162,7 @@ impl TypeCheck<'_> {
                         Mutability::Const => BindingKind::is_storage,
                         Mutability::Var => BindingKind::is_storage_mut,
                     };
-                    (arg_binding.map_or(false, predicate), mutability)
+                    (arg_binding.map(predicate).or_undeclared(), mutability)
                 }
             };
 
@@ -1268,12 +1273,9 @@ impl TypeCheck<'_> {
     fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
         let def_id = ty.0;
         let target = DefId(self.library_id, def_id);
-        let binding_kind = self
-            .db
-            .binding_kind(target.into())
-            .expect("undecl defs are bindings");
+        let binding_kind = self.db.binding_kind(target.into());
 
-        if !binding_kind.is_type() {
+        if !binding_kind.map(BindingKind::is_type).or_undeclared() {
             let span = self.library.lookup_type(id).span;
             let span = self.library.lookup_span(span);
 
@@ -1387,10 +1389,11 @@ impl TypeCheck<'_> {
                 let name = def_info.name.item().as_str();
                 let def_at = library.lookup_span(def_info.name.span());
 
-                let binding_kind = self
-                    .db
-                    .binding_kind(binding_source)
-                    .expect("taken from a def_id");
+                let binding_kind = match self.db.binding_kind(binding_source) {
+                    Ok(kind) => kind,
+                    Err(NotBinding::Undeclared | NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
+                    Err(NotBinding::NotReference) => unreachable!("taken from a def_id"),
+                };
 
                 state
                     .reporter

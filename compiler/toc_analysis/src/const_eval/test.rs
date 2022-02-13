@@ -698,6 +698,12 @@ fn error_no_const_expr() {
     "#,
     ));
 
+    // Referencing an undeclared def
+    assert_const_eval("const b := a");
+
+    // Using a missing expression
+    assert_const_eval("const b := ()");
+
     // Referencing `self`
     // TODO: Uncomment when `self` is lowered again
     /*

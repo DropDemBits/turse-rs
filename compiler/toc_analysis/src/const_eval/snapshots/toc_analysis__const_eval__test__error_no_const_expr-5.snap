@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 13
+expression: "const b := ()"
+
+---
+"b"@(FileId(1), 6..7) -> ConstError { kind: MissingExpr, span: (dummy) }
+
+

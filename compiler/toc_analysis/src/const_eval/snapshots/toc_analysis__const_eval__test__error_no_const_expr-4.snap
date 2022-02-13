@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 13
+expression: "const b := a"
+
+---
+"b"@(FileId(1), 6..7) -> ConstError { kind: NotConstExpr(Some(DefId(LibraryId(0), LocalDefId(0)))), span: (FileId(1), 11..12) }
+
+

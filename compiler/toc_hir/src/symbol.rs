@@ -96,9 +96,6 @@ pub enum BindingKind {
     Module,
     /// Binding to a subprogram
     Subprogram(SubprogramKind),
-
-    /// A binding that isn't attached to anything
-    Undeclared,
 }
 
 impl BindingKind {
@@ -112,7 +109,7 @@ impl BindingKind {
     pub fn is_ref(self) -> bool {
         matches!(
             self,
-            Self::Undeclared | Self::Storage(_) | Self::Register(_) | Self::Subprogram(_)
+            Self::Storage(_) | Self::Register(_) | Self::Subprogram(_)
         )
     }
 
@@ -120,30 +117,29 @@ impl BindingKind {
     pub fn is_ref_mut(self) -> bool {
         matches!(
             self,
-            Self::Undeclared | Self::Storage(Mutability::Var) | Self::Register(Mutability::Var)
+            Self::Storage(Mutability::Var) | Self::Register(Mutability::Var)
         )
     }
 
     /// If this is a binding to a storage location (mut or immutable)
     pub fn is_storage(self) -> bool {
-        matches!(self, Self::Undeclared | Self::Storage(_))
+        matches!(self, Self::Storage(_))
     }
 
     /// If this is a binding to a mutable storage location
     pub fn is_storage_mut(self) -> bool {
-        matches!(self, Self::Undeclared | Self::Storage(Mutability::Var))
+        matches!(self, Self::Storage(Mutability::Var))
     }
 
     /// If this is a binding to a type
     pub fn is_type(self) -> bool {
-        matches!(self, Self::Undeclared | Self::Type)
+        matches!(self, Self::Type)
     }
 }
 
 impl std::fmt::Display for BindingKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            BindingKind::Undeclared => unreachable!("undecl bindings should never be reported"),
             BindingKind::Storage(Mutability::Var) => "a variable",
             BindingKind::Storage(Mutability::Const) => "a constant",
             BindingKind::Register(Mutability::Var) => "a register",
@@ -157,6 +153,51 @@ impl std::fmt::Display for BindingKind {
 
         f.write_str(name)
     }
+}
+
+/// From a failed binding lookup
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NotBinding {
+    /// Refers to an undeclared definition
+    Undeclared,
+    /// Is an error expression
+    Missing,
+    /// Not a reference to a binding (e.g. a plain value)
+    NotReference,
+}
+
+/// Helper trait to deal with [`NotBinding`] kind narrowing
+pub trait BindingResultExt: seal_me::Sealed {
+    /// Allows an undeclared identifier to match the previous predicate
+    fn or_undeclared(self) -> bool;
+    /// Allows any value to match the previous predicate
+    fn or_value(self) -> bool;
+}
+
+impl BindingResultExt for Result<bool, NotBinding> {
+    // Treat error exprs as the same as error
+    // It can be any kind of expression
+
+    fn or_undeclared(self) -> bool {
+        self.unwrap_or_else(|err| match err {
+            NotBinding::Undeclared => true,
+            NotBinding::Missing => true,
+            NotBinding::NotReference => false,
+        })
+    }
+
+    fn or_value(self) -> bool {
+        self.unwrap_or_else(|err| match err {
+            NotBinding::Undeclared => true,
+            NotBinding::Missing => true,
+            NotBinding::NotReference => true,
+        })
+    }
+}
+
+mod seal_me {
+    pub trait Sealed {}
+    impl Sealed for Result<bool, super::NotBinding> {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
