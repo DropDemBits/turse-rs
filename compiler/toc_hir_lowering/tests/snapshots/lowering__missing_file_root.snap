@@ -1,0 +1,12 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 59
+expression: "%%- removed src/main.t"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..0): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..0): []
+error in file FileId(1) at 0..0: unable to load source for `src/main.t`: File not found
+
