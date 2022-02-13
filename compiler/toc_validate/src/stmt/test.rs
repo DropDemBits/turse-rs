@@ -2,9 +2,6 @@
 use crate::check;
 use expect_test::expect;
 
-// FIXME: Something like `monitor p begin monitor j end j end end p` isn't rejected
-// (for some things, we need to check the containing item block)
-
 #[test]
 fn report_dangling_else() {
     check(
@@ -489,7 +486,7 @@ fn report_process_decl_in_monitor_class() {
         "monitor class q process a end a end q",
         expect![[r#"
             error in file FileId(1) at 16..31: cannot declare a `process` here
-            | error in file FileId(1) for 16..31: `process` declarations is not allowed in classes or monitor classes"#]],
+            | error in file FileId(1) for 16..31: `process` declarations are not allowed in classes or monitor classes"#]],
     );
 }
 
@@ -499,7 +496,7 @@ fn report_process_decl_in_class() {
         "class q process a end a end q",
         expect![[r#"
             error in file FileId(1) at 8..23: cannot declare a `process` here
-            | error in file FileId(1) for 8..23: `process` declarations is not allowed in classes or monitor classes"#]],
+            | error in file FileId(1) for 8..23: `process` declarations are not allowed in classes or monitor classes"#]],
     );
 }
 

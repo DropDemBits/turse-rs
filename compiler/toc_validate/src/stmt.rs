@@ -161,18 +161,20 @@ pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx)
 }
 
 pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCtx) {
-    let parent_kind = block_containing_node(decl.syntax());
-
-    if !parent_kind.is_top_level() {
-        ctx.push_error(
-            "cannot declare a `process` here",
+    let location_error = match block_containing_node(decl.syntax()) {
+        BlockKind::Class | BlockKind::MonitorClass => {
+            Some("`process` declarations are not allowed in classes or monitor classes")
+        }
+        kind if kind.is_top_level() => None,
+        _ => Some(
             "`process` declaration is only allowed at the top level of `monitor`s and `module`s",
-            decl.syntax().text_range(),
-        );
-    } else if matches!(parent_kind, BlockKind::Class | BlockKind::MonitorClass) {
+        ),
+    };
+
+    if let Some(error) = location_error {
         ctx.push_error(
             "cannot declare a `process` here",
-            "`process` declarations is not allowed in classes or monitor classes",
+            error,
             decl.syntax().text_range(),
         );
     }
@@ -229,57 +231,34 @@ pub(super) fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
     }
 
     // Check contained in location
-    if is_monitor_class {
+    let (item_thing, maybe_other_classes) = if is_monitor_class {
         // specialize for monitor classes
-        match block_containing_node(decl.syntax()) {
-            block if block.is_monitor() => {
-                ctx.push_error(
-                    "cannot declare a `monitor class` here",
-                    "monitor classes cannot be declared inside of monitors",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            BlockKind::Class => {
-                ctx.push_error(
-                    "cannot declare a `monitor class` here",
-                    "monitor classes cannot be declared inside of classes",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            block if !block.is_top_level() => {
-                ctx.push_error(
-                    "cannot declare a `monitor class` here",
-                    "monitor classes can only be declared at the program, module, or monitor level",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            _ => {}
-        }
+        ("monitor class", "classes")
     } else {
+        ("class", "other classes")
+    };
+
+    let location_error = {
         match block_containing_node(decl.syntax()) {
-            block if block.is_monitor() => {
-                ctx.push_error(
-                    "cannot declare a `class` here",
-                    "classes cannot be declared inside of monitors",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            BlockKind::Class => {
-                ctx.push_error(
-                    "cannot declare a `class` here",
-                    "classes cannot be declared inside of other classes",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            block if !block.is_top_level() => {
-                ctx.push_error(
-                    "cannot declare a `class` here",
-                    "classes can only be declared at the program, module, or monitor level",
-                    decl.class_token().unwrap().text_range(),
-                );
-            }
-            _ => {}
+            BlockKind::Class => Some(format!(
+                "{item_thing}es cannot be declared inside of {maybe_other_classes}"
+            )),
+            block if block.is_monitor() => Some(format!(
+                "{item_thing}es cannot be declared inside of monitors"
+            )),
+            block if !block.is_top_level() => Some(format!(
+                "{item_thing}es can only be declared at the program, module, or monitor level"
+            )),
+            _ => None,
         }
+    };
+
+    if let Some(error) = location_error {
+        ctx.push_error(
+            format!("cannot declare a `{item_thing}` here"),
+            error,
+            decl.class_token().unwrap().text_range(),
+        );
     }
 
     check_matching_names(decl.name(), decl.end_group(), ctx);
@@ -287,22 +266,18 @@ pub(super) fn validate_class_decl(decl: ast::ClassDecl, ctx: &mut ValidateCtx) {
 
 pub(super) fn validate_monitor_decl(decl: ast::MonitorDecl, ctx: &mut ValidateCtx) {
     // Check contained in location
-    match block_containing_node(decl.syntax()) {
-        block if block.is_monitor() => {
-            ctx.push_error(
-                "cannot declare a `monitor` here",
-                "monitors cannot be declared inside of other monitors",
-                decl.monitor_token().unwrap().text_range(),
-            );
-        }
-        block if !block.is_top_level() => {
-            ctx.push_error(
-                "cannot declare a `monitor` here",
-                "monitors can only be declared at the program, module, or monitor level",
-                decl.monitor_token().unwrap().text_range(),
-            );
-        }
-        _ => {}
+    let location_error = match block_containing_node(decl.syntax()) {
+        block if block.is_monitor() => Some("monitors cannot be declared inside of other monitors"),
+        block if block.is_top_level() => None,
+        _ => Some("monitors can only be declared at the program, module, or monitor level"),
+    };
+
+    if let Some(error) = location_error {
+        ctx.push_error(
+            "cannot declare a `monitor` here",
+            error,
+            decl.monitor_token().unwrap().text_range(),
+        );
     }
 
     check_matching_names(decl.name(), decl.end_group(), ctx);
@@ -463,29 +438,35 @@ pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
 }
 
 pub(super) fn validate_invariant_stmt(stmt: ast::InvariantStmt, ctx: &mut ValidateCtx) {
-    let kind = block_containing_node(stmt.syntax());
-    if kind != BlockKind::Loop && !kind.is_module_kind() {
-        ctx.push_error(
+    match block_containing_node(stmt.syntax()) {
+        BlockKind::Loop => (),
+        kind if kind.is_module_kind() => (),
+        _ => ctx.push_error(
             "cannot use `invariant` here",
             "`invariant` statement is only allowed in loop statements and module-kind declarations",
             stmt.syntax().text_range(),
-        );
+        ),
     }
 }
 
 pub(super) fn validate_return_stmt(stmt: ast::ReturnStmt, ctx: &mut ValidateCtx) {
     // Note: see `validate_result_stmt` for why we don't check exactly what kind of body we're in
-    let kind = item_block_containing_node(stmt.syntax());
-    if !kind.is_subprogram() && !kind.is_module_kind() && !matches!(kind, BlockKind::Main) {
-        ctx.push_error(
-            "cannot use `return` here",
+    let location_error = match item_block_containing_node(stmt.syntax()) {
+        BlockKind::Function => {
+            Some("`result` statement is used to return values in function bodies")
+        }
+        BlockKind::Main => None,
+        kind if kind.is_module_kind() => None,
+        kind if kind.is_subprogram() => None,
+        _ => Some(
             "`return` statement is only allowed in subprogram bodies and module-kind declarations",
-            stmt.syntax().text_range(),
-        );
-    } else if matches!(kind, BlockKind::Function) {
+        ),
+    };
+
+    if let Some(location_error) = location_error {
         ctx.push_error(
             "cannot use `return` here",
-            "`result` statement is used to return values in function bodies",
+            location_error,
             stmt.syntax().text_range(),
         );
     }
@@ -495,13 +476,15 @@ pub(super) fn validate_result_stmt(stmt: ast::ResultStmt, ctx: &mut ValidateCtx)
     // Note: We can't reject `result` from all `procedure` bodies, since that requires
     // either binding kind lookup, or knowing the return type as `ty::Void` disambiguates
     // between functions and procedures
-    let kind = item_block_containing_node(stmt.syntax());
-    if !matches!(kind, BlockKind::Function | BlockKind::Body) {
-        ctx.push_error(
-            "cannot use `result` here",
-            "`result` statement is only allowed in function bodies",
-            stmt.syntax().text_range(),
-        );
+    match item_block_containing_node(stmt.syntax()) {
+        BlockKind::Function | BlockKind::Body => (),
+        _ => {
+            ctx.push_error(
+                "cannot use `result` here",
+                "`result` statement is only allowed in function bodies",
+                stmt.syntax().text_range(),
+            );
+        }
     }
 }
 
