@@ -3,22 +3,25 @@
 #[cfg(test)]
 mod test;
 
-use std::cell::RefCell;
-use std::fmt;
+use std::{cell::RefCell, fmt};
 
-use toc_hir::expr::{self, BodyExpr};
-use toc_hir::library::{self, LibraryId, WrapInLibrary};
-use toc_hir::stmt::BodyStmt;
-use toc_hir::symbol::{
-    BindingKind, BindingResultExt, DefId, Mutability, NotBinding, SubprogramKind,
+use toc_hir::{
+    body,
+    expr::{self, BodyExpr},
+    item,
+    library::{self, LibraryId, WrapInLibrary},
+    stmt,
+    stmt::BodyStmt,
+    symbol::{BindingKind, BindingResultExt, DefId, Mutability, NotBinding, SubprogramKind},
 };
-use toc_hir::{body, item, stmt};
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
-use crate::const_eval::{Const, ConstValue};
-use crate::db::HirAnalysis;
-use crate::ty;
+use crate::{
+    const_eval::{Const, ConstValue},
+    db::HirAnalysis,
+    ty,
+};
 
 // ???: Can we build up a type ctx without doing type propagation?
 // Type propagation is inferring of types from inputs

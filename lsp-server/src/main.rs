@@ -1,10 +1,10 @@
 use std::error::Error;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
-use lsp_types::notification::{
-    DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, PublishDiagnostics,
-};
 use lsp_types::{
+    notification::{
+        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, PublishDiagnostics,
+    },
     InitializeParams, PublishDiagnosticsParams, ServerCapabilities, TextDocumentIdentifier,
     TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
     VersionedTextDocumentIdentifier,

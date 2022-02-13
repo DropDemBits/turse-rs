@@ -198,9 +198,7 @@ mod preproc;
 mod stmt;
 mod ty;
 
-use crate::parser::marker::CompletedMarker;
-use crate::parser::Expected;
-use crate::parser::Parser;
+use crate::parser::{marker::CompletedMarker, Expected, Parser};
 use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 

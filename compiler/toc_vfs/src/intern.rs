@@ -1,7 +1,9 @@
 //! Path interning structures
 
-use std::num::NonZeroU32;
-use std::path::{Path, PathBuf};
+use std::{
+    num::NonZeroU32,
+    path::{Path, PathBuf},
+};
 
 use toc_span::FileId;
 

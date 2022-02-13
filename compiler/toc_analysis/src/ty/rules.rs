@@ -3,10 +3,9 @@ use toc_hir::expr;
 use toc_reporting::MessageSink;
 use toc_span::Span;
 
-use crate::ty::{self, NotFixedLen};
 use crate::{
     db,
-    ty::{SeqSize, TypeId, TypeKind},
+    ty::{self, NotFixedLen, SeqSize, TypeId, TypeKind},
 };
 
 use super::TyRef;

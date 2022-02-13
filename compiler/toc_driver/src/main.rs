@@ -1,12 +1,11 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::{env, fs};
+use std::{collections::HashMap, env, fs, sync::Arc};
 
-use toc_ast_db::db::SpanMapping;
-use toc_ast_db::db::{AstDatabaseExt, SourceParser};
-use toc_ast_db::SourceGraph;
+use toc_ast_db::{
+    db::{AstDatabaseExt, SourceParser, SpanMapping},
+    SourceGraph,
+};
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;
 use toc_span::{FileId, Span};

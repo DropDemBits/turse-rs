@@ -1,14 +1,14 @@
 //! All valid compile-time operations
 
-use std::cmp::Ordering;
-use std::convert::TryFrom;
-use std::sync::Arc;
+use std::{cmp::Ordering, convert::TryFrom, sync::Arc};
 
 use toc_hir::expr;
 use toc_span::Spanned;
 
-use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue};
-use crate::ty;
+use crate::{
+    const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue},
+    ty,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum ConstOp {

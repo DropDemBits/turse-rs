@@ -4,12 +4,13 @@ mod test;
 
 use toc_syntax::{
     ast::{self, AstNode},
-    SyntaxKind,
+    IoKind, SyntaxKind, SyntaxNode,
 };
-use toc_syntax::{IoKind, SyntaxNode};
 
-use crate::{block_containing_node, item_block_containing_node, walk_blocks, without_matching};
-use crate::{BlockKind, ValidateCtx};
+use crate::{
+    block_containing_node, item_block_containing_node, walk_blocks, without_matching, BlockKind,
+    ValidateCtx,
+};
 
 pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut ValidateCtx) {
     if let Some(attr) = decl.register_attr() {

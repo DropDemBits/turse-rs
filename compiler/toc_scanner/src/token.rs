@@ -3,10 +3,7 @@ use super::ErrorFerry;
 pub use toc_span::TextRange as TokenRange;
 
 use logos::Logos;
-use std::convert::TryFrom;
-use std::fmt;
-use std::iter::Peekable;
-use std::ops::Range;
+use std::{convert::TryFrom, fmt, iter::Peekable, ops::Range};
 use toc_span::TextSize;
 
 #[derive(Debug, PartialEq)]

@@ -5,9 +5,10 @@ use toc_hir_db::db::HirDatabase;
 use toc_reporting::MessageBundle;
 use unindent::unindent;
 
-use crate::db::HirAnalysis;
-use crate::db::TypeDatabase;
-use crate::test_db::TestDb;
+use crate::{
+    db::{HirAnalysis, TypeDatabase},
+    test_db::TestDb,
+};
 
 macro_rules! test_for_each_op {
     ($top_level_name:ident, $([$(($op:literal, $sub_name:ident)),+ $(,)?] => $source:literal),+ $(,)?) => {

@@ -1,7 +1,6 @@
 //! Constructed messages
 
-use std::collections::HashSet;
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
 use toc_span::Span;
 

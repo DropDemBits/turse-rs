@@ -2,8 +2,10 @@
 
 use std::sync::Arc;
 
-use toc_ast_db::db::{AstDatabaseExt, SourceParser};
-use toc_ast_db::SourceGraph;
+use toc_ast_db::{
+    db::{AstDatabaseExt, SourceParser},
+    SourceGraph,
+};
 use toc_hir::library::LibraryId;
 use toc_hir_db::db::HirDatabase;
 use toc_salsa::salsa;

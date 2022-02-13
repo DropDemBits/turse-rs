@@ -2,14 +2,19 @@
 
 use std::convert::TryInto;
 
-use toc_hir::library::{LibraryId, WrapInLibrary};
-use toc_hir::symbol::{self, BindingKind, BindingResultExt, LocalDefId};
-use toc_hir::{body, expr, stmt};
-use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
+use toc_hir::{
+    body, expr, item,
+    library::{InLibrary, LibraryId, WrapInLibrary},
+    stmt,
+    symbol::{self, BindingKind, BindingResultExt, DefId, LocalDefId},
+    ty as hir_ty,
+};
 
-use crate::const_eval::{Const, ConstInt};
-use crate::db::TypeDatabase;
-use crate::ty::{self, Param, TypeId, TypeKind};
+use crate::{
+    const_eval::{Const, ConstInt},
+    db::TypeDatabase,
+    ty::{self, Param, TypeId, TypeKind},
+};
 
 use super::{IntSize, NatSize, RealSize, SeqSize};
 

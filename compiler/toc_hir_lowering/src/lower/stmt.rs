@@ -8,8 +8,7 @@ use toc_hir::{
 use toc_span::{SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
-use crate::lower::LoweredStmt;
-use crate::scopes::ScopeKind;
+use crate::{lower::LoweredStmt, scopes::ScopeKind};
 
 impl super::BodyLowering<'_, '_> {
     pub(super) fn lower_stmt(&mut self, stmt: ast::Stmt) -> Option<LoweredStmt> {

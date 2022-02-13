@@ -1,18 +1,19 @@
 //! Query implementations
 
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::{cell::RefCell, sync::Arc};
 
-use toc_hir::body::{BodyOwner, BodyTable};
-use toc_hir::item::ParameterInfo;
-use toc_hir::symbol::{NotBinding, SymbolKind};
-use toc_hir::ty::{self, PassBy};
 use toc_hir::{
-    body, expr, item,
+    body,
+    body::{BodyOwner, BodyTable},
+    expr, item,
+    item::ParameterInfo,
     library::{InLibrary, Library, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{BindingKind, DefId, DefOwner, DefTable, LocalDefId, Mutability},
+    symbol::{
+        BindingKind, DefId, DefOwner, DefTable, LocalDefId, Mutability, NotBinding, SymbolKind,
+    },
+    ty::{self, PassBy},
     visitor::HirVisitor,
 };
 

@@ -1,7 +1,6 @@
 //! Representation of Turing types
 
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use toc_hir::symbol::{self, DefId};
 use toc_span::Span;

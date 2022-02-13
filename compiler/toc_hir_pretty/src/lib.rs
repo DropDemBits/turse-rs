@@ -1,19 +1,18 @@
 //! Pretty printer(s) for HIR trees
 
-use std::ops::DerefMut;
 use std::{
     cell::{Cell, RefCell},
     fmt::{self, Write},
+    ops::DerefMut,
 };
 
-use toc_hir::symbol::SubprogramKind;
 use toc_hir::{
     body,
     expr::{self, BodyExpr},
     item,
     library::{self, LoweredLibrary},
     stmt::{self, BodyStmt},
-    symbol::{LocalDefId, Mutability},
+    symbol::{LocalDefId, Mutability, SubprogramKind},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };

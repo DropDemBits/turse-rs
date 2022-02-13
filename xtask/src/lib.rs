@@ -1,8 +1,10 @@
 mod codegen;
 mod package;
 
-use std::env;
-use std::path::{Path, PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 pub fn project_root() -> PathBuf {
     // from rust-analyzer's xtask lib.rs file

@@ -1,2 +1,5 @@
 hard_tabs = false
 use_field_init_shorthand = true
+
+# `nightly` rustfmt only
+#imports_granularity = "crate"

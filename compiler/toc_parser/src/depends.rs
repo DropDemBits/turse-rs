@@ -3,8 +3,11 @@ use std::sync::Arc;
 
 use toc_reporting::{CompileResult, MessageSink};
 use toc_span::{FileId, Span};
-use toc_syntax::ast::{AstNode, ExternalItemOwner};
-use toc_syntax::{ast, SyntaxNode};
+use toc_syntax::{
+    ast,
+    ast::{AstNode, ExternalItemOwner},
+    SyntaxNode,
+};
 
 /// What other file sources a given file depends on
 #[derive(Debug, Clone, PartialEq, Eq)]

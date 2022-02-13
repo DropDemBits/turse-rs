@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
-use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
-use petgraph::stable_graph::StableDiGraph;
-use petgraph::visit::{DfsPostOrder, Visitable};
+use petgraph::{
+    graph::{DiGraph, EdgeIndex, NodeIndex},
+    stable_graph::StableDiGraph,
+    visit::{DfsPostOrder, Visitable},
+};
 use toc_span::FileId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

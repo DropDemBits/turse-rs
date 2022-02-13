@@ -2,8 +2,7 @@
 
 use toc_span::FileId;
 
-use crate::{ErrorKind, HasVfs, LoadResult};
-use crate::{LoadError, LoadStatus};
+use crate::{ErrorKind, HasVfs, LoadError, LoadResult, LoadStatus};
 
 pub const FILE_DELIMITER_START: &str = "%%-";
 

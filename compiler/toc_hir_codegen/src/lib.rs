@@ -5,13 +5,13 @@ use std::io;
 use byteorder::{LittleEndian as LE, WriteBytesExt};
 use indexmap::{IndexMap, IndexSet};
 use instruction::{CheckKind, RelocatableOffset};
-use toc_analysis::db::HirAnalysis;
-use toc_analysis::ty;
+use toc_analysis::{db::HirAnalysis, ty};
 use toc_ast_db::db::SpanMapping;
-use toc_hir::library::InLibrary;
-use toc_hir::symbol::{DefId, LocalDefId};
 use toc_hir::{
-    body as hir_body, expr as hir_expr, item as hir_item, library as hir_library, stmt as hir_stmt,
+    body as hir_body, expr as hir_expr, item as hir_item, library as hir_library,
+    library::InLibrary,
+    stmt as hir_stmt,
+    symbol::{DefId, LocalDefId},
 };
 use toc_reporting::CompileResult;
 use toc_span::{FileId, Span};

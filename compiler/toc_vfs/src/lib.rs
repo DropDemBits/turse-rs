@@ -24,10 +24,12 @@ mod fixture;
 mod intern;
 mod vfs;
 
-use std::fmt;
-use std::path::Path;
-use std::sync::Arc;
-use std::{convert::TryFrom, path::PathBuf};
+use std::{
+    convert::TryFrom,
+    fmt,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 pub use fixture::{generate_vfs, FixtureFiles};
 pub use intern::PathResolution;

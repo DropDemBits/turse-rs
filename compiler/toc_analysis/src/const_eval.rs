@@ -23,9 +23,7 @@ mod ops;
 mod query;
 mod value;
 
-use toc_hir::body::BodyId;
-use toc_hir::expr::BodyExpr;
-use toc_hir::library::LibraryId;
+use toc_hir::{body::BodyId, expr::BodyExpr, library::LibraryId};
 
 pub use errors::ConstError;
 pub use integer::ConstInt;

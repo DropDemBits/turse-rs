@@ -3,9 +3,7 @@
 
 use toc_reporting::MessageBundle;
 
-use crate::db::HirAnalysis;
-use crate::test_db::TestDb;
-use crate::ty;
+use crate::{db::HirAnalysis, test_db::TestDb, ty};
 
 #[track_caller]
 fn assert_lint(source: &str) {

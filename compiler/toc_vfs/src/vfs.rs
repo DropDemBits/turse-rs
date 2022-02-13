@@ -3,9 +3,11 @@
 #[cfg(test)]
 mod test;
 
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::path::{Component, Path, PathBuf, Prefix};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    path::{Component, Path, PathBuf, Prefix},
+};
 
 use toc_span::FileId;
 

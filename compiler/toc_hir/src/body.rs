@@ -5,9 +5,7 @@ use std::fmt;
 use la_arena::{Arena, ArenaMap};
 use toc_span::SpanId;
 
-use crate::ids::BodyIndex;
-use crate::{expr, stmt, symbol::LocalDefId};
-use crate::{item, ty};
+use crate::{expr, ids::BodyIndex, item, stmt, symbol::LocalDefId, ty};
 
 pub use crate::ids::BodyId;
 

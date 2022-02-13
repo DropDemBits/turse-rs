@@ -26,12 +26,12 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
-use toc_hir::library_graph::{GraphBuilder, LibraryGraph};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
     expr::{Expr, ExprKind},
     item,
+    library_graph::{GraphBuilder, LibraryGraph},
     stmt::{Stmt, StmtId, StmtKind},
     symbol::{self, LocalDefId},
 };

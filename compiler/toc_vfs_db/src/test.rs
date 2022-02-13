@@ -1,8 +1,7 @@
 use std::ops::Deref;
 
 use toc_salsa::salsa;
-use toc_vfs::impl_has_vfs;
-use toc_vfs::{BuiltinPrefix, LoadError, LoadStatus, Vfs};
+use toc_vfs::{impl_has_vfs, BuiltinPrefix, LoadError, LoadStatus, Vfs};
 
 use crate::db::{FileSystem, FileSystemStorage, VfsDatabaseExt};
 

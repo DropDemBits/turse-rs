@@ -1,7 +1,9 @@
 //! Source file interpretation queries
 
-use std::collections::{HashSet, VecDeque};
-use std::sync::Arc;
+use std::{
+    collections::{HashSet, VecDeque},
+    sync::Arc,
+};
 
 use toc_reporting::CompileResult;
 use toc_source_graph::{DependGraph, SourceDepend, SourceKind};
@@ -110,8 +112,7 @@ mod test {
     use toc_salsa::salsa;
     use toc_source_graph::SourceGraph;
 
-    use crate::db::AstDatabaseExt;
-    use crate::db::SourceParser;
+    use crate::db::{AstDatabaseExt, SourceParser};
 
     #[salsa::database(toc_vfs_db::db::FileSystemStorage, crate::db::SourceParserStorage)]
     #[derive(Default)]

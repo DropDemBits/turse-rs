@@ -2,8 +2,10 @@
 use std::sync::Arc;
 
 use if_chain::if_chain;
-use toc_ast_db::db::{AstDatabaseExt, SourceParser};
-use toc_ast_db::SourceGraph;
+use toc_ast_db::{
+    db::{AstDatabaseExt, SourceParser},
+    SourceGraph,
+};
 use toc_hir::{body, expr, item, library::LoweredLibrary, stmt, ty};
 use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;

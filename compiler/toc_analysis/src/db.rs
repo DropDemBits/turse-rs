@@ -6,8 +6,7 @@ use toc_salsa::salsa;
 
 use crate::{lints, query, typeck};
 
-pub use crate::const_eval::db::*;
-pub use crate::ty::db::*;
+pub use crate::{const_eval::db::*, ty::db::*};
 
 /// HIR Analysis queries
 #[salsa::query_group(HirAnalysisStorage)]

@@ -3,8 +3,7 @@
 #[allow(clippy::upper_case_acronyms)] // Names are pulled from the grammar file exactly
 pub mod ast;
 
-use std::fmt;
-use std::ops::Range;
+use std::{fmt, ops::Range};
 
 use num_traits::{FromPrimitive, ToPrimitive};
 use rowan::Language;

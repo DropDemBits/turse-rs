@@ -5,8 +5,7 @@ use toc_hir_db::db::HirDatabase;
 use toc_reporting::{MessageBundle, MessageSink};
 use unindent::unindent;
 
-use crate::ty;
-use crate::{const_eval::Const, db::ConstEval, test_db::TestDb};
+use crate::{const_eval::Const, db::ConstEval, test_db::TestDb, ty};
 
 #[track_caller]
 fn assert_const_eval(source: &str) {

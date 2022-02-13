@@ -1,8 +1,6 @@
 //! Sign & magnitude integer representation
 
-use std::cmp::Ordering;
-use std::convert::TryInto;
-use std::fmt;
+use std::{cmp::Ordering, convert::TryInto, fmt};
 
 use crate::const_eval::{errors::ErrorKind, ConstError};
 
