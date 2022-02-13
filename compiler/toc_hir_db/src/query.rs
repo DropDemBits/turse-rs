@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use toc_hir::body::{BodyOwner, BodyTable};
 use toc_hir::item::ParameterInfo;
-use toc_hir::symbol::SymbolKind;
+use toc_hir::symbol::{NotBinding, SymbolKind};
 use toc_hir::ty::{self, PassBy};
 use toc_hir::{
     body, expr, item,
@@ -84,21 +84,18 @@ pub(crate) fn binding_to(db: &dyn HirDatabase, ref_src: BindingSource) -> Option
     lookup_binding_def(db, ref_src).ok()
 }
 
-pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Option<BindingKind> {
-    let def_id = match lookup_binding_def(db, ref_src) {
-        Ok(def_id) => def_id,
-        // Have missing exprs fall back to the undeclared path
-        // Undeclared bindings are already a fall back, so we have missing exprs piggy-back on this
-        Err(NotBinding::Missing) => return Some(BindingKind::Undeclared),
-        Err(NotBinding::NotRef) => return None,
-    };
+pub(crate) fn binding_kind(
+    db: &dyn HirDatabase,
+    ref_src: BindingSource,
+) -> Result<BindingKind, NotBinding> {
+    let def_id = lookup_binding_def(db, ref_src)?;
 
     // Take the binding kind from the def owner
     let def_owner = db.def_owner(def_id);
     let library = db.library(def_id.0);
 
     match def_owner {
-        Some(DefOwner::Item(item_id)) => Some(match &library.item(item_id).kind {
+        Some(DefOwner::Item(item_id)) => Ok(match &library.item(item_id).kind {
             item::ItemKind::ConstVar(item) if item.is_register => {
                 BindingKind::Register(item.mutability)
             }
@@ -118,7 +115,7 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
                 _ => unreachable!(),
             };
 
-            Some(match item.lookup_param_info(param_def) {
+            Ok(match item.lookup_param_info(param_def) {
                 ParameterInfo::Param(param_info) => {
                     // This is the real parameters
 
@@ -148,12 +145,12 @@ pub(crate) fn binding_kind(db: &dyn HirDatabase, ref_src: BindingSource) -> Opti
                     unreachable!("item def owners shouldn't be stmt def owners")
                 }
                 // for-loop counter var is an immutable ref
-                stmt::StmtKind::For(_) => Some(BindingKind::Storage(Mutability::Const)),
-                _ => None,
+                stmt::StmtKind::For(_) => Ok(BindingKind::Storage(Mutability::Const)),
+                _ => Err(NotBinding::NotReference),
             }
         }
-        // From an undeclared identifier, technically produces a binding
-        None => Some(BindingKind::Undeclared),
+        // From an undeclared identifier, not purely a binding
+        None => Err(NotBinding::Undeclared),
     }
 }
 
@@ -167,7 +164,7 @@ fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<De
 
             match &library.body(body).kind {
                 // Stmt bodies never produce bindings
-                body::BodyKind::Stmts(..) => Err(NotBinding::NotRef),
+                body::BodyKind::Stmts(..) => Err(NotBinding::NotReference),
                 // Defer to expr form
                 body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
             }
@@ -178,21 +175,15 @@ fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<De
 
             // For now, only name exprs can produce a binding
             match &library.body(expr.0).expr(expr.1).kind {
-                expr::ExprKind::Missing => Err(NotBinding::Missing),
+                expr::ExprKind::Missing => Err(NotBinding::NotReference),
                 expr::ExprKind::Name(name) => match name {
                     expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
                     expr::Name::Self_ => todo!(),
                 },
-                _ => Err(NotBinding::NotRef),
+                _ => Err(NotBinding::NotReference),
             }
         }
     }
-}
-
-#[derive(Clone, Copy)]
-enum NotBinding {
-    Missing,
-    NotRef,
 }
 
 /// Library-local definition collector

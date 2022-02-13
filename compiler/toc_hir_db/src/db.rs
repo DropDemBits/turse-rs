@@ -58,9 +58,12 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     #[salsa::invoke(query::binding_to)]
     fn binding_to(&self, ref_src: BindingSource) -> Option<DefId>;
 
-    /// Gets the binding kind of a [`BindingSource`], or `None` if it isn't one.
+    /// Gets the binding kind of a [`BindingSource`], or a [`NotBinding`](symbol::NotBinding) if it isn't one.
     #[salsa::invoke(query::binding_kind)]
-    fn binding_kind(&self, ref_src: BindingSource) -> Option<symbol::BindingKind>;
+    fn binding_kind(
+        &self,
+        ref_src: BindingSource,
+    ) -> Result<symbol::BindingKind, symbol::NotBinding>;
 }
 
 /// Salsa-backed type interner

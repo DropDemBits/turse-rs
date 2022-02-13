@@ -3,7 +3,7 @@
 use std::convert::TryInto;
 
 use toc_hir::library::{LibraryId, WrapInLibrary};
-use toc_hir::symbol::{self, BindingKind, LocalDefId};
+use toc_hir::symbol::{self, BindingKind, BindingResultExt, LocalDefId};
 use toc_hir::{body, expr, stmt};
 use toc_hir::{item, library::InLibrary, symbol::DefId, ty as hir_ty};
 
@@ -67,7 +67,11 @@ fn alias_ty(
 ) -> TypeId {
     let def_id = DefId(hir_id.0, ty.0);
 
-    if Some(true) == db.binding_kind(def_id.into()).map(BindingKind::is_type) {
+    if db
+        .binding_kind(def_id.into())
+        .map(BindingKind::is_type)
+        .or_undeclared()
+    {
         // Defer to the type's definition
         db.type_of(def_id.into())
     } else {
