@@ -71,14 +71,13 @@ fn main() {
 
         if let Some(err) = err {
             missing_roots = true;
-            let path = db.vfs.lookup_path(root).display();
 
             ariadne::Report::<(FileId, std::ops::Range<usize>)>::build(
                 ariadne::ReportKind::Error,
                 root,
                 0,
             )
-            .with_message::<String>(format!("unable to load source for `{}`: {}", path, err))
+            .with_message::<String>(format!("{err}"))
             .finish()
             .eprint(&mut cache)
             .unwrap();
@@ -231,10 +230,13 @@ impl toc_vfs::FileLoader for MainFileLoader {
         match fs::read(path) {
             Ok(contents) => Ok(toc_vfs::LoadStatus::Modified(contents)),
             Err(err) => match err.kind() {
-                std::io::ErrorKind::NotFound => Err(toc_vfs::LoadError::NotFound),
-                _ => Err(toc_vfs::LoadError::Other(std::sync::Arc::new(
-                    err.to_string(),
-                ))),
+                std::io::ErrorKind::NotFound => {
+                    Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
+                }
+                _ => Err(toc_vfs::LoadError::new(
+                    path,
+                    toc_vfs::ErrorKind::Other(std::sync::Arc::new(err.to_string())),
+                )),
             },
         }
     }

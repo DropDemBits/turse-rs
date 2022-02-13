@@ -2,7 +2,7 @@
 
 use toc_span::FileId;
 
-use crate::{HasVfs, LoadResult};
+use crate::{ErrorKind, HasVfs, LoadResult};
 use crate::{LoadError, LoadStatus};
 
 pub const FILE_DELIMITER_START: &str = "%%-";
@@ -135,7 +135,7 @@ pub fn generate_vfs<DB: HasVfs>(db: &mut DB, source: &str) -> FixtureFiles {
         let file = db.get_vfs_mut().intern_path(path.into());
 
         let source = if is_removed {
-            Err(LoadError::NotFound)
+            Err(LoadError::new(path, ErrorKind::NotFound))
         } else {
             // Rebuild the source!
             let mut source_lines = source.iter();
@@ -252,8 +252,8 @@ mod test {
         let file = db.vfs.resolve_path(None, "removed/ya.t").into_file_id();
         let res = srcs.file_source(file);
         assert_eq!(
-            (res.0.as_str(), res.1),
-            ("", Some(crate::LoadError::NotFound))
+            (res.0.as_str(), res.1.unwrap().kind()),
+            ("", &crate::ErrorKind::NotFound)
         )
     }
 
