@@ -36,7 +36,7 @@ use toc_hir::{
     symbol::{self, LocalDefId},
 };
 use toc_reporting::{CompileResult, MessageBundle, MessageSink};
-use toc_span::{FileId, Span, SpanId};
+use toc_span::{FileId, Span, SpanId, TextRange};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::{scopes, LoweredLibrary, LoweringDb};
@@ -49,11 +49,25 @@ where
     fn lower_library(&self, library_root: FileId) -> CompileResult<LoweredLibrary> {
         let db = self;
 
+        let mut messages = MessageBundle::default();
+
+        // Report if the root file is missing
+        if let (_, Some(err)) = self.file_source(library_root) {
+            // Report the missing file
+            let mut report = MessageSink::new();
+            report
+                .error_detailed(
+                    format!("{err}"),
+                    Span::new(library_root, TextRange::empty(0.into())),
+                )
+                .finish();
+            messages.aggregate(&report.finish());
+        }
+
         let reachable_files: Vec<_> = self.depend_graph(library_root).unit_sources().collect();
 
         // Lower all files reachable from the library root
         let mut root_items = vec![];
-        let mut messages = MessageBundle::default();
         let mut library = builder::LibraryBuilder::default();
 
         for file in reachable_files {

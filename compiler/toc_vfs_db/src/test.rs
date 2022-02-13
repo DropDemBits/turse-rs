@@ -198,9 +198,12 @@ fn file_update() {
         assert_eq!((res.0.as_str(), res.1), (FILE_SOURCES[1], None));
     }
 
-    db.update_file(file, Err(LoadError::NotFound));
+    db.update_file(file, Err(LoadError::new("", toc_vfs::ErrorKind::NotFound)));
     {
         let res = db.file_source(file);
-        assert_eq!((res.0.as_str(), res.1), ("", Some(LoadError::NotFound)));
+        assert_eq!(
+            (res.0.as_str(), res.1.unwrap().kind()),
+            ("", &toc_vfs::ErrorKind::NotFound)
+        );
     }
 }

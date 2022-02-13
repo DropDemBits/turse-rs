@@ -90,6 +90,11 @@ fn lower_literal_value(expr: &str) -> expr::Literal {
 }
 
 #[test]
+fn missing_file_root() {
+    assert_lower("%%- removed src/main.t");
+}
+
+#[test]
 fn item_gathering() {
     // Check that item groups are also included in item gathering
     let res = assert_lower(

@@ -8,7 +8,7 @@ use toc_salsa::salsa;
 use toc_span::FileId;
 
 use crate::db::{FileSystem, VfsDatabaseExt};
-use toc_vfs::{HasVfs, LoadError, LoadResult, LoadStatus};
+use toc_vfs::{ErrorKind, HasVfs, LoadError, LoadResult, LoadStatus};
 
 // Non query stuff //
 
@@ -46,7 +46,13 @@ where
                     }
                     Cow::Owned(invalid) => {
                         // Non UTF-8 encoded characters
-                        (invalid, Some(LoadError::InvalidEncoding))
+                        (
+                            invalid,
+                            Some(LoadError::new(
+                                self.get_vfs().lookup_path(file_id),
+                                ErrorKind::InvalidEncoding,
+                            )),
+                        )
                     }
                 }
             }

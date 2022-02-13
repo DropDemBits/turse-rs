@@ -102,9 +102,38 @@ impl fmt::Display for BuiltinPrefix {
         })
     }
 }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LoadError {
+    path: Arc<String>,
+    kind: ErrorKind,
+}
+
+impl LoadError {
+    pub fn new(path: impl AsRef<Path>, kind: ErrorKind) -> Self {
+        Self {
+            path: Arc::new(path.as_ref().display().to_string()),
+            kind,
+        }
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
+}
+
+impl fmt::Display for LoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { path, kind } = self;
+        write!(f, "unable to load source for `{path}`: {kind}")
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LoadError {
+pub enum ErrorKind {
     /// File was not found
     NotFound,
     /// File is in an unsupported encoding
@@ -113,12 +142,12 @@ pub enum LoadError {
     Other(Arc<String>),
 }
 
-impl fmt::Display for LoadError {
+impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LoadError::NotFound => f.write_str("File not found"),
-            LoadError::InvalidEncoding => f.write_str("Invalid file encoding"),
-            LoadError::Other(err) => f.write_str(err),
+            Self::NotFound => f.write_str("File not found"),
+            Self::InvalidEncoding => f.write_str("Invalid file encoding"),
+            Self::Other(err) => f.write_str(err),
         }
     }
 }

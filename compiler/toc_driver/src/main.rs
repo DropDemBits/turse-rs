@@ -61,35 +61,13 @@ fn main() {
 
     // We only need to get the messages for the queries at the end of the chain
     let msgs = codegen_res.messages();
-
     let mut cache = VfsCache::new(&db);
-
-    // Report any library roots that loaded incorrectly
-    let mut missing_roots = false;
-    for root in db.source_graph().library_roots() {
-        let (_, err) = db.file_source(root);
-
-        if let Some(err) = err {
-            missing_roots = true;
-            let path = db.vfs.lookup_path(root).display();
-
-            ariadne::Report::<(FileId, std::ops::Range<usize>)>::build(
-                ariadne::ReportKind::Error,
-                root,
-                0,
-            )
-            .with_message::<String>(format!("unable to load source for `{}`: {}", path, err))
-            .finish()
-            .eprint(&mut cache)
-            .unwrap();
-        }
-    }
 
     for msg in msgs.iter() {
         emit_message(&db, &mut cache, msg);
     }
 
-    if let Some(blob) = codegen_res.result().as_ref().filter(|_| !missing_roots) {
+    if let Some(blob) = codegen_res.result() {
         let mut encoded = vec![];
         blob.encode_to(&db, &mut encoded)
             .expect("failed to encode bytecode");
@@ -231,10 +209,13 @@ impl toc_vfs::FileLoader for MainFileLoader {
         match fs::read(path) {
             Ok(contents) => Ok(toc_vfs::LoadStatus::Modified(contents)),
             Err(err) => match err.kind() {
-                std::io::ErrorKind::NotFound => Err(toc_vfs::LoadError::NotFound),
-                _ => Err(toc_vfs::LoadError::Other(std::sync::Arc::new(
-                    err.to_string(),
-                ))),
+                std::io::ErrorKind::NotFound => {
+                    Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
+                }
+                _ => Err(toc_vfs::LoadError::new(
+                    path,
+                    toc_vfs::ErrorKind::Other(std::sync::Arc::new(err.to_string())),
+                )),
             },
         }
     }

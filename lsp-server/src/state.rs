@@ -63,7 +63,7 @@ impl ServerState {
             let contents = self.files.source(path).into_owned();
             Ok(LoadStatus::Modified(contents.into()))
         } else {
-            Err(LoadError::NotFound)
+            Err(LoadError::new(path, toc_vfs::ErrorKind::NotFound))
         };
         db.update_file(root_file, load_status);
 
@@ -350,7 +350,7 @@ impl<'a> toc_vfs::FileLoader for LspFileLoader<'a> {
         } else {
             // Don't actually load in file sources
             // TODO: Load in new file sources, and indicate that we're tracking changes to them
-            Err(toc_vfs::LoadError::NotFound)
+            Err(toc_vfs::LoadError::new(path, toc_vfs::ErrorKind::NotFound))
         }
     }
 
