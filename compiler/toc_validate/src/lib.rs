@@ -1,6 +1,5 @@
 //! AST validation
 //! Checking if things hold up to stricter syntax semantics, but are still representable in HIR
-// fancy quotes: ‘’
 mod preproc;
 mod stmt;
 mod ty;
@@ -27,6 +26,7 @@ pub fn validate_ast(file: FileId, root: SyntaxNode) -> CompileResult<()> {
 
     ctx.finish()
 }
+
 struct ValidateCtx {
     file: FileId,
     sink: MessageSink,
@@ -115,14 +115,14 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
             ast::BindDecl(decl) => stmt::validate_bind_decl(decl, ctx),
             ast::ProcDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "‘procedure’ declaration", ctx),
+                stmt::validate_in_top_level(decl.syntax(), "`procedure` declaration", ctx),
             ast::ProcHeader(node) => stmt::validate_proc_header(node, ctx),
             ast::FcnDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "‘function’ declaration", ctx),
+                stmt::validate_in_top_level(decl.syntax(), "`function` declaration", ctx),
             ast::ProcessDecl(decl) => stmt::validate_process_decl(decl, ctx),
             ast::ExternalVar(var) => stmt::validate_external_var(var, ctx),
             ast::ForwardDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "‘forward’ declaration", ctx),
+                stmt::validate_in_top_level(decl.syntax(), "`forward` declaration", ctx),
             ast::DeferredDecl(decl) => stmt::validate_deferred_decl(decl, ctx),
             ast::BodyDecl(decl) => stmt::validate_body_decl(decl, ctx),
             ast::ModuleDecl(decl) => stmt::validate_module_decl(decl, ctx),
@@ -163,9 +163,9 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
 pub(crate) fn without_matching(node: &SyntaxNode, thing: &str, ctx: &mut ValidateCtx) {
     let first = node.first_token().unwrap();
     ctx.push_error(
-        format!("found dangling ‘{}’", first.text()),
+        format!("found dangling `{}`", first.text()),
         format!(
-            "this ‘{}’ does not have a matching ‘{}’",
+            "this `{}` does not have a matching `{}`",
             first.text(),
             thing
         ),

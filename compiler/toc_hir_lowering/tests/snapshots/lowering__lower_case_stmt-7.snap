@@ -55,6 +55,6 @@ error in file FileId(1) at 10..11: `s` is undeclared
 | error in file FileId(1) for 10..11: no definitions of `s` are in scope
 error in file FileId(1) at 45..46: `a` is undeclared
 | error in file FileId(1) for 45..46: no definitions of `a` are in scope
-error in file FileId(1) at 165..232: extra ‘label’ arms found after default arm
-| error in file FileId(1) for 165..232: extra ‘label’ arms
+error in file FileId(1) at 165..232: extra `label` arms found after default arm
+| error in file FileId(1) for 165..232: extra `label` arms
 

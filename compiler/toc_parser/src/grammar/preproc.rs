@@ -60,7 +60,7 @@ fn elseif_preproc(p: &mut Parser, eat_tail: bool) -> Option<CompletedMarker> {
 
     let m = p.start();
     if p.at(TokenKind::PreprocElseIf) {
-        p.warn_alias("‘#elsif’");
+        p.warn_alias("`#elsif`");
     }
     p.bump();
 
@@ -116,7 +116,7 @@ fn endif_preproc(p: &mut Parser) -> Option<CompletedMarker> {
 
     let m = p.start();
     if p.at(TokenKind::PreprocEndIf) {
-        p.warn_alias("‘#end if’");
+        p.warn_alias("`#end if`");
         p.bump();
     } else {
         p.bump(); // nom '#end'

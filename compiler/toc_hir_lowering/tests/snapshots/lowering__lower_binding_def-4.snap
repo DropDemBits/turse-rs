@@ -13,7 +13,7 @@ Library@(dummy)
             Bind@(FileId(1), 26..30): const "k"@(FileId(1), 26..27)
               ExprBody@(dummy)
 error in file FileId(1) at 20..22: unexpected token
-| error in file FileId(1) for 20..22: expected identifier, but found ‘to’
+| error in file FileId(1) for 20..22: expected identifier, but found `to`
 error in file FileId(1) at 35..38: unexpected token
-| error in file FileId(1) for 35..38: expected expression, but found ‘end’
+| error in file FileId(1) for 35..38: expected expression, but found `end`
 

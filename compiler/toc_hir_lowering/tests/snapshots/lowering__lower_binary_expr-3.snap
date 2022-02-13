@@ -11,5 +11,5 @@ Library@(dummy)
           ConstVar@(FileId(1), 0..18): const "a"@(FileId(1), 6..7)
             ExprBody@(FileId(1), 11..18)
 error in file FileId(1) at 17..18: unexpected token
-| error in file FileId(1) for 17..18: expected ‘in’ or ‘=’, but found int literal
+| error in file FileId(1) for 17..18: expected `in` or `=`, but found int literal
 

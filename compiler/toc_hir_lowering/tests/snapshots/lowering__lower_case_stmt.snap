@@ -9,8 +9,8 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..18): []
         Case@(FileId(1), 0..18)
           Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
-error in file FileId(1) at 0..18: invalid ‘case’ statement
-| error in file FileId(1) for 0..18: missing ‘label’ arms
+error in file FileId(1) at 0..18: invalid `case` statement
+| error in file FileId(1) for 0..18: missing `label` arms
 error in file FileId(1) at 5..6: `s` is undeclared
 | error in file FileId(1) for 5..6: no definitions of `s` are in scope
 

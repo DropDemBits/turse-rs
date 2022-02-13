@@ -13,7 +13,7 @@ Library@(dummy)
             ExprBody@(FileId(1), 11..15)
               Binary@(FileId(1), 11..15): Add
 error in file FileId(1) at 12..13: unexpected token
-| error in file FileId(1) for 12..13: expected expression, but found ‘)’
+| error in file FileId(1) for 12..13: expected expression, but found `)`
 error in file FileId(1) at 14..15: unexpected end of file
 | error in file FileId(1) for 14..15: expected expression after here
 

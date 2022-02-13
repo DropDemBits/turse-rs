@@ -34,9 +34,9 @@ Library@(dummy)
             Void@(FileId(1), 67..95)
             StmtBody@(FileId(1), 96..96): ["k"@(FileId(1), 79..80)]
 error in file FileId(1) at 17..24: device specification is not allowed here
-| error in file FileId(1) for 17..24: ‘procedure’ is not in a device monitor
+| error in file FileId(1) for 17..24: `procedure` is not in a device monitor
 error in file FileId(1) at 49..56: device specification is not allowed here
-| error in file FileId(1) for 49..56: ‘procedure’ is not in a device monitor
+| error in file FileId(1) for 49..56: `procedure` is not in a device monitor
 error in file FileId(1) at 88..95: device specification is not allowed here
-| error in file FileId(1) for 88..95: ‘procedure’ is not in a device monitor
+| error in file FileId(1) for 88..95: `procedure` is not in a device monitor
 

@@ -638,7 +638,7 @@ mod test {
             &TokenKind::Comment,
             expect![[r#"
                 error in file FileId(1) at 0..3: unterminated block comment
-                | error in file FileId(1) for 0..3: block comment is missing terminating ’*/’"#]],
+                | error in file FileId(1) for 0..3: block comment is missing terminating `*/`"#]],
         );
 
         // Respecting nesting
@@ -647,7 +647,7 @@ mod test {
             &TokenKind::Comment,
             expect![[r#"
                 error in file FileId(1) at 0..13: unterminated block comment
-                | error in file FileId(1) for 0..13: block comment is missing terminating ’*/’"#]],
+                | error in file FileId(1) for 0..13: block comment is missing terminating `*/`"#]],
         );
 
         // With trailing spaces
@@ -656,7 +656,7 @@ mod test {
             &TokenKind::Comment,
             expect![[r#"
                 error in file FileId(1) at 0..14: unterminated block comment
-                | error in file FileId(1) for 0..14: block comment is missing terminating ’*/’"#]],
+                | error in file FileId(1) for 0..14: block comment is missing terminating `*/`"#]],
         );
     }
 
@@ -774,7 +774,7 @@ mod test {
             &TokenKind::Comment,
             expect![[r#"
                 error in file FileId(1) at 0..4: unterminated block comment
-                | error in file FileId(1) for 0..4: block comment is missing terminating ’*/’"#]],
+                | error in file FileId(1) for 0..4: block comment is missing terminating `*/`"#]],
         );
     }
 

@@ -9,5 +9,5 @@ Library@(dummy)
     Module@(FileId(1), 0..14): "<root>"@(dummy)
       StmtBody@(FileId(1), 0..14): []
 error in file FileId(1) at 5..6: unexpected token
-| error in file FileId(1) for 5..6: expected identifier, but found ‘:’
+| error in file FileId(1) for 5..6: expected identifier, but found `:`
 

@@ -14,5 +14,5 @@ Library@(dummy)
             Void@(FileId(1), 0..25)
             StmtBody@(FileId(1), 26..26): ["sa"@(FileId(1), 15..17)]
 error in file FileId(1) at 19..20: unexpected token
-| error in file FileId(1) for 19..20: expected identifier, but found ‘:’
+| error in file FileId(1) for 19..20: expected identifier, but found `:`
 

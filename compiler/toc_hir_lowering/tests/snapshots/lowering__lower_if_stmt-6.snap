@@ -7,16 +7,16 @@ Library@(dummy)
   Root@(dummy): FileId(1) -> ItemId(0)
     Module@(FileId(1), 0..102): "<root>"@(dummy)
       StmtBody@(FileId(1), 5..97): []
-error in file FileId(1) at 5..10: found dangling ‘elsif’
-| error in file FileId(1) for 5..10: this ‘elsif’ does not have a matching ‘if’
-warn in file FileId(1) at 32..36: ‘elif’ found
-| warn in file FileId(1) for 32..36: assuming it to be ‘elsif’
-error in file FileId(1) at 32..36: found dangling ‘elif’
-| error in file FileId(1) for 32..36: this ‘elif’ does not have a matching ‘if’
-warn in file FileId(1) at 58..64: ‘elseif’ found
-| warn in file FileId(1) for 58..64: assuming it to be ‘elsif’
-error in file FileId(1) at 58..64: found dangling ‘elseif’
-| error in file FileId(1) for 58..64: this ‘elseif’ does not have a matching ‘if’
-error in file FileId(1) at 86..90: found dangling ‘else’
-| error in file FileId(1) for 86..90: this ‘else’ does not have a matching ‘if’
+error in file FileId(1) at 5..10: found dangling `elsif`
+| error in file FileId(1) for 5..10: this `elsif` does not have a matching `if`
+warn in file FileId(1) at 32..36: `elif` found
+| warn in file FileId(1) for 32..36: assuming it to be `elsif`
+error in file FileId(1) at 32..36: found dangling `elif`
+| error in file FileId(1) for 32..36: this `elif` does not have a matching `if`
+warn in file FileId(1) at 58..64: `elseif` found
+| warn in file FileId(1) for 58..64: assuming it to be `elsif`
+error in file FileId(1) at 58..64: found dangling `elseif`
+| error in file FileId(1) for 58..64: this `elseif` does not have a matching `if`
+error in file FileId(1) at 86..90: found dangling `else`
+| error in file FileId(1) for 86..90: this `else` does not have a matching `if`
 

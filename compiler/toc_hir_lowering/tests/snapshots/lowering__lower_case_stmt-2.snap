@@ -11,6 +11,6 @@ Library@(dummy)
           Name@(FileId(1), 5..6): "s"@(FileId(1), 5..6), undeclared
 error in file FileId(1) at 5..6: `s` is undeclared
 | error in file FileId(1) for 5..6: no definitions of `s` are in scope
-error in file FileId(1) at 10..17: cannot have a default ‘label’ arm as the first ‘case’ arm
-| error in file FileId(1) for 10..17: First ‘label’ arm must have at least one selector expression
+error in file FileId(1) at 10..17: cannot have a default `label` arm as the first `case` arm
+| error in file FileId(1) for 10..17: First `label` arm must have at least one selector expression
 

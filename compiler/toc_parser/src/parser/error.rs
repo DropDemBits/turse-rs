@@ -95,7 +95,7 @@ mod test {
                 expected_category: None,
                 found: Some(TokenKind::Equ),
             },
-            expect![[r#"expected ‘:=’, but found ‘=’"#]],
+            expect![[r#"expected `:=`, but found `=`"#]],
         );
     }
 
@@ -107,7 +107,7 @@ mod test {
                 expected_category: None,
                 found: None,
             },
-            expect![[r#"expected ‘..’ after here"#]],
+            expect![[r#"expected `..` after here"#]],
         );
     }
 
@@ -124,7 +124,7 @@ mod test {
                 expected_category: None,
                 found: Some(TokenKind::IntLiteral),
             },
-            expect![[r#"expected identifier, ‘bits’, ‘cheat’ or ‘^’, but found int literal"#]],
+            expect![[r#"expected identifier, `bits`, `cheat` or `^`, but found int literal"#]],
         );
     }
 
@@ -136,7 +136,7 @@ mod test {
                 expected_category: None,
                 found: Some(TokenKind::Colon),
             },
-            expect![[r#"expected ‘const’ or ‘var’, but found ‘:’"#]],
+            expect![[r#"expected `const` or `var`, but found `:`"#]],
         );
     }
 
@@ -153,7 +153,7 @@ mod test {
                 expected_category: None,
                 found: None,
             },
-            expect![[r#"expected ‘+’, ‘-’, ‘not’ or ‘in’ after here"#]],
+            expect![[r#"expected `+`, `-`, `not` or `in` after here"#]],
         );
     }
 
@@ -166,7 +166,7 @@ mod test {
                 expected_category: Some(Expected::Expression),
                 found: Some(TokenKind::Var),
             },
-            expect![[r#"expected expression, but found ‘var’"#]],
+            expect![[r#"expected expression, but found `var`"#]],
         )
     }
 }

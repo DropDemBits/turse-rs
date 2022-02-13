@@ -9,5 +9,5 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..24): []
         For@(FileId(1), 0..24): decreasing explicit
 error in file FileId(1) at 17..20: unexpected token
-| error in file FileId(1) for 17..20: expected expression, but found ‘end’
+| error in file FileId(1) for 17..20: expected expression, but found `end`
 
