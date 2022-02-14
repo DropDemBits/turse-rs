@@ -24,7 +24,7 @@ impl fmt::Display for ParseMessage {
                 write!(f, "expected ")?;
 
                 if let Some(category) = expected_category {
-                    write!(f, "{}", category)?;
+                    write!(f, "{category}")?;
                 } else {
                     // Base it off of the expected tokens
                     let expected_count = expected.len();
@@ -33,18 +33,18 @@ impl fmt::Display for ParseMessage {
 
                     for (idx, expected_kind) in expected.iter().enumerate() {
                         if is_first(idx) {
-                            write!(f, "{}", expected_kind)?;
+                            write!(f, "{expected_kind}")?;
                         } else if is_last(idx) {
-                            write!(f, " or {}", expected_kind)?;
+                            write!(f, " or {expected_kind}")?;
                         } else {
-                            write!(f, ", {}", expected_kind)?;
+                            write!(f, ", {expected_kind}")?;
                         }
                     }
                 }
 
                 if let Some(found) = found {
                     // Found something else
-                    write!(f, ", but found {}", found)?;
+                    write!(f, ", but found {found}")?;
                 } else {
                     // Say that it's after this location
                     write!(f, " after here")?;
@@ -84,7 +84,7 @@ mod test {
 
     #[track_caller]
     fn check(info: ParseMessage, out: Expect) {
-        out.assert_eq(&format!("{}", info));
+        out.assert_eq(&format!("{info}"));
     }
 
     #[test]

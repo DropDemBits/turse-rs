@@ -741,7 +741,7 @@ pub struct InvalidCharsList(pub(crate) Vec<(InvalidChar, Range<usize>)>);
 impl fmt::Display for InvalidCharsList {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (err, range) in self.0.iter() {
-            writeln!(f, "| at {:?}: {}", range, err)?;
+            writeln!(f, "| at {range:?}: {err}")?;
         }
 
         Ok(())

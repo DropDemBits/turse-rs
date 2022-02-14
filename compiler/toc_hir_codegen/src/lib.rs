@@ -325,19 +325,19 @@ pub fn generate_code(db: &dyn CodeGenDB) -> CompileResult<Option<CodeBlob>> {
 
                     println!("gen code:");
                     for (idx, opc) in body_code.fragment.opcodes.iter().enumerate() {
-                        println!("{:4}    {:?}", idx, opc);
+                        println!("{idx:4}    {opc:?}");
                     }
                     println!("\noffsets:");
                     for (idx, off) in body_code.fragment.code_offsets.iter().enumerate() {
-                        println!("{:4}    {:?}", idx, off);
+                        println!("{idx:4}    {off:?}");
                     }
                     println!("\nlocals ({} bytes):", body_code.fragment.locals_size);
-                    for (idx, off) in body_code.fragment.locals.iter().enumerate() {
-                        println!("{:4}    ({:?})> {:?}", idx, off.0, off.1);
+                    for (idx, (def_id, target)) in body_code.fragment.locals.iter().enumerate() {
+                        println!("{idx:4}    ({def_id:?})> {target:?}");
                     }
                     println!("\ntemporaries ({} bytes):", body_code.fragment.temps_size);
                     for (idx, off) in body_code.fragment.temps.iter().enumerate() {
-                        println!("{:4}    {:?}", idx, off);
+                        println!("{idx:4}    {off:?}");
                     }
 
                     blob.body_fragments.insert((library_id, body_id), body_code);
@@ -1654,13 +1654,13 @@ impl BodyCodeGenerator<'_> {
         );
 
         if let Some(init_body) = item.init_expr {
-            eprintln!("inlining init body {:?}", init_body);
+            eprintln!("inlining init body {init_body:?}");
             self.inline_body(init_body);
 
             let body_ty = self.db.type_of((self.library_id, init_body).into());
             self.generate_coerced_op(def_ty.id(), body_ty);
 
-            eprintln!("assigning def {:?} to previously produced value", init_body);
+            eprintln!("assigning def {init_body:?} to previously produced value");
             self.code_fragment
                 .emit_locate_local(DefId(self.library_id, item.def_id));
             self.generate_assign(def_ty.id(), AssignOrder::Postcomputed);
@@ -1781,7 +1781,7 @@ impl BodyCodeGenerator<'_> {
         });
 
         if let Some(opcode) = coerce_op {
-            eprintln!("coercing into {:?}", coerce_op);
+            eprintln!("coercing into {coerce_op:?}");
             self.code_fragment.emit_opcode(opcode);
         }
     }
@@ -1804,7 +1804,7 @@ impl BodyCodeGenerator<'_> {
     fn generate_expr_literal(&mut self, expr: &hir_expr::Literal) {
         // Steps
         // - Push value onto the operand stack
-        eprintln!("pushing value {:?} to operand stack", expr);
+        eprintln!("pushing value {expr:?} to operand stack");
         match expr {
             hir_expr::Literal::Integer(value) => match value {
                 0..=0xFF => self
@@ -2189,7 +2189,7 @@ impl BodyCodeGenerator<'_> {
         match expr {
             hir_expr::Name::Name(def_id) => {
                 let info = self.library.local_def(*def_id);
-                eprintln!("loading value from def {:?} ({:?})", info, def_id);
+                eprintln!("loading value from def {info:?} ({def_id:?})");
 
                 let def_ty = self
                     .db
@@ -2359,7 +2359,7 @@ impl BodyCodeGenerator<'_> {
         match expr {
             hir_expr::Name::Name(def_id) => {
                 let info = self.library.local_def(*def_id);
-                eprintln!("locating value from def {:?} ({:?})", info, def_id);
+                eprintln!("locating value from def {info:?} ({def_id:?})");
 
                 self.code_fragment
                     .emit_locate_local(DefId(self.library_id, *def_id))

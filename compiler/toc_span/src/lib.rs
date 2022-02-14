@@ -86,8 +86,8 @@ impl PartialOrd for Span {
 
 impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(file) = self.file {
-            f.write_fmt(format_args!("({:?}, {:?})", file, self.range))
+        if let Some((file, range)) = self.into_parts() {
+            f.write_fmt(format_args!("({file:?}, {range:?})"))
         } else {
             f.write_str("(dummy)")
         }

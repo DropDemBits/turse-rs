@@ -1084,24 +1084,17 @@ pub fn report_invalid_bin_op<'db, DB>(
         | expr::BinaryOp::NotIn
         | expr::BinaryOp::Imply => "compared to",
     };
+    let (peeled_left, peeled_right) = (
+        left_ty.clone().to_base_type(),
+        right_ty.clone().to_base_type(),
+    );
 
     let msg = reporter
-        .error_detailed(format!("mismatched types for {}", op_name), op_span)
-        .with_note(
-            format!("this is of type `{right}`", right = right_ty),
-            right_span,
-        )
-        .with_note(
-            format!("this is of type `{left}`", left = left_ty),
-            left_span,
-        )
+        .error_detailed(format!("mismatched types for {op_name}"), op_span)
+        .with_note(format!("this is of type `{right_ty}`"), right_span)
+        .with_note(format!("this is of type `{left_ty}`"), left_span)
         .with_error(
-            format!(
-                "`{left}` cannot be {verb_phrase} `{right}`",
-                left = left_ty.clone().peel_aliases(),
-                verb_phrase = verb_phrase,
-                right = right_ty.clone().peel_aliases()
-            ),
+            format!("`{peeled_left}` cannot be {verb_phrase} `{peeled_right}`",),
             op_span,
         );
 
@@ -1183,19 +1176,13 @@ pub fn report_invalid_unary_op<'db, DB>(
         expr::UnaryOp::Identity => "identity",
         expr::UnaryOp::Negate => "negation",
     };
+    let peeled_right_ty = right_ty.clone().to_base_type();
 
     let msg = reporter
-        .error_detailed(format!("mismatched types for {}", op_name), op_span)
-        .with_note(
-            format!("this is of type `{right}`", right = right_ty),
-            right_span,
-        )
+        .error_detailed(format!("mismatched types for {op_name}"), op_span)
+        .with_note(format!("this is of type `{right_ty}`"), right_span)
         .with_error(
-            format!(
-                "cannot apply {verb_phrase} to `{right}`",
-                verb_phrase = verb_phrase,
-                right = right_ty.peel_aliases()
-            ),
+            format!("cannot apply {verb_phrase} to `{peeled_right_ty}`",),
             op_span,
         );
 

@@ -15,7 +15,7 @@ fn assert_const_eval(source: &str) {
 /// Expr version
 #[track_caller]
 fn assert_const_eval_expr(expr: &str) {
-    let source = format!("const _ := {}", expr);
+    let source = format!("const _ := {expr}");
     insta::assert_snapshot!(insta::internals::AutoName, do_const_eval(&source), expr);
 }
 
@@ -71,9 +71,9 @@ fn do_const_eval(source: &str) -> String {
             };
 
             let results = match eval_res {
-                Ok(v) => format!("{} -> {:?}\n", name, v),
+                Ok(v) => format!("{name} -> {v:?}\n"),
                 Err(err) => {
-                    let text = format!("{} -> {:?}\n", name, err);
+                    let text = format!("{name} -> {err:?}\n");
                     err.report_to(self.db, &mut *self.reporter.borrow_mut());
                     text
                 }
@@ -97,11 +97,11 @@ fn stringify_const_eval_results(results: &str, messages: MessageBundle) -> Strin
     // Pretty print const eval ctx
     // Want:
     // - Evaluation state of all accessible DefIds
-    let mut s = format!("{}\n", results);
+    let mut s = format!("{results}\n");
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("{}\n", err));
+        s.push_str(&format!("{err}\n"));
     }
 
     s
@@ -891,12 +891,12 @@ fn error_charseq_too_big() {
 
     // char, charN
     let almost_slice = &big_charseq[..big_charseq.len() - 1];
-    assert_const_eval_expr(&format!("'a'+'{}'", almost_slice));
+    assert_const_eval_expr(&format!("'a'+'{almost_slice}'"));
     // charN, char
-    assert_const_eval_expr(&format!("'{}'+'a'", almost_slice));
+    assert_const_eval_expr(&format!("'{almost_slice}'+'a'"));
     // charN, charN
     let (left, right) = big_charseq.split_at(mid);
-    assert_const_eval_expr(&format!("'{}'+'{}'", left, right));
+    assert_const_eval_expr(&format!("'{left}'+'{right}'"));
 }
 
 #[test]

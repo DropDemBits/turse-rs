@@ -77,7 +77,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                         &child.variant
                     };
 
-                    format_ident!("{}", name)
+                    format_ident!("{name}")
                 }
             })
             .collect();
@@ -143,7 +143,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                     lowering::NodeOrToken::Node(node) => {
                         let name = format_ident!("{}", thing_to_method_name(node).to_snake_case());
                         let body = quote! { helper::node(&self.0) };
-                        let res = format_ident!("{}", node);
+                        let res = format_ident!("{node}");
                         let res = quote! { Option<#res> };
                         (name, body, res)
                     }
@@ -160,7 +160,7 @@ fn generate_nodes(lowered: &LoweredGrammar) -> String {
                     lowering::NodeOrToken::Node(node) => {
                         let name = format_ident!("{}", thing_to_method_name(node).to_snake_case());
                         let body = quote! { helper::nodes(&self.0) };
-                        let res = format_ident!("{}", node);
+                        let res = format_ident!("{node}");
                         let res = quote! { impl Iterator<Item = #res> + '_ };
                         (name, body, res)
                     }
@@ -387,7 +387,7 @@ fn token_to_syntax_name(token: &str) -> &str {
         "char_literal" => "CharLiteral",
         "string_literal" => "StringLiteral",
         "identifier" => "Identifier",
-        _ => unreachable!("{}", token),
+        _ => unreachable!("{}", token), // FIXME(rust-1.59.0): unreachable doesn't support named capture
     }
 }
 

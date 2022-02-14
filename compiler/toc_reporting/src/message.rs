@@ -107,12 +107,12 @@ impl fmt::Display for ReportMessage {
 
         // Report any annotations
         for annotation in &self.annotations {
-            write!(f, "\n| {:#}", annotation)?;
+            write!(f, "\n| {annotation:#}")?;
         }
 
         // Report any footer messages
         for annotation in &self.footer {
-            write!(f, "\n| {:#}", annotation)?;
+            write!(f, "\n| {annotation:#}")?;
         }
 
         Ok(())

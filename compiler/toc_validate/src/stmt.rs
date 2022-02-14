@@ -430,8 +430,8 @@ pub(super) fn validate_case_stmt(stmt: ast::CaseStmt, ctx: &mut ValidateCtx) {
             };
 
             ctx.push_error(
-                format!("extra `label` {} found after default arm", arms),
-                format!("extra `label` {}", arms),
+                format!("extra `label` {arms} found after default arm"),
+                format!("extra `label` {arms}"),
                 full_range,
             );
         }
@@ -492,8 +492,8 @@ pub(super) fn validate_result_stmt(stmt: ast::ResultStmt, ctx: &mut ValidateCtx)
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_module_kind() {
         ctx.push_error(
-            format!("cannot use {} here", kind),
-            format!("{} is only allowed in module-like blocks", kind),
+            format!("cannot use {kind} here"),
+            format!("{kind} is only allowed in module-like blocks"),
             node.text_range(),
         );
     }
@@ -502,8 +502,8 @@ pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut V
 pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_top_level() {
         ctx.push_error(
-            format!("cannot use {} here", kind),
-            format!("{} is only allowed at module-like or program level", kind),
+            format!("cannot use {kind} here"),
+            format!("{kind} is only allowed at module-like or program level"),
             node.text_range(),
         );
     }

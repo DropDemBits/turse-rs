@@ -22,7 +22,7 @@ fn stringify_lint_results(messages: &MessageBundle) -> String {
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("\n{}", err));
+        s.push_str(&format!("\n{err}"));
     }
 
     s

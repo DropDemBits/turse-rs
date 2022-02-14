@@ -63,8 +63,9 @@ fn stringify_typeck_results(
         let def_info = library.local_def(did);
         let name = def_info.name.item();
         let name_span = library.lookup_span(def_info.name.span());
+        let def_kind = def_info.kind;
         let ty = db.type_of(DefId(lib, did).into());
-        let name_fmt = format!("{:?}@{:?} [{:?}]: ", name, name_span, def_info.kind);
+        let name_fmt = format!("{name:?}@{name_span:?} [{def_kind:?}]: ");
 
         s.push_str(&name_fmt);
         s.push_str(&format!("{:?}", ty.in_db(db)));
@@ -73,7 +74,7 @@ fn stringify_typeck_results(
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("\n{}", err));
+        s.push_str(&format!("\n{err}"));
     }
 
     s

@@ -49,7 +49,7 @@ impl ParseTree {
         let mut s = String::new();
 
         let syntax_node = SyntaxNode::new_root(self.node.clone());
-        let tree = format!("{:#?}", syntax_node);
+        let tree = format!("{syntax_node:#?}");
 
         s.push_str(&tree);
 
@@ -69,7 +69,7 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
     debug_tree.pop();
 
     for err in res.messages().iter() {
-        debug_tree.push_str(&format!("\n{}", err));
+        debug_tree.push_str(&format!("\n{err}"));
     }
 
     expected.assert_eq(&debug_tree);
