@@ -416,7 +416,7 @@ fn lower_char_seq_escapes() {
     ];
 
     for (text, expected_value) in escapes.into_iter() {
-        let stringified_test = format!("({test:?}, {expected_value:?}, ..)");
+        let stringified_test = format!("({text:?}, {expected_value:?}, ..)");
         assert_eq!(
             lower_literal_value(text),
             expr::Literal::String(expected_value.to_string()),
