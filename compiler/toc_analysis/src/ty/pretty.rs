@@ -81,11 +81,9 @@ where
 
     // Extra bits
     match ty.kind() {
-        TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
-            out.write_fmt(format_args!(" {:?}", seq))?
-        }
+        TypeKind::StringN(seq) | TypeKind::CharN(seq) => out.write_fmt(format_args!(" {seq:?}"))?,
         TypeKind::Alias(def_id, to) => {
-            out.write_fmt(format_args!("[{:?}] of ", def_id))?;
+            out.write_fmt(format_args!("[{def_id:?}] of "))?;
             emit_debug_ty(db, out, *to)?
         }
         TypeKind::Subprogram(_kind, params, result) => {
@@ -140,7 +138,7 @@ where
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {
-                Ok(v) => out.write_fmt(format_args!("{}", v))?,
+                Ok(v) => out.write_fmt(format_args!("{v}"))?,
                 Err(NotFixedLen::DynSize) => out.write_char('*')?,
                 Err(NotFixedLen::ConstError(_)) => unreachable!("should not show errors!"),
             }
@@ -149,7 +147,7 @@ where
         TypeKind::Alias(def_id, to) => {
             let library = db.library(def_id.0);
             let name = library.local_def(def_id.1).name.item();
-            out.write_fmt(format_args!("{} (alias of ", name))?;
+            out.write_fmt(format_args!("{name} (alias of "))?;
             emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
         }

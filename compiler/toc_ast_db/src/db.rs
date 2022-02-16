@@ -9,8 +9,10 @@ use toc_span::FileId;
 use toc_vfs::HasVfs;
 use toc_vfs_db::db::FileSystem;
 
-use crate::span::{LineInfo, LineMapping, LspPosition};
-use crate::{source, span};
+use crate::{
+    source, span,
+    span::{LineInfo, LineMapping, LspPosition},
+};
 
 #[salsa::query_group(SourceParserStorage)]
 pub trait SourceParser: FileSystem {

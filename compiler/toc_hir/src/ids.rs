@@ -33,7 +33,8 @@ pub struct DefId(pub LibraryId, pub LocalDefId);
 
 impl fmt::Debug for DefId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("DefId({:?}, {:?})", self.0, self.1))
+        let Self(lib_id, local_def) = self;
+        f.write_fmt(format_args!("DefId({lib_id:?}, {local_def:?})"))
     }
 }
 

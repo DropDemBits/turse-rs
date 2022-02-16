@@ -1,18 +1,17 @@
 //! Type-related query implementation
 
-use toc_hir::symbol;
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
     library::{InLibrary, WrapInLibrary},
+    symbol,
     symbol::{DefId, DefOwner},
     ty::TypeId as HirTypeId,
 };
 
 use crate::db;
 
-use super::lower;
-use super::{IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
+use super::{lower, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)

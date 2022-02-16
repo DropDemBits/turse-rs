@@ -1628,7 +1628,7 @@ fn eat_end_group(p: &mut Parser, tail: TokenKind, combined: Option<TokenKind>) {
             _ => unreachable!("not a combined end"),
         };
 
-        p.warn_alias(&format!("`end {}`", tail_text));
+        p.warn_alias(&format!("`end {tail_text}`"));
         p.bump();
     } else {
         p.expect(TokenKind::End);

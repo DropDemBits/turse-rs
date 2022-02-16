@@ -3,9 +3,7 @@
 
 use toc_reporting::MessageBundle;
 
-use crate::db::HirAnalysis;
-use crate::test_db::TestDb;
-use crate::ty;
+use crate::{db::HirAnalysis, test_db::TestDb, ty};
 
 #[track_caller]
 fn assert_lint(source: &str) {
@@ -24,7 +22,7 @@ fn stringify_lint_results(messages: &MessageBundle) -> String {
 
     // Pretty print the messages
     for err in messages.iter() {
-        s.push_str(&format!("\n{}", err));
+        s.push_str(&format!("\n{err}"));
     }
 
     s

@@ -14,7 +14,7 @@ fn main() {
     };
 
     if let Err(e) = res {
-        eprintln!("Encountered error: {}", e);
+        eprintln!("Encountered error: {e}");
         std::process::exit(-1);
     }
 }

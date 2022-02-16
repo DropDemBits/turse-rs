@@ -7,15 +7,14 @@ pub(crate) use error::Expected;
 use toc_reporting::{MessageBundle, MessageSink};
 use toc_span::{FileId, Span};
 
-use crate::event::Event;
-use crate::grammar;
-use crate::parser::error::ParseMessage;
-use crate::parser::marker::Marker;
-use crate::source::Source;
+use crate::{
+    event::Event,
+    grammar,
+    parser::{error::ParseMessage, marker::Marker},
+    source::Source,
+};
 
-use std::cell::RefCell;
-use std::mem;
-use std::rc::Rc;
+use std::{cell::RefCell, mem, rc::Rc};
 use toc_scanner::token::TokenKind;
 use toc_syntax::SyntaxKind;
 
@@ -241,8 +240,8 @@ impl<'t, 'src> Parser<'t, 'src> {
         let span = Span::new(self.file, range);
 
         self.msg_sink.warn(
-            &format!("{} found", found),
-            &format!("assuming it to be {}", normal),
+            &format!("{found} found"),
+            &format!("assuming it to be {normal}"),
             span,
         );
     }

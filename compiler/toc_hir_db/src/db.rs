@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use toc_hir::body::BodyTable;
-use toc_hir::symbol::{self, DefOwner, DefTable};
-use toc_hir::{body, expr};
 use toc_hir::{
-    item,
+    body,
+    body::BodyTable,
+    expr, item,
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
-    symbol::DefId,
+    symbol::{self, DefId, DefOwner, DefTable},
     ty,
 };
 use toc_salsa::salsa;

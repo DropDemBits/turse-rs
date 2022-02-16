@@ -1,19 +1,18 @@
 //! Pretty printer(s) for HIR trees
 
-use std::ops::DerefMut;
 use std::{
     cell::{Cell, RefCell},
     fmt::{self, Write},
+    ops::DerefMut,
 };
 
-use toc_hir::symbol::SubprogramKind;
 use toc_hir::{
     body,
     expr::{self, BodyExpr},
     item,
     library::{self, LoweredLibrary},
     stmt::{self, BodyStmt},
-    symbol::{LocalDefId, Mutability},
+    symbol::{LocalDefId, Mutability, SubprogramKind},
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
@@ -75,7 +74,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         write!(out, "{}@{}", name, self.display_span(span))?;
 
         if let Some(extra) = extra {
-            write!(out, ": {}", extra)?;
+            write!(out, ": {extra}")?;
         }
 
         writeln!(out)
@@ -93,7 +92,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         let span = self.library.span_map.lookup_span(span);
 
         if let Some((file_id, range)) = span.into_parts() {
-            format!("({:?}, {:?})", file_id, range)
+            format!("({file_id:?}, {range:?})")
         } else {
             "(dummy)".to_string()
         }
@@ -110,10 +109,10 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         let def_display = self.display_def(def_id);
         match def_info.kind {
             toc_hir::symbol::SymbolKind::Undeclared => {
-                format!("{}, undeclared", def_display)
+                format!("{def_display}, undeclared")
             }
             toc_hir::symbol::SymbolKind::Forward(kind, None) => {
-                format!("{}, unresolved forward({:?})", def_display, kind)
+                format!("{def_display}, unresolved forward({kind:?})")
             }
             toc_hir::symbol::SymbolKind::Forward(kind, Some(resolve_to)) => {
                 format!(
@@ -124,7 +123,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
                 )
             }
             toc_hir::symbol::SymbolKind::Resolved(kind) => {
-                format!("{}, resolved({:?})", def_display, kind)
+                format!("{def_display}, resolved({kind:?})")
             }
             _ => def_display,
         }
@@ -196,7 +195,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         self.emit_node(
             "Root",
             self.library.span_map.dummy_span(),
-            Some(format_args!("{:?} -> {:?}", file, id)),
+            Some(format_args!("{file:?} -> {id:?}")),
         );
     }
 
@@ -219,7 +218,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         write!(extra, "{}", self.display_def(def_id)).unwrap();
 
-        self.emit_node("ConstVar", span, Some(format_args!("{}", extra)))
+        self.emit_node("ConstVar", span, Some(format_args!("{extra}")))
     }
     fn visit_type_decl(&self, id: item::ItemId, item: &item::Type) {
         let span = self.item_span(id);
@@ -233,7 +232,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         write!(extra, "{}", self.display_def(def_id)).unwrap();
 
-        self.emit_node("Type", span, Some(format_args!("{}", extra)));
+        self.emit_node("Type", span, Some(format_args!("{extra}")));
     }
     fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
         let span = self.item_span(id);
@@ -253,7 +252,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         write!(extra, "{}", self.display_def(def_id)).unwrap();
 
-        self.emit_node("Bind", span, Some(format_args!("{}", extra)))
+        self.emit_node("Bind", span, Some(format_args!("{extra}")))
     }
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
         let span = self.item_span(id);
@@ -297,7 +296,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             write!(extra, " -> {}", self.display_def(result)).unwrap();
         }
 
-        self.emit_node("Subprogram", span, Some(format_args!("{}", extra)))
+        self.emit_node("Subprogram", span, Some(format_args!("{extra}")))
     }
     fn visit_module(&self, id: item::ItemId, _item: &item::Module) {
         let span = self.item_span(id);
@@ -328,7 +327,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                     write!(extra, " -> {}", self.display_def(*result)).unwrap();
                 }
 
-                self.emit_node("StmtBody", span, Some(format_args!("{}", extra)))
+                self.emit_node("StmtBody", span, Some(format_args!("{extra}")))
             }
             body::BodyKind::Exprs(_) => self.emit_node("ExprBody", span, None),
         }
@@ -336,7 +335,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     // Stmts //
     fn visit_item_stmt(&self, id: BodyStmt, item: item::ItemId) {
         let span = self.stmt_span(id);
-        self.emit_node("StmtItem", span, Some(format_args!("{:?}", item)))
+        self.emit_node("StmtItem", span, Some(format_args!("{item:?}")))
     }
     fn visit_assign(&self, id: BodyStmt, _stmt: &stmt::Assign) {
         let span = self.stmt_span(id);
@@ -359,13 +358,9 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         };
 
         if stmt.is_decreasing {
-            self.emit_node(
-                "For",
-                span,
-                Some(format_args!("decreasing {}", bounds_kind)),
-            )
+            self.emit_node("For", span, Some(format_args!("decreasing {bounds_kind}")))
         } else {
-            self.emit_node("For", span, Some(format_args!("{}", bounds_kind)))
+            self.emit_node("For", span, Some(format_args!("{bounds_kind}")))
         }
     }
     fn visit_loop(&self, id: BodyStmt, _stmt: &stmt::Loop) {
@@ -408,7 +403,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     // Exprs //
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {
         let span = self.expr_span(id);
-        self.emit_node("Literal", span, Some(format_args!("{:?}", expr)))
+        self.emit_node("Literal", span, Some(format_args!("{expr:?}")))
     }
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {
         let span = self.expr_span(id);
@@ -423,7 +418,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         match expr {
             expr::Name::Name(def_id) => {
                 let extra = self.display_extra_def(*def_id);
-                self.emit_node("Name", span, Some(format_args!("{}", extra)))
+                self.emit_node("Name", span, Some(format_args!("{extra}")))
             }
             expr::Name::Self_ => self.emit_node("Self", span, None),
         }
@@ -436,13 +431,13 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     // Types //
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {
         let span = self.type_span(id);
-        self.emit_node("Primitive", span, Some(format_args!("{:?}", ty)))
+        self.emit_node("Primitive", span, Some(format_args!("{ty:?}")))
     }
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
         let span = self.type_span(id);
         let def_id = &ty.0;
         let extra = self.display_extra_def(*def_id);
-        self.emit_node("Alias", span, Some(format_args!("{}", extra)))
+        self.emit_node("Alias", span, Some(format_args!("{extra}")))
     }
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {
         let span = self.type_span(id);

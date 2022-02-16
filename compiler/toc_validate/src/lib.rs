@@ -153,7 +153,7 @@ pub(crate) fn check(source: &str, expected: expect_test::Expect) {
 
     let mut buf = String::new();
     for msg in res.messages().iter().chain(validate_res.messages().iter()) {
-        buf.push_str(&format!("{}\n", msg));
+        buf.push_str(&format!("{msg}\n"));
     }
     let trimmed = buf.trim_end();
 

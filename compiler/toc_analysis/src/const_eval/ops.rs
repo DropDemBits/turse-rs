@@ -1,14 +1,14 @@
 //! All valid compile-time operations
 
-use std::cmp::Ordering;
-use std::convert::TryFrom;
-use std::sync::Arc;
+use std::{cmp::Ordering, convert::TryFrom, sync::Arc};
 
 use toc_hir::expr;
 use toc_span::Spanned;
 
-use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue};
-use crate::ty;
+use crate::{
+    const_eval::{errors::ErrorKind, ConstError, ConstInt, ConstValue},
+    ty,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum ConstOp {
@@ -73,37 +73,37 @@ impl ConstOp {
                     (ConstValue::Char(lhs), ConstValue::Char(rhs)) => {
                         // Char, Char => Char(2)
                         // Always succeeds
-                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::CharN(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     (ConstValue::Char(lhs), ConstValue::CharN(rhs)) => {
                         // Char, Char(N) => Char(N+1)
                         check_charseq_len(rhs.len() + 1)?;
-                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::CharN(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     (ConstValue::CharN(lhs), ConstValue::Char(rhs)) => {
                         // Char(N), Char => Char(N+1)
                         check_charseq_len(lhs.len() + 1)?;
-                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::CharN(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     (ConstValue::CharN(lhs), ConstValue::CharN(rhs)) => {
                         // Char(N), Char(M) => Char(N+M)
                         check_charseq_len(lhs.len() + rhs.len())?;
-                        Ok(ConstValue::CharN(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::CharN(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     // Makes String
                     (ConstValue::String(lhs), ConstValue::Char(rhs)) => {
                         check_string_len(lhs.len() + 1)?;
-                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::String(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     (ConstValue::Char(lhs), ConstValue::String(rhs)) => {
                         check_string_len(rhs.len() + 1)?;
-                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::String(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     (ConstValue::CharN(lhs), ConstValue::String(rhs))
                     | (ConstValue::String(lhs), ConstValue::CharN(rhs))
                     | (ConstValue::String(lhs), ConstValue::String(rhs)) => {
                         check_string_len(lhs.len() + rhs.len())?;
-                        Ok(ConstValue::String(Arc::new(format!("{}{}", lhs, rhs))))
+                        Ok(ConstValue::String(Arc::new(format!("{lhs}{rhs}"))))
                     }
                     _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
                 }

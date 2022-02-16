@@ -1,9 +1,13 @@
 //! Lowering into `Expr` HIR nodes
-use toc_hir::symbol::{LimitedKind, SymbolKind};
-use toc_hir::{body, expr};
+use toc_hir::{
+    body, expr,
+    symbol::{LimitedKind, SymbolKind},
+};
 use toc_span::{Span, SpanId, Spanned};
-use toc_syntax::ast::{self, AstNode};
-use toc_syntax::LiteralValue;
+use toc_syntax::{
+    ast::{self, AstNode},
+    LiteralValue,
+};
 
 impl super::BodyLowering<'_, '_> {
     /// Lowers a required expr. If not present, constructs a `Expr::Missing` node in-place

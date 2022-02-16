@@ -7,8 +7,7 @@ use toc_span::SpanId;
 
 pub use crate::ids::TypeId;
 
-use crate::ids::TypeIndex;
-use crate::{body, symbol};
+use crate::{body, ids::TypeIndex, symbol};
 
 /// An interner for HIR types
 #[derive(Debug, Default, PartialEq, Eq)]

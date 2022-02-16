@@ -1,10 +1,10 @@
 use std::error::Error;
 
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
-use lsp_types::notification::{
-    DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, PublishDiagnostics,
-};
 use lsp_types::{
+    notification::{
+        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, PublishDiagnostics,
+    },
     InitializeParams, PublishDiagnosticsParams, ServerCapabilities, TextDocumentIdentifier,
     TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
     VersionedTextDocumentIdentifier,
@@ -43,7 +43,7 @@ fn main_loop(
     eprintln!("listening for messages");
 
     for msg in &connection.receiver {
-        eprintln!("recv {:?}", msg);
+        eprintln!("recv {msg:?}");
 
         match msg {
             Message::Request(req) => {
@@ -78,7 +78,7 @@ fn handle_request(
     }
     let req = Some(req);
 
-    eprintln!("recv req {:?}", req);
+    eprintln!("recv req {req:?}");
 
     Ok(())
 }
@@ -101,7 +101,7 @@ fn handle_notify(
     }
     let mut notify = Some(notify);
 
-    eprintln!("recv notify {:?}", notify);
+    eprintln!("recv notify {notify:?}");
 
     if let Some(params) = cast::<DidOpenTextDocument>(&mut notify) {
         let TextDocumentItem {

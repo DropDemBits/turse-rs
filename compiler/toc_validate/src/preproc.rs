@@ -4,8 +4,7 @@ mod test;
 
 use toc_syntax::ast::{self, AstNode};
 
-use crate::ValidateCtx;
-use crate::{match_ast, without_matching};
+use crate::{match_ast, without_matching, ValidateCtx};
 
 pub(super) fn validate_preproc_glob(glob: ast::PreprocGlob, ctx: &mut ValidateCtx) {
     let directive = glob.directive().unwrap();

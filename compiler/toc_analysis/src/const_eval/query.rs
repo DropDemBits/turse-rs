@@ -1,7 +1,6 @@
 //! Const eval query implementations
 
-use std::convert::TryInto;
-use std::sync::Arc;
+use std::{convert::TryInto, sync::Arc};
 
 use toc_hir::{
     expr,

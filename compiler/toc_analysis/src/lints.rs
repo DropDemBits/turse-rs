@@ -2,8 +2,10 @@
 
 use std::cell::{RefCell, RefMut};
 
-use toc_hir::visitor::{HirVisitor, Walker};
-use toc_hir::{expr, library};
+use toc_hir::{
+    expr, library,
+    visitor::{HirVisitor, Walker},
+};
 use toc_reporting::{CompileResult, MessageSink};
 
 use crate::{db, ty};

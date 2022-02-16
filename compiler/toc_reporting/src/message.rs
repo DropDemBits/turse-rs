@@ -1,7 +1,6 @@
 //! Constructed messages
 
-use std::collections::HashSet;
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
 use toc_span::Span;
 
@@ -108,12 +107,12 @@ impl fmt::Display for ReportMessage {
 
         // Report any annotations
         for annotation in &self.annotations {
-            write!(f, "\n| {:#}", annotation)?;
+            write!(f, "\n| {annotation:#}")?;
         }
 
         // Report any footer messages
         for annotation in &self.footer {
-            write!(f, "\n| {:#}", annotation)?;
+            write!(f, "\n| {annotation:#}")?;
         }
 
         Ok(())

@@ -2,8 +2,10 @@
 use std::sync::Arc;
 
 use if_chain::if_chain;
-use toc_ast_db::db::{AstDatabaseExt, SourceParser};
-use toc_ast_db::SourceGraph;
+use toc_ast_db::{
+    db::{AstDatabaseExt, SourceParser},
+    SourceGraph,
+};
 use toc_hir::{body, expr, item, library::LoweredLibrary, stmt, ty};
 use toc_hir_lowering::LoweringDb;
 use toc_reporting::CompileResult;
@@ -53,7 +55,7 @@ fn assert_lower(src: &str) -> LowerResult {
 
     let mut s = toc_hir_pretty::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {
-        s.push_str(&format!("{}\n", err));
+        s.push_str(&format!("{err}\n"));
     }
 
     insta::assert_snapshot!(insta::internals::AutoName, s, src);
@@ -65,7 +67,7 @@ fn assert_lower(src: &str) -> LowerResult {
 }
 
 fn lower_literal_value(expr: &str) -> expr::Literal {
-    let lower_result = assert_lower(&format!("var _ : int _ := {}", expr));
+    let lower_result = assert_lower(&format!("var _ : int _ := {expr}"));
     let LowerResult {
         root_file,
         hir_result,
@@ -297,7 +299,7 @@ fn lower_complex_real_literal() {
     ];
 
     for (name, hex_value, text) in tests.into_iter() {
-        eprintln!("On test {}", name);
+        eprintln!("On test {name}");
         let actual_value = lower_literal_value(text);
         let value = f64::from_ne_bytes(hex_value.to_ne_bytes());
 
@@ -414,7 +416,7 @@ fn lower_char_seq_escapes() {
     ];
 
     for (text, expected_value) in escapes.into_iter() {
-        let stringified_test = format!("({:?}, {:?}, ..)", text, expected_value);
+        let stringified_test = format!("({text:?}, {expected_value:?}, ..)");
         assert_eq!(
             lower_literal_value(text),
             expr::Literal::String(expected_value.to_string()),
@@ -483,7 +485,7 @@ fn lower_prim_type() {
     ];
 
     for ty_text in tys {
-        assert_lower(&format!("var _ : {}", ty_text));
+        assert_lower(&format!("var _ : {ty_text}"));
     }
 }
 

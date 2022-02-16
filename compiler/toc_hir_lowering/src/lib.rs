@@ -20,8 +20,7 @@
 mod lower;
 mod scopes;
 
-use toc_hir::library::LoweredLibrary;
-use toc_hir::library_graph::LibraryGraph;
+use toc_hir::{library::LoweredLibrary, library_graph::LibraryGraph};
 use toc_reporting::CompileResult;
 use toc_span::FileId;
 

@@ -1,7 +1,6 @@
 //! Span mapping related structures
 
-use std::ops::Range;
-use std::sync::Arc;
+use std::{ops::Range, sync::Arc};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LspPosition {
@@ -110,8 +109,10 @@ pub(crate) mod query {
     //! Span query impls
     use std::sync::Arc;
 
-    use crate::db;
-    use crate::span::{LineInfo, LineMapping, LspPosition};
+    use crate::{
+        db,
+        span::{LineInfo, LineMapping, LspPosition},
+    };
 
     pub(crate) fn line_mapping(
         db: &dyn db::SpanMapping,
@@ -152,8 +153,7 @@ pub(crate) mod query {
 
 #[cfg(test)]
 mod test {
-    use std::ops::Range;
-    use std::sync::Arc;
+    use std::{ops::Range, sync::Arc};
 
     use crate::span::{LineInfo, LineMapping, LspPosition};
 

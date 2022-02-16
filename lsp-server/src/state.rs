@@ -1,12 +1,16 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use lsp_types::{Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, Position};
 use toc_analysis::db::HirAnalysis;
-use toc_ast_db::db::{AstDatabaseExt, SourceParser, SpanMapping};
-use toc_ast_db::SourceGraph;
+use toc_ast_db::{
+    db::{AstDatabaseExt, SourceParser, SpanMapping},
+    SourceGraph,
+};
 use toc_salsa::salsa;
 use toc_vfs::{LoadError, LoadStatus};
 use toc_vfs_db::db::VfsDatabaseExt;

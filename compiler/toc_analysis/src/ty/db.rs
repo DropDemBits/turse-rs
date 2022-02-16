@@ -1,11 +1,11 @@
 //! Analysis query system definitions
 
-use toc_hir::item::ItemId;
-use toc_hir::symbol;
 use toc_hir::{
     body::BodyId,
     expr::{BodyExpr, ExprId},
+    item::ItemId,
     library::{InLibrary, LibraryId},
+    symbol,
     symbol::DefId,
     ty::TypeId as HirTypeId,
 };

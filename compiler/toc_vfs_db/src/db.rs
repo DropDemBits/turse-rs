@@ -1,7 +1,6 @@
 //! VFS query system definitions
 
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use toc_salsa::salsa;
 use toc_span::FileId;

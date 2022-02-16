@@ -1,8 +1,6 @@
 //! Query interface for the VFS system
 
-use std::borrow::Cow;
-use std::path::Path;
-use std::sync::Arc;
+use std::{borrow::Cow, path::Path, sync::Arc};
 
 use toc_salsa::salsa;
 use toc_span::FileId;
