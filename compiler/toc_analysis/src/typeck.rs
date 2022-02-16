@@ -1226,18 +1226,18 @@ impl TypeCheck<'_> {
         self.expect_integer_type(expr_ty, expr_span);
 
         // Check resultant size
-        let (seq_size, size_limit) = match ty.kind() {
+        let (seq_size, size_limit, allow_dyn_size) = match ty.kind() {
             ty::TypeKind::CharN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
                 // ???: Do we want to add a config/feature option to change this?
-                (seq_size, ty::MAX_CHAR_N_LEN)
+                (seq_size, ty::MAX_CHAR_N_LEN, true)
             }
             ty::TypeKind::StringN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // 256 is the maximum defined limit for the length on `n` for string(N),
                 // so no option of changing that (unless we have control over the interpreter code).
                 // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
                 //   so we can't change it yet unless we use a new interpreter.
-                (seq_size, ty::MAX_STRING_LEN)
+                (seq_size, ty::MAX_STRING_LEN, false)
             }
             // because of hir disambiguation above
             _ => unreachable!(),
@@ -1247,7 +1247,20 @@ impl TypeCheck<'_> {
             Ok(v) => v,
             Err(ty::NotFixedLen::AnySize) => return, // any-sized, doesn't need checking
             Err(ty::NotFixedLen::ConstError(err)) => {
-                err.report_to(db, &mut self.state().reporter);
+                // Allow non-compile time exprs in this position, if allowed
+                if err.is_not_compile_time() && allow_dyn_size {
+                    // Right now, is unsupported
+                    let ty_span = self.library.lookup_type(id).span;
+                    let ty_span = self.library.lookup_span(ty_span);
+
+                    self.state().reporter.error(
+                        "unsupported type",
+                        "dynamically sized `char(N)` isn't supported yet",
+                        ty_span,
+                    );
+                } else {
+                    err.report_to(db, &mut self.state().reporter);
+                }
                 return;
             }
         };

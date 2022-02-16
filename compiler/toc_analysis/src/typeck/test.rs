@@ -669,6 +669,7 @@ test_named_group! { sized_char,
         wrong_type => r#"var _ : char(1.0)"#,
         wrong_type_bool => r#"var _ : char(true)"#,
         const_err => r#"var _ : char(1.0 div 0.0)"#,
+        dyn_sized => "var N : int var _ : char(N)"
     ]
 }
 
@@ -687,6 +688,7 @@ test_named_group! { sized_string,
         wrong_type => r#"var _ : string(1.0)"#,
         wrong_type_bool => r#"var _ : string(true)"#,
         const_err => r#"var _ : string(1.0 div 0.0)"#,
+        dyn_sized => "var N : int var _ : string(N)"
     ]
 }
 

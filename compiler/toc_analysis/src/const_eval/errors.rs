@@ -86,6 +86,10 @@ impl ConstError {
         }
         .finish();
     }
+
+    pub fn is_not_compile_time(&self) -> bool {
+        matches!(self.kind, ErrorKind::NotConstExpr(_))
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq, Hash)]
