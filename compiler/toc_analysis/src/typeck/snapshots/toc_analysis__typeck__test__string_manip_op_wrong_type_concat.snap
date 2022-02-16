@@ -1,14 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
+assertion_line: 42
 expression: "\n    var c : char\n    var c_dyn : char(*)\n    var c_sz : char(6)\n    var s : string\n    var s_dyn : string(*)\n    var s_sz : string(6)\n    var i : int\n\n    var _e00 := c + i\n    var _e01 := c_dyn + i\n    var _e02 := c_sz + i\n    var _e03 := s + i\n    var _e04 := s_dyn + i\n    var _e05 := s_sz + i\n\n    var _e10 := i + c\n    var _e11 := i + c_dyn\n    var _e12 := i + c_sz\n    var _e13 := i + s\n    var _e14 := i + s_dyn\n    var _e15 := i + s_sz\n\n    % TODO: Uncomment to verify incompatible types\n    /*\n    var _e20 : char(13) := c_sz + c_sz\n    var _e21 : char(8) := c_sz + c\n    var _e22 : char(8) := c + c_sz\n    var _e23 : char(3) := c + c\n    var _e24 : char := c + c\n    */\n    "
 
 ---
 "c"@(FileId(1), 9..10) [Declared]: char
-"c_dyn"@(FileId(1), 26..31) [Declared]: char_n Dynamic
+"c_dyn"@(FileId(1), 26..31) [Declared]: char_n Any
 "c_sz"@(FileId(1), 50..54) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "s"@(FileId(1), 73..74) [Declared]: string
-"s_dyn"@(FileId(1), 92..97) [Declared]: string_n Dynamic
+"s_dyn"@(FileId(1), 92..97) [Declared]: string_n Any
 "s_sz"@(FileId(1), 118..122) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
 "i"@(FileId(1), 143..144) [Declared]: int
 "_e00"@(FileId(1), 160..164) [Declared]: <error>

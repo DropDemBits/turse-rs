@@ -1245,7 +1245,7 @@ impl TypeCheck<'_> {
 
         let int = match seq_size.fixed_len(db, expr_span) {
             Ok(v) => v,
-            Err(ty::NotFixedLen::DynSize) => return, // dynamic, doesn't need checking
+            Err(ty::NotFixedLen::AnySize) => return, // any-sized, doesn't need checking
             Err(ty::NotFixedLen::ConstError(err)) => {
                 err.report_to(db, &mut self.state().reporter);
                 return;

@@ -261,7 +261,7 @@ fn parse_sized_string_type() {
 }
 
 #[test]
-fn parse_dyn_sized_char_type() {
+fn parse_any_sized_char_type() {
     check(
         "type _ : char(*)",
         expect![[r#"
@@ -286,7 +286,7 @@ fn parse_dyn_sized_char_type() {
 }
 
 #[test]
-fn parse_dyn_sized_string_type() {
+fn parse_any_sized_string_type() {
     check(
         "type _ : string(*)",
         expect![[r#"

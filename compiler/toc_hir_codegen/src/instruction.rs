@@ -2886,7 +2886,7 @@ define_encodings! {
         /// Range check as part of an assignemt
         Assign() = 0,
         /// Negative or zero char(*) length
-        DynChar() = 1,
+        AnyChar() = 1,
         /// Value passed to `chr` is not in `[0,255]`
         Chr() = 2,
         /// After an arithmetic operation

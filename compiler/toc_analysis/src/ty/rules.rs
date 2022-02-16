@@ -212,7 +212,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         (TypeKind::Char, TypeKind::Char) => true,
 
         // Sized charseqs are equivalent to each other if they have the same size
-        // Dyn sized charseqs are not equivalent to anything
+        // Any-sized charseqs are not equivalent to anything
         (TypeKind::CharN(left_sz), TypeKind::CharN(right_sz))
         | (TypeKind::StringN(left_sz), TypeKind::StringN(right_sz)) => {
             let left_sz = left_sz.fixed_len(db, Default::default());
@@ -220,7 +220,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
 
             match (&left_sz, &right_sz) {
                 // `charseq(*)` treated as not equivalent to either type
-                (Err(NotFixedLen::DynSize), _) | (_, Err(NotFixedLen::DynSize)) => return false,
+                (Err(NotFixedLen::AnySize), _) | (_, Err(NotFixedLen::AnySize)) => return false,
                 _ => (),
             }
 

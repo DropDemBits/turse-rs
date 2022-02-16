@@ -1,14 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
+assertion_line: 42
 expression: "\n    var c : char\n    var c_dyn : char(*)\n    var c_sz : char(6)\n    var s : string\n    var s_dyn : string(*)\n    var s_sz : string(6)\n\n    % special cases first\n    var _t00 := c + c\n    var _t02 := c + c_sz\n    var _t20 := c_sz + c\n    var _t22 := c_sz + c_sz\n\n    % the rest of them down here (should produce string)\n    var _t01 := c + c_dyn\n    var _t03 := c + s\n    var _t04 := c + s_dyn\n    var _t05 := c + s_sz\n\n    var _t10 := c_dyn + c\n    var _t30 := s + c\n    var _t40 := s_dyn + c\n    var _t50 := s_sz + c\n\n    var _t11 := c_dyn + c_dyn\n    var _t12 := c_dyn + c_sz\n    var _t13 := c_dyn + s\n    var _t14 := c_dyn + s_dyn\n    var _t15 := c_dyn + s_sz\n\n    var _t21 := c_sz + c_dyn\n    var _t31 := s + c_dyn\n    var _t41 := s_dyn + c_dyn\n    var _t51 := s_sz + c_dyn\n\n    var _t23 := c_sz + s\n    var _t24 := c_sz + s_dyn\n    var _t25 := c_sz + s_sz\n\n    var _t32 := s + c_sz\n    var _t42 := s_dyn + c_sz\n    var _t52 := s_sz + c_sz\n\n    var _t33 := s + s\n    var _t34 := s + s_dyn\n    var _t35 := s + s_sz\n\n    var _t43 := s_dyn + s\n    var _t53 := s_sz + s\n\n    var _t44 := s_dyn + s_dyn\n    var _t45 := s_dyn + s_sz\n\n    var _t54 := s_sz + s_dyn\n\n    var _t55 := s_sz + s_sz\n    "
 
 ---
 "c"@(FileId(1), 9..10) [Declared]: char
-"c_dyn"@(FileId(1), 26..31) [Declared]: char_n Dynamic
+"c_dyn"@(FileId(1), 26..31) [Declared]: char_n Any
 "c_sz"@(FileId(1), 50..54) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "s"@(FileId(1), 73..74) [Declared]: string
-"s_dyn"@(FileId(1), 92..97) [Declared]: string_n Dynamic
+"s_dyn"@(FileId(1), 92..97) [Declared]: string_n Any
 "s_sz"@(FileId(1), 118..122) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
 "_t00"@(FileId(1), 170..174) [Declared]: string
 "_t02"@(FileId(1), 192..196) [Declared]: string

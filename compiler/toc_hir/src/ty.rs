@@ -78,9 +78,8 @@ pub enum Primitive {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SeqLength {
     /// Sequence length is decided at runtime.
-    Dynamic,
-    /// Sequence length is an expression
-    /// that might be computable at compile time.
+    Any,
+    /// Sequence length is an expression that might be computable at compile time.
     Expr(body::BodyId),
 }
 

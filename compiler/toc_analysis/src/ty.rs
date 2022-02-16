@@ -122,16 +122,16 @@ pub enum RealSize {
 /// Size of a CharSeq
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SeqSize {
-    /// Runtime sized (only accepted for parameters)
-    Dynamic,
-    /// Fixed, compile-time size
+    /// Any sized (only accepted for parameters)
+    Any,
+    /// Fixed size, may be compile-time evaluable
     Fixed(Const),
 }
 
 impl SeqSize {
     /// Tries to compute a compile-time size from this sequence size.
     ///
-    /// If this is a dynamic length sequence, `NotFixedLen::DynSize` is produced.
+    /// If this is an any-length sequence, [`NotFixedLen::AnySize`] is produced.
     /// If an error occurs during length computation, `NotFixedLen::ConstError(err)` is produced.
     pub fn fixed_len<T: crate::db::ConstEval + ?Sized>(
         &self,
@@ -139,7 +139,7 @@ impl SeqSize {
         span: Span,
     ) -> Result<ConstInt, NotFixedLen> {
         let size = match self {
-            SeqSize::Dynamic => return Err(NotFixedLen::DynSize),
+            SeqSize::Any => return Err(NotFixedLen::AnySize),
             SeqSize::Fixed(size) => size,
         };
 
@@ -153,8 +153,8 @@ impl SeqSize {
 
 /// Error from trying to compute the fixed length of a [`SeqSize`].
 pub enum NotFixedLen {
-    /// Trying to compute from a dynamically sized sequence
-    DynSize,
+    /// Trying to compute from an any-sized sequence
+    AnySize,
     /// Error while trying to evaluate the sequence
     ConstError(ConstError),
 }
