@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ : string(*)"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: string_n Any
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 8..17: invalid storage type
+| error in file FileId(1) for 8..17: cannot use `string(*)` in `var` declarations
+| info: `string(*)`'s refer to strings that do not have a fixed size known at compile-time

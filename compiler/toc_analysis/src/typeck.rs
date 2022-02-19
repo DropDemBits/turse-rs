@@ -182,9 +182,43 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
 
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
-        // Type spec must be resolved at this point
         if let Some(ty_spec) = item.type_spec {
+            // Type spec must be resolved at this point
             self.require_resolved_type(ty_spec);
+
+            // Type must not be any-sized charseq or unsized
+            // For now, we only check for any-sized charseq
+            let ty_id = self.db.from_hir_type(ty_spec.in_library(self.library_id));
+            let ty_ref = ty_id.in_db(self.db);
+            match ty_ref.kind() {
+                ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
+                    let ty_span = self.library.lookup_type(ty_spec).span;
+                    let ty_span = self.library.lookup_span(ty_span);
+                    let maybe_const = match item.mutability {
+                        Mutability::Const => "const",
+                        Mutability::Var => "var",
+                    };
+
+                    let things = if matches!(ty_ref.kind(), ty::TypeKind::CharN(_)) {
+                        "character sequences"
+                    } else {
+                        "strings"
+                    };
+
+                    self.state()
+                        .reporter
+                        .error_detailed("invalid storage type", ty_span)
+                        .with_error(
+                            format!("cannot use `{ty_ref}` in `{maybe_const}` declarations"),
+                            ty_span,
+                        )
+                        .with_info(format!(
+                            "`{ty_ref}`'s refer to {things} that do not have a fixed size known at compile-time"
+                        ))
+                        .finish()
+                }
+                _ => {}
+            }
         }
 
         // Check the initializer expression
