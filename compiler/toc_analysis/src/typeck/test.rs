@@ -1521,6 +1521,9 @@ test_named_group! { typeck_subprog_ty,
         )",
         bare_procedure => "type _ : procedure",
         bare_function => "function a : int end a",
+
+        char_any_err => "type _ : function () : char(*)",
+        string_any_err => "type _ : function () : string(*)",
     ]
 }
 
@@ -1538,6 +1541,14 @@ test_named_group! {
                 rc to c
             r := 0 % should fail
         end ka"
+    ]
+}
+
+test_named_group! { typeck_subprog_result_ty,
+    [
+        normal => "function tree : int end tree",
+        char_any_err => "function _ : char(*) end _",
+        string_any_err => "function _ : string(*) end _",
     ]
 }
 

@@ -115,6 +115,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_bind_decl(id, item);
     }
 
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
+        self.typeck_subprogram_decl(id, item);
+    }
+
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
         self.typeck_assign(id.0, stmt);
     }
@@ -178,6 +182,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
     fn visit_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
         self.typeck_alias(id, ty);
     }
+
+    fn visit_subprogram_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
+        self.typeck_subprogram_ty(id, ty);
+    }
 }
 
 impl TypeCheck<'_> {
@@ -187,38 +195,14 @@ impl TypeCheck<'_> {
             self.require_resolved_type(ty_spec);
 
             // Type must not be any-sized charseq or unsized
-            // For now, we only check for any-sized charseq
-            let ty_id = self.db.from_hir_type(ty_spec.in_library(self.library_id));
-            let ty_ref = ty_id.in_db(self.db);
-            match ty_ref.kind() {
-                ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
-                    let ty_span = self.library.lookup_type(ty_spec).span;
-                    let ty_span = self.library.lookup_span(ty_span);
-                    let maybe_const = match item.mutability {
-                        Mutability::Const => "const",
-                        Mutability::Var => "var",
-                    };
+            self.require_known_size(ty_spec, || {
+                let maybe_const = match item.mutability {
+                    Mutability::Const => "const",
+                    Mutability::Var => "var",
+                };
 
-                    let things = if matches!(ty_ref.kind(), ty::TypeKind::CharN(_)) {
-                        "character sequences"
-                    } else {
-                        "strings"
-                    };
-
-                    self.state()
-                        .reporter
-                        .error_detailed("invalid storage type", ty_span)
-                        .with_error(
-                            format!("cannot use `{ty_ref}` in `{maybe_const}` declarations"),
-                            ty_span,
-                        )
-                        .with_info(format!(
-                            "`{ty_ref}`'s refer to {things} that do not have a fixed size known at compile-time"
-                        ))
-                        .finish()
-                }
-                _ => {}
-            }
+                format!("`{maybe_const}` declarations")
+            });
         }
 
         // Check the initializer expression
@@ -299,6 +283,17 @@ impl TypeCheck<'_> {
                 }),
             );
         }
+    }
+
+    fn typeck_subprogram_decl(&self, _id: item::ItemId, item: &item::Subprogram) {
+        self.require_known_size(item.result.ty, || {
+            let kind = match item.kind {
+                SubprogramKind::Procedure => "procedure",
+                SubprogramKind::Function => "function",
+                SubprogramKind::Process => "process",
+            };
+            format!("`{kind}` declarations")
+        })
     }
 
     fn typeck_assign(&self, in_body: body::BodyId, item: &stmt::Assign) {
@@ -1332,6 +1327,49 @@ impl TypeCheck<'_> {
                 |thing| format!("cannot use {thing} as a type alias"),
                 None,
             );
+        }
+    }
+
+    fn typeck_subprogram_ty(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
+        self.require_known_size(ty.result_ty, || {
+            let kind = match ty.kind {
+                SubprogramKind::Procedure => "procedure",
+                SubprogramKind::Function => "function",
+                SubprogramKind::Process => "process",
+            };
+            format!("`{kind}` types")
+        })
+    }
+
+    // For now, we only check for any-sized charseq
+    fn require_known_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl FnOnce() -> String) {
+        let ty_id = self.db.from_hir_type(ty_spec.in_library(self.library_id));
+        let ty_ref = ty_id.in_db(self.db);
+        match ty_ref.kind() {
+            ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
+                let ty_span = self.library.lookup_type(ty_spec).span;
+                let ty_span = self.library.lookup_span(ty_span);
+                let place = in_where();
+
+                let things = if matches!(ty_ref.kind(), ty::TypeKind::CharN(_)) {
+                    "character sequences"
+                } else {
+                    "strings"
+                };
+
+                self.state()
+                    .reporter
+                    .error_detailed("invalid storage type", ty_span)
+                    .with_error(
+                        format!("cannot use `{ty_ref}` in {place}"),
+                        ty_span,
+                    )
+                    .with_info(format!(
+                        "`{ty_ref}`'s refer to {things} that do not have a fixed size known at compile-time"
+                    ))
+                    .finish()
+            }
+            _ => {}
         }
     }
 
