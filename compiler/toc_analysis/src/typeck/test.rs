@@ -1648,6 +1648,27 @@ test_named_group! { typeck_subprog_call,
         var i : int
         p(i)
         ",
+        coerce_ref_arg_char_any => "
+        procedure p(var a : char(*)) end p
+        var c : char
+        var cs : char(6)
+        p(c) p(cs)
+        ",
+        coerce_ref_arg_char_any_err => "
+        procedure p(var a : char(*)) end p
+        var c : string
+        p(c)
+        ",
+        coerce_ref_arg_string_any => "
+        procedure p(var a : string(*)) end p
+        var c : string
+        p(c)
+        ",
+        coerce_ref_arg_string_any_err => "
+        procedure p(var a : string(*)) end p
+        var c : char
+        p(c)
+        ",
     ]
 }
 

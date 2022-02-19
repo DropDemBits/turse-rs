@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "procedure p(var a : string(*)) end p\nvar c : char\np(c)\n"
+
+---
+"p"@(FileId(1), 10..11) [Declared]: procedure ( pass(var ref) string_n Any, ) -> void
+"<unnamed>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 16..17) [Declared]: string_n Any
+"c"@(FileId(1), 41..42) [Declared]: char
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 52..53: mismatched types
+| note in file FileId(1) for 52..53: this is of type `char`
+| note in file FileId(1) for 52..53: parameter expects type `string(*)`
+| info: `char` is not equivalent to `string(*)`

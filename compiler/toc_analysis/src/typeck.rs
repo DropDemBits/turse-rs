@@ -1205,7 +1205,7 @@ impl TypeCheck<'_> {
                 // Allow coercion for pass by value, but not for ref-args
                 let predicate = match param.pass_by {
                     ty::PassBy::Value => ty::rules::is_assignable,
-                    ty::PassBy::Reference(_) => ty::rules::is_equivalent,
+                    ty::PassBy::Reference(_) => ty::rules::is_coercible_into_param,
                 };
 
                 if !predicate(self.db, param.param_ty, arg_ty) {
