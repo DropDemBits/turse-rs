@@ -1,5 +1,6 @@
 //! Type-related query implementation
 
+use toc_hir::symbol::BindingKind;
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
@@ -61,6 +62,56 @@ fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
             lower::ty_from_body_owner(db, body_id.0, db.body_owner(body_id))
         }
         toc_hir::body::BodyKind::Exprs(expr) => db.type_of((body_id.0, body_id.1, *expr).into()),
+    }
+}
+
+pub(super) fn value_produced(
+    db: &dyn db::TypeDatabase,
+    value_src: db::ValueSource,
+) -> Result<db::ValueKind, db::NotValue> {
+    use db::{NotValue, ValueKind, ValueSource};
+
+    let bind_src: toc_hir_db::db::BindingSource = match value_src {
+        ValueSource::DefId(def_id) => def_id.into(),
+        ValueSource::Body(lib_id, body_id) => (lib_id, body_id).into(),
+        ValueSource::BodyExpr(lib_id, body_expr) => {
+            let library = db.library(lib_id);
+
+            return match &library.body(body_expr.0).expr(body_expr.1).kind {
+                toc_hir::expr::ExprKind::Name(name) => match name {
+                    toc_hir::expr::Name::Name(def_id) => {
+                        // Defer to binding
+                        value_produced(db, DefId(lib_id, *def_id).into())
+                    }
+                    toc_hir::expr::Name::Self_ => unimplemented!(),
+                },
+                toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
+                _ => {
+                    // Take from the expr's type (always produces a value)
+                    let expr_ty = db.type_of((lib_id, body_expr).into());
+                    let expr_ty_ref = expr_ty.in_db(db).to_base_type();
+
+                    if expr_ty_ref.kind().is_scalar() {
+                        Ok(ValueKind::Scalar)
+                    } else if !expr_ty_ref.kind().is_error() {
+                        Ok(ValueKind::Reference(symbol::Mutability::Const))
+                    } else {
+                        Err(NotValue::Missing)
+                    }
+                }
+            };
+        }
+    };
+
+    // Take from the binding kind
+    let kind = db.binding_kind(bind_src);
+    match kind {
+        Ok(BindingKind::Storage(muta)) => Ok(ValueKind::Reference(muta)),
+        Ok(BindingKind::Register(muta)) => Ok(ValueKind::Register(muta)),
+        // Subprogram names are aliases of address constants
+        Ok(BindingKind::Subprogram(..)) => Ok(ValueKind::Scalar),
+        Err(symbol::NotBinding::Missing | symbol::NotBinding::Undeclared) => Err(NotValue::Missing),
+        _ => Err(NotValue::NotValue),
     }
 }
 

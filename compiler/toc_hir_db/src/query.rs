@@ -81,15 +81,15 @@ pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::
     Arc::new(library.body_ids())
 }
 
-pub(crate) fn binding_to(db: &dyn HirDatabase, ref_src: BindingSource) -> Option<DefId> {
-    lookup_binding_def(db, ref_src).ok()
+pub(crate) fn binding_to(db: &dyn HirDatabase, bind_src: BindingSource) -> Option<DefId> {
+    lookup_binding_def(db, bind_src).ok()
 }
 
 pub(crate) fn binding_kind(
     db: &dyn HirDatabase,
-    ref_src: BindingSource,
+    bind_src: BindingSource,
 ) -> Result<BindingKind, NotBinding> {
-    let def_id = lookup_binding_def(db, ref_src)?;
+    let def_id = lookup_binding_def(db, bind_src)?;
 
     // Take the binding kind from the def owner
     let def_owner = db.def_owner(def_id);
@@ -155,8 +155,8 @@ pub(crate) fn binding_kind(
     }
 }
 
-fn lookup_binding_def(db: &dyn HirDatabase, ref_src: BindingSource) -> Result<DefId, NotBinding> {
-    match ref_src {
+fn lookup_binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Result<DefId, NotBinding> {
+    match bind_src {
         // Trivial, def bindings are bindings to themselves
         // ???: Do we want to perform canonicalization / symbol resolution here?
         BindingSource::DefId(it) => Ok(it),

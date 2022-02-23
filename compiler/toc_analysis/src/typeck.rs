@@ -17,6 +17,7 @@ use toc_hir::{
 use toc_reporting::CompileResult;
 use toc_span::Span;
 
+use crate::ty::db::{NotValueErrExt, ValueKind};
 use crate::{
     const_eval::{Const, ConstValue},
     db::HirAnalysis,
@@ -255,12 +256,12 @@ impl TypeCheck<'_> {
 
         // Require that we're binding to (mutable) storage
         let predicate = match item.mutability {
-            Mutability::Const => BindingKind::is_storage,
-            Mutability::Var => BindingKind::is_storage_mut,
+            Mutability::Const => ValueKind::is_storage_backed,
+            Mutability::Var => ValueKind::is_storage_backed_mut,
         };
-        let binding_kind = db.binding_kind(bind_to.into());
+        let value_kind = db.value_produced(bind_to.into());
 
-        if !binding_kind.map(predicate).or_undeclared() {
+        if !value_kind.map(predicate).or_missing() {
             // Not a (mut) ref
             // Use var mutability for a simpler error message
             // ???: Does it matter to use the real mutability?
@@ -270,7 +271,7 @@ impl TypeCheck<'_> {
                 .body(item.bind_to)
                 .span
                 .lookup_in(&self.library.span_map);
-            let is_register = matches!(binding_kind, Ok(BindingKind::Register(_)));
+            let is_register = value_kind.map(ValueKind::is_register).unwrap_or(false);
 
             self.report_mismatched_binding(
                 ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
@@ -306,9 +307,9 @@ impl TypeCheck<'_> {
 
         // Check if we're assigning into a mut ref
         if !db
-            .binding_kind(lhs.into())
-            .map(BindingKind::is_ref_mut)
-            .or_undeclared()
+            .value_produced(lhs.into())
+            .map(ValueKind::is_ref_mut)
+            .or_missing()
         {
             // Not a mut ref
             let left_span = self
@@ -447,9 +448,9 @@ impl TypeCheck<'_> {
             let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
             if !db
-                .binding_kind((self.library_id, body_expr).into())
-                .map(BindingKind::is_ref_mut)
-                .or_undeclared()
+                .value_produced((self.library_id, body_expr).into())
+                .map(ValueKind::is_ref_mut)
+                .or_missing()
             {
                 self.report_mismatched_binding(
                     ExpectedBinding::Kind(BindingKind::Storage(Mutability::Var)),
@@ -937,11 +938,15 @@ impl TypeCheck<'_> {
     fn typeck_name_expr(&self, id: expr::BodyExpr, expr: &expr::Name) {
         match expr {
             expr::Name::Name(local_def) => {
-                // Validate it's a ref to a storage location
+                // Validate it's a ref to a value
                 let def_id = DefId(self.library_id, *local_def);
-                let binding_kind = self.db.binding_kind(def_id.into());
 
-                if !binding_kind.map(BindingKind::is_ref).or_undeclared() {
+                if !self
+                    .db
+                    .value_produced(def_id.into())
+                    .map(ValueKind::is_value)
+                    .or_missing()
+                {
                     let span = self.library.body(id.0).expr(id.1).span;
                     let span = self.library.lookup_span(span);
 
@@ -975,14 +980,14 @@ impl TypeCheck<'_> {
         let lhs_span = self.library.body(body).expr(lhs).span;
         let lhs_span = self.library.lookup_span(lhs_span);
 
-        let binding_kind = db.binding_kind(lhs_expr.into());
+        let value_kind = db.value_produced(lhs_expr.into());
 
         // Lhs Callable?
         // - Is ref?
         // - Is subprog ty?
 
         // Constrain lhs to expressions (allowing direct values & value references)
-        if !binding_kind.map(BindingKind::is_ref).or_value() {
+        if !value_kind.map(ValueKind::is_value).or_missing() {
             self.report_mismatched_binding(
                 ExpectedBinding::Subprogram,
                 lhs_expr.into(),
@@ -1170,29 +1175,29 @@ impl TypeCheck<'_> {
             let &expr::Arg::Expr(arg) = arg;
             let arg_expr = (self.library_id, body, arg);
             let arg_ty = self.db.type_of(arg_expr.into());
-            let arg_binding = self.db.binding_kind(arg_expr.into());
+            let arg_value = self.db.value_produced(arg_expr.into());
             let arg_span = self.library.body(body).expr(arg).span;
             let arg_span = self.library.lookup_span(arg_span);
 
-            let (matches_binding, mutability) = match param.pass_by {
+            let (matches_pass_by, mutability) = match param.pass_by {
                 ty::PassBy::Value => {
                     // Accept any expressions
                     (
-                        arg_binding.map(BindingKind::is_ref).or_value(),
+                        arg_value.map(ValueKind::is_value).or_missing(),
                         Mutability::Var,
                     )
                 }
                 ty::PassBy::Reference(mutability) => {
                     // Only accept storage locations
                     let predicate = match mutability {
-                        Mutability::Const => BindingKind::is_storage,
-                        Mutability::Var => BindingKind::is_storage_mut,
+                        Mutability::Const => ValueKind::is_storage_backed,
+                        Mutability::Var => ValueKind::is_storage_backed_mut,
                     };
-                    (arg_binding.map(predicate).or_undeclared(), mutability)
+                    (arg_value.map(predicate).or_missing(), mutability)
                 }
             };
 
-            if !matches_binding {
+            if !matches_pass_by {
                 self.report_mismatched_binding(
                     ExpectedBinding::Kind(BindingKind::Storage(mutability)),
                     arg_expr.into(),
