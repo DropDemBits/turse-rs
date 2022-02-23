@@ -4854,7 +4854,7 @@ fn parse_sizeof_expr_ty_prim_sized() {
 }
 
 #[test]
-fn parse_sizeof_expr_ty_prim_dyn_sized() {
+fn parse_sizeof_expr_ty_prim_any_sized() {
     // reject during validation
     check(
         "_:=sizeof(char(*))",

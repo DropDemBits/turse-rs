@@ -304,11 +304,10 @@ test_for_each_op! { string_manip_op,
     [("+", concat)] =>
     // over all 30 permutations + 6 same-arg permutations
     r#"
+    proc __ (var c_any : char(*), var s_any : string(*))
     var c : char
-    var c_dyn : char(*)
     var c_sz : char(6)
     var s : string
-    var s_dyn : string(*)
     var s_sz : string(6)
 
     % special cases first
@@ -318,73 +317,73 @@ test_for_each_op! { string_manip_op,
     var _t22 := c_sz {0} c_sz
 
     % the rest of them down here (should produce string)
-    var _t01 := c {0} c_dyn
+    var _t01 := c {0} c_any
     var _t03 := c {0} s
-    var _t04 := c {0} s_dyn
+    var _t04 := c {0} s_any
     var _t05 := c {0} s_sz
 
-    var _t10 := c_dyn {0} c
+    var _t10 := c_any {0} c
     var _t30 := s {0} c
-    var _t40 := s_dyn {0} c
+    var _t40 := s_any {0} c
     var _t50 := s_sz {0} c
 
-    var _t11 := c_dyn {0} c_dyn
-    var _t12 := c_dyn {0} c_sz
-    var _t13 := c_dyn {0} s
-    var _t14 := c_dyn {0} s_dyn
-    var _t15 := c_dyn {0} s_sz
+    var _t11 := c_any {0} c_any
+    var _t12 := c_any {0} c_sz
+    var _t13 := c_any {0} s
+    var _t14 := c_any {0} s_any
+    var _t15 := c_any {0} s_sz
 
-    var _t21 := c_sz {0} c_dyn
-    var _t31 := s {0} c_dyn
-    var _t41 := s_dyn {0} c_dyn
-    var _t51 := s_sz {0} c_dyn
+    var _t21 := c_sz {0} c_any
+    var _t31 := s {0} c_any
+    var _t41 := s_any {0} c_any
+    var _t51 := s_sz {0} c_any
 
     var _t23 := c_sz {0} s
-    var _t24 := c_sz {0} s_dyn
+    var _t24 := c_sz {0} s_any
     var _t25 := c_sz {0} s_sz
 
     var _t32 := s {0} c_sz
-    var _t42 := s_dyn {0} c_sz
+    var _t42 := s_any {0} c_sz
     var _t52 := s_sz {0} c_sz
 
     var _t33 := s {0} s
-    var _t34 := s {0} s_dyn
+    var _t34 := s {0} s_any
     var _t35 := s {0} s_sz
 
-    var _t43 := s_dyn {0} s
+    var _t43 := s_any {0} s
     var _t53 := s_sz {0} s
 
-    var _t44 := s_dyn {0} s_dyn
-    var _t45 := s_dyn {0} s_sz
+    var _t44 := s_any {0} s_any
+    var _t45 := s_any {0} s_sz
 
-    var _t54 := s_sz {0} s_dyn
+    var _t54 := s_sz {0} s_any
 
     var _t55 := s_sz {0} s_sz
+    end __
     "#
 }
 
 test_for_each_op! { string_manip_op_wrong_type,
     [("+", concat)] => r#"
+    proc __ (var c_any : char(*), var s_any : string(*))
     var c : char
-    var c_dyn : char(*)
     var c_sz : char(6)
     var s : string
-    var s_dyn : string(*)
     var s_sz : string(6)
     var i : int
 
     var _e00 := c {0} i
-    var _e01 := c_dyn {0} i
+    var _e01 := c_any {0} i
     var _e02 := c_sz {0} i
     var _e03 := s {0} i
-    var _e04 := s_dyn {0} i
+    var _e04 := s_any {0} i
     var _e05 := s_sz {0} i
 
     var _e10 := i {0} c
-    var _e11 := i {0} c_dyn
+    var _e11 := i {0} c_any
     var _e12 := i {0} c_sz
     var _e13 := i {0} s
-    var _e14 := i {0} s_dyn
+    var _e14 := i {0} s_any
     var _e15 := i {0} s_sz
 
     % TODO: Uncomment to verify incompatible types
@@ -395,6 +394,7 @@ test_for_each_op! { string_manip_op_wrong_type,
     var _e23 : char(3) := c {0} c
     var _e24 : char := c {0} c
     */
+    end __
     "#
 }
 
@@ -669,6 +669,7 @@ test_named_group! { sized_char,
         wrong_type => r#"var _ : char(1.0)"#,
         wrong_type_bool => r#"var _ : char(true)"#,
         const_err => r#"var _ : char(1.0 div 0.0)"#,
+        dyn_sized => "var N : int var _ : char(N)"
     ]
 }
 
@@ -687,6 +688,7 @@ test_named_group! { sized_string,
         wrong_type => r#"var _ : string(1.0)"#,
         wrong_type_bool => r#"var _ : string(true)"#,
         const_err => r#"var _ : string(1.0 div 0.0)"#,
+        dyn_sized => "var N : int var _ : string(N)"
     ]
 }
 
@@ -697,7 +699,9 @@ test_named_group! { typeck_var,
         error_prop => r#"
             var k := 20 + false
             var l : int := k   % Nothing reported here
-            "#
+            "#,
+        error_invalid_storage_ty_any_char => r#"var _ : char(*)"#,
+        error_invalid_storage_ty_any_str => r#"var _ : string(*)"#,
     ]
 }
 
@@ -708,7 +712,9 @@ test_named_group! { typeck_const,
         error_prop => r#"
             const k := 20 + false
             const l : int := k   % Nothing reported here
-            "#
+            "#,
+        error_invalid_storage_ty_any_char => r#"const _ : char(*)"#,
+        error_invalid_storage_ty_any_str => r#"const _ : string(*)"#,
     ]
 }
 
@@ -978,84 +984,88 @@ test_named_group! { assignability_into,
 
         var _e00 : string(N) := c256 % [not captured by ctc]
         "#,
-        r#string_dyn_lhs => r#"
+        r#string_any_lhs => r#"
+        proc __(var c_any : char(*), var s_any : string(*), var _v00, _v01, _v02, _v03, _v04, _v05, _v06, _v07, _v08 : string(*))
         % all runtime checked
         var c : char
         var c1 : char(1)
         var c5 : char(5)
         var c255 : char(255)
-        var c_dyn : char(*)
         var s : string
         var s1 : string(1)
         var s5 : string(5)
-        var s_dyn : string(*)
 
-        var _v00 : string(*) := c
-        var _v01 : string(*) := c1
-        var _v02 : string(*) := c5
-        var _v03 : string(*) := c255
-        var _v04 : string(*) := c_dyn
-        var _v05 : string(*) := s
-        var _v06 : string(*) := s1
-        var _v07 : string(*) := s5
-        var _v08 : string(*) := s_dyn
+        _v00 := c
+        _v01 := c1
+        _v02 := c5
+        _v03 := c255
+        _v04 := c_any
+        _v05 := s
+        _v06 := s1
+        _v07 := s5
+        _v08 := s_any
+        end __
         "#,
         r#string_err_lhs => r#"
         var cmx : char(256)
 
-        var _e00 : string(*) := cmx % [not captured by ctc]
+        proc __(var _e00 : string(*))
+        _e00 := cmx % [not captured by ctc]
+        end __
         "#,
-        r#string_dyn_rhs => r#"
+        r#string_any_rhs => r#"
         % all runtime checked
-        var s_dyn : string(*)
+        proc __(var s_any, _v09 : string(*), var c_any, _v05 : char(*))
 
-        var _v00 : char := s_dyn
-        var _v01 : char(1) := s_dyn
-        var _v02 : char(5) := s_dyn
-        var _v03 : char(255) := s_dyn
-        var _v04 : char(256) := s_dyn
-        var _v05 : char(*) := s_dyn
-        var _v06 : string := s_dyn
-        var _v07 : string(1) := s_dyn
-        var _v08 : string(5) := s_dyn
-        var _v09 : string(*) := s_dyn
+        var _v00 : char := s_any
+        var _v01 : char(1) := s_any
+        var _v02 : char(5) := s_any
+        var _v03 : char(255) := s_any
+        var _v04 : char(256) := s_any
+        _v05 := s_any
+        var _v06 : string := s_any
+        var _v07 : string(1) := s_any
+        var _v08 : string(5) := s_any
+        _v09 := s_any
+        end __
         "#,
-        r#char_dyn_lhs => r#"
+        r#char_any_lhs => r#"
+        proc __(var c_any : char(*), var s_any : string(*), var _v00, _v01, _v02, _v03, _v04, _v05, _v06, _v07, _v08 : char(*))
         % all runtime checked
         var c : char
         var c1 : char(1)
         var c5 : char(5)
         var c255 : char(255)
-        var c_dyn : char(*)
         var s : string
         var s1 : string(1)
         var s5 : string(5)
-        var s_dyn : string(*)
 
-        var _v00 : char(*) := c
-        var _v01 : char(*) := c1
-        var _v02 : char(*) := c5
-        var _v03 : char(*) := c255
-        var _v04 : char(*) := c_dyn
-        var _v05 : char(*) := s
-        var _v06 : char(*) := s1
-        var _v07 : char(*) := s5
-        var _v08 : char(*) := s_dyn
+        _v00 := c
+        _v01 := c1
+        _v02 := c5
+        _v03 := c255
+        _v04 := c_any
+        _v05 := s
+        _v06 := s1
+        _v07 := s5
+        _v08 := s_any
+        end __
         "#,
-        r#char_dyn_rhs => r#"
+        r#char_any_rhs => r#"
         % all runtime checked
-        var c_dyn : string(*)
+        proc __(var s_any, _v09 : string(*), var c_any, _v05 : char(*))
 
-        var _v00 : char := c_dyn
-        var _v01 : char(1) := c_dyn
-        var _v02 : char(5) := c_dyn
-        var _v03 : char(255) := c_dyn
-        var _v04 : char(256) := c_dyn
-        var _v05 : char(*) := c_dyn
-        var _v06 : string := c_dyn
-        var _v07 : string(1) := c_dyn
-        var _v08 : string(5) := c_dyn
-        var _v09 : string(*) := c_dyn
+        var _v00 : char := c_any
+        var _v01 : char(1) := c_any
+        var _v02 : char(5) := c_any
+        var _v03 : char(255) := c_any
+        var _v04 : char(256) := c_any
+        _v05 := c_any
+        var _v06 : string := c_any
+        var _v07 : string(1) := c_any
+        var _v08 : string(5) := c_any
+        _v09 := c_any
+        end __
         "#,
     ]
 }
@@ -1511,6 +1521,9 @@ test_named_group! { typeck_subprog_ty,
         )",
         bare_procedure => "type _ : procedure",
         bare_function => "function a : int end a",
+
+        char_any_err => "type _ : function () : char(*)",
+        string_any_err => "type _ : function () : string(*)",
     ]
 }
 
@@ -1528,6 +1541,14 @@ test_named_group! {
                 rc to c
             r := 0 % should fail
         end ka"
+    ]
+}
+
+test_named_group! { typeck_subprog_result_ty,
+    [
+        normal => "function tree : int end tree",
+        char_any_err => "function _ : char(*) end _",
+        string_any_err => "function _ : string(*) end _",
     ]
 }
 
@@ -1626,6 +1647,27 @@ test_named_group! { typeck_subprog_call,
         procedure p(var a : cheat real) end p
         var i : int
         p(i)
+        ",
+        coerce_ref_arg_char_any => "
+        procedure p(var a : char(*)) end p
+        var c : char
+        var cs : char(6)
+        p(c) p(cs)
+        ",
+        coerce_ref_arg_char_any_err => "
+        procedure p(var a : char(*)) end p
+        var c : string
+        p(c)
+        ",
+        coerce_ref_arg_string_any => "
+        procedure p(var a : string(*)) end p
+        var c : string
+        p(c)
+        ",
+        coerce_ref_arg_string_any_err => "
+        procedure p(var a : string(*)) end p
+        var c : char
+        p(c)
         ",
     ]
 }

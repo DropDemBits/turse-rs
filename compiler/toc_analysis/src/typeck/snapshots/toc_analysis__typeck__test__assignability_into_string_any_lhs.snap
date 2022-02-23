@@ -1,0 +1,28 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "proc __(var c_any : char(*), var s_any : string(*), var _v00, _v01, _v02, _v03, _v04, _v05, _v06, _v07, _v08 : string(*))\n% all runtime checked\nvar c : char\nvar c1 : char(1)\nvar c5 : char(5)\nvar c255 : char(255)\nvar s : string\nvar s1 : string(1)\nvar s5 : string(5)\n\n_v00 := c\n_v01 := c1\n_v02 := c5\n_v03 := c255\n_v04 := c_any\n_v05 := s\n_v06 := s1\n_v07 := s5\n_v08 := s_any\nend __\n"
+
+---
+"__"@(FileId(1), 5..7) [Declared]: procedure ( pass(var ref) char_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, pass(var ref) string_n Any, ) -> void
+"<unnamed>"@(dummy) [Declared]: <error>
+"c_any"@(FileId(1), 12..17) [Declared]: char_n Any
+"s_any"@(FileId(1), 33..38) [Declared]: string_n Any
+"_v00"@(FileId(1), 56..60) [Declared]: string_n Any
+"_v01"@(FileId(1), 62..66) [Declared]: string_n Any
+"_v02"@(FileId(1), 68..72) [Declared]: string_n Any
+"_v03"@(FileId(1), 74..78) [Declared]: string_n Any
+"_v04"@(FileId(1), 80..84) [Declared]: string_n Any
+"_v05"@(FileId(1), 86..90) [Declared]: string_n Any
+"_v06"@(FileId(1), 92..96) [Declared]: string_n Any
+"_v07"@(FileId(1), 98..102) [Declared]: string_n Any
+"_v08"@(FileId(1), 104..108) [Declared]: string_n Any
+"c"@(FileId(1), 148..149) [Declared]: char
+"c1"@(FileId(1), 161..163) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"c5"@(FileId(1), 178..180) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c255"@(FileId(1), 195..199) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(2)))
+"s"@(FileId(1), 216..217) [Declared]: string
+"s1"@(FileId(1), 231..233) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(3)))
+"s5"@(FileId(1), 250..252) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(4)))
+"<root>"@(dummy) [Declared]: <error>
+

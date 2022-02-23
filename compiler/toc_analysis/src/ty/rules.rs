@@ -76,6 +76,16 @@ impl TypeKind {
         )
     }
 
+    // char-like includes `Char` and `CharN` (any kind)
+    pub fn is_char_like(&self) -> bool {
+        matches!(self, TypeKind::Char | TypeKind::CharN(_))
+    }
+
+    // string-like includes `String` and `StringN` (any kind)
+    pub fn is_string_like(&self) -> bool {
+        matches!(self, TypeKind::String | TypeKind::StringN(_))
+    }
+
     /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
     pub fn is_index(&self) -> bool {
         self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
@@ -212,7 +222,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         (TypeKind::Char, TypeKind::Char) => true,
 
         // Sized charseqs are equivalent to each other if they have the same size
-        // Dyn sized charseqs are not equivalent to anything
+        // Any-sized charseqs are not equivalent to anything
         (TypeKind::CharN(left_sz), TypeKind::CharN(right_sz))
         | (TypeKind::StringN(left_sz), TypeKind::StringN(right_sz)) => {
             let left_sz = left_sz.fixed_len(db, Default::default());
@@ -220,7 +230,7 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
 
             match (&left_sz, &right_sz) {
                 // `charseq(*)` treated as not equivalent to either type
-                (Err(NotFixedLen::DynSize), _) | (_, Err(NotFixedLen::DynSize)) => return false,
+                (Err(NotFixedLen::AnySize), _) | (_, Err(NotFixedLen::AnySize)) => return false,
                 _ => (),
             }
 
@@ -295,6 +305,32 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         }
         // `void` is equivalent to itself
         (TypeKind::Void, TypeKind::Void) => true,
+        _ => false,
+    }
+}
+
+/// Tests if `rhs` can be implicitly coerced into the `lhs` parameter type.
+///
+/// Mostly equivalent to [`is_equivalent`], except that it accepts coercion
+/// into `char(*)` and `string(*)`, with this property also being transitive
+/// over arrays and ranges.
+pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
+    db: &T,
+    lhs: TypeId,
+    rhs: TypeId,
+) -> bool {
+    let left = lhs.in_db(db).to_base_type();
+    let right = rhs.in_db(db).to_base_type();
+
+    // Equivalent types imply trivial coercion
+    if is_equivalent(db, left.id(), right.id()) {
+        return true;
+    }
+
+    // FIXME: Be transitive over arrays and ranges
+    match (left.kind(), right.kind()) {
+        (TypeKind::CharN(SeqSize::Any), _) => right.kind().is_char_like(),
+        (TypeKind::StringN(SeqSize::Any), _) => right.kind().is_string_like(),
         _ => false,
     }
 }

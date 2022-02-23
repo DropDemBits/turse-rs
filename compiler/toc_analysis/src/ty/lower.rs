@@ -60,7 +60,7 @@ fn primitive_ty(
 
 fn lower_seq_len(library: LibraryId, seq_len: hir_ty::SeqLength) -> SeqSize {
     match seq_len {
-        hir_ty::SeqLength::Dynamic => SeqSize::Dynamic,
+        hir_ty::SeqLength::Any => SeqSize::Any,
         hir_ty::SeqLength::Expr(body) => SeqSize::Fixed(Const::from_body(library, body)),
     }
 }

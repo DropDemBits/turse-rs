@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ : char(*)"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: char_n Any
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 8..15: invalid storage type
+| error in file FileId(1) for 8..15: cannot use `char(*)` in `var` declarations
+| info: `char(*)`'s refer to character sequences that do not have a fixed size known at compile-time

@@ -81,7 +81,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_seq_length(&mut self, node: Option<ast::SeqLength>) -> ty::SeqLength {
         match node {
-            Some(node) if node.star_token().is_some() => ty::SeqLength::Dynamic,
+            Some(node) if node.star_token().is_some() => ty::SeqLength::Any,
             seq_length => {
                 let expr = seq_length.and_then(|node| node.expr());
                 let body = self.lower_required_expr_body(expr);

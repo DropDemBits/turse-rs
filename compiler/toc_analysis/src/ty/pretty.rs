@@ -139,7 +139,7 @@ where
             out.write_char('(')?;
             match seq.fixed_len(db, Span::default()) {
                 Ok(v) => out.write_fmt(format_args!("{v}"))?,
-                Err(NotFixedLen::DynSize) => out.write_char('*')?,
+                Err(NotFixedLen::AnySize) => out.write_char('*')?,
                 Err(NotFixedLen::ConstError(_)) => unreachable!("should not show errors!"),
             }
             out.write_char(')')?;

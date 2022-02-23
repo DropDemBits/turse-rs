@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type _ : function () : char(*)"
+
+---
+"<unnamed>"@(dummy) [Declared]: <error>
+"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of function ( ) -> char_n Any
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 23..30: invalid storage type
+| error in file FileId(1) for 23..30: cannot use `char(*)` in `function` types
+| info: `char(*)`'s refer to character sequences that do not have a fixed size known at compile-time

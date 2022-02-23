@@ -1152,7 +1152,7 @@ impl BodyCodeGenerator<'_> {
                 let len = lhs_ty.length_of().expect("never dyn");
                 Some(CoerceTo::CharN(len.try_into().unwrap()))
             }
-            ty::TypeKind::CharN(ty::SeqSize::Dynamic) => {
+            ty::TypeKind::CharN(ty::SeqSize::Any) => {
                 unreachable!("dyn is not a valid storage type")
             }
             _ => None,
@@ -1727,7 +1727,7 @@ impl BodyCodeGenerator<'_> {
                 // Fetch the first char
                 Some(Opcode::FETCHNAT1())
             }
-            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Dynamic)) => {
+            (CoerceTo::Char, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
                 todo!()
             }
 
@@ -1774,7 +1774,7 @@ impl BodyCodeGenerator<'_> {
                 self.code_fragment.emit_opcode(Opcode::PUSHINT(len as u32));
                 Some(Opcode::CSTRTOSTR())
             }
-            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Dynamic)) => {
+            (CoerceTo::String, ty::TypeKind::CharN(ty::SeqSize::Any)) => {
                 todo!()
             }
             _ => None,

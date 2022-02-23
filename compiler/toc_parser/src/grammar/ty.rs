@@ -129,7 +129,7 @@ fn prim_charseq_type(p: &mut Parser, prim_kind: TokenKind) -> Option<CompletedMa
             let m = p.start();
 
             if !p.eat(TokenKind::Star) {
-                // if not dyn sized, parse an expr
+                // if not any-sized, parse an expr
                 expr::expect_expr(p);
             }
 

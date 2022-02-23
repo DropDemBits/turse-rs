@@ -115,6 +115,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_bind_decl(id, item);
     }
 
+    fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
+        self.typeck_subprogram_decl(id, item);
+    }
+
     fn visit_assign(&self, id: BodyStmt, stmt: &stmt::Assign) {
         self.typeck_assign(id.0, stmt);
     }
@@ -178,13 +182,27 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
     fn visit_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
         self.typeck_alias(id, ty);
     }
+
+    fn visit_subprogram_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
+        self.typeck_subprogram_ty(id, ty);
+    }
 }
 
 impl TypeCheck<'_> {
     fn typeck_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
-        // Type spec must be resolved at this point
         if let Some(ty_spec) = item.type_spec {
+            // Type spec must be resolved at this point
             self.require_resolved_type(ty_spec);
+
+            // Type must not be any-sized charseq or unsized
+            self.require_known_size(ty_spec, || {
+                let maybe_const = match item.mutability {
+                    Mutability::Const => "const",
+                    Mutability::Var => "var",
+                };
+
+                format!("`{maybe_const}` declarations")
+            });
         }
 
         // Check the initializer expression
@@ -265,6 +283,17 @@ impl TypeCheck<'_> {
                 }),
             );
         }
+    }
+
+    fn typeck_subprogram_decl(&self, _id: item::ItemId, item: &item::Subprogram) {
+        self.require_known_size(item.result.ty, || {
+            let kind = match item.kind {
+                SubprogramKind::Procedure => "procedure",
+                SubprogramKind::Function => "function",
+                SubprogramKind::Process => "process",
+            };
+            format!("`{kind}` declarations")
+        })
     }
 
     fn typeck_assign(&self, in_body: body::BodyId, item: &stmt::Assign) {
@@ -1176,7 +1205,7 @@ impl TypeCheck<'_> {
                 // Allow coercion for pass by value, but not for ref-args
                 let predicate = match param.pass_by {
                     ty::PassBy::Value => ty::rules::is_assignable,
-                    ty::PassBy::Reference(_) => ty::rules::is_equivalent,
+                    ty::PassBy::Reference(_) => ty::rules::is_coercible_into_param,
                 };
 
                 if !predicate(self.db, param.param_ty, arg_ty) {
@@ -1226,18 +1255,18 @@ impl TypeCheck<'_> {
         self.expect_integer_type(expr_ty, expr_span);
 
         // Check resultant size
-        let (seq_size, size_limit) = match ty.kind() {
+        let (seq_size, size_limit, allow_dyn_size) = match ty.kind() {
             ty::TypeKind::CharN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // Note: 32768 is the minimum defined limit for the length on `n` for char(N)
                 // ???: Do we want to add a config/feature option to change this?
-                (seq_size, ty::MAX_CHAR_N_LEN)
+                (seq_size, ty::MAX_CHAR_N_LEN, true)
             }
             ty::TypeKind::StringN(seq_size @ ty::SeqSize::Fixed(_)) => {
                 // 256 is the maximum defined limit for the length on `n` for string(N),
                 // so no option of changing that (unless we have control over the interpreter code).
                 // - Legacy interpreter has the assumption baked in that the max length of a string is 256,
                 //   so we can't change it yet unless we use a new interpreter.
-                (seq_size, ty::MAX_STRING_LEN)
+                (seq_size, ty::MAX_STRING_LEN, false)
             }
             // because of hir disambiguation above
             _ => unreachable!(),
@@ -1245,9 +1274,22 @@ impl TypeCheck<'_> {
 
         let int = match seq_size.fixed_len(db, expr_span) {
             Ok(v) => v,
-            Err(ty::NotFixedLen::DynSize) => return, // dynamic, doesn't need checking
+            Err(ty::NotFixedLen::AnySize) => return, // any-sized, doesn't need checking
             Err(ty::NotFixedLen::ConstError(err)) => {
-                err.report_to(db, &mut self.state().reporter);
+                // Allow non-compile time exprs in this position, if allowed
+                if err.is_not_compile_time() && allow_dyn_size {
+                    // Right now, is unsupported
+                    let ty_span = self.library.lookup_type(id).span;
+                    let ty_span = self.library.lookup_span(ty_span);
+
+                    self.state().reporter.error(
+                        "unsupported type",
+                        "dynamically sized `char(N)` isn't supported yet",
+                        ty_span,
+                    );
+                } else {
+                    err.report_to(db, &mut self.state().reporter);
+                }
                 return;
             }
         };
@@ -1285,6 +1327,49 @@ impl TypeCheck<'_> {
                 |thing| format!("cannot use {thing} as a type alias"),
                 None,
             );
+        }
+    }
+
+    fn typeck_subprogram_ty(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
+        self.require_known_size(ty.result_ty, || {
+            let kind = match ty.kind {
+                SubprogramKind::Procedure => "procedure",
+                SubprogramKind::Function => "function",
+                SubprogramKind::Process => "process",
+            };
+            format!("`{kind}` types")
+        })
+    }
+
+    // For now, we only check for any-sized charseq
+    fn require_known_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl FnOnce() -> String) {
+        let ty_id = self.db.from_hir_type(ty_spec.in_library(self.library_id));
+        let ty_ref = ty_id.in_db(self.db);
+        match ty_ref.kind() {
+            ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
+                let ty_span = self.library.lookup_type(ty_spec).span;
+                let ty_span = self.library.lookup_span(ty_span);
+                let place = in_where();
+
+                let things = if matches!(ty_ref.kind(), ty::TypeKind::CharN(_)) {
+                    "character sequences"
+                } else {
+                    "strings"
+                };
+
+                self.state()
+                    .reporter
+                    .error_detailed("invalid storage type", ty_span)
+                    .with_error(
+                        format!("cannot use `{ty_ref}` in {place}"),
+                        ty_span,
+                    )
+                    .with_info(format!(
+                        "`{ty_ref}`'s refer to {things} that do not have a fixed size known at compile-time"
+                    ))
+                    .finish()
+            }
+            _ => {}
         }
     }
 
