@@ -1,6 +1,6 @@
 //! Type-related query implementation
 
-use toc_hir::symbol::BindingKind;
+use toc_hir::symbol::BindingTo;
 use toc_hir::{
     body::BodyId,
     expr::BodyExpr,
@@ -104,12 +104,12 @@ pub(super) fn value_produced(
     };
 
     // Take from the binding kind
-    let kind = db.binding_kind(bind_src);
+    let kind = db.binding_to(bind_src);
     match kind {
-        Ok(BindingKind::Storage(muta)) => Ok(ValueKind::Reference(muta)),
-        Ok(BindingKind::Register(muta)) => Ok(ValueKind::Register(muta)),
+        Ok(BindingTo::Storage(muta)) => Ok(ValueKind::Reference(muta)),
+        Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
         // Subprogram names are aliases of address constants
-        Ok(BindingKind::Subprogram(..)) => Ok(ValueKind::Scalar),
+        Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
         Err(symbol::NotBinding::Missing | symbol::NotBinding::Undeclared) => Err(NotValue::Missing),
         _ => Err(NotValue::NotValue),
     }

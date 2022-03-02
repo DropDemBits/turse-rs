@@ -11,7 +11,7 @@ use toc_hir::{
     library_graph::LibraryGraph,
     stmt,
     symbol::{
-        BindingKind, DefId, DefOwner, DefTable, LocalDefId, Mutability, NotBinding, SymbolKind,
+        BindingTo, DefId, DefOwner, DefTable, LocalDefId, Mutability, NotBinding, SymbolKind,
     },
     ty::{self, PassBy},
     visitor::HirVisitor,
@@ -81,14 +81,14 @@ pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::
     Arc::new(library.body_ids())
 }
 
-pub(crate) fn binding_to(db: &dyn HirDatabase, bind_src: BindingSource) -> Option<DefId> {
+pub(crate) fn binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Option<DefId> {
     lookup_binding_def(db, bind_src).ok()
 }
 
-pub(crate) fn binding_kind(
+pub(crate) fn binding_to(
     db: &dyn HirDatabase,
     bind_src: BindingSource,
-) -> Result<BindingKind, NotBinding> {
+) -> Result<BindingTo, NotBinding> {
     let def_id = lookup_binding_def(db, bind_src)?;
 
     // Take the binding kind from the def owner
@@ -98,16 +98,16 @@ pub(crate) fn binding_kind(
     match def_owner {
         Some(DefOwner::Item(item_id)) => Ok(match &library.item(item_id).kind {
             item::ItemKind::ConstVar(item) if item.is_register => {
-                BindingKind::Register(item.mutability)
+                BindingTo::Register(item.mutability)
             }
             item::ItemKind::Binding(item) if item.is_register => {
-                BindingKind::Register(item.mutability)
+                BindingTo::Register(item.mutability)
             }
-            item::ItemKind::ConstVar(item) => BindingKind::Storage(item.mutability),
-            item::ItemKind::Binding(item) => BindingKind::Storage(item.mutability),
-            item::ItemKind::Subprogram(item) => BindingKind::Subprogram(item.kind),
-            item::ItemKind::Type(_) => BindingKind::Type,
-            item::ItemKind::Module(_) => BindingKind::Module,
+            item::ItemKind::ConstVar(item) => BindingTo::Storage(item.mutability),
+            item::ItemKind::Binding(item) => BindingTo::Storage(item.mutability),
+            item::ItemKind::Subprogram(item) => BindingTo::Subprogram(item.kind),
+            item::ItemKind::Type(_) => BindingTo::Type,
+            item::ItemKind::Module(_) => BindingTo::Module,
         }),
         Some(DefOwner::ItemParam(item_id, param_def)) => {
             // Lookup the arg
@@ -124,19 +124,19 @@ pub(crate) fn binding_kind(
                     // Register parameters become register bindings
                     match param_info.pass_by {
                         PassBy::Value if param_info.is_register => {
-                            BindingKind::Register(Mutability::Const)
+                            BindingTo::Register(Mutability::Const)
                         }
                         PassBy::Reference(mutability) if param_info.is_register => {
-                            BindingKind::Register(mutability)
+                            BindingTo::Register(mutability)
                         }
-                        PassBy::Value => BindingKind::Storage(Mutability::Const),
-                        PassBy::Reference(mutability) => BindingKind::Storage(mutability),
+                        PassBy::Value => BindingTo::Storage(Mutability::Const),
+                        PassBy::Reference(mutability) => BindingTo::Storage(mutability),
                     }
                 }
                 ParameterInfo::Result => {
                     // This is the result parameter
                     // Always const storage, only modifiable by `result` stmts
-                    BindingKind::Storage(Mutability::Const)
+                    BindingTo::Storage(Mutability::Const)
                 }
             })
         }
@@ -146,8 +146,8 @@ pub(crate) fn binding_kind(
                     unreachable!("item def owners shouldn't be stmt def owners")
                 }
                 // for-loop counter var is an immutable ref
-                stmt::StmtKind::For(_) => Ok(BindingKind::Storage(Mutability::Const)),
-                _ => Err(NotBinding::NotReference),
+                stmt::StmtKind::For(_) => Ok(BindingTo::Storage(Mutability::Const)),
+                _ => Err(NotBinding::NotBinding),
             }
         }
         // From an undeclared identifier, not purely a binding
@@ -165,7 +165,7 @@ fn lookup_binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Result<D
 
             match &library.body(body).kind {
                 // Stmt bodies never produce bindings
-                body::BodyKind::Stmts(..) => Err(NotBinding::NotReference),
+                body::BodyKind::Stmts(..) => Err(NotBinding::NotBinding),
                 // Defer to expr form
                 body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
             }
@@ -181,7 +181,7 @@ fn lookup_binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Result<D
                     expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
                     expr::Name::Self_ => todo!(),
                 },
-                _ => Err(NotBinding::NotReference),
+                _ => Err(NotBinding::NotBinding),
             }
         }
     }

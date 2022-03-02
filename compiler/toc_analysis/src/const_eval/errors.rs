@@ -59,10 +59,10 @@ impl ConstError {
         match &self.kind {
             ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
-                let bind_kind = match db.binding_kind((*def_id).into()) {
+                let bind_to = match db.binding_to((*def_id).into()) {
                     Ok(kind) => kind,
                     Err(NotBinding::Undeclared | NotBinding::Missing) => return, // taken from an undeclared ident or missing expr
-                    Err(NotBinding::NotReference) => unreachable!("taken from a def"),
+                    Err(NotBinding::NotBinding) => unreachable!("taken from a def"),
                 };
                 let library = db.library(def_id.0);
                 let def_info = library.local_def(def_id.1);
@@ -75,7 +75,7 @@ impl ConstError {
                         self.span,
                     )
                     .with_error(
-                        format!("`{name}` is a reference to {bind_kind}, not a constant"),
+                        format!("`{name}` is a reference to {bind_to}, not a constant"),
                         self.span,
                     )
                     .with_note(format!("`{name}` declared here",), def_span)

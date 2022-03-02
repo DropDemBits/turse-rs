@@ -1681,7 +1681,7 @@ impl BodyCodeGenerator<'_> {
         // it should be treated as introducing a new var that is specially handled
         // (it's like an addr, though we need to pierce through indirections)
 
-        if let Some(aliased_def) = self.db.binding_to((self.library_id, item.bind_to).into()) {
+        if let Some(aliased_def) = self.db.binding_def((self.library_id, item.bind_to).into()) {
             self.code_fragment
                 .alias_local(aliased_def, DefId(self.library_id, item.def_id))
         } else {
@@ -2223,7 +2223,7 @@ impl BodyCodeGenerator<'_> {
     ) {
         let db = self.db;
         let lhs_expr = (self.library_id, self.body_id, lhs);
-        let lhs_ty = if let Some(def_id) = db.binding_to(lhs_expr.into()) {
+        let lhs_ty = if let Some(def_id) = db.binding_def(lhs_expr.into()) {
             // From an item
             db.type_of(def_id.into())
         } else {

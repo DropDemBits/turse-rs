@@ -84,8 +84,9 @@ pub enum Mutability {
     Var,
 }
 
+/// What a definition binds to
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BindingKind {
+pub enum BindingTo {
     /// A binding to a storage location (e.g. from [`ConstVar`](crate::item::ConstVar))
     Storage(Mutability),
     /// A binding to a register
@@ -98,7 +99,7 @@ pub enum BindingKind {
     Subprogram(SubprogramKind),
 }
 
-impl BindingKind {
+impl BindingTo {
     // Undeclared bindings are treated as equivalent to all of the
     // other binding types, for error reporting purposes.
     //
@@ -137,18 +138,18 @@ impl BindingKind {
     }
 }
 
-impl std::fmt::Display for BindingKind {
+impl std::fmt::Display for BindingTo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            BindingKind::Storage(Mutability::Var) => "a variable",
-            BindingKind::Storage(Mutability::Const) => "a constant",
-            BindingKind::Register(Mutability::Var) => "a register",
-            BindingKind::Register(Mutability::Const) => "a constant register",
-            BindingKind::Type => "a type",
-            BindingKind::Module => "a module",
-            BindingKind::Subprogram(SubprogramKind::Procedure) => "a procedure",
-            BindingKind::Subprogram(SubprogramKind::Function) => "a function",
-            BindingKind::Subprogram(SubprogramKind::Process) => "a process",
+            BindingTo::Storage(Mutability::Var) => "a variable",
+            BindingTo::Storage(Mutability::Const) => "a constant",
+            BindingTo::Register(Mutability::Var) => "a register",
+            BindingTo::Register(Mutability::Const) => "a constant register",
+            BindingTo::Type => "a type",
+            BindingTo::Module => "a module",
+            BindingTo::Subprogram(SubprogramKind::Procedure) => "a procedure",
+            BindingTo::Subprogram(SubprogramKind::Function) => "a function",
+            BindingTo::Subprogram(SubprogramKind::Process) => "a process",
         };
 
         f.write_str(name)
@@ -162,8 +163,8 @@ pub enum NotBinding {
     Undeclared,
     /// Is an error expression
     Missing,
-    /// Not a reference to a binding (e.g. a plain value)
-    NotReference,
+    /// Not a binding at all (e.g. a plain value)
+    NotBinding,
 }
 
 /// Helper trait to deal with [`NotBinding`] kind narrowing
@@ -182,7 +183,7 @@ impl BindingResultExt for Result<bool, NotBinding> {
         self.unwrap_or_else(|err| match err {
             NotBinding::Undeclared => true,
             NotBinding::Missing => true,
-            NotBinding::NotReference => false,
+            NotBinding::NotBinding => false,
         })
     }
 
@@ -190,7 +191,7 @@ impl BindingResultExt for Result<bool, NotBinding> {
         self.unwrap_or_else(|err| match err {
             NotBinding::Undeclared => true,
             NotBinding::Missing => true,
-            NotBinding::NotReference => true,
+            NotBinding::NotBinding => true,
         })
     }
 }

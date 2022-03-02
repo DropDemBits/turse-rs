@@ -54,15 +54,12 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
 
     /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
-    #[salsa::invoke(query::binding_to)]
-    fn binding_to(&self, ref_src: BindingSource) -> Option<DefId>;
+    #[salsa::invoke(query::binding_def)]
+    fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
-    /// Gets the binding kind of a [`BindingSource`], or a [`NotBinding`](symbol::NotBinding) if it isn't one.
-    #[salsa::invoke(query::binding_kind)]
-    fn binding_kind(
-        &self,
-        bind_src: BindingSource,
-    ) -> Result<symbol::BindingKind, symbol::NotBinding>;
+    /// Gets what a [`BindingSource`] binds to, or a [`NotBinding`](symbol::NotBinding) if it isn't one.
+    #[salsa::invoke(query::binding_to)]
+    fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
 }
 
 /// Salsa-backed type interner
