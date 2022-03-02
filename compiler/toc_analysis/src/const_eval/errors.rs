@@ -61,7 +61,7 @@ impl ConstError {
                 // Report at the reference's definition spot
                 let bind_to = match db.binding_to((*def_id).into()) {
                     Ok(kind) => kind,
-                    Err(NotBinding::Undeclared | NotBinding::Missing) => return, // taken from an undeclared ident or missing expr
+                    Err(NotBinding::Missing) => return, // taken from an undeclared ident or missing expr
                     Err(NotBinding::NotBinding) => unreachable!("taken from a def"),
                 };
                 let library = db.library(def_id.0);

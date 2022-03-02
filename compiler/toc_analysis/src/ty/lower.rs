@@ -75,7 +75,7 @@ fn alias_ty(
     if db
         .binding_to(def_id.into())
         .map(BindingTo::is_type)
-        .or_undeclared()
+        .or_missing()
     {
         // Defer to the type's definition
         db.type_of(def_id.into())

@@ -122,15 +122,11 @@ pub(crate) fn binding_to(
 
                     // Pass-by value parameters are always const
                     // Register parameters become register bindings
-                    match param_info.pass_by {
-                        PassBy::Value if param_info.is_register => {
-                            BindingTo::Register(Mutability::Const)
-                        }
-                        PassBy::Reference(mutability) if param_info.is_register => {
-                            BindingTo::Register(mutability)
-                        }
-                        PassBy::Value => BindingTo::Storage(Mutability::Const),
-                        PassBy::Reference(mutability) => BindingTo::Storage(mutability),
+                    match (param_info.pass_by, param_info.is_register) {
+                        (PassBy::Value, true) => BindingTo::Register(Mutability::Const),
+                        (PassBy::Value, false) => BindingTo::Storage(Mutability::Const),
+                        (PassBy::Reference(mutability), true) => BindingTo::Register(mutability),
+                        (PassBy::Reference(mutability), false) => BindingTo::Storage(mutability),
                     }
                 }
                 ParameterInfo::Result => {
@@ -151,7 +147,7 @@ pub(crate) fn binding_to(
             }
         }
         // From an undeclared identifier, not purely a binding
-        None => Err(NotBinding::Undeclared),
+        None => Err(NotBinding::Missing),
     }
 }
 

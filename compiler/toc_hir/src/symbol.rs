@@ -159,9 +159,7 @@ impl std::fmt::Display for BindingTo {
 /// From a failed binding lookup
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotBinding {
-    /// Refers to an undeclared definition
-    Undeclared,
-    /// Is an error expression
+    /// From an undeclared definition or an error expression
     Missing,
     /// Not a binding at all (e.g. a plain value)
     NotBinding,
@@ -169,29 +167,18 @@ pub enum NotBinding {
 
 /// Helper trait to deal with [`NotBinding`] kind narrowing
 pub trait BindingResultExt: seal_me::Sealed {
-    /// Allows an undeclared identifier to match the previous predicate
-    fn or_undeclared(self) -> bool;
-    /// Allows any value to match the previous predicate
-    fn or_value(self) -> bool;
+    /// Allows a missing definition to match the previous predicate
+    fn or_missing(self) -> bool;
 }
 
 impl BindingResultExt for Result<bool, NotBinding> {
     // Treat error exprs as the same as error
     // It can be any kind of expression
 
-    fn or_undeclared(self) -> bool {
+    fn or_missing(self) -> bool {
         self.unwrap_or_else(|err| match err {
-            NotBinding::Undeclared => true,
             NotBinding::Missing => true,
             NotBinding::NotBinding => false,
-        })
-    }
-
-    fn or_value(self) -> bool {
-        self.unwrap_or_else(|err| match err {
-            NotBinding::Undeclared => true,
-            NotBinding::Missing => true,
-            NotBinding::NotBinding => true,
         })
     }
 }

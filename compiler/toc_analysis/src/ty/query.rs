@@ -78,25 +78,31 @@ pub(super) fn value_produced(
             let library = db.library(lib_id);
 
             return match &library.body(body_expr.0).expr(body_expr.1).kind {
+                toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
                 toc_hir::expr::ExprKind::Name(name) => match name {
                     toc_hir::expr::Name::Name(def_id) => {
                         // Defer to binding
-                        value_produced(db, DefId(lib_id, *def_id).into())
+                        db.value_produced(DefId(lib_id, *def_id).into())
                     }
                     toc_hir::expr::Name::Self_ => unimplemented!(),
                 },
-                toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
+                toc_hir::expr::ExprKind::Literal(literal) => match literal {
+                    toc_hir::expr::Literal::CharSeq(_) | toc_hir::expr::Literal::String(_) => {
+                        Ok(ValueKind::Reference(symbol::Mutability::Const))
+                    }
+                    _ => Ok(ValueKind::Scalar),
+                },
                 _ => {
                     // Take from the expr's type (always produces a value)
                     let expr_ty = db.type_of((lib_id, body_expr).into());
                     let expr_ty_ref = expr_ty.in_db(db).to_base_type();
 
-                    if expr_ty_ref.kind().is_scalar() {
-                        Ok(ValueKind::Scalar)
-                    } else if !expr_ty_ref.kind().is_error() {
-                        Ok(ValueKind::Reference(symbol::Mutability::Const))
-                    } else {
-                        Err(NotValue::Missing)
+                    match expr_ty_ref.kind() {
+                        kind if kind.is_scalar() => Ok(ValueKind::Scalar),
+                        kind if !kind.is_error() => {
+                            Ok(ValueKind::Reference(symbol::Mutability::Const))
+                        }
+                        _ => Err(NotValue::Missing),
                     }
                 }
             };
@@ -110,7 +116,7 @@ pub(super) fn value_produced(
         Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
         // Subprogram names are aliases of address constants
         Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
-        Err(symbol::NotBinding::Missing | symbol::NotBinding::Undeclared) => Err(NotValue::Missing),
+        Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
         _ => Err(NotValue::NotValue),
     }
 }

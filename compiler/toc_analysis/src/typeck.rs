@@ -1325,7 +1325,7 @@ impl TypeCheck<'_> {
         let target = DefId(self.library_id, def_id);
         let binding_to = self.db.binding_to(target.into());
 
-        if !binding_to.map(BindingTo::is_type).or_undeclared() {
+        if !binding_to.map(BindingTo::is_type).or_missing() {
             let span = self.library.lookup_type(id).span;
             let span = self.library.lookup_span(span);
 
@@ -1484,7 +1484,7 @@ impl TypeCheck<'_> {
 
                 let binding_to = match self.db.binding_to(binding_source) {
                     Ok(kind) => kind,
-                    Err(NotBinding::Undeclared | NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
+                    Err(NotBinding::Missing) => return, // already covered by an undeclared def or missing expr error
                     Err(NotBinding::NotBinding) => unreachable!("taken from a def_id"),
                 };
 
