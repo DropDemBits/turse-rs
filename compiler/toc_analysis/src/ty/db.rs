@@ -30,6 +30,9 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     /// Gets the type of the given type source.
     #[salsa::invoke(ty::query::type_of)]
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
+
+    #[salsa::invoke(ty::query::value_produced)]
+    fn value_produced(&self, source: ValueSource) -> Result<ValueKind, NotValue>;
 }
 
 /// Helpers for working with the type interner
@@ -110,5 +113,92 @@ impl From<(LibraryId, BodyId)> for TypeSource {
 impl From<(LibraryId, ItemId)> for TypeSource {
     fn from(id: (LibraryId, ItemId)) -> Self {
         Self::Item(id.0, id.1)
+    }
+}
+
+/// Value produced from a [`ValueSource`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ValueKind {
+    Scalar,
+    Register(symbol::Mutability),
+    Reference(symbol::Mutability),
+}
+
+impl ValueKind {
+    pub fn is_value(self) -> bool {
+        // no-op, but for matching semantics of other predicates
+        true
+    }
+
+    pub fn is_ref(self) -> bool {
+        matches!(self, Self::Reference(_) | Self::Register(_))
+    }
+
+    pub fn is_ref_mut(self) -> bool {
+        matches!(
+            self,
+            Self::Reference(symbol::Mutability::Var) | Self::Register(symbol::Mutability::Var)
+        )
+    }
+
+    pub fn is_storage_backed(self) -> bool {
+        matches!(self, Self::Reference(_))
+    }
+
+    pub fn is_storage_backed_mut(self) -> bool {
+        matches!(self, Self::Reference(symbol::Mutability::Var))
+    }
+
+    pub fn is_register(self) -> bool {
+        matches!(self, Self::Register(_))
+    }
+}
+
+/// Not values
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NotValue {
+    NotValue,
+    Missing,
+}
+
+/// Anything that can produce a value
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ValueSource {
+    DefId(DefId),
+    Body(LibraryId, BodyId),
+    BodyExpr(LibraryId, BodyExpr),
+}
+
+impl From<symbol::DefId> for ValueSource {
+    fn from(def_id: symbol::DefId) -> Self {
+        Self::DefId(def_id)
+    }
+}
+
+impl From<(LibraryId, BodyId)> for ValueSource {
+    fn from((lib_id, body): (LibraryId, BodyId)) -> Self {
+        Self::Body(lib_id, body)
+    }
+}
+
+impl From<(LibraryId, BodyExpr)> for ValueSource {
+    fn from(expr: (LibraryId, BodyExpr)) -> Self {
+        Self::BodyExpr(expr.0, expr.1)
+    }
+}
+
+impl From<(LibraryId, BodyId, ExprId)> for ValueSource {
+    fn from(expr: (LibraryId, BodyId, ExprId)) -> Self {
+        Self::BodyExpr(expr.0, BodyExpr(expr.1, expr.2))
+    }
+}
+
+pub trait NotValueErrExt {
+    fn or_missing(self) -> bool;
+}
+
+impl NotValueErrExt for Result<bool, NotValue> {
+    fn or_missing(self) -> bool {
+        self.unwrap_or_else(|err| matches!(err, NotValue::Missing))
     }
 }

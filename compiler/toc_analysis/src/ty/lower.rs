@@ -6,7 +6,7 @@ use toc_hir::{
     body, expr, item,
     library::{InLibrary, LibraryId, WrapInLibrary},
     stmt,
-    symbol::{self, BindingKind, BindingResultExt, DefId, LocalDefId},
+    symbol::{self, BindingResultExt, BindingTo, DefId, LocalDefId},
     ty as hir_ty,
 };
 
@@ -73,9 +73,9 @@ fn alias_ty(
     let def_id = DefId(hir_id.0, ty.0);
 
     if db
-        .binding_kind(def_id.into())
-        .map(BindingKind::is_type)
-        .or_undeclared()
+        .binding_to(def_id.into())
+        .map(BindingTo::is_type)
+        .or_missing()
     {
         // Defer to the type's definition
         db.type_of(def_id.into())
