@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "module a var c := 2 end a"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..25): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..25): []
+        StmtItem@(FileId(1), 0..25): ItemId(1)
+          Module@(FileId(1), 0..25): "a"@(FileId(1), 7..8)
+            StmtBody@(FileId(1), 9..19): []
+              StmtItem@(FileId(1), 9..19): ItemId(0)
+                ConstVar@(FileId(1), 9..19): var "c"@(FileId(1), 13..14)
+                  ExprBody@(FileId(1), 18..19)
+                    Literal@(FileId(1), 18..19): Integer(2)
+

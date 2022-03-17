@@ -27,7 +27,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ForwardDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::DeferredDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::BodyDecl(_) => self.unsupported_stmt(span),
-            ast::Stmt::ModuleDecl(_) => self.unsupported_stmt(span),
+
+            ast::Stmt::ModuleDecl(decl) => self.lower_module_decl(decl),
+
             ast::Stmt::ClassDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::MonitorDecl(_) => self.unsupported_stmt(span),
 
@@ -479,6 +481,52 @@ impl super::BodyLowering<'_, '_> {
         );
 
         item::SubprogramBody { body }
+    }
+
+    fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> Option<stmt::StmtKind> {
+        let is_pervasive = decl.pervasive_attr().is_some();
+        let def_id = self.lower_name_def(decl.name()?, SymbolKind::Declared, is_pervasive);
+
+        self.unsupported_node(decl.import_stmt());
+        self.unsupported_node(decl.export_stmt());
+        self.unsupported_node(decl.implement_stmt());
+        self.unsupported_node(decl.implement_by_stmt());
+
+        self.unsupported_node(decl.pre_stmt());
+        self.unsupported_node(decl.post_stmt());
+
+        self.ctx.scopes.push_scope(ScopeKind::Module);
+        let (body, declares) = {
+            if !is_pervasive {
+                // Also make visible in the inner scope if it's not pervasive
+                self.introduce_def(def_id, false);
+            }
+
+            self.ctx.lower_stmt_body(
+                ScopeKind::Subprogram,
+                decl.stmt_list().unwrap(),
+                vec![],
+                None,
+            )
+        };
+        self.ctx.scopes.pop_scope();
+
+        // TODO: Build the export table
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+        let item_id = self.ctx.library.add_item(item::Item {
+            def_id,
+            kind: item::ItemKind::Module(item::Module {
+                as_monitor: false,
+                def_id,
+                declares,
+                body,
+                exports: vec![],
+            }),
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {

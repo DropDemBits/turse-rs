@@ -197,7 +197,11 @@ pub struct Module {
     pub as_monitor: bool,
     pub def_id: symbol::LocalDefId,
     pub declares: Vec<ItemId>,
-    // not handling exports yet
-    //exports: Vec<ExportItem>,
+    pub exports: Vec<ExportItem>,
     pub body: body::BodyId,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ExportItem {
+    //
 }

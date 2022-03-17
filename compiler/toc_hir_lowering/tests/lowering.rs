@@ -1173,3 +1173,22 @@ fn lower_return_stmt() {
 fn lower_result_stmt() {
     assert_lower(r#"fcn _ : string result "sus" end _"#);
 }
+
+#[test]
+fn lower_module_def() {
+    assert_lower("module a var c := 2 end a");
+
+    assert_lower("module var c := 2 end a");
+
+    assert_lower(
+        "
+    module pervasive a
+        module b
+            module c
+                a b c
+            end c
+        end b
+    end a
+    ",
+    );
+}

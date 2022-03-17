@@ -1,0 +1,28 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    module pervasive a\n        module b\n            module c\n                a b c\n            end c\n        end b\n    end a\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..130): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..125): []
+        StmtItem@(FileId(1), 5..125): ItemId(2)
+          Module@(FileId(1), 5..125): "a"@(FileId(1), 22..23)
+            StmtBody@(FileId(1), 32..115): []
+              StmtItem@(FileId(1), 32..115): ItemId(1)
+                Module@(FileId(1), 32..115): "b"@(FileId(1), 39..40)
+                  StmtBody@(FileId(1), 53..101): []
+                    StmtItem@(FileId(1), 53..101): ItemId(0)
+                      Module@(FileId(1), 53..101): "c"@(FileId(1), 60..61)
+                        StmtBody@(FileId(1), 78..83): []
+                          CallStmt@(FileId(1), 78..79): [no params]
+                            Name@(FileId(1), 78..79): "a"@(FileId(1), 22..23)
+                          CallStmt@(FileId(1), 80..81): [no params]
+                            Name@(FileId(1), 80..81): "b"@(FileId(1), 80..81), undeclared
+                          CallStmt@(FileId(1), 82..83): [no params]
+                            Name@(FileId(1), 82..83): "c"@(FileId(1), 60..61)
+error in file FileId(1) at 80..81: `b` is undeclared
+| error in file FileId(1) for 80..81: no definitions of `b` are in scope
+
