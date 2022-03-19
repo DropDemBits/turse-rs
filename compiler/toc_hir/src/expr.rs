@@ -26,7 +26,8 @@ pub enum ExprKind {
     Unary(Unary),
     /// `self` is a special case of a name expression
     Name(Name),
-    //Field(Field),
+    /// Field lookup
+    Field(Field),
     //Deref(Deref),
     //Cheat(Cheat),
     //NatCheat(NatCheat),
@@ -155,6 +156,15 @@ pub enum Name {
     /// Reference to `self`
     // TODO: Link a use-id to the appropriate class DefId
     Self_,
+}
+
+/// Field lookup expression
+#[derive(Debug, PartialEq, Eq)]
+pub struct Field {
+    /// Reference to lookup in
+    pub lhs: ExprId,
+    /// Field to lookup
+    pub field: Spanned<String>,
 }
 
 /// Calling expression

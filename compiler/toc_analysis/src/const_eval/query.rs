@@ -200,6 +200,10 @@ pub(crate) fn evaluate_const(
                     }
                 }
             }
+            expr::ExprKind::Field(_) => {
+                // FIXME: Handle const-eval field lookups
+                return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+            }
             expr::ExprKind::Call(_) => {
                 // There are some functions which are allowed to be const-fns, but they're all builtins
                 // It's okay to treat it as not const-evaluable

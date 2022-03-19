@@ -47,6 +47,7 @@ pub trait HirVisitor {
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {}
+    fn visit_field(&self, id: BodyExpr, expr: &expr::Field) {}
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {}
     // Types
     fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {}
@@ -92,6 +93,7 @@ pub trait HirVisitor {
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
             expr::ExprKind::Name(expr) => self.visit_name(id, expr),
+            expr::ExprKind::Field(expr) => self.visit_field(id, expr),
             expr::ExprKind::Call(expr) => self.visit_call_expr(id, expr),
         }
     }
@@ -494,6 +496,7 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Binary(node) => self.walk_binary(in_body, node),
             expr::ExprKind::Unary(node) => self.walk_unary(in_body, node),
             expr::ExprKind::Name(_) => {}
+            expr::ExprKind::Field(node) => self.walk_field(in_body, node),
             expr::ExprKind::Call(node) => self.walk_call_expr(in_body, node),
         }
     }
@@ -505,6 +508,10 @@ impl<'hir> Walker<'hir> {
 
     fn walk_unary(&mut self, in_body: body::BodyId, node: &expr::Unary) {
         self.enter_expr(in_body, node.rhs);
+    }
+
+    fn walk_field(&mut self, in_body: body::BodyId, node: &expr::Field) {
+        self.enter_expr(in_body, node.lhs);
     }
 
     fn walk_call_expr(&mut self, in_body: body::BodyId, node: &expr::Call) {

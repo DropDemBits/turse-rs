@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    module a end a\n    a.b\n    "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..32): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..27): []
+        StmtItem@(FileId(1), 5..19): ItemId(0)
+          Module@(FileId(1), 5..19): "a"@(FileId(1), 12..13)
+            StmtBody@(FileId(1), 14..14): []
+        CallStmt@(FileId(1), 24..27): [no params]
+          Field@(FileId(1), 24..27): field "b"
+            Name@(FileId(1), 24..25): "a"@(FileId(1), 12..13)
+

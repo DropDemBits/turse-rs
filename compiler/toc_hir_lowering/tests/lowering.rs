@@ -1277,3 +1277,21 @@ fn lower_module_exports() {
     end z",
     );
 }
+
+#[test]
+fn lower_field_expr() {
+    assert_lower(
+        "
+    module a end a
+    a.b
+    ",
+    );
+
+    // Missing field name
+    assert_lower(
+        "
+    module a end a
+    a.
+    ",
+    );
+}

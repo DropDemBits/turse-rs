@@ -332,6 +332,7 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr),
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
+        expr::ExprKind::Field(expr) => field_ty(db, body, expr),
         expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr),
     }
 }
@@ -395,6 +396,11 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
             todo!()
         }
     }
+}
+
+fn field_ty(db: &dyn TypeDatabase, _body: InLibrary<&body::Body>, _expr: &expr::Field) -> TypeId {
+    // TODO: type from field expr
+    db.mk_error()
 }
 
 fn call_expr_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Call) -> TypeId {
