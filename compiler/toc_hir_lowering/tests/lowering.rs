@@ -1180,6 +1180,7 @@ fn lower_module_def() {
 
     assert_lower("module var c := 2 end a");
 
+    // Module name should be visible inside of the module itself
     assert_lower(
         "
     module pervasive a
@@ -1190,5 +1191,89 @@ fn lower_module_def() {
         end b
     end a
     ",
+    );
+}
+
+#[test]
+fn lower_module_exports() {
+    assert_lower(
+        "
+    module tree
+        export a, var b, unqualified c, pervasive unqualified d, opaque e
+
+        var a, b, c, d : int
+        type e : int
+    end tree",
+    );
+
+    // pervasive only applicable to unqualified
+    assert_lower(
+        "
+    module z
+        export *a
+        var a : int
+    end z",
+    );
+
+    // opaque only applicable to types
+    assert_lower(
+        "
+        module z
+            export opaque a, opaque z
+            var a : int
+        end z",
+    );
+
+    // undeclared export
+    assert_lower(
+        "
+        module z
+            export a
+        end z",
+    );
+
+    // only export from inside module
+    assert_lower(
+        "
+        var *a : int
+        module z
+            export a
+        end z",
+    );
+
+    assert_lower(
+        "
+    module z
+        export var *~. all
+        var heres, tree : int
+    end z",
+    );
+
+    // If an all is present, the rest of the exports are ignored
+    assert_lower(
+        "
+    module z
+        export var *~. all, heres
+        var heres, tree : int
+    end z",
+    );
+
+    // `all` opaque restriction only applies to applicable items
+    assert_lower(
+        "
+    module z
+        export var *~. opaque all
+        var heres, tree : int
+        type again : int
+    end z",
+    );
+
+    // duplicate export
+    assert_lower(
+        "
+    module z
+        export a, a, a, a, a
+        var a : int
+    end z",
     );
 }

@@ -1,11 +1,14 @@
 //! Lowering into `Stmt` HIR nodes
+use std::collections::HashMap;
+
+use indexmap::IndexMap;
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
     symbol::{self, ForwardKind, LimitedKind, Mutability, SymbolKind},
     ty,
 };
-use toc_span::{SpanId, Spanned};
+use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::{lower::LoweredStmt, scopes::ScopeKind};
@@ -488,7 +491,6 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.lower_name_def(decl.name()?, SymbolKind::Declared, is_pervasive);
 
         self.unsupported_node(decl.import_stmt());
-        self.unsupported_node(decl.export_stmt());
         self.unsupported_node(decl.implement_stmt());
         self.unsupported_node(decl.implement_by_stmt());
 
@@ -511,7 +513,7 @@ impl super::BodyLowering<'_, '_> {
         };
         self.ctx.scopes.pop_scope();
 
-        // TODO: Build the export table
+        let exports = self.lower_export_list(decl.export_stmt(), &declares);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let item_id = self.ctx.library.add_item(item::Item {
@@ -521,12 +523,225 @@ impl super::BodyLowering<'_, '_> {
                 def_id,
                 declares,
                 body,
-                exports: vec![],
+                exports,
             }),
             span,
         });
 
         Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_export_list(
+        &mut self,
+        exports: Option<ast::ExportStmt>,
+        declares: &[item::ItemId],
+    ) -> Vec<item::ExportItem> {
+        let exports = if let Some(exports) = exports {
+            exports
+        } else {
+            return vec![];
+        };
+        let exports_all = exports.exports().find(|item| item.all_token().is_some());
+
+        // Deduplicate the exportable idents
+        let mut exported_items = IndexMap::new();
+
+        for item_id in declares {
+            let item = self.ctx.library.item(*item_id);
+            let def_info = self.ctx.library.local_def(item.def_id);
+            exported_items.insert(def_info.name.item().as_str(), *item_id);
+        }
+
+        let lower_export_attrs =
+            |from_item: &ast::ExportItem, messages: &mut toc_reporting::MessageSink| {
+                let is_var = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::VarAttr(_)));
+                let is_unqualified = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::UnqualifiedAttr(_)));
+                let is_pervasive = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::PervasiveAttr(_)));
+                let is_opaque = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::OpaqueAttr(_)));
+
+                let mutability = Mutability::from_is_mutable(is_var);
+                let qualify_as = match (is_unqualified, is_pervasive) {
+                    (false, false) => item::QualifyAs::Qualified,
+                    (false, true) => {
+                        // Pervasive exports should be unqualified
+                        // or rather
+                        // Attribute has no effect - pervasive exports are only meaningful for unqualified attrs
+                        let pervasive_attr = from_item
+                            .attrs()
+                            .find_map(|attr| {
+                                if let ast::ExportAttr::PervasiveAttr(attr) = attr {
+                                    Some(attr)
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap();
+
+                        // XXX: This can't be replaced with `self.ctx.mk_span` since we also borrow from the library, and we also need mutable access to the message sink
+                        // Once we intern symbols, then we can remove this
+                        let span = Span::new(self.ctx.file, pervasive_attr.syntax().text_range());
+                        messages.warn("attribute has no effect", "`pervasive` only has an effect on exports when `unqualified` is also present", span);
+                        item::QualifyAs::Qualified
+                    }
+                    (true, false) => item::QualifyAs::Unqualified,
+                    (true, true) => item::QualifyAs::PervasiveUnqualified,
+                };
+
+                (mutability, qualify_as, is_opaque)
+            };
+
+        if let Some(exports_all) = exports_all {
+            // Warn about ignored export items
+            for exports_item in exports.exports() {
+                if exports_item == exports_all {
+                    continue;
+                }
+
+                let name_tok = if let Some(name) = exports_item.name() {
+                    name.identifier_token().unwrap()
+                } else {
+                    continue;
+                };
+                let name = name_tok.text();
+
+                let export_span = Span::new(self.ctx.file, exports_item.syntax().text_range());
+                let all_span =
+                    Span::new(self.ctx.file, exports_all.all_token().unwrap().text_range());
+
+                self.ctx
+                    .messages
+                    .warn_detailed("export item is ignored", export_span)
+                    .with_warn(format!("`{name}` is already exported..."), export_span)
+                    .with_note("by this `all`", all_span)
+                    .finish();
+            }
+
+            let (mutability, qualify_as, is_opaque) =
+                lower_export_attrs(&exports_all, &mut self.ctx.messages);
+
+            exported_items
+                .into_iter()
+                .map(|(_, item_id)| {
+                    let is_opaque = if !matches!(
+                        self.ctx.library.item(item_id).kind,
+                        item::ItemKind::Type(_)
+                    ) {
+                        // Opaque is only applicable to types
+                        false
+                    } else {
+                        is_opaque
+                    };
+
+                    item::ExportItem {
+                        mutability,
+                        qualify_as,
+                        is_opaque,
+                        item_id,
+                    }
+                })
+                .collect()
+        } else {
+            let mut already_exported = HashMap::new();
+
+            exports
+                .exports()
+                .flat_map(|exports_item| {
+                    let (mutability, qualify_as, is_opaque) =
+                        lower_export_attrs(&exports_item, &mut self.ctx.messages);
+                    let name = exports_item.name()?;
+                    let name_tok = name.identifier_token().unwrap();
+                    let name_text = name_tok.text();
+
+                    // Warn about duplicate exports
+                    match already_exported.entry(name_text.to_string()) {
+                        std::collections::hash_map::Entry::Occupied(entry) => {
+                            // Already exported
+                            let this_span =
+                                Span::new(self.ctx.file, exports_item.syntax().text_range());
+                            self.ctx
+                                .messages
+                                .warn_detailed("export item is ignored", this_span)
+                                .with_warn(
+                                    format!("`{name_text}` is already exported..."),
+                                    this_span,
+                                )
+                                .with_note("by this export", *entry.get())
+                                .finish();
+
+                            // Skip this export
+                            return None;
+                        }
+                        std::collections::hash_map::Entry::Vacant(entry) => {
+                            // Not exported yet
+                            entry.insert(Span::new(
+                                self.ctx.file,
+                                exports_item.syntax().text_range(),
+                            ));
+                        }
+                    }
+
+                    let item = exported_items.get(name_text).copied();
+
+                    if let Some(item_id) = item {
+                        let item = self.ctx.library.item(item_id);
+                        if is_opaque && !matches!(item.kind, item::ItemKind::Type(_)) {
+                            let opaque_attr = exports_item
+                                .attrs()
+                                .find_map(|attr| {
+                                    if let ast::ExportAttr::OpaqueAttr(attr) = attr {
+                                        Some(attr)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap();
+
+                            let opaque_span =
+                                Span::new(self.ctx.file, opaque_attr.syntax().text_range());
+                            let def_info = self.ctx.library.local_def(item.def_id);
+                            let def_name = def_info.name.item();
+                            let def_span =
+                                def_info.name.span().lookup_in(&self.ctx.library.span_map);
+
+                            self.ctx
+                                .messages
+                                .error_detailed("cannot use `opaque` here", opaque_span)
+                                .with_error(
+                                    "`opaque` attribute can only be applied to types",
+                                    opaque_span,
+                                )
+                                .with_note(format!("`{def_name}` declared here"), def_span)
+                                .finish();
+                        };
+
+                        Some(item::ExportItem {
+                            mutability,
+                            qualify_as,
+                            is_opaque,
+                            item_id,
+                        })
+                    } else {
+                        let span = Span::new(self.ctx.file, name.syntax().text_range());
+                        let name = name.identifier_token().unwrap();
+                        self.ctx.messages.error(
+                            format!("exported symbol `{name}` has not been declared"),
+                            "not declared inside this module",
+                            span,
+                        );
+
+                        None
+                    }
+                })
+                .collect()
+        }
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {

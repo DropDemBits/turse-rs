@@ -203,5 +203,15 @@ pub struct Module {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExportItem {
-    //
+    pub mutability: symbol::Mutability,
+    pub qualify_as: QualifyAs,
+    pub is_opaque: bool,
+    pub item_id: ItemId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QualifyAs {
+    Qualified,
+    Unqualified,
+    PervasiveUnqualified,
 }

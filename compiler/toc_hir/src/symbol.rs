@@ -84,6 +84,15 @@ pub enum Mutability {
     Var,
 }
 
+impl Mutability {
+    pub fn from_is_mutable(is_var: bool) -> Mutability {
+        match is_var {
+            true => Mutability::Var,
+            false => Mutability::Const,
+        }
+    }
+}
+
 /// What a definition binds to
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BindingTo {
