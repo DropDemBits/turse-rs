@@ -1,5 +1,6 @@
 //! Item definitions
 
+use indexmap::IndexMap;
 use toc_span::SpanId;
 
 use crate::{body, symbol, ty};
@@ -214,4 +215,25 @@ pub enum QualifyAs {
     Qualified,
     Unqualified,
     PervasiveUnqualified,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Fields {
+    pub fields: IndexMap<String, FieldInfo>,
+}
+
+impl Fields {
+    pub fn lookup(&self, field: &str) -> Option<&FieldInfo> {
+        self.fields.get(field)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct FieldInfo {
+    /// Associated definition of this field
+    pub def_id: symbol::DefId,
+    /// Mutability of this field
+    pub mutability: symbol::Mutability,
+    /// If this field refers to an opaque type
+    pub is_opaque: bool,
 }

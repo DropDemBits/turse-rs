@@ -513,6 +513,7 @@ impl super::BodyLowering<'_, '_> {
         };
         self.ctx.scopes.pop_scope();
 
+        // TODO: Handle unqualified (pervasive) exports
         let exports = self.lower_export_list(decl.export_stmt(), &declares);
 
         let span = self.ctx.intern_range(decl.syntax().text_range());

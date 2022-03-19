@@ -1,5 +1,8 @@
 //! Type-related query implementation
 
+use std::sync::Arc;
+
+use toc_hir::item;
 use toc_hir::symbol::BindingTo;
 use toc_hir::{
     body::BodyId,
@@ -125,6 +128,63 @@ pub(super) fn value_produced(
                         _ => Err(NotValue::Missing),
                     }
                 }
+            }
+        }
+    }
+}
+
+pub(crate) fn fields_of(
+    db: &dyn db::TypeDatabase,
+    source: db::FieldsSource,
+) -> Option<Arc<item::Fields>> {
+    match source {
+        db::FieldsSource::DefId(def_id) => {
+            let InLibrary(library_id, item_id) = db.item_of(def_id)?;
+            let library = db.library(library_id);
+
+            match &library.item(item_id).kind {
+                item::ItemKind::Module(item) => {
+                    // Build from the exports
+                    let fields = item
+                        .exports
+                        .iter()
+                        .map(|export| {
+                            let local_def = library.item(export.item_id).def_id;
+                            let field_name = library.local_def(local_def).name.item().clone();
+                            let def_id = DefId(library_id, local_def);
+
+                            let info = item::FieldInfo {
+                                def_id,
+                                mutability: export.mutability,
+                                is_opaque: export.is_opaque,
+                            };
+
+                            (field_name, info)
+                        })
+                        .collect();
+
+                    Some(Arc::new(item::Fields { fields }))
+                }
+                _ => {
+                    // Defer to the corresponding type
+                    let ty_id = db.type_of(def_id.into());
+                    db.fields_of(ty_id.into())
+                }
+            }
+        }
+        db::FieldsSource::Type(_) => {
+            // Current types do not have fields
+            None
+        }
+        db::FieldsSource::BodyExpr(lib_id, body_expr) => {
+            if let BindingTo::Module = db.binding_to((lib_id, body_expr).into()).ok()? {
+                // Defer to the corresponding def
+                let def_id = db.binding_def((lib_id, body_expr).into())?;
+                db.fields_of(def_id.into())
+            } else {
+                // Defer to the corresponding type
+                let ty_id = db.type_of((lib_id, body_expr).into());
+                db.fields_of(ty_id.into())
             }
         }
     }

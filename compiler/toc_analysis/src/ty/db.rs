@@ -1,12 +1,13 @@
 //! Analysis query system definitions
 
+use std::sync::Arc;
+
 use toc_hir::{
     body::BodyId,
-    expr::{BodyExpr, ExprId},
-    item::ItemId,
+    expr::{self, BodyExpr, ExprId},
+    item::{self, ItemId},
     library::{InLibrary, LibraryId},
-    symbol,
-    symbol::DefId,
+    symbol::{self, DefId},
     ty::TypeId as HirTypeId,
 };
 use toc_salsa::salsa;
@@ -33,6 +34,9 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
 
     #[salsa::invoke(ty::query::value_produced)]
     fn value_produced(&self, source: ValueSource) -> Result<ValueKind, NotValue>;
+
+    #[salsa::invoke(ty::query::fields_of)]
+    fn fields_of(&self, source: FieldsSource) -> Option<Arc<item::Fields>>;
 }
 
 /// Helpers for working with the type interner
@@ -224,5 +228,36 @@ pub trait NotValueErrExt {
 impl NotValueErrExt for Result<bool, NotValue> {
     fn or_missing(self) -> bool {
         self.unwrap_or_else(|err| matches!(err, NotValue::Missing))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FieldsSource {
+    DefId(DefId),
+    Type(ty::TypeId),
+    BodyExpr(LibraryId, expr::BodyExpr),
+}
+
+impl From<symbol::DefId> for FieldsSource {
+    fn from(def_id: symbol::DefId) -> Self {
+        Self::DefId(def_id)
+    }
+}
+
+impl From<ty::TypeId> for FieldsSource {
+    fn from(type_id: ty::TypeId) -> Self {
+        Self::Type(type_id)
+    }
+}
+
+impl From<(LibraryId, BodyExpr)> for FieldsSource {
+    fn from(expr: (LibraryId, BodyExpr)) -> Self {
+        Self::BodyExpr(expr.0, expr.1)
+    }
+}
+
+impl From<(LibraryId, BodyId, ExprId)> for FieldsSource {
+    fn from(expr: (LibraryId, BodyId, ExprId)) -> Self {
+        Self::BodyExpr(expr.0, BodyExpr(expr.1, expr.2))
     }
 }
