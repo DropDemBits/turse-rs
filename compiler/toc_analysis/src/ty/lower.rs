@@ -155,7 +155,7 @@ pub(crate) fn ty_from_item(db: &dyn TypeDatabase, item_id: InLibrary<item::ItemI
         item::ItemKind::Type(item) => type_def_ty(db, item_id, item),
         item::ItemKind::Binding(item) => bind_def_ty(db, item_id, item),
         item::ItemKind::Subprogram(item) => subprogram_item_ty(db, item_id, item),
-        item::ItemKind::Module(_) => db.mk_error(), // TODO: lower module items into tys
+        item::ItemKind::Module(_) => db.mk_error(), // Modules can't be used as types directly
     }
 }
 
@@ -398,9 +398,15 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
     }
 }
 
-fn field_ty(db: &dyn TypeDatabase, _body: InLibrary<&body::Body>, _expr: &expr::Field) -> TypeId {
-    // TODO: type from field expr
-    db.mk_error()
+fn field_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Field) -> TypeId {
+    db.fields_of(ty_from_expr(db, body, expr.lhs).into())
+        .and_then(|fields| {
+            fields.lookup(expr.field.item()).map(|field| {
+                // TODO: Handle opaque types
+                db.type_of(field.def_id.into())
+            })
+        })
+        .unwrap_or_else(|| db.mk_error())
 }
 
 fn call_expr_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Call) -> TypeId {

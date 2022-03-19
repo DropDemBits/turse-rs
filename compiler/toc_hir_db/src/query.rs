@@ -170,13 +170,18 @@ fn lookup_binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Result<D
             // Traverse nodes until we encounter a valid binding
             let library = db.library(lib_id);
 
-            // For now, only name exprs can produce a binding
+            // Only name exprs and fields can produce a binding
             match &library.body(expr.0).expr(expr.1).kind {
                 expr::ExprKind::Missing => Err(NotBinding::Missing),
                 expr::ExprKind::Name(name) => match name {
                     expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
                     expr::Name::Self_ => todo!(),
                 },
+                expr::ExprKind::Field(_field) => {
+                    // TODO: Migrate `binding_to` and `binding_def` into `toc_analysis`
+                    // We need access to `fields_of`, which depends on structured type information
+                    Err(NotBinding::NotBinding)
+                }
                 _ => Err(NotBinding::NotBinding),
             }
         }

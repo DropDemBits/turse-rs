@@ -168,6 +168,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_unary(id.0, expr);
     }
 
+    fn visit_field(&self, id: BodyExpr, expr: &expr::Field) {
+        self.typeck_field_expr(id, expr)
+    }
+
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {
         self.typeck_call_expr(id, expr);
     }
@@ -931,6 +935,30 @@ impl TypeCheck<'_> {
                 op_span,
                 right_span,
                 &mut self.state().reporter,
+            );
+        }
+    }
+
+    fn typeck_field_expr(&self, id: expr::BodyExpr, expr: &expr::Field) {
+        let db = self.db;
+
+        if let Some(fields) = db.fields_of((self.library_id, id.0, expr.lhs).into()) {
+            if fields.lookup(expr.field.item().as_str()).is_none() {
+                // not a field
+                let field_name = expr.field.item();
+                self.state().reporter.error(
+                    format!("no field named `{field_name}` in expression"),
+                    format!("no field named `{field_name}` in here"),
+                    expr.field.span().lookup_in(&self.library.span_map),
+                );
+            }
+        } else {
+            // no fields
+            let field_name = expr.field.item();
+            self.state().reporter.error(
+                format!("no field named `{field_name}` in expression"),
+                format!("no field named `{field_name}` in here"),
+                expr.field.span().lookup_in(&self.library.span_map),
             );
         }
     }
