@@ -1227,7 +1227,9 @@ impl TypeCheck<'_> {
             _ => return,
         };
 
-        self.expect_integer_value((self.library_id, expr_body).into());
+        if !self.expect_integer_value((self.library_id, expr_body).into()) {
+            return;
+        }
 
         // Check resultant size
         let (seq_size, size_limit, allow_dyn_size) = match ty.kind() {
