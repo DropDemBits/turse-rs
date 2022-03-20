@@ -1517,7 +1517,16 @@ impl TypeCheck<'_> {
         from_thing: impl FnOnce(&str) -> String,
         additional_info: Option<&str>,
     ) -> bool {
-        // TODO: Refactor
+        // looks like (when checking for value):
+        // "cannot use `{name}` as an expression"
+        // "`{name}` is a reference to {binding_to}, not a variable"
+        // "`{name}` declared here"
+        //
+        // or (when checking for ref mut or non-register ref mut)
+        // "cannot bind `{from}` to {thing}"
+        // "`{name}` is a reference to {binding_to}, not a variable" or "not a reference to a variable"
+        // "`{name}` declared here"
+
         use ty::db::ValueSource;
 
         let value_kind = self.db.value_produced(value_src);
@@ -1529,6 +1538,7 @@ impl TypeCheck<'_> {
             ExpectedValue::NonRegisterRef(Mutability::Var) => ValueKind::is_storage_backed_mut,
         };
         let is_valid = value_kind.map(predicate).or_missing();
+        let checking_for_value = matches!(expected_kind, ExpectedValue::Value);
 
         if !is_valid {
             let binding_src = match value_src {
@@ -1537,40 +1547,25 @@ impl TypeCheck<'_> {
             };
             let binding_to = self.db.binding_def(binding_src);
 
-            let library;
             let (thing, def_info) = match binding_to {
-                Some(binding_to) => {
+                Some(def_id) => {
                     // From some def
-                    library = self.db.library(binding_to.0);
-                    let def_info = library.local_def(binding_to.1);
-                    let binding_to = match self.db.binding_to(binding_to.into()) {
+                    let binding_to = match self.db.binding_to(def_id.into()) {
                         Ok(binding_to) => binding_to,
                         Err(NotBinding::Missing) => return true,
                         Err(NotBinding::NotBinding) => unreachable!("from a DefId"),
                     };
+                    let def_library = self.db.library(def_id.0);
+                    let def_info = def_library.local_def(def_id.1);
+                    let name = def_info.name.item();
+                    let def_at = def_info.name.span().lookup_in(&def_library.span_map);
 
-                    (
-                        format!("`{}`", def_info.name.item()),
-                        Some((
-                            def_info.name.span().lookup_in(&library.span_map),
-                            binding_to,
-                        )),
-                    )
+                    (format!("`{name}`"), Some((def_at, binding_to)))
                 }
                 None => {
                     // From expr
                     ("expression".to_string(), None)
                 }
-            };
-
-            // permit mut refs when expecting const refs
-            let expected = match expected_kind {
-                ExpectedValue::Value if def_info.is_some() => "a variable",
-                ExpectedValue::Value => "an expression",
-                ExpectedValue::Ref(Mutability::Const) => "a variable",
-                ExpectedValue::Ref(Mutability::Var) => "a variable",
-                ExpectedValue::NonRegisterRef(Mutability::Const) => "a variable",
-                ExpectedValue::NonRegisterRef(Mutability::Var) => "a variable",
             };
 
             let mut state = self.state();
@@ -1579,14 +1574,14 @@ impl TypeCheck<'_> {
             if let Some((def_at, binding_to)) = def_info {
                 builder = builder
                     .with_error(
-                        format!("{thing} is a reference to {binding_to}, not {expected}"),
+                        format!("{thing} is a reference to {binding_to}, not a variable"),
                         value_span,
                     )
                     .with_note(format!("{thing} declared here"), def_at);
             } else {
                 // Only in here when checking for references
-                debug_assert!(!matches!(expected_kind, ExpectedValue::Value));
-                builder = builder.with_error(format!("not a reference to {expected}"), value_span);
+                debug_assert!(!checking_for_value);
+                builder = builder.with_error(format!("not a reference to a variable"), value_span);
             }
 
             if let Some(extra) = additional_info {
@@ -1598,8 +1593,6 @@ impl TypeCheck<'_> {
 
         is_valid
     }
-
-    // TODO: Replace `expect_*_type` with `expect_type` once we have `ty::rules::is_equivalent`
 
     fn expect_integer_value(&self, value_src: crate::db::ValueSource) -> bool {
         if !self.expect_expression(value_src) {
