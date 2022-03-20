@@ -133,6 +133,52 @@ fn block_stmt_check() {
 }
 
 // Typecheck basic ops
+test_for_each_op! { common_op_wrong_value,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+        ("div", idiv),
+        ("/", rdiv),
+        ("mod", r#mod),
+        ("rem", rem),
+        ("**", exp),
+        ("and", and),
+        ("or", or),
+        ("xor", xor),
+        ("shl", shl),
+        ("shr", shr),
+        ("=>", imply),
+
+        // These also support types, but only for class comparisons
+        // FIXME: Move to a separate test when class types are supported
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => "
+    type t : int
+    var k : int
+
+    % Type operand prevents checking of type compatibility
+    var _tt := t {0} t
+    var _tk := t {0} k
+    var _kt := k {0} t
+    ",
+    [
+        ("+", identity),
+        ("-", negate),
+        ("not", not),
+    ] => "
+    type t : boolean
+
+    % Type operand prevents checking of type compatibility
+    var _t := {0} t
+    "
+}
+
 test_for_each_op! { arithmetic_op,
     [
         ("+", add),
@@ -747,7 +793,9 @@ test_named_group! { typeck_assignment,
         lhs_not_mut_missing_rhs => r#"
             const j : int := 1
             j := 
-        "#
+        "#,
+        lhs_not_value => r#"type k : int k := 1"#,
+        rhs_not_value => r#"type j : int var k : int k := j"#
     ]
 }
 
@@ -1209,6 +1257,11 @@ test_named_group! { typeck_put_stmt,
         put n : 0 : 0 : 0
         put r : 0 : 0 : 0
         "#,
+        valid_aliased_types => "
+        type i : int
+        var o, w, u : i
+        put : o, w : o : u : o..
+        ",
         invalid_extended_opts => r#"
         % TODO: Uncomment enum lines once enum types are lowered & checked
         var c : char
@@ -1245,6 +1298,19 @@ test_named_group! { typeck_put_stmt,
         var i : p
         put i
         ",
+        wrong_value_stream => "
+        type k : int
+        put : k, 1
+        ",
+        wrong_value_item => "
+        type k : int
+        put k
+        ",
+        wrong_value_opt => "
+        type o : int
+        type w : int
+        put 1 : o : w : o
+        "
     ]
 }
 
@@ -1286,6 +1352,14 @@ test_named_group! { typeck_get_stmt,
         get s : *
         get sn : *
         "#,
+        valid_aliased_types => "
+        type i : int
+        type s : string
+        var o : i
+        var w : s
+        get : o, w : o ..
+        get w : * ..
+        ",
         invalid_opts_chars => r#"
         var i : int
         var n : nat
@@ -1344,6 +1418,20 @@ test_named_group! { typeck_get_stmt,
         var i : p
         get i
         ",
+        wrong_value_stream => "
+        type s : int
+        var k : int
+        get : s, k
+        ",
+        wrong_value_item => "
+        type k : int
+        get k
+        ",
+        wrong_value_opt => "
+        type k : int
+        var s : string
+        get s : k
+        "
     ]
 }
 
@@ -1360,21 +1448,30 @@ test_named_group! { typeck_if,
         elsif 'yee' then
         elsif "wahhh" then
         end if
-        "#
+        "#,
+        wrong_value_condition => "
+        type b : boolean
+        if b then
+        elsif b then
+        end if"
     ]
 }
 
-test_named_group! {
-    typeck_exit,
+test_named_group! { typeck_exit,
     [
         no_condition => r#"loop exit end loop"#,
         matching_types => r#"loop exit when true end loop"#,
         wrong_types => r#"loop exit when "gekdu" end loop"#,
+        wrong_value_condition => "
+        loop
+            type b : boolean
+            exit when b
+        end loop
+        "
     ]
 }
 
-test_named_group! {
-    typeck_for,
+test_named_group! { typeck_for,
     [
         infer_counter_ty => r#"
         for a : 1 .. 10
@@ -1407,11 +1504,18 @@ test_named_group! {
         // Be resilient against missing bounds
         missing_left_bound => "for : 1 .. end for",
         missing_right_bound => "for : 1 .. end for",
+
+        wrong_value_bounds => "
+        type k : string
+        for : k .. k end for
+        for : 1 .. k end for
+        for : k .. 1 end for
+        ",
+        wrong_value_by => "type k : int for : 1 .. 2 by k end for",
     ]
 }
 
-test_named_group! {
-    typeck_case,
+test_named_group! { typeck_case,
     [
         // contracts to test over:
         // - discriminant type
@@ -1444,7 +1548,28 @@ test_named_group! {
         non_comptime_selector_expr => r#"
         var k : int
         case 1 of label k + 1: end case
-        "#
+        "#,
+
+        // should handle aliases
+        alias_discriminant_ty => "
+        type c : char
+        var d : c
+        case c of label 'c': end case
+        ",
+        alias_selector_ty => "
+        type c : char
+        const k : c := 'c'
+        case 'k' of label k: end case
+        ",
+
+        wrong_value_discriminant => "
+        type c : char
+        case c of label : end case
+        ",
+        wrong_value_selectors => "
+        type c : char
+        case 'k' of label c: end case
+        ",
     ]
 }
 
@@ -1501,6 +1626,19 @@ test_named_group! { typeck_bind_decl,
     ]
 }
 
+test_named_group! { typeck_subprog_decl,
+    [
+        sized_return => "function sha : int end sha",
+        unsized_return_err => "function sha : char(*) end sha",
+
+        wrong_type_dev_spec => "proc a : 1.0 end a",
+        wrong_type_stack_size => "process a : 1.0 end a",
+
+        wrong_value_dev_spec => "type k : real proc a : k end a",
+        wrong_value_stack_size => "type k : real process a : k end a",
+    ]
+}
+
 test_named_group! { typeck_subprog_ty,
     [
         from_function => "function sha(a : int, b : char) : int end sha",
@@ -1527,8 +1665,7 @@ test_named_group! { typeck_subprog_ty,
     ]
 }
 
-test_named_group! {
-    typeck_subprog_param,
+test_named_group! { typeck_subprog_param,
     [
         infer_ty => "
         type tyres : string
@@ -1688,6 +1825,33 @@ test_named_group! { typeck_result_stmt,
         in_process_err => "proc q result 0 end q",
         in_function => "fcn oeuf : int result 0 end oeuf",
         mismatched_types => "fcn oeuf : int result 'egg' end oeuf",
+        wrong_value_result => "fcn b : int type k : int result k end b",
+    ]
+}
+
+test_named_group! { typeck_charn_ty,
+    [
+        any_size => "type _ : char(*)",
+        // not supported yet
+        runtime_size => "var k : int type _ : char(k)",
+        wrong_size_too_small => "type _ : char(0)",
+        wrong_size_too_big => "type _ : char(32768)",
+
+        wrong_type_size => "type _ : char(1.0)",
+        wrong_value_size => "type k : int type _ : char(k)",
+    ]
+}
+
+test_named_group! { typeck_stringn_ty,
+    [
+        any_size => "type _ : string(*)",
+        // not allowed for string
+        runtime_size => "var k : int type _ : string(k)",
+        wrong_size_too_small => "type _ : string(0)",
+        wrong_size_too_big => "type _ : string(256)",
+
+        wrong_type_size => "type _ : string(1.0)",
+        wrong_value_size => "type k : int type _ : string(k)",
     ]
 }
 

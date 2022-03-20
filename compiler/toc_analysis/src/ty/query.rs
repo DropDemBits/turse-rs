@@ -72,19 +72,6 @@ pub(super) fn value_produced(
     use db::{NotValue, ValueKind, ValueSource};
 
     match value_src {
-        ValueSource::DefId(def_id) => {
-            let kind = db.binding_to(def_id.into());
-
-            // Take from the binding kind
-            match kind {
-                Ok(BindingTo::Storage(muta)) => Ok(ValueKind::Reference(muta)),
-                Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
-                // Subprogram names are aliases of address constants
-                Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
-                Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
-                _ => Err(NotValue::NotValue),
-            }
-        }
         ValueSource::Body(lib_id, body_id) => {
             let library = db.library(lib_id);
             let body = library.body(body_id);
@@ -104,8 +91,18 @@ pub(super) fn value_produced(
                 toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
                 toc_hir::expr::ExprKind::Name(name) => match name {
                     toc_hir::expr::Name::Name(def_id) => {
-                        // Defer to binding
-                        db.value_produced(DefId(lib_id, *def_id).into())
+                        // Take from the binding kind
+                        let def_id = DefId(lib_id, *def_id);
+                        let kind = db.binding_to(def_id.into());
+
+                        match kind {
+                            Ok(BindingTo::Storage(muta)) => Ok(ValueKind::Reference(muta)),
+                            Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
+                            // Subprogram names are aliases of address constants
+                            Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
+                            Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
+                            _ => Err(NotValue::NotValue),
+                        }
                     }
                     toc_hir::expr::Name::Self_ => unimplemented!(),
                 },

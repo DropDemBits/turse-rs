@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "function sha : int end sha"
+
+---
+"sha"@(FileId(1), 9..12) [Declared]: function -> int
+"<root>"@(dummy) [Declared]: <error>
+

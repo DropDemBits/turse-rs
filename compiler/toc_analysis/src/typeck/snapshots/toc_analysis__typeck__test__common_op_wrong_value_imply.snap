@@ -1,0 +1,25 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "\n    type t : int\n    var k : int\n\n    % Type operand prevents checking of type compatibility\n    var _tt := t => t\n    var _tk := t => k\n    var _kt := k => t\n    "
+
+---
+"t"@(FileId(1), 10..11) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"k"@(FileId(1), 26..27) [Declared]: int
+"_tt"@(FileId(1), 102..105) [Declared]: <error>
+"_tk"@(FileId(1), 124..127) [Declared]: <error>
+"_kt"@(FileId(1), 146..149) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 109..110: cannot use `t` as an expression
+| error in file FileId(1) for 109..110: `t` is a reference to a type, not a variable
+| note in file FileId(1) for 10..11: `t` declared here
+error in file FileId(1) at 114..115: cannot use `t` as an expression
+| error in file FileId(1) for 114..115: `t` is a reference to a type, not a variable
+| note in file FileId(1) for 10..11: `t` declared here
+error in file FileId(1) at 131..132: cannot use `t` as an expression
+| error in file FileId(1) for 131..132: `t` is a reference to a type, not a variable
+| note in file FileId(1) for 10..11: `t` declared here
+error in file FileId(1) at 158..159: cannot use `t` as an expression
+| error in file FileId(1) for 158..159: `t` is a reference to a type, not a variable
+| note in file FileId(1) for 10..11: `t` declared here

@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type k : real proc a : k end a"
+
+---
+"k"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of real
+"a"@(FileId(1), 19..20) [Declared]: procedure -> void
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 23..24: cannot use `k` as an expression
+| error in file FileId(1) for 23..24: `k` is a reference to a type, not a variable
+| note in file FileId(1) for 5..6: `k` declared here

@@ -1,5 +1,7 @@
 //! Rules for type interactions
-use toc_hir::expr;
+use toc_hir::library::LibraryId;
+use toc_hir::symbol::NotBinding;
+use toc_hir::{body, expr};
 use toc_reporting::MessageSink;
 use toc_span::Span;
 
@@ -527,6 +529,87 @@ pub fn is_assignable<T: ?Sized + db::ConstEval>(db: &T, left: TypeId, right: Typ
     is_coercible_into(db, left.id(), right.id())
 }
 
+/// Checks that the operands for the binary op are values, or types when appropriate
+pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
+    db: &T,
+    library_id: LibraryId,
+    body_id: body::BodyId,
+    expr: &expr::Binary,
+) -> Result<(), InvalidBinaryValues> {
+    use crate::db::{NotValueErrExt, ValueKind};
+
+    let left_src = (library_id, body_id, expr.lhs).into();
+    let right_src = (library_id, body_id, expr.rhs).into();
+
+    // Only comparison ops support referring to types, but only on classes
+    let left_value = db.value_produced(left_src);
+    let right_value = db.value_produced(right_src);
+
+    let is_left_value = left_value.map(ValueKind::is_value).or_missing();
+    let is_right_value = right_value.map(ValueKind::is_value).or_missing();
+
+    if is_left_value && is_right_value {
+        Ok(())
+    } else {
+        let library = db.library(library_id);
+
+        Err(InvalidBinaryValues {
+            left_info: (!is_left_value).then(|| {
+                (
+                    left_src,
+                    library
+                        .body(body_id)
+                        .expr(expr.lhs)
+                        .span
+                        .lookup_in(&library.span_map),
+                )
+            }),
+            right_info: (!is_right_value).then(|| {
+                (
+                    right_src,
+                    library
+                        .body(body_id)
+                        .expr(expr.rhs)
+                        .span
+                        .lookup_in(&library.span_map),
+                )
+            }),
+        })
+    }
+}
+
+/// Checks that the operand for the unary op is a value
+pub fn check_unary_op_values<T: ?Sized + db::TypeDatabase>(
+    db: &T,
+    library_id: LibraryId,
+    body_id: body::BodyId,
+    expr: &expr::Unary,
+) -> Result<(), InvalidUnaryValue> {
+    use crate::db::{NotValueErrExt, ValueKind};
+
+    // All unary ops only support value operands
+    let right_src = (library_id, body_id, expr.rhs).into();
+    let right_value = db.value_produced(right_src);
+    let is_right_value = right_value.map(ValueKind::is_value).or_missing();
+
+    if is_right_value {
+        Ok(())
+    } else {
+        let library = db.library(library_id);
+
+        Err(InvalidUnaryValue {
+            right_info: (
+                right_src,
+                library
+                    .body(body_id)
+                    .expr(expr.rhs)
+                    .span
+                    .lookup_in(&library.span_map),
+            ),
+        })
+    }
+}
+
 /// Result of inferring a type from an operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InferTy {
@@ -1022,6 +1105,46 @@ pub fn check_unary_op<T: ?Sized + db::TypeDatabase>(
     }
 }
 
+/// An error representing binary operands which aren't values
+#[derive(Debug)]
+pub struct InvalidBinaryValues {
+    left_info: Option<(crate::db::ValueSource, Span)>,
+    right_info: Option<(crate::db::ValueSource, Span)>,
+}
+
+pub fn report_invalid_bin_values<'db, DB>(
+    db: &'db DB,
+    err: InvalidBinaryValues,
+    reporter: &mut MessageSink,
+) where
+    DB: ?Sized + db::TypeDatabase + 'db,
+{
+    if let Some((value_src, span)) = err.left_info {
+        report_not_value(db, value_src, span, reporter);
+    }
+
+    if let Some((value_src, span)) = err.right_info {
+        report_not_value(db, value_src, span, reporter);
+    }
+}
+
+/// An error representing a unary operand which isn't a value
+#[derive(Debug)]
+pub struct InvalidUnaryValue {
+    right_info: (crate::db::ValueSource, Span),
+}
+
+pub fn report_invalid_unary_value<'db, DB>(
+    db: &'db DB,
+    err: InvalidUnaryValue,
+    reporter: &mut MessageSink,
+) where
+    DB: ?Sized + db::TypeDatabase + 'db,
+{
+    let (value_src, span) = err.right_info;
+    report_not_value(db, value_src, span, reporter);
+}
+
 /// An error representing mismatched binary operand types
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InvalidBinaryOp {
@@ -1229,4 +1352,55 @@ pub fn report_invalid_unary_op<'db, DB>(
         }
     };
     msg.finish();
+}
+
+fn report_not_value<'db, DB>(
+    db: &'db DB,
+    value_src: crate::db::ValueSource,
+    span: Span,
+    reporter: &mut MessageSink,
+) where
+    DB: ?Sized + db::TypeDatabase + 'db,
+{
+    // either:
+    // "cannot use `{name}` as an expression"
+    // "`{name}` is a reference to {binding_to}, not a variable"
+    // "`{name}` declared here"
+    //
+    // or
+    // "cannot use `{name}` as a type"
+    // "`{name}` is a reference to {binding_to}, not a type"
+    // "`{name}` declared here"
+
+    let binding_src = match value_src {
+        db::ValueSource::Body(lib_id, body_id) => (lib_id, body_id).into(),
+        db::ValueSource::BodyExpr(lib_id, body_expr) => (lib_id, body_expr).into(),
+    };
+
+    let (binding_def, binding_to) = if let Some(def_id) = db.binding_def(binding_src) {
+        let binding_to = match db.binding_to(def_id.into()) {
+            Ok(binding_to) => binding_to,
+            Err(NotBinding::Missing) => return, // all values are accepted
+            Err(NotBinding::NotBinding) => unreachable!("from DefId"),
+        };
+
+        (def_id, binding_to)
+    } else {
+        // All values are accepted
+        return;
+    };
+
+    let def_library = db.library(binding_def.0);
+    let def_info = def_library.local_def(binding_def.1);
+    let name = def_info.name.item();
+    let def_at = def_info.name.span().lookup_in(&def_library.span_map);
+
+    reporter
+        .error_detailed(format!("cannot use `{name}` as an expression"), span)
+        .with_error(
+            format!("`{name}` is a reference to {binding_to}, not a variable"),
+            span,
+        )
+        .with_note(format!("`{name}` declared here"), def_at)
+        .finish();
 }

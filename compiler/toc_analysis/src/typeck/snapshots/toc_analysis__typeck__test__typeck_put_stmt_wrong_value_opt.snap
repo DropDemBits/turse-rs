@@ -1,0 +1,19 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type o : int\ntype w : int\nput 1 : o : w : o\n"
+
+---
+"o"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"w"@(FileId(1), 18..19) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 34..35: cannot use `o` as an expression
+| error in file FileId(1) for 34..35: `o` is a reference to a type, not a variable
+| note in file FileId(1) for 5..6: `o` declared here
+error in file FileId(1) at 38..39: cannot use `w` as an expression
+| error in file FileId(1) for 38..39: `w` is a reference to a type, not a variable
+| note in file FileId(1) for 18..19: `w` declared here
+error in file FileId(1) at 42..43: cannot use `o` as an expression
+| error in file FileId(1) for 42..43: `o` is a reference to a type, not a variable
+| note in file FileId(1) for 5..6: `o` declared here
