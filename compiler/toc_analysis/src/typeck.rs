@@ -1441,13 +1441,13 @@ impl TypeCheck<'_> {
     fn report_mismatched_binding(
         &self,
         expected: ExpectedBinding,
-        binding_source: toc_hir_db::db::BindingSource,
+        binding_source: crate::db::BindingSource,
         report_at: Span,
         binding_span: Span,
         from_thing: impl FnOnce(&str) -> String,
         additional_info: Option<&str>,
     ) {
-        use toc_hir_db::db::BindingSource;
+        use crate::db::BindingSource;
 
         // Looks like:
         // cannot use `{name}` as {expected_thing} -> from_def
@@ -1506,25 +1506,7 @@ impl TypeCheck<'_> {
     }
 
     fn expect_expression(&self, value_src: crate::db::ValueSource) -> bool {
-        let span = match value_src {
-            crate::db::ValueSource::Body(lib_id, body_id) => {
-                debug_assert_eq!(lib_id, self.library_id);
-
-                self.library
-                    .body(body_id)
-                    .span
-                    .lookup_in(&self.library.span_map)
-            }
-            crate::db::ValueSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
-                debug_assert_eq!(lib_id, self.library_id);
-
-                self.library
-                    .body(body_id)
-                    .expr(expr_id)
-                    .span
-                    .lookup_in(&self.library.span_map)
-            }
-        };
+        let span = value_src.span_of(self.db);
 
         self.expect_value_kind(
             ExpectedValue::Value,
@@ -1609,7 +1591,7 @@ impl TypeCheck<'_> {
             } else {
                 // Only in here when checking for references
                 debug_assert!(!checking_for_value);
-                builder = builder.with_error(format!("not a reference to a variable"), value_span);
+                builder = builder.with_error("not a reference to a variable", value_span);
             }
 
             if let Some(extra) = additional_info {
@@ -1661,7 +1643,7 @@ impl TypeCheck<'_> {
                 .reporter
                 .error_detailed("mismatched types", span)
                 .with_note(format!("this is of type `{ty}`"), span)
-                .with_info(format!("expected a `boolean` type"))
+                .with_info("expected a `boolean` type")
                 .finish();
 
             false

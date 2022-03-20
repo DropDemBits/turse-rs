@@ -3,10 +3,10 @@ use std::sync::Arc;
 use toc_hir::{
     body,
     body::BodyTable,
-    expr, item,
+    item,
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
-    symbol::{self, DefId, DefOwner, DefTable},
+    symbol::{DefId, DefOwner, DefTable},
     ty,
 };
 use toc_salsa::salsa;
@@ -52,14 +52,6 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// Gets all of the bodies in the given library
     #[salsa::invoke(query::lookup_bodies)]
     fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
-
-    /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
-    #[salsa::invoke(query::binding_def)]
-    fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
-
-    /// Gets what a [`BindingSource`] binds to, or a [`NotBinding`](symbol::NotBinding) if it isn't one.
-    #[salsa::invoke(query::binding_to)]
-    fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
 }
 
 /// Salsa-backed type interner
@@ -67,36 +59,4 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
 pub trait InternedType {
     #[salsa::interned]
     fn intern_type(&self, ty: Arc<ty::Type>) -> salsa::InternId;
-}
-
-/// Anything that can produce a reference to a binding
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum BindingSource {
-    DefId(DefId),
-    Body(LibraryId, body::BodyId),
-    BodyExpr(LibraryId, expr::BodyExpr),
-}
-
-impl From<symbol::DefId> for BindingSource {
-    fn from(def_id: symbol::DefId) -> Self {
-        Self::DefId(def_id)
-    }
-}
-
-impl From<(LibraryId, body::BodyId)> for BindingSource {
-    fn from((lib_id, body): (LibraryId, body::BodyId)) -> Self {
-        Self::Body(lib_id, body)
-    }
-}
-
-impl From<(LibraryId, expr::BodyExpr)> for BindingSource {
-    fn from(expr: (LibraryId, expr::BodyExpr)) -> Self {
-        Self::BodyExpr(expr.0, expr.1)
-    }
-}
-
-impl From<(LibraryId, body::BodyId, expr::ExprId)> for BindingSource {
-    fn from(expr: (LibraryId, body::BodyId, expr::ExprId)) -> Self {
-        Self::BodyExpr(expr.0, expr::BodyExpr(expr.1, expr.2))
-    }
 }

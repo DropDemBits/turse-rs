@@ -32,8 +32,17 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     #[salsa::invoke(ty::query::type_of)]
     fn type_of(&self, source: TypeSource) -> ty::TypeId;
 
+    /// Gets what kind of value a [`ValueSource`] produces, or a [`NotValue`] if it doesn't produce one
     #[salsa::invoke(ty::query::value_produced)]
     fn value_produced(&self, source: ValueSource) -> Result<ValueKind, NotValue>;
+
+    /// Gets what a [`BindingSource`] binds to, or a [`NotBinding`](symbol::NotBinding) if it isn't one.
+    #[salsa::invoke(ty::query::binding_to)]
+    fn binding_to(&self, bind_src: BindingSource) -> Result<symbol::BindingTo, symbol::NotBinding>;
+
+    /// Gets the corresponding definition from the given [`BindingSource`], or `None` if there isn't one.
+    #[salsa::invoke(ty::query::binding_def)]
+    fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
     #[salsa::invoke(ty::query::fields_of)]
     fn fields_of(&self, source: FieldsSource) -> Option<Arc<item::Fields>>;
@@ -117,6 +126,47 @@ impl From<(LibraryId, BodyId)> for TypeSource {
 impl From<(LibraryId, ItemId)> for TypeSource {
     fn from(id: (LibraryId, ItemId)) -> Self {
         Self::Item(id.0, id.1)
+    }
+}
+
+/// Anything that can produce a reference to a binding
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BindingSource {
+    DefId(DefId),
+    Body(LibraryId, BodyId),
+    BodyExpr(LibraryId, BodyExpr),
+}
+
+impl From<symbol::DefId> for BindingSource {
+    fn from(def_id: DefId) -> Self {
+        Self::DefId(def_id)
+    }
+}
+
+impl From<(LibraryId, BodyId)> for BindingSource {
+    fn from((lib_id, body): (LibraryId, BodyId)) -> Self {
+        Self::Body(lib_id, body)
+    }
+}
+
+impl From<(LibraryId, expr::BodyExpr)> for BindingSource {
+    fn from(expr: (LibraryId, expr::BodyExpr)) -> Self {
+        Self::BodyExpr(expr.0, expr.1)
+    }
+}
+
+impl From<(LibraryId, BodyId, expr::ExprId)> for BindingSource {
+    fn from(expr: (LibraryId, BodyId, expr::ExprId)) -> Self {
+        Self::BodyExpr(expr.0, expr::BodyExpr(expr.1, expr.2))
+    }
+}
+
+impl From<ValueSource> for BindingSource {
+    fn from(src: ValueSource) -> Self {
+        match src {
+            ValueSource::Body(lib_id, body_id) => Self::Body(lib_id, body_id),
+            ValueSource::BodyExpr(lib_id, body_expr) => Self::BodyExpr(lib_id, body_expr),
+        }
     }
 }
 
