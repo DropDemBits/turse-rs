@@ -168,6 +168,28 @@ pub enum ValueSource {
     BodyExpr(LibraryId, BodyExpr),
 }
 
+impl ValueSource {
+    pub fn span_of<DB>(self, db: &DB) -> toc_span::Span
+    where
+        DB: ?Sized + toc_hir_db::db::HirDatabase,
+    {
+        match self {
+            ValueSource::Body(lib_id, body_id) => {
+                let library = db.library(lib_id);
+                library.body(body_id).span.lookup_in(&library.span_map)
+            }
+            ValueSource::BodyExpr(lib_id, BodyExpr(body_id, expr_id)) => {
+                let library = db.library(lib_id);
+                library
+                    .body(body_id)
+                    .expr(expr_id)
+                    .span
+                    .lookup_in(&library.span_map)
+            }
+        }
+    }
+}
+
 impl From<(LibraryId, BodyId)> for ValueSource {
     fn from((lib_id, body): (LibraryId, BodyId)) -> Self {
         Self::Body(lib_id, body)
@@ -183,6 +205,15 @@ impl From<(LibraryId, BodyExpr)> for ValueSource {
 impl From<(LibraryId, BodyId, ExprId)> for ValueSource {
     fn from(expr: (LibraryId, BodyId, ExprId)) -> Self {
         Self::BodyExpr(expr.0, BodyExpr(expr.1, expr.2))
+    }
+}
+
+impl From<ValueSource> for TypeSource {
+    fn from(src: ValueSource) -> Self {
+        match src {
+            ValueSource::Body(lib_id, body_id) => Self::Body(lib_id, body_id),
+            ValueSource::BodyExpr(lib_id, body_id) => Self::BodyExpr(lib_id, body_id),
+        }
     }
 }
 

@@ -203,7 +203,7 @@ impl TypeCheck<'_> {
         }
 
         if let Some(init_body) = item.init_expr {
-            self.expect_expression_from_body(init_body);
+            self.expect_expression((self.library_id, init_body).into());
         }
 
         // Check the initializer expression
@@ -291,16 +291,7 @@ impl TypeCheck<'_> {
             item::SubprogramExtra::None => {}
             item::SubprogramExtra::DeviceSpec(body_id)
             | item::SubprogramExtra::StackSize(body_id) => {
-                if self.expect_expression_from_body(body_id) {
-                    let span = self
-                        .library
-                        .body(body_id)
-                        .span
-                        .lookup_in(&self.library.span_map);
-                    let type_id = self.db.type_of((self.library_id, body_id).into());
-
-                    self.expect_integer_type(type_id, span);
-                }
+                self.expect_integer_value((self.library_id, body_id).into());
             }
         }
     }
@@ -331,8 +322,7 @@ impl TypeCheck<'_> {
                 None,
             )
         };
-
-        let is_rhs_value = self.expect_expression(item.rhs.in_body(in_body));
+        let is_rhs_value = self.expect_expression((self.library_id, in_body, item.rhs).into());
 
         // Only report type mismatches if it's from the correct values
         if is_lhs_ref_mut && is_rhs_value {
@@ -374,7 +364,7 @@ impl TypeCheck<'_> {
             let put_base_tyref = put_tyref.clone().to_base_type();
             let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
 
-            if !self.expect_expression(item.expr.in_body(body_id)) {
+            if !self.expect_expression((self.library_id, body_id, item.expr).into()) {
                 continue;
             }
 
@@ -531,14 +521,7 @@ impl TypeCheck<'_> {
     }
 
     fn check_text_io_arg(&self, expr: BodyExpr) {
-        if !self.expect_expression(expr) {
-            return;
-        }
-
-        let ty_ref = self.db.type_of((self.library_id, expr).into());
-        let span = self.library.body(expr.0).expr(expr.1).span;
-
-        self.expect_integer_type(ty_ref, self.library.lookup_span(span));
+        self.expect_integer_value((self.library_id, expr).into());
     }
 
     fn expect_text_io_item(&self, ty: ty::TypeId, not_ty: impl FnOnce()) -> bool {
@@ -583,8 +566,9 @@ impl TypeCheck<'_> {
             }
             stmt::ForBounds::Full(start, end) => {
                 // Must both be values
-                let is_start_value = self.expect_expression(start.in_body(body_id));
-                let is_end_value = self.expect_expression(end.in_body(body_id));
+                let is_start_value =
+                    self.expect_expression((self.library_id, body_id, start).into());
+                let is_end_value = self.expect_expression((self.library_id, body_id, end).into());
 
                 // Must both be index types
                 let start_ty = db.type_of((self.library_id, body_id, start).into());
@@ -662,37 +646,18 @@ impl TypeCheck<'_> {
         if let Some(step_by) = stmt.step_by {
             // `step_by` must evaluate to an integer type
             // ???: Does this make sense for other range types?
-            let ty_id = db.type_of((self.library_id, body_id, step_by).into());
-            let span = self.library.body(body_id).expr(step_by).span;
-
-            if self.expect_expression(step_by.in_body(body_id)) {
-                self.expect_integer_type(ty_id, self.library.lookup_span(span));
-            }
+            self.expect_integer_value((self.library_id, body_id, step_by).into());
         }
     }
 
     fn typeck_exit(&self, body_id: body::BodyId, stmt: &stmt::Exit) {
         if let Some(condition_expr) = stmt.when_condition {
-            let condition_ty = self
-                .db
-                .type_of((self.library_id, body_id, condition_expr).into());
-            let span = self.library.body(body_id).expr(condition_expr).span;
-
-            if self.expect_expression(condition_expr.in_body(body_id)) {
-                self.expect_boolean_type(condition_ty, self.library.lookup_span(span));
-            }
+            self.expect_boolean_value((self.library_id, body_id, condition_expr).into());
         }
     }
 
     fn typeck_if(&self, body_id: body::BodyId, stmt: &stmt::If) {
-        let condition = self
-            .db
-            .type_of((self.library_id, body_id, stmt.condition).into());
-        let span = self.library.body(body_id).expr(stmt.condition).span;
-
-        if self.expect_expression(stmt.condition.in_body(body_id)) {
-            self.expect_boolean_type(condition, self.library.lookup_span(span));
-        }
+        self.expect_boolean_value((self.library_id, body_id, stmt.condition).into());
     }
 
     fn typeck_case(&self, body_id: body::BodyId, stmt: &stmt::Case) {
@@ -707,37 +672,31 @@ impl TypeCheck<'_> {
         // - label selectors must be compile-time exprs
         let db = self.db;
 
-        let discrim_display = db
+        let discrim_ty = db
             .type_of((self.library_id, body_id, stmt.discriminant).into())
             .in_db(db);
-        let discrim_ty = discrim_display.clone().to_base_type();
+        let discrim_base_ty = discrim_ty.clone().to_base_type();
         let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
         let discrim_span = self.library.lookup_span(discrim_span);
 
-        if self.expect_expression(stmt.discriminant.in_body(body_id)) {
+        if self.expect_expression((self.library_id, body_id, stmt.discriminant).into()) {
             // Check discriminant type
-            if !(discrim_ty.kind().is_error()
-                || discrim_ty.kind().is_index()
-                || matches!(discrim_ty.kind(), ty::TypeKind::String))
+            if !(discrim_base_ty.kind().is_error()
+                || discrim_base_ty.kind().is_index()
+                || matches!(discrim_base_ty.kind(), ty::TypeKind::String))
             {
                 self.state()
                     .reporter
                     .error_detailed("mismatched types", discrim_span)
                     .with_error(
-                        format!(
-                            "`{}` cannot be used as a case discriminant",
-                            discrim_display
-                        ),
+                        format!("`{discrim_ty}` cannot be used as a case discriminant"),
                         discrim_span,
                     )
-                    .with_info(format!(
+                    .with_info(
                         "`case` discriminant must be either \
-                    an index type (an integer, `{boolean}`, `{chr}`, enumerated type, or a range), \
-                    or a `{string}`",
-                        boolean = ty::TypeKind::Boolean.prefix(),
-                        chr = ty::TypeKind::Char.prefix(),
-                        string = ty::TypeKind::String.prefix()
-                    ))
+                    an index type (an integer, `boolean`, `char`, enumerated type, or a range), \
+                    or a `string`",
+                    )
                     .finish();
             }
         }
@@ -760,14 +719,14 @@ impl TypeCheck<'_> {
             let selector_span = self.library.lookup_span(selector_span);
 
             // Must match discriminant type
-            if !ty::rules::is_coercible_into(db, discrim_ty.id(), selector_ty) {
+            if !ty::rules::is_coercible_into(db, discrim_base_ty.id(), selector_ty) {
                 let selector_ty = selector_ty.in_db(db);
 
                 self.state()
                     .reporter
                     .error_detailed("mismatched types", selector_span)
                     .with_note(
-                        format!("discriminant is of type `{discrim_display}`"),
+                        format!("discriminant is of type `{discrim_ty}`"),
                         discrim_span,
                     )
                     .with_note(
@@ -778,7 +737,7 @@ impl TypeCheck<'_> {
                         format!(
                             "`{}` is not a `{}`",
                             selector_ty.clone().peel_aliases(),
-                            discrim_display.clone().peel_aliases()
+                            discrim_ty.clone().peel_aliases()
                         ),
                         selector_span,
                     )
@@ -787,7 +746,7 @@ impl TypeCheck<'_> {
             }
 
             // Must be a value
-            if !self.expect_expression(selector.in_body(body_id)) {
+            if !self.expect_expression((self.library_id, body_id, selector).into()) {
                 continue;
             }
 
@@ -801,7 +760,9 @@ impl TypeCheck<'_> {
                 Err(err) => {
                     err.report_to(db, &mut self.state().reporter);
                 }
-                Ok(ConstValue::String(s)) if matches!(discrim_ty.kind(), ty::TypeKind::Char) => {
+                Ok(ConstValue::String(s))
+                    if matches!(discrim_base_ty.kind(), ty::TypeKind::Char) =>
+                {
                     // Check that it's a length 1 string
                     if s.len() != 1 {
                         let selector_ty = selector_ty.in_db(db);
@@ -814,11 +775,11 @@ impl TypeCheck<'_> {
                                 selector_span,
                             )
                             .with_note(
-                                format!("discriminant is of type `{discrim_display}`"),
+                                format!("discriminant is of type `{discrim_ty}`"),
                                 discrim_span,
                             )
                             .with_info(format!(
-                                "`{discrim_ty}` only allows `char` or `string`s of length 1",
+                                "`{discrim_base_ty}` only allows `char` or `string`s of length 1",
                             ))
                             .finish();
                     }
@@ -898,7 +859,7 @@ impl TypeCheck<'_> {
                 let value_ty = db.type_of(value_expr.into());
 
                 // Check value compatibility
-                if !self.expect_expression(stmt.expr.in_body(body)) {
+                if !self.expect_expression((self.library_id, body, stmt.expr).into()) {
                     // Not a value (already reported)
                 } else if !ty::rules::is_assignable(db, result_ty, value_ty) {
                     // Not assignable into the return type
@@ -1252,7 +1213,7 @@ impl TypeCheck<'_> {
             .from_hir_type(id.in_library(self.library_id))
             .in_db(db);
 
-        let (expr_body, expr_span, expr_ty) = match ty_node {
+        let (expr_body, expr_span) = match ty_node {
             toc_hir::ty::Primitive::SizedChar(toc_hir::ty::SeqLength::Expr(body))
             | toc_hir::ty::Primitive::SizedString(toc_hir::ty::SeqLength::Expr(body)) => {
                 let expr_span = self
@@ -1260,18 +1221,13 @@ impl TypeCheck<'_> {
                     .body(*body)
                     .span
                     .lookup_in(&self.library.span_map);
-                let expr_ty = db.type_of((self.library_id, *body).into());
 
-                (*body, expr_span, expr_ty)
+                (*body, expr_span)
             }
             _ => return,
         };
 
-        if !self.expect_expression_from_body(expr_body) {
-            return;
-        }
-
-        self.expect_integer_type(expr_ty, expr_span);
+        self.expect_integer_value((self.library_id, expr_body).into());
 
         // Check resultant size
         let (seq_size, size_limit, allow_dyn_size) = match ty.kind() {
@@ -1519,34 +1475,30 @@ impl TypeCheck<'_> {
         builder.finish();
     }
 
-    fn expect_expression_from_body(&self, body_id: body::BodyId) -> bool {
-        let span = self
-            .library
-            .body(body_id)
-            .span
-            .lookup_in(&self.library.span_map);
+    fn expect_expression(&self, value_src: crate::db::ValueSource) -> bool {
+        let span = match value_src {
+            crate::db::ValueSource::Body(lib_id, body_id) => {
+                debug_assert_eq!(lib_id, self.library_id);
+
+                self.library
+                    .body(body_id)
+                    .span
+                    .lookup_in(&self.library.span_map)
+            }
+            crate::db::ValueSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
+                debug_assert_eq!(lib_id, self.library_id);
+
+                self.library
+                    .body(body_id)
+                    .expr(expr_id)
+                    .span
+                    .lookup_in(&self.library.span_map)
+            }
+        };
 
         self.expect_value_kind(
             ExpectedValue::Value,
-            (self.library_id, body_id).into(),
-            span,
-            span,
-            |thing| format!("cannot use {thing} as an expression"),
-            None,
-        )
-    }
-
-    fn expect_expression(&self, expr: expr::BodyExpr) -> bool {
-        let span = self
-            .library
-            .body(expr.0)
-            .expr(expr.1)
-            .span
-            .lookup_in(&self.library.span_map);
-
-        self.expect_value_kind(
-            ExpectedValue::Value,
-            (self.library_id, expr).into(),
+            value_src,
             span,
             span,
             |thing| format!("cannot use {thing} as an expression"),
@@ -1647,31 +1599,51 @@ impl TypeCheck<'_> {
 
     // TODO: Replace `expect_*_type` with `expect_type` once we have `ty::rules::is_equivalent`
 
-    fn expect_integer_type(&self, type_id: ty::TypeId, span: Span) {
-        let ty = type_id.in_db(self.db);
+    fn expect_integer_value(&self, value_src: crate::db::ValueSource) -> bool {
+        if !self.expect_expression(value_src) {
+            return false;
+        }
+
+        let ty = self.db.type_of(value_src.into()).in_db(self.db);
         let base_ty = ty.clone().to_base_type();
 
         if !base_ty.kind().is_integer() && !base_ty.kind().is_error() {
+            let span = value_src.span_of(self.db);
+
             self.state()
                 .reporter
                 .error_detailed("mismatched types", span)
                 .with_note(format!("this is of type `{ty}`"), span)
                 .with_info(format!("`{ty}` is not an integer type"))
                 .finish();
+
+            false
+        } else {
+            true
         }
     }
 
-    fn expect_boolean_type(&self, type_id: ty::TypeId, span: Span) {
-        let ty = type_id.in_db(self.db);
+    fn expect_boolean_value(&self, value_src: crate::db::ValueSource) -> bool {
+        if !self.expect_expression(value_src) {
+            return false;
+        }
+
+        let ty = self.db.type_of(value_src.into()).in_db(self.db);
         let base_ty = ty.clone().to_base_type();
 
         if !base_ty.kind().is_boolean() && !base_ty.kind().is_error() {
+            let span = value_src.span_of(self.db);
+
             self.state()
                 .reporter
                 .error_detailed("mismatched types", span)
                 .with_note(format!("this is of type `{ty}`"), span)
-                .with_info("expected a `boolean` type")
+                .with_info(format!("expected a `boolean` type"))
                 .finish();
+
+            false
+        } else {
+            true
         }
     }
 
