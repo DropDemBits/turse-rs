@@ -164,15 +164,8 @@ pub enum NotValue {
 /// Anything that can produce a value
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueSource {
-    DefId(DefId),
     Body(LibraryId, BodyId),
     BodyExpr(LibraryId, BodyExpr),
-}
-
-impl From<symbol::DefId> for ValueSource {
-    fn from(def_id: symbol::DefId) -> Self {
-        Self::DefId(def_id)
-    }
 }
 
 impl From<(LibraryId, BodyId)> for ValueSource {
