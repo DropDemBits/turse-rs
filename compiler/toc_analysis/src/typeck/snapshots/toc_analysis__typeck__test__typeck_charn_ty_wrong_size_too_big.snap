@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type _ : char(32768)"
+
+---
+"_"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 14..19: invalid character count size
+| error in file FileId(1) for 14..19: computed count is 32768
+| info: valid sizes are between 1 to 32767

@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var k : int type _ : char(k)"
+
+---
+"k"@(FileId(1), 4..5) [Declared]: int
+"_"@(FileId(1), 17..18) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 21..28: unsupported type
+| error in file FileId(1) for 21..28: dynamically sized `char(N)` isn't supported yet
