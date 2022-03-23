@@ -1549,8 +1549,7 @@ impl TypeCheck<'_> {
         let checking_for_value = matches!(expected_kind, ExpectedValue::Value);
 
         if !is_valid {
-            let binding_src = value_src.into();
-            let binding_to = self.db.binding_def(binding_src);
+            let binding_to = self.db.binding_def(value_src.into());
 
             let (thing, def_info) = match binding_to {
                 Some(def_id) => {

@@ -204,7 +204,7 @@ pub struct Module {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExportItem {
-    /// [`LocalDefId`] to uniquely identify this specific export
+    /// [`LocalDefId`](symbol::LocalDefId) to uniquely identify this specific export
     pub def_id: symbol::LocalDefId,
     pub mutability: symbol::Mutability,
     pub qualify_as: QualifyAs,

@@ -323,6 +323,7 @@ pub(crate) fn ty_from_expr(
     body: InLibrary<&body::Body>,
     body_expr: expr::BodyExpr,
 ) -> TypeId {
+    // FIXME: Move to using `type_of` instead of referring back to `ty_from_expr`
     let expr_id = body_expr.1;
 
     match &body.1.expr(expr_id).kind {
@@ -415,7 +416,7 @@ fn field_ty(
     db.fields_of((body.0, body_expr.0, expr.lhs).into())
         .and_then(|fields| {
             fields.lookup(expr.field.item()).map(|field| {
-                // TODO: Handle opaque types
+                // FIXME: Handle opaque types
                 db.type_of(field.def_id.into())
             })
         })
