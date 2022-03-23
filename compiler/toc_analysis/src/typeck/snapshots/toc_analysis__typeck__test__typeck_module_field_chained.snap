@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module a export b module b export c module c export d\n    var d : int\nend c end b end a\nvar k := a.b.c.d\n"
+
+---
+"a"@(FileId(1), 7..8) [Declared]: <error>
+"b"@(FileId(1), 25..26) [Declared]: <error>
+"c"@(FileId(1), 43..44) [Declared]: <error>
+"d"@(FileId(1), 62..63) [Declared]: int
+"d"@(FileId(1), 52..53) [ItemExport(LocalDefId(3))]: int
+"c"@(FileId(1), 34..35) [ItemExport(LocalDefId(2))]: <error>
+"b"@(FileId(1), 16..17) [ItemExport(LocalDefId(1))]: <error>
+"k"@(FileId(1), 92..93) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+

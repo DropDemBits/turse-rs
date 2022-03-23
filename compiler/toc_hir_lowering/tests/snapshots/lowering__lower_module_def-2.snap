@@ -1,0 +1,13 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "module var c := 2 end a"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(0)
+    Module@(FileId(1), 0..23): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..23): []
+error in file FileId(1) at 7..10: unexpected token
+| error in file FileId(1) for 7..10: expected identifier, but found `var`
+

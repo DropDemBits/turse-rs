@@ -1,0 +1,14 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module a export b var b : int end a\nvar k := a.c\n"
+
+---
+"a"@(FileId(1), 7..8) [Declared]: <error>
+"b"@(FileId(1), 22..23) [Declared]: int
+"b"@(FileId(1), 16..17) [ItemExport(LocalDefId(1))]: int
+"k"@(FileId(1), 40..41) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 47..48: no field named `c` in expression
+| error in file FileId(1) for 47..48: no field named `c` in here

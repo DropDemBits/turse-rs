@@ -1797,6 +1797,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Binary(expr) => self.generate_expr_binary(expr),
             hir_expr::ExprKind::Unary(expr) => self.generate_expr_unary(expr),
             hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr_id, expr),
+            hir_expr::ExprKind::Field(_expr) => unimplemented!(),
             hir_expr::ExprKind::Call(expr) => self.generate_expr_call(expr),
         }
     }
@@ -2342,8 +2343,9 @@ impl BodyCodeGenerator<'_> {
         self.emit_location(span);
 
         match &expr.kind {
-            // Right now, only names can produce references
+            // Right now, only names and field lookups can produce references
             hir_expr::ExprKind::Name(ref_expr) => self.generate_ref_expr_name(ref_expr),
+            hir_expr::ExprKind::Field(_ref_expr) => unimplemented!(),
             // The rest can never be in reference producing position
             _ => {
                 unreachable!("malformed code reached code generation (producing reference from non-reference expr)")

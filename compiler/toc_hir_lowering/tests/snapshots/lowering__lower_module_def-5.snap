@@ -1,0 +1,41 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n        var u, w, U : int\n        module a\n            export ~.all\n            var u, w, U : int\n        end a\n        "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(7)
+    Module@(FileId(1), 0..121): "<root>"@(dummy)
+      StmtBody@(FileId(1), 9..112): []
+        StmtItem@(FileId(1), 9..26): ItemId(0)
+          ConstVar@(FileId(1), 9..26): var "u"@(FileId(1), 13..14)
+            Primitive@(FileId(1), 23..26): Int
+        StmtItem@(FileId(1), 9..26): ItemId(1)
+          ConstVar@(FileId(1), 9..26): var "w"@(FileId(1), 16..17)
+            Primitive@(FileId(1), 23..26): Int
+        StmtItem@(FileId(1), 9..26): ItemId(2)
+          ConstVar@(FileId(1), 9..26): var "U"@(FileId(1), 19..20)
+            Primitive@(FileId(1), 23..26): Int
+        StmtItem@(FileId(1), 35..112): ItemId(6)
+          Module@(FileId(1), 35..112): "a"@(FileId(1), 42..43), exports [Const Unqualified "u"@(FileId(1), 85..86), Const Unqualified "w"@(FileId(1), 88..89), Const Unqualified "U"@(FileId(1), 91..92)]
+            StmtBody@(FileId(1), 81..98): []
+              StmtItem@(FileId(1), 81..98): ItemId(3)
+                ConstVar@(FileId(1), 81..98): var "u"@(FileId(1), 85..86)
+                  Primitive@(FileId(1), 95..98): Int
+              StmtItem@(FileId(1), 81..98): ItemId(4)
+                ConstVar@(FileId(1), 81..98): var "w"@(FileId(1), 88..89)
+                  Primitive@(FileId(1), 95..98): Int
+              StmtItem@(FileId(1), 81..98): ItemId(5)
+                ConstVar@(FileId(1), 81..98): var "U"@(FileId(1), 91..92)
+                  Primitive@(FileId(1), 95..98): Int
+error in file FileId(1) at 85..86: `u` is already declared in the parent scope
+| note in file FileId(1) for 13..14: `u` previously declared here
+| error in file FileId(1) for 63..68: `u` exported from here
+error in file FileId(1) at 88..89: `w` is already declared in the parent scope
+| note in file FileId(1) for 16..17: `w` previously declared here
+| error in file FileId(1) for 63..68: `w` exported from here
+error in file FileId(1) at 91..92: `U` is already declared in the parent scope
+| note in file FileId(1) for 19..20: `U` previously declared here
+| error in file FileId(1) for 63..68: `U` exported from here
+

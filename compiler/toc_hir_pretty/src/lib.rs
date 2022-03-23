@@ -298,14 +298,49 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         self.emit_node("Subprogram", span, Some(format_args!("{extra}")))
     }
-    fn visit_module(&self, id: item::ItemId, _item: &item::Module) {
+    fn visit_module(&self, id: item::ItemId, item: &item::Module) {
         let span = self.item_span(id);
         let def_id = self.def_of(id);
-        self.emit_node(
-            "Module",
-            span,
-            Some(format_args!("{}", self.display_def(def_id))),
-        )
+        let extra = {
+            let mut extra = String::new();
+            write!(extra, "{}", self.display_def(def_id)).unwrap();
+
+            if !item.exports.is_empty() {
+                let mut exports = item.exports.iter();
+                write!(extra, ", exports [").unwrap();
+
+                if let Some(first) = exports.next() {
+                    write!(extra, "{:?} {:?}", first.mutability, first.qualify_as).unwrap();
+                    if first.is_opaque {
+                        write!(extra, " opaque").unwrap();
+                    }
+                    write!(
+                        extra,
+                        " {}",
+                        self.display_def(self.library.item(first.item_id).def_id)
+                    )
+                    .unwrap();
+                }
+                for rest in exports {
+                    write!(extra, ", ").unwrap();
+                    write!(extra, "{:?} {:?}", rest.mutability, rest.qualify_as).unwrap();
+                    if rest.is_opaque {
+                        write!(extra, " Opaque").unwrap();
+                    }
+                    write!(
+                        extra,
+                        " {}",
+                        self.display_def(self.library.item(rest.item_id).def_id)
+                    )
+                    .unwrap();
+                }
+
+                write!(extra, "]").unwrap();
+            }
+
+            extra
+        };
+        self.emit_node("Module", span, Some(format_args!("{extra}")))
     }
     // Body
     fn visit_body(&self, id: body::BodyId, body: &body::Body) {
@@ -422,6 +457,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             }
             expr::Name::Self_ => self.emit_node("Self", span, None),
         }
+    }
+    fn visit_field(&self, id: BodyExpr, expr: &expr::Field) {
+        let span = self.expr_span(id);
+        self.emit_node(
+            "Field",
+            span,
+            Some(format_args!("field {:?}", expr.field.item())),
+        )
     }
     fn visit_call_expr(&self, id: BodyExpr, _expr: &expr::Call) {
         let span = self.expr_span(id);

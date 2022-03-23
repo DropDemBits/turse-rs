@@ -5,19 +5,16 @@ use std::{cell::RefCell, sync::Arc};
 use toc_hir::{
     body,
     body::{BodyOwner, BodyTable},
-    expr, item,
-    item::ParameterInfo,
+    item,
     library::{InLibrary, Library, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,
-    symbol::{
-        BindingTo, DefId, DefOwner, DefTable, LocalDefId, Mutability, NotBinding, SymbolKind,
-    },
-    ty::{self, PassBy},
+    symbol::{DefId, DefOwner, DefTable, LocalDefId, SymbolKind},
+    ty,
     visitor::HirVisitor,
 };
 
-use crate::db::{BindingSource, HirDatabase};
+use crate::db::HirDatabase;
 
 pub fn library_query(db: &dyn HirDatabase, library: LibraryId) -> LoweredLibrary {
     let file = db.library_graph().file_of(library);
@@ -81,108 +78,6 @@ pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::
     Arc::new(library.body_ids())
 }
 
-pub(crate) fn binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Option<DefId> {
-    lookup_binding_def(db, bind_src).ok()
-}
-
-pub(crate) fn binding_to(
-    db: &dyn HirDatabase,
-    bind_src: BindingSource,
-) -> Result<BindingTo, NotBinding> {
-    let def_id = lookup_binding_def(db, bind_src)?;
-
-    // Take the binding kind from the def owner
-    let def_owner = db.def_owner(def_id);
-    let library = db.library(def_id.0);
-
-    match def_owner {
-        Some(DefOwner::Item(item_id)) => Ok(match &library.item(item_id).kind {
-            item::ItemKind::ConstVar(item) if item.is_register => {
-                BindingTo::Register(item.mutability)
-            }
-            item::ItemKind::Binding(item) if item.is_register => {
-                BindingTo::Register(item.mutability)
-            }
-            item::ItemKind::ConstVar(item) => BindingTo::Storage(item.mutability),
-            item::ItemKind::Binding(item) => BindingTo::Storage(item.mutability),
-            item::ItemKind::Subprogram(item) => BindingTo::Subprogram(item.kind),
-            item::ItemKind::Type(_) => BindingTo::Type,
-            item::ItemKind::Module(_) => BindingTo::Module,
-        }),
-        Some(DefOwner::ItemParam(item_id, param_def)) => {
-            // Lookup the arg
-            let item = match &library.item(item_id).kind {
-                item::ItemKind::Subprogram(item) => item,
-                _ => unreachable!(),
-            };
-
-            Ok(match item.lookup_param_info(param_def) {
-                ParameterInfo::Param(param_info) => {
-                    // This is the real parameters
-
-                    // Pass-by value parameters are always const
-                    // Register parameters become register bindings
-                    match (param_info.pass_by, param_info.is_register) {
-                        (PassBy::Value, true) => BindingTo::Register(Mutability::Const),
-                        (PassBy::Value, false) => BindingTo::Storage(Mutability::Const),
-                        (PassBy::Reference(mutability), true) => BindingTo::Register(mutability),
-                        (PassBy::Reference(mutability), false) => BindingTo::Storage(mutability),
-                    }
-                }
-                ParameterInfo::Result => {
-                    // This is the result parameter
-                    // Always const storage, only modifiable by `result` stmts
-                    BindingTo::Storage(Mutability::Const)
-                }
-            })
-        }
-        Some(DefOwner::Stmt(stmt_id)) => {
-            match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
-                stmt::StmtKind::Item(_) => {
-                    unreachable!("item def owners shouldn't be stmt def owners")
-                }
-                // for-loop counter var is an immutable ref
-                stmt::StmtKind::For(_) => Ok(BindingTo::Storage(Mutability::Const)),
-                _ => Err(NotBinding::NotBinding),
-            }
-        }
-        // From an undeclared identifier, not purely a binding
-        None => Err(NotBinding::Missing),
-    }
-}
-
-fn lookup_binding_def(db: &dyn HirDatabase, bind_src: BindingSource) -> Result<DefId, NotBinding> {
-    match bind_src {
-        // Trivial, def bindings are bindings to themselves
-        // ???: Do we want to perform canonicalization / symbol resolution here?
-        BindingSource::DefId(it) => Ok(it),
-        BindingSource::Body(lib_id, body) => {
-            let library = db.library(lib_id);
-
-            match &library.body(body).kind {
-                // Stmt bodies never produce bindings
-                body::BodyKind::Stmts(..) => Err(NotBinding::NotBinding),
-                // Defer to expr form
-                body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
-            }
-        }
-        BindingSource::BodyExpr(lib_id, expr) => {
-            // Traverse nodes until we encounter a valid binding
-            let library = db.library(lib_id);
-
-            // For now, only name exprs can produce a binding
-            match &library.body(expr.0).expr(expr.1).kind {
-                expr::ExprKind::Missing => Err(NotBinding::Missing),
-                expr::ExprKind::Name(name) => match name {
-                    expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
-                    expr::Name::Self_ => todo!(),
-                },
-                _ => Err(NotBinding::NotBinding),
-            }
-        }
-    }
-}
-
 /// Library-local definition collector
 struct DefCollector<'a> {
     def_table: RefCell<DefTable>,
@@ -198,6 +93,13 @@ impl DefCollector<'_> {
 impl HirVisitor for DefCollector<'_> {
     fn visit_item(&self, id: item::ItemId, item: &item::Item) {
         self.add_owner(item.def_id, DefOwner::Item(id));
+    }
+
+    fn visit_module(&self, id: item::ItemId, item: &item::Module) {
+        // Add all exports as being owned by this one
+        for (idx, export) in item.exports.iter().enumerate() {
+            self.add_owner(export.def_id, DefOwner::ItemExport(id, idx));
+        }
     }
 
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {

@@ -1,0 +1,29 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    module z\n        export a, a, a, a, a\n        var a : int\n    end z"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..72): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..72): []
+        StmtItem@(FileId(1), 5..72): ItemId(1)
+          Module@(FileId(1), 5..72): "z"@(FileId(1), 12..13), exports [Const Qualified "a"@(FileId(1), 55..56)]
+            StmtBody@(FileId(1), 51..62): []
+              StmtItem@(FileId(1), 51..62): ItemId(0)
+                ConstVar@(FileId(1), 51..62): var "a"@(FileId(1), 55..56)
+                  Primitive@(FileId(1), 59..62): Int
+warn in file FileId(1) at 32..33: export item is ignored
+| warn in file FileId(1) for 32..33: `a` is already exported...
+| note in file FileId(1) for 29..30: by this export
+warn in file FileId(1) at 35..36: export item is ignored
+| warn in file FileId(1) for 35..36: `a` is already exported...
+| note in file FileId(1) for 29..30: by this export
+warn in file FileId(1) at 38..39: export item is ignored
+| warn in file FileId(1) for 38..39: `a` is already exported...
+| note in file FileId(1) for 29..30: by this export
+warn in file FileId(1) at 41..42: export item is ignored
+| warn in file FileId(1) for 41..42: `a` is already exported...
+| note in file FileId(1) for 29..30: by this export
+

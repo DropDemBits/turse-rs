@@ -168,6 +168,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_unary(id.0, expr);
     }
 
+    fn visit_field(&self, id: BodyExpr, expr: &expr::Field) {
+        self.typeck_field_expr(id, expr)
+    }
+
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {
         self.typeck_call_expr(id, expr);
     }
@@ -935,6 +939,30 @@ impl TypeCheck<'_> {
         }
     }
 
+    fn typeck_field_expr(&self, id: expr::BodyExpr, expr: &expr::Field) {
+        let db = self.db;
+
+        if let Some(fields) = db.fields_of((self.library_id, id.0, expr.lhs).into()) {
+            if fields.lookup(expr.field.item().as_str()).is_none() {
+                // not a field
+                let field_name = expr.field.item();
+                self.state().reporter.error(
+                    format!("no field named `{field_name}` in expression"),
+                    format!("no field named `{field_name}` in here"),
+                    expr.field.span().lookup_in(&self.library.span_map),
+                );
+            }
+        } else {
+            // no fields
+            let field_name = expr.field.item();
+            self.state().reporter.error(
+                format!("no field named `{field_name}` in expression"),
+                format!("no field named `{field_name}` in here"),
+                expr.field.span().lookup_in(&self.library.span_map),
+            );
+        }
+    }
+
     fn typeck_call_expr(&self, id: expr::BodyExpr, expr: &expr::Call) {
         self.typeck_call(id.0, expr.lhs, Some(&expr.arguments), true);
     }
@@ -1413,13 +1441,13 @@ impl TypeCheck<'_> {
     fn report_mismatched_binding(
         &self,
         expected: ExpectedBinding,
-        binding_source: toc_hir_db::db::BindingSource,
+        binding_source: crate::db::BindingSource,
         report_at: Span,
         binding_span: Span,
         from_thing: impl FnOnce(&str) -> String,
         additional_info: Option<&str>,
     ) {
-        use toc_hir_db::db::BindingSource;
+        use crate::db::BindingSource;
 
         // Looks like:
         // cannot use `{name}` as {expected_thing} -> from_def
@@ -1478,25 +1506,7 @@ impl TypeCheck<'_> {
     }
 
     fn expect_expression(&self, value_src: crate::db::ValueSource) -> bool {
-        let span = match value_src {
-            crate::db::ValueSource::Body(lib_id, body_id) => {
-                debug_assert_eq!(lib_id, self.library_id);
-
-                self.library
-                    .body(body_id)
-                    .span
-                    .lookup_in(&self.library.span_map)
-            }
-            crate::db::ValueSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
-                debug_assert_eq!(lib_id, self.library_id);
-
-                self.library
-                    .body(body_id)
-                    .expr(expr_id)
-                    .span
-                    .lookup_in(&self.library.span_map)
-            }
-        };
+        let span = value_src.span_of(self.db);
 
         self.expect_value_kind(
             ExpectedValue::Value,
@@ -1527,8 +1537,6 @@ impl TypeCheck<'_> {
         // "`{name}` is a reference to {binding_to}, not a variable" or "not a reference to a variable"
         // "`{name}` declared here"
 
-        use ty::db::ValueSource;
-
         let value_kind = self.db.value_produced(value_src);
         let predicate = match expected_kind {
             ExpectedValue::Value => ValueKind::is_value,
@@ -1541,11 +1549,7 @@ impl TypeCheck<'_> {
         let checking_for_value = matches!(expected_kind, ExpectedValue::Value);
 
         if !is_valid {
-            let binding_src = match value_src {
-                ValueSource::Body(lib_id, body_id) => (lib_id, body_id).into(),
-                ValueSource::BodyExpr(lib_id, body_expr) => (lib_id, body_expr).into(),
-            };
-            let binding_to = self.db.binding_def(binding_src);
+            let binding_to = self.db.binding_def(value_src.into());
 
             let (thing, def_info) = match binding_to {
                 Some(def_id) => {
@@ -1571,18 +1575,40 @@ impl TypeCheck<'_> {
             let mut state = self.state();
             let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
 
-            if let Some((def_at, binding_to)) = def_info {
-                builder = builder
-                    .with_error(
-                        format!("{thing} is a reference to {binding_to}, not a variable"),
-                        value_span,
-                    )
-                    .with_note(format!("{thing} declared here"), def_at);
+            builder = if let Some((def_at, binding_to)) = def_info {
+                if matches!(
+                    binding_to,
+                    BindingTo::Storage(Mutability::Var) | BindingTo::Register(Mutability::Var)
+                ) {
+                    // Originally was mutable
+                    // Likely from an export
+                    let exporting_def = self
+                        .db
+                        .exporting_def(value_src)
+                        .expect("at mut storage but rejected it");
+                    let exported_library = self.db.library(exporting_def.0);
+                    let exported_span = exported_library
+                        .local_def(exporting_def.1)
+                        .name
+                        .span()
+                        .lookup_in(&exported_library.span_map);
+
+                    builder
+                        .with_error(format!("{thing} is not exported as `var`"), value_span)
+                        .with_note(format!("{thing} exported from here"), exported_span)
+                } else {
+                    builder
+                        .with_error(
+                            format!("{thing} is a reference to {binding_to}, not a variable"),
+                            value_span,
+                        )
+                        .with_note(format!("{thing} declared here"), def_at)
+                }
             } else {
                 // Only in here when checking for references
                 debug_assert!(!checking_for_value);
-                builder = builder.with_error(format!("not a reference to a variable"), value_span);
-            }
+                builder.with_error("not a reference to a variable", value_span)
+            };
 
             if let Some(extra) = additional_info {
                 builder = builder.with_info(extra);
@@ -1633,7 +1659,7 @@ impl TypeCheck<'_> {
                 .reporter
                 .error_detailed("mismatched types", span)
                 .with_note(format!("this is of type `{ty}`"), span)
-                .with_info(format!("expected a `boolean` type"))
+                .with_info("expected a `boolean` type")
                 .finish();
 
             false

@@ -1,0 +1,19 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n        var *a : int\n        module z\n            export a\n        end z"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..73): "<root>"@(dummy)
+      StmtBody@(FileId(1), 9..73): []
+        StmtItem@(FileId(1), 9..21): ItemId(0)
+          ConstVar@(FileId(1), 9..21): var "a"@(FileId(1), 14..15)
+            Primitive@(FileId(1), 18..21): Int
+        StmtItem@(FileId(1), 30..73): ItemId(1)
+          Module@(FileId(1), 30..73): "z"@(FileId(1), 37..38)
+            StmtBody@(FileId(1), 68..68): []
+error in file FileId(1) at 58..59: exported symbol `a` has not been declared
+| error in file FileId(1) for 58..59: not declared at the top level of this module
+

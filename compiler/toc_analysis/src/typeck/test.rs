@@ -738,6 +738,55 @@ test_named_group! { sized_string,
     ]
 }
 
+test_named_group! { typeck_module_field,
+    [
+        normal => "
+        module a
+            export b
+            var b : int
+        end a
+        var c := a.b",
+        chained => "
+        module a export b module b export c module c export d
+            var d : int
+        end c end b end a
+        var k := a.b.c.d
+        ",
+        no_exports => "
+        module no end no
+        var k := no.exports
+        ",
+        not_exported => "
+        module a export b var b : int end a
+        var k := a.c
+        ",
+        export_mutability => "
+        module a export var b
+            var b : int
+        end a
+        a.b := 2",
+        unqualified_export_mutability => "
+        module a export ~. var b
+            var b : int
+        end a
+        b := 2",
+        export_not_mut => "
+        module a export b, var c
+            var b : int
+            const c : int := 1
+        end a
+        a.b := 1
+        a.c := 2
+        ",
+        unqualified_export_not_mut => "
+        module a export ~.b
+            var b : int
+        end a
+        b := 1
+        ",
+    ]
+}
+
 test_named_group! { typeck_var,
     [
         compatible => r#"var k : int := 100"#,

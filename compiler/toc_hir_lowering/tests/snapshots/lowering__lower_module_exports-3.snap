@@ -1,0 +1,22 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n        module z\n            export opaque a, opaque z\n            var a : int\n        end z"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..93): "<root>"@(dummy)
+      StmtBody@(FileId(1), 9..93): []
+        StmtItem@(FileId(1), 9..93): ItemId(1)
+          Module@(FileId(1), 9..93): "z"@(FileId(1), 16..17), exports [Const Qualified "a"@(FileId(1), 72..73)]
+            StmtBody@(FileId(1), 68..79): []
+              StmtItem@(FileId(1), 68..79): ItemId(0)
+                ConstVar@(FileId(1), 68..79): var "a"@(FileId(1), 72..73)
+                  Primitive@(FileId(1), 76..79): Int
+error in file FileId(1) at 37..43: cannot use `opaque` here
+| error in file FileId(1) for 37..43: `opaque` attribute can only be applied to types
+| note in file FileId(1) for 72..73: `a` declared here
+error in file FileId(1) at 54..55: exported symbol `z` has not been declared
+| error in file FileId(1) for 54..55: not declared at the top level of this module
+

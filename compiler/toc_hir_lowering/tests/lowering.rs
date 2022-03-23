@@ -1173,3 +1173,172 @@ fn lower_return_stmt() {
 fn lower_result_stmt() {
     assert_lower(r#"fcn _ : string result "sus" end _"#);
 }
+
+#[test]
+fn lower_module_def() {
+    assert_lower("module a var c := 2 end a");
+
+    assert_lower("module var c := 2 end a");
+
+    // Module name should be visible inside of the module itself
+    assert_lower(
+        "
+    module pervasive a
+        module b
+            module c
+                a b c
+            end c
+        end b
+    end a
+    ",
+    );
+
+    // Unqualified (pervasive) exports should be visible in the sibling scopes
+    assert_lower(
+        "
+        module z
+            export ~.a, ~.b
+            var a, b : int
+        end z
+        module y
+            export ~.*all
+            var c, d : int
+        end y
+
+        % non pervasive
+        var i : int
+        i := a
+        i := b
+
+        % pervasive
+        module x
+            var i : int
+            i := c
+            i := d
+        end x
+        ",
+    );
+
+    // Report when unqualified exports are occluding others
+    assert_lower(
+        "
+        var u, w, U : int
+        module a
+            export ~.all
+            var u, w, U : int
+        end a
+        ",
+    );
+}
+
+#[test]
+fn lower_module_exports() {
+    assert_lower(
+        "
+    module tree
+        export a, var b, unqualified c, pervasive unqualified d, opaque e
+
+        var a, b, c, d : int
+        type e : int
+    end tree",
+    );
+
+    // pervasive only applicable to unqualified
+    assert_lower(
+        "
+    module z
+        export *a
+        var a : int
+    end z",
+    );
+
+    // opaque only applicable to types
+    assert_lower(
+        "
+        module z
+            export opaque a, opaque z
+            var a : int
+        end z",
+    );
+
+    // undeclared export
+    assert_lower(
+        "
+        module z
+            export a
+        end z",
+    );
+
+    // only export from inside module
+    assert_lower(
+        "
+        var *a : int
+        module z
+            export a
+        end z",
+    );
+
+    assert_lower(
+        "
+    module z
+        export var *~. all
+        var heres, tree : int
+    end z",
+    );
+
+    // If an all is present, the rest of the exports are ignored
+    assert_lower(
+        "
+    module z
+        export var *~. all, heres
+        var heres, tree : int
+    end z",
+    );
+
+    // `all` opaque restriction only applies to applicable items
+    assert_lower(
+        "
+    module z
+        export var *~. opaque all
+        var heres, tree : int
+        type again : int
+    end z",
+    );
+
+    // duplicate export
+    assert_lower(
+        "
+    module z
+        export a, a, a, a, a
+        var a : int
+    end z",
+    );
+
+    // unapplicable mutability
+    assert_lower(
+        "
+    module z
+        export var a, var b
+        type a : int
+        const b := 8080
+    end z",
+    );
+}
+
+#[test]
+fn lower_field_expr() {
+    assert_lower(
+        "
+    module a end a
+    a.b
+    ",
+    );
+
+    // Missing field name
+    assert_lower(
+        "
+    module a end a
+    a.
+    ",
+    );
+}

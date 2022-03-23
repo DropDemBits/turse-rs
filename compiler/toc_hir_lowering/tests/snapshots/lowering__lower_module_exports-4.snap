@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n        module z\n            export a\n        end z"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..52): "<root>"@(dummy)
+      StmtBody@(FileId(1), 9..52): []
+        StmtItem@(FileId(1), 9..52): ItemId(0)
+          Module@(FileId(1), 9..52): "z"@(FileId(1), 16..17)
+            StmtBody@(FileId(1), 47..47): []
+error in file FileId(1) at 37..38: exported symbol `a` has not been declared
+| error in file FileId(1) for 37..38: not declared at the top level of this module
+

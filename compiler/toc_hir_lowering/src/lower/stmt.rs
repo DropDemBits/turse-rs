@@ -1,11 +1,14 @@
 //! Lowering into `Stmt` HIR nodes
+use std::collections::HashMap;
+
+use indexmap::IndexMap;
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
     symbol::{self, ForwardKind, LimitedKind, Mutability, SymbolKind},
     ty,
 };
-use toc_span::{SpanId, Spanned};
+use toc_span::{Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::{lower::LoweredStmt, scopes::ScopeKind};
@@ -27,7 +30,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Stmt::ForwardDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::DeferredDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::BodyDecl(_) => self.unsupported_stmt(span),
-            ast::Stmt::ModuleDecl(_) => self.unsupported_stmt(span),
+
+            ast::Stmt::ModuleDecl(decl) => self.lower_module_decl(decl),
+
             ast::Stmt::ClassDecl(_) => self.unsupported_stmt(span),
             ast::Stmt::MonitorDecl(_) => self.unsupported_stmt(span),
 
@@ -479,6 +484,351 @@ impl super::BodyLowering<'_, '_> {
         );
 
         item::SubprogramBody { body }
+    }
+
+    fn lower_module_decl(&mut self, decl: ast::ModuleDecl) -> Option<stmt::StmtKind> {
+        let is_pervasive = decl.pervasive_attr().is_some();
+        let def_id = self.lower_name_def(decl.name()?, SymbolKind::Declared, is_pervasive);
+
+        self.unsupported_node(decl.import_stmt());
+        self.unsupported_node(decl.implement_stmt());
+        self.unsupported_node(decl.implement_by_stmt());
+
+        self.unsupported_node(decl.pre_stmt());
+        self.unsupported_node(decl.post_stmt());
+
+        self.ctx.scopes.push_scope(ScopeKind::Module);
+        let (body, declares) = {
+            if !is_pervasive {
+                // Also make visible in the inner scope if it's not pervasive
+                self.introduce_def(def_id, false);
+            }
+
+            self.ctx.lower_stmt_body(
+                ScopeKind::Subprogram,
+                decl.stmt_list().unwrap(),
+                vec![],
+                None,
+            )
+        };
+        self.ctx.scopes.pop_scope();
+
+        let exports = self.lower_export_list(decl.export_stmt(), &declares);
+
+        // Introduce unqualified exports into the current scope
+        for export in exports.iter().filter(|item| {
+            matches!(
+                item.qualify_as,
+                item::QualifyAs::Unqualified | item::QualifyAs::PervasiveUnqualified
+            )
+        }) {
+            let is_pervasive = matches!(export.qualify_as, item::QualifyAs::PervasiveUnqualified);
+
+            self.introduce_def(export.def_id, is_pervasive);
+        }
+
+        let span = self.ctx.intern_range(decl.syntax().text_range());
+        let item_id = self.ctx.library.add_item(item::Item {
+            def_id,
+            kind: item::ItemKind::Module(item::Module {
+                as_monitor: false,
+                def_id,
+                declares,
+                body,
+                exports,
+            }),
+            span,
+        });
+
+        Some(stmt::StmtKind::Item(item_id))
+    }
+
+    fn lower_export_list(
+        &mut self,
+        exports: Option<ast::ExportStmt>,
+        declares: &[item::ItemId],
+    ) -> Vec<item::ExportItem> {
+        let exports = if let Some(exports) = exports {
+            exports
+        } else {
+            return vec![];
+        };
+        let exports_all = exports.exports().find(|item| item.all_token().is_some());
+
+        // Deduplicate the exportable idents
+        let mut exported_items = IndexMap::new();
+
+        for item_id in declares {
+            let item = self.ctx.library.item(*item_id);
+            let def_info = self.ctx.library.local_def(item.def_id);
+            exported_items.insert(def_info.name.item().clone(), *item_id);
+        }
+
+        let lower_export_attrs =
+            |from_item: &ast::ExportItem, ctx: &mut crate::lower::FileLowering| {
+                let is_var = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::VarAttr(_)));
+                let is_unqualified = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::UnqualifiedAttr(_)));
+                let is_pervasive = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::PervasiveAttr(_)));
+                let is_opaque = from_item
+                    .attrs()
+                    .any(|attr| matches!(attr, ast::ExportAttr::OpaqueAttr(_)));
+
+                let mutability = Mutability::from_is_mutable(is_var);
+                let qualify_as = match (is_unqualified, is_pervasive) {
+                    (false, false) => item::QualifyAs::Qualified,
+                    (false, true) => {
+                        // Pervasive exports should be unqualified
+                        // or rather
+                        // Attribute has no effect - pervasive exports are only meaningful for unqualified attrs
+                        let pervasive_attr = from_item
+                            .attrs()
+                            .find_map(|attr| {
+                                if let ast::ExportAttr::PervasiveAttr(attr) = attr {
+                                    Some(attr)
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap();
+
+                        let span = ctx.mk_span(pervasive_attr.syntax().text_range());
+                        ctx.messages.warn("attribute has no effect", "`pervasive` only has an effect on exports when `unqualified` is also present", span);
+                        item::QualifyAs::Qualified
+                    }
+                    (true, false) => item::QualifyAs::Unqualified,
+                    (true, true) => item::QualifyAs::PervasiveUnqualified,
+                };
+
+                (mutability, qualify_as, is_opaque)
+            };
+
+        if let Some(exports_all) = exports_all {
+            // Warn about ignored export items
+            for exports_item in exports.exports() {
+                if exports_item == exports_all {
+                    continue;
+                }
+
+                let name_tok = if let Some(name) = exports_item.name() {
+                    name.identifier_token().unwrap()
+                } else {
+                    continue;
+                };
+                let name = name_tok.text();
+
+                let export_span = self.ctx.mk_span(exports_item.syntax().text_range());
+                let all_span = self
+                    .ctx
+                    .mk_span(exports_all.all_token().unwrap().text_range());
+
+                self.ctx
+                    .messages
+                    .warn_detailed("export item is ignored", export_span)
+                    .with_warn(format!("`{name}` is already exported..."), export_span)
+                    .with_note("by this `all`", all_span)
+                    .finish();
+            }
+
+            let (mutability, qualify_as, is_opaque) = lower_export_attrs(&exports_all, self.ctx);
+            let export_span = self.ctx.intern_range(exports_all.syntax().text_range());
+
+            exported_items
+                .into_iter()
+                .map(|(export_name, item_id)| {
+                    let item = self.ctx.library.item(item_id);
+                    let is_opaque = if !matches!(item.kind, item::ItemKind::Type(_)) {
+                        // Opaque is only applicable to types
+                        false
+                    } else {
+                        is_opaque
+                    };
+
+                    // Don't need to report non-applicable mutability here, since it's applied
+                    // only when it is applicable
+                    let mutability = if let item::ItemKind::ConstVar(cv) = &item.kind {
+                        // Only carry through mutability if it was mutable in the first place
+                        Mutability::from_is_mutable(
+                            mutability == Mutability::Var && cv.mutability == Mutability::Var,
+                        )
+                    } else {
+                        // Non-ConstVars are always immutable
+                        Mutability::Const
+                    };
+
+                    let item_def = item.def_id;
+                    let def_id = self.ctx.library.add_def(
+                        &export_name,
+                        export_span,
+                        SymbolKind::ItemExport(item_def),
+                    );
+
+                    item::ExportItem {
+                        def_id,
+                        mutability,
+                        qualify_as,
+                        is_opaque,
+                        item_id,
+                    }
+                })
+                .collect()
+        } else {
+            let mut already_exported = HashMap::new();
+
+            exports
+                .exports()
+                .flat_map(|exports_item| {
+                    let (mutability, qualify_as, is_opaque) =
+                        lower_export_attrs(&exports_item, self.ctx);
+                    let name = exports_item.name()?;
+                    let name_tok = name.identifier_token().unwrap();
+                    let name_text = name_tok.text();
+
+                    // Warn about duplicate exports
+                    match already_exported.entry(name_text.to_string()) {
+                        std::collections::hash_map::Entry::Occupied(entry) => {
+                            // Already exported
+                            let this_span = self.ctx.mk_span(exports_item.syntax().text_range());
+                            self.ctx
+                                .messages
+                                .warn_detailed("export item is ignored", this_span)
+                                .with_warn(
+                                    format!("`{name_text}` is already exported..."),
+                                    this_span,
+                                )
+                                .with_note("by this export", *entry.get())
+                                .finish();
+
+                            // Skip this export
+                            return None;
+                        }
+                        std::collections::hash_map::Entry::Vacant(entry) => {
+                            // Not exported yet
+                            entry.insert(self.ctx.mk_span(exports_item.syntax().text_range()));
+                        }
+                    }
+
+                    let item = exported_items.get(name_text).copied();
+
+                    if let Some(item_id) = item {
+                        let item = self.ctx.library.item(item_id);
+
+                        // Report when opaqueness is not applicable
+                        let is_opaque = if is_opaque
+                            && !matches!(item.kind, item::ItemKind::Type(_))
+                        {
+                            let opaque_attr = exports_item
+                                .attrs()
+                                .find_map(|attr| {
+                                    if let ast::ExportAttr::OpaqueAttr(attr) = attr {
+                                        Some(attr)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap();
+
+                            let opaque_span = self.ctx.mk_span(opaque_attr.syntax().text_range());
+                            let def_info = self.ctx.library.local_def(item.def_id);
+                            let def_name = def_info.name.item();
+                            let def_span =
+                                def_info.name.span().lookup_in(&self.ctx.library.span_map);
+
+                            self.ctx
+                                .messages
+                                .error_detailed("cannot use `opaque` here", opaque_span)
+                                .with_error(
+                                    "`opaque` attribute can only be applied to types",
+                                    opaque_span,
+                                )
+                                .with_note(format!("`{def_name}` declared here"), def_span)
+                                .finish();
+
+                            // Don't carry it through
+                            false
+                        } else {
+                            is_opaque
+                        };
+
+                        // Report when mutability isn't applicable
+                        let is_mutability_applicable =
+                            if let item::ItemKind::ConstVar(cv) = &item.kind {
+                                // Only applicable if it was mutable in the first place
+                                cv.mutability == Mutability::Var
+                            } else {
+                                // Not applicable to any other item
+                                false
+                            };
+
+                        let mutability =
+                            if !is_mutability_applicable && mutability == Mutability::Var {
+                                let var_attr = exports_item
+                                    .attrs()
+                                    .find_map(|attr| {
+                                        if let ast::ExportAttr::VarAttr(attr) = attr {
+                                            Some(attr)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap();
+
+                                let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
+                                let def_info = self.ctx.library.local_def(item.def_id);
+                                let def_name = def_info.name.item();
+                                let def_span =
+                                    def_info.name.span().lookup_in(&self.ctx.library.span_map);
+
+                                self.ctx
+                                    .messages
+                                    .error_detailed("cannot use `var` here", var_span)
+                                    .with_error(
+                                        "`var` attribute can only be applied to variables",
+                                        var_span,
+                                    )
+                                    .with_note(format!("`{def_name}` declared here"), def_span)
+                                    .finish();
+
+                                // Don't carry it through
+                                Mutability::Const
+                            } else {
+                                mutability
+                            };
+
+                        let item_def = item.def_id;
+                        let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
+                        let def_id = self.ctx.library.add_def(
+                            name_text,
+                            export_span,
+                            SymbolKind::ItemExport(item_def),
+                        );
+
+                        Some(item::ExportItem {
+                            def_id,
+                            mutability,
+                            qualify_as,
+                            is_opaque,
+                            item_id,
+                        })
+                    } else {
+                        let span = Span::new(self.ctx.file, name.syntax().text_range());
+                        let name = name.identifier_token().unwrap();
+                        self.ctx.messages.error(
+                            format!("exported symbol `{name}` has not been declared"),
+                            "not declared at the top level of this module",
+                            span,
+                        );
+
+                        None
+                    }
+                })
+                .collect()
+        }
     }
 
     fn lower_assign_stmt(&mut self, stmt: ast::AssignStmt) -> Option<stmt::StmtKind> {
@@ -966,8 +1316,29 @@ impl super::BodyLowering<'_, '_> {
                         );
                     }
                 }
+                (_, SymbolKind::ItemExport(exported_from)) => {
+                    // From an unqualified export in a local module
+                    // Use the originating item as the top-level error span
+                    let from_item_span = self
+                        .ctx
+                        .library
+                        .local_def(exported_from)
+                        .name
+                        .span()
+                        .lookup_in(&self.ctx.library.span_map);
+
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            format!("`{name}` is already declared in the parent scope"),
+                            from_item_span,
+                        )
+                        .with_note(format!("`{name}` previously declared here"), old_span)
+                        .with_error(format!("`{name}` exported from here"), new_span)
+                        .finish();
+                }
                 _ => {
-                    // Redeclaring over an older def
+                    // From a new declaration
                     self.ctx
                         .messages
                         .error_detailed(

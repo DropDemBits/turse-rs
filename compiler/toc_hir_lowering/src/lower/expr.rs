@@ -61,13 +61,15 @@ impl super::BodyLowering<'_, '_> {
             }
             ast::Expr::NameExpr(expr) => self.lower_name_expr(expr),
             ast::Expr::SelfExpr(_) => self.unsupported_expr(span),
-            ast::Expr::FieldExpr(_) => self.unsupported_expr(span),
+            ast::Expr::FieldExpr(expr) => self.lower_field_expr(expr),
+
             ast::Expr::DerefExpr(_) => self.unsupported_expr(span),
             ast::Expr::CheatExpr(_) => self.unsupported_expr(span),
             ast::Expr::NatCheatExpr(_) => self.unsupported_expr(span),
             ast::Expr::ArrowExpr(_) => self.unsupported_expr(span),
             ast::Expr::IndirectExpr(_) => self.unsupported_expr(span),
             ast::Expr::BitsExpr(_) => self.unsupported_expr(span),
+
             ast::Expr::CallExpr(expr) => self.lower_call_expr(expr),
         }
         .unwrap_or(expr::ExprKind::Missing);
@@ -160,6 +162,17 @@ impl super::BodyLowering<'_, '_> {
         }
 
         Some(expr::ExprKind::Name(expr::Name::Name(def_id)))
+    }
+
+    fn lower_field_expr(&mut self, expr: ast::FieldExpr) -> Option<expr::ExprKind> {
+        let lhs = self.lower_required_expr(expr.expr());
+        let field = expr.name()?.identifier_token()?;
+        let span = self.ctx.intern_range(field.text_range());
+
+        Some(expr::ExprKind::Field(expr::Field {
+            lhs,
+            field: Spanned::new(field.to_string(), span),
+        }))
     }
 
     fn lower_call_expr(&mut self, expr: ast::CallExpr) -> Option<expr::ExprKind> {

@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module no end no\nvar k := no.exports\n"
+
+---
+"no"@(FileId(1), 7..9) [Declared]: <error>
+"k"@(FileId(1), 21..22) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 29..36: no field named `exports` in expression
+| error in file FileId(1) for 29..36: no field named `exports` in here

@@ -1,0 +1,29 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    module tree\n        export a, var b, unqualified c, pervasive unqualified d, opaque e\n\n        var a, b, c, d : int\n        type e : int\n    end tree"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(6)
+    Module@(FileId(1), 0..154): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..154): []
+        StmtItem@(FileId(1), 5..154): ItemId(5)
+          Module@(FileId(1), 5..154): "tree"@(FileId(1), 12..16), exports [Const Qualified "a"@(FileId(1), 104..105), Var Qualified "b"@(FileId(1), 107..108), Const Unqualified "c"@(FileId(1), 110..111), Const PervasiveUnqualified "d"@(FileId(1), 113..114), Const Qualified Opaque "e"@(FileId(1), 134..135)]
+            StmtBody@(FileId(1), 100..141): []
+              StmtItem@(FileId(1), 100..120): ItemId(0)
+                ConstVar@(FileId(1), 100..120): var "a"@(FileId(1), 104..105)
+                  Primitive@(FileId(1), 117..120): Int
+              StmtItem@(FileId(1), 100..120): ItemId(1)
+                ConstVar@(FileId(1), 100..120): var "b"@(FileId(1), 107..108)
+                  Primitive@(FileId(1), 117..120): Int
+              StmtItem@(FileId(1), 100..120): ItemId(2)
+                ConstVar@(FileId(1), 100..120): var "c"@(FileId(1), 110..111)
+                  Primitive@(FileId(1), 117..120): Int
+              StmtItem@(FileId(1), 100..120): ItemId(3)
+                ConstVar@(FileId(1), 100..120): var "d"@(FileId(1), 113..114)
+                  Primitive@(FileId(1), 117..120): Int
+              StmtItem@(FileId(1), 129..141): ItemId(4)
+                Type@(FileId(1), 129..141): "e"@(FileId(1), 134..135)
+                  Primitive@(FileId(1), 138..141): Int
+
