@@ -48,6 +48,9 @@ pub enum SymbolKind {
     Forward(ForwardKind, Option<LocalDefId>),
     /// The symbol is a resolution of a forward declaration.
     Resolved(ForwardKind),
+    /// The symbol is from an export of an item, with a [`LocalDefId`]
+    /// pointing to the original item.
+    ItemExport(LocalDefId),
 }
 
 /// Disambiguates between different forward declaration kinds
@@ -74,6 +77,8 @@ pub enum DefOwner {
     Item(ItemId),
     /// Parameter on a given `Item`
     ItemParam(ItemId, LocalDefId),
+    /// Export on a given `Item`
+    ItemExport(ItemId, usize),
     /// Owned by a `Stmt`
     Stmt(BodyStmt),
 }

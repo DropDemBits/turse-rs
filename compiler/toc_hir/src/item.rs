@@ -204,12 +204,13 @@ pub struct Module {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExportItem {
+    /// [`LocalDefId`] to uniquely identify this specific export
+    pub def_id: symbol::LocalDefId,
     pub mutability: symbol::Mutability,
     pub qualify_as: QualifyAs,
     pub is_opaque: bool,
+    /// Associated item to export
     pub item_id: ItemId,
-    /// Span of the related export item
-    pub span: SpanId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

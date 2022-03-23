@@ -29,13 +29,13 @@ Library@(dummy)
               StmtItem@(FileId(1), 81..98): ItemId(5)
                 ConstVar@(FileId(1), 81..98): var "U"@(FileId(1), 91..92)
                   Primitive@(FileId(1), 95..98): Int
-error in file FileId(1) at 85..86: `u` is already declared in this scope
+error in file FileId(1) at 85..86: `u` is already declared in the parent scope
 | note in file FileId(1) for 13..14: `u` previously declared here
 | error in file FileId(1) for 63..68: `u` exported from here
-error in file FileId(1) at 88..89: `w` is already declared in this scope
+error in file FileId(1) at 88..89: `w` is already declared in the parent scope
 | note in file FileId(1) for 16..17: `w` previously declared here
 | error in file FileId(1) for 63..68: `w` exported from here
-error in file FileId(1) at 91..92: `U` is already declared in this scope
+error in file FileId(1) at 91..92: `U` is already declared in the parent scope
 | note in file FileId(1) for 19..20: `U` previously declared here
 | error in file FileId(1) for 63..68: `U` exported from here
 

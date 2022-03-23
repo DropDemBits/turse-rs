@@ -41,6 +41,20 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
             DefOwner::ItemParam(item_id, param_def) => {
                 lower::ty_from_item_param(db, InLibrary(def_id.0, (item_id, param_def)))
             }
+            DefOwner::ItemExport(item_id, export_idx) => {
+                // Refer to the corresponding exported item
+                let library = db.library(def_id.0);
+
+                if let item::ItemKind::Module(module) = library.item(item_id).kind {
+                    let export_item = module.exports.get(export_idx).expect("bad export index");
+                    let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
+
+                    db.type_of(def_id.into())
+                } else {
+                    // Only applicable to module-likes
+                    unreachable!()
+                }
+            }
             DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
         }
     } else {
@@ -128,6 +142,18 @@ pub(crate) fn binding_to(
                     BindingTo::Storage(Mutability::Const)
                 }
             })
+        }
+        Some(DefOwner::ItemExport(item_id, export_id)) => {
+            // Refer to the corresponding exported item
+            if let item::ItemKind::Module(module) = library.item(item_id).kind {
+                let export_item = module.exports.get(export_id).expect("bad export index");
+                let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
+
+                db.binding_to(def_id.into())
+            } else {
+                // Only applicable to module-likes
+                unreachable!()
+            }
         }
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {

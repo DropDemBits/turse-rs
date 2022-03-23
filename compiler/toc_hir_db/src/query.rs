@@ -95,6 +95,13 @@ impl HirVisitor for DefCollector<'_> {
         self.add_owner(item.def_id, DefOwner::Item(id));
     }
 
+    fn visit_module(&self, id: item::ItemId, item: &item::Module) {
+        // Add all exports as being owned by this one
+        for (idx, export) in item.exports.iter().enumerate() {
+            self.add_owner(export.def_id, DefOwner::ItemExport(id, idx));
+        }
+    }
+
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
         if let Some(params) = &item.param_list {
             for name in &params.names {

@@ -501,7 +501,7 @@ impl super::BodyLowering<'_, '_> {
         let (body, declares) = {
             if !is_pervasive {
                 // Also make visible in the inner scope if it's not pervasive
-                self.introduce_def(def_id, false, None);
+                self.introduce_def(def_id, false);
             }
 
             self.ctx.lower_stmt_body(
@@ -523,10 +523,8 @@ impl super::BodyLowering<'_, '_> {
             )
         }) {
             let is_pervasive = matches!(export.qualify_as, item::QualifyAs::PervasiveUnqualified);
-            let def_id = self.ctx.library.item(export.item_id).def_id;
-            let export_span = export.span;
 
-            self.introduce_def(def_id, is_pervasive, Some(export_span));
+            self.introduce_def(export.def_id, is_pervasive);
         }
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
@@ -642,7 +640,7 @@ impl super::BodyLowering<'_, '_> {
 
             exported_items
                 .into_iter()
-                .map(|(_, item_id)| {
+                .map(|(export_name, item_id)| {
                     let item = self.ctx.library.item(item_id);
                     let is_opaque = if !matches!(item.kind, item::ItemKind::Type(_)) {
                         // Opaque is only applicable to types
@@ -663,12 +661,19 @@ impl super::BodyLowering<'_, '_> {
                         Mutability::Const
                     };
 
+                    let item_def = item.def_id;
+                    let def_id = self.ctx.library.add_def(
+                        &export_name,
+                        export_span,
+                        SymbolKind::ItemExport(item_def),
+                    );
+
                     item::ExportItem {
+                        def_id,
                         mutability,
                         qualify_as,
                         is_opaque,
                         item_id,
-                        span: export_span,
                     }
                 })
                 .collect()
@@ -795,14 +800,20 @@ impl super::BodyLowering<'_, '_> {
                                 mutability
                             };
 
+                        let item_def = item.def_id;
                         let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
+                        let def_id = self.ctx.library.add_def(
+                            name_text,
+                            export_span,
+                            SymbolKind::ItemExport(item_def),
+                        );
 
                         Some(item::ExportItem {
+                            def_id,
                             mutability,
                             qualify_as,
                             is_opaque,
                             item_id,
-                            span: export_span,
                         })
                     } else {
                         let span = Span::new(self.ctx.file, name.syntax().text_range());
@@ -1207,7 +1218,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.name_to_def(name, kind);
 
         // Bring into scope
-        self.introduce_def(def_id, is_pervasive, None);
+        self.introduce_def(def_id, is_pervasive);
 
         def_id
     }
@@ -1218,12 +1229,7 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.library.add_def(token.text(), span, kind)
     }
 
-    fn introduce_def(
-        &mut self,
-        def_id: symbol::LocalDefId,
-        is_pervasive: bool,
-        from_unqualified: Option<SpanId>,
-    ) {
+    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
         let def_info = self.ctx.library.local_def(def_id);
         let name = def_info.name.item();
         let span = def_info.name.span();
@@ -1310,34 +1316,38 @@ impl super::BodyLowering<'_, '_> {
                         );
                     }
                 }
-                _ => {
-                    // Redeclaring over an older def
-                    if let Some(export_span) = from_unqualified {
-                        // From an unqualified export in a local module
-                        // Use the export span instead
-                        let export_span = export_span.lookup_in(&self.ctx.library.span_map);
+                (_, SymbolKind::ItemExport(exported_from)) => {
+                    // From an unqualified export in a local module
+                    // Use the originating item as the top-level error span
+                    let from_item_span = self
+                        .ctx
+                        .library
+                        .local_def(exported_from)
+                        .name
+                        .span()
+                        .lookup_in(&self.ctx.library.span_map);
 
-                        self.ctx
-                            .messages
-                            .error_detailed(
-                                format!("`{name}` is already declared in this scope"),
-                                new_span,
-                            )
-                            .with_note(format!("`{name}` previously declared here"), old_span)
-                            .with_error(format!("`{name}` exported from here"), export_span)
-                            .finish();
-                    } else {
-                        // From a new declaration
-                        self.ctx
-                            .messages
-                            .error_detailed(
-                                format!("`{name}` is already declared in this scope"),
-                                new_span,
-                            )
-                            .with_note(format!("`{name}` previously declared here"), old_span)
-                            .with_error(format!("`{name}` redeclared here"), new_span)
-                            .finish();
-                    }
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            format!("`{name}` is already declared in the parent scope"),
+                            from_item_span,
+                        )
+                        .with_note(format!("`{name}` previously declared here"), old_span)
+                        .with_error(format!("`{name}` exported from here"), new_span)
+                        .finish();
+                }
+                _ => {
+                    // From a new declaration
+                    self.ctx
+                        .messages
+                        .error_detailed(
+                            format!("`{name}` is already declared in this scope"),
+                            new_span,
+                        )
+                        .with_note(format!("`{name}` previously declared here"), old_span)
+                        .with_error(format!("`{name}` redeclared here"), new_span)
+                        .finish();
                 }
             }
         }
