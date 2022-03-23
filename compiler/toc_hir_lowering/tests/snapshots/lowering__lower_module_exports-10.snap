@@ -1,0 +1,27 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "\n    module z\n        export var a, var b\n        type a : int\n        const b := 8080\n    end z"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(3)
+    Module@(FileId(1), 0..96): "<root>"@(dummy)
+      StmtBody@(FileId(1), 5..96): []
+        StmtItem@(FileId(1), 5..96): ItemId(2)
+          Module@(FileId(1), 5..96): "z"@(FileId(1), 12..13), exports [Const Qualified "a"@(FileId(1), 55..56), Const Qualified "b"@(FileId(1), 77..78)]
+            StmtBody@(FileId(1), 50..86): []
+              StmtItem@(FileId(1), 50..62): ItemId(0)
+                Type@(FileId(1), 50..62): "a"@(FileId(1), 55..56)
+                  Primitive@(FileId(1), 59..62): Int
+              StmtItem@(FileId(1), 71..86): ItemId(1)
+                ConstVar@(FileId(1), 71..86): const "b"@(FileId(1), 77..78)
+                  ExprBody@(FileId(1), 82..86)
+                    Literal@(FileId(1), 82..86): Integer(8080)
+error in file FileId(1) at 29..32: cannot use `var` here
+| error in file FileId(1) for 29..32: `var` attribute can only be applied to variables
+| note in file FileId(1) for 55..56: `a` declared here
+error in file FileId(1) at 36..39: cannot use `var` here
+| error in file FileId(1) for 36..39: `var` attribute can only be applied to variables
+| note in file FileId(1) for 77..78: `b` declared here
+

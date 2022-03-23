@@ -1276,6 +1276,16 @@ fn lower_module_exports() {
         var a : int
     end z",
     );
+
+    // unapplicable mutability
+    assert_lower(
+        "
+    module z
+        export var a, var b
+        type a : int
+        const b := 8080
+    end z",
+    );
 }
 
 #[test]

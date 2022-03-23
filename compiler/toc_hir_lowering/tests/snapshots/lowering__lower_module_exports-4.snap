@@ -12,5 +12,5 @@ Library@(dummy)
           Module@(FileId(1), 9..52): "z"@(FileId(1), 16..17)
             StmtBody@(FileId(1), 47..47): []
 error in file FileId(1) at 37..38: exported symbol `a` has not been declared
-| error in file FileId(1) for 37..38: not declared inside this module
+| error in file FileId(1) for 37..38: not declared at the top level of this module
 

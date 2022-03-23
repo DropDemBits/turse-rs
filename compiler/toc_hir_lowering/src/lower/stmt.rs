@@ -631,14 +631,24 @@ impl super::BodyLowering<'_, '_> {
             exported_items
                 .into_iter()
                 .map(|(_, item_id)| {
-                    let is_opaque = if !matches!(
-                        self.ctx.library.item(item_id).kind,
-                        item::ItemKind::Type(_)
-                    ) {
+                    let item = self.ctx.library.item(item_id);
+                    let is_opaque = if !matches!(item.kind, item::ItemKind::Type(_)) {
                         // Opaque is only applicable to types
                         false
                     } else {
                         is_opaque
+                    };
+
+                    // Don't need to report non-applicable mutability here, since it's applied
+                    // only when it is applicable
+                    let mutability = if let item::ItemKind::ConstVar(cv) = &item.kind {
+                        // Only carry through mutability if it was mutable in the first place
+                        Mutability::from_is_mutable(
+                            mutability == Mutability::Var && cv.mutability == Mutability::Var,
+                        )
+                    } else {
+                        // Non-ConstVars are always immutable
+                        Mutability::Const
                     };
 
                     item::ExportItem {
@@ -693,11 +703,61 @@ impl super::BodyLowering<'_, '_> {
 
                     if let Some(item_id) = item {
                         let item = self.ctx.library.item(item_id);
-                        if is_opaque && !matches!(item.kind, item::ItemKind::Type(_)) {
-                            let opaque_attr = exports_item
+
+                        // Report when opaqueness is not applicable
+                        let is_opaque =
+                            if is_opaque && !matches!(item.kind, item::ItemKind::Type(_)) {
+                                let opaque_attr = exports_item
+                                    .attrs()
+                                    .find_map(|attr| {
+                                        if let ast::ExportAttr::OpaqueAttr(attr) = attr {
+                                            Some(attr)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap();
+
+                                let opaque_span =
+                                    Span::new(self.ctx.file, opaque_attr.syntax().text_range());
+                                let def_info = self.ctx.library.local_def(item.def_id);
+                                let def_name = def_info.name.item();
+                                let def_span =
+                                    def_info.name.span().lookup_in(&self.ctx.library.span_map);
+
+                                self.ctx
+                                    .messages
+                                    .error_detailed("cannot use `opaque` here", opaque_span)
+                                    .with_error(
+                                        "`opaque` attribute can only be applied to types",
+                                        opaque_span,
+                                    )
+                                    .with_note(format!("`{def_name}` declared here"), def_span)
+                                    .finish();
+
+                                // Don't carry it through
+                                false
+                            } else {
+                                is_opaque
+                            };
+
+                        // Report when mutability isn't applicable
+                        let is_mutability_applicable =
+                            if let item::ItemKind::ConstVar(cv) = &item.kind {
+                                // Only applicable if it was mutable in the first place
+                                cv.mutability == Mutability::Var
+                            } else {
+                                // Not applicable to any other item
+                                false
+                            };
+
+                        let mutability = if !is_mutability_applicable
+                            && mutability == Mutability::Var
+                        {
+                            let var_attr = exports_item
                                 .attrs()
                                 .find_map(|attr| {
-                                    if let ast::ExportAttr::OpaqueAttr(attr) = attr {
+                                    if let ast::ExportAttr::VarAttr(attr) = attr {
                                         Some(attr)
                                     } else {
                                         None
@@ -705,8 +765,7 @@ impl super::BodyLowering<'_, '_> {
                                 })
                                 .unwrap();
 
-                            let opaque_span =
-                                Span::new(self.ctx.file, opaque_attr.syntax().text_range());
+                            let var_span = Span::new(self.ctx.file, var_attr.syntax().text_range());
                             let def_info = self.ctx.library.local_def(item.def_id);
                             let def_name = def_info.name.item();
                             let def_span =
@@ -714,13 +773,18 @@ impl super::BodyLowering<'_, '_> {
 
                             self.ctx
                                 .messages
-                                .error_detailed("cannot use `opaque` here", opaque_span)
+                                .error_detailed("cannot use `var` here", var_span)
                                 .with_error(
-                                    "`opaque` attribute can only be applied to types",
-                                    opaque_span,
+                                    "`var` attribute can only be applied to variables",
+                                    var_span,
                                 )
                                 .with_note(format!("`{def_name}` declared here"), def_span)
                                 .finish();
+
+                            // Don't carry it through
+                            Mutability::Const
+                        } else {
+                            mutability
                         };
 
                         Some(item::ExportItem {
@@ -734,7 +798,7 @@ impl super::BodyLowering<'_, '_> {
                         let name = name.identifier_token().unwrap();
                         self.ctx.messages.error(
                             format!("exported symbol `{name}` has not been declared"),
-                            "not declared inside this module",
+                            "not declared at the top level of this module",
                             span,
                         );
 
