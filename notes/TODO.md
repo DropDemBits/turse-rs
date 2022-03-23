@@ -14,7 +14,7 @@
     - [ ] ForwardDecl
     - [ ] DeferredDecl
     - [ ] BodyDecl
-    - [ ] ModuleDecl
+    - [x] ModuleDecl
     - [ ] ClassDecl
     - [ ] MonitorDecl
     - [x] AssignStmt
@@ -58,7 +58,7 @@
     - [ ] ImplementStmt
     - [ ] ImplementByStmt
     - [ ] ImportStmt
-    - [ ] ExportStmt
+    - [x] ExportStmt
   - [ ] Expr
     - [x] LiteralExpr
     - [ ] ObjClassExpr
@@ -72,7 +72,7 @@
       - [x] As reference
       - [x] As paramless call
     - [x] SelfExpr
-    - [ ] FieldExpr
+    - [x] FieldExpr
     - [ ] DerefExpr
     - [ ] CheatExpr
     - [ ] NatCheatExpr
@@ -106,7 +106,7 @@
 - [ ] Import & dependency resolution
 - [ ] Typeck
   - [ ] Stmt
-    - [ ] ConstVar
+    - [~] ConstVar
       - [x] Binding type to def
       - [ ] Handling `init()` as the initialzer expression
     - [x] Type
@@ -118,10 +118,10 @@
     - [ ] Forward
     - [ ] Deferred
     - [ ] Body
-    - [ ] Module
+    - [x] Module
     - [ ] Class
     - [ ] Monitor
-    - [ ] Assign
+    - [x] Assign
     - [ ] Open
     - [ ] Close
     - [x] Put
@@ -179,7 +179,7 @@
     - [x] Unary
     - [x] Name
     - [ ] Self
-    - [ ] Field
+    - [x] Field
     - [ ] Deref
     - [ ] Cheat
     - [ ] NatCheat
@@ -207,6 +207,7 @@
     - [ ] Proc
     - [ ] Collection
     - [ ] Condition
+    - [ ] Opaque
 - [ ] Const Eval (in `toc_analysis`)
   - [x] Cache evals of `ConstExpr`s
   - [x] Deferred eval of `const` vars
@@ -236,7 +237,7 @@
 - [ ] Add
   - [x] Over numbers
   - [ ] Over sets
-  - [ ] Over char seqs
+  - [x] Over char seqs
 - [ ] Sub
   - [x] Over numbers
   - [ ] Over sets
