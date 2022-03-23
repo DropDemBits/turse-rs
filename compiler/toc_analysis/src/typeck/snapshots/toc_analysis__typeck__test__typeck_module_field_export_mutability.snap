@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module a export var b\n    var b : int\nend a\na.b := 2"
+
+---
+"a"@(FileId(1), 7..8) [Declared]: <error>
+"b"@(FileId(1), 30..31) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+

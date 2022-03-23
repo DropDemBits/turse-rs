@@ -1537,8 +1537,6 @@ impl TypeCheck<'_> {
         // "`{name}` is a reference to {binding_to}, not a variable" or "not a reference to a variable"
         // "`{name}` declared here"
 
-        use ty::db::ValueSource;
-
         let value_kind = self.db.value_produced(value_src);
         let predicate = match expected_kind {
             ExpectedValue::Value => ValueKind::is_value,
@@ -1551,10 +1549,7 @@ impl TypeCheck<'_> {
         let checking_for_value = matches!(expected_kind, ExpectedValue::Value);
 
         if !is_valid {
-            let binding_src = match value_src {
-                ValueSource::Body(lib_id, body_id) => (lib_id, body_id).into(),
-                ValueSource::BodyExpr(lib_id, body_expr) => (lib_id, body_expr).into(),
-            };
+            let binding_src = value_src.into();
             let binding_to = self.db.binding_def(binding_src);
 
             let (thing, def_info) = match binding_to {
@@ -1582,12 +1577,19 @@ impl TypeCheck<'_> {
             let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
 
             if let Some((def_at, binding_to)) = def_info {
-                builder = builder
-                    .with_error(
+                if matches!(binding_to, BindingTo::Storage(Mutability::Var)) {
+                    // TODO: Replace condition with a query checking if it's an exported binding
+                    // ???: Do we want to point to the export location?
+                    // Likely, though need to store that span too
+                    builder =
+                        builder.with_error(format!("{thing} is not exported as `var`"), value_span);
+                } else {
+                    builder = builder.with_error(
                         format!("{thing} is a reference to {binding_to}, not a variable"),
                         value_span,
-                    )
-                    .with_note(format!("{thing} declared here"), def_at);
+                    );
+                }
+                builder = builder.with_note(format!("{thing} declared here"), def_at);
             } else {
                 // Only in here when checking for references
                 debug_assert!(!checking_for_value);

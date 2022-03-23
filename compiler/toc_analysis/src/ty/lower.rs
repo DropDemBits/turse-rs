@@ -321,27 +321,25 @@ fn for_counter_ty(
 pub(crate) fn ty_from_expr(
     db: &dyn TypeDatabase,
     body: InLibrary<&body::Body>,
-    expr: expr::ExprId,
+    body_expr: expr::BodyExpr,
 ) -> TypeId {
-    match &body.1.expr(expr).kind {
+    let expr_id = body_expr.1;
+
+    match &body.1.expr(expr_id).kind {
         expr::ExprKind::Missing => {
             // Missing, treat as error
             db.mk_error()
         }
-        expr::ExprKind::Literal(expr) => literal_ty(db, body, expr),
-        expr::ExprKind::Binary(expr) => binary_ty(db, body, expr),
-        expr::ExprKind::Unary(expr) => unary_ty(db, body, expr),
+        expr::ExprKind::Literal(expr) => literal_ty(db, expr),
+        expr::ExprKind::Binary(expr) => binary_ty(db, body, expr, body_expr),
+        expr::ExprKind::Unary(expr) => unary_ty(db, body, expr, body_expr),
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
-        expr::ExprKind::Field(expr) => field_ty(db, body, expr),
-        expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr),
+        expr::ExprKind::Field(expr) => field_ty(db, body, expr, body_expr),
+        expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr, body_expr),
     }
 }
 
-fn literal_ty(
-    db: &dyn TypeDatabase,
-    _body: InLibrary<&body::Body>,
-    expr: &expr::Literal,
-) -> TypeId {
+fn literal_ty(db: &dyn TypeDatabase, expr: &expr::Literal) -> TypeId {
     match expr {
         expr::Literal::Integer(_) => db.mk_integer(),
         expr::Literal::Real(_) => db.mk_real(RealSize::Real),
@@ -357,17 +355,27 @@ fn literal_ty(
     }
 }
 
-fn binary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Binary) -> TypeId {
-    let left = ty_from_expr(db, body, expr.lhs);
-    let right = ty_from_expr(db, body, expr.rhs);
+fn binary_ty(
+    db: &dyn TypeDatabase,
+    body: InLibrary<&body::Body>,
+    expr: &expr::Binary,
+    body_expr: expr::BodyExpr,
+) -> TypeId {
+    let left = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.lhs));
+    let right = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.rhs));
 
     // Inference doesn't care about type errors too much
     // Just use the provided inferred type
     ty::rules::infer_binary_op(db, left, *expr.op.item(), right).extract_ty()
 }
 
-fn unary_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Unary) -> TypeId {
-    let right = ty_from_expr(db, body, expr.rhs);
+fn unary_ty(
+    db: &dyn TypeDatabase,
+    body: InLibrary<&body::Body>,
+    expr: &expr::Unary,
+    body_expr: expr::BodyExpr,
+) -> TypeId {
+    let right = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.rhs));
 
     // Inference doesn't care about type errors too much
     // Just use the provided inferred type
@@ -398,8 +406,13 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
     }
 }
 
-fn field_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Field) -> TypeId {
-    db.fields_of(ty_from_expr(db, body, expr.lhs).into())
+fn field_ty(
+    db: &dyn TypeDatabase,
+    body: InLibrary<&body::Body>,
+    expr: &expr::Field,
+    body_expr: expr::BodyExpr,
+) -> TypeId {
+    db.fields_of((body.0, body_expr.0, expr.lhs).into())
         .and_then(|fields| {
             fields.lookup(expr.field.item()).map(|field| {
                 // TODO: Handle opaque types
@@ -409,8 +422,13 @@ fn field_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Fi
         .unwrap_or_else(|| db.mk_error())
 }
 
-fn call_expr_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Call) -> TypeId {
-    let left = ty_from_expr(db, body, expr.lhs);
+fn call_expr_ty(
+    db: &dyn TypeDatabase,
+    body: InLibrary<&body::Body>,
+    expr: &expr::Call,
+    body_expr: expr::BodyExpr,
+) -> TypeId {
+    let left = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.lhs));
     let subprog_ty = left.in_db(db).to_base_type();
 
     if let TypeKind::Subprogram(

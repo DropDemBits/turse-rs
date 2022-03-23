@@ -50,12 +50,12 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
 }
 
 fn ty_of_expr(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -> TypeId {
-    let InLibrary(lib_id, BodyExpr(body_id, expr_id)) = expr;
+    let InLibrary(lib_id, body_expr @ BodyExpr(body_id, expr_id)) = expr;
 
     let library = db.library(lib_id);
     let body = library.body(body_id);
 
-    lower::ty_from_expr(db, body.in_library(lib_id), expr_id)
+    lower::ty_from_expr(db, body.in_library(lib_id), body_expr)
 }
 
 fn ty_of_body(db: &dyn db::TypeDatabase, body_id: InLibrary<BodyId>) -> TypeId {
@@ -159,20 +159,28 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<
                 body::BodyKind::Exprs(expr) => lookup_binding_def(db, (lib_id, body, *expr).into()),
             }
         }
-        BindingSource::BodyExpr(lib_id, expr) => {
+        BindingSource::BodyExpr(lib_id, BodyExpr(body_id, expr_id)) => {
             // Traverse nodes until we encounter a valid binding
             let library = db.library(lib_id);
 
             // Only name exprs and fields can produce a binding
-            match &library.body(expr.0).expr(expr.1).kind {
+            match &library.body(body_id).expr(expr_id).kind {
                 expr::ExprKind::Missing => Err(NotBinding::Missing),
                 expr::ExprKind::Name(name) => match name {
                     expr::Name::Name(def_id) => Ok(DefId(lib_id, *def_id)),
                     expr::Name::Self_ => todo!(),
                 },
-                expr::ExprKind::Field(_field) => {
-                    // TODO: impl this
-                    Err(NotBinding::NotBinding)
+                expr::ExprKind::Field(field) => {
+                    // Look up field's corresponding def, or treat as missing if not there
+                    let def_id = db
+                        .fields_of((lib_id, body_id, field.lhs).into())
+                        .and_then(|fields| {
+                            fields.lookup(field.field.item()).map(|info| info.def_id)
+                        })
+                        .ok_or(NotBinding::Missing)?;
+
+                    // Defer to the item's def
+                    db.binding_def(def_id.into()).ok_or(NotBinding::Missing)
                 }
                 _ => Err(NotBinding::NotBinding),
             }
@@ -185,6 +193,22 @@ pub(super) fn value_produced(
     value_src: db::ValueSource,
 ) -> Result<db::ValueKind, db::NotValue> {
     use db::{NotValue, ValueKind, ValueSource};
+
+    fn value_kind_from_binding(
+        db: &dyn TypeDatabase,
+        def_id: DefId,
+    ) -> Result<ValueKind, NotValue> {
+        let kind = db.binding_to(def_id.into());
+
+        match kind {
+            Ok(BindingTo::Storage(muta)) => Ok(ValueKind::Reference(muta)),
+            Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
+            // Subprogram names are aliases of address constants
+            Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
+            Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
+            _ => Err(NotValue::NotValue),
+        }
+    }
 
     match value_src {
         ValueSource::Body(lib_id, body_id) => {
@@ -199,28 +223,48 @@ pub(super) fn value_produced(
                 }
             }
         }
-        ValueSource::BodyExpr(lib_id, body_expr) => {
+        ValueSource::BodyExpr(lib_id, body_expr @ BodyExpr(body_id, expr_id)) => {
             let library = db.library(lib_id);
 
-            match &library.body(body_expr.0).expr(body_expr.1).kind {
+            match &library.body(body_id).expr(expr_id).kind {
                 toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
                 toc_hir::expr::ExprKind::Name(name) => match name {
                     toc_hir::expr::Name::Name(def_id) => {
                         // Take from the binding kind
-                        let def_id = DefId(lib_id, *def_id);
-                        let kind = db.binding_to(def_id.into());
-
-                        match kind {
-                            Ok(BindingTo::Storage(muta)) => Ok(ValueKind::Reference(muta)),
-                            Ok(BindingTo::Register(muta)) => Ok(ValueKind::Register(muta)),
-                            // Subprogram names are aliases of address constants
-                            Ok(BindingTo::Subprogram(..)) => Ok(ValueKind::Scalar),
-                            Err(symbol::NotBinding::Missing) => Err(NotValue::Missing),
-                            _ => Err(NotValue::NotValue),
-                        }
+                        value_kind_from_binding(db, DefId(lib_id, *def_id))
                     }
                     toc_hir::expr::Name::Self_ => unimplemented!(),
                 },
+                toc_hir::expr::ExprKind::Field(field) => {
+                    // Look up field's corresponding def & mutability, or treat as missing if not there
+                    let (def_id, mutability) = db
+                        .fields_of((lib_id, body_id, field.lhs).into())
+                        .and_then(|fields| {
+                            fields
+                                .lookup(field.field.item())
+                                .map(|info| (info.def_id, info.mutability))
+                        })
+                        .ok_or(NotValue::Missing)?;
+
+                    // FIXME: For composite types, take into account the mutability of the reference
+                    // Defer to the field's def
+                    let def_id = db.binding_def(def_id.into()).ok_or(NotValue::Missing)?;
+                    let kind = value_kind_from_binding(db, def_id)?;
+
+                    // Apply appropriate mutability
+                    // Both must be mutable to be applicable as mutable
+                    Ok(match (mutability, kind) {
+                        (_, ValueKind::Scalar) => ValueKind::Scalar,
+                        (Mutability::Var, ValueKind::Register(Mutability::Var)) => {
+                            ValueKind::Register(Mutability::Var)
+                        }
+                        (Mutability::Var, ValueKind::Reference(Mutability::Var)) => {
+                            ValueKind::Reference(Mutability::Var)
+                        }
+                        (_, ValueKind::Register(_)) => ValueKind::Register(Mutability::Const),
+                        (_, ValueKind::Reference(_)) => ValueKind::Reference(Mutability::Const),
+                    })
+                }
                 toc_hir::expr::ExprKind::Literal(literal) => match literal {
                     toc_hir::expr::Literal::CharSeq(_) | toc_hir::expr::Literal::String(_) => {
                         Ok(ValueKind::Reference(symbol::Mutability::Const))
