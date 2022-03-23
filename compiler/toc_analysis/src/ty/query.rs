@@ -92,7 +92,8 @@ pub(crate) fn binding_to(
     db: &dyn TypeDatabase,
     bind_src: BindingSource,
 ) -> Result<BindingTo, NotBinding> {
-    let def_id = lookup_binding_def(db, bind_src)?;
+    // Also find the canonical binding
+    let def_id = db.resolve_def(lookup_binding_def(db, bind_src)?);
 
     // Take the binding kind from the def owner
     let def_owner = db.def_owner(def_id);
@@ -143,17 +144,8 @@ pub(crate) fn binding_to(
                 }
             })
         }
-        Some(DefOwner::ItemExport(item_id, export_id)) => {
-            // Refer to the corresponding exported item
-            if let item::ItemKind::Module(module) = &library.item(item_id).kind {
-                let export_item = module.exports.get(export_id).expect("bad export index");
-                let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
-
-                db.binding_to(def_id.into())
-            } else {
-                // Only applicable to module-likes
-                unreachable!()
-            }
+        Some(DefOwner::ItemExport(..)) => {
+            unreachable!("already resolved defs to canon form")
         }
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {

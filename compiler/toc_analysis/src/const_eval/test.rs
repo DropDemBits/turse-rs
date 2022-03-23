@@ -450,6 +450,19 @@ fn const_local_var_lookup() {
 }
 
 #[test]
+fn const_unqualified_export_var_lookup() {
+    assert_const_eval_expr(&unindent(
+        "
+    module z
+        export ~.a
+        const a : int := 2
+    end z
+    const k := a
+    ",
+    ));
+}
+
+#[test]
 fn error_div_by_zero() {
     // integer div
     for_all_const_exprs![

@@ -116,13 +116,12 @@ pub(crate) fn evaluate_const(
                 // May or may not reference a constant expression
                 match name {
                     expr::Name::Name(def_id) => {
-                        // TODO: Resolve to canonical definition
-                        // Would need to alter what library id is used
-                        let def_id = *def_id;
-                        let library_id = library_id;
+                        // Resolve to canonical def first so that we aren't looking at any exports
+                        let canonical_def = db.resolve_def(DefId(library_id, *def_id));
+                        let library_id = canonical_def.0;
                         let library = db.library(library_id);
 
-                        let body = db.item_of(DefId(library_id, def_id)).and_then(|item| {
+                        let body = db.item_of(canonical_def).and_then(|item| {
                             match &library.item(item.1).kind {
                                 toc_hir::item::ItemKind::ConstVar(cv)
                                     if matches!(cv.mutability, Mutability::Const) =>
@@ -138,7 +137,7 @@ pub(crate) fn evaluate_const(
                             None => {
                                 // Not a const expr
                                 return Err(ConstError::new(
-                                    ErrorKind::NotConstExpr(Some(DefId(library_id, def_id))),
+                                    ErrorKind::NotConstExpr(Some(canonical_def)),
                                     expr_span,
                                 ));
                             }
@@ -148,7 +147,7 @@ pub(crate) fn evaluate_const(
                             db.evaluate_const(Const::from_body(library_id, body), params)?;
 
                         // Check that the produced value matches the real type of the def
-                        let left = db.type_of(DefId(library_id, def_id).into());
+                        let left = db.type_of(canonical_def.into());
                         let right = db.type_of((library_id, body).into());
 
                         if !ty::rules::is_assignable(db, left, right) {

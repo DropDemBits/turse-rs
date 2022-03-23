@@ -78,6 +78,34 @@ pub fn lookup_bodies(db: &dyn HirDatabase, library: LibraryId) -> Arc<Vec<body::
     Arc::new(library.body_ids())
 }
 
+pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
+    // ???: How does this interact with def collecting (i.e how are we redirected to the right library)?
+    // Assuming it'd be done through `ItemExport` holding a library id to the real definition
+
+    let def_owner = if let Some(def_owner) = db.def_owner(def_id) {
+        def_owner
+    } else {
+        return def_id;
+    };
+
+    // Poke through item exports
+    match def_owner {
+        DefOwner::ItemExport(item_id, export_idx) => {
+            let library = db.library(def_id.0);
+
+            if let item::ItemKind::Module(module) = &library.item(item_id).kind {
+                let export = module.exports.get(export_idx).expect("bad export index");
+                let exported_item = library.item(export.item_id);
+                DefId(def_id.0, exported_item.def_id)
+            } else {
+                unreachable!("item not module-like");
+            }
+        }
+        // Already the canonical definition
+        _ => def_id,
+    }
+}
+
 /// Library-local definition collector
 struct DefCollector<'a> {
     def_table: RefCell<DefTable>,

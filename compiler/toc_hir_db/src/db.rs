@@ -35,6 +35,8 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     fn body_owners_of(&self, library: LibraryId) -> Arc<BodyTable>;
 
     /// Gets the corresponding [`DefOwner`] to the given [`DefId`]
+    ///
+    /// This does not perform any form of definition resolution.
     #[salsa::invoke(query::lookup_def_owner)]
     fn def_owner(&self, def_id: DefId) -> Option<DefOwner>;
 
@@ -42,16 +44,21 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     #[salsa::invoke(query::lookup_body_owner)]
     fn body_owner(&self, body: InLibrary<body::BodyId>) -> Option<body::BodyOwner>;
 
-    /// Looks up the corresponding item for the given `DefId`,
+    /// Looks up the corresponding item for the given [`DefId`],
     /// or `None` if it doesn't exist.
     ///
-    /// This does not perform any form of identifier resolution.
+    /// This does not perform any form of definition resolution.
     #[salsa::invoke(query::lookup_item)]
     fn item_of(&self, def_id: DefId) -> Option<InLibrary<item::ItemId>>;
 
     /// Gets all of the bodies in the given library
     #[salsa::invoke(query::lookup_bodies)]
     fn bodies_of(&self, library: LibraryId) -> Arc<Vec<body::BodyId>>;
+
+    /// Resolved the given `def_id` to the canonical definition (i.e. beyond any exports),
+    /// or itself if it is one.
+    #[salsa::invoke(query::resolve_def)]
+    fn resolve_def(&self, def_id: DefId) -> DefId;
 }
 
 /// Salsa-backed type interner
