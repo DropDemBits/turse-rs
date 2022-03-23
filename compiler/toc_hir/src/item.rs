@@ -208,6 +208,8 @@ pub struct ExportItem {
     pub qualify_as: QualifyAs,
     pub is_opaque: bool,
     pub item_id: ItemId,
+    /// Span of the related export item
+    pub span: SpanId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

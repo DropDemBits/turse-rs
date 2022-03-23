@@ -1192,6 +1192,43 @@ fn lower_module_def() {
     end a
     ",
     );
+
+    // Unqualified (pervasive) exports should be visible in the sibling scopes
+    assert_lower(
+        "
+        module z
+            export ~.a, ~.b
+            var a, b : int
+        end z
+        module y
+            export ~.*all
+            var c, d : int
+        end y
+
+        % non pervasive
+        var i : int
+        i := a
+        i := b
+
+        % pervasive
+        module x
+            var i : int
+            i := c
+            i := d
+        end x
+        ",
+    );
+
+    // Report when unqualified exports are occluding others
+    assert_lower(
+        "
+        var u, w, U : int
+        module a
+            export ~.all
+            var u, w, U : int
+        end a
+        ",
+    );
 }
 
 #[test]

@@ -501,7 +501,7 @@ impl super::BodyLowering<'_, '_> {
         let (body, declares) = {
             if !is_pervasive {
                 // Also make visible in the inner scope if it's not pervasive
-                self.introduce_def(def_id, false);
+                self.introduce_def(def_id, false, None);
             }
 
             self.ctx.lower_stmt_body(
@@ -513,8 +513,21 @@ impl super::BodyLowering<'_, '_> {
         };
         self.ctx.scopes.pop_scope();
 
-        // TODO: Handle unqualified (pervasive) exports
         let exports = self.lower_export_list(decl.export_stmt(), &declares);
+
+        // Introduce unqualified exports into the current scope
+        for export in exports.iter().filter(|item| {
+            matches!(
+                item.qualify_as,
+                item::QualifyAs::Unqualified | item::QualifyAs::PervasiveUnqualified
+            )
+        }) {
+            let is_pervasive = matches!(export.qualify_as, item::QualifyAs::PervasiveUnqualified);
+            let def_id = self.ctx.library.item(export.item_id).def_id;
+            let export_span = export.span;
+
+            self.introduce_def(def_id, is_pervasive, Some(export_span));
+        }
 
         let span = self.ctx.intern_range(decl.syntax().text_range());
         let item_id = self.ctx.library.add_item(item::Item {
@@ -550,11 +563,11 @@ impl super::BodyLowering<'_, '_> {
         for item_id in declares {
             let item = self.ctx.library.item(*item_id);
             let def_info = self.ctx.library.local_def(item.def_id);
-            exported_items.insert(def_info.name.item().as_str(), *item_id);
+            exported_items.insert(def_info.name.item().clone(), *item_id);
         }
 
         let lower_export_attrs =
-            |from_item: &ast::ExportItem, messages: &mut toc_reporting::MessageSink| {
+            |from_item: &ast::ExportItem, ctx: &mut crate::lower::FileLowering| {
                 let is_var = from_item
                     .attrs()
                     .any(|attr| matches!(attr, ast::ExportAttr::VarAttr(_)));
@@ -586,10 +599,8 @@ impl super::BodyLowering<'_, '_> {
                             })
                             .unwrap();
 
-                        // XXX: This can't be replaced with `self.ctx.mk_span` since we also borrow from the library, and we also need mutable access to the message sink
-                        // Once we intern symbols, then we can remove this
-                        let span = Span::new(self.ctx.file, pervasive_attr.syntax().text_range());
-                        messages.warn("attribute has no effect", "`pervasive` only has an effect on exports when `unqualified` is also present", span);
+                        let span = ctx.mk_span(pervasive_attr.syntax().text_range());
+                        ctx.messages.warn("attribute has no effect", "`pervasive` only has an effect on exports when `unqualified` is also present", span);
                         item::QualifyAs::Qualified
                     }
                     (true, false) => item::QualifyAs::Unqualified,
@@ -613,9 +624,10 @@ impl super::BodyLowering<'_, '_> {
                 };
                 let name = name_tok.text();
 
-                let export_span = Span::new(self.ctx.file, exports_item.syntax().text_range());
-                let all_span =
-                    Span::new(self.ctx.file, exports_all.all_token().unwrap().text_range());
+                let export_span = self.ctx.mk_span(exports_item.syntax().text_range());
+                let all_span = self
+                    .ctx
+                    .mk_span(exports_all.all_token().unwrap().text_range());
 
                 self.ctx
                     .messages
@@ -625,8 +637,8 @@ impl super::BodyLowering<'_, '_> {
                     .finish();
             }
 
-            let (mutability, qualify_as, is_opaque) =
-                lower_export_attrs(&exports_all, &mut self.ctx.messages);
+            let (mutability, qualify_as, is_opaque) = lower_export_attrs(&exports_all, self.ctx);
+            let export_span = self.ctx.intern_range(exports_all.syntax().text_range());
 
             exported_items
                 .into_iter()
@@ -656,6 +668,7 @@ impl super::BodyLowering<'_, '_> {
                         qualify_as,
                         is_opaque,
                         item_id,
+                        span: export_span,
                     }
                 })
                 .collect()
@@ -666,7 +679,7 @@ impl super::BodyLowering<'_, '_> {
                 .exports()
                 .flat_map(|exports_item| {
                     let (mutability, qualify_as, is_opaque) =
-                        lower_export_attrs(&exports_item, &mut self.ctx.messages);
+                        lower_export_attrs(&exports_item, self.ctx);
                     let name = exports_item.name()?;
                     let name_tok = name.identifier_token().unwrap();
                     let name_text = name_tok.text();
@@ -675,8 +688,7 @@ impl super::BodyLowering<'_, '_> {
                     match already_exported.entry(name_text.to_string()) {
                         std::collections::hash_map::Entry::Occupied(entry) => {
                             // Already exported
-                            let this_span =
-                                Span::new(self.ctx.file, exports_item.syntax().text_range());
+                            let this_span = self.ctx.mk_span(exports_item.syntax().text_range());
                             self.ctx
                                 .messages
                                 .warn_detailed("export item is ignored", this_span)
@@ -692,10 +704,7 @@ impl super::BodyLowering<'_, '_> {
                         }
                         std::collections::hash_map::Entry::Vacant(entry) => {
                             // Not exported yet
-                            entry.insert(Span::new(
-                                self.ctx.file,
-                                exports_item.syntax().text_range(),
-                            ));
+                            entry.insert(self.ctx.mk_span(exports_item.syntax().text_range()));
                         }
                     }
 
@@ -705,41 +714,41 @@ impl super::BodyLowering<'_, '_> {
                         let item = self.ctx.library.item(item_id);
 
                         // Report when opaqueness is not applicable
-                        let is_opaque =
-                            if is_opaque && !matches!(item.kind, item::ItemKind::Type(_)) {
-                                let opaque_attr = exports_item
-                                    .attrs()
-                                    .find_map(|attr| {
-                                        if let ast::ExportAttr::OpaqueAttr(attr) = attr {
-                                            Some(attr)
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .unwrap();
+                        let is_opaque = if is_opaque
+                            && !matches!(item.kind, item::ItemKind::Type(_))
+                        {
+                            let opaque_attr = exports_item
+                                .attrs()
+                                .find_map(|attr| {
+                                    if let ast::ExportAttr::OpaqueAttr(attr) = attr {
+                                        Some(attr)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap();
 
-                                let opaque_span =
-                                    Span::new(self.ctx.file, opaque_attr.syntax().text_range());
-                                let def_info = self.ctx.library.local_def(item.def_id);
-                                let def_name = def_info.name.item();
-                                let def_span =
-                                    def_info.name.span().lookup_in(&self.ctx.library.span_map);
+                            let opaque_span = self.ctx.mk_span(opaque_attr.syntax().text_range());
+                            let def_info = self.ctx.library.local_def(item.def_id);
+                            let def_name = def_info.name.item();
+                            let def_span =
+                                def_info.name.span().lookup_in(&self.ctx.library.span_map);
 
-                                self.ctx
-                                    .messages
-                                    .error_detailed("cannot use `opaque` here", opaque_span)
-                                    .with_error(
-                                        "`opaque` attribute can only be applied to types",
-                                        opaque_span,
-                                    )
-                                    .with_note(format!("`{def_name}` declared here"), def_span)
-                                    .finish();
+                            self.ctx
+                                .messages
+                                .error_detailed("cannot use `opaque` here", opaque_span)
+                                .with_error(
+                                    "`opaque` attribute can only be applied to types",
+                                    opaque_span,
+                                )
+                                .with_note(format!("`{def_name}` declared here"), def_span)
+                                .finish();
 
-                                // Don't carry it through
-                                false
-                            } else {
-                                is_opaque
-                            };
+                            // Don't carry it through
+                            false
+                        } else {
+                            is_opaque
+                        };
 
                         // Report when mutability isn't applicable
                         let is_mutability_applicable =
@@ -751,47 +760,49 @@ impl super::BodyLowering<'_, '_> {
                                 false
                             };
 
-                        let mutability = if !is_mutability_applicable
-                            && mutability == Mutability::Var
-                        {
-                            let var_attr = exports_item
-                                .attrs()
-                                .find_map(|attr| {
-                                    if let ast::ExportAttr::VarAttr(attr) = attr {
-                                        Some(attr)
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .unwrap();
+                        let mutability =
+                            if !is_mutability_applicable && mutability == Mutability::Var {
+                                let var_attr = exports_item
+                                    .attrs()
+                                    .find_map(|attr| {
+                                        if let ast::ExportAttr::VarAttr(attr) = attr {
+                                            Some(attr)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap();
 
-                            let var_span = Span::new(self.ctx.file, var_attr.syntax().text_range());
-                            let def_info = self.ctx.library.local_def(item.def_id);
-                            let def_name = def_info.name.item();
-                            let def_span =
-                                def_info.name.span().lookup_in(&self.ctx.library.span_map);
+                                let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
+                                let def_info = self.ctx.library.local_def(item.def_id);
+                                let def_name = def_info.name.item();
+                                let def_span =
+                                    def_info.name.span().lookup_in(&self.ctx.library.span_map);
 
-                            self.ctx
-                                .messages
-                                .error_detailed("cannot use `var` here", var_span)
-                                .with_error(
-                                    "`var` attribute can only be applied to variables",
-                                    var_span,
-                                )
-                                .with_note(format!("`{def_name}` declared here"), def_span)
-                                .finish();
+                                self.ctx
+                                    .messages
+                                    .error_detailed("cannot use `var` here", var_span)
+                                    .with_error(
+                                        "`var` attribute can only be applied to variables",
+                                        var_span,
+                                    )
+                                    .with_note(format!("`{def_name}` declared here"), def_span)
+                                    .finish();
 
-                            // Don't carry it through
-                            Mutability::Const
-                        } else {
-                            mutability
-                        };
+                                // Don't carry it through
+                                Mutability::Const
+                            } else {
+                                mutability
+                            };
+
+                        let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
 
                         Some(item::ExportItem {
                             mutability,
                             qualify_as,
                             is_opaque,
                             item_id,
+                            span: export_span,
                         })
                     } else {
                         let span = Span::new(self.ctx.file, name.syntax().text_range());
@@ -1196,7 +1207,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self.name_to_def(name, kind);
 
         // Bring into scope
-        self.introduce_def(def_id, is_pervasive);
+        self.introduce_def(def_id, is_pervasive, None);
 
         def_id
     }
@@ -1207,7 +1218,12 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.library.add_def(token.text(), span, kind)
     }
 
-    fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
+    fn introduce_def(
+        &mut self,
+        def_id: symbol::LocalDefId,
+        is_pervasive: bool,
+        from_unqualified: Option<SpanId>,
+    ) {
         let def_info = self.ctx.library.local_def(def_id);
         let name = def_info.name.item();
         let span = def_info.name.span();
@@ -1296,15 +1312,32 @@ impl super::BodyLowering<'_, '_> {
                 }
                 _ => {
                     // Redeclaring over an older def
-                    self.ctx
-                        .messages
-                        .error_detailed(
-                            format!("`{name}` is already declared in this scope"),
-                            new_span,
-                        )
-                        .with_note(format!("`{name}` previously declared here"), old_span)
-                        .with_error(format!("`{name}` redeclared here"), new_span)
-                        .finish();
+                    if let Some(export_span) = from_unqualified {
+                        // From an unqualified export in a local module
+                        // Use the export span instead
+                        let export_span = export_span.lookup_in(&self.ctx.library.span_map);
+
+                        self.ctx
+                            .messages
+                            .error_detailed(
+                                format!("`{name}` is already declared in this scope"),
+                                new_span,
+                            )
+                            .with_note(format!("`{name}` previously declared here"), old_span)
+                            .with_error(format!("`{name}` exported from here"), export_span)
+                            .finish();
+                    } else {
+                        // From a new declaration
+                        self.ctx
+                            .messages
+                            .error_detailed(
+                                format!("`{name}` is already declared in this scope"),
+                                new_span,
+                            )
+                            .with_note(format!("`{name}` previously declared here"), old_span)
+                            .with_error(format!("`{name}` redeclared here"), new_span)
+                            .finish();
+                    }
                 }
             }
         }
