@@ -6,5 +6,6 @@ expression: "module a export var b\n    var b : int\nend a\na.b := 2"
 ---
 "a"@(FileId(1), 7..8) [Declared]: <error>
 "b"@(FileId(1), 30..31) [Declared]: int
+"b"@(FileId(1), 16..21) [ItemExport(LocalDefId(1))]: int
 "<root>"@(dummy) [Declared]: <error>
 

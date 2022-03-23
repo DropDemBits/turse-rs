@@ -1576,25 +1576,40 @@ impl TypeCheck<'_> {
             let mut state = self.state();
             let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
 
-            if let Some((def_at, binding_to)) = def_info {
-                if matches!(binding_to, BindingTo::Storage(Mutability::Var)) {
-                    // TODO: Replace condition with a query checking if it's an exported binding
-                    // ???: Do we want to point to the export location?
-                    // Likely, though need to store that span too
-                    builder =
-                        builder.with_error(format!("{thing} is not exported as `var`"), value_span);
+            builder = if let Some((def_at, binding_to)) = def_info {
+                if matches!(
+                    binding_to,
+                    BindingTo::Storage(Mutability::Var) | BindingTo::Register(Mutability::Var)
+                ) {
+                    // Originally was mutable
+                    // Likely from an export
+                    let exporting_def = self
+                        .db
+                        .exporting_def(value_src)
+                        .expect("at mut storage but rejected it");
+                    let exported_library = self.db.library(exporting_def.0);
+                    let exported_span = exported_library
+                        .local_def(exporting_def.1)
+                        .name
+                        .span()
+                        .lookup_in(&exported_library.span_map);
+
+                    builder
+                        .with_error(format!("{thing} is not exported as `var`"), value_span)
+                        .with_note(format!("{thing} exported from here"), exported_span)
                 } else {
-                    builder = builder.with_error(
-                        format!("{thing} is a reference to {binding_to}, not a variable"),
-                        value_span,
-                    );
+                    builder
+                        .with_error(
+                            format!("{thing} is a reference to {binding_to}, not a variable"),
+                            value_span,
+                        )
+                        .with_note(format!("{thing} declared here"), def_at)
                 }
-                builder = builder.with_note(format!("{thing} declared here"), def_at);
             } else {
                 // Only in here when checking for references
                 debug_assert!(!checking_for_value);
-                builder = builder.with_error("not a reference to a variable", value_span);
-            }
+                builder.with_error("not a reference to a variable", value_span)
+            };
 
             if let Some(extra) = additional_info {
                 builder = builder.with_info(extra);

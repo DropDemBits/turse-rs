@@ -7,11 +7,13 @@ expression: "module a export b, var c\n    var b : int\n    const c : int := 1\n
 "a"@(FileId(1), 7..8) [Declared]: <error>
 "b"@(FileId(1), 33..34) [Declared]: int
 "c"@(FileId(1), 51..52) [Declared]: int
+"b"@(FileId(1), 16..17) [ItemExport(LocalDefId(1))]: int
+"c"@(FileId(1), 19..24) [ItemExport(LocalDefId(2))]: int
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 74..76: cannot assign into `b`
 | error in file FileId(1) for 70..73: `b` is not exported as `var`
-| note in file FileId(1) for 33..34: `b` declared here
+| note in file FileId(1) for 16..17: `b` exported from here
 error in file FileId(1) at 83..85: cannot assign into `c`
 | error in file FileId(1) for 79..82: `c` is a reference to a constant, not a variable
 | note in file FileId(1) for 51..52: `c` declared here

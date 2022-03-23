@@ -45,7 +45,7 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
                 // Refer to the corresponding exported item
                 let library = db.library(def_id.0);
 
-                if let item::ItemKind::Module(module) = library.item(item_id).kind {
+                if let item::ItemKind::Module(module) = &library.item(item_id).kind {
                     let export_item = module.exports.get(export_idx).expect("bad export index");
                     let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
 
@@ -64,7 +64,7 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
 }
 
 fn ty_of_expr(db: &dyn db::TypeDatabase, expr: InLibrary<BodyExpr>) -> TypeId {
-    let InLibrary(lib_id, body_expr @ BodyExpr(body_id, expr_id)) = expr;
+    let InLibrary(lib_id, body_expr @ BodyExpr(body_id, _)) = expr;
 
     let library = db.library(lib_id);
     let body = library.body(body_id);
@@ -145,7 +145,7 @@ pub(crate) fn binding_to(
         }
         Some(DefOwner::ItemExport(item_id, export_id)) => {
             // Refer to the corresponding exported item
-            if let item::ItemKind::Module(module) = library.item(item_id).kind {
+            if let item::ItemKind::Module(module) = &library.item(item_id).kind {
                 let export_item = module.exports.get(export_id).expect("bad export index");
                 let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
 
@@ -256,8 +256,46 @@ pub(super) fn value_produced(
                 toc_hir::expr::ExprKind::Missing => Err(NotValue::Missing),
                 toc_hir::expr::ExprKind::Name(name) => match name {
                     toc_hir::expr::Name::Name(def_id) => {
-                        // Take from the binding kind
-                        value_kind_from_binding(db, DefId(lib_id, *def_id))
+                        let def_id = DefId(lib_id, *def_id);
+
+                        if let Some(DefOwner::ItemExport(item_id, export_idx)) =
+                            db.def_owner(def_id)
+                        {
+                            // Keep track of export mutability
+                            let mutability =
+                                if let item::ItemKind::Module(item) = &library.item(item_id).kind {
+                                    let export =
+                                        item.exports.get(export_idx).expect("bad export index");
+
+                                    export.mutability
+                                } else {
+                                    unreachable!("not from a module-like")
+                                };
+
+                            // Take initially from the binding kind
+                            let kind = value_kind_from_binding(db, def_id)?;
+
+                            // Apply appropriate mutability
+                            // Both must be mutable to be applicable as mutable
+                            Ok(match (mutability, kind) {
+                                (_, ValueKind::Scalar) => ValueKind::Scalar,
+                                (Mutability::Var, ValueKind::Register(Mutability::Var)) => {
+                                    ValueKind::Register(Mutability::Var)
+                                }
+                                (Mutability::Var, ValueKind::Reference(Mutability::Var)) => {
+                                    ValueKind::Reference(Mutability::Var)
+                                }
+                                (_, ValueKind::Register(_)) => {
+                                    ValueKind::Register(Mutability::Const)
+                                }
+                                (_, ValueKind::Reference(_)) => {
+                                    ValueKind::Reference(Mutability::Const)
+                                }
+                            })
+                        } else {
+                            // Take directly from the binding kind
+                            value_kind_from_binding(db, def_id)
+                        }
                     }
                     toc_hir::expr::Name::Self_ => unimplemented!(),
                 },
@@ -369,6 +407,75 @@ pub(crate) fn fields_of(
                 db.fields_of(ty_id.into())
             }
         }
+    }
+}
+
+pub(crate) fn find_exported_def(
+    db: &dyn TypeDatabase,
+    value_src: db::ValueSource,
+) -> Option<DefId> {
+    let (library_id, library);
+    let (body_id, expr_id) = match value_src {
+        db::ValueSource::Body(lib_id, body_id) => {
+            library_id = lib_id;
+            library = db.library(lib_id);
+
+            match &library.body(body_id).kind {
+                body::BodyKind::Stmts(..) => return None,
+                body::BodyKind::Exprs(expr_id) => (body_id, *expr_id),
+            }
+        }
+        db::ValueSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
+            library_id = lib_id;
+            library = db.library(lib_id);
+            (body_id, expr_id)
+        }
+    };
+
+    // Only name & field exprs provide access to exported defs
+    match &library.body(body_id).expr(expr_id).kind {
+        expr::ExprKind::Name(expr) => {
+            match expr {
+                expr::Name::Name(local_def) => {
+                    // Take from the def owner
+                    if let Some(DefOwner::ItemExport(item_id, export_idx)) =
+                        db.def_owner(DefId(library_id, *local_def))
+                    {
+                        if let item::ItemKind::Module(item) = &library.item(item_id).kind {
+                            let export = item.exports.get(export_idx).expect("bad export index");
+
+                            Some(DefId(library_id, export.def_id))
+                        } else {
+                            unreachable!("not from a module-like")
+                        }
+                    } else {
+                        // Not an item export
+                        None
+                    }
+                }
+                expr::Name::Self_ => None,
+            }
+        }
+        expr::ExprKind::Field(expr) => {
+            let lhs_def = db.binding_def((library_id, body_id, expr.lhs).into())?;
+
+            if let Some(DefOwner::Item(item_id)) = db.def_owner(lhs_def) {
+                if let item::ItemKind::Module(module) = &library.item(item_id).kind {
+                    // Find matching export
+                    module.exports.iter().find_map(|export| {
+                        (library.local_def(export.def_id).name.item() == expr.field.item())
+                            .then(|| DefId(library_id, export.def_id))
+                    })
+                } else {
+                    // Not from a module-like item
+                    None
+                }
+            } else {
+                // Not from a def
+                None
+            }
+        }
+        _ => None,
     }
 }
 

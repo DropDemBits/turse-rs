@@ -44,8 +44,13 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     #[salsa::invoke(ty::query::binding_def)]
     fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
+    /// Gets the fields from the given [`FieldsSource`]
     #[salsa::invoke(ty::query::fields_of)]
     fn fields_of(&self, source: FieldsSource) -> Option<Arc<item::Fields>>;
+
+    /// Finds the associated exporting def from the given expression, or `None` if there isn't any
+    #[salsa::invoke(ty::query::find_exported_def)]
+    fn exporting_def(&self, source: ValueSource) -> Option<DefId>;
 }
 
 /// Helpers for working with the type interner

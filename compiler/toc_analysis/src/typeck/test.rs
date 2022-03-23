@@ -765,6 +765,11 @@ test_named_group! { typeck_module_field,
             var b : int
         end a
         a.b := 2",
+        unqualified_export_mutability => "
+        module a export ~. var b
+            var b : int
+        end a
+        b := 2",
         export_not_mut => "
         module a export b, var c
             var b : int
@@ -772,6 +777,12 @@ test_named_group! { typeck_module_field,
         end a
         a.b := 1
         a.c := 2
+        ",
+        unqualified_export_not_mut => "
+        module a export ~.b
+            var b : int
+        end a
+        b := 1
         ",
     ]
 }
