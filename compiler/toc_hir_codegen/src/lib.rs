@@ -1799,6 +1799,7 @@ impl BodyCodeGenerator<'_> {
             hir_expr::ExprKind::Name(expr) => self.generate_expr_name(expr_id, expr),
             hir_expr::ExprKind::Field(_expr) => unimplemented!(),
             hir_expr::ExprKind::Call(expr) => self.generate_expr_call(expr),
+            _ => unimplemented!(),
         }
     }
 
@@ -2219,7 +2220,7 @@ impl BodyCodeGenerator<'_> {
     fn generate_call(
         &mut self,
         lhs: hir_expr::ExprId,
-        arguments: Option<&Vec<hir_expr::Arg>>,
+        arguments: Option<&hir_expr::ArgList>,
         drop_ret_val: bool,
     ) {
         let db = self.db;
@@ -2275,9 +2276,7 @@ impl BodyCodeGenerator<'_> {
             // Eval args
             if let Some((params, args)) = params.as_ref().zip(arguments) {
                 for (param, arg) in params.iter().zip(args.iter()) {
-                    let arg_expr = match arg {
-                        hir_expr::Arg::Expr(expr) => *expr,
-                    };
+                    let arg_expr = *arg;
                     let arg_ty = db.type_of((self.library_id, self.body_id, arg_expr).into());
 
                     match param.pass_by {
@@ -2403,6 +2402,7 @@ impl BodyCodeGenerator<'_> {
                     .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
             }
+            ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
             ty::TypeKind::Error
             | ty::TypeKind::Forward
@@ -2466,6 +2466,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
+            ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),
             ty::TypeKind::Error
             | ty::TypeKind::Forward

@@ -149,6 +149,10 @@ impl TypeKind {
                 // Forward types are never scalars, since they never represent any type
                 false
             }
+            TypeKind::Set(..) => {
+                // Variable-sized sets
+                false
+            }
             TypeKind::Void => false,
         }
     }

@@ -583,6 +583,15 @@ where
         )
     }
 
+    fn mk_set(&self, def_id: DefId, elem_ty: TypeId) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Set(def_id, elem_ty),
+            }
+            .into(),
+        )
+    }
+
     fn mk_subprogram(
         &self,
         kind: symbol::SubprogramKind,

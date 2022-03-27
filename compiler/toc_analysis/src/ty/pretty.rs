@@ -64,6 +64,7 @@ impl TypeKind {
             TypeKind::StringN(_) => "string_n",
             TypeKind::Alias(_, _) => "alias",
             TypeKind::Forward => "forward",
+            TypeKind::Set(..) => "set",
             TypeKind::Subprogram(SubprogramKind::Function, _, _) => "function",
             TypeKind::Subprogram(SubprogramKind::Procedure, _, _) => "procedure",
             TypeKind::Subprogram(SubprogramKind::Process, _, _) => "process",
@@ -83,6 +84,10 @@ where
     match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => out.write_fmt(format_args!(" {seq:?}"))?,
         TypeKind::Alias(def_id, to) => {
+            out.write_fmt(format_args!("[{def_id:?}] of "))?;
+            emit_debug_ty(db, out, *to)?
+        }
+        TypeKind::Set(def_id, to) => {
             out.write_fmt(format_args!("[{def_id:?}] of "))?;
             emit_debug_ty(db, out, *to)?
         }
@@ -150,6 +155,10 @@ where
             out.write_fmt(format_args!("{name} (alias of "))?;
             emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
+        }
+        TypeKind::Set(_, to) => {
+            out.write_str(" of ")?;
+            emit_display_ty(db, out, *to, PokeAliases::No)?;
         }
         TypeKind::Subprogram(kind, params, result) => {
             // Format:

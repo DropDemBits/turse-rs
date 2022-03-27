@@ -1904,6 +1904,26 @@ test_named_group! { typeck_stringn_ty,
     ]
 }
 
+test_named_group! { typeck_set_ty,
+    [
+        from_type_alias => "type s : set of boolean var _ : s",
+        from_var_decl => "var _ : set of boolean",
+        valid_index_ty => "
+        % FIXME: Add corresponding test for range types
+        type r : char
+        type _a : set of r
+        type _b : set of boolean
+        type _c : set of char
+        ",
+        not_index_ty => "type _ : set of real",
+        large_range_integer => "
+        type bogos : int
+        type _si : set of bogos
+        type _sn : set of nat
+        ",
+    ]
+}
+
 test_named_group! { require_resolved_type,
     [
         in_type_decl => "type fowo : forward type _ : fowo",

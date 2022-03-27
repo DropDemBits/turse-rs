@@ -71,6 +71,8 @@ pub enum TypeKind {
     /// This is used to prevent cyclic type declarations, which we can't detect
     /// yet.
     Forward,
+    /// Set type, with associated definition point
+    Set(DefId, TypeId),
     /// Subprogram type, from (`procedure`, `function`, and `process`).
     Subprogram(symbol::SubprogramKind, Option<Vec<Param>>, TypeId),
     /// Void type, returned from (`procedure` and `process`)
@@ -241,6 +243,7 @@ where
             TypeKind::StringN(_) => 1,
             TypeKind::Subprogram(..) => POINTER_ALIGNMENT,
             TypeKind::Void => return None,
+            TypeKind::Set(..) => 2,
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Forward => return None,
@@ -283,6 +286,7 @@ where
             }
             TypeKind::Subprogram(..) => POINTER_SIZE,
             TypeKind::Void => return None,
+            TypeKind::Set(_, _elem_ty) => return None, // FIXME: Compute size of sets
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Integer | TypeKind::Forward | TypeKind::Error => return None,

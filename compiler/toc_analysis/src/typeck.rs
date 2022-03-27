@@ -184,6 +184,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_alias(id, ty);
     }
 
+    fn visit_set(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
+        self.typeck_set_ty(id, ty);
+    }
+
     fn visit_subprogram_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
         self.typeck_subprogram_ty(id, ty);
     }
@@ -1171,12 +1175,11 @@ impl TypeCheck<'_> {
             };
 
             // Check type & binding
-            let &expr::Arg::Expr(arg) = arg;
-            let arg_expr = (self.library_id, body, arg);
+            let arg_expr = (self.library_id, body, *arg);
             let arg_ty = self.db.type_of(arg_expr.into());
             let arg_value = self.db.value_produced(arg_expr.into());
-            let arg_span = self.library.body(body).expr(arg).span;
-            let arg_span = self.library.lookup_span(arg_span);
+            let arg_span = self.library.body(body).expr(*arg).span;
+            let arg_span = self.library.lookup_span(arg_span); // TODO: missing expr tests
 
             let (matches_pass_by, mutability) = match param.pass_by {
                 ty::PassBy::Value => {
@@ -1332,6 +1335,43 @@ impl TypeCheck<'_> {
                 |thing| format!("cannot use {thing} as a type alias"),
                 None,
             );
+        }
+    }
+
+    fn typeck_set_ty(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
+        let db = self.db;
+        let elem_tyref = db
+            .from_hir_type(ty.elem_ty.in_library(self.library_id))
+            .in_db(db);
+        let span = self
+            .library
+            .lookup_type(ty.elem_ty)
+            .span
+            .lookup_in(&self.library.span_map);
+
+        if !elem_tyref.clone().to_base_type().kind().is_index() {
+            // Not an index type
+            // FIXME: Switch to common "mismatched types" convention (either altering the rest or just this)
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", span)
+                .with_error(format!("`{elem_tyref}` is not an index type"), span)
+                .with_info(
+                    "an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range",
+                )
+                .finish();
+        } else if elem_tyref.clone().peel_aliases().kind().is_integer() {
+            // Is an integer type, but not from a range
+            // Range would be too big
+            self.state()
+                .reporter
+                .error_detailed("element range is too large", span)
+                .with_error(
+                    format!("a range over all `{elem_tyref}` values is too large"),
+                    span,
+                )
+                .with_info("use a range type to shrink the range of elements")
+                .finish()
         }
     }
 
