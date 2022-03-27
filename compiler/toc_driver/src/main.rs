@@ -24,6 +24,11 @@ fn main() {
 
     let args = config::Args::parse();
 
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(args.log_level.unwrap_or_default())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting global subscriber failed");
+
     let loader = MainFileLoader::default();
     let path = std::path::Path::new(&args.source_file);
     let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
@@ -130,7 +135,7 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     } else {
         // Notify that we've encountered a bad span
         // Missing files don't fall under here, as they use the file they're missing from
-        eprintln!("BUG: Encountered bad message span (Original message: {msg:#?})");
+        tracing::error!("BUG: Encountered bad message span (Original message: {msg:#?})");
         return;
     };
 
@@ -144,8 +149,9 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
             span
         } else {
             // Notify that we've encountered a bad span
-            // FIXME: replace this with a call to some logging infra (e.g. tracing)
-            eprintln!("BUG: Encountered bad annotation span (Original annotation: {annotate:#?})",);
+            tracing::error!(
+                "BUG: Encountered bad annotation span (Original annotation: {annotate:#?})",
+            );
             continue;
         };
 

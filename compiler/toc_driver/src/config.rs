@@ -23,6 +23,10 @@ pub struct Args {
     #[clap(long, arg_enum)]
     pub report_format: Option<ReportFormat>,
 
+    /// Set internal logging level
+    #[clap(long, arg_enum)]
+    pub log_level: Option<LogLevel>,
+
     /// File to start compiling from
     pub source_file: String, // FIXME: Should probably be a camino::PathBuf
 }
@@ -46,5 +50,38 @@ pub enum ReportFormat {
 impl Default for ReportFormat {
     fn default() -> Self {
         Self::Cli
+    }
+}
+
+#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+impl From<LogLevel> for tracing::Level {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Trace => Self::TRACE,
+            LogLevel::Debug => Self::DEBUG,
+            LogLevel::Info => Self::INFO,
+            LogLevel::Warn => Self::WARN,
+            LogLevel::Error => Self::ERROR,
+        }
+    }
+}
+
+impl From<LogLevel> for tracing::level_filters::LevelFilter {
+    fn from(level: LogLevel) -> Self {
+        <LogLevel as Into<tracing::Level>>::into(level).into()
+    }
+}
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        Self::Info
     }
 }
