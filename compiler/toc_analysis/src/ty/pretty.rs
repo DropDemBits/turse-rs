@@ -156,9 +156,16 @@ where
             emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
         }
-        TypeKind::Set(_, to) => {
-            out.write_str(" of ")?;
-            emit_display_ty(db, out, *to, PokeAliases::No)?;
+        TypeKind::Set(def_id, to) => {
+            let library = db.library(def_id.0);
+            let name = library.local_def(def_id.1).name.item();
+            out.write_fmt(format_args!(" {name}"))?;
+
+            if poke_aliases == PokeAliases::No {
+                out.write_str(" (of ")?;
+                emit_display_ty(db, out, *to, PokeAliases::Yes)?;
+                out.write_char(')')?;
+            }
         }
         TypeKind::Subprogram(kind, params, result) => {
             // Format:

@@ -1197,6 +1197,28 @@ test_named_group! { equivalence_of,
         for : ia0 .. ia1 end for
         for : ia1 .. ia0 end for
         "#,
+        // Over set types
+        sets => r#"
+        type sb : set of boolean
+        type sc : set of char
+        type sc2 : set of char
+
+        var v_sb : sb
+        var v_sc : sc
+        var v_sc2 : sc2
+        var v_anon : set of char
+
+        % compat
+        v_sb := v_sb
+        v_sc := v_sc
+        v_sc2 := v_sc2
+
+        % incompatible - different elem types
+        v_sc := v_sb
+        % incompatible - different def locations
+        v_sc := v_sc2
+        v_sc := v_anon
+        "#,
         // Over subprogram types
         subprogram_formals => r#"
         type t_p : procedure(a, b : int, var c : string)

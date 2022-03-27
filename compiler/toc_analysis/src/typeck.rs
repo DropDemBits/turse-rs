@@ -1476,6 +1476,8 @@ impl TypeCheck<'_> {
                 right = right_ty.peel_aliases()
             ))
             .finish();
+
+        // FIXME: Specialize message on anonymous types (saying from different def locations)
     }
 
     fn report_mismatched_binding(

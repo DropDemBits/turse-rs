@@ -250,6 +250,8 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
             // sized charseqs are treated as equivalent types if the sizes are equal
             left_sz.cmp(right_sz).is_eq()
         }
+        // Set types are equivalent if they come from the same definition
+        (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => left_def == right_def,
         // Subprograms are equivalent if:
         // - they are the same [`SubprogramKind`]
         // - the formal lists are of the same length
@@ -508,6 +510,8 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
                 (None, None) => true,
             }
         }
+
+        // FIXME: Coercion rule for Opaque to base type
 
         // Not coercible otherwise
         _ => false,
