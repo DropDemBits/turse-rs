@@ -1,7 +1,8 @@
 //! Dummy bin for running the new scanner and parser
 
-use std::{collections::HashMap, env, fs, sync::Arc};
+use std::{collections::HashMap, fs, sync::Arc};
 
+use toc_analysis::db::HirAnalysis;
 use toc_ast_db::{
     db::{AstDatabaseExt, SourceParser, SpanMapping},
     SourceGraph,
@@ -12,10 +13,24 @@ use toc_span::{FileId, Span};
 use toc_vfs::FileLoader;
 use toc_vfs_db::db::FileSystem;
 
+mod config;
+
+// Unrelated FIXMEs:
+// FIXME(toc_hir_lowering): Deal with include globs
+// FIXME: resolve imports between units
+
 fn main() {
+    use clap::Parser;
+
+    let args = config::Args::parse();
+
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(args.log_level.unwrap_or_default())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting global subscriber failed");
+
     let loader = MainFileLoader::default();
-    let str_path: String = env::args().nth(1).expect("Missing path to source file");
-    let path = std::path::Path::new(&str_path);
+    let path = std::path::Path::new(&args.source_file);
     let path = loader.normalize_path(path).unwrap_or_else(|| path.into());
     let output_path = path.with_extension("tbc");
     let mut db = MainDatabase::default();
@@ -29,34 +44,41 @@ fn main() {
     db.set_source_graph(Arc::new(source_graph));
     db.invalidate_source_graph(&loader);
 
-    // Parse root CST & dump output
-    // Note: this is only for temporary parse tree dumping
-    {
-        let parsed = db.parse_file(root_file);
-        let tree = parsed.result();
-        let dependencies = db.parse_depends(root_file);
-        // TODO(toc_ast_db): Add tests for parsing dependencies
+    // Dump requested information
+    if let Some(dump_mode) = args.dump {
+        match dump_mode {
+            config::DumpMode::Ast => {
+                // Show CST + dependencies for the current file
+                let parsed = db.parse_file(root_file);
+                let tree = parsed.result();
+                let dependencies = db.parse_depends(root_file);
 
-        println!("Parsed output: {}", tree.dump_tree());
-        println!("Dependencies: {:#?}", dependencies.result());
+                println!("Parsed output: {}", tree.dump_tree());
+                println!("Dependencies: {:#?}", dependencies.result());
+            }
+            config::DumpMode::Hir => {
+                // Dump library graph
+                println!("Libraries:");
+                let library_graph = db.library_graph();
+
+                for (file, lib) in library_graph.library_roots() {
+                    println!(
+                        "{:?}: {}",
+                        file,
+                        toc_hir_pretty::pretty_print_tree(&db.library(lib))
+                    );
+                }
+            }
+        }
     }
 
-    // TODO(toc_hir_lowering): Deal with include globs
-
-    // Dump library graph
-    println!("Libraries:");
-    let library_graph = db.library_graph();
-
-    for (file, lib) in library_graph.library_roots() {
-        println!(
-            "{:?}: {}",
-            file,
-            toc_hir_pretty::pretty_print_tree(&db.library(lib))
-        );
-    }
-
-    // TODO: resolve imports between units
-    let codegen_res = toc_hir_codegen::generate_code(&db);
+    let codegen_res = if args.lint {
+        // Lint-only mode
+        db.analyze_libraries().map(|_| None)
+    } else {
+        // Do codegen
+        toc_hir_codegen::generate_code(&db)
+    };
 
     // We only need to get the messages for the queries at the end of the chain
     let msgs = codegen_res.messages();
@@ -113,7 +135,7 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
     } else {
         // Notify that we've encountered a bad span
         // Missing files don't fall under here, as they use the file they're missing from
-        eprintln!("BUG: Encountered bad message span (Original message: {msg:#?})");
+        tracing::error!("BUG: Encountered bad message span (Original message: {msg:#?})");
         return;
     };
 
@@ -127,8 +149,9 @@ fn emit_message(db: &MainDatabase, cache: &mut VfsCache, msg: &toc_reporting::Re
             span
         } else {
             // Notify that we've encountered a bad span
-            // FIXME: replace this with a call to some logging infra (e.g. tracing)
-            eprintln!("BUG: Encountered bad annotation span (Original annotation: {annotate:#?})",);
+            tracing::error!(
+                "BUG: Encountered bad annotation span (Original annotation: {annotate:#?})",
+            );
             continue;
         };
 
