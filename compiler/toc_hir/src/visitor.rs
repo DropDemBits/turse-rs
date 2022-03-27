@@ -46,6 +46,8 @@ pub trait HirVisitor {
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {}
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
+    fn visit_all_expr(&self, id: BodyExpr) {}
+    fn visit_range_expr(&self, id: BodyExpr, expr: &expr::Range) {}
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {}
     fn visit_field(&self, id: BodyExpr, expr: &expr::Field) {}
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {}
@@ -93,6 +95,8 @@ pub trait HirVisitor {
             expr::ExprKind::Literal(expr) => self.visit_literal(id, expr),
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
+            expr::ExprKind::All => self.visit_all_expr(id),
+            expr::ExprKind::Range(expr) => self.visit_range_expr(id, expr),
             expr::ExprKind::Name(expr) => self.visit_name(id, expr),
             expr::ExprKind::Field(expr) => self.visit_field(id, expr),
             expr::ExprKind::Call(expr) => self.visit_call_expr(id, expr),
@@ -480,9 +484,7 @@ impl<'hir> Walker<'hir> {
 
         if let Some(args) = &node.arguments {
             for arg in args {
-                match arg {
-                    expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
-                }
+                self.enter_expr(in_body, *arg);
             }
         }
     }
@@ -500,6 +502,8 @@ impl<'hir> Walker<'hir> {
             expr::ExprKind::Name(_) => {}
             expr::ExprKind::Field(node) => self.walk_field(in_body, node),
             expr::ExprKind::Call(node) => self.walk_call_expr(in_body, node),
+            expr::ExprKind::All => {}
+            expr::ExprKind::Range(node) => self.walk_range_expr(in_body, node),
         }
     }
 
@@ -520,9 +524,23 @@ impl<'hir> Walker<'hir> {
         self.enter_expr(in_body, node.lhs);
 
         for arg in &node.arguments {
-            match arg {
-                expr::Arg::Expr(expr) => self.enter_expr(in_body, *expr),
+            self.enter_expr(in_body, *arg);
+        }
+    }
+
+    fn walk_range_expr(&mut self, in_body: body::BodyId, node: &expr::Range) {
+        match node.start {
+            expr::RangeBound::FromStart(expr) | expr::RangeBound::FromEnd(expr) => {
+                self.enter_expr(in_body, expr)
             }
+            expr::RangeBound::AtEnd(_) => {}
+        }
+
+        match node.end {
+            Some(expr::RangeBound::FromStart(expr) | expr::RangeBound::FromEnd(expr)) => {
+                self.enter_expr(in_body, expr)
+            }
+            _ => {}
         }
     }
 

@@ -3,7 +3,7 @@ use toc_hir::{
     body, expr,
     symbol::{LimitedKind, SymbolKind},
 };
-use toc_span::{Span, SpanId, Spanned};
+use toc_span::{Span, SpanId, Spanned, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
     LiteralValue,
@@ -15,12 +15,7 @@ impl super::BodyLowering<'_, '_> {
         if let Some(expr) = expr {
             self.lower_expr(expr)
         } else {
-            // Allocate a generic span
-            let missing = expr::Expr {
-                kind: expr::ExprKind::Missing,
-                span: self.ctx.library.span_map.dummy_span(),
-            };
-            self.body.add_expr(missing)
+            self.missing_expr()
         }
     }
 
@@ -77,6 +72,20 @@ impl super::BodyLowering<'_, '_> {
         let expr = expr::Expr { kind, span };
 
         self.body.add_expr(expr)
+    }
+
+    fn mk_expr(&mut self, kind: expr::ExprKind, span: TextRange) -> expr::ExprId {
+        let span = self.ctx.intern_range(span);
+        self.body.add_expr(expr::Expr { kind, span })
+    }
+
+    fn missing_expr(&mut self) -> expr::ExprId {
+        // Allocate a generic span
+        let missing = expr::Expr {
+            kind: expr::ExprKind::Missing,
+            span: self.ctx.library.span_map.dummy_span(),
+        };
+        self.body.add_expr(missing)
     }
 
     fn unsupported_expr(&mut self, span: SpanId) -> Option<expr::ExprKind> {
@@ -191,16 +200,48 @@ impl super::BodyLowering<'_, '_> {
 
         for arg in args?.param() {
             let arg = match arg.param_kind() {
-                Some(ast::ParamKind::Expr(expr)) => expr::Arg::Expr(self.lower_expr(expr)),
-                None => expr::Arg::Expr(self.lower_required_expr(None)),
-                Some(node) => {
-                    // Either RangeArg or AllArg
-                    // Unsupported for now
-                    let span = self.ctx.intern_range(node.syntax().text_range());
-                    self.unsupported_expr(span);
-
-                    expr::Arg::Expr(self.lower_required_expr(None))
+                Some(ast::ParamKind::Expr(expr)) => self.lower_expr(expr),
+                Some(ast::ParamKind::AllItem(expr)) => {
+                    // `all expression`
+                    self.mk_expr(expr::ExprKind::All, expr.syntax().text_range())
                 }
+                Some(ast::ParamKind::RangeItem(expr)) => {
+                    // Range expression
+                    let mut lower_range_bound = |range_bound: Option<ast::RangeBound>| {
+                        let range_bound = if let Some(bound) = range_bound {
+                            bound
+                        } else {
+                            return expr::RangeBound::FromStart(self.missing_expr());
+                        };
+
+                        match range_bound {
+                            ast::RangeBound::RelativeBound(bound) => {
+                                if bound.minus_token().is_some() {
+                                    // From end
+                                    expr::RangeBound::FromEnd(
+                                        self.lower_required_expr(bound.expr()),
+                                    )
+                                } else {
+                                    // At end
+                                    expr::RangeBound::AtEnd(
+                                        self.ctx
+                                            .intern_range(bound.star_token().unwrap().text_range()),
+                                    )
+                                }
+                            }
+                            ast::RangeBound::Expr(expr) => {
+                                expr::RangeBound::FromStart(self.lower_expr(expr))
+                            }
+                        }
+                    };
+
+                    let span = expr.syntax().text_range();
+                    let start = lower_range_bound(expr.start());
+                    let end = expr.end().map(|end| lower_range_bound(Some(end)));
+
+                    self.mk_expr(expr::ExprKind::Range(expr::Range { start, end }), span)
+                }
+                None => self.missing_expr(),
             };
 
             arg_list.push(arg);

@@ -1144,13 +1144,31 @@ fn lower_call_expr() {
 }
 
 #[test]
-fn lower_call_expr_unsupported_arg() {
-    // AllArg
+fn lower_all_expr() {
+    // In expected position
     assert_lower("proc call end call var _ := call(all)");
-    // RangeArg
+    // Not in expected position
+    assert_lower("var _ := all");
+}
+
+#[test]
+fn lower_range_expr() {
+    // In expected position
+    // AtEnd
     assert_lower("proc call end call var _ := call(*)");
-    // RangeArg, full
-    assert_lower("proc call end call var _ := call(*..*)");
+    // FromStart..FromStart
+    assert_lower("proc call end call var _ := call(1..2)");
+    // FromStart..AtEnd
+    assert_lower("proc call end call var _ := call(1..*)");
+    // FromStart..FromEnd
+    assert_lower("proc call end call var _ := call(1..*-1)");
+    // AtEnd..FromStart
+    assert_lower("proc call end call var _ := call(*..1)");
+    // FromEnd..FromStart
+    assert_lower("proc call end call var _ := call(*-1..1)");
+
+    // Not in expected position
+    assert_lower("var _ := *..*");
 }
 
 #[test]
