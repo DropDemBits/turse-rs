@@ -49,6 +49,10 @@ impl TypeKind {
         matches!(self, TypeKind::Alias(_, _))
     }
 
+    pub fn is_set(&self) -> bool {
+        matches!(self, TypeKind::Set(..))
+    }
+
     /// charseq types includes `String`, `StringN`, `Char`, and `CharN` types
     pub fn is_charseq(&self) -> bool {
         matches!(
@@ -747,7 +751,7 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         expr::BinaryOp::Add => {
             // Operations:
             // - String concatenation (charseq, charseq => charseq)
-            // x Set union (set, set => set)
+            // - Set union (set, set => set)
             // - Addition (number, number => number)
 
             if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
@@ -756,6 +760,9 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
             } else if let Some(result_ty) = infer_charseq_operands(db, left.kind(), right.kind()) {
                 // String concatenation
                 InferTy::Complete(result_ty)
+            } else if left.kind().is_set() && right.kind().is_set() {
+                // Set union (depends on `is_equivalent`, but okay to infer from left)
+                InferTy::Partial(left.id())
             } else {
                 // Type error
                 InferTy::Error(db.mk_error())
@@ -763,24 +770,30 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         }
         expr::BinaryOp::Sub => {
             // Operations:
-            // x Set difference (set, set => set)
+            // - Set difference (set, set => set)
             // - Subtraction (number, number => number)
 
             if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Subtraction
                 InferTy::Complete(result_ty)
+            } else if left.kind().is_set() && right.kind().is_set() {
+                // Set difference (depends on `is_equivalent`, but okay to infer from left)
+                InferTy::Partial(left.id())
             } else {
                 InferTy::Error(db.mk_error())
             }
         }
         expr::BinaryOp::Mul => {
             // Operations:
-            // x Set intersection (set, set => set)
+            // - Set intersection (set, set => set)
             // - Multiplication (number, number => number)
 
             if let Some(result_ty) = infer_arithmetic_operands(db, left.kind(), right.kind()) {
                 // Multiplication
                 InferTy::Complete(result_ty)
+            } else if left.kind().is_set() && right.kind().is_set() {
+                // Set intersection (depends on `is_equivalent`, but okay to infer from left)
+                InferTy::Partial(left.id())
             } else {
                 InferTy::Error(db.mk_error())
             }
@@ -988,6 +1001,20 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
 
     // Inference code covers most of the operations, perform the remaining checks
     match op {
+        // Set operators (set, set => set)
+        expr::BinaryOp::Add | expr::BinaryOp::Sub | expr::BinaryOp::Mul => {
+            // Operations:
+            // - Set union
+            // - Set difference
+            // - Set intersection
+
+            // Set types must be equivalent
+            if is_equivalent(db, left.id(), right.id()) && left.kind().is_set() {
+                Ok(())
+            } else {
+                mk_type_error()
+            }
+        }
         // Comparison (a, b => boolean where a, b: Comparable)
         expr::BinaryOp::Less
         | expr::BinaryOp::LessEq
@@ -997,7 +1024,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // - Numeric compare (number, number => boolean)
             // - Charseq compare (charseq, charseq => boolean)
             // x Enum compare (enum, enum => boolean)
-            // x Set sub/supersets (set, set => boolean)
+            // - Set sub/supersets (set, set => boolean)
             // x Class hierarchy (class, class => boolean)
 
             match (left.kind(), right.kind()) {
@@ -1005,6 +1032,8 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
                 (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(()),
+                // Sets that are equivalent are comparable
+                (lhs, _) if is_equivalent(db, left.id(), right.id()) && lhs.is_set() => Ok(()),
                 // All other types aren't comparable
                 _ => mk_type_error(),
             }
@@ -1015,7 +1044,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // - Charseq equality (charseq, charseq => boolean)
             // x Class equality (class, class => boolean)
             // x Pointer equality (pointer, pointer => boolean)
-            // x Set equality (set, set => boolean)
+            // - Set equality (set, set => boolean)
             // - Scalar equality (scalar, scalar => boolean)
 
             match (left.kind(), right.kind()) {
@@ -1028,6 +1057,14 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                     // Types should be coercible into each other
                     // TODO: This really only starts to matter when we lower range types, so add tests for this then
                     if is_either_coercible(db, left.id(), right.id()) {
+                        Ok(())
+                    } else {
+                        mk_type_error()
+                    }
+                }
+                (lhs, _) if is_equivalent(db, left.id(), right.id()) => {
+                    // Sets that are equivalent can be tested for equality
+                    if lhs.is_set() {
                         Ok(())
                     } else {
                         mk_type_error()

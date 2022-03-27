@@ -533,6 +533,26 @@ test_for_each_op! { comparison_op_charseqs,
     "#,
 }
 
+test_for_each_op! { comparison_op_sets,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    type s : set of boolean
+    var a, b : s
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := a {0} b
+    _v_res := b {0} a
+    "#,
+}
+
 test_for_each_op! { comparison_op_wrong_types,
     [
         ("<", less),
@@ -555,6 +575,13 @@ test_for_each_op! { comparison_op_wrong_types,
     var c_sz : char(6)
     var s : string
     var s_sz : string(6)
+
+    % Different sets
+    type s1 : set of boolean
+    type s2 : set of boolean
+    var as1 : s1
+    var bs2 : s2
+    var aas : set of boolean
 
     % should all produce boolean anyway
     var _v_res : boolean
@@ -604,6 +631,12 @@ test_for_each_op! { comparison_op_wrong_types,
     _v_res := s_sz {0} i
     _v_res := s_sz {0} n
     _v_res := s_sz {0} b
+
+    % Incompatible sets
+    _v_res := as1 {0} bs2
+    _v_res := bs1 {0} as2
+    _v_res := aas {0} as1
+    _v_res := as1 {0} aas
     "#
 }
 
@@ -619,6 +652,46 @@ test_for_each_op! { equality_op_scalars,
     var _v_res : boolean
 
     _v_res := b {0} b
+    "#
+}
+
+test_for_each_op! { set_ops,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+    ] => r#"
+    type s : set of boolean
+    var a, b : s
+
+    % should all produce the same set
+    var _v_res : s
+
+    _v_res := a {0} b
+    _v_res := b {0} a
+    "#
+}
+
+test_for_each_op! { set_ops_wrong_types,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+    ] => r#"
+    type s1 : set of boolean
+    type s2 : set of boolean
+    var a : s1
+    var b : s2
+    var i : int
+
+    % should all produce the left set
+    var _v_res : s1
+
+    _v_res := a {0} b
+
+    % error types
+    _v_res := a {0} i
+    _v_res := i {0} a
     "#
 }
 
