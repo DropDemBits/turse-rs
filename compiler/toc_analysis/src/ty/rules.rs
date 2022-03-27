@@ -949,8 +949,8 @@ pub fn infer_binary_op<T: ?Sized + db::TypeDatabase>(
         | expr::BinaryOp::GreaterEq
         | expr::BinaryOp::Equal
         | expr::BinaryOp::NotEqual => InferTy::Partial(db.mk_boolean()),
-        // Set membership tests (set(a), a => boolean)
-        // These ops are not implemented yet, but inferring them into a boolean type is ok
+        // Set membership tests (a, set(a) => boolean)
+        // Requires `is_equivalent`, but inferring them into a boolean type is ok
         expr::BinaryOp::In | expr::BinaryOp::NotIn => InferTy::Partial(db.mk_boolean()),
     }
 }
@@ -976,16 +976,6 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             left: left.id,
             op,
             right: right.id,
-            unsupported: false,
-        })
-    };
-
-    let unsupported_op = move || {
-        Err(InvalidBinaryOp {
-            left: left.id,
-            op,
-            right: right.id,
-            unsupported: true,
         })
     };
 
@@ -1075,8 +1065,21 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             }
         }
         // Set membership tests (set(a), a => boolean)
-        expr::BinaryOp::In => unsupported_op(),
-        expr::BinaryOp::NotIn => unsupported_op(),
+        expr::BinaryOp::In | expr::BinaryOp::NotIn => {
+            // `right` must be a set
+            let elem_ty = if let TypeKind::Set(_, elem_ty) = right.kind() {
+                *elem_ty
+            } else {
+                return mk_type_error();
+            };
+
+            // Element type & `left` type must be coercible
+            if is_coercible_into(db, elem_ty, left.id()) {
+                Ok(())
+            } else {
+                mk_type_error()
+            }
+        }
         _ => unreachable!(),
     }
 }
@@ -1196,7 +1199,6 @@ pub struct InvalidBinaryOp {
     left: TypeId,
     op: expr::BinaryOp,
     right: TypeId,
-    unsupported: bool,
 }
 
 pub fn report_invalid_bin_op<'db, DB>(
@@ -1213,18 +1215,8 @@ pub fn report_invalid_bin_op<'db, DB>(
         left: left_ty,
         op,
         right: right_ty,
-        unsupported,
         ..
     } = err;
-
-    if unsupported {
-        reporter.error(
-            "unsupported operation",
-            "operation is not type-checked yet",
-            op_span,
-        );
-        return;
-    }
 
     let left_ty = left_ty.in_db(db);
     let right_ty = right_ty.in_db(db);
@@ -1293,14 +1285,45 @@ pub fn report_invalid_bin_op<'db, DB>(
         right_ty.clone().to_base_type(),
     );
 
-    let msg = reporter
-        .error_detailed(format!("mismatched types for {op_name}"), op_span)
-        .with_note(format!("this is of type `{right_ty}`"), right_span)
-        .with_note(format!("this is of type `{left_ty}`"), left_span)
-        .with_error(
-            format!("`{peeled_left}` cannot be {verb_phrase} `{peeled_right}`",),
-            op_span,
-        );
+    // Specialize message for set member ops
+    if matches!(op, expr::BinaryOp::In | expr::BinaryOp::NotIn) {
+        // Set membership tests (set(a), a => boolean)
+        if let TypeKind::Set(_, elem_ty) = peeled_right.kind() {
+            // Incompatible element types
+            let elem_ty = elem_ty.in_db(db).to_base_type();
+
+            reporter
+                .error_detailed(format!("mismatched types for {op_name}"), op_span)
+                .with_note(format!("this is of type `{right_ty}`"), right_span)
+                .with_note(format!("this is of type `{left_ty}`"), left_span)
+                .with_error(
+                    format!("`{peeled_left}` is not the same as `{elem_ty}`"),
+                    right_span,
+                )
+                .with_info("operand and element type must be the same")
+                .finish();
+        } else {
+            // Not a set
+            reporter
+                .error_detailed(format!("mismatched types for {op_name}"), op_span)
+                .with_note(format!("this is of type `{right_ty}`"), right_span)
+                .with_error(format!("`{peeled_right}` is not a set type"), right_span)
+                .with_info("operand must be a set")
+                .finish();
+        }
+        return;
+    }
+
+    let msg = {
+        reporter
+            .error_detailed(format!("mismatched types for {op_name}"), op_span)
+            .with_note(format!("this is of type `{right_ty}`"), right_span)
+            .with_note(format!("this is of type `{left_ty}`"), left_span)
+            .with_error(
+                format!("`{peeled_left}` cannot be {verb_phrase} `{peeled_right}`",),
+                op_span,
+            )
+    };
 
     let msg = match op {
         // Arithmetic operators
@@ -1338,8 +1361,8 @@ pub fn report_invalid_bin_op<'db, DB>(
             }
         }
         // Set membership tests (set(a), a => boolean)
-        expr::BinaryOp::In => todo!(),
-        expr::BinaryOp::NotIn => todo!(),
+        // Already specialized from above
+        expr::BinaryOp::In | expr::BinaryOp::NotIn => unreachable!(),
     };
     msg.finish();
 }

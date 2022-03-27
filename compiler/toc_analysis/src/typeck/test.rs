@@ -695,6 +695,42 @@ test_for_each_op! { set_ops_wrong_types,
     "#
 }
 
+test_for_each_op! { set_member_op,
+    [
+        ("in", r#in),
+        ("~in", not_in),
+    ] => r#"
+    type s : set of boolean
+    var a : s
+    var b : boolean
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := b {0} a
+    _v_res := true {0} a
+    % FIXME: add tests for range types
+    "#
+}
+
+test_for_each_op! { set_member_op_wrong_types,
+    [
+        ("in", r#in),
+        ("~in", not_in),
+    ] => r#"
+    type ts : set of boolean
+    var s : ts
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    % not a set
+    _v_res := true {0} true
+    % incompatible element types
+    _v_res := 1 {0} s
+    "#
+}
+
 // Test integer inference for all compatible operators
 test_for_each_op! { integer_inference,
     [
@@ -769,8 +805,9 @@ test_named_group! { do_type_coercion,
         case i1 of
         label k:
         end case
-        "#
+        "#,
         */
+        // FIXME: add coercion tests for range element types and set member ops
     ]
 }
 

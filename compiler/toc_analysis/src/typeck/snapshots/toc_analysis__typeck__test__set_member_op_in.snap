@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "\n    type s : set of boolean\n    var a : s\n    var b : boolean\n\n    % should all produce booleans\n    var _v_res : boolean\n\n    _v_res := b in a\n    _v_res := true in a\n    % FIXME: add tests for range types\n    "
+
+---
+"<anonymous>"@(FileId(1), 14..28) [Declared]: <error>
+"s"@(FileId(1), 10..11) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"a"@(FileId(1), 37..38) [Declared]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"b"@(FileId(1), 51..52) [Declared]: boolean
+"_v_res"@(FileId(1), 106..112) [Declared]: boolean
+"<root>"@(dummy) [Declared]: <error>
+
