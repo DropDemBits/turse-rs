@@ -1342,3 +1342,12 @@ fn lower_field_expr() {
     ",
     );
 }
+
+#[test]
+fn lower_set_ty() {
+    assert_lower("type _ : set of boolean");
+    // should still be present even with missing type
+    assert_lower("type _ : set of ");
+    // in storage position
+    assert_lower("var _ : set of boolean");
+}

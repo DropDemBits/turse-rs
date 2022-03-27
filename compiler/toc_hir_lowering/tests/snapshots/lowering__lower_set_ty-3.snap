@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : set of boolean"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..22): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..22): []
+        StmtItem@(FileId(1), 0..22): ItemId(0)
+          ConstVar@(FileId(1), 0..22): var "_"@(FileId(1), 4..5)
+            Set@(FileId(1), 8..22): "<anonymous>"@(FileId(1), 8..22)
+              Primitive@(FileId(1), 15..22): Boolean
+error in file FileId(1) at 8..22: `set` type is not allowed here
+| error in file FileId(1) for 8..22: `set` types can only be specified in `type` declarations
+

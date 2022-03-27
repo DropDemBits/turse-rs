@@ -23,3 +23,18 @@ fn report_function_type_parameterless_unnamed() {
         | info: referring to a parameterless function will call it instead of producing a reference to it"#]],
     );
 }
+
+#[test]
+fn set_type_in_type_decl() {
+    check("type _ : set of boolean", expect![[]]);
+}
+
+#[test]
+fn report_set_type_in_var() {
+    check(
+        "var _ : set of boolean",
+        expect![[r#"
+        error in file FileId(1) at 8..22: `set` type is not allowed here
+        | error in file FileId(1) for 8..22: `set` types can only be specified in `type` declarations"#]],
+    );
+}
