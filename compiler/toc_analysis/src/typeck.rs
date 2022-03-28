@@ -1040,12 +1040,6 @@ impl TypeCheck<'_> {
                 None => "expression".to_string(),
             };
             let extra_info = match lhs_tyref.kind() {
-                ty::TypeKind::Set(..) if !has_parens && from_ty_binding => {
-                    // Possibly trying to construct an empty set
-                    // FIXME: This is never encountered, since paren-less calls to sets aren't ever routed here
-                    // Would probably better to be a part of `expect_value_kind()`
-                    Some("to construct an empty set, add `()` after here")
-                }
                 ty::TypeKind::Set(..) if has_parens && !from_ty_binding => {
                     // Trying to construct a set, but from a variable
                     Some("sets can only be constructed from their type names")
@@ -1746,7 +1740,7 @@ impl TypeCheck<'_> {
                     let name = def_info.name.item();
                     let def_at = def_info.name.span().lookup_in(&def_library.span_map);
 
-                    (format!("`{name}`"), Some((def_at, binding_to)))
+                    (format!("`{name}`"), Some((def_id, def_at, binding_to)))
                 }
                 None => {
                     // From expr
@@ -1757,8 +1751,8 @@ impl TypeCheck<'_> {
             let mut state = self.state();
             let mut builder = state.reporter.error_detailed(from_thing(&thing), report_at);
 
-            builder = if let Some((def_at, binding_to)) = def_info {
-                if matches!(
+            builder = if let Some((def_id, def_at, binding_to)) = def_info {
+                builder = if matches!(
                     binding_to,
                     BindingTo::Storage(Mutability::Var) | BindingTo::Register(Mutability::Var)
                 ) {
@@ -1785,7 +1779,24 @@ impl TypeCheck<'_> {
                             value_span,
                         )
                         .with_note(format!("{thing} declared here"), def_at)
+                };
+
+                if matches!(binding_to, BindingTo::Type)
+                    && matches!(expected_kind, ExpectedValue::Value)
+                {
+                    // Check if this is a set type
+                    let ty_ref = self.db.type_of(def_id.into()).in_db(self.db).to_base_type();
+
+                    if ty_ref.kind().is_set() {
+                        // Possibly trying to construct an empty set
+                        builder = builder.with_note(
+                            "to construct an empty set, add `()` after here",
+                            value_span,
+                        );
+                    }
                 }
+
+                builder
             } else {
                 // Only in here when checking for references
                 debug_assert!(!checking_for_value);

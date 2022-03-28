@@ -12,5 +12,6 @@ expression: "type s : set of boolean\nvar _ := s\ns\n"
 error in file FileId(1) at 33..34: cannot use `s` as an expression
 | error in file FileId(1) for 33..34: `s` is a reference to a type, not a variable
 | note in file FileId(1) for 5..6: `s` declared here
+| note in file FileId(1) for 33..34: to construct an empty set, add `()` after here
 error in file FileId(1) at 35..36: cannot use `s` as a statement
 | error in file FileId(1) for 35..36: `s` is not a statement
