@@ -26,6 +26,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
         hir_ty::TypeKind::Void => db.mk_void(),
     }
@@ -83,6 +84,13 @@ fn alias_ty(
         // Not a reference to a type
         db.mk_error()
     }
+}
+
+fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Set) -> TypeId {
+    let library_id = hir_id.0;
+    let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
+    let def_id = DefId(library_id, ty.def_id);
+    db.mk_set(ty::WithDef::Anonymous(def_id), elem_ty)
 }
 
 fn subprogram_ty(
@@ -211,6 +219,10 @@ fn type_def_ty(
             match base_ty.kind() {
                 // Forward base types get propagated as errors
                 ty::TypeKind::Forward => db.mk_error(),
+                // Associate anonymous sets with the def of the alias (equivalent behaviour)
+                ty::TypeKind::Set(ty::WithDef::Anonymous(_), elem_ty) => {
+                    db.mk_set(ty::WithDef::Named(def_id), *elem_ty)
+                }
                 _ => db.mk_alias(def_id, base_ty.id()),
             }
         }
@@ -334,6 +346,8 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Literal(expr) => literal_ty(db, expr),
         expr::ExprKind::Binary(expr) => binary_ty(db, body, expr, body_expr),
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr, body_expr),
+        expr::ExprKind::All => db.mk_error(), // Special case calling
+        expr::ExprKind::Range(_) => db.mk_error(), // FIXME: Support range expressions
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
         expr::ExprKind::Field(expr) => field_ty(db, body, expr, body_expr),
         expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr, body_expr),
@@ -430,27 +444,34 @@ fn call_expr_ty(
     body_expr: expr::BodyExpr,
 ) -> TypeId {
     let left = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.lhs));
-    let subprog_ty = left.in_db(db).to_base_type();
+    let calling_ty = left.in_db(db).to_base_type();
 
-    if let TypeKind::Subprogram(
-        symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
-        _params,
-        result,
-    ) = subprog_ty.kind()
-    {
-        // Is void result? Error! (proc call in expr position)
-        let result = result.in_db(db);
+    match calling_ty.kind() {
+        TypeKind::Subprogram(
+            symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
+            _params,
+            result,
+        ) => {
+            // Is void result? Error! (proc call in expr position)
+            let result = result.in_db(db);
 
-        if matches!(result.kind(), TypeKind::Void) {
-            db.mk_error()
-        } else {
-            // It's okay to always infer as the result type, since that gives
-            // better diagnostics
-            result.id()
+            if matches!(result.kind(), TypeKind::Void) {
+                db.mk_error()
+            } else {
+                // It's okay to always infer as the result type, since that gives
+                // better diagnostics
+                result.id()
+            }
         }
-    } else {
-        // Not a callable subprogram
-        db.mk_error()
+        TypeKind::Set(..) => {
+            // Set constructor
+            // Just use the set's type
+            left
+        }
+        _ => {
+            // Not a callable subprogram
+            db.mk_error()
+        }
     }
 }
 

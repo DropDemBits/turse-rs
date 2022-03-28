@@ -1,0 +1,15 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "% FIXME: Add corresponding test for range types\ntype r : char\ntype _a : set of r\ntype _b : set of boolean\ntype _c : set of char\n"
+
+---
+"r"@(FileId(1), 53..54) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of char
+"<anonymous>"@(FileId(1), 72..80) [Declared]: <error>
+"_a"@(FileId(1), 67..69) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(2))] of alias[DefId(LibraryId(0), LocalDefId(0))] of char
+"<anonymous>"@(FileId(1), 91..105) [Declared]: <error>
+"_b"@(FileId(1), 86..88) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(4))] of boolean
+"<anonymous>"@(FileId(1), 116..127) [Declared]: <error>
+"_c"@(FileId(1), 111..113) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(6))] of char
+"<root>"@(dummy) [Declared]: <error>
+

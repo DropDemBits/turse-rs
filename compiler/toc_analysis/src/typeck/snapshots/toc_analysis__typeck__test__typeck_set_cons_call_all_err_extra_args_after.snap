@@ -1,0 +1,15 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type s : set of boolean\nvar b : boolean\nvar _ := s(all, b, b, b, b)\n"
+
+---
+"<anonymous>"@(FileId(1), 9..23) [Declared]: <error>
+"s"@(FileId(1), 5..6) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"b"@(FileId(1), 28..29) [Declared]: boolean
+"_"@(FileId(1), 44..45) [Declared]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 49..50: constructor call has extra arguments
+| error in file FileId(1) for 49..50: call has extra arguments
+| note in file FileId(1) for 51..54: this `all` also covers the rest of the arguments

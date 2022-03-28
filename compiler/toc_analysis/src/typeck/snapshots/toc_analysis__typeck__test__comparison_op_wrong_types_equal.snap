@@ -1,7 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
-expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : nat\n\n    % Other scalars\n    var b : boolean\n\n    % Sized charseqs\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := r = b\n    _v_res := r = c\n    _v_res := r = c_sz\n    _v_res := r = s\n    _v_res := r = s_sz\n\n    _v_res := i = b\n    _v_res := i = c\n    _v_res := i = c_sz\n    _v_res := i = s\n    _v_res := i = s_sz\n\n    _v_res := n = b\n    _v_res := n = c\n    _v_res := n = c_sz\n    _v_res := n = s\n    _v_res := n = s_sz\n\n    _v_res := b = r\n    _v_res := b = i\n    _v_res := b = n\n    _v_res := b = c\n    _v_res := b = c_sz\n    _v_res := b = s\n    _v_res := b = s_sz\n\n    _v_res := c = r\n    _v_res := c = i\n    _v_res := c = n\n    _v_res := c = b\n\n    _v_res := c_sz = r\n    _v_res := c_sz = i\n    _v_res := c_sz = n\n    _v_res := c_sz = b\n\n    _v_res := s = r\n    _v_res := s = i\n    _v_res := s = n\n    _v_res := s = b\n\n    _v_res := s_sz = r\n    _v_res := s_sz = i\n    _v_res := s_sz = n\n    _v_res := s_sz = b\n    "
+assertion_line: 42
+expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : nat\n\n    % Other scalars\n    var b : boolean\n\n    % Sized charseqs\n    var c : char\n    var c_sz : char(6)\n    var s : string\n    var s_sz : string(6)\n\n    % Different sets\n    type s1 : set of boolean\n    type s2 : set of boolean\n    var as1 : s1\n    var bs2 : s2\n    var aas : set of boolean\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := r = b\n    _v_res := r = c\n    _v_res := r = c_sz\n    _v_res := r = s\n    _v_res := r = s_sz\n\n    _v_res := i = b\n    _v_res := i = c\n    _v_res := i = c_sz\n    _v_res := i = s\n    _v_res := i = s_sz\n\n    _v_res := n = b\n    _v_res := n = c\n    _v_res := n = c_sz\n    _v_res := n = s\n    _v_res := n = s_sz\n\n    _v_res := b = r\n    _v_res := b = i\n    _v_res := b = n\n    _v_res := b = c\n    _v_res := b = c_sz\n    _v_res := b = s\n    _v_res := b = s_sz\n\n    _v_res := c = r\n    _v_res := c = i\n    _v_res := c = n\n    _v_res := c = b\n\n    _v_res := c_sz = r\n    _v_res := c_sz = i\n    _v_res := c_sz = n\n    _v_res := c_sz = b\n\n    _v_res := s = r\n    _v_res := s = i\n    _v_res := s = n\n    _v_res := s = b\n\n    _v_res := s_sz = r\n    _v_res := s_sz = i\n    _v_res := s_sz = n\n    _v_res := s_sz = b\n\n    % Incompatible sets\n    _v_res := as1 = bs2\n    _v_res := bs1 = as2\n    _v_res := aas = as1\n    _v_res := as1 = aas\n    "
 
 ---
 "r"@(FileId(1), 24..25) [Declared]: real
@@ -12,196 +12,221 @@ expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : na
 "c_sz"@(FileId(1), 153..157) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "s"@(FileId(1), 176..177) [Declared]: string
 "s_sz"@(FileId(1), 195..199) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"_v_res"@(FileId(1), 261..267) [Declared]: boolean
+"<anonymous>"@(FileId(1), 248..262) [Declared]: <error>
+"s1"@(FileId(1), 243..245) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(9))] of boolean
+"<anonymous>"@(FileId(1), 277..291) [Declared]: <error>
+"s2"@(FileId(1), 272..274) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(11))] of boolean
+"as1"@(FileId(1), 300..303) [Declared]: set[DefId(LibraryId(0), LocalDefId(9))] of boolean
+"bs2"@(FileId(1), 317..320) [Declared]: set[DefId(LibraryId(0), LocalDefId(11))] of boolean
+"<anonymous>"@(FileId(1), 340..354) [Declared]: <error>
+"aas"@(FileId(1), 334..337) [Declared]: set[DefId(LibraryId(0), LocalDefId(14))] of boolean
+"_v_res"@(FileId(1), 404..410) [Declared]: boolean
+"bs1"@(FileId(1), 1300..1303) [Undeclared]: <error>
+"as2"@(FileId(1), 1306..1309) [Undeclared]: <error>
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 295..296: mismatched types for `=`
-| note in file FileId(1) for 297..298: this is of type `boolean`
-| note in file FileId(1) for 293..294: this is of type `real`
-| error in file FileId(1) for 295..296: `real` cannot be compared to `boolean`
+error in file FileId(1) at 438..439: mismatched types for `=`
+| note in file FileId(1) for 440..441: this is of type `boolean`
+| note in file FileId(1) for 436..437: this is of type `real`
+| error in file FileId(1) for 438..439: `real` cannot be compared to `boolean`
 | info: operands must both be the same type
-error in file FileId(1) at 315..316: mismatched types for `=`
-| note in file FileId(1) for 317..318: this is of type `char`
-| note in file FileId(1) for 313..314: this is of type `real`
-| error in file FileId(1) for 315..316: `real` cannot be compared to `char`
+error in file FileId(1) at 458..459: mismatched types for `=`
+| note in file FileId(1) for 460..461: this is of type `char`
+| note in file FileId(1) for 456..457: this is of type `real`
+| error in file FileId(1) for 458..459: `real` cannot be compared to `char`
 | info: operands must both be the same type
-error in file FileId(1) at 335..336: mismatched types for `=`
-| note in file FileId(1) for 337..341: this is of type `char(6)`
-| note in file FileId(1) for 333..334: this is of type `real`
-| error in file FileId(1) for 335..336: `real` cannot be compared to `char(6)`
+error in file FileId(1) at 478..479: mismatched types for `=`
+| note in file FileId(1) for 480..484: this is of type `char(6)`
+| note in file FileId(1) for 476..477: this is of type `real`
+| error in file FileId(1) for 478..479: `real` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 358..359: mismatched types for `=`
-| note in file FileId(1) for 360..361: this is of type `string`
-| note in file FileId(1) for 356..357: this is of type `real`
-| error in file FileId(1) for 358..359: `real` cannot be compared to `string`
+error in file FileId(1) at 501..502: mismatched types for `=`
+| note in file FileId(1) for 503..504: this is of type `string`
+| note in file FileId(1) for 499..500: this is of type `real`
+| error in file FileId(1) for 501..502: `real` cannot be compared to `string`
 | info: operands must both be the same type
-error in file FileId(1) at 378..379: mismatched types for `=`
-| note in file FileId(1) for 380..384: this is of type `string(6)`
-| note in file FileId(1) for 376..377: this is of type `real`
-| error in file FileId(1) for 378..379: `real` cannot be compared to `string(6)`
+error in file FileId(1) at 521..522: mismatched types for `=`
+| note in file FileId(1) for 523..527: this is of type `string(6)`
+| note in file FileId(1) for 519..520: this is of type `real`
+| error in file FileId(1) for 521..522: `real` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 402..403: mismatched types for `=`
-| note in file FileId(1) for 404..405: this is of type `boolean`
-| note in file FileId(1) for 400..401: this is of type `int`
-| error in file FileId(1) for 402..403: `int` cannot be compared to `boolean`
+error in file FileId(1) at 545..546: mismatched types for `=`
+| note in file FileId(1) for 547..548: this is of type `boolean`
+| note in file FileId(1) for 543..544: this is of type `int`
+| error in file FileId(1) for 545..546: `int` cannot be compared to `boolean`
 | info: operands must both be the same type
-error in file FileId(1) at 422..423: mismatched types for `=`
-| note in file FileId(1) for 424..425: this is of type `char`
-| note in file FileId(1) for 420..421: this is of type `int`
-| error in file FileId(1) for 422..423: `int` cannot be compared to `char`
+error in file FileId(1) at 565..566: mismatched types for `=`
+| note in file FileId(1) for 567..568: this is of type `char`
+| note in file FileId(1) for 563..564: this is of type `int`
+| error in file FileId(1) for 565..566: `int` cannot be compared to `char`
 | info: operands must both be the same type
-error in file FileId(1) at 442..443: mismatched types for `=`
-| note in file FileId(1) for 444..448: this is of type `char(6)`
-| note in file FileId(1) for 440..441: this is of type `int`
-| error in file FileId(1) for 442..443: `int` cannot be compared to `char(6)`
+error in file FileId(1) at 585..586: mismatched types for `=`
+| note in file FileId(1) for 587..591: this is of type `char(6)`
+| note in file FileId(1) for 583..584: this is of type `int`
+| error in file FileId(1) for 585..586: `int` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 465..466: mismatched types for `=`
-| note in file FileId(1) for 467..468: this is of type `string`
-| note in file FileId(1) for 463..464: this is of type `int`
-| error in file FileId(1) for 465..466: `int` cannot be compared to `string`
+error in file FileId(1) at 608..609: mismatched types for `=`
+| note in file FileId(1) for 610..611: this is of type `string`
+| note in file FileId(1) for 606..607: this is of type `int`
+| error in file FileId(1) for 608..609: `int` cannot be compared to `string`
 | info: operands must both be the same type
-error in file FileId(1) at 485..486: mismatched types for `=`
-| note in file FileId(1) for 487..491: this is of type `string(6)`
-| note in file FileId(1) for 483..484: this is of type `int`
-| error in file FileId(1) for 485..486: `int` cannot be compared to `string(6)`
+error in file FileId(1) at 628..629: mismatched types for `=`
+| note in file FileId(1) for 630..634: this is of type `string(6)`
+| note in file FileId(1) for 626..627: this is of type `int`
+| error in file FileId(1) for 628..629: `int` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 509..510: mismatched types for `=`
-| note in file FileId(1) for 511..512: this is of type `boolean`
-| note in file FileId(1) for 507..508: this is of type `nat`
-| error in file FileId(1) for 509..510: `nat` cannot be compared to `boolean`
-| info: operands must both be the same type
-error in file FileId(1) at 529..530: mismatched types for `=`
-| note in file FileId(1) for 531..532: this is of type `char`
-| note in file FileId(1) for 527..528: this is of type `nat`
-| error in file FileId(1) for 529..530: `nat` cannot be compared to `char`
-| info: operands must both be the same type
-error in file FileId(1) at 549..550: mismatched types for `=`
-| note in file FileId(1) for 551..555: this is of type `char(6)`
-| note in file FileId(1) for 547..548: this is of type `nat`
-| error in file FileId(1) for 549..550: `nat` cannot be compared to `char(6)`
-| info: operands must both be the same type
-error in file FileId(1) at 572..573: mismatched types for `=`
-| note in file FileId(1) for 574..575: this is of type `string`
-| note in file FileId(1) for 570..571: this is of type `nat`
-| error in file FileId(1) for 572..573: `nat` cannot be compared to `string`
-| info: operands must both be the same type
-error in file FileId(1) at 592..593: mismatched types for `=`
-| note in file FileId(1) for 594..598: this is of type `string(6)`
-| note in file FileId(1) for 590..591: this is of type `nat`
-| error in file FileId(1) for 592..593: `nat` cannot be compared to `string(6)`
-| info: operands must both be the same type
-error in file FileId(1) at 616..617: mismatched types for `=`
-| note in file FileId(1) for 618..619: this is of type `real`
-| note in file FileId(1) for 614..615: this is of type `boolean`
-| error in file FileId(1) for 616..617: `boolean` cannot be compared to `real`
-| info: operands must both be the same type
-error in file FileId(1) at 636..637: mismatched types for `=`
-| note in file FileId(1) for 638..639: this is of type `int`
-| note in file FileId(1) for 634..635: this is of type `boolean`
-| error in file FileId(1) for 636..637: `boolean` cannot be compared to `int`
-| info: operands must both be the same type
-error in file FileId(1) at 656..657: mismatched types for `=`
-| note in file FileId(1) for 658..659: this is of type `nat`
+error in file FileId(1) at 652..653: mismatched types for `=`
 | note in file FileId(1) for 654..655: this is of type `boolean`
-| error in file FileId(1) for 656..657: `boolean` cannot be compared to `nat`
+| note in file FileId(1) for 650..651: this is of type `nat`
+| error in file FileId(1) for 652..653: `nat` cannot be compared to `boolean`
 | info: operands must both be the same type
-error in file FileId(1) at 676..677: mismatched types for `=`
-| note in file FileId(1) for 678..679: this is of type `char`
-| note in file FileId(1) for 674..675: this is of type `boolean`
-| error in file FileId(1) for 676..677: `boolean` cannot be compared to `char`
+error in file FileId(1) at 672..673: mismatched types for `=`
+| note in file FileId(1) for 674..675: this is of type `char`
+| note in file FileId(1) for 670..671: this is of type `nat`
+| error in file FileId(1) for 672..673: `nat` cannot be compared to `char`
 | info: operands must both be the same type
-error in file FileId(1) at 696..697: mismatched types for `=`
-| note in file FileId(1) for 698..702: this is of type `char(6)`
-| note in file FileId(1) for 694..695: this is of type `boolean`
-| error in file FileId(1) for 696..697: `boolean` cannot be compared to `char(6)`
+error in file FileId(1) at 692..693: mismatched types for `=`
+| note in file FileId(1) for 694..698: this is of type `char(6)`
+| note in file FileId(1) for 690..691: this is of type `nat`
+| error in file FileId(1) for 692..693: `nat` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 719..720: mismatched types for `=`
-| note in file FileId(1) for 721..722: this is of type `string`
-| note in file FileId(1) for 717..718: this is of type `boolean`
-| error in file FileId(1) for 719..720: `boolean` cannot be compared to `string`
+error in file FileId(1) at 715..716: mismatched types for `=`
+| note in file FileId(1) for 717..718: this is of type `string`
+| note in file FileId(1) for 713..714: this is of type `nat`
+| error in file FileId(1) for 715..716: `nat` cannot be compared to `string`
 | info: operands must both be the same type
-error in file FileId(1) at 739..740: mismatched types for `=`
-| note in file FileId(1) for 741..745: this is of type `string(6)`
-| note in file FileId(1) for 737..738: this is of type `boolean`
-| error in file FileId(1) for 739..740: `boolean` cannot be compared to `string(6)`
+error in file FileId(1) at 735..736: mismatched types for `=`
+| note in file FileId(1) for 737..741: this is of type `string(6)`
+| note in file FileId(1) for 733..734: this is of type `nat`
+| error in file FileId(1) for 735..736: `nat` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 763..764: mismatched types for `=`
-| note in file FileId(1) for 765..766: this is of type `real`
-| note in file FileId(1) for 761..762: this is of type `char`
-| error in file FileId(1) for 763..764: `char` cannot be compared to `real`
+error in file FileId(1) at 759..760: mismatched types for `=`
+| note in file FileId(1) for 761..762: this is of type `real`
+| note in file FileId(1) for 757..758: this is of type `boolean`
+| error in file FileId(1) for 759..760: `boolean` cannot be compared to `real`
 | info: operands must both be the same type
-error in file FileId(1) at 783..784: mismatched types for `=`
-| note in file FileId(1) for 785..786: this is of type `int`
-| note in file FileId(1) for 781..782: this is of type `char`
-| error in file FileId(1) for 783..784: `char` cannot be compared to `int`
+error in file FileId(1) at 779..780: mismatched types for `=`
+| note in file FileId(1) for 781..782: this is of type `int`
+| note in file FileId(1) for 777..778: this is of type `boolean`
+| error in file FileId(1) for 779..780: `boolean` cannot be compared to `int`
 | info: operands must both be the same type
-error in file FileId(1) at 803..804: mismatched types for `=`
-| note in file FileId(1) for 805..806: this is of type `nat`
-| note in file FileId(1) for 801..802: this is of type `char`
-| error in file FileId(1) for 803..804: `char` cannot be compared to `nat`
+error in file FileId(1) at 799..800: mismatched types for `=`
+| note in file FileId(1) for 801..802: this is of type `nat`
+| note in file FileId(1) for 797..798: this is of type `boolean`
+| error in file FileId(1) for 799..800: `boolean` cannot be compared to `nat`
 | info: operands must both be the same type
-error in file FileId(1) at 823..824: mismatched types for `=`
-| note in file FileId(1) for 825..826: this is of type `boolean`
+error in file FileId(1) at 819..820: mismatched types for `=`
 | note in file FileId(1) for 821..822: this is of type `char`
-| error in file FileId(1) for 823..824: `char` cannot be compared to `boolean`
+| note in file FileId(1) for 817..818: this is of type `boolean`
+| error in file FileId(1) for 819..820: `boolean` cannot be compared to `char`
 | info: operands must both be the same type
-error in file FileId(1) at 847..848: mismatched types for `=`
-| note in file FileId(1) for 849..850: this is of type `real`
-| note in file FileId(1) for 842..846: this is of type `char(6)`
-| error in file FileId(1) for 847..848: `char(6)` cannot be compared to `real`
+error in file FileId(1) at 839..840: mismatched types for `=`
+| note in file FileId(1) for 841..845: this is of type `char(6)`
+| note in file FileId(1) for 837..838: this is of type `boolean`
+| error in file FileId(1) for 839..840: `boolean` cannot be compared to `char(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 870..871: mismatched types for `=`
-| note in file FileId(1) for 872..873: this is of type `int`
-| note in file FileId(1) for 865..869: this is of type `char(6)`
-| error in file FileId(1) for 870..871: `char(6)` cannot be compared to `int`
+error in file FileId(1) at 862..863: mismatched types for `=`
+| note in file FileId(1) for 864..865: this is of type `string`
+| note in file FileId(1) for 860..861: this is of type `boolean`
+| error in file FileId(1) for 862..863: `boolean` cannot be compared to `string`
 | info: operands must both be the same type
-error in file FileId(1) at 893..894: mismatched types for `=`
-| note in file FileId(1) for 895..896: this is of type `nat`
-| note in file FileId(1) for 888..892: this is of type `char(6)`
-| error in file FileId(1) for 893..894: `char(6)` cannot be compared to `nat`
+error in file FileId(1) at 882..883: mismatched types for `=`
+| note in file FileId(1) for 884..888: this is of type `string(6)`
+| note in file FileId(1) for 880..881: this is of type `boolean`
+| error in file FileId(1) for 882..883: `boolean` cannot be compared to `string(6)`
 | info: operands must both be the same type
-error in file FileId(1) at 916..917: mismatched types for `=`
-| note in file FileId(1) for 918..919: this is of type `boolean`
-| note in file FileId(1) for 911..915: this is of type `char(6)`
-| error in file FileId(1) for 916..917: `char(6)` cannot be compared to `boolean`
+error in file FileId(1) at 906..907: mismatched types for `=`
+| note in file FileId(1) for 908..909: this is of type `real`
+| note in file FileId(1) for 904..905: this is of type `char`
+| error in file FileId(1) for 906..907: `char` cannot be compared to `real`
 | info: operands must both be the same type
-error in file FileId(1) at 937..938: mismatched types for `=`
-| note in file FileId(1) for 939..940: this is of type `real`
-| note in file FileId(1) for 935..936: this is of type `string`
-| error in file FileId(1) for 937..938: `string` cannot be compared to `real`
+error in file FileId(1) at 926..927: mismatched types for `=`
+| note in file FileId(1) for 928..929: this is of type `int`
+| note in file FileId(1) for 924..925: this is of type `char`
+| error in file FileId(1) for 926..927: `char` cannot be compared to `int`
 | info: operands must both be the same type
-error in file FileId(1) at 957..958: mismatched types for `=`
-| note in file FileId(1) for 959..960: this is of type `int`
-| note in file FileId(1) for 955..956: this is of type `string`
-| error in file FileId(1) for 957..958: `string` cannot be compared to `int`
+error in file FileId(1) at 946..947: mismatched types for `=`
+| note in file FileId(1) for 948..949: this is of type `nat`
+| note in file FileId(1) for 944..945: this is of type `char`
+| error in file FileId(1) for 946..947: `char` cannot be compared to `nat`
 | info: operands must both be the same type
-error in file FileId(1) at 977..978: mismatched types for `=`
-| note in file FileId(1) for 979..980: this is of type `nat`
-| note in file FileId(1) for 975..976: this is of type `string`
-| error in file FileId(1) for 977..978: `string` cannot be compared to `nat`
+error in file FileId(1) at 966..967: mismatched types for `=`
+| note in file FileId(1) for 968..969: this is of type `boolean`
+| note in file FileId(1) for 964..965: this is of type `char`
+| error in file FileId(1) for 966..967: `char` cannot be compared to `boolean`
 | info: operands must both be the same type
-error in file FileId(1) at 997..998: mismatched types for `=`
-| note in file FileId(1) for 999..1000: this is of type `boolean`
-| note in file FileId(1) for 995..996: this is of type `string`
-| error in file FileId(1) for 997..998: `string` cannot be compared to `boolean`
+error in file FileId(1) at 990..991: mismatched types for `=`
+| note in file FileId(1) for 992..993: this is of type `real`
+| note in file FileId(1) for 985..989: this is of type `char(6)`
+| error in file FileId(1) for 990..991: `char(6)` cannot be compared to `real`
 | info: operands must both be the same type
-error in file FileId(1) at 1021..1022: mismatched types for `=`
-| note in file FileId(1) for 1023..1024: this is of type `real`
-| note in file FileId(1) for 1016..1020: this is of type `string(6)`
-| error in file FileId(1) for 1021..1022: `string(6)` cannot be compared to `real`
+error in file FileId(1) at 1013..1014: mismatched types for `=`
+| note in file FileId(1) for 1015..1016: this is of type `int`
+| note in file FileId(1) for 1008..1012: this is of type `char(6)`
+| error in file FileId(1) for 1013..1014: `char(6)` cannot be compared to `int`
 | info: operands must both be the same type
-error in file FileId(1) at 1044..1045: mismatched types for `=`
-| note in file FileId(1) for 1046..1047: this is of type `int`
-| note in file FileId(1) for 1039..1043: this is of type `string(6)`
-| error in file FileId(1) for 1044..1045: `string(6)` cannot be compared to `int`
+error in file FileId(1) at 1036..1037: mismatched types for `=`
+| note in file FileId(1) for 1038..1039: this is of type `nat`
+| note in file FileId(1) for 1031..1035: this is of type `char(6)`
+| error in file FileId(1) for 1036..1037: `char(6)` cannot be compared to `nat`
 | info: operands must both be the same type
-error in file FileId(1) at 1067..1068: mismatched types for `=`
-| note in file FileId(1) for 1069..1070: this is of type `nat`
-| note in file FileId(1) for 1062..1066: this is of type `string(6)`
-| error in file FileId(1) for 1067..1068: `string(6)` cannot be compared to `nat`
+error in file FileId(1) at 1059..1060: mismatched types for `=`
+| note in file FileId(1) for 1061..1062: this is of type `boolean`
+| note in file FileId(1) for 1054..1058: this is of type `char(6)`
+| error in file FileId(1) for 1059..1060: `char(6)` cannot be compared to `boolean`
 | info: operands must both be the same type
-error in file FileId(1) at 1090..1091: mismatched types for `=`
-| note in file FileId(1) for 1092..1093: this is of type `boolean`
-| note in file FileId(1) for 1085..1089: this is of type `string(6)`
-| error in file FileId(1) for 1090..1091: `string(6)` cannot be compared to `boolean`
+error in file FileId(1) at 1080..1081: mismatched types for `=`
+| note in file FileId(1) for 1082..1083: this is of type `real`
+| note in file FileId(1) for 1078..1079: this is of type `string`
+| error in file FileId(1) for 1080..1081: `string` cannot be compared to `real`
+| info: operands must both be the same type
+error in file FileId(1) at 1100..1101: mismatched types for `=`
+| note in file FileId(1) for 1102..1103: this is of type `int`
+| note in file FileId(1) for 1098..1099: this is of type `string`
+| error in file FileId(1) for 1100..1101: `string` cannot be compared to `int`
+| info: operands must both be the same type
+error in file FileId(1) at 1120..1121: mismatched types for `=`
+| note in file FileId(1) for 1122..1123: this is of type `nat`
+| note in file FileId(1) for 1118..1119: this is of type `string`
+| error in file FileId(1) for 1120..1121: `string` cannot be compared to `nat`
+| info: operands must both be the same type
+error in file FileId(1) at 1140..1141: mismatched types for `=`
+| note in file FileId(1) for 1142..1143: this is of type `boolean`
+| note in file FileId(1) for 1138..1139: this is of type `string`
+| error in file FileId(1) for 1140..1141: `string` cannot be compared to `boolean`
+| info: operands must both be the same type
+error in file FileId(1) at 1164..1165: mismatched types for `=`
+| note in file FileId(1) for 1166..1167: this is of type `real`
+| note in file FileId(1) for 1159..1163: this is of type `string(6)`
+| error in file FileId(1) for 1164..1165: `string(6)` cannot be compared to `real`
+| info: operands must both be the same type
+error in file FileId(1) at 1187..1188: mismatched types for `=`
+| note in file FileId(1) for 1189..1190: this is of type `int`
+| note in file FileId(1) for 1182..1186: this is of type `string(6)`
+| error in file FileId(1) for 1187..1188: `string(6)` cannot be compared to `int`
+| info: operands must both be the same type
+error in file FileId(1) at 1210..1211: mismatched types for `=`
+| note in file FileId(1) for 1212..1213: this is of type `nat`
+| note in file FileId(1) for 1205..1209: this is of type `string(6)`
+| error in file FileId(1) for 1210..1211: `string(6)` cannot be compared to `nat`
+| info: operands must both be the same type
+error in file FileId(1) at 1233..1234: mismatched types for `=`
+| note in file FileId(1) for 1235..1236: this is of type `boolean`
+| note in file FileId(1) for 1228..1232: this is of type `string(6)`
+| error in file FileId(1) for 1233..1234: `string(6)` cannot be compared to `boolean`
+| info: operands must both be the same type
+error in file FileId(1) at 1280..1281: mismatched types for `=`
+| note in file FileId(1) for 1282..1285: this is of type `set s2 (of boolean)`
+| note in file FileId(1) for 1276..1279: this is of type `set s1 (of boolean)`
+| error in file FileId(1) for 1280..1281: `set s1 (of boolean)` cannot be compared to `set s2 (of boolean)`
+| info: operands must both be the same type
+error in file FileId(1) at 1328..1329: mismatched types for `=`
+| note in file FileId(1) for 1330..1333: this is of type `set s1 (of boolean)`
+| note in file FileId(1) for 1324..1327: this is of type `set <anonymous> (of boolean)`
+| error in file FileId(1) for 1328..1329: `set <anonymous> (of boolean)` cannot be compared to `set s1 (of boolean)`
+| info: operands must both be the same type
+error in file FileId(1) at 1352..1353: mismatched types for `=`
+| note in file FileId(1) for 1354..1357: this is of type `set <anonymous> (of boolean)`
+| note in file FileId(1) for 1348..1351: this is of type `set s1 (of boolean)`
+| error in file FileId(1) for 1352..1353: `set s1 (of boolean)` cannot be compared to `set <anonymous> (of boolean)`
 | info: operands must both be the same type

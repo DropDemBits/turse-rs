@@ -48,6 +48,8 @@ pub enum TypeKind {
     Primitive(Primitive),
     /// Alias Type
     Alias(Alias),
+    /// Set type
+    Set(Set),
     /// Subprogram Type
     Subprogram(Subprogram),
     /// Void Type, returned from `procedures` and `processes`
@@ -86,6 +88,14 @@ pub enum SeqLength {
 // FIXME: Use the proper representation of an item path
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Alias(pub symbol::LocalDefId);
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Set {
+    /// Definition uniquely identifying this type
+    pub def_id: symbol::LocalDefId,
+    /// Type of the set's elements
+    pub elem_ty: TypeId,
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Subprogram {

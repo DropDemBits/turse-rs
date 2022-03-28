@@ -138,6 +138,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ReturnStmt(stmt) => stmt::validate_return_stmt(stmt, ctx),
             ast::ResultStmt(stmt) => stmt::validate_result_stmt(stmt, ctx),
             // Types
+            ast::SetType(ty) => ty::validate_set_type(ty, ctx),
             ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
             _ => (),
         })

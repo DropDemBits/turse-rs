@@ -208,6 +208,10 @@ pub(crate) fn evaluate_const(
                 // It's okay to treat it as not const-evaluable
                 return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
             }
+            _ => {
+                // The rest of the exprs aren't ever evaluable at compile time
+                return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+            }
         }
     }
 

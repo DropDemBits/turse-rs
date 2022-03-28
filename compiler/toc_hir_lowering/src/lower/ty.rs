@@ -27,7 +27,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Type::RangeType(_) => self.unsupported_ty(span),
             ast::Type::EnumType(_) => self.unsupported_ty(span),
             ast::Type::ArrayType(_) => self.unsupported_ty(span),
-            ast::Type::SetType(_) => self.unsupported_ty(span),
+
+            ast::Type::SetType(ty) => self.lower_set_type(ty),
+
             ast::Type::RecordType(_) => self.unsupported_ty(span),
             ast::Type::UnionType(_) => self.unsupported_ty(span),
             ast::Type::PointerType(_) => self.unsupported_ty(span),
@@ -103,6 +105,7 @@ impl super::BodyLowering<'_, '_> {
                 Some(ty::TypeKind::Alias(ty::Alias(def_id)))
             }
             ast::Expr::FieldExpr(_expr) => {
+                // FIXME: Support type paths
                 // (type) path, which is not supported yet
                 self.ctx
                     .messages
@@ -117,6 +120,20 @@ impl super::BodyLowering<'_, '_> {
                 None
             }
         }
+    }
+
+    fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
+        let span = self.ctx.intern_range(ty.syntax().text_range());
+        let elem = self.lower_required_type(ty.elem_ty());
+        let def_id = self
+            .ctx
+            .library
+            .add_def("<anonymous>", span, symbol::SymbolKind::Declared);
+
+        Some(ty::TypeKind::Set(ty::Set {
+            def_id,
+            elem_ty: elem,
+        }))
     }
 
     fn lower_proc_type(&mut self, ty: ast::ProcType) -> Option<ty::TypeKind> {

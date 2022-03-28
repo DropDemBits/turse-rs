@@ -533,6 +533,26 @@ test_for_each_op! { comparison_op_charseqs,
     "#,
 }
 
+test_for_each_op! { comparison_op_sets,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    type s : set of boolean
+    var a, b : s
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := a {0} b
+    _v_res := b {0} a
+    "#,
+}
+
 test_for_each_op! { comparison_op_wrong_types,
     [
         ("<", less),
@@ -555,6 +575,13 @@ test_for_each_op! { comparison_op_wrong_types,
     var c_sz : char(6)
     var s : string
     var s_sz : string(6)
+
+    % Different sets
+    type s1 : set of boolean
+    type s2 : set of boolean
+    var as1 : s1
+    var bs2 : s2
+    var aas : set of boolean
 
     % should all produce boolean anyway
     var _v_res : boolean
@@ -604,6 +631,12 @@ test_for_each_op! { comparison_op_wrong_types,
     _v_res := s_sz {0} i
     _v_res := s_sz {0} n
     _v_res := s_sz {0} b
+
+    % Incompatible sets
+    _v_res := as1 {0} bs2
+    _v_res := bs1 {0} as2
+    _v_res := aas {0} as1
+    _v_res := as1 {0} aas
     "#
 }
 
@@ -619,6 +652,82 @@ test_for_each_op! { equality_op_scalars,
     var _v_res : boolean
 
     _v_res := b {0} b
+    "#
+}
+
+test_for_each_op! { set_ops,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+    ] => r#"
+    type s : set of boolean
+    var a, b : s
+
+    % should all produce the same set
+    var _v_res : s
+
+    _v_res := a {0} b
+    _v_res := b {0} a
+    "#
+}
+
+test_for_each_op! { set_ops_wrong_types,
+    [
+        ("+", add),
+        ("-", sub),
+        ("*", mul),
+    ] => r#"
+    type s1 : set of boolean
+    type s2 : set of boolean
+    var a : s1
+    var b : s2
+    var i : int
+
+    % should all produce the left set
+    var _v_res : s1
+
+    _v_res := a {0} b
+
+    % error types
+    _v_res := a {0} i
+    _v_res := i {0} a
+    "#
+}
+
+test_for_each_op! { set_member_op,
+    [
+        ("in", r#in),
+        ("~in", not_in),
+    ] => r#"
+    type s : set of boolean
+    var a : s
+    var b : boolean
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := b {0} a
+    _v_res := true {0} a
+    % FIXME: add tests for range types
+    "#
+}
+
+test_for_each_op! { set_member_op_wrong_types,
+    [
+        ("in", r#in),
+        ("~in", not_in),
+    ] => r#"
+    type ts : set of boolean
+    var s : ts
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    % not a set
+    _v_res := true {0} true
+    % incompatible element types
+    _v_res := 1 {0} s
     "#
 }
 
@@ -696,8 +805,9 @@ test_named_group! { do_type_coercion,
         case i1 of
         label k:
         end case
-        "#
+        "#,
         */
+        // FIXME: add coercion tests for range element types and set member ops
     ]
 }
 
@@ -1196,6 +1306,33 @@ test_named_group! { equivalence_of,
         % alias with same base type
         for : ia0 .. ia1 end for
         for : ia1 .. ia0 end for
+        "#,
+        // Over set types
+        sets => r#"
+        type sb : set of boolean
+        type sc : set of char
+        type sc2 : set of char
+
+        var v_sb : sb
+        var v_sc : sc
+        var v_sc2 : sc2
+        var v_anon : set of char
+
+        % compat
+        v_sb := v_sb
+        v_sc := v_sc
+        v_sc2 := v_sc2
+
+        % incompatible - different elem types
+        v_sc := v_sb
+        % incompatible - different def locations
+        v_sc := v_sc2
+        v_sc := v_anon
+
+        % compatible through aliases
+        type asc : sc
+        var v_asc : asc
+        v_sc := v_asc
         "#,
         // Over subprogram types
         subprogram_formals => r#"
@@ -1817,6 +1954,11 @@ test_named_group! { typeck_subprog_call,
         boop(1, 2, 3, 4)
         boop(1, 2, 3, 4, 5)
         ",
+        args_err_missing => "
+        procedure boop(a : int) end boop
+        % shouldn't die, not reporting an error is fine
+        boop(())
+        ",
 
         // Coercion interactions
         coerce_value_arg => "
@@ -1855,6 +1997,96 @@ test_named_group! { typeck_subprog_call,
         var c : char
         p(c)
         ",
+
+        // Invalid argument kinds
+        wrong_arg_range_err => "
+        procedure k(var j : int) end p
+        k(1 .. * - 2)
+        ",
+        wrong_arg_all_err => "
+        procedure k(var j : int) end p
+        k(all)
+        ",
+    ]
+}
+
+test_named_group! { typeck_set_cons_call,
+    [
+        normal => "
+        type s : set of boolean
+        var _ := s(true, false, true, false)
+        ",
+        empty_set => "
+        type s : set of boolean
+        var _ := s()
+        ",
+        all => "
+        type s : set of boolean
+        var _ := s(all)
+        ",
+        err_just_itself => "
+        type s : set of boolean
+        var _ := s
+        s
+        ",
+        err_as_stmt => "
+        type s : set of boolean
+        s()
+        ",
+
+        all_err_extra_args_before => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(b, b, b, b, all)
+        ",
+        all_err_extra_args_after => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(all, b, b, b, b)
+        ",
+        all_err_extra_args_between => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(b, b, all, b, b)
+        ",
+        // For now, range exprs aren't supported
+        all_err_extra_args_range => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(1 .. 2, all, 3 .. 4)
+        ",
+        // end-relative ranges will never be supported
+        all_err_extra_arg_end_range => "
+        type s : set of boolean
+        var _ := s(*, all, b .. * - b)
+        ",
+        all_err_wrong_ty => "
+        type s : set of boolean
+        var _ := s(all, 1)
+        ",
+        all_err_wrong_binding => "
+        type s : set of boolean
+        type b : boolean
+        var _ := s(all, b)
+        ",
+
+        args_err_wrong_ty => "
+        type s : set of boolean
+        var _ := s(1, 2, 3)
+        ",
+        args_err_wrong_binding => "
+        type s : set of boolean
+        type b : boolean
+        var _ := s(b)
+        ",
+        // can't construct from a `set` variable
+        args_err_not_from_ty => "
+        type s : set of boolean
+        var k : s
+        k := k()
+        "
+
+        // FIXME: Test set cons with range types once those are lowered
     ]
 }
 
@@ -1901,6 +2133,26 @@ test_named_group! { typeck_stringn_ty,
 
         wrong_type_size => "type _ : string(1.0)",
         wrong_value_size => "type k : int type _ : string(k)",
+    ]
+}
+
+test_named_group! { typeck_set_ty,
+    [
+        from_type_alias => "type s : set of boolean var _ : s",
+        from_var_decl => "var _ : set of boolean",
+        valid_index_ty => "
+        % FIXME: Add corresponding test for range types
+        type r : char
+        type _a : set of r
+        type _b : set of boolean
+        type _c : set of char
+        ",
+        not_index_ty => "type _ : set of real",
+        large_range_integer => "
+        type bogos : int
+        type _si : set of bogos
+        type _sn : set of nat
+        ",
     ]
 }
 

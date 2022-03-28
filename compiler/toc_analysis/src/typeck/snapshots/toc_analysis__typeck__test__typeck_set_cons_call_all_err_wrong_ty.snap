@@ -1,0 +1,18 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type s : set of boolean\nvar _ := s(all, 1)\n"
+
+---
+"<anonymous>"@(FileId(1), 9..23) [Declared]: <error>
+"s"@(FileId(1), 5..6) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"_"@(FileId(1), 28..29) [Declared]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 33..34: constructor call has extra arguments
+| error in file FileId(1) for 33..34: call has extra arguments
+| note in file FileId(1) for 35..38: this `all` also covers the rest of the arguments
+error in file FileId(1) at 40..41: mismatched types
+| note in file FileId(1) for 40..41: this is of type `{integer}`
+| note in file FileId(1) for 40..41: parameter expects type `boolean`
+| info: `{integer}` is not assignable into `boolean`

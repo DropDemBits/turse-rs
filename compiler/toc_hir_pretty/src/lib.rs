@@ -448,6 +448,22 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.expr_span(id);
         self.emit_node("Unary", span, Some(format_args!("{:?}", expr.op.item())))
     }
+    fn visit_all_expr(&self, id: BodyExpr) {
+        let span = self.expr_span(id);
+        self.emit_node("All", span, None)
+    }
+    fn visit_range_expr(&self, id: BodyExpr, expr: &expr::Range) {
+        let span = self.expr_span(id);
+        let extra = {
+            let mut extra = String::new();
+            write!(extra, "{start:?}", start = expr.start).unwrap();
+            if let Some(end) = expr.end {
+                write!(extra, " .. {end:?}").unwrap();
+            }
+            extra
+        };
+        self.emit_node("Range", span, Some(format_args!("{extra}")))
+    }
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
         let span = self.expr_span(id);
         match expr {
@@ -481,6 +497,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let def_id = &ty.0;
         let extra = self.display_extra_def(*def_id);
         self.emit_node("Alias", span, Some(format_args!("{extra}")))
+    }
+    fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
+        let span = self.type_span(id);
+        let extra = self.display_extra_def(ty.def_id);
+        self.emit_node("Set", span, Some(format_args!("{extra}")));
     }
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {
         let span = self.type_span(id);

@@ -24,6 +24,10 @@ pub enum ExprKind {
     //SizeOf(SizeOf),
     Binary(Binary),
     Unary(Unary),
+    /// `all` expression
+    All,
+    /// Range expression
+    Range(Range),
     /// `self` is a special case of a name expression
     Name(Name),
     /// Field lookup
@@ -176,10 +180,22 @@ pub struct Call {
     pub arguments: ArgList,
 }
 
-// Argument list
-pub type ArgList = Vec<Arg>;
+/// Argument list
+pub type ArgList = Vec<ExprId>;
 
+/// Range expression
 #[derive(Debug, PartialEq, Eq)]
-pub enum Arg {
-    Expr(ExprId),
+pub struct Range {
+    pub start: RangeBound,
+    pub end: Option<RangeBound>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RangeBound {
+    /// Bound is relative to the start point (`expr`)
+    FromStart(ExprId),
+    /// Bound is relative to end point (`* - expr`)
+    FromEnd(ExprId),
+    /// Bound is at the end point (`*`)
+    AtEnd(SpanId),
 }

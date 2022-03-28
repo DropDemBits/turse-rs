@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : set of "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..16): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..15): []
+        StmtItem@(FileId(1), 0..15): ItemId(0)
+          Type@(FileId(1), 0..15): "_"@(FileId(1), 5..6)
+            Set@(FileId(1), 9..15): "<anonymous>"@(FileId(1), 9..15)
+error in file FileId(1) at 13..15: unexpected end of file
+| error in file FileId(1) for 13..15: expected type specifier after here
+

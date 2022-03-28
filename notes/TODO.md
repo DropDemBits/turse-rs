@@ -37,7 +37,7 @@
     - [~] CallStmt
       - [x] On subprograms
       - [ ] On arrays
-      - [ ] On set constructor
+      - [x] On set constructor
       - [ ] On pointer types
     - [x] ReturnStmt
     - [x] ResultStmt
@@ -82,7 +82,7 @@
     - [~] CallExpr
       - [x] On subprograms
       - [ ] On arrays
-      - [ ] On set constructor
+      - [x] On set constructor
       - [ ] On pointer types
   - [ ] Type
     - [x] PrimType
@@ -90,7 +90,7 @@
     - [ ] RangeType
     - [ ] EnumType
     - [ ] ArrayType
-    - [ ] SetType
+    - [x] SetType
     - [ ] RecordType
     - [ ] UnionType
     - [ ] PointerType
@@ -141,7 +141,7 @@
     - [~] Call
       - [x] On subprograms
       - [ ] On arrays
-      - [ ] On set constructor
+      - [x] On set constructor
       - [ ] On pointer types
     - [x] Return
     - [x] Result
@@ -173,9 +173,9 @@
         - [x] Lexicographic (over charseqs)
         - [ ] Class hierarchy
         - [ ] Enums
-        - [ ] Sets (sub/superset tests)
+        - [x] Sets (sub/superset tests)
       - [x] String concatenation
-      - [ ] Set manipulation
+      - [x] Set manipulation
     - [x] Unary
     - [x] Name
     - [ ] Self
@@ -189,7 +189,7 @@
     - [~] Call
       - [x] On subprograms
       - [ ] On arrays
-      - [ ] On set constructor
+      - [x] On set constructor
       - [ ] On pointer types
   - [ ] Type
     - [x] Prim (SeqLength)
@@ -199,7 +199,7 @@
     - [ ] Range
     - [ ] Enum
     - [ ] Array
-    - [ ] Set
+    - [x] Set
     - [ ] Record
     - [ ] Union
     - [ ] Pointer

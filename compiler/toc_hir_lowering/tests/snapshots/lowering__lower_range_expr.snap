@@ -1,6 +1,6 @@
 ---
 source: compiler/toc_hir_lowering/tests/lowering.rs
-assertion_line: 59
+assertion_line: 61
 expression: "proc call end call var _ := call(*)"
 
 ---
@@ -17,6 +17,5 @@ Library@(dummy)
             ExprBody@(FileId(1), 28..35)
               CallExpr@(FileId(1), 28..35): [...]
                 Name@(FileId(1), 28..32): "call"@(FileId(1), 5..9)
-error in file FileId(1) at 33..34: unsupported expression
-| error in file FileId(1) for 33..34: this expression is not supported yet
+                Range@(FileId(1), 33..34): AtEnd(SpanId(9))
 
