@@ -1082,8 +1082,8 @@ impl TypeCheck<'_> {
             // Pointer casts are chained as part of exprs, and aren't directly in stmt position
             // FIXME: Refer to {thing} instead of "thing"
             self.state().reporter.error(
-                format!("cannot use expression as a statement"),
-                format!("this is not a function or procedure"),
+                "cannot use expression as a statement",
+                "this is not a function or procedure",
                 lhs_span,
             );
         }

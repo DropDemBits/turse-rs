@@ -1064,7 +1064,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                 _ => mk_type_error(),
             }
         }
-        // Set membership tests (set(a), a => boolean)
+        // Set membership tests (a, set(a) => boolean)
         expr::BinaryOp::In | expr::BinaryOp::NotIn => {
             // `right` must be a set
             let elem_ty = if let TypeKind::Set(_, elem_ty) = right.kind() {
