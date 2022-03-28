@@ -2024,6 +2024,10 @@ test_named_group! { typeck_set_cons_call,
         var _ := s
         s
         ",
+        err_as_stmt => "
+        type s : set of boolean
+        s()
+        ",
 
         all_err_extra_args_before => "
         type s : set of boolean

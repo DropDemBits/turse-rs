@@ -1077,9 +1077,20 @@ impl TypeCheck<'_> {
             return;
         };
 
+        if !matches!(call_kind, CallKind::SubprogramCall) && !require_value {
+            // In statement position, which only accepts subprogram calls
+            // Pointer casts are chained as part of exprs, and aren't directly in stmt position
+            // FIXME: Refer to {thing} instead of "thing"
+            self.state().reporter.error(
+                format!("cannot use expression as a statement"),
+                format!("this is not a function or procedure"),
+                lhs_span,
+            );
+        }
+
         match call_kind {
             CallKind::SetCons(elem_ty) => {
-                self.typeck_call_set_cons(lhs_span, arg_list, body, elem_ty)
+                self.typeck_call_set_cons(lhs_span, arg_list, body, elem_ty);
             }
             CallKind::SubprogramCall => self.typeck_call_subprogram(
                 lhs_tyref,
