@@ -1179,7 +1179,7 @@ impl TypeCheck<'_> {
             let arg_ty = self.db.type_of(arg_expr.into());
             let arg_value = self.db.value_produced(arg_expr.into());
             let arg_span = self.library.body(body).expr(*arg).span;
-            let arg_span = self.library.lookup_span(arg_span); // TODO: missing expr tests
+            let arg_span = self.library.lookup_span(arg_span);
 
             // Check that it isn't `all` or a range type
             match &self.library.body(body).expr(*arg).kind {

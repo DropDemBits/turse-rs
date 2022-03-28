@@ -1949,6 +1949,11 @@ test_named_group! { typeck_subprog_call,
         boop(1, 2, 3, 4)
         boop(1, 2, 3, 4, 5)
         ",
+        args_err_missing => "
+        procedure boop(a : int) end boop
+        % shouldn't die, not reporting an error is fine
+        boop(())
+        ",
 
         // Coercion interactions
         coerce_value_arg => "

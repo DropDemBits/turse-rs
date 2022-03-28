@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "procedure boop(a : int) end boop\nboop(())\n"
+
+---
+"boop"@(FileId(1), 10..14) [Declared]: procedure ( pass(value) int, ) -> void
+"<unnamed>"@(dummy) [Declared]: <error>
+"a"@(FileId(1), 15..16) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+
