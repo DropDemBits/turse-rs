@@ -1987,6 +1987,16 @@ test_named_group! { typeck_subprog_call,
         var c : char
         p(c)
         ",
+
+        // Invalid argument kinds
+        wrong_arg_range_err => "
+        procedure k(var j : int) end p
+        k(1 .. * - 2)
+        ",
+        wrong_arg_all_err => "
+        procedure k(var j : int) end p
+        k(all)
+        ",
     ]
 }
 

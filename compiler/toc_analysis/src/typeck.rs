@@ -1181,6 +1181,27 @@ impl TypeCheck<'_> {
             let arg_span = self.library.body(body).expr(*arg).span;
             let arg_span = self.library.lookup_span(arg_span); // TODO: missing expr tests
 
+            // Check that it isn't `all` or a range type
+            match &self.library.body(body).expr(*arg).kind {
+                expr::ExprKind::All => {
+                    self.state().reporter.error(
+                        "cannot use `all` here",
+                        "`all` can't be used in subprogram calls",
+                        arg_span,
+                    );
+                    continue;
+                }
+                expr::ExprKind::Range(_) => {
+                    self.state().reporter.error(
+                        "cannot use range expression here",
+                        "range expressions can't be used in subprogram calls",
+                        arg_span,
+                    );
+                    continue;
+                }
+                _ => {}
+            }
+
             let (matches_pass_by, mutability) = match param.pass_by {
                 ty::PassBy::Value => {
                     // Accept any expressions
