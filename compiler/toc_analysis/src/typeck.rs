@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod test;
 
-use std::{cell::RefCell, fmt};
+use std::cell::RefCell;
 
 use toc_hir::{
     body,
@@ -1335,7 +1335,7 @@ impl TypeCheck<'_> {
 
             if !matches_pass_by {
                 self.report_mismatched_binding(
-                    ExpectedBinding::Kind(BindingTo::Storage(mutability)),
+                    BindingTo::Storage(mutability),
                     arg_expr.into(),
                     arg_span,
                     arg_span,
@@ -1462,7 +1462,7 @@ impl TypeCheck<'_> {
             let span = self.library.lookup_span(span);
 
             self.report_mismatched_binding(
-                ExpectedBinding::Kind(BindingTo::Type),
+                BindingTo::Type,
                 target.into(),
                 span,
                 span,
@@ -1616,7 +1616,7 @@ impl TypeCheck<'_> {
 
     fn report_mismatched_binding(
         &self,
-        expected: ExpectedBinding,
+        expected: BindingTo,
         binding_source: crate::db::BindingSource,
         report_at: Span,
         binding_span: Span,
@@ -1886,23 +1886,8 @@ impl TypeCheck<'_> {
 }
 
 #[derive(Clone, Copy)]
-enum ExpectedBinding {
-    Kind(BindingTo),
-    Subprogram,
-}
-
-#[derive(Clone, Copy)]
 enum ExpectedValue {
     Value,
     Ref(Mutability),
     NonRegisterRef(Mutability),
-}
-
-impl fmt::Display for ExpectedBinding {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ExpectedBinding::Kind(kind) => kind.fmt(f),
-            ExpectedBinding::Subprogram => write!(f, "a subprogram"),
-        }
-    }
 }
