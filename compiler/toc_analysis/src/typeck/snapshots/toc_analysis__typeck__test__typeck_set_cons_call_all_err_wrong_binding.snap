@@ -1,0 +1,18 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type s : set of boolean\ntype b : boolean\nvar _ := s(all, b)\n"
+
+---
+"<anonymous>"@(FileId(1), 9..23) [Declared]: <error>
+"s"@(FileId(1), 5..6) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"b"@(FileId(1), 29..30) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(2))] of boolean
+"_"@(FileId(1), 45..46) [Declared]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 50..51: constructor call has extra arguments
+| error in file FileId(1) for 50..51: call has extra arguments
+| note in file FileId(1) for 52..55: this `all` also covers the rest of the arguments
+error in file FileId(1) at 57..58: cannot use `b` as an expression
+| error in file FileId(1) for 57..58: `b` is a reference to a type, not a variable
+| note in file FileId(1) for 29..30: `b` declared here

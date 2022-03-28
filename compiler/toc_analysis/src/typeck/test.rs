@@ -2005,6 +2005,82 @@ test_named_group! { typeck_subprog_call,
     ]
 }
 
+test_named_group! { typeck_set_cons_call,
+    [
+        normal => "
+        type s : set of boolean
+        var _ := s(true, false, true, false)
+        ",
+        empty_set => "
+        type s : set of boolean
+        var _ := s()
+        ",
+        all => "
+        type s : set of boolean
+        var _ := s(all)
+        ",
+        err_just_itself => "
+        type s : set of boolean
+        var _ := s
+        s
+        ",
+
+        all_err_extra_args_before => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(b, b, b, b, all)
+        ",
+        all_err_extra_args_after => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(all, b, b, b, b)
+        ",
+        all_err_extra_args_between => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(b, b, all, b, b)
+        ",
+        // For now, range exprs aren't supported
+        all_err_extra_args_range => "
+        type s : set of boolean
+        var b : boolean
+        var _ := s(1 .. 2, all, 3 .. 4)
+        ",
+        // end-relative ranges will never be supported
+        all_err_extra_arg_end_range => "
+        type s : set of boolean
+        var _ := s(*, all, b .. * - b)
+        ",
+        all_err_wrong_ty => "
+        type s : set of boolean
+        var _ := s(all, 1)
+        ",
+        all_err_wrong_binding => "
+        type s : set of boolean
+        type b : boolean
+        var _ := s(all, b)
+        ",
+
+        args_err_wrong_ty => "
+        type s : set of boolean
+        var _ := s(1, 2, 3)
+        ",
+        args_err_wrong_binding => "
+        type s : set of boolean
+        type b : boolean
+        var _ := s(b)
+        ",
+        // can't construct from a `set` variable
+        args_err_not_from_ty => "
+        type s : set of boolean
+        var k : s
+        k := k()
+        "
+
+        // FIXME: Test set cons with range types once those are lowered
+    ]
+}
+
 test_named_group! { typeck_return_stmt,
     [
         in_top_level => "return",

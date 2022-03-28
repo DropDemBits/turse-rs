@@ -168,6 +168,8 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_unary(id.0, expr);
     }
 
+    // FIXME: typecheck end-relative range exprs
+
     fn visit_field(&self, id: BodyExpr, expr: &expr::Field) {
         self.typeck_field_expr(id, expr)
     }
@@ -983,36 +985,20 @@ impl TypeCheck<'_> {
         let lhs_span = self.library.body(body).expr(lhs).span;
         let lhs_span = self.library.lookup_span(lhs_span);
 
-        let value_kind = db.value_produced(lhs_expr.into());
-
-        // Lhs Callable?
-        // - Is ref?
-        // - Is subprog ty?
-
-        // Constrain lhs to expressions (allowing direct values & value references)
-        if !value_kind.map(ValueKind::is_value).or_missing() {
-            self.report_mismatched_binding(
-                ExpectedBinding::Subprogram,
-                lhs_expr.into(),
-                lhs_span,
-                lhs_span,
-                |thing| format!("cannot call or subscript {thing}"),
-                None,
-            );
-
-            return;
-        }
-
         // Fetch type of lhs
         // Always try to do it by `DefId` first, so that we can properly support paren-less functions
         // We still need to defer to expression type lookup, since things like `expr::Deref` can produce
         // references to subprograms.
-        let lhs_ty = if let Some(def_id) = db.binding_def(lhs_expr.into()) {
+        let (lhs_ty, from_ty_binding) = if let Some(def_id) = db.binding_def(lhs_expr.into()) {
             // From an item
-            db.type_of(def_id.into())
+            let is_ty_binding = db
+                .binding_to(def_id.into())
+                .map(|a| a.is_type())
+                .or_missing();
+            (db.type_of(def_id.into()), is_ty_binding)
         } else {
             // From an actual expression
-            db.type_of(lhs_expr.into())
+            (db.type_of(lhs_expr.into()), false)
         };
         let lhs_tyref = lhs_ty.in_db(db).to_base_type();
 
@@ -1021,20 +1007,29 @@ impl TypeCheck<'_> {
             return;
         }
 
+        enum CallKind {
+            SubprogramCall,
+            SetCons(ty::TypeId),
+        }
+
         // Check if lhs is callable
-        let is_callable = match lhs_tyref.kind() {
-            ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => false,
-            ty::TypeKind::Subprogram(..) => true,
-            _ => false,
+        let has_parens = arg_list.is_some();
+        let call_kind = match lhs_tyref.kind() {
+            ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => None,
+            // Parens are only potentially optional in subprograms
+            ty::TypeKind::Subprogram(..) if !from_ty_binding => Some(CallKind::SubprogramCall),
+            // All the other kinds require parens
+            ty::TypeKind::Set(_, elem_ty) if has_parens && from_ty_binding => {
+                Some(CallKind::SetCons(*elem_ty))
+            }
+            _ => None,
         };
 
-        if !is_callable {
+        let call_kind = if let Some(kind) = call_kind {
+            kind
+        } else {
             // can't call expression
             let full_lhs_tyref = lhs_ty.in_db(db);
-            let is_process = matches!(
-                lhs_tyref.kind(),
-                ty::TypeKind::Subprogram(SubprogramKind::Process, ..)
-            );
             let thing = match self.db.binding_def(lhs_expr.into()) {
                 Some(def_id) => {
                     let library = self.db.library(def_id.0);
@@ -1044,8 +1039,24 @@ impl TypeCheck<'_> {
                 }
                 None => "expression".to_string(),
             };
+            let extra_info = match lhs_tyref.kind() {
+                ty::TypeKind::Set(..) if !has_parens && from_ty_binding => {
+                    // Possibly trying to construct an empty set
+                    // FIXME: This is never encountered, since paren-less calls to sets aren't ever routed here
+                    // Would probably better to be a part of `expect_value_kind()`
+                    Some("to construct an empty set, add `()` after here")
+                }
+                ty::TypeKind::Set(..) if has_parens && !from_ty_binding => {
+                    // Trying to construct a set, but from a variable
+                    Some("sets can only be constructed from their type names")
+                }
+                ty::TypeKind::Subprogram(SubprogramKind::Process, ..) => {
+                    Some("to start a new process, use a `fork` statement")
+                }
+                _ => None,
+            };
 
-            if arg_list.is_some() {
+            if has_parens {
                 // Trying to call this expression
                 let mut state = self.state();
                 let mut builder = state
@@ -1053,13 +1064,15 @@ impl TypeCheck<'_> {
                     .error_detailed(format!("cannot call or subscript {thing}"), lhs_span)
                     .with_note(format!("this is of type `{full_lhs_tyref}`"), lhs_span)
                     .with_error(format!("`{lhs_tyref}` is not callable"), lhs_span);
-                if is_process {
-                    builder = builder.with_info("to start a new process, use a `fork` statement");
+
+                if let Some(extra_info) = extra_info {
+                    builder = builder.with_info(extra_info);
                 }
 
                 builder.finish();
             } else {
                 // Just the expression by itself
+                // FIXME: Improve error wording for callable types
                 self.state().reporter.error(
                     format!("cannot use {thing} as a statement"),
                     format!("{thing} is not a statement"),
@@ -1068,8 +1081,114 @@ impl TypeCheck<'_> {
             }
 
             return;
+        };
+
+        match call_kind {
+            CallKind::SetCons(elem_ty) => {
+                self.typeck_call_set_cons(lhs_span, arg_list, body, elem_ty)
+            }
+            CallKind::SubprogramCall => self.typeck_call_subprogram(
+                lhs_tyref,
+                lhs_expr,
+                lhs_span,
+                arg_list,
+                body,
+                require_value,
+            ),
+        }
+    }
+
+    fn typeck_call_set_cons(
+        &self,
+        lhs_span: Span,
+        arg_list: Option<&expr::ArgList>,
+        body_id: body::BodyId,
+        elem_ty: ty::TypeId,
+    ) {
+        let arg_list = if let Some(arg_list) = arg_list {
+            arg_list
+        } else {
+            // already checked to have an arg list
+            unreachable!()
+        };
+
+        let body = self.library.body(body_id);
+        let has_all = arg_list
+            .iter()
+            .enumerate()
+            .find(|(_, arg)| matches!(body.expr(**arg).kind, expr::ExprKind::All));
+
+        if let Some((idx, all_arg)) = has_all {
+            // No others args must be present
+
+            // FIXME: Change reporting spans to covering `before_all` and `after_all`
+            let (before_all, after_all) = arg_list.split_at(idx);
+            let after_all = &after_all[1..]; // don't include the `all` arg
+
+            if !before_all.is_empty() || !after_all.is_empty() {
+                let all_span = self
+                    .library
+                    .body(body_id)
+                    .expr(*all_arg)
+                    .span
+                    .lookup_in(&self.library.span_map);
+
+                self.state()
+                    .reporter
+                    .error_detailed("constructor call has extra arguments", lhs_span)
+                    .with_error("call has extra arguments", lhs_span)
+                    .with_note("this `all` also covers the rest of the arguments", all_span)
+                    .finish();
+            }
         }
 
+        // All args must be coercible into the element type
+        for arg in arg_list {
+            if !self.expect_expression((self.library_id, body_id, *arg).into()) {
+                continue;
+            }
+
+            let arg_ty = self.db.type_of((self.library_id, body_id, *arg).into());
+            let arg_span = self.library.body(body_id).expr(*arg).span;
+            let arg_span = self.library.lookup_span(arg_span);
+
+            // Check that it isn't a range expr
+            // ???: Supporting range exprs in set cons calls (not end relative)?
+            match &self.library.body(body_id).expr(*arg).kind {
+                expr::ExprKind::All => {} // valid in set constructors
+                expr::ExprKind::Range(_) => {
+                    self.state().reporter.error(
+                        "cannot use range expression here",
+                        "range expressions aren't supported in set constructors",
+                        arg_span,
+                    );
+                    continue;
+                }
+                _ => {}
+            }
+
+            if !ty::rules::is_assignable(self.db, elem_ty, arg_ty) {
+                self.report_mismatched_param_tys(
+                    elem_ty,
+                    arg_ty,
+                    arg_span,
+                    arg_span,
+                    arg_span,
+                    ty::PassBy::Value,
+                );
+            }
+        }
+    }
+
+    fn typeck_call_subprogram(
+        &self,
+        lhs_tyref: ty::TyRef<dyn HirAnalysis>,
+        lhs_expr: (LibraryId, body::BodyId, expr::ExprId),
+        lhs_span: Span,
+        arg_list: Option<&expr::ArgList>,
+        body: body::BodyId,
+        require_value: bool,
+    ) {
         // Arg list match?
         // - Arg ty?
         // - Arg binding?
@@ -1181,7 +1300,7 @@ impl TypeCheck<'_> {
             let arg_span = self.library.body(body).expr(*arg).span;
             let arg_span = self.library.lookup_span(arg_span);
 
-            // Check that it isn't `all` or a range type
+            // Check that it isn't `all` or a range expr
             match &self.library.body(body).expr(*arg).kind {
                 expr::ExprKind::All => {
                     self.state().reporter.error(

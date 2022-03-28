@@ -442,27 +442,34 @@ fn call_expr_ty(
     body_expr: expr::BodyExpr,
 ) -> TypeId {
     let left = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.lhs));
-    let subprog_ty = left.in_db(db).to_base_type();
+    let calling_ty = left.in_db(db).to_base_type();
 
-    if let TypeKind::Subprogram(
-        symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
-        _params,
-        result,
-    ) = subprog_ty.kind()
-    {
-        // Is void result? Error! (proc call in expr position)
-        let result = result.in_db(db);
+    match calling_ty.kind() {
+        TypeKind::Subprogram(
+            symbol::SubprogramKind::Procedure | symbol::SubprogramKind::Function,
+            _params,
+            result,
+        ) => {
+            // Is void result? Error! (proc call in expr position)
+            let result = result.in_db(db);
 
-        if matches!(result.kind(), TypeKind::Void) {
-            db.mk_error()
-        } else {
-            // It's okay to always infer as the result type, since that gives
-            // better diagnostics
-            result.id()
+            if matches!(result.kind(), TypeKind::Void) {
+                db.mk_error()
+            } else {
+                // It's okay to always infer as the result type, since that gives
+                // better diagnostics
+                result.id()
+            }
         }
-    } else {
-        // Not a callable subprogram
-        db.mk_error()
+        TypeKind::Set(..) => {
+            // Set constructor
+            // Just use the set's type
+            left
+        }
+        _ => {
+            // Not a callable subprogram
+            db.mk_error()
+        }
     }
 }
 
