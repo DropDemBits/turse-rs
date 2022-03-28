@@ -90,7 +90,7 @@ fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty:
     let library_id = hir_id.0;
     let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
     let def_id = DefId(library_id, ty.def_id);
-    db.mk_set(def_id, elem_ty)
+    db.mk_set(ty::WithDef::Anonymous(def_id), elem_ty)
 }
 
 fn subprogram_ty(
@@ -219,8 +219,10 @@ fn type_def_ty(
             match base_ty.kind() {
                 // Forward base types get propagated as errors
                 ty::TypeKind::Forward => db.mk_error(),
-                // Associate sets with the def of the alias (equivalent behaviour)
-                ty::TypeKind::Set(_, elem_ty) => db.mk_set(def_id, *elem_ty),
+                // Associate anonymous sets with the def of the alias (equivalent behaviour)
+                ty::TypeKind::Set(ty::WithDef::Anonymous(_), elem_ty) => {
+                    db.mk_set(ty::WithDef::Named(def_id), *elem_ty)
+                }
                 _ => db.mk_alias(def_id, base_ty.id()),
             }
         }

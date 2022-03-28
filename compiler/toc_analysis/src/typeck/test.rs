@@ -1328,6 +1328,11 @@ test_named_group! { equivalence_of,
         % incompatible - different def locations
         v_sc := v_sc2
         v_sc := v_anon
+
+        % compatible through aliases
+        type asc : sc
+        var v_asc : asc
+        v_sc := v_asc
         "#,
         // Over subprogram types
         subprogram_formals => r#"

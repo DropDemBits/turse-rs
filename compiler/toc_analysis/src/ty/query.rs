@@ -16,6 +16,7 @@ use toc_hir::{
 };
 
 use crate::db::{self, BindingSource, TypeDatabase};
+use crate::ty::WithDef;
 
 use super::{lower, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
 
@@ -583,10 +584,10 @@ where
         )
     }
 
-    fn mk_set(&self, def_id: DefId, elem_ty: TypeId) -> TypeId {
+    fn mk_set(&self, with_def: WithDef, elem_ty: TypeId) -> TypeId {
         self.intern_type(
             Type {
-                kind: TypeKind::Set(def_id, elem_ty),
+                kind: TypeKind::Set(with_def, elem_ty),
             }
             .into(),
         )

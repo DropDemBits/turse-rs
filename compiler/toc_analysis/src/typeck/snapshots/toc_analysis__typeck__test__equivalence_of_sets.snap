@@ -1,7 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 42
-expression: "type sb : set of boolean\ntype sc : set of char\ntype sc2 : set of char\n\nvar v_sb : sb\nvar v_sc : sc\nvar v_sc2 : sc2\nvar v_anon : set of char\n\n% compat\nv_sb := v_sb\nv_sc := v_sc\nv_sc2 := v_sc2\n\n% incompatible - different elem types\nv_sc := v_sb\n% incompatible - different def locations\nv_sc := v_sc2\nv_sc := v_anon\n"
+expression: "type sb : set of boolean\ntype sc : set of char\ntype sc2 : set of char\n\nvar v_sb : sb\nvar v_sc : sc\nvar v_sc2 : sc2\nvar v_anon : set of char\n\n% compat\nv_sb := v_sb\nv_sc := v_sc\nv_sc2 := v_sc2\n\n% incompatible - different elem types\nv_sc := v_sb\n% incompatible - different def locations\nv_sc := v_sc2\nv_sc := v_anon\n\n% compatible through aliases\ntype asc : sc\nvar v_asc : asc\nv_sc := v_asc\n"
 
 ---
 "<anonymous>"@(FileId(1), 10..24) [Declared]: <error>
@@ -15,6 +15,8 @@ expression: "type sb : set of boolean\ntype sc : set of char\ntype sc2 : set of 
 "v_sc2"@(FileId(1), 103..108) [Declared]: set[DefId(LibraryId(0), LocalDefId(5))] of char
 "<anonymous>"@(FileId(1), 128..139) [Declared]: <error>
 "v_anon"@(FileId(1), 119..125) [Declared]: set[DefId(LibraryId(0), LocalDefId(9))] of char
+"asc"@(FileId(1), 348..351) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(11))] of set[DefId(LibraryId(0), LocalDefId(3))] of char
+"v_asc"@(FileId(1), 361..366) [Declared]: alias[DefId(LibraryId(0), LocalDefId(11))] of set[DefId(LibraryId(0), LocalDefId(3))] of char
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 235..237: mismatched types

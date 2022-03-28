@@ -10,7 +10,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{NotFixedLen, PassBy, TypeId};
+use super::{NotFixedLen, PassBy, TypeId, WithDef};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -87,7 +87,11 @@ where
             out.write_fmt(format_args!("[{def_id:?}] of "))?;
             emit_debug_ty(db, out, *to)?
         }
-        TypeKind::Set(def_id, to) => {
+        TypeKind::Set(with_def, to) => {
+            let def_id = match with_def {
+                WithDef::Named(def_id) => def_id,
+                WithDef::Anonymous(def_id) => def_id,
+            };
             out.write_fmt(format_args!("[{def_id:?}] of "))?;
             emit_debug_ty(db, out, *to)?
         }
@@ -156,7 +160,11 @@ where
             emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
         }
-        TypeKind::Set(def_id, to) => {
+        TypeKind::Set(with_def, to) => {
+            let def_id = match with_def {
+                WithDef::Named(def_id) => def_id,
+                WithDef::Anonymous(def_id) => def_id,
+            };
             let library = db.library(def_id.0);
             let name = library.local_def(def_id.1).name.item();
             out.write_fmt(format_args!(" {name}"))?;

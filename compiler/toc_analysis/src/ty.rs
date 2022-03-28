@@ -72,7 +72,7 @@ pub enum TypeKind {
     /// yet.
     Forward,
     /// Set type, with associated definition point
-    Set(DefId, TypeId),
+    Set(WithDef, TypeId),
     /// Subprogram type, from (`procedure`, `function`, and `process`).
     Subprogram(symbol::SubprogramKind, Option<Vec<Param>>, TypeId),
     /// Void type, returned from (`procedure` and `process`)
@@ -159,6 +159,16 @@ pub enum NotFixedLen {
     AnySize,
     /// Error while trying to evaluate the sequence
     ConstError(ConstError),
+}
+
+// FIXME: Replace with comparison to "<anonymous>" symbol id
+/// Type with an associated definition
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WithDef {
+    /// True name of the type
+    Named(DefId),
+    /// Anonymously named type
+    Anonymous(DefId),
 }
 
 /// Parameter for a [`TypeKind::Subprogram`]
