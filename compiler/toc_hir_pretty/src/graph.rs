@@ -7,6 +7,7 @@ use std::{
 };
 
 use toc_hir::library::LibraryId;
+use toc_hir::visitor::WalkNode;
 use toc_hir::{
     body,
     expr::{self, BodyExpr},
@@ -28,7 +29,11 @@ pub fn pretty_print_graph(
 ) -> String {
     let mut output = String::new();
     writeln!(output, "digraph hir_graph {{").unwrap();
-    writeln!(output, "node [shape=Mrecord]").unwrap();
+    writeln!(
+        output,
+        "node [shape=Mrecord style=filled fillcolor=\"white\"]"
+    )
+    .unwrap();
     writeln!(
         output,
         "rankdir={rank}",
@@ -40,6 +45,7 @@ pub fn pretty_print_graph(
     for (_, library_id) in library_graph.library_roots() {
         writeln!(output, r#"subgraph "cluster_{library_id:?}" {{"#).unwrap();
         writeln!(output, r#"label="{library_id:?}""#).unwrap();
+        writeln!(output, r##"bgcolor="#009aef22""##).unwrap();
         let library = get_library(library_id);
         let mut walker = Walker::from_library(&library);
 
@@ -48,9 +54,24 @@ pub fn pretty_print_graph(
         while let Some(event) = walker.next_event() {
             match event {
                 WalkEvent::Enter(node) => {
-                    node.visit_node(&pretty);
+                    if let WalkNode::Body(body_id, _) = &node {
+                        let output = &mut *pretty.out.borrow_mut();
+                        writeln!(
+                            output,
+                            r#"subgraph "cluster_{library_id:?}:{body_id:?}" {{"#
+                        )
+                        .unwrap();
+                        writeln!(output, r#"label="{body_id:?}""#).unwrap();
+                    }
                 }
-                WalkEvent::Leave(_node) => {}
+                WalkEvent::Leave(node) => {
+                    node.visit_node(&pretty);
+
+                    if matches!(node, WalkNode::Body(..)) {
+                        let output = &mut *pretty.out.borrow_mut();
+                        writeln!(output, "}}").unwrap();
+                    }
+                }
             };
         }
         writeln!(output, "}}").unwrap();
@@ -311,13 +332,8 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_library(&self, library: &library::Library) {
-        // Deal with all of the undeclared defs
+        // Define all of the defs nodes first
         for def_id in library.local_defs() {
-            let def_info = library.local_def(def_id);
-            if !matches!(def_info.kind, toc_hir::symbol::SymbolKind::Undeclared) {
-                continue;
-            }
-
             self.emit_def_id(def_id);
         }
     }
@@ -337,7 +353,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("init_expr".into()),
             ]),
         );
-        self.emit_def_id(item.def_id);
 
         // def_id
         self.emit_edge(
@@ -369,7 +384,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("type_def".into()),
             ]),
         );
-        self.emit_def_id(item.def_id);
 
         let defined_to = match item.type_def {
             item::DefinedType::Alias(alias) => self.type_id(alias),
@@ -406,7 +420,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("bind_to".into()),
             ]),
         );
-        self.emit_def_id(item.def_id);
 
         // def_id
         self.emit_edge(
@@ -449,7 +462,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         }
 
         self.emit_item(id, "Subprogram", Layout::Vbox(v_layout));
-        self.emit_def_id(item.def_id);
 
         // def_id
         self.emit_edge(
@@ -477,7 +489,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                             Layout::Port("type".into()),
                         ]),
                     );
-                    self.emit_def_id(*name);
 
                     self.emit_edge(format!("{param_node}:def_id"), self.def_id(*name));
                     self.emit_edge(format!("{param_node}:type"), self.type_id(param.param_ty));
@@ -508,7 +519,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             let node_id = derived_id(self.item_id(id), "result_node");
 
             let span_at = if let Some(def_id) = item.result.name {
-                self.emit_def_id(def_id);
                 self.emit_edge(format!("{node_id}:name"), self.def_id(def_id));
 
                 let def_info = self.library.local_def(def_id);
@@ -553,7 +563,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("body".into()),
             ]),
         );
-        self.emit_def_id(item.def_id);
 
         // def_id
         self.emit_edge(
@@ -578,7 +587,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                     Layout::NamedPort(format!("ex_{idx}_def_id"), "def_id".into()),
                     Layout::NamedPort(format!("ex_{idx}_item_id"), "item_id".into()),
                 ]));
-                self.emit_def_id(export.def_id);
 
                 self.emit_edge(
                     format!("{export_table}:ex_{idx}_def_id"),
@@ -806,7 +814,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         if let Some(counter_def) = stmt.counter_def {
             v_layout.push(Layout::Port("counter".into()));
-            self.emit_def_id(counter_def);
             self.emit_edge(format!("{stmt_id}:counter"), self.def_id(counter_def));
         }
 
@@ -1184,7 +1191,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 Layout::Port("element".into()),
             ]),
         );
-        self.emit_def_id(ty.def_id);
 
         let type_id = self.type_id(id);
         self.emit_edge(format!("{type_id}:def_id"), self.def_id(ty.def_id));
