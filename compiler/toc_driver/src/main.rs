@@ -63,11 +63,16 @@ fn main() {
 
                 for (file, lib) in library_graph.library_roots() {
                     println!(
-                        "{:?}: {}",
-                        file,
-                        toc_hir_pretty::pretty_print_tree(&db.library(lib))
+                        "{file:?}: {tree}",
+                        tree = toc_hir_pretty::tree::pretty_print_tree(&db.library(lib))
                     );
                 }
+            }
+            config::DumpMode::HirGraph => {
+                let out = toc_hir_pretty::graph::pretty_print_graph(db.library_graph(), |lib_id| {
+                    db.library(lib_id)
+                });
+                println!("{out}");
             }
         }
     }
