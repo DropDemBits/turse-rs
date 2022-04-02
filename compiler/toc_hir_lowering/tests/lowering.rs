@@ -53,7 +53,7 @@ fn assert_lower(src: &str) -> LowerResult {
 
     let lowered = db.lower_library(root_file);
 
-    let mut s = toc_hir_pretty::pretty_print_tree(lowered.result());
+    let mut s = toc_hir_pretty::tree::pretty_print_tree(lowered.result());
     for err in lowered.messages().iter() {
         s.push_str(&format!("{err}\n"));
     }

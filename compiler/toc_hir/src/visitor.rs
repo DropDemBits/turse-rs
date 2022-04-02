@@ -43,6 +43,7 @@ pub trait HirVisitor {
     fn visit_result_stmt(&self, id: BodyStmt, stmt: &stmt::Result) {}
     // Exprs
     fn visit_expr(&self, id: BodyExpr, expr: &expr::Expr) {}
+    fn visit_missing_expr(&self, id: BodyExpr) {}
     fn visit_literal(&self, id: BodyExpr, expr: &expr::Literal) {}
     fn visit_binary(&self, id: BodyExpr, expr: &expr::Binary) {}
     fn visit_unary(&self, id: BodyExpr, expr: &expr::Unary) {}
@@ -53,6 +54,7 @@ pub trait HirVisitor {
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {}
     // Types
     fn visit_type(&self, id: ty::TypeId, ty: &ty::Type) {}
+    fn visit_missing_type(&self, id: ty::TypeId) {}
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {}
@@ -91,7 +93,7 @@ pub trait HirVisitor {
 
     fn specify_expr(&self, id: BodyExpr, expr: &expr::Expr) {
         match &expr.kind {
-            expr::ExprKind::Missing => {}
+            expr::ExprKind::Missing => self.visit_missing_expr(id),
             expr::ExprKind::Literal(expr) => self.visit_literal(id, expr),
             expr::ExprKind::Binary(expr) => self.visit_binary(id, expr),
             expr::ExprKind::Unary(expr) => self.visit_unary(id, expr),
@@ -105,7 +107,7 @@ pub trait HirVisitor {
 
     fn specify_type(&self, id: ty::TypeId, ty: &ty::Type) {
         match &ty.kind {
-            ty::TypeKind::Missing => {}
+            ty::TypeKind::Missing => self.visit_missing_type(id),
             ty::TypeKind::Primitive(ty) => self.visit_primitive(id, ty),
             ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
             ty::TypeKind::Set(ty) => self.visit_set(id, ty),
@@ -184,6 +186,16 @@ impl<'hir> Walker<'hir> {
             pending: vec![].into(),
             process: vec![WalkEvent::Enter(WalkNode::Body(body_id, lib.body(body_id)))].into(),
         }
+    }
+
+    /// Peeks at the next walking event
+    pub fn peek_event(&self) -> Option<&WalkEvent> {
+        self.process.front()
+    }
+
+    /// Skips the event without visiting all of the children nodes
+    pub fn skip_event(&mut self) {
+        self.process.pop_front();
     }
 
     /// Gets the next walking event
@@ -536,11 +548,9 @@ impl<'hir> Walker<'hir> {
             expr::RangeBound::AtEnd(_) => {}
         }
 
-        match node.end {
-            Some(expr::RangeBound::FromStart(expr) | expr::RangeBound::FromEnd(expr)) => {
-                self.enter_expr(in_body, expr)
-            }
-            _ => {}
+        if let Some(expr::RangeBound::FromStart(expr) | expr::RangeBound::FromEnd(expr)) = node.end
+        {
+            self.enter_expr(in_body, expr)
         }
     }
 

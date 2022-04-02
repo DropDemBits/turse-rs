@@ -38,6 +38,8 @@ pub enum DumpMode {
     Ast,
     /// HIR Trees, in line-based format
     Hir,
+    /// HIR Trees, as a GraphViz dot file
+    HirGraph,
 }
 
 /// Format for report output

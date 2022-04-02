@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+itertools = "0.10.3"
 toc_hir = { path = "../toc_hir" }
 toc_span = { path = "../toc_span" }
