@@ -25,23 +25,34 @@ pub(crate) struct ServerState {
 impl ServerState {
     pub(crate) fn open_file(&mut self, uri: &lsp_types::Url, version: i32, text: String) {
         // This is where we update the source graph, as well as the file sources, and the file store
-        let path = Path::new(uri.path());
+        let path = if let Ok(path) = uri.to_file_path() {
+            path
+        } else {
+            eprintln!("BUG: Encountered bad path during file open: {uri:?}");
+            return;
+        };
+
         // Track the file in the file store
-        self.files.add_file(path, text, version);
+        self.files.add_file(&path, text, version);
 
         // Push updated sources & source graph into db
-        self.update_file(path, false);
+        self.update_file(&path, false);
     }
 
     pub(crate) fn close_file(&mut self, uri: &lsp_types::Url) {
         // This is where we remove files from the source graph (if applicable / non-root) and from the file store
-        let path = Path::new(uri.path());
+        let path = if let Ok(path) = uri.to_file_path() {
+            path
+        } else {
+            eprintln!("BUG: Encountered bad path during file close: {uri:?}");
+            return;
+        };
 
         // Notify that the editor isn't using the file anymore
-        self.files.remove_file(path);
+        self.files.remove_file(&path);
 
         // Push removed sources & updated source graph
-        self.update_file(path, true);
+        self.update_file(&path, true);
     }
 
     pub(crate) fn apply_changes(
@@ -50,12 +61,17 @@ impl ServerState {
         version: i32,
         changes: Vec<lsp_types::TextDocumentContentChangeEvent>,
     ) {
-        let path = Path::new(uri.path());
+        let path = if let Ok(path) = uri.to_file_path() {
+            path
+        } else {
+            eprintln!("BUG: Encountered bad path during file change: {uri:?}");
+            return;
+        };
 
-        self.files.apply_changes(path, version, changes);
+        self.files.apply_changes(&path, version, changes);
 
         // Push updated sources & source graph into db
-        self.update_file(path, false);
+        self.update_file(&path, false);
     }
 
     fn update_file(&mut self, path: &Path, removed: bool) {
