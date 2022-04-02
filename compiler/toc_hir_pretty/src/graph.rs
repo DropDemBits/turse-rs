@@ -1,5 +1,6 @@
 //! Pretty-printing HIR trees, as a GraphViz dot file
 
+use std::collections::HashSet;
 use std::{
     cell::RefCell,
     fmt::{self, Write},
@@ -40,6 +41,7 @@ pub fn pretty_print_graph(
         rank = if IS_LR_LAYOUT { "LR" } else { "BT" }
     )
     .unwrap();
+    writeln!(output, "nodesep=0.5").unwrap();
 
     // Define the contents of the libraries
     for (_, library_id) in library_graph.library_roots() {
@@ -51,7 +53,24 @@ pub fn pretty_print_graph(
 
         let pretty = PrettyVisitor::new(&mut output, library_id, &library);
 
-        while let Some(event) = walker.next_event() {
+        let mut visited_bodies = HashSet::new();
+        let mut visited_types = HashSet::new();
+
+        while let Some(event) = walker.peek_event() {
+            // Check to see if it's a duplicate body or type
+            let skip_tree = match event {
+                WalkEvent::Enter(WalkNode::Body(body_id, _)) => !visited_bodies.insert(*body_id),
+                WalkEvent::Enter(WalkNode::Type(type_id, _)) => !visited_types.insert(*type_id),
+                _ => false,
+            };
+
+            if skip_tree {
+                walker.skip_event();
+                continue;
+            }
+
+            let event = walker.next_event().unwrap(); // already have it
+
             match event {
                 WalkEvent::Enter(node) => {
                     if let WalkNode::Body(body_id, _) = &node {
@@ -165,20 +184,15 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         let (start, end) = if IS_LR_LAYOUT { ("", "") } else { ("{", "}") };
 
         // Graph format is:
-        // $id [label="$node_name@($file_id, $span) | $layout"]
+        // $id [tooltip="$id at $span" label="$node_name | $layout"]
         write!(
             out,
-            r#"{id} [label="{start}{name}@{span} | "#,
+            r#"{id} [tooltip="{id_esc}@{span}" label="{start}{name} | "#,
+            id_esc = id.escape_debug(),
             span = self.display_span(span)
         )?;
         layout.try_emit_layout(out.deref_mut(), None)?;
-
-        if matches!(layout, Layout::Empty) {
-            // without extra separator
-            writeln!(out, r#"{end}"]"#)?;
-        } else {
-            writeln!(out, r#" | {end}"]"#)?;
-        }
+        writeln!(out, r#"{end}"]"#)?;
 
         Ok(())
     }
@@ -203,6 +217,12 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         } else {
             "(dummy)".to_string()
         }
+    }
+
+    fn display_def_id(&self, def_id: LocalDefId) -> String {
+        let name = escape_def_name(self.library.local_def(def_id).name.item());
+
+        format!("'{name}'\\n({def_id:?})")
     }
 
     fn layout_param_info(&self, info: &ty::Parameter) -> Layout {
@@ -296,15 +316,20 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
         self.emit_node(&self.type_id(id), name, self.type_span(id), layout);
     }
 
-    fn emit_def_id(&self, def_id: LocalDefId) {
+    fn emit_def_info(&self, def_id: LocalDefId) {
         let def_info = self.library.local_def(def_id);
+        let name = escape_def_name(def_info.name.item());
 
         self.emit_node(
             &self.def_id(def_id),
-            "DefInfo",
+            &format!("{def_id:?}"),
             def_info.name.span(),
             Layout::Vbox(vec![
-                Layout::Node(format!("name: '{name}'", name = def_info.name.item())),
+                Layout::Node(format!("name: '{name}'")),
+                Layout::Node(format!(
+                    "at: '{span}'",
+                    span = self.display_span(def_info.name.span())
+                )),
                 Layout::Node(format!("kind: {kind:?}", kind = def_info.kind)),
             ]),
         )
@@ -334,42 +359,43 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_library(&self, library: &library::Library) {
         // Define all of the defs nodes first
         for def_id in library.local_defs() {
-            self.emit_def_id(def_id);
+            self.emit_def_info(def_id);
         }
     }
 
     // Items //
     fn visit_constvar(&self, id: item::ItemId, item: &item::ConstVar) {
+        let name = match item.mutability {
+            Mutability::Const => "Const",
+            Mutability::Var => "Var",
+        };
+
         self.emit_item(
             id,
-            "ConstVar",
+            name,
             Layout::Vbox(vec![
-                Layout::Port("def_id".into()),
-                Layout::Hbox(vec![
-                    Layout::Node(format!("{muta:?}", muta = item.mutability)),
-                    Layout::Node(format!("register: {reg:?}", reg = item.is_register)),
-                ]),
-                Layout::Port("type_spec".into()),
-                Layout::Port("init_expr".into()),
+                Layout::Node(self.display_def_id(item.def_id)),
+                Layout::Node(if item.is_register {
+                    "Register".into()
+                } else {
+                    "Storage".into()
+                }),
+                Layout::Port("type".into()),
+                Layout::Port("expr".into()),
             ]),
         );
 
-        // def_id
-        self.emit_edge(
-            format!("{item_id}:def_id", item_id = self.item_id(id)),
-            self.def_id(item.def_id),
-        );
         // type_spec
         if let Some(type_id) = item.type_spec {
             self.emit_edge(
-                format!("{item_id}:type_spec", item_id = self.item_id(id)),
+                format!("{item_id}:type", item_id = self.item_id(id)),
                 self.type_id(type_id),
             );
         }
         // init_expr
         if let Some(body_id) = item.init_expr {
             self.emit_edge(
-                format!("{item_id}:init_expr", item_id = self.item_id(id)),
+                format!("{item_id}:expr", item_id = self.item_id(id)),
                 self.body_id(body_id),
             );
         }
@@ -380,7 +406,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             id,
             "Type",
             Layout::Vbox(vec![
-                Layout::Port("def_id".into()),
+                Layout::Node(self.display_def_id(item.def_id)),
                 Layout::Port("type_def".into()),
             ]),
         );
@@ -395,11 +421,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             }
         };
 
-        // def_id
-        self.emit_edge(
-            format!("{item_id}:def_id", item_id = self.item_id(id)),
-            self.def_id(item.def_id),
-        );
         // type
         self.emit_edge(
             format!("{item_id}:type_def", item_id = self.item_id(id)),
@@ -412,7 +433,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             id,
             "Bind",
             Layout::Vbox(vec![
-                Layout::Port("def_id".into()),
+                Layout::Node(self.display_def_id(item.def_id)),
                 Layout::Hbox(vec![
                     Layout::Node(format!("{muta:?}", muta = item.mutability)),
                     Layout::Node(format!("register: {reg:?}", reg = item.is_register)),
@@ -421,11 +442,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             ]),
         );
 
-        // def_id
-        self.emit_edge(
-            format!("{item_id}:def_id", item_id = self.item_id(id)),
-            self.def_id(item.def_id),
-        );
         // bind_to
         self.emit_edge(
             format!("{item_id}:bind_to", item_id = self.item_id(id)),
@@ -436,7 +452,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {
         let mut v_layout = vec![
             Layout::Node(format!("{kind:?}", kind = item.kind)),
-            Layout::Port("def_id".into()),
+            Layout::Node(self.display_def_id(item.def_id)),
             Layout::Port("params".into()),
             Layout::Port("result".into()),
             Layout::Port("body".into()),
@@ -463,11 +479,6 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         self.emit_item(id, "Subprogram", Layout::Vbox(v_layout));
 
-        // def_id
-        self.emit_edge(
-            format!("{item_id}:def_id", item_id = self.item_id(id)),
-            self.def_id(item.def_id),
-        );
         // params
         let params_node = {
             let node_id = derived_id(self.item_id(id), "params_list");
@@ -485,12 +496,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                         def_info.name.span(),
                         Layout::Vbox(vec![
                             self.layout_param_info(param),
-                            Layout::Port("def_id".into()),
+                            Layout::Node(self.display_def_id(*name)),
                             Layout::Port("type".into()),
                         ]),
                     );
 
-                    self.emit_edge(format!("{param_node}:def_id"), self.def_id(*name));
                     self.emit_edge(format!("{param_node}:type"), self.type_id(param.param_ty));
 
                     // Link to main list
@@ -518,23 +528,18 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let result_node = {
             let node_id = derived_id(self.item_id(id), "result_node");
 
-            let span_at = if let Some(def_id) = item.result.name {
-                self.emit_edge(format!("{node_id}:name"), self.def_id(def_id));
-
+            let (span_at, result_name) = if let Some(def_id) = item.result.name {
                 let def_info = self.library.local_def(def_id);
-                def_info.name.span()
+                (def_info.name.span(), self.display_def_id(def_id))
             } else {
-                self.library.span_map.dummy_span()
+                (self.library.span_map.dummy_span(), "".into())
             };
 
             self.emit_node(
                 &node_id,
                 "SubprogramResult",
                 span_at,
-                Layout::Vbox(vec![
-                    Layout::Port("type".into()),
-                    Layout::Port("name".into()),
-                ]),
+                Layout::Vbox(vec![Layout::Port("type".into()), Layout::Node(result_name)]),
             );
 
             self.emit_edge(format!("{node_id}:type"), self.type_id(item.result.ty));
@@ -558,16 +563,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             id,
             name,
             Layout::Vbox(vec![
-                Layout::Port("def_id".into()),
+                Layout::Node(self.display_def_id(item.def_id)),
                 Layout::Port("exports".into()),
                 Layout::Port("body".into()),
             ]),
-        );
-
-        // def_id
-        self.emit_edge(
-            format!("{item_id}:def_id", item_id = self.item_id(id)),
-            self.def_id(item.def_id),
         );
 
         // exports
@@ -584,14 +583,13 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 ];
                 h_layout.extend(export.is_opaque.then(|| Layout::Node("Opaque".into())));
                 h_layout.push(Layout::Vbox(vec![
-                    Layout::NamedPort(format!("ex_{idx}_def_id"), "def_id".into()),
+                    Layout::NamedPort(
+                        format!("ex_{idx}_def_id"),
+                        self.display_def_id(export.def_id),
+                    ),
                     Layout::NamedPort(format!("ex_{idx}_item_id"), "item_id".into()),
                 ]));
 
-                self.emit_edge(
-                    format!("{export_table}:ex_{idx}_def_id"),
-                    self.def_id(export.def_id),
-                );
                 self.emit_edge(
                     format!("{export_table}:ex_{idx}_item_id"),
                     self.item_id(export.item_id),
@@ -627,26 +625,28 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let (name, layout) = match &body.kind {
             body::BodyKind::Stmts(stmts, in_params, out_ret) => {
                 // Connect to in params
+                let mut v_layout = vec![];
                 for def_id in in_params {
-                    self.emit_edge(self.def_id(*def_id), format!("{body_id}:in_params"));
+                    v_layout.push(Layout::Node(format!(
+                        "[in] {def}",
+                        def = self.display_def_id(*def_id)
+                    )));
                 }
 
                 // Connect to out return
                 if let Some(def_id) = out_ret {
-                    self.emit_edge(self.def_id(*def_id), format!("{body_id}:out_ret"));
+                    v_layout.push(Layout::Node(format!(
+                        "[out] {def}",
+                        def = self.display_def_id(*def_id)
+                    )));
                 }
+
+                v_layout.push(Layout::Port("stmts".into()));
 
                 // Connect to root stmts
                 self.emit_linked_stmts(&body_id, "stmts", id, stmts);
 
-                (
-                    "StmtBody",
-                    Layout::Vbox(vec![
-                        Layout::Port("in_params".into()),
-                        Layout::Port("out_ret".into()),
-                        Layout::Port("stmts".into()),
-                    ]),
-                )
+                ("StmtBody", Layout::Vbox(v_layout))
             }
             body::BodyKind::Exprs(root) => {
                 self.emit_edge(format!("{body_id}:expr"), self.expr_id(BodyExpr(id, *root)));
@@ -666,7 +666,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         self.emit_stmt(
             id,
             "Assign",
-            Layout::Hbox(vec![Layout::Port("lhs".into()), Layout::Port("rhs".into())]),
+            Layout::Hbox(vec![
+                Layout::Empty,
+                Layout::Vbox(vec![Layout::Port("lhs".into()), Layout::Port("rhs".into())]),
+            ]),
         );
 
         let stmt_id = self.stmt_id(id);
@@ -813,8 +816,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
 
         if let Some(counter_def) = stmt.counter_def {
-            v_layout.push(Layout::Port("counter".into()));
-            self.emit_edge(format!("{stmt_id}:counter"), self.def_id(counter_def));
+            v_layout.push(Layout::Node(self.display_def_id(counter_def)));
         }
 
         match stmt.bounds {
@@ -827,8 +829,11 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             }
             stmt::ForBounds::Full(start, end) => {
                 v_layout.push(Layout::Hbox(vec![
-                    Layout::Port("start".into()),
-                    Layout::Port("end".into()),
+                    Layout::Node("bounds".into()),
+                    Layout::Vbox(vec![
+                        Layout::Port("start".into()),
+                        Layout::Port("end".into()),
+                    ]),
                 ]));
                 self.emit_edge(format!("{stmt_id}:end"), self.expr_id(BodyExpr(id.0, end)));
                 self.emit_edge(
@@ -913,6 +918,8 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             match &arm.selectors {
                 stmt::CaseSelector::Default => arm_layout.push(Layout::Node("Default".into())),
                 stmt::CaseSelector::Exprs(exprs) => {
+                    arm_layout.push(Layout::Node("selectors".into()));
+
                     for (idx, expr) in exprs.iter().enumerate() {
                         let sel_id = format!("{arm_id}_sel{idx}");
 
@@ -920,7 +927,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                             format!("{stmt_id}:{sel_id}"),
                             self.expr_id(BodyExpr(id.0, *expr)),
                         );
-                        arm_layout.push(Layout::NamedPort(sel_id, format!("select_{idx}")));
+                        arm_layout.push(Layout::Hbox(vec![
+                            Layout::Node(format!("{idx}:")),
+                            Layout::NamedPort(sel_id, "".into()),
+                        ]));
                     }
                 }
             }
@@ -945,7 +955,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
     fn visit_call_stmt(&self, id: BodyStmt, stmt: &stmt::Call) {
         let stmt_id = self.stmt_id(id);
-        let mut v_layout = vec![Layout::NamedPort("lhs".into(), "".into())];
+        let mut v_layout = vec![Layout::Port("lhs".into())];
 
         if let Some(arguments) = &stmt.arguments {
             v_layout.push(Layout::Node("params".into()));
@@ -1010,7 +1020,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             "Binary",
             Layout::Vbox(vec![
                 Layout::Node(format!("{op:?}", op = expr.op.item())),
-                Layout::Hbox(vec![Layout::Port("lhs".into()), Layout::Port("rhs".into())]),
+                Layout::Hbox(vec![
+                    Layout::Empty,
+                    Layout::Vbox(vec![Layout::Port("lhs".into()), Layout::Port("rhs".into())]),
+                ]),
             ]),
         );
 
@@ -1083,13 +1096,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
     fn visit_name(&self, id: BodyExpr, expr: &expr::Name) {
         let (name, layout) = match expr {
-            expr::Name::Name(def_id) => {
-                self.emit_edge(
-                    format!("{expr_id}:def_id", expr_id = self.expr_id(id)),
-                    self.def_id(*def_id),
-                );
-                ("Name", Layout::Port("def_id".into()))
-            }
+            expr::Name::Name(def_id) => ("Name", Layout::Node(self.display_def_id(*def_id))),
             expr::Name::Self_ => ("Self", Layout::Empty),
         };
 
@@ -1102,7 +1109,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             "Field",
             Layout::Vbox(vec![
                 Layout::Port("lhs".into()),
-                Layout::Node(format!("field: '{field}'", field = expr.field.item())),
+                Layout::Node(format!("'{field}'", field = expr.field.item())),
             ]),
         );
 
@@ -1115,10 +1122,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {
         let expr_id = self.expr_id(id);
-        let mut v_layout = vec![
-            Layout::NamedPort("lhs".into(), "".into()),
-            Layout::Node("params".into()),
-        ];
+        let mut v_layout = vec![Layout::Port("lhs".into()), Layout::Node("params".into())];
 
         if expr.arguments.is_empty() {
             v_layout.push(Layout::Hbox(vec![
@@ -1177,9 +1181,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
 
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
-        self.emit_type(id, "Alias", Layout::Port("def_id".into()));
-        let type_id = self.type_id(id);
-        self.emit_edge(format!("{type_id}:def_id"), self.def_id(ty.0));
+        self.emit_type(id, "Alias", Layout::Node(self.display_def_id(ty.0)));
     }
 
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
@@ -1187,13 +1189,12 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             id,
             "Set",
             Layout::Vbox(vec![
-                Layout::Port("def_id".into()),
+                Layout::Node(self.display_def_id(ty.def_id)),
                 Layout::Port("element".into()),
             ]),
         );
 
         let type_id = self.type_id(id);
-        self.emit_edge(format!("{type_id}:def_id"), self.def_id(ty.def_id));
         self.emit_edge(format!("{type_id}:element"), self.type_id(ty.elem_ty));
     }
 
@@ -1224,10 +1225,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             }
         } else {
             // No params
-            v_layout.push(Layout::Hbox(vec![
-                Layout::Node("".into()),
-                Layout::Node("".into()),
-            ]));
+            v_layout.push(Layout::Hbox(vec![Layout::Empty, Layout::Empty]));
         }
 
         v_layout.push(Layout::Port("result".into()));
@@ -1247,4 +1245,17 @@ fn derived_id(mut from_id: String, derived: &str) -> String {
     from_id.push_str(derived);
     from_id.push('"');
     from_id
+}
+
+fn escape_def_name(name: &str) -> String {
+    name.escape_debug()
+        .flat_map(|c| {
+            match c {
+                '<' => vec!['&', 'l', 't', ';'],
+                '>' => vec!['&', 'g', 't', ';'],
+                _ => vec![c],
+            }
+            .into_iter()
+        })
+        .collect::<String>()
 }

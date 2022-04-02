@@ -188,6 +188,16 @@ impl<'hir> Walker<'hir> {
         }
     }
 
+    /// Peeks at the next walking event
+    pub fn peek_event(&self) -> Option<&WalkEvent> {
+        self.process.front()
+    }
+
+    /// Skips the event without visiting all of the children nodes
+    pub fn skip_event(&mut self) {
+        self.process.pop_front();
+    }
+
     /// Gets the next walking event
     pub fn next_event(&mut self) -> Option<WalkEvent> {
         let event = self.process.pop_front()?;
