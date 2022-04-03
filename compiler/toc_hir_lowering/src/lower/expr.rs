@@ -44,10 +44,12 @@ impl super::BodyLowering<'_, '_> {
 
         let kind = match expr {
             ast::Expr::LiteralExpr(expr) => self.lower_literal_expr(expr),
+
             ast::Expr::ObjClassExpr(_) => self.unsupported_expr(span),
             ast::Expr::InitExpr(_) => self.unsupported_expr(span),
             ast::Expr::NilExpr(_) => self.unsupported_expr(span),
             ast::Expr::SizeOfExpr(_) => self.unsupported_expr(span),
+
             ast::Expr::BinaryExpr(expr) => self.lower_binary_expr(expr),
             ast::Expr::UnaryExpr(expr) => self.lower_unary_expr(expr),
             ast::Expr::ParenExpr(expr) => {
@@ -57,8 +59,8 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::NameExpr(expr) => self.lower_name_expr(expr),
             ast::Expr::SelfExpr(_) => self.unsupported_expr(span),
             ast::Expr::FieldExpr(expr) => self.lower_field_expr(expr),
+            ast::Expr::DerefExpr(expr) => self.lower_deref_expr(expr),
 
-            ast::Expr::DerefExpr(_) => self.unsupported_expr(span),
             ast::Expr::CheatExpr(_) => self.unsupported_expr(span),
             ast::Expr::NatCheatExpr(_) => self.unsupported_expr(span),
             ast::Expr::ArrowExpr(_) => self.unsupported_expr(span),
@@ -182,6 +184,13 @@ impl super::BodyLowering<'_, '_> {
             lhs,
             field: Spanned::new(field.to_string(), span),
         }))
+    }
+
+    fn lower_deref_expr(&mut self, expr: ast::DerefExpr) -> Option<expr::ExprKind> {
+        let op = self.ctx.intern_range(expr.caret_token()?.text_range());
+        let rhs = self.lower_required_expr(expr.expr());
+
+        Some(expr::ExprKind::Deref(expr::Deref { op, rhs }))
     }
 
     fn lower_call_expr(&mut self, expr: ast::CallExpr) -> Option<expr::ExprKind> {

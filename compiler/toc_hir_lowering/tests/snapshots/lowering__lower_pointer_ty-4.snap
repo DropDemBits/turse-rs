@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : unchecked pointer to int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..33): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..33): []
+        StmtItem@(FileId(1), 0..33): ItemId(0)
+          Type@(FileId(1), 0..33): "_"@(FileId(1), 5..6)
+            Pointer@(FileId(1), 9..33): Unchecked
+              Primitive@(FileId(1), 30..33): Int
+

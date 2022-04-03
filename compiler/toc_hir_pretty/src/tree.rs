@@ -482,6 +482,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             Some(format_args!("field {:?}", expr.field.item())),
         )
     }
+    fn visit_deref(&self, id: BodyExpr, _expr: &expr::Deref) {
+        let span = self.expr_span(id);
+        self.emit_node("Deref", span, None)
+    }
     fn visit_call_expr(&self, id: BodyExpr, _expr: &expr::Call) {
         let span = self.expr_span(id);
         self.emit_node("CallExpr", span, Some(format_args!("[...]")));
@@ -502,6 +506,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         let span = self.type_span(id);
         let extra = self.display_extra_def(ty.def_id);
         self.emit_node("Set", span, Some(format_args!("{extra}")));
+    }
+    fn visit_pointer(&self, id: ty::TypeId, ty: &ty::Pointer) {
+        let span = self.type_span(id);
+        self.emit_node(
+            "Pointer",
+            span,
+            Some(format_args!("{extra:?}", extra = ty.checked)),
+        );
     }
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {
         let span = self.type_span(id);

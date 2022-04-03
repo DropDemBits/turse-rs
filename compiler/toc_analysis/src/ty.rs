@@ -73,6 +73,8 @@ pub enum TypeKind {
     Forward,
     /// Set type, with associated definition point
     Set(WithDef, TypeId),
+    /// Set type, with a given checkedness
+    Pointer(Checked, TypeId),
     /// Subprogram type, from (`procedure`, `function`, and `process`).
     Subprogram(symbol::SubprogramKind, Option<Vec<Param>>, TypeId),
     /// Void type, returned from (`procedure` and `process`)
@@ -171,6 +173,15 @@ pub enum WithDef {
     Anonymous(DefId),
 }
 
+/// Pointer checkedness
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Checked {
+    /// Pointer with additional correctness data
+    Checked,
+    /// Raw pointer, no extra metadata
+    Unchecked,
+}
+
 /// Parameter for a [`TypeKind::Subprogram`]
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Param {
@@ -254,6 +265,7 @@ where
             TypeKind::Subprogram(..) => POINTER_ALIGNMENT,
             TypeKind::Void => return None,
             TypeKind::Set(..) => 2,
+            TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Forward => return None,
@@ -297,6 +309,8 @@ where
             TypeKind::Subprogram(..) => POINTER_SIZE,
             TypeKind::Void => return None,
             TypeKind::Set(_, _elem_ty) => return None, // FIXME: Compute size of sets
+            TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata
+            TypeKind::Pointer(Checked::Unchecked, _) => POINTER_SIZE, // address only
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
             TypeKind::Integer | TypeKind::Forward | TypeKind::Error => return None,

@@ -174,6 +174,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_field_expr(id, expr)
     }
 
+    fn visit_deref(&self, id: BodyExpr, expr: &expr::Deref) {
+        self.typeck_deref_expr(id, expr)
+    }
+
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {
         self.typeck_call_expr(id, expr);
     }
@@ -189,6 +193,8 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
     fn visit_set(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         self.typeck_set_ty(id, ty);
     }
+
+    // FIXME: reject collection types as unchecked pointer targets
 
     fn visit_subprogram_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
         self.typeck_subprogram_ty(id, ty);
@@ -948,6 +954,9 @@ impl TypeCheck<'_> {
     fn typeck_field_expr(&self, id: expr::BodyExpr, expr: &expr::Field) {
         let db = self.db;
 
+        // FIXME: Bail if lhs is an error type
+        // FIXME: Point `in here` span at lhs / its binding def
+
         if let Some(fields) = db.fields_of((self.library_id, id.0, expr.lhs).into()) {
             if fields.lookup(expr.field.item().as_str()).is_none() {
                 // not a field
@@ -966,6 +975,33 @@ impl TypeCheck<'_> {
                 format!("no field named `{field_name}` in here"),
                 expr.field.span().lookup_in(&self.library.span_map),
             );
+        }
+    }
+
+    fn typeck_deref_expr(&self, id: expr::BodyExpr, expr: &expr::Deref) {
+        let db = self.db;
+        let rhs_expr = id.with_expr(expr.rhs);
+
+        let ty = db.type_of((self.library_id, rhs_expr).into());
+        let base_ty_ref = ty.in_db(db).to_base_type();
+
+        if !self.expect_expression((self.library_id, rhs_expr).into()) {
+            // don't proceed to type matching
+        } else if !base_ty_ref.kind().is_pointer() && !base_ty_ref.kind().is_error() {
+            let ty_ref = ty.in_db(db);
+            let rhs_span = self
+                .library
+                .body(rhs_expr.0)
+                .expr(rhs_expr.1)
+                .span
+                .lookup_in(&self.library.span_map);
+
+            self.state()
+                .reporter
+                .error_detailed("mismatched types", rhs_span)
+                .with_note(format!("this is of type `{ty_ref}`"), rhs_span)
+                .with_error(format!("`{base_ty_ref}` is not a pointer type"), rhs_span)
+                .finish();
         }
     }
 

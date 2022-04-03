@@ -277,7 +277,7 @@ impl ScopeTracker {
         None
     }
 
-    fn boundary_scope(scopes: &mut Vec<Scope>) -> &mut Scope {
+    fn boundary_scope(scopes: &mut [Scope]) -> &mut Scope {
         for scope in scopes.iter_mut().rev() {
             if scope.kind.is_import_boundary() {
                 return scope;

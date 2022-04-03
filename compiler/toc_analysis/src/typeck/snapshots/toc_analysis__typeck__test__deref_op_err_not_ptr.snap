@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var putty : int var j := ^putty"
+
+---
+"putty"@(FileId(1), 4..9) [Declared]: int
+"j"@(FileId(1), 20..21) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 26..31: mismatched types
+| note in file FileId(1) for 26..31: this is of type `int`
+| error in file FileId(1) for 26..31: `int` is not a pointer type

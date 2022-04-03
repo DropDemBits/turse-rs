@@ -50,6 +50,8 @@ pub enum TypeKind {
     Alias(Alias),
     /// Set type
     Set(Set),
+    /// Pointer type
+    Pointer(Pointer),
     /// Subprogram Type
     Subprogram(Subprogram),
     /// Void Type, returned from `procedures` and `processes`
@@ -95,6 +97,22 @@ pub struct Set {
     pub def_id: symbol::LocalDefId,
     /// Type of the set's elements
     pub elem_ty: TypeId,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Pointer {
+    /// Checkedness of this pointer
+    pub checked: Checked,
+    /// Target type
+    pub ty: TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Checked {
+    /// Pointer with additional correctness data
+    Checked,
+    /// Raw pointer, no extra metadata
+    Unchecked,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

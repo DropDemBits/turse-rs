@@ -1120,6 +1120,16 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
     }
 
+    fn visit_deref(&self, id: BodyExpr, expr: &expr::Deref) {
+        let expr_id = self.expr_id(id);
+        self.emit_expr(id, "Deref", Layout::Port("rhs".into()));
+
+        self.emit_edge(
+            format!("{expr_id}:rhs"),
+            self.expr_id(BodyExpr(id.0, expr.rhs)),
+        );
+    }
+
     fn visit_call_expr(&self, id: BodyExpr, expr: &expr::Call) {
         let expr_id = self.expr_id(id);
         let mut v_layout = vec![Layout::Port("lhs".into()), Layout::Node("params".into())];
@@ -1196,6 +1206,20 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
         let type_id = self.type_id(id);
         self.emit_edge(format!("{type_id}:element"), self.type_id(ty.elem_ty));
+    }
+
+    fn visit_pointer(&self, id: ty::TypeId, ty: &ty::Pointer) {
+        self.emit_type(
+            id,
+            "Pointer",
+            Layout::Vbox(vec![
+                Layout::Node(format!("{checked:?}", checked = ty.checked)),
+                Layout::Port("type".into()),
+            ]),
+        );
+
+        let type_id = self.type_id(id);
+        self.emit_edge(format!("{type_id}:type"), self.type_id(ty.ty));
     }
 
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {

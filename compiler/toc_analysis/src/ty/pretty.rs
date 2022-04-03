@@ -5,6 +5,7 @@ use std::fmt;
 use toc_hir::symbol::{self, SubprogramKind};
 use toc_span::Span;
 
+use crate::ty::Checked;
 use crate::{
     db,
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
@@ -65,6 +66,8 @@ impl TypeKind {
             TypeKind::Alias(_, _) => "alias",
             TypeKind::Forward => "forward",
             TypeKind::Set(..) => "set",
+            TypeKind::Pointer(Checked::Checked, _) => "pointer to",
+            TypeKind::Pointer(Checked::Unchecked, _) => "unchecked pointer to",
             TypeKind::Subprogram(SubprogramKind::Function, _, _) => "function",
             TypeKind::Subprogram(SubprogramKind::Procedure, _, _) => "procedure",
             TypeKind::Subprogram(SubprogramKind::Process, _, _) => "process",
@@ -93,6 +96,10 @@ where
                 WithDef::Anonymous(def_id) => def_id,
             };
             out.write_fmt(format_args!("[{def_id:?}] of "))?;
+            emit_debug_ty(db, out, *to)?
+        }
+        TypeKind::Pointer(_, to) => {
+            out.write_char(' ')?;
             emit_debug_ty(db, out, *to)?
         }
         TypeKind::Subprogram(_kind, params, result) => {
@@ -143,6 +150,8 @@ where
     out.write_str(ty.kind().prefix())?;
 
     // Extra bits
+    // FIXME: Change set display into `{Alias}` (`set of int`)
+    // FIXME: Move `'s into here so that we can format like this: "`{Alias}` (alias of {type})"
     match ty.kind() {
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => {
             out.write_char('(')?;
@@ -174,6 +183,10 @@ where
                 emit_display_ty(db, out, *to, PokeAliases::Yes)?;
                 out.write_char(')')?;
             }
+        }
+        TypeKind::Pointer(_, to) => {
+            out.write_char(' ')?;
+            emit_display_ty(db, out, *to, PokeAliases::Yes)?
         }
         TypeKind::Subprogram(kind, params, result) => {
             // Format:

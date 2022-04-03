@@ -1,0 +1,17 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : unchecked pointer int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..30): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..30): []
+        StmtItem@(FileId(1), 0..30): ItemId(0)
+          Type@(FileId(1), 0..30): "_"@(FileId(1), 5..6)
+            Pointer@(FileId(1), 9..30): Unchecked
+              Primitive@(FileId(1), 27..30): Int
+error in file FileId(1) at 27..30: unexpected token
+| error in file FileId(1) for 27..30: expected `to`, but found `int`
+

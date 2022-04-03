@@ -1,0 +1,28 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "\n    % Pointers\n    var a : unchecked ^int\n    var b : ^int\n    var c : ^char\n    var d : int\n\n    % should all produce boolean\n    var _v_res : boolean\n\n    _v_res := a not= b\n    _v_res := c not= b\n    _v_res := d not= b\n    "
+
+---
+"a"@(FileId(1), 24..25) [Declared]: unchecked pointer to int
+"b"@(FileId(1), 51..52) [Declared]: pointer to int
+"c"@(FileId(1), 68..69) [Declared]: pointer to char
+"d"@(FileId(1), 86..87) [Declared]: int
+"_v_res"@(FileId(1), 136..142) [Declared]: boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 170..174: mismatched types for `not =`
+| note in file FileId(1) for 175..176: this is of type `pointer to int`
+| note in file FileId(1) for 168..169: this is of type `unchecked pointer to int`
+| error in file FileId(1) for 170..174: `unchecked pointer to int` cannot be compared to `pointer to int`
+| info: pointers must have be the same checkedness
+error in file FileId(1) at 193..197: mismatched types for `not =`
+| note in file FileId(1) for 198..199: this is of type `pointer to int`
+| note in file FileId(1) for 191..192: this is of type `pointer to char`
+| error in file FileId(1) for 193..197: `pointer to char` cannot be compared to `pointer to int`
+| info: operands must both be the same type
+error in file FileId(1) at 216..220: mismatched types for `not =`
+| note in file FileId(1) for 221..222: this is of type `pointer to int`
+| note in file FileId(1) for 214..215: this is of type `int`
+| error in file FileId(1) for 216..220: `int` cannot be compared to `pointer to int`
+| info: operands must both be the same type

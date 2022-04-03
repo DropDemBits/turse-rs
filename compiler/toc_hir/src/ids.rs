@@ -68,9 +68,21 @@ crate::arena_id_wrapper!(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BodyStmt(pub body::BodyId, pub StmtId);
 
+impl BodyStmt {
+    pub fn with_stmt(self, stmt: StmtId) -> Self {
+        BodyStmt(self.0, stmt)
+    }
+}
+
 /// Uniquely identifies an expression within a library
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BodyExpr(pub BodyId, pub ExprId);
+
+impl BodyExpr {
+    pub fn with_expr(self, expr: ExprId) -> Self {
+        BodyExpr(self.0, expr)
+    }
+}
 
 impl ExprId {
     pub fn in_body(self, body: BodyId) -> BodyExpr {

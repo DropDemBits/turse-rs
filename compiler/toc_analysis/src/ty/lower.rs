@@ -10,6 +10,7 @@ use toc_hir::{
     ty as hir_ty,
 };
 
+use crate::ty::Checked;
 use crate::{
     const_eval::{Const, ConstInt},
     db::TypeDatabase,
@@ -27,6 +28,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
         hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
         hir_ty::TypeKind::Void => db.mk_void(),
     }
@@ -91,6 +93,20 @@ fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty:
     let elem_ty = db.from_hir_type(ty.elem_ty.in_library(library_id));
     let def_id = DefId(library_id, ty.def_id);
     db.mk_set(ty::WithDef::Anonymous(def_id), elem_ty)
+}
+
+fn pointer_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Pointer,
+) -> TypeId {
+    let library_id = hir_id.0;
+    let target_ty = db.from_hir_type(ty.ty.in_library(library_id));
+    let checked = match ty.checked {
+        hir_ty::Checked::Checked => Checked::Checked,
+        hir_ty::Checked::Unchecked => Checked::Unchecked,
+    };
+    db.mk_pointer(checked, target_ty)
 }
 
 fn subprogram_ty(
@@ -337,6 +353,7 @@ pub(crate) fn ty_from_expr(
 ) -> TypeId {
     // FIXME: Move to using `type_of` instead of referring back to `ty_from_expr`
     let expr_id = body_expr.1;
+    let expr_in_lib = InLibrary(body.0, body_expr);
 
     match &body.1.expr(expr_id).kind {
         expr::ExprKind::Missing => {
@@ -350,6 +367,7 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Range(_) => db.mk_error(), // FIXME: Support range expressions
         expr::ExprKind::Name(expr) => name_ty(db, body, expr),
         expr::ExprKind::Field(expr) => field_ty(db, body, expr, body_expr),
+        expr::ExprKind::Deref(expr) => deref_ty(db, expr_in_lib, expr),
         expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr, body_expr),
     }
 }
@@ -435,6 +453,22 @@ fn field_ty(
             })
         })
         .unwrap_or_else(|| db.mk_error())
+}
+
+fn deref_ty(
+    db: &dyn TypeDatabase,
+    body_expr: InLibrary<expr::BodyExpr>,
+    expr: &expr::Deref,
+) -> TypeId {
+    let ty = db.type_of((body_expr.map(|id| id.with_expr(expr.rhs))).into());
+    let ty_ref = ty.in_db(db).to_base_type();
+
+    // Just needs to be a pointer type, no extra special things
+    if let ty::TypeKind::Pointer(_, to_ty) = ty_ref.kind() {
+        *to_ty
+    } else {
+        db.mk_error()
+    }
 }
 
 fn call_expr_ty(

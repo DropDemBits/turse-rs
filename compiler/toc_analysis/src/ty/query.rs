@@ -18,7 +18,7 @@ use toc_hir::{
 use crate::db::{self, BindingSource, TypeDatabase};
 use crate::ty::WithDef;
 
-use super::{lower, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
+use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
@@ -322,6 +322,11 @@ pub(super) fn value_produced(
                         (_, ValueKind::Reference(_)) => ValueKind::Reference(Mutability::Const),
                     })
                 }
+                toc_hir::expr::ExprKind::Deref(_) => {
+                    // Always produces a mutable reference
+                    // Non-ptr types are handled by normal typeck
+                    Ok(ValueKind::Reference(Mutability::Var))
+                }
                 toc_hir::expr::ExprKind::Literal(literal) => match literal {
                     toc_hir::expr::Literal::CharSeq(_) | toc_hir::expr::Literal::String(_) => {
                         Ok(ValueKind::Reference(symbol::Mutability::Const))
@@ -593,6 +598,15 @@ where
         )
     }
 
+    fn mk_pointer(&self, checked: Checked, target_ty: TypeId) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Pointer(checked, target_ty),
+            }
+            .into(),
+        )
+    }
+
     fn mk_subprogram(
         &self,
         kind: symbol::SubprogramKind,
@@ -607,7 +621,7 @@ where
         )
     }
 
-    fn mk_void(&self) -> super::TypeId {
+    fn mk_void(&self) -> TypeId {
         self.intern_type(
             Type {
                 kind: TypeKind::Void,

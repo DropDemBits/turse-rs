@@ -2403,6 +2403,7 @@ impl BodyCodeGenerator<'_> {
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
             }
             ty::TypeKind::Set(..) => unimplemented!(),
+            ty::TypeKind::Pointer(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
             ty::TypeKind::Error
             | ty::TypeKind::Forward
@@ -2467,6 +2468,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
             ty::TypeKind::Set(..) => unimplemented!(),
+            ty::TypeKind::Pointer(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),
             ty::TypeKind::Error
             | ty::TypeKind::Forward

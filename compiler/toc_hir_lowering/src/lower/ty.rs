@@ -32,8 +32,8 @@ impl super::BodyLowering<'_, '_> {
 
             ast::Type::RecordType(_) => self.unsupported_ty(span),
             ast::Type::UnionType(_) => self.unsupported_ty(span),
-            ast::Type::PointerType(_) => self.unsupported_ty(span),
 
+            ast::Type::PointerType(ty) => self.lower_pointer_type(ty),
             ast::Type::FcnType(ty) => self.lower_fcn_type(ty),
             ast::Type::ProcType(ty) => self.lower_proc_type(ty),
 
@@ -134,6 +134,22 @@ impl super::BodyLowering<'_, '_> {
             def_id,
             elem_ty: elem,
         }))
+    }
+
+    fn lower_pointer_type(&mut self, ty: ast::PointerType) -> Option<ty::TypeKind> {
+        let is_checked = ty
+            .is_checked()
+            .map(|checked| checked.unchecked_token().is_none())
+            .unwrap_or(true);
+        let ty = self.lower_required_type(ty.to_ty());
+
+        let checked = if is_checked {
+            ty::Checked::Checked
+        } else {
+            ty::Checked::Unchecked
+        };
+
+        Some(ty::TypeKind::Pointer(ty::Pointer { checked, ty }))
     }
 
     fn lower_proc_type(&mut self, ty: ast::ProcType) -> Option<ty::TypeKind> {

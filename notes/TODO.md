@@ -73,7 +73,7 @@
       - [x] As paramless call
     - [x] SelfExpr
     - [x] FieldExpr
-    - [ ] DerefExpr
+    - [x] DerefExpr
     - [ ] CheatExpr
     - [ ] NatCheatExpr
     - [ ] ArrowExpr
@@ -93,7 +93,7 @@
     - [x] SetType
     - [ ] RecordType
     - [ ] UnionType
-    - [ ] PointerType
+    - [x] PointerType
     - [x] FcnType
     - [x] ProcType
     - [ ] CollectionType
@@ -180,7 +180,7 @@
     - [x] Name
     - [ ] Self
     - [x] Field
-    - [ ] Deref
+    - [x] Deref
     - [ ] Cheat
     - [ ] NatCheat
     - [ ] Arrow
@@ -202,9 +202,9 @@
     - [x] Set
     - [ ] Record
     - [ ] Union
-    - [ ] Pointer
-    - [ ] Fcn
-    - [ ] Proc
+    - [x] Pointer
+    - [x] Fcn
+    - [x] Proc
     - [ ] Collection
     - [ ] Condition
     - [ ] Opaque

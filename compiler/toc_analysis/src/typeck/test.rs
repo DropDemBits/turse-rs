@@ -652,7 +652,42 @@ test_for_each_op! { equality_op_scalars,
     var _v_res : boolean
 
     _v_res := b {0} b
-    "#
+    "#,
+}
+
+test_for_each_op! { equality_op_pointer,
+    [
+        ("=", equal),
+        ("not=", not_equal)
+    ] => r#"
+    % Pointers
+    var b : ^int
+
+    % should all produce boolean
+    var _v_res : boolean
+
+    _v_res := b {0} b
+    "#,
+}
+
+test_for_each_op! { equality_op_pointer_wrong_types,
+    [
+        ("=", equal),
+        ("not=", not_equal)
+    ] => r#"
+    % Pointers
+    var a : unchecked ^int
+    var b : ^int
+    var c : ^char
+    var d : int
+
+    % should all produce boolean
+    var _v_res : boolean
+
+    _v_res := a {0} b
+    _v_res := c {0} b
+    _v_res := d {0} b
+    "#,
 }
 
 test_for_each_op! { set_ops,
@@ -729,6 +764,40 @@ test_for_each_op! { set_member_op_wrong_types,
     % incompatible element types
     _v_res := 1 {0} s
     "#
+}
+
+test_named_group! { deref_op,
+    [
+        as_rhs => "
+        var ptr : ^int
+        var j := ^ptr
+        ",
+        as_lhs => "
+        var ptr : ^int
+        ^ptr := 2
+        ",
+        to_err => "
+        type p : ^
+        var ptr : p
+        var j := ^ptr
+        ",
+        with_err => "
+        var _ := ^()
+        ",
+        err_not_ptr => "
+        var putty : int
+        var j := ^putty
+        ",
+        err_wrong_value => "
+        type ptr : ^int
+        ^ptr
+        ",
+        // Mutability does not carry over
+        from_const_ptr => "
+        const ptr : ^int
+        ^ptr := 2
+        ",
+    ]
 }
 
 // Test integer inference for all compatible operators
@@ -1334,6 +1403,28 @@ test_named_group! { equivalence_of,
         var v_asc : asc
         v_sc := v_asc
         "#,
+        // Over pointer types
+        pointers => "
+        type i : int
+        type tpi : pointer to int
+        type tpc : pointer to char
+        type tpai : pointer to i
+        type tupi : unchecked pointer to int
+
+        var v_pi : tpi
+        var v_pc : tpc
+        var v_pai : tpai
+        var v_upi : tupi
+
+        % compat through aliases
+        v_pi := v_pai
+
+        % incompatible - different target types
+        v_pi := v_pc
+
+        % incompatible - different checkedness
+        v_pi := v_upi
+        ",
         // Over subprogram types
         subprogram_formals => r#"
         type t_p : procedure(a, b : int, var c : string)
@@ -2153,6 +2244,16 @@ test_named_group! { typeck_set_ty,
         type _si : set of bogos
         type _sn : set of nat
         ",
+    ]
+}
+
+test_named_group! { typeck_pointer_ty,
+    [
+        normal => "type _ : ^int",
+        normal_unchecked => "type _ : unchecked ^int",
+        nested => "type _ : unchecked ^ unchecked ^ int",
+        to_err => "type _ : ^",
+        // FIXME: Add test for unchecked collection types
     ]
 }
 
