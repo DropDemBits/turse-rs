@@ -222,7 +222,13 @@ fn pointer_type(p: &mut Parser) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Unchecked) || p.at(TokenKind::Pointer));
 
     let m = p.start();
-    p.eat(TokenKind::Unchecked);
+
+    // unchecked? (inside `Checkedness`)
+    if p.at(TokenKind::Unchecked) {
+        let m = p.start();
+        p.eat(TokenKind::Unchecked);
+        m.complete(p, SyntaxKind::Checkedness);
+    }
 
     if !p.eat(TokenKind::Caret) {
         p.expect(TokenKind::Pointer);

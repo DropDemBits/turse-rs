@@ -780,7 +780,8 @@ fn parse_unchecked_pointer_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..40
-                    KwUnchecked@9..18 "unchecked"
+                    Checkedness@9..18
+                      KwUnchecked@9..18 "unchecked"
                     Whitespace@18..19 " "
                     KwPointer@19..26 "pointer"
                     Whitespace@26..27 " "
@@ -807,7 +808,8 @@ fn parse_unchecked_short_pointer_type() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..30
-                    KwUnchecked@9..18 "unchecked"
+                    Checkedness@9..18
+                      KwUnchecked@9..18 "unchecked"
                     Whitespace@18..19 " "
                     Caret@19..20 "^"
                     PrimType@20..30
@@ -878,7 +880,8 @@ fn recover_pointer_type_just_unchecked() {
                   Colon@7..8 ":"
                   Whitespace@8..9 " "
                   PointerType@9..18
-                    KwUnchecked@9..18 "unchecked"
+                    Checkedness@9..18
+                      KwUnchecked@9..18 "unchecked"
             error in file FileId(1) at 9..18: unexpected end of file
             | error in file FileId(1) for 9..18: expected `^` or `pointer` after here"#]],
     );
