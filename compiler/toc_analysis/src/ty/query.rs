@@ -18,7 +18,7 @@ use toc_hir::{
 use crate::db::{self, BindingSource, TypeDatabase};
 use crate::ty::WithDef;
 
-use super::{lower, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
+use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
 
 pub(crate) fn from_hir_type(db: &dyn db::TypeDatabase, type_id: InLibrary<HirTypeId>) -> TypeId {
     lower::ty_from_hir_ty(db, type_id)
@@ -593,6 +593,15 @@ where
         )
     }
 
+    fn mk_pointer(&self, checked: Checked, target_ty: TypeId) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Pointer(checked, target_ty),
+            }
+            .into(),
+        )
+    }
+
     fn mk_subprogram(
         &self,
         kind: symbol::SubprogramKind,
@@ -607,7 +616,7 @@ where
         )
     }
 
-    fn mk_void(&self) -> super::TypeId {
+    fn mk_void(&self) -> TypeId {
         self.intern_type(
             Type {
                 kind: TypeKind::Void,

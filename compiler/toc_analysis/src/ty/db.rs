@@ -69,6 +69,7 @@ pub trait TypeInternExt {
     fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_forward(&self) -> ty::TypeId;
     fn mk_set(&self, with_def: ty::WithDef, elem_ty: ty::TypeId) -> ty::TypeId;
+    fn mk_pointer(&self, checked: ty::Checked, target_ty: ty::TypeId) -> ty::TypeId;
     fn mk_subprogram(
         &self,
         kind: symbol::SubprogramKind,

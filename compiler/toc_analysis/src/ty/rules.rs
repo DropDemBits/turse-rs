@@ -53,6 +53,10 @@ impl TypeKind {
         matches!(self, TypeKind::Set(..))
     }
 
+    pub fn is_pointer(&self) -> bool {
+        matches!(self, TypeKind::Pointer(..))
+    }
+
     /// charseq types includes `String`, `StringN`, `Char`, and `CharN` types
     pub fn is_charseq(&self) -> bool {
         matches!(
@@ -135,10 +139,10 @@ impl TypeKind {
             | TypeKind::Real(_)
             | TypeKind::Integer
             | TypeKind::Char
+            | TypeKind::Pointer(_, _)
             | TypeKind::Subprogram(..) => true,
             // Missing scalars:
             // - subrange
-            // - pointer
             // - enum
             TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
                 // Aggregate types of characters

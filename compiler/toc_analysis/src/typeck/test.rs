@@ -731,6 +731,40 @@ test_for_each_op! { set_member_op_wrong_types,
     "#
 }
 
+test_named_group! { deref_op,
+    [
+        as_rhs => "
+        var ptr : ^int
+        var j := ^ptr
+        ",
+        as_lhs => "
+        var ptr : ^int
+        ^ptr := 2
+        ",
+        to_err => "
+        type p : ^
+        var ptr : p
+        var j := ^ptr
+        ",
+        with_err => "
+        var _ := ^()
+        ",
+        err_not_ptr => "
+        var putty : int
+        var j := ^putty
+        ",
+        err_wrong_value => "
+        type ptr : ^int
+        ^ptr
+        ",
+        // Mutability does not carry over
+        from_const_ptr => "
+        const ptr : ^int
+        ^ptr := 2
+        ",
+    ]
+}
+
 // Test integer inference for all compatible operators
 test_for_each_op! { integer_inference,
     [
@@ -2153,6 +2187,16 @@ test_named_group! { typeck_set_ty,
         type _si : set of bogos
         type _sn : set of nat
         ",
+    ]
+}
+
+test_named_group! { typeck_pointer_ty,
+    [
+        normal => "type _ : ^int",
+        normal_unchecked => "type _ : unchecked ^int",
+        nested => "type _ : unchecked ^ unchecked ^ int",
+        to_err => "type _ : ^",
+        // FIXME: Add test for unchecked collection types
     ]
 }
 
