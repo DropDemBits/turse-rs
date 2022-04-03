@@ -1369,3 +1369,36 @@ fn lower_set_ty() {
     // in storage position
     assert_lower("var _ : set of boolean");
 }
+
+#[test]
+fn lower_deref_expr() {
+    assert_lower("var a : int var _ := ^a ");
+    assert_lower("var a : int var _ := ^(a) ");
+    assert_lower("var a : int var _ := ^ ");
+    assert_lower("var a : int var _ := ^^^^a ");
+    assert_lower("var a : int ^a()");
+}
+
+#[test]
+fn lower_pointer_ty() {
+    // Both variations
+    assert_lower("type _ : pointer to int");
+    assert_lower("type _ : ^int");
+
+    // Both variations of unchecked pointer
+    assert_lower("type _ : unchecked ^int");
+    assert_lower("type _ : unchecked pointer to int");
+
+    // Missing ty
+    assert_lower("type _ : pointer to");
+    assert_lower("type _ : ^");
+    assert_lower("type _ : unchecked ^");
+    assert_lower("type _ : unchecked pointer to");
+
+    // Missing `to`
+    assert_lower("type _ : pointer int");
+    assert_lower("type _ : unchecked pointer int");
+
+    // Just unchecked
+    assert_lower("type _ : unchecked int");
+}

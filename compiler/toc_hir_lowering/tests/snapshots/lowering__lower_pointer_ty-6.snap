@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : ^"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..10): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..10): []
+        StmtItem@(FileId(1), 0..10): ItemId(0)
+          Type@(FileId(1), 0..10): "_"@(FileId(1), 5..6)
+            Pointer@(FileId(1), 9..10): Checked
+error in file FileId(1) at 9..10: unexpected end of file
+| error in file FileId(1) for 9..10: expected type specifier after here
+

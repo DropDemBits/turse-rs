@@ -32,7 +32,8 @@ pub enum ExprKind {
     Name(Name),
     /// Field lookup
     Field(Field),
-    //Deref(Deref),
+    /// Deref (`^`) Expression
+    Deref(Deref),
     //Cheat(Cheat),
     //NatCheat(NatCheat),
     //Arrow(Arrow),
@@ -169,6 +170,14 @@ pub struct Field {
     pub lhs: ExprId,
     /// Field to lookup
     pub field: Spanned<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Deref {
+    /// Span of the `^` token
+    pub op: SpanId,
+    /// Right-hand side
+    pub rhs: ExprId,
 }
 
 /// Calling expression

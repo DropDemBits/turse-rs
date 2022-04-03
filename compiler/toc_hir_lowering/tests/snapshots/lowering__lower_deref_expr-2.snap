@@ -1,0 +1,19 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var a : int var _ := ^(a) "
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(2)
+    Module@(FileId(1), 0..26): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..25): []
+        StmtItem@(FileId(1), 0..11): ItemId(0)
+          ConstVar@(FileId(1), 0..11): var "a"@(FileId(1), 4..5)
+            Primitive@(FileId(1), 8..11): Int
+        StmtItem@(FileId(1), 12..25): ItemId(1)
+          ConstVar@(FileId(1), 12..25): var "_"@(FileId(1), 16..17)
+            ExprBody@(FileId(1), 21..25)
+              Deref@(FileId(1), 21..25)
+                Name@(FileId(1), 23..24): "a"@(FileId(1), 4..5)
+
