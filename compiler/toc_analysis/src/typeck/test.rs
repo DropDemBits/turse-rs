@@ -652,7 +652,42 @@ test_for_each_op! { equality_op_scalars,
     var _v_res : boolean
 
     _v_res := b {0} b
-    "#
+    "#,
+}
+
+test_for_each_op! { equality_op_pointer,
+    [
+        ("=", equal),
+        ("not=", not_equal)
+    ] => r#"
+    % Pointers
+    var b : ^int
+
+    % should all produce boolean
+    var _v_res : boolean
+
+    _v_res := b {0} b
+    "#,
+}
+
+test_for_each_op! { equality_op_pointer_wrong_types,
+    [
+        ("=", equal),
+        ("not=", not_equal)
+    ] => r#"
+    % Pointers
+    var a : unchecked ^int
+    var b : ^int
+    var c : ^char
+    var d : int
+
+    % should all produce boolean
+    var _v_res : boolean
+
+    _v_res := a {0} b
+    _v_res := c {0} b
+    _v_res := d {0} b
+    "#,
 }
 
 test_for_each_op! { set_ops,
@@ -1368,6 +1403,28 @@ test_named_group! { equivalence_of,
         var v_asc : asc
         v_sc := v_asc
         "#,
+        // Over pointer types
+        pointers => "
+        type i : int
+        type tpi : pointer to int
+        type tpc : pointer to char
+        type tpai : pointer to i
+        type tupi : unchecked pointer to int
+
+        var v_pi : tpi
+        var v_pc : tpc
+        var v_pai : tpai
+        var v_upi : tupi
+
+        % compat through aliases
+        v_pi := v_pai
+
+        % incompatible - different target types
+        v_pi := v_pc
+
+        % incompatible - different checkedness
+        v_pi := v_upi
+        ",
         // Over subprogram types
         subprogram_formals => r#"
         type t_p : procedure(a, b : int, var c : string)

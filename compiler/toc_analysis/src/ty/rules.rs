@@ -260,6 +260,10 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
         }
         // Set types are equivalent if they come from the same definition
         (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => left_def == right_def,
+        // Pointer types are equivalent if they have the same checkedness and equivalent target types
+        (TypeKind::Pointer(left_chk, left_to), TypeKind::Pointer(right_chk, right_to)) => {
+            left_chk == right_chk && is_equivalent(db, *left_to, *right_to)
+        }
         // Subprograms are equivalent if:
         // - they are the same [`SubprogramKind`]
         // - the formal lists are of the same length
@@ -1037,7 +1041,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // - Numeric equality (number, number => boolean)
             // - Charseq equality (charseq, charseq => boolean)
             // x Class equality (class, class => boolean)
-            // x Pointer equality (pointer, pointer => boolean)
+            // - Pointer equality (pointer, pointer => boolean)
             // - Set equality (set, set => boolean)
             // - Scalar equality (scalar, scalar => boolean)
 
@@ -1057,8 +1061,11 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                     }
                 }
                 (lhs, _) if is_equivalent(db, left.id(), right.id()) => {
-                    // Sets that are equivalent can be tested for equality
-                    if lhs.is_set() {
+                    // If they are equivalent and are the following types:
+                    // - Sets
+                    // - Pointers
+                    // They can be tested for equality
+                    if lhs.is_set() || lhs.is_pointer() {
                         Ok(())
                     } else {
                         mk_type_error()
@@ -1361,7 +1368,17 @@ pub fn report_invalid_bin_op<'db, DB>(
             if is_equivalent(db, left_ty.id(), right_ty.id()) {
                 msg.with_info("operands must both be scalars, sets, or strings")
             } else {
-                msg.with_info("operands must both be the same type")
+                // Specialize for pointers of different checkedness
+                match (peeled_left.kind(), peeled_right.kind()) {
+                    (
+                        TypeKind::Pointer(left_check, left_ty),
+                        TypeKind::Pointer(right_check, right_ty),
+                    ) if left_check != right_check && is_equivalent(db, *left_ty, *right_ty) => {
+                        // Of different checked kinds
+                        msg.with_info("pointers must have be the same checkedness")
+                    }
+                    _ => msg.with_info("operands must both be the same type"),
+                }
             }
         }
         // Set membership tests (set(a), a => boolean)
