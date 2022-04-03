@@ -322,6 +322,11 @@ pub(super) fn value_produced(
                         (_, ValueKind::Reference(_)) => ValueKind::Reference(Mutability::Const),
                     })
                 }
+                toc_hir::expr::ExprKind::Deref(_) => {
+                    // Always produces a mutable reference
+                    // Non-ptr types are handled by normal typeck
+                    Ok(ValueKind::Reference(Mutability::Var))
+                }
                 toc_hir::expr::ExprKind::Literal(literal) => match literal {
                     toc_hir::expr::Literal::CharSeq(_) | toc_hir::expr::Literal::String(_) => {
                         Ok(ValueKind::Reference(symbol::Mutability::Const))
