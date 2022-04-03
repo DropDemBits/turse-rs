@@ -1,0 +1,25 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type i : int\ntype tpi : pointer to int\ntype tpc : pointer to char\ntype tpai : pointer to i\ntype tupi : unchecked pointer to int\n\nvar v_pi : tpi\nvar v_pc : tpc\nvar v_pai : tpai\nvar v_upi : tupi\n\n% compat through aliases\nv_pi := v_pai\n\n% incompatible - different target types\nv_pi := v_pc\n\n% incompatible - different checkedness\nv_pi := v_upi\n"
+
+---
+"i"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"tpi"@(FileId(1), 18..21) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of pointer to int
+"tpc"@(FileId(1), 44..47) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(2))] of pointer to char
+"tpai"@(FileId(1), 71..75) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(3))] of pointer to alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"tupi"@(FileId(1), 96..100) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(4))] of unchecked pointer to int
+"v_pi"@(FileId(1), 133..137) [Declared]: alias[DefId(LibraryId(0), LocalDefId(1))] of pointer to int
+"v_pc"@(FileId(1), 148..152) [Declared]: alias[DefId(LibraryId(0), LocalDefId(2))] of pointer to char
+"v_pai"@(FileId(1), 163..168) [Declared]: alias[DefId(LibraryId(0), LocalDefId(3))] of pointer to alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"v_upi"@(FileId(1), 180..185) [Declared]: alias[DefId(LibraryId(0), LocalDefId(4))] of unchecked pointer to int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 279..281: mismatched types
+| note in file FileId(1) for 282..286: this is of type `tpc (alias of pointer to char)`
+| note in file FileId(1) for 274..278: this is of type `tpi (alias of pointer to int)`
+| info: `pointer to char` is not assignable into `pointer to int`
+error in file FileId(1) at 332..334: mismatched types
+| note in file FileId(1) for 335..340: this is of type `tupi (alias of unchecked pointer to int)`
+| note in file FileId(1) for 327..331: this is of type `tpi (alias of pointer to int)`
+| info: `unchecked pointer to int` is not assignable into `pointer to int`

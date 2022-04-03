@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ := ^()"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+

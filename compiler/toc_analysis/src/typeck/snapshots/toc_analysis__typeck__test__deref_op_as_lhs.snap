@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var ptr : ^int\n^ptr := 2\n"
+
+---
+"ptr"@(FileId(1), 4..7) [Declared]: pointer to int
+"<root>"@(dummy) [Declared]: <error>
+

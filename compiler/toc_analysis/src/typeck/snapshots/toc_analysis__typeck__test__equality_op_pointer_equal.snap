@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "\n    % Pointers\n    var b : ^int\n\n    % should all produce boolean\n    var _v_res : boolean\n\n    _v_res := b = b\n    "
+
+---
+"b"@(FileId(1), 24..25) [Declared]: pointer to int
+"_v_res"@(FileId(1), 75..81) [Declared]: boolean
+"<root>"@(dummy) [Declared]: <error>
+
