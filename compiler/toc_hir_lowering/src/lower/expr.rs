@@ -182,7 +182,7 @@ impl super::BodyLowering<'_, '_> {
 
         Some(expr::ExprKind::Field(expr::Field {
             lhs,
-            field: Spanned::new(field.to_string(), span),
+            field: Spanned::new(field.text().into(), span),
         }))
     }
 

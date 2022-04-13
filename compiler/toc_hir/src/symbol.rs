@@ -1,8 +1,10 @@
 //! Everything related to symbols.
 //! `SymbolTable` construction with respect to scoping rules occurs in `toc_hir_lowering`.
 
+use std::fmt;
+
 use la_arena::ArenaMap;
-use toc_span::Spanned;
+use toc_span::SpanId;
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
@@ -10,11 +12,53 @@ use crate::{
     stmt::BodyStmt,
 };
 
+/// Reference to an interned symbol
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Symbol(internment::Intern<String>);
+
+impl Symbol {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(internment::Intern::new(name.into()))
+    }
+
+    pub fn name(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl fmt::Debug for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.as_str().fmt(f)
+    }
+}
+
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+// String -> Symbol
+
+impl From<String> for Symbol {
+    fn from(name: String) -> Self {
+        Self::new(name)
+    }
+}
+
+impl From<&str> for Symbol {
+    fn from(name: &str) -> Self {
+        Self::new(name)
+    }
+}
+
 /// Information associated with a `LocalDefId` or `DefId`.
 #[derive(Debug, PartialEq, Eq)]
 pub struct DefInfo {
-    /// The name of the definition, along with the span of the identifier.
-    pub name: Spanned<String>,
+    /// The name of the definition
+    pub name: Symbol,
+    /// Where the def was defined at
+    pub def_at: SpanId,
     /// The kind of symbol.
     pub kind: SymbolKind,
     // ...
@@ -23,16 +67,6 @@ pub struct DefInfo {
     // - pervasive (maybe left over from construction)
     // - mutability/access (const, var, type/none)?
     // - is part of a forward resolution chain?
-}
-
-#[derive(Debug)]
-pub struct Symbol {
-    /// Name of the symbol.
-    pub name: String,
-    /// The kind of symbol.
-    pub kind: SymbolKind,
-    /// If the symbol is pervasive, and can implicitly cross import boundaries.
-    pub is_pervasive: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

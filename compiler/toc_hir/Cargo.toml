@@ -8,5 +8,6 @@ edition = "2021"
 
 [dependencies]
 indexmap = "1.7.0"
+internment = "0.7.0"
 la-arena = "0.2.0"
 toc_span = { path = "../toc_span" }

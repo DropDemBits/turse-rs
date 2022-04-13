@@ -1,9 +1,13 @@
 //! Helper builders for creating the HIR tree
 
 use la_arena::Arena;
-use toc_span::{FileId, Span, SpanId, Spanned};
+use toc_span::{FileId, Span, SpanId};
 
-use crate::{body, expr, item, library, stmt, symbol, ty};
+use crate::{
+    body, expr, item, library, stmt,
+    symbol::{self, Symbol},
+    ty,
+};
 
 /// Builder for constructing a [`Library`]
 ///
@@ -40,7 +44,8 @@ impl LibraryBuilder {
         kind: symbol::SymbolKind,
     ) -> symbol::LocalDefId {
         let def = symbol::DefInfo {
-            name: Spanned::new(name.to_string(), span),
+            name: Symbol::new(name.to_string()),
+            def_at: span,
             kind,
         };
         let index = self.defs.alloc(def);

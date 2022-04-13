@@ -8,6 +8,7 @@ use std::{
 };
 
 use toc_hir::library::LibraryId;
+use toc_hir::symbol::Symbol;
 use toc_hir::visitor::WalkNode;
 use toc_hir::{
     body,
@@ -220,7 +221,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_def_id(&self, def_id: LocalDefId) -> String {
-        let name = escape_def_name(self.library.local_def(def_id).name.item());
+        let name = escape_def_name(self.library.local_def(def_id).name);
 
         format!("'{name}'\\n({def_id:?})")
     }
@@ -318,17 +319,17 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
     fn emit_def_info(&self, def_id: LocalDefId) {
         let def_info = self.library.local_def(def_id);
-        let name = escape_def_name(def_info.name.item());
+        let name = escape_def_name(def_info.name);
 
         self.emit_node(
             &self.def_id(def_id),
             &format!("{def_id:?}"),
-            def_info.name.span(),
+            def_info.def_at,
             Layout::Vbox(vec![
                 Layout::Node(format!("name: '{name}'")),
                 Layout::Node(format!(
                     "at: '{span}'",
-                    span = self.display_span(def_info.name.span())
+                    span = self.display_span(def_info.def_at)
                 )),
                 Layout::Node(format!("kind: {kind:?}", kind = def_info.kind)),
             ]),
@@ -493,7 +494,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                     self.emit_node(
                         &param_node,
                         "SubprogParam",
-                        def_info.name.span(),
+                        def_info.def_at,
                         Layout::Vbox(vec![
                             self.layout_param_info(param),
                             Layout::Node(self.display_def_id(*name)),
@@ -530,7 +531,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
 
             let (span_at, result_name) = if let Some(def_id) = item.result.name {
                 let def_info = self.library.local_def(def_id);
-                (def_info.name.span(), self.display_def_id(def_id))
+                (def_info.def_at, self.display_def_id(def_id))
             } else {
                 (self.library.span_map.dummy_span(), "".into())
             };
@@ -1271,8 +1272,9 @@ fn derived_id(mut from_id: String, derived: &str) -> String {
     from_id
 }
 
-fn escape_def_name(name: &str) -> String {
-    name.escape_debug()
+fn escape_def_name(name: Symbol) -> String {
+    name.name()
+        .escape_debug()
         .flat_map(|c| {
             match c {
                 '<' => vec!['&', 'l', 't', ';'],

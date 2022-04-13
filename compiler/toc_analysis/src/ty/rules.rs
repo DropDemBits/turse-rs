@@ -1481,8 +1481,8 @@ fn report_not_value<'db, DB>(
 
     let def_library = db.library(binding_def.0);
     let def_info = def_library.local_def(binding_def.1);
-    let name = def_info.name.item();
-    let def_at = def_info.name.span().lookup_in(&def_library.span_map);
+    let name = def_info.name;
+    let def_at = def_info.def_at.lookup_in(&def_library.span_map);
 
     reporter
         .error_detailed(format!("cannot use `{name}` as an expression"), span)

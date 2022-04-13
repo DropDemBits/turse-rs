@@ -184,7 +184,7 @@ impl<'ctx> FileLowering<'ctx> {
             // Reintroduce the names
             for def_id in param_defs.iter().copied().chain(result_name) {
                 let def_info = self.library.local_def(def_id);
-                let name = def_info.name.item();
+                let name = def_info.name.name();
 
                 self.scopes.def_sym(name, def_id, def_info.kind, false);
             }
