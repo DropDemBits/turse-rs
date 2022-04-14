@@ -91,7 +91,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn unsupported_expr(&mut self, span: SpanId) -> Option<expr::ExprKind> {
-        let span = self.ctx.library.lookup_span(span);
+        let span = span.lookup_in(&self.ctx.library);
         self.ctx.messages.error(
             "unsupported expression",
             "this expression is not supported yet",

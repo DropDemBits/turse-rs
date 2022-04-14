@@ -261,7 +261,7 @@ impl TypeCheck<'_> {
     fn typeck_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
         let db = self.db;
         let bind_span = self.library.item(id).span;
-        let bind_span = self.library.lookup_span(bind_span);
+        let bind_span = bind_span.lookup_in(&self.library);
 
         let lib_id = self.library_id;
         let bind_to = (lib_id, item.bind_to);
@@ -501,7 +501,7 @@ impl TypeCheck<'_> {
                         // For now, we'll just lower the span of the get width
                         // FIXME: Use the span of the line width token
                         let item_span = self.library.body(body_id).expr(item.expr).span;
-                        let item_span = self.library.lookup_span(item_span);
+                        let item_span = item_span.lookup_in(&self.library);
 
                         self.state()
                             .reporter
@@ -515,7 +515,7 @@ impl TypeCheck<'_> {
                 stmt::GetWidth::Chars(expr) => {
                     if !base_ty.kind().is_sized_charseq() {
                         let opt_span = self.library.body(body_id).expr(*expr).span;
-                        let opt_span = self.library.lookup_span(opt_span);
+                        let opt_span = opt_span.lookup_in(&self.library);
 
                         self.state()
                             .reporter
@@ -573,7 +573,7 @@ impl TypeCheck<'_> {
                 self.state().reporter.error(
                     "unsupported expression",
                     "implicit range bounds are not supported yet",
-                    self.library.lookup_span(expr_span),
+                    expr_span.lookup_in(&self.library),
                 )
             }
             stmt::ForBounds::Full(start, end) => {
@@ -593,8 +593,8 @@ impl TypeCheck<'_> {
                 let end_span = self.library.body(body_id).expr(end).span;
 
                 let (start_span, end_span) = (
-                    self.library.lookup_span(start_span),
-                    self.library.lookup_span(end_span),
+                    start_span.lookup_in(&self.library),
+                    end_span.lookup_in(&self.library),
                 );
 
                 let bounds_span = start_span.cover(end_span);
@@ -689,7 +689,7 @@ impl TypeCheck<'_> {
             .in_db(db);
         let discrim_base_ty = discrim_ty.clone().to_base_type();
         let discrim_span = self.library.body(body_id).expr(stmt.discriminant).span;
-        let discrim_span = self.library.lookup_span(discrim_span);
+        let discrim_span = discrim_span.lookup_in(&self.library);
 
         if self.expect_expression((self.library_id, body_id, stmt.discriminant).into()) {
             // Check discriminant type
@@ -728,7 +728,7 @@ impl TypeCheck<'_> {
         {
             let selector_ty = db.type_of((self.library_id, body_id, selector).into());
             let selector_span = self.library.body(body_id).expr(selector).span;
-            let selector_span = self.library.lookup_span(selector_span);
+            let selector_span = selector_span.lookup_in(&self.library);
 
             // Must match discriminant type
             if !ty::rules::is_coercible_into(db, discrim_base_ty.id(), selector_ty) {
@@ -810,7 +810,7 @@ impl TypeCheck<'_> {
         let db = self.db;
         let body = id.0;
         let span = self.library.body(id.0).stmt(id.1).span;
-        let span = self.library.lookup_span(span);
+        let span = span.lookup_in(&self.library);
 
         let result_ty = db.type_of((self.library_id, body).into());
         let result_ty_ref = result_ty.in_db(db).to_base_type();
@@ -834,7 +834,7 @@ impl TypeCheck<'_> {
         let db = self.db;
         let body = id.0;
         let span = self.library.body(id.0).stmt(id.1).span;
-        let span = self.library.lookup_span(span);
+        let span = span.lookup_in(&self.library);
 
         let result_ty = if let Some(owner) = self.db.body_owner(body.in_library(self.library_id)) {
             match owner {
@@ -876,10 +876,10 @@ impl TypeCheck<'_> {
                 } else if !ty::rules::is_assignable(db, result_ty, value_ty) {
                     // Not assignable into the return type
                     let ty_span = self.library.lookup_type(hir_ty).span;
-                    let ty_span = self.library.lookup_span(ty_span);
+                    let ty_span = ty_span.lookup_in(&self.library);
 
                     let value_span = self.library.body(body).expr(stmt.expr).span;
-                    let value_span = self.library.lookup_span(value_span);
+                    let value_span = value_span.lookup_in(&self.library);
 
                     self.report_mismatched_assign_tys(
                         result_ty,
@@ -909,10 +909,10 @@ impl TypeCheck<'_> {
         if let Err(err) = ty::rules::check_binary_op_values(db, self.library_id, body, expr) {
             ty::rules::report_invalid_bin_values(db, err, &mut self.state().reporter);
         } else if let Err(err) = ty::rules::check_binary_op(db, left, *expr.op.item(), right) {
-            let op_span = self.library.lookup_span(expr.op.span());
+            let op_span = expr.op.span().lookup_in(&self.library);
             let body = self.library.body(body);
-            let left_span = self.library.lookup_span(body.expr(expr.lhs).span);
-            let right_span = self.library.lookup_span(body.expr(expr.rhs).span);
+            let left_span = body.expr(expr.lhs).span.lookup_in(&self.library);
+            let right_span = body.expr(expr.rhs).span.lookup_in(&self.library);
 
             ty::rules::report_invalid_bin_op(
                 db,
@@ -933,9 +933,9 @@ impl TypeCheck<'_> {
         if let Err(err) = ty::rules::check_unary_op_values(db, self.library_id, body, expr) {
             ty::rules::report_invalid_unary_value(db, err, &mut self.state().reporter);
         } else if let Err(err) = ty::rules::check_unary_op(db, *expr.op.item(), right) {
-            let op_span = self.library.lookup_span(expr.op.span());
+            let op_span = expr.op.span().lookup_in(&self.library);
             let body = self.library.body(body);
-            let right_span = self.library.lookup_span(body.expr(expr.rhs).span);
+            let right_span = body.expr(expr.rhs).span.lookup_in(&self.library);
 
             ty::rules::report_invalid_unary_op(
                 db,
@@ -1015,7 +1015,7 @@ impl TypeCheck<'_> {
         let db = self.db;
         let lhs_expr = (self.library_id, body, lhs);
         let lhs_span = self.library.body(body).expr(lhs).span;
-        let lhs_span = self.library.lookup_span(lhs_span);
+        let lhs_span = lhs_span.lookup_in(&self.library);
 
         // Fetch type of lhs
         // Always try to do it by `DefId` first, so that we can properly support paren-less functions
@@ -1187,7 +1187,7 @@ impl TypeCheck<'_> {
 
             let arg_ty = self.db.type_of((self.library_id, body_id, *arg).into());
             let arg_span = self.library.body(body_id).expr(*arg).span;
-            let arg_span = self.library.lookup_span(arg_span);
+            let arg_span = arg_span.lookup_in(&self.library);
 
             // Check that it isn't a range expr
             // ???: Supporting range exprs in set cons calls (not end relative)?
@@ -1335,7 +1335,7 @@ impl TypeCheck<'_> {
             let arg_ty = self.db.type_of(arg_expr.into());
             let arg_value = self.db.value_produced(arg_expr.into());
             let arg_span = self.library.body(body).expr(*arg).span;
-            let arg_span = self.library.lookup_span(arg_span);
+            let arg_span = arg_span.lookup_in(&self.library);
 
             // Check that it isn't `all` or a range expr
             match &self.library.body(body).expr(*arg).kind {
@@ -1461,7 +1461,7 @@ impl TypeCheck<'_> {
                 if err.is_not_compile_time() && allow_dyn_size {
                     // Right now, is unsupported
                     let ty_span = self.library.lookup_type(id).span;
-                    let ty_span = self.library.lookup_span(ty_span);
+                    let ty_span = ty_span.lookup_in(&self.library);
 
                     self.state().reporter.error(
                         "unsupported type",
@@ -1498,7 +1498,7 @@ impl TypeCheck<'_> {
 
         if !binding_to.map(BindingTo::is_type).or_missing() {
             let span = self.library.lookup_type(id).span;
-            let span = self.library.lookup_span(span);
+            let span = span.lookup_in(&self.library);
 
             self.report_mismatched_binding(
                 BindingTo::Type,
@@ -1566,7 +1566,7 @@ impl TypeCheck<'_> {
         match ty_ref.kind() {
             ty::TypeKind::CharN(ty::SeqSize::Any) | ty::TypeKind::StringN(ty::SeqSize::Any) => {
                 let ty_span = self.library.lookup_type(ty_spec).span;
-                let ty_span = self.library.lookup_span(ty_span);
+                let ty_span = ty_span.lookup_in(&self.library);
                 let place = in_where();
 
                 let things = if matches!(ty_ref.kind(), ty::TypeKind::CharN(_)) {
@@ -1690,7 +1690,7 @@ impl TypeCheck<'_> {
                 let def_info = library.local_def(local_def);
 
                 let name = def_info.name;
-                let def_at = library.lookup_span(def_info.def_at);
+                let def_at = def_info.def_at.lookup_in(&library);
 
                 let binding_to = match self.db.binding_to(binding_source) {
                     Ok(kind) => kind,
@@ -1908,7 +1908,7 @@ impl TypeCheck<'_> {
         if let ty::TypeKind::Alias(def_id, to_ty) = ty_ref.kind() {
             if to_ty.in_db(self.db).kind().is_forward() {
                 let ty_span = self.library.lookup_type(ty).span;
-                let ty_span = self.library.lookup_span(ty_span);
+                let ty_span = ty_span.lookup_in(&self.library);
 
                 let def_library = self.db.library(def_id.0);
                 let name = def_library.local_def(def_id.1).name;

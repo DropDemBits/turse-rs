@@ -51,7 +51,7 @@ struct ImplLimitsLint<'ctx> {
 impl<'ctx> HirVisitor for ImplLimitsLint<'ctx> {
     fn visit_literal(&self, id: expr::BodyExpr, expr: &expr::Literal) {
         let span = self.ctx.library.body(id.0).expr(id.1).span;
-        let span = self.ctx.library.lookup_span(span);
+        let span = span.lookup_in(&self.ctx.library);
 
         // Check that all literals meet the implementation defined limits
         match expr {

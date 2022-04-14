@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use la_arena::Arena;
-use toc_span::{FileId, HasSpanTable, Span, SpanId, SpanTable};
+use toc_span::{FileId, HasSpanTable, SpanTable};
 
 use crate::{body, item, symbol, ty};
 
@@ -85,10 +85,6 @@ impl Library {
 
     pub fn lookup_type(&self, type_id: ty::TypeId) -> &ty::Type {
         self.type_map.lookup_type(type_id)
-    }
-
-    pub fn lookup_span(&self, span_id: SpanId) -> Span {
-        self.span_map.lookup_span(span_id)
     }
 
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {

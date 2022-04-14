@@ -89,7 +89,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn unsupported_stmt(&mut self, span: SpanId) -> Option<stmt::StmtKind> {
-        let span = self.ctx.library.lookup_span(span);
+        let span = span.lookup_in(&self.ctx.library);
         self.ctx.messages.error(
             "unsupported statement",
             "this statement is not handled yet",
@@ -1258,8 +1258,8 @@ impl super::BodyLowering<'_, '_> {
             // Report redeclares, specializing based on what kind of declaration it is
             let old_def_info = self.ctx.library.local_def(old_def);
 
-            let old_span = self.ctx.library.lookup_span(old_def_info.def_at);
-            let new_span = self.ctx.library.lookup_span(span);
+            let old_span = old_def_info.def_at.lookup_in(&self.ctx.library);
+            let new_span = span.lookup_in(&self.ctx.library);
 
             // Just use the name from the old def for both, since by definition they are the same
             let name = old_def_info.name;
