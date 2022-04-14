@@ -1114,6 +1114,7 @@ dependencies = [
  "indexmap",
  "internment",
  "la-arena",
+ "lazy_static",
  "toc_span",
 ]
 

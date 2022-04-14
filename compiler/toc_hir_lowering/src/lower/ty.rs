@@ -1,4 +1,5 @@
 //! Lowering into `Type` HIR nodes
+use toc_hir::symbol::syms;
 use toc_hir::{symbol, ty};
 use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
@@ -125,11 +126,10 @@ impl super::BodyLowering<'_, '_> {
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
         let span = self.ctx.intern_range(ty.syntax().text_range());
         let elem = self.lower_required_type(ty.elem_ty());
-        let def_id =
-            self.ctx
-                .library
-                .add_def("<anonymous>".into(), span, symbol::SymbolKind::Declared);
-        // TODO: ^ use sym constant
+        let def_id = self
+            .ctx
+            .library
+            .add_def(*syms::Anonymous, span, symbol::SymbolKind::Declared);
 
         Some(ty::TypeKind::Set(ty::Set {
             def_id,

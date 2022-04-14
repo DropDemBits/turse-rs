@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
+use toc_hir::symbol::syms;
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
@@ -355,9 +356,8 @@ impl super::BodyLowering<'_, '_> {
         // Prevent duplication of param names
         self.ctx.scopes.push_scope(ScopeKind::SubprogramHeader);
         {
-            // TODO: use sym constant
             let missing_name = self.ctx.library.add_def(
-                "<unnamed>".into(),
+                *syms::Unnamed,
                 self.ctx.library.span_map.dummy_span(),
                 SymbolKind::Declared,
             );

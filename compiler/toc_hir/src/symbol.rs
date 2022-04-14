@@ -12,6 +12,8 @@ use crate::{
     stmt::BodyStmt,
 };
 
+pub mod syms;
+
 /// Reference to an interned symbol
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Symbol(internment::Intern<String>);

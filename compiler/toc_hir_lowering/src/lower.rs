@@ -26,7 +26,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
-use toc_hir::symbol::Symbol;
+use toc_hir::symbol::{syms, Symbol};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -148,9 +148,8 @@ impl<'ctx> FileLowering<'ctx> {
             None,
         );
 
-        // TODO: use sym constant
         let module_def = self.library.add_def(
-            "<root>".into(),
+            *syms::Root,
             self.library.span_map.dummy_span(),
             symbol::SymbolKind::Declared,
         );
