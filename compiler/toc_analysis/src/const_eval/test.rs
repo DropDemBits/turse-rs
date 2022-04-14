@@ -66,7 +66,7 @@ fn do_const_eval(source: &str) -> String {
                 format!(
                     "{:?}@{:?}",
                     def_info.name,
-                    def_info.def_at.lookup_in(&self.library.span_map)
+                    def_info.def_at.lookup_in(&self.library)
                 )
             };
 

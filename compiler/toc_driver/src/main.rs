@@ -212,7 +212,6 @@ impl ariadne::Cache<FileId> for VfsCache<'_> {
     toc_ast_db::db::SpanMappingStorage,
     toc_ast_db::db::SourceParserStorage,
     toc_hir_db::db::HirDatabaseStorage,
-    toc_hir_db::db::InternedTypeStorage,
     toc_analysis::db::TypeInternStorage,
     toc_analysis::db::TypeDatabaseStorage,
     toc_analysis::db::ConstEvalStorage,

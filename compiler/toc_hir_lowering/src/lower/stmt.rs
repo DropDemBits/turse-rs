@@ -9,7 +9,7 @@ use toc_hir::{
     symbol::{self, ForwardKind, LimitedKind, Mutability, Symbol, SymbolKind},
     ty,
 };
-use toc_span::{Span, SpanId, Spanned};
+use toc_span::{HasSpanTable, Span, SpanId, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::{lower::LoweredStmt, scopes::ScopeKind};
@@ -89,7 +89,7 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn unsupported_stmt(&mut self, span: SpanId) -> Option<stmt::StmtKind> {
-        let span = self.ctx.library.lookup_span(span);
+        let span = span.lookup_in(&self.ctx.library);
         self.ctx.messages.error(
             "unsupported statement",
             "this statement is not handled yet",
@@ -358,7 +358,7 @@ impl super::BodyLowering<'_, '_> {
         {
             let missing_name = self.ctx.library.add_def(
                 *syms::Unnamed,
-                self.ctx.library.span_map.dummy_span(),
+                self.ctx.library.span_table().dummy_span(),
                 SymbolKind::Declared,
             );
 
@@ -737,7 +737,7 @@ impl super::BodyLowering<'_, '_> {
                             let opaque_span = self.ctx.mk_span(opaque_attr.syntax().text_range());
                             let def_info = self.ctx.library.local_def(item.def_id);
                             let def_name = def_info.name;
-                            let def_span = def_info.def_at.lookup_in(&self.ctx.library.span_map);
+                            let def_span = def_info.def_at.lookup_in(&self.ctx.library);
 
                             self.ctx
                                 .messages
@@ -765,40 +765,39 @@ impl super::BodyLowering<'_, '_> {
                                 false
                             };
 
-                        let mutability = if !is_mutability_applicable
-                            && mutability == Mutability::Var
-                        {
-                            let var_attr = exports_item
-                                .attrs()
-                                .find_map(|attr| {
-                                    if let ast::ExportAttr::VarAttr(attr) = attr {
-                                        Some(attr)
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .unwrap();
+                        let mutability =
+                            if !is_mutability_applicable && mutability == Mutability::Var {
+                                let var_attr = exports_item
+                                    .attrs()
+                                    .find_map(|attr| {
+                                        if let ast::ExportAttr::VarAttr(attr) = attr {
+                                            Some(attr)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap();
 
-                            let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
-                            let def_info = self.ctx.library.local_def(item.def_id);
-                            let def_name = def_info.name;
-                            let def_span = def_info.def_at.lookup_in(&self.ctx.library.span_map);
+                                let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
+                                let def_info = self.ctx.library.local_def(item.def_id);
+                                let def_name = def_info.name;
+                                let def_span = def_info.def_at.lookup_in(&self.ctx.library);
 
-                            self.ctx
-                                .messages
-                                .error_detailed("cannot use `var` here", var_span)
-                                .with_error(
-                                    "`var` attribute can only be applied to variables",
-                                    var_span,
-                                )
-                                .with_note(format!("`{def_name}` declared here"), def_span)
-                                .finish();
+                                self.ctx
+                                    .messages
+                                    .error_detailed("cannot use `var` here", var_span)
+                                    .with_error(
+                                        "`var` attribute can only be applied to variables",
+                                        var_span,
+                                    )
+                                    .with_note(format!("`{def_name}` declared here"), def_span)
+                                    .finish();
 
-                            // Don't carry it through
-                            Mutability::Const
-                        } else {
-                            mutability
-                        };
+                                // Don't carry it through
+                                Mutability::Const
+                            } else {
+                                mutability
+                            };
 
                         let item_def = item.def_id;
                         let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
@@ -1259,8 +1258,8 @@ impl super::BodyLowering<'_, '_> {
             // Report redeclares, specializing based on what kind of declaration it is
             let old_def_info = self.ctx.library.local_def(old_def);
 
-            let old_span = self.ctx.library.lookup_span(old_def_info.def_at);
-            let new_span = self.ctx.library.lookup_span(span);
+            let old_span = old_def_info.def_at.lookup_in(&self.ctx.library);
+            let new_span = span.lookup_in(&self.ctx.library);
 
             // Just use the name from the old def for both, since by definition they are the same
             let name = old_def_info.name;
@@ -1324,7 +1323,7 @@ impl super::BodyLowering<'_, '_> {
                         .library
                         .local_def(exported_from)
                         .def_at
-                        .lookup_in(&self.ctx.library.span_map);
+                        .lookup_in(&self.ctx.library);
 
                     self.ctx
                         .messages

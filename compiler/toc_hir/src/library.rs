@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use la_arena::Arena;
-use toc_span::{FileId, Span, SpanId, SpanTable};
+use toc_span::{FileId, HasSpanTable, SpanTable};
 
 use crate::{body, item, symbol, ty};
 
@@ -54,7 +54,7 @@ pub struct Library {
     /// Map between library files and root items
     pub root_items: IndexMap<FileId, item::ItemId>,
     /// Table of all interned spans
-    pub span_map: SpanTable,
+    pub(crate) span_map: SpanTable,
     /// Table of all interned types
     pub(crate) type_map: ty::TypeTable,
     pub(crate) items: Arena<item::Item>,
@@ -87,10 +87,6 @@ impl Library {
         self.type_map.lookup_type(type_id)
     }
 
-    pub fn lookup_span(&self, span_id: SpanId) -> Span {
-        self.span_map.lookup_span(span_id)
-    }
-
     pub fn local_defs(&self) -> impl Iterator<Item = symbol::LocalDefId> + '_ {
         self.defs.iter().map(|(id, _)| symbol::LocalDefId(id))
     }
@@ -100,6 +96,12 @@ impl Library {
             .iter()
             .map(|(idx, _)| body::BodyId(idx))
             .collect()
+    }
+}
+
+impl HasSpanTable for Library {
+    fn span_table(&self) -> &SpanTable {
+        &self.span_map
     }
 }
 

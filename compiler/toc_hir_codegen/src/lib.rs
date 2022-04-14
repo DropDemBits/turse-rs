@@ -1088,7 +1088,7 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_stmt(&mut self, stmt_id: hir_stmt::StmtId) {
         let stmt = self.body.stmt(stmt_id);
-        let span = self.library.lookup_span(stmt.span);
+        let span = stmt.span.lookup_in(&self.library);
         self.emit_location(span);
 
         self.code_fragment.bump_temp_allocs();
@@ -1617,7 +1617,7 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_item(&mut self, item_id: hir_item::ItemId) {
         let item = self.library.item(item_id);
-        let span = self.library.lookup_span(item.span);
+        let span = item.span.lookup_in(&self.library);
         self.emit_location(span);
 
         match &item.kind {
@@ -1788,7 +1788,7 @@ impl BodyCodeGenerator<'_> {
 
     fn generate_expr(&mut self, expr_id: hir_expr::ExprId) {
         let expr = self.body.expr(expr_id);
-        let span = self.library.lookup_span(expr.span);
+        let span = expr.span.lookup_in(&self.library);
         self.emit_location(span);
 
         match &expr.kind {
@@ -2338,7 +2338,7 @@ impl BodyCodeGenerator<'_> {
     /// Like `generate_expr`, but for producing references to locations
     fn generate_ref_expr(&mut self, expr_id: hir_expr::ExprId) {
         let expr = self.body.expr(expr_id);
-        let span = self.library.lookup_span(expr.span);
+        let span = expr.span.lookup_in(&self.library);
         self.emit_location(span);
 
         match &expr.kind {

@@ -34,7 +34,7 @@ pub(crate) fn evaluate_const(
 
     let library = db.library(library_id);
     let body = library.body(body_id);
-    let span_map = &library.span_map;
+    let span_map = &library;
 
     let root_expr = match expr {
         Const::Unevaluated(_, _) => match &body.kind {
@@ -152,7 +152,7 @@ pub(crate) fn evaluate_const(
 
                         if !ty::rules::is_assignable(db, left, right) {
                             // Wrong types
-                            let span = library.body(body).span.lookup_in(&library.span_map);
+                            let span = library.body(body).span.lookup_in(&library);
                             return Err(ConstError::new(ErrorKind::WrongResultType, span));
                         }
 
@@ -181,7 +181,7 @@ pub(crate) fn evaluate_const(
 
                             if !(min..=max).contains(&as_ordinal) {
                                 // Is outside of value range
-                                let span = library.body(body).span.lookup_in(&library.span_map);
+                                let span = library.body(body).span.lookup_in(&library);
                                 return Err(ConstError::new(ErrorKind::OutsideRange, span));
                             }
                         }

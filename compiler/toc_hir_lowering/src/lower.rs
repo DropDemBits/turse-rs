@@ -37,7 +37,7 @@ use toc_hir::{
     symbol::{self, LocalDefId},
 };
 use toc_reporting::{CompileResult, MessageBundle, MessageSink};
-use toc_span::{FileId, Span, SpanId, TextRange};
+use toc_span::{FileId, HasSpanTable, Span, SpanId, TextRange};
 use toc_syntax::ast::{self, AstNode};
 
 use crate::{scopes, LoweredLibrary, LoweringDb};
@@ -150,7 +150,7 @@ impl<'ctx> FileLowering<'ctx> {
 
         let module_def = self.library.add_def(
             *syms::Root,
-            self.library.span_map.dummy_span(),
+            self.library.span_table().dummy_span(),
             symbol::SymbolKind::Declared,
         );
         let module_span = self.intern_range(root.syntax().text_range());
@@ -234,7 +234,7 @@ impl<'ctx> FileLowering<'ctx> {
         // Lower expr
         let expr = Expr {
             kind: ExprKind::Missing,
-            span: self.library.span_map.dummy_span(),
+            span: self.library.span_table().dummy_span(),
         };
         let mut body = builder::BodyBuilder::default();
         let root_expr = body.add_expr(expr);

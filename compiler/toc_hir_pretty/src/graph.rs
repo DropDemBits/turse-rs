@@ -21,7 +21,7 @@ use toc_hir::{
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::SpanId;
+use toc_span::{HasSpanTable, SpanId};
 
 const IS_LR_LAYOUT: bool = true;
 
@@ -211,7 +211,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_span(&self, span: SpanId) -> String {
-        let span = self.library.span_map.lookup_span(span);
+        let span = span.lookup_in(self.library);
 
         if let Some((file_id, range)) = span.into_parts() {
             format!("({file_id:?}, {range:?})")
@@ -514,7 +514,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             self.emit_node(
                 &node_id,
                 "SubprogramParams",
-                self.library.span_map.dummy_span(),
+                self.library.span_table().dummy_span(),
                 Layout::Vbox(v_layout),
             );
 
@@ -533,7 +533,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
                 let def_info = self.library.local_def(def_id);
                 (def_info.def_at, self.display_def_id(def_id))
             } else {
-                (self.library.span_map.dummy_span(), "".into())
+                (self.library.span_table().dummy_span(), "".into())
             };
 
             self.emit_node(
@@ -602,7 +602,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             self.emit_node(
                 &export_table,
                 "ExportTable",
-                self.library.span_map.dummy_span(),
+                self.library.span_table().dummy_span(),
                 Layout::Vbox(v_layout),
             );
 

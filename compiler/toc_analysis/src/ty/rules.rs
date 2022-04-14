@@ -581,7 +581,7 @@ pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
                         .body(body_id)
                         .expr(expr.lhs)
                         .span
-                        .lookup_in(&library.span_map),
+                        .lookup_in(&library),
                 )
             }),
             right_info: (!is_right_value).then(|| {
@@ -591,7 +591,7 @@ pub fn check_binary_op_values<T: ?Sized + db::TypeDatabase>(
                         .body(body_id)
                         .expr(expr.rhs)
                         .span
-                        .lookup_in(&library.span_map),
+                        .lookup_in(&library),
                 )
             }),
         })
@@ -624,7 +624,7 @@ pub fn check_unary_op_values<T: ?Sized + db::TypeDatabase>(
                     .body(body_id)
                     .expr(expr.rhs)
                     .span
-                    .lookup_in(&library.span_map),
+                    .lookup_in(&library),
             ),
         })
     }
@@ -1482,7 +1482,7 @@ fn report_not_value<'db, DB>(
     let def_library = db.library(binding_def.0);
     let def_info = def_library.local_def(binding_def.1);
     let name = def_info.name;
-    let def_at = def_info.def_at.lookup_in(&def_library.span_map);
+    let def_at = def_info.def_at.lookup_in(&def_library);
 
     reporter
         .error_detailed(format!("cannot use `{name}` as an expression"), span)

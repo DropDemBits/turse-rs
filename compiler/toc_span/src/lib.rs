@@ -121,8 +121,8 @@ impl SpanId {
     /// Looks up the span in the given span table
     ///
     /// Infix/postfix version of using the span table
-    pub fn lookup_in(self, span_map: &SpanTable) -> Span {
-        span_map.lookup_span(self)
+    pub fn lookup_in(self, span_map: impl HasSpanTable) -> Span {
+        span_map.span_table().lookup_span(self)
     }
 }
 
@@ -169,5 +169,43 @@ impl SpanTable {
     /// Makes up a dummy span
     pub fn dummy_span(&self) -> SpanId {
         self.dummy_span
+    }
+}
+
+/// Anything which has a span table
+pub trait HasSpanTable {
+    fn span_table(&self) -> &SpanTable;
+}
+
+impl HasSpanTable for SpanTable {
+    fn span_table(&self) -> &SpanTable {
+        self
+    }
+}
+
+impl<T> HasSpanTable for &T
+where
+    T: HasSpanTable,
+{
+    fn span_table(&self) -> &SpanTable {
+        T::span_table(self)
+    }
+}
+
+impl<T> HasSpanTable for &mut T
+where
+    T: HasSpanTable,
+{
+    fn span_table(&self) -> &SpanTable {
+        T::span_table(self)
+    }
+}
+
+impl<T> HasSpanTable for std::sync::Arc<T>
+where
+    T: HasSpanTable,
+{
+    fn span_table(&self) -> &SpanTable {
+        T::span_table(self)
     }
 }

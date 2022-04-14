@@ -116,6 +116,12 @@ impl std::ops::DerefMut for LibraryBuilder {
     }
 }
 
+impl toc_span::HasSpanTable for LibraryBuilder {
+    fn span_table(&self) -> &toc_span::SpanTable {
+        self.library.span_table()
+    }
+}
+
 /// Builder for constructing a [`Body`]
 ///
 /// [`Body`]: body::Body
