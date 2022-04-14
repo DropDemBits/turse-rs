@@ -130,33 +130,33 @@ mod windows {
 
 #[test]
 fn paths_need_joining() {
-    assert_eq!(needs_joining(Path::new("../a")), true);
-    assert_eq!(needs_joining(Path::new("./a")), true);
-    assert_eq!(needs_joining(Path::new("a")), true);
-    assert_eq!(needs_joining(Path::new("")), true);
+    assert!(needs_joining(Path::new("../a")));
+    assert!(needs_joining(Path::new("./a")));
+    assert!(needs_joining(Path::new("a")));
+    assert!(needs_joining(Path::new("")));
 
     if cfg!(windows) {
         // Drive relative paths needs joining (and fixups)
-        assert_eq!(needs_joining(Path::new(r#"C:..\a"#)), true);
-        assert_eq!(needs_joining(Path::new(r#"C:.\a"#)), true);
-        assert_eq!(needs_joining(Path::new(r#"C:a"#)), true);
-        assert_eq!(needs_joining(Path::new(r#"C:"#)), true);
+        assert!(needs_joining(Path::new(r#"C:..\a"#)));
+        assert!(needs_joining(Path::new(r#"C:.\a"#)));
+        assert!(needs_joining(Path::new(r#"C:a"#)));
+        assert!(needs_joining(Path::new(r#"C:"#)));
     }
 }
 
 #[test]
 fn paths_dont_need_joining() {
-    assert_eq!(needs_joining(Path::new("/")), false);
+    assert!(!needs_joining(Path::new("/")));
 
     if cfg!(windows) {
         // Drive absolute paths don't need joining
-        assert_eq!(needs_joining(Path::new(r#"C:\"#)), false);
+        assert!(!needs_joining(Path::new(r#"C:\"#)));
 
         // All other prefixes don't need joining
-        assert_eq!(needs_joining(Path::new(r#"\\?\heyo"#)), false);
-        assert_eq!(needs_joining(Path::new(r#"\\?\UNC\remote\place"#)), false);
-        assert_eq!(needs_joining(Path::new(r#"\\?\C:\verbatim_disk"#)), false);
-        assert_eq!(needs_joining(Path::new(r#"\\.\NUL"#)), false);
-        assert_eq!(needs_joining(Path::new(r#"\\UNC\remote\location"#)), false);
+        assert!(!needs_joining(Path::new(r#"\\?\heyo"#)));
+        assert!(!needs_joining(Path::new(r#"\\?\UNC\remote\place"#)));
+        assert!(!needs_joining(Path::new(r#"\\?\C:\verbatim_disk"#)));
+        assert!(!needs_joining(Path::new(r#"\\.\NUL"#)));
+        assert!(!needs_joining(Path::new(r#"\\UNC\remote\location"#)));
     }
 }
