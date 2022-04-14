@@ -283,7 +283,7 @@ mod test {
 
         let srcs = generate_vfs(
             &mut db,
-            &format!("%%- empty/file0.t\n%%- empty/file1.t\n%%- empty/file2.t"),
+            "%%- empty/file0.t\n%%- empty/file1.t\n%%- empty/file2.t",
         );
 
         let file = db.vfs.resolve_path(None, "empty/file0.t").into_file_id();

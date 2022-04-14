@@ -235,7 +235,7 @@ mod test {
     fn with_unicode() {
         // |a|£|_|£|_|💖|_|_|_|a|\n|a|
         let source = Arc::new("a££💖a\na".to_string());
-        let map = LineMapping::from_source(source.clone());
+        let map = LineMapping::from_source(source);
 
         // start of first 'a'
         assert_eq!(map.map_index(0).map(line_span), Some((0, 0..11)));
@@ -281,7 +281,7 @@ mod test {
     #[test]
     fn ignore_cr_in_char_count() {
         let source = Arc::new("a\r\nb".to_string());
-        let map = LineMapping::from_source(source.clone());
+        let map = LineMapping::from_source(source);
 
         assert_eq!(map.map_index_to_character(0), Some(0));
         assert_eq!(map.map_index_to_character(1), Some(1));
