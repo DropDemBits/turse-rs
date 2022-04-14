@@ -1231,7 +1231,7 @@ impl super::BodyLowering<'_, '_> {
 
     fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
         let def_info = self.ctx.library.local_def(def_id);
-        let name = def_info.name.name();
+        let name = def_info.name;
         let span = def_info.def_at;
         let kind = def_info.kind;
 
