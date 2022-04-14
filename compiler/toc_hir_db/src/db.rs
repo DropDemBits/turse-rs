@@ -7,7 +7,6 @@ use toc_hir::{
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     symbol::{DefId, DefOwner, DefTable},
-    ty,
 };
 use toc_salsa::salsa;
 
@@ -59,11 +58,4 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// or itself if it is one.
     #[salsa::invoke(query::resolve_def)]
     fn resolve_def(&self, def_id: DefId) -> DefId;
-}
-
-/// Salsa-backed type interner
-#[salsa::query_group(InternedTypeStorage)]
-pub trait InternedType {
-    #[salsa::interned]
-    fn intern_type(&self, ty: Arc<ty::Type>) -> salsa::InternId;
 }

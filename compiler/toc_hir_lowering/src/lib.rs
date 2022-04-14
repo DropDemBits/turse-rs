@@ -25,6 +25,10 @@ use toc_reporting::CompileResult;
 use toc_span::FileId;
 
 /// Trait representing a database that can store a lowered HIR tree
+//
+// Note: So long as we have a split between `hir_lowering` and `hir_db`, we can't use salsa's interner
+// with a trait we defined here, as that would require a foreign blanket impl on a foreign trait.
+// (this is why symbol interning is handled by the `internment` crate.)
 pub trait LoweringDb: toc_ast_db::db::SourceParser {
     /// Lowers the given file as the root of a HIR library.
     ///
