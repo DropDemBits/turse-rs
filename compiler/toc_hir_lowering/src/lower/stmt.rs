@@ -355,8 +355,9 @@ impl super::BodyLowering<'_, '_> {
         // Prevent duplication of param names
         self.ctx.scopes.push_scope(ScopeKind::SubprogramHeader);
         {
+            // TODO: use sym constant
             let missing_name = self.ctx.library.add_def(
-                "<unnamed>",
+                "<unnamed>".into(),
                 self.ctx.library.span_map.dummy_span(),
                 SymbolKind::Declared,
             );
@@ -663,7 +664,7 @@ impl super::BodyLowering<'_, '_> {
 
                     let item_def = item.def_id;
                     let def_id = self.ctx.library.add_def(
-                        export_name.name(),
+                        export_name,
                         export_span,
                         SymbolKind::ItemExport(item_def),
                     );
@@ -801,9 +802,8 @@ impl super::BodyLowering<'_, '_> {
 
                         let item_def = item.def_id;
                         let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
-                        // FIXME: Use Into<Symbol>
                         let def_id = self.ctx.library.add_def(
-                            name_text.name(),
+                            name_text,
                             export_span,
                             SymbolKind::ItemExport(item_def),
                         );
@@ -1226,7 +1226,7 @@ impl super::BodyLowering<'_, '_> {
     fn name_to_def(&mut self, name: ast::Name, kind: SymbolKind) -> symbol::LocalDefId {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
-        self.ctx.library.add_def(token.text(), span, kind)
+        self.ctx.library.add_def(token.text().into(), span, kind)
     }
 
     fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {

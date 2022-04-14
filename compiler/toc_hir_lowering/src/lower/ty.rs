@@ -100,7 +100,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::NameExpr(expr) => {
                 // simple alias
                 let name = expr.name()?.identifier_token()?;
-                let def_id = self.ctx.use_sym(name.text(), span);
+                let def_id = self.ctx.use_sym(name.text().into(), span);
 
                 Some(ty::TypeKind::Alias(ty::Alias(def_id)))
             }
@@ -125,10 +125,11 @@ impl super::BodyLowering<'_, '_> {
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
         let span = self.ctx.intern_range(ty.syntax().text_range());
         let elem = self.lower_required_type(ty.elem_ty());
-        let def_id = self
-            .ctx
-            .library
-            .add_def("<anonymous>", span, symbol::SymbolKind::Declared);
+        let def_id =
+            self.ctx
+                .library
+                .add_def("<anonymous>".into(), span, symbol::SymbolKind::Declared);
+        // TODO: ^ use sym constant
 
         Some(ty::TypeKind::Set(ty::Set {
             def_id,

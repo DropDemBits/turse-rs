@@ -39,12 +39,12 @@ impl LibraryBuilder {
     /// [`LocalDefId`]: crate::symbol::LocalDefId
     pub fn add_def(
         &mut self,
-        name: &str,
+        name: Symbol,
         span: SpanId,
         kind: symbol::SymbolKind,
     ) -> symbol::LocalDefId {
         let def = symbol::DefInfo {
-            name: Symbol::new(name.to_string()),
+            name,
             def_at: span,
             kind,
         };

@@ -126,14 +126,13 @@ impl ScopeTracker {
     /// The definition in scope that previously held this `name`, if present
     pub fn def_sym(
         &mut self,
-        name: impl Into<Symbol>,
+        name: Symbol,
         def_id: symbol::LocalDefId,
         kind: SymbolKind,
         is_pervasive: bool,
     ) -> Option<symbol::LocalDefId> {
         use std::collections::hash_map::Entry;
 
-        let name = name.into();
         let last_def = self.lookup_def(name, LookupKind::OnDef);
         let def_scope = self.scopes.last_mut().unwrap();
         def_scope.def_in(name, def_id);
@@ -179,11 +178,9 @@ impl ScopeTracker {
     /// Looks up the given def named `name`, using `or_undeclared` if it doesn't exist
     pub fn use_sym(
         &mut self,
-        name: impl Into<Symbol>,
+        name: Symbol,
         or_undeclared: impl FnOnce() -> symbol::LocalDefId,
     ) -> symbol::LocalDefId {
-        let name = name.into();
-
         self.lookup_def(name, LookupKind::OnUse).unwrap_or_else(|| {
             // ???: Do we still need to declare undecl's at the boundary scope?
             // Since we plan to run another pass to collect defs for the export tables,
@@ -213,12 +210,11 @@ impl ScopeTracker {
 
     pub fn take_resolved_forwards(
         &mut self,
-        name: impl Into<Symbol>,
+        name: Symbol,
         resolve_kind: ForwardKind,
     ) -> Option<Vec<symbol::LocalDefId>> {
         use std::collections::hash_map::Entry;
 
-        let name = name.into();
         let def_scope = self.scopes.last_mut().unwrap();
         let forward_group = def_scope.forward_symbols.entry(name);
 
