@@ -3,7 +3,7 @@ use toc_hir::{
     body, expr,
     symbol::{LimitedKind, SymbolKind},
 };
-use toc_span::{Span, SpanId, Spanned, TextRange};
+use toc_span::{HasSpanTable, Span, SpanId, Spanned, TextRange};
 use toc_syntax::{
     ast::{self, AstNode},
     LiteralValue,
@@ -85,7 +85,7 @@ impl super::BodyLowering<'_, '_> {
         // Allocate a generic span
         let missing = expr::Expr {
             kind: expr::ExprKind::Missing,
-            span: self.ctx.library.span_map.dummy_span(),
+            span: self.ctx.library.span_table().dummy_span(),
         };
         self.body.add_expr(missing)
     }

@@ -1,7 +1,7 @@
 //! Lowering into `Type` HIR nodes
 use toc_hir::symbol::syms;
 use toc_hir::{symbol, ty};
-use toc_span::Span;
+use toc_span::{HasSpanTable, Span};
 use toc_syntax::ast::{self, AstNode};
 
 impl super::BodyLowering<'_, '_> {
@@ -11,7 +11,7 @@ impl super::BodyLowering<'_, '_> {
             // Allocate a generic span
             let ty = ty::Type {
                 kind: ty::TypeKind::Missing,
-                span: self.ctx.library.span_map.dummy_span(),
+                span: self.ctx.library.span_table().dummy_span(),
             };
             self.ctx.library.intern_type(ty)
         })

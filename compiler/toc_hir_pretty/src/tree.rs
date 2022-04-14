@@ -16,7 +16,7 @@ use toc_hir::{
     ty,
     visitor::{HirVisitor, WalkEvent, Walker},
 };
-use toc_span::SpanId;
+use toc_span::{HasSpanTable, SpanId};
 
 pub fn pretty_print_tree(lowered: &LoweredLibrary) -> String {
     let mut output = String::new();
@@ -89,7 +89,7 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_span(&self, span: SpanId) -> String {
-        let span = self.library.span_map.lookup_span(span);
+        let span = span.lookup_in(self.library);
 
         if let Some((file_id, range)) = span.into_parts() {
             format!("({file_id:?}, {range:?})")
@@ -189,13 +189,13 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
 
 impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     fn visit_library(&self, _library: &library::Library) {
-        self.emit_node("Library", self.library.span_map.dummy_span(), None);
+        self.emit_node("Library", self.library.span_table().dummy_span(), None);
     }
 
     fn visit_file_root(&self, file: toc_span::FileId, id: item::ItemId) {
         self.emit_node(
             "Root",
-            self.library.span_map.dummy_span(),
+            self.library.span_table().dummy_span(),
             Some(format_args!("{file:?} -> {id:?}")),
         );
     }

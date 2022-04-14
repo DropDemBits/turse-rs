@@ -237,15 +237,11 @@ impl ValueSource {
         match self {
             ValueSource::Body(lib_id, body_id) => {
                 let library = db.library(lib_id);
-                library.body(body_id).span.lookup_in(&library.span_map)
+                library.body(body_id).span.lookup_in(&library)
             }
             ValueSource::BodyExpr(lib_id, BodyExpr(body_id, expr_id)) => {
                 let library = db.library(lib_id);
-                library
-                    .body(body_id)
-                    .expr(expr_id)
-                    .span
-                    .lookup_in(&library.span_map)
+                library.body(body_id).expr(expr_id).span.lookup_in(&library)
             }
         }
     }

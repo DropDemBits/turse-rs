@@ -236,16 +236,12 @@ impl TypeCheck<'_> {
 
         if !ty::rules::is_assignable(self.db, left, right) {
             // Incompatible, report it
-            let init_span = self
-                .library
-                .body(init)
-                .span
-                .lookup_in(&self.library.span_map);
+            let init_span = self.library.body(init).span.lookup_in(&self.library);
             let spec_span = self
                 .library
                 .lookup_type(ty_spec)
                 .span
-                .lookup_in(&self.library.span_map);
+                .lookup_in(&self.library);
 
             self.report_mismatched_assign_tys(left, right, init_span, spec_span, init_span, None);
 
@@ -280,7 +276,7 @@ impl TypeCheck<'_> {
             .library
             .body(item.bind_to)
             .span
-            .lookup_in(&self.library.span_map);
+            .lookup_in(&self.library);
 
         self.expect_value_kind(
             expected_value,
@@ -315,7 +311,7 @@ impl TypeCheck<'_> {
     fn typeck_assign(&self, in_body: body::BodyId, item: &stmt::Assign) {
         let lib_id = self.library_id;
         let db = self.db;
-        let asn_span = item.asn.lookup_in(&self.library.span_map);
+        let asn_span = item.asn.lookup_in(&self.library);
 
         let lhs = (lib_id, in_body, item.lhs);
         let rhs = (lib_id, in_body, item.rhs);
@@ -327,7 +323,7 @@ impl TypeCheck<'_> {
                 .body(in_body)
                 .expr(item.lhs)
                 .span
-                .lookup_in(&self.library.span_map);
+                .lookup_in(&self.library);
 
             self.expect_value_kind(
                 ExpectedValue::Ref(Mutability::Var),
@@ -350,8 +346,8 @@ impl TypeCheck<'_> {
             if !ty::rules::is_assignable(db, left, right) {
                 // Invalid types!
                 let body = self.library.body(in_body);
-                let left_span = body.expr(item.lhs).span.lookup_in(&self.library.span_map);
-                let right_span = body.expr(item.rhs).span.lookup_in(&self.library.span_map);
+                let left_span = body.expr(item.lhs).span.lookup_in(&self.library);
+                let right_span = body.expr(item.rhs).span.lookup_in(&self.library);
 
                 self.report_mismatched_assign_tys(
                     left, right, asn_span, left_span, right_span, None,
@@ -378,7 +374,7 @@ impl TypeCheck<'_> {
                 .type_of((self.library_id, body_id, item.expr).into())
                 .in_db(self.db);
             let put_base_tyref = put_tyref.clone().to_base_type();
-            let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
+            let item_span = body.expr(item.expr).span.lookup_in(&self.library);
 
             if !self.expect_expression((self.library_id, body_id, item.expr).into()) {
                 continue;
@@ -402,7 +398,7 @@ impl TypeCheck<'_> {
             // - Real
             if !put_base_tyref.kind().is_number() {
                 if let Some(expr) = item.opts.precision() {
-                    let span = body.expr(expr).span.lookup_in(&self.library.span_map);
+                    let span = body.expr(expr).span.lookup_in(&self.library);
 
                     self.state()
                         .reporter
@@ -417,7 +413,7 @@ impl TypeCheck<'_> {
                 }
 
                 if let Some(expr) = item.opts.exponent_width() {
-                    let span = body.expr(expr).span.lookup_in(&self.library.span_map);
+                    let span = body.expr(expr).span.lookup_in(&self.library);
 
                     self.state()
                         .reporter
@@ -465,7 +461,7 @@ impl TypeCheck<'_> {
             let body_expr = item.expr.in_body(body_id);
             let ty = db.type_of((self.library_id, body_expr).into()).in_db(db);
             let base_ty = ty.clone().to_base_type();
-            let item_span = body.expr(item.expr).span.lookup_in(&self.library.span_map);
+            let item_span = body.expr(item.expr).span.lookup_in(&self.library);
 
             if !self.expect_value_kind(
                 ExpectedValue::Ref(Mutability::Var),
@@ -964,7 +960,7 @@ impl TypeCheck<'_> {
                 self.state().reporter.error(
                     format!("no field named `{field_name}` in expression"),
                     format!("no field named `{field_name}` in here"),
-                    expr.field.span().lookup_in(&self.library.span_map),
+                    expr.field.span().lookup_in(&self.library),
                 );
             }
         } else {
@@ -973,7 +969,7 @@ impl TypeCheck<'_> {
             self.state().reporter.error(
                 format!("no field named `{field_name}` in expression"),
                 format!("no field named `{field_name}` in here"),
-                expr.field.span().lookup_in(&self.library.span_map),
+                expr.field.span().lookup_in(&self.library),
             );
         }
     }
@@ -994,7 +990,7 @@ impl TypeCheck<'_> {
                 .body(rhs_expr.0)
                 .expr(rhs_expr.1)
                 .span
-                .lookup_in(&self.library.span_map);
+                .lookup_in(&self.library);
 
             self.state()
                 .reporter
@@ -1172,7 +1168,7 @@ impl TypeCheck<'_> {
                     .body(body_id)
                     .expr(*all_arg)
                     .span
-                    .lookup_in(&self.library.span_map);
+                    .lookup_in(&self.library);
 
                 self.state()
                     .reporter
@@ -1428,11 +1424,7 @@ impl TypeCheck<'_> {
         let (expr_body, expr_span) = match ty_node {
             toc_hir::ty::Primitive::SizedChar(toc_hir::ty::SeqLength::Expr(body))
             | toc_hir::ty::Primitive::SizedString(toc_hir::ty::SeqLength::Expr(body)) => {
-                let expr_span = self
-                    .library
-                    .body(*body)
-                    .span
-                    .lookup_in(&self.library.span_map);
+                let expr_span = self.library.body(*body).span.lookup_in(&self.library);
 
                 (*body, expr_span)
             }
@@ -1528,7 +1520,7 @@ impl TypeCheck<'_> {
             .library
             .lookup_type(ty.elem_ty)
             .span
-            .lookup_in(&self.library.span_map);
+            .lookup_in(&self.library);
 
         if !elem_tyref.clone().to_base_type().kind().is_index() {
             // Not an index type
@@ -1785,7 +1777,7 @@ impl TypeCheck<'_> {
                     let def_library = self.db.library(def_id.0);
                     let def_info = def_library.local_def(def_id.1);
                     let name = def_info.name;
-                    let def_at = def_info.def_at.lookup_in(&def_library.span_map);
+                    let def_at = def_info.def_at.lookup_in(&def_library);
 
                     (format!("`{name}`"), Some((def_id, def_at, binding_to)))
                 }
@@ -1813,7 +1805,7 @@ impl TypeCheck<'_> {
                     let exported_span = exported_library
                         .local_def(exporting_def.1)
                         .def_at
-                        .lookup_in(&exported_library.span_map);
+                        .lookup_in(&*exported_library);
 
                     builder
                         .with_error(format!("{thing} is not exported as `var`"), value_span)

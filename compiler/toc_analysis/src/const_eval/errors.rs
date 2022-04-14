@@ -67,7 +67,7 @@ impl ConstError {
                 let library = db.library(def_id.0);
                 let def_info = library.local_def(def_id.1);
                 let name = def_info.name;
-                let def_span = def_info.def_at.lookup_in(&library.span_map);
+                let def_span = def_info.def_at.lookup_in(&library);
 
                 reporter
                     .error_detailed(
