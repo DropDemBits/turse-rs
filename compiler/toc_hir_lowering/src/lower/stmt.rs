@@ -2,10 +2,11 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
+use toc_hir::symbol::syms;
 use toc_hir::{
     expr, item,
     stmt::{self, Assign},
-    symbol::{self, ForwardKind, LimitedKind, Mutability, SymbolKind},
+    symbol::{self, ForwardKind, LimitedKind, Mutability, Symbol, SymbolKind},
     ty,
 };
 use toc_span::{Span, SpanId, Spanned};
@@ -356,7 +357,7 @@ impl super::BodyLowering<'_, '_> {
         self.ctx.scopes.push_scope(ScopeKind::SubprogramHeader);
         {
             let missing_name = self.ctx.library.add_def(
-                "<unnamed>",
+                *syms::Unnamed,
                 self.ctx.library.span_map.dummy_span(),
                 SymbolKind::Declared,
             );
@@ -561,7 +562,7 @@ impl super::BodyLowering<'_, '_> {
         for item_id in declares {
             let item = self.ctx.library.item(*item_id);
             let def_info = self.ctx.library.local_def(item.def_id);
-            exported_items.insert(def_info.name.item().clone(), *item_id);
+            exported_items.insert(def_info.name, *item_id);
         }
 
         let lower_export_attrs =
@@ -663,7 +664,7 @@ impl super::BodyLowering<'_, '_> {
 
                     let item_def = item.def_id;
                     let def_id = self.ctx.library.add_def(
-                        &export_name,
+                        export_name,
                         export_span,
                         SymbolKind::ItemExport(item_def),
                     );
@@ -687,10 +688,10 @@ impl super::BodyLowering<'_, '_> {
                         lower_export_attrs(&exports_item, self.ctx);
                     let name = exports_item.name()?;
                     let name_tok = name.identifier_token().unwrap();
-                    let name_text = name_tok.text();
+                    let name_text = Symbol::new(name_tok.text());
 
                     // Warn about duplicate exports
-                    match already_exported.entry(name_text.to_string()) {
+                    match already_exported.entry(name_text) {
                         std::collections::hash_map::Entry::Occupied(entry) => {
                             // Already exported
                             let this_span = self.ctx.mk_span(exports_item.syntax().text_range());
@@ -713,7 +714,7 @@ impl super::BodyLowering<'_, '_> {
                         }
                     }
 
-                    let item = exported_items.get(name_text).copied();
+                    let item = exported_items.get(&name_text).copied();
 
                     if let Some(item_id) = item {
                         let item = self.ctx.library.item(item_id);
@@ -735,9 +736,8 @@ impl super::BodyLowering<'_, '_> {
 
                             let opaque_span = self.ctx.mk_span(opaque_attr.syntax().text_range());
                             let def_info = self.ctx.library.local_def(item.def_id);
-                            let def_name = def_info.name.item();
-                            let def_span =
-                                def_info.name.span().lookup_in(&self.ctx.library.span_map);
+                            let def_name = def_info.name;
+                            let def_span = def_info.def_at.lookup_in(&self.ctx.library.span_map);
 
                             self.ctx
                                 .messages
@@ -765,40 +765,40 @@ impl super::BodyLowering<'_, '_> {
                                 false
                             };
 
-                        let mutability =
-                            if !is_mutability_applicable && mutability == Mutability::Var {
-                                let var_attr = exports_item
-                                    .attrs()
-                                    .find_map(|attr| {
-                                        if let ast::ExportAttr::VarAttr(attr) = attr {
-                                            Some(attr)
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .unwrap();
+                        let mutability = if !is_mutability_applicable
+                            && mutability == Mutability::Var
+                        {
+                            let var_attr = exports_item
+                                .attrs()
+                                .find_map(|attr| {
+                                    if let ast::ExportAttr::VarAttr(attr) = attr {
+                                        Some(attr)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap();
 
-                                let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
-                                let def_info = self.ctx.library.local_def(item.def_id);
-                                let def_name = def_info.name.item();
-                                let def_span =
-                                    def_info.name.span().lookup_in(&self.ctx.library.span_map);
+                            let var_span = self.ctx.mk_span(var_attr.syntax().text_range());
+                            let def_info = self.ctx.library.local_def(item.def_id);
+                            let def_name = def_info.name;
+                            let def_span = def_info.def_at.lookup_in(&self.ctx.library.span_map);
 
-                                self.ctx
-                                    .messages
-                                    .error_detailed("cannot use `var` here", var_span)
-                                    .with_error(
-                                        "`var` attribute can only be applied to variables",
-                                        var_span,
-                                    )
-                                    .with_note(format!("`{def_name}` declared here"), def_span)
-                                    .finish();
+                            self.ctx
+                                .messages
+                                .error_detailed("cannot use `var` here", var_span)
+                                .with_error(
+                                    "`var` attribute can only be applied to variables",
+                                    var_span,
+                                )
+                                .with_note(format!("`{def_name}` declared here"), def_span)
+                                .finish();
 
-                                // Don't carry it through
-                                Mutability::Const
-                            } else {
-                                mutability
-                            };
+                            // Don't carry it through
+                            Mutability::Const
+                        } else {
+                            mutability
+                        };
 
                         let item_def = item.def_id;
                         let export_span = self.ctx.intern_range(exports_item.syntax().text_range());
@@ -1226,13 +1226,13 @@ impl super::BodyLowering<'_, '_> {
     fn name_to_def(&mut self, name: ast::Name, kind: SymbolKind) -> symbol::LocalDefId {
         let token = name.identifier_token().unwrap();
         let span = self.ctx.intern_range(token.text_range());
-        self.ctx.library.add_def(token.text(), span, kind)
+        self.ctx.library.add_def(token.text().into(), span, kind)
     }
 
     fn introduce_def(&mut self, def_id: symbol::LocalDefId, is_pervasive: bool) {
         let def_info = self.ctx.library.local_def(def_id);
-        let name = def_info.name.item();
-        let span = def_info.name.span();
+        let name = def_info.name;
+        let span = def_info.def_at;
         let kind = def_info.kind;
 
         // Bring into scope
@@ -1259,11 +1259,11 @@ impl super::BodyLowering<'_, '_> {
             // Report redeclares, specializing based on what kind of declaration it is
             let old_def_info = self.ctx.library.local_def(old_def);
 
-            let old_span = self.ctx.library.lookup_span(old_def_info.name.span());
+            let old_span = self.ctx.library.lookup_span(old_def_info.def_at);
             let new_span = self.ctx.library.lookup_span(span);
 
             // Just use the name from the old def for both, since by definition they are the same
-            let name = old_def_info.name.item();
+            let name = old_def_info.name;
 
             match (old_def_info.kind, kind) {
                 (SymbolKind::Undeclared, _) | (_, SymbolKind::Undeclared) => {
@@ -1323,8 +1323,7 @@ impl super::BodyLowering<'_, '_> {
                         .ctx
                         .library
                         .local_def(exported_from)
-                        .name
-                        .span()
+                        .def_at
                         .lookup_in(&self.ctx.library.span_map);
 
                     self.ctx

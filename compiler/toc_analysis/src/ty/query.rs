@@ -194,7 +194,7 @@ fn lookup_binding_def(db: &dyn TypeDatabase, bind_src: BindingSource) -> Result<
                     let def_id = db
                         .fields_of((lib_id, body_id, field.lhs).into())
                         .and_then(|fields| {
-                            fields.lookup(field.field.item()).map(|info| info.def_id)
+                            fields.lookup(*field.field.item()).map(|info| info.def_id)
                         })
                         .ok_or(NotBinding::Missing)?;
 
@@ -298,7 +298,7 @@ pub(super) fn value_produced(
                         .fields_of((lib_id, body_id, field.lhs).into())
                         .and_then(|fields| {
                             fields
-                                .lookup(field.field.item())
+                                .lookup(*field.field.item())
                                 .map(|info| (info.def_id, info.mutability))
                         })
                         .ok_or(NotValue::Missing)?;
@@ -368,7 +368,7 @@ pub(crate) fn fields_of(
                         .iter()
                         .map(|export| {
                             let local_def = library.item(export.item_id).def_id;
-                            let field_name = library.local_def(local_def).name.item().clone();
+                            let field_name = library.local_def(local_def).name;
                             let def_id = DefId(library_id, local_def);
 
                             let info = item::FieldInfo {
@@ -461,7 +461,7 @@ pub(crate) fn find_exported_def(
                 if let item::ItemKind::Module(module) = &library.item(item_id).kind {
                     // Find matching export
                     module.exports.iter().find_map(|export| {
-                        (library.local_def(export.def_id).name.item() == expr.field.item())
+                        (library.local_def(export.def_id).name == *expr.field.item())
                             .then(|| DefId(library_id, export.def_id))
                     })
                 } else {

@@ -154,7 +154,7 @@ impl super::BodyLowering<'_, '_> {
     fn lower_name_expr(&mut self, expr: ast::NameExpr) -> Option<expr::ExprKind> {
         let name = expr.name()?.identifier_token()?;
         let span = self.ctx.mk_span(name.text_range());
-        let def_id = self.ctx.use_sym(name.text(), span);
+        let def_id = self.ctx.use_sym(name.text().into(), span);
 
         let def_info = self.ctx.library.local_def(def_id);
         if let SymbolKind::LimitedDeclared(kind) = def_info.kind {
@@ -182,7 +182,7 @@ impl super::BodyLowering<'_, '_> {
 
         Some(expr::ExprKind::Field(expr::Field {
             lhs,
-            field: Spanned::new(field.to_string(), span),
+            field: Spanned::new(field.text().into(), span),
         }))
     }
 

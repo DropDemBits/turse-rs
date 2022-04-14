@@ -8,16 +8,16 @@ mod test;
 
 use std::collections::{HashMap, HashSet};
 
-use toc_hir::symbol::{self, ForwardKind, SymbolKind};
+use toc_hir::symbol::{self, ForwardKind, Symbol, SymbolKind};
 
 #[derive(Debug)]
 pub(crate) struct Scope {
     /// What kind of this scope this is
     kind: ScopeKind,
     /// All symbols declared in a scope.
-    symbols: HashMap<String, symbol::LocalDefId>,
+    symbols: HashMap<Symbol, symbol::LocalDefId>,
     /// Any symbols within this scope that relate to a forward declaration.
-    forward_symbols: HashMap<String, (ForwardKind, Vec<symbol::LocalDefId>)>,
+    forward_symbols: HashMap<Symbol, (ForwardKind, Vec<symbol::LocalDefId>)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,8 +68,8 @@ impl Scope {
         }
     }
 
-    fn def_in(&mut self, name: &str, def_id: symbol::LocalDefId) {
-        self.symbols.insert(name.to_string(), def_id);
+    fn def_in(&mut self, name: Symbol, def_id: symbol::LocalDefId) {
+        self.symbols.insert(name, def_id);
     }
 }
 
@@ -126,7 +126,7 @@ impl ScopeTracker {
     /// The definition in scope that previously held this `name`, if present
     pub fn def_sym(
         &mut self,
-        name: &str,
+        name: Symbol,
         def_id: symbol::LocalDefId,
         kind: SymbolKind,
         is_pervasive: bool,
@@ -141,7 +141,7 @@ impl ScopeTracker {
         match kind {
             SymbolKind::Forward(forward_kind, _) => {
                 // Add to this scope's forward declaration list
-                let forward_group = def_scope.forward_symbols.entry(name.to_string());
+                let forward_group = def_scope.forward_symbols.entry(name);
 
                 match forward_group {
                     Entry::Occupied(entry) => {
@@ -163,7 +163,7 @@ impl ScopeTracker {
             }
             SymbolKind::Declared => {
                 // Remove it completely, leaving any forward decls unresolved
-                def_scope.forward_symbols.remove(name);
+                def_scope.forward_symbols.remove(&name);
             }
             _ => (),
         }
@@ -178,7 +178,7 @@ impl ScopeTracker {
     /// Looks up the given def named `name`, using `or_undeclared` if it doesn't exist
     pub fn use_sym(
         &mut self,
-        name: &str,
+        name: Symbol,
         or_undeclared: impl FnOnce() -> symbol::LocalDefId,
     ) -> symbol::LocalDefId {
         self.lookup_def(name, LookupKind::OnUse).unwrap_or_else(|| {
@@ -210,13 +210,13 @@ impl ScopeTracker {
 
     pub fn take_resolved_forwards(
         &mut self,
-        name: &str,
+        name: Symbol,
         resolve_kind: ForwardKind,
     ) -> Option<Vec<symbol::LocalDefId>> {
         use std::collections::hash_map::Entry;
 
         let def_scope = self.scopes.last_mut().unwrap();
-        let forward_group = def_scope.forward_symbols.entry(name.to_string());
+        let forward_group = def_scope.forward_symbols.entry(name);
 
         match forward_group {
             Entry::Occupied(entry) => {
@@ -234,7 +234,7 @@ impl ScopeTracker {
     }
 
     /// Looks up a DefId, with respect to scoping rules
-    fn lookup_def(&self, name: &str, lookup_kind: LookupKind) -> Option<symbol::LocalDefId> {
+    fn lookup_def(&self, name: Symbol, lookup_kind: LookupKind) -> Option<symbol::LocalDefId> {
         // Top-down search through all scopes for a DefId
         let mut restrict_to_pervasive = false;
 
@@ -246,11 +246,11 @@ impl ScopeTracker {
                 .unwrap_or_default()
         {
             // In subprogram header for new definition, only look in this scope for duplicate parameter naming
-            return self.scopes.last().unwrap().symbols.get(name).copied();
+            return self.scopes.last().unwrap().symbols.get(&name).copied();
         }
 
         for scope in self.scopes.iter().rev() {
-            if let Some(def_id) = scope.symbols.get(name) {
+            if let Some(def_id) = scope.symbols.get(&name) {
                 let def_id = *def_id;
 
                 // Only allow an identifier to be fetched if we haven't

@@ -275,7 +275,7 @@ impl TypeCheck<'_> {
         let value_kind = db.value_produced(bind_to.into());
         let is_register = matches!(value_kind, Ok(ValueKind::Register(_)));
 
-        let from = self.library.local_def(item.def_id).name.item();
+        let from = self.library.local_def(item.def_id).name;
         let bind_to_span = self
             .library
             .body(item.bind_to)
@@ -958,7 +958,7 @@ impl TypeCheck<'_> {
         // FIXME: Point `in here` span at lhs / its binding def
 
         if let Some(fields) = db.fields_of((self.library_id, id.0, expr.lhs).into()) {
-            if fields.lookup(expr.field.item().as_str()).is_none() {
+            if fields.lookup(*expr.field.item()).is_none() {
                 // not a field
                 let field_name = expr.field.item();
                 self.state().reporter.error(
@@ -1070,7 +1070,7 @@ impl TypeCheck<'_> {
                 Some(def_id) => {
                     let library = self.db.library(def_id.0);
                     let def_info = library.local_def(def_id.1);
-                    let name = def_info.name.item();
+                    let name = def_info.name;
                     format!("`{name}`")
                 }
                 None => "expression".to_string(),
@@ -1251,7 +1251,7 @@ impl TypeCheck<'_> {
                 Some(def_id) => {
                     let library = self.db.library(def_id.0);
                     let def_info = library.local_def(def_id.1);
-                    let name = def_info.name.item();
+                    let name = def_info.name;
                     format!("`{name}`")
                 }
                 None => "this expression".to_string(),
@@ -1697,8 +1697,8 @@ impl TypeCheck<'_> {
                 let library = self.db.library(lib_id);
                 let def_info = library.local_def(local_def);
 
-                let name = def_info.name.item().as_str();
-                let def_at = library.lookup_span(def_info.name.span());
+                let name = def_info.name;
+                let def_at = library.lookup_span(def_info.def_at);
 
                 let binding_to = match self.db.binding_to(binding_source) {
                     Ok(kind) => kind,
@@ -1784,8 +1784,8 @@ impl TypeCheck<'_> {
                     };
                     let def_library = self.db.library(def_id.0);
                     let def_info = def_library.local_def(def_id.1);
-                    let name = def_info.name.item();
-                    let def_at = def_info.name.span().lookup_in(&def_library.span_map);
+                    let name = def_info.name;
+                    let def_at = def_info.def_at.lookup_in(&def_library.span_map);
 
                     (format!("`{name}`"), Some((def_id, def_at, binding_to)))
                 }
@@ -1812,8 +1812,7 @@ impl TypeCheck<'_> {
                     let exported_library = self.db.library(exporting_def.0);
                     let exported_span = exported_library
                         .local_def(exporting_def.1)
-                        .name
-                        .span()
+                        .def_at
                         .lookup_in(&exported_library.span_map);
 
                     builder
@@ -1920,7 +1919,7 @@ impl TypeCheck<'_> {
                 let ty_span = self.library.lookup_span(ty_span);
 
                 let def_library = self.db.library(def_id.0);
-                let name = def_library.local_def(def_id.1).name.item();
+                let name = def_library.local_def(def_id.1).name;
 
                 self.state().reporter.error(
                     format!("`{name}` has not been resolved at this point"),

@@ -31,8 +31,8 @@ fn test_ident_declare_use() {
     let mut defs = LocalDefAlloc::default();
 
     let def_id = defs.next();
-    scopes.def_sym("a", def_id, SymbolKind::Declared, false);
-    let lookup_id = scopes.use_sym("a", assert_declared);
+    scopes.def_sym("a".into(), def_id, SymbolKind::Declared, false);
+    let lookup_id = scopes.use_sym("a".into(), assert_declared);
 
     assert_eq!(def_id, lookup_id);
 }
@@ -44,12 +44,12 @@ fn test_ident_redeclare() {
 
     // First decl, pass
     let initial_id = defs.next();
-    let old_def = scopes.def_sym("a", initial_id, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), initial_id, SymbolKind::Declared, false);
     assert_eq!(old_def, None);
 
     // Redecl, have different ids
     let redeclare_id = defs.next();
-    let old_def = scopes.def_sym("a", redeclare_id, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), redeclare_id, SymbolKind::Declared, false);
 
     assert_ne!(initial_id, redeclare_id);
     // Should be the initial id
@@ -64,24 +64,24 @@ fn test_ident_declare_shadow() {
 
     // Outer declare
     let outer_def = defs.next();
-    let old_def = scopes.def_sym("a", outer_def, SymbolKind::Declared, false);
+    let old_def = scopes.def_sym("a".into(), outer_def, SymbolKind::Declared, false);
     assert_eq!(old_def, None);
 
     // Inner declare
     scopes.with_scope(false, |scopes| {
         let shadow_def = defs.next();
-        let old_def = scopes.def_sym("a", shadow_def, SymbolKind::Declared, false);
+        let old_def = scopes.def_sym("a".into(), shadow_def, SymbolKind::Declared, false);
 
         // Identifiers should be different
         assert_ne!(shadow_def, outer_def);
         // Old def should be outer_def
         assert_eq!(old_def, Some(outer_def));
         // Use here should fetch shadow_def
-        assert_eq!(scopes.use_sym("a", assert_declared), shadow_def);
+        assert_eq!(scopes.use_sym("a".into(), assert_declared), shadow_def);
     });
 
     // Use here should fetch outer_def
-    assert_eq!(scopes.use_sym("a", assert_declared), outer_def);
+    assert_eq!(scopes.use_sym("a".into(), assert_declared), outer_def);
 }
 
 #[test]
@@ -93,8 +93,8 @@ fn test_ident_declare_no_shadow() {
     // Inner declare
     let (shadow_def, shadow_use) = scopes.with_scope(false, |scopes| {
         let shadow_def = defs.next();
-        let old_def = scopes.def_sym("a", shadow_def, SymbolKind::Declared, false);
-        let shadow_use = scopes.use_sym("a", assert_declared);
+        let old_def = scopes.def_sym("a".into(), shadow_def, SymbolKind::Declared, false);
+        let shadow_use = scopes.use_sym("a".into(), assert_declared);
 
         assert!(old_def.is_none());
 
@@ -103,8 +103,8 @@ fn test_ident_declare_no_shadow() {
 
     // Outer declare
     let outer_def = defs.next();
-    let old_def = scopes.def_sym("a", outer_def, SymbolKind::Declared, false);
-    let outer_use = scopes.use_sym("a", assert_declared);
+    let old_def = scopes.def_sym("a".into(), outer_def, SymbolKind::Declared, false);
+    let outer_use = scopes.use_sym("a".into(), assert_declared);
 
     // No shadowing should be done, outer_use should match outer_def,
     // and old_def shouldn't exist
@@ -120,7 +120,7 @@ fn test_use_undefined() {
     let mut scopes = ScopeTracker::new();
     let mut defs = LocalDefAlloc::default();
 
-    let def_id = scopes.use_sym("a", || defs.next());
+    let def_id = scopes.use_sym("a".into(), || defs.next());
 
     // Should declare a new identifier
     assert_eq!(def_id, LocalDefId::new(0));
@@ -139,21 +139,21 @@ fn test_use_shared_undefined() {
                 scopes.with_scope(false, |scopes| {
                     scopes.with_scope(false, |scopes| {
                         // Hoist through nested inner blocks, functions, and procedures
-                        scopes.use_sym("undef", make_undeclared(&mut defs))
+                        scopes.use_sym("undef".into(), make_undeclared(&mut defs))
                     })
                 })
             })
         };
 
         // Declaration should have been hoisted to module level
-        let top_level = scopes.use_sym("undef", make_undeclared(&mut defs));
+        let top_level = scopes.use_sym("undef".into(), make_undeclared(&mut defs));
         assert_eq!(inner_id, top_level);
 
         inner_id
     });
 
     // Identifier should not be hoisted across the import boundary
-    let not_here = scopes.use_sym("undef", make_undeclared(&mut defs));
+    let not_here = scopes.use_sym("undef".into(), make_undeclared(&mut defs));
     assert_ne!(inner_id, not_here);
 }
 
@@ -165,11 +165,11 @@ fn test_use_import() {
 
     // Root declare
     let declare_id = defs.next();
-    scopes.def_sym("a", declare_id, SymbolKind::Declared, false);
+    scopes.def_sym("a".into(), declare_id, SymbolKind::Declared, false);
 
     // Inner use
     scopes.with_scope(false, |scopes| {
-        let import_id = scopes.use_sym("a", assert_declared);
+        let import_id = scopes.use_sym("a".into(), assert_declared);
 
         // Should use the same id
         assert_eq!(import_id, declare_id);
@@ -183,17 +183,22 @@ fn test_import_boundaries() {
 
     // Declare some external identifiers
     let non_pervasive = defs.next();
-    scopes.def_sym("non_pervasive", non_pervasive, SymbolKind::Declared, false);
+    scopes.def_sym(
+        "non_pervasive".into(),
+        non_pervasive,
+        SymbolKind::Declared,
+        false,
+    );
     let pervasive = defs.next();
-    scopes.def_sym("pervasive", pervasive, SymbolKind::Declared, true);
-    let undecl = scopes.use_sym("undecl", make_undeclared(&mut defs));
+    scopes.def_sym("pervasive".into(), pervasive, SymbolKind::Declared, true);
+    let undecl = scopes.use_sym("undecl".into(), make_undeclared(&mut defs));
 
     // Make an inner block
     scopes.with_scope(false, |scopes| {
         // Should be able to access all 3 identifiers
-        let inner_use_a = scopes.use_sym("non_pervasive", assert_declared);
-        let inner_use_b = scopes.use_sym("pervasive", assert_declared);
-        let inner_use_c = scopes.use_sym("undecl", assert_declared);
+        let inner_use_a = scopes.use_sym("non_pervasive".into(), assert_declared);
+        let inner_use_b = scopes.use_sym("pervasive".into(), assert_declared);
+        let inner_use_c = scopes.use_sym("undecl".into(), assert_declared);
         assert_eq!(inner_use_a, non_pervasive);
         assert_eq!(inner_use_b, pervasive);
         assert_eq!(inner_use_c, undecl);
@@ -204,9 +209,9 @@ fn test_import_boundaries() {
         // Can access even through an inner block
         scopes.with_scope(false, |scopes| {
             // Should only be able to access the pervasive identifier
-            let undecl_use_a = scopes.use_sym("non_pervasive", make_undeclared(&mut defs));
-            let imported_use_b = scopes.use_sym("pervasive", make_undeclared(&mut defs));
-            let undecl_use_c = scopes.use_sym("undecl", make_undeclared(&mut defs));
+            let undecl_use_a = scopes.use_sym("non_pervasive".into(), make_undeclared(&mut defs));
+            let imported_use_b = scopes.use_sym("pervasive".into(), make_undeclared(&mut defs));
+            let undecl_use_c = scopes.use_sym("undecl".into(), make_undeclared(&mut defs));
 
             assert_ne!(undecl_use_a, non_pervasive);
             assert_eq!(imported_use_b, pervasive);
@@ -222,22 +227,22 @@ fn test_forward_declare() {
 
     let forward_def = defs.next();
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_def,
         SymbolKind::Forward(ForwardKind::Type, None),
         false,
     );
     let resolve_def = defs.next();
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         resolve_def,
         SymbolKind::Resolved(ForwardKind::Type),
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd", assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
     assert_eq!(
-        scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+        scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def])
     );
 }
@@ -251,14 +256,14 @@ fn test_forward_declare_double() {
 
     let forward_def0 = defs.next();
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_def0,
         SymbolKind::Forward(ForwardKind::Type, None),
         false,
     );
     let forward_def1 = defs.next();
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_def1,
         SymbolKind::Forward(ForwardKind::Type, None),
         false,
@@ -266,15 +271,15 @@ fn test_forward_declare_double() {
 
     let resolve_def = defs.next();
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         resolve_def,
         SymbolKind::Resolved(ForwardKind::Type),
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd", assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
     assert_eq!(
-        scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+        scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def0, forward_def1])
     );
 }
@@ -290,28 +295,28 @@ fn test_forward_declare_overwritten() {
     let resolve_def = defs.next();
 
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_type,
         SymbolKind::Forward(ForwardKind::Type, None),
         false,
     );
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_proc,
         SymbolKind::Forward(ForwardKind::_Procedure, None),
         false,
     );
 
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         resolve_def,
         SymbolKind::Resolved(ForwardKind::Type),
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd", assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
     assert_eq!(
-        scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+        scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         None
     );
 }
@@ -327,23 +332,23 @@ fn test_forward_declare_overwritten_normal() {
     let resolve_def = defs.next();
 
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_type,
         SymbolKind::Forward(ForwardKind::Type, None),
         false,
     );
-    scopes.def_sym("fwd", normal_def, SymbolKind::Declared, false);
+    scopes.def_sym("fwd".into(), normal_def, SymbolKind::Declared, false);
 
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         resolve_def,
         SymbolKind::Resolved(ForwardKind::Type),
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd", assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
     assert_eq!(
-        scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+        scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         None
     );
 }
@@ -362,7 +367,7 @@ fn test_forward_resolve_only_same_scope() {
 
     // def scope def
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         forward_def,
         SymbolKind::Forward(ForwardKind::Type, None),
         true,
@@ -371,14 +376,14 @@ fn test_forward_resolve_only_same_scope() {
     // Not import boundary
     scopes.with_scope(false, |scopes| {
         scopes.def_sym(
-            "fwd",
+            "fwd".into(),
             inner_def,
             SymbolKind::Forward(ForwardKind::Type, None),
             false,
         );
 
         assert_eq!(
-            scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+            scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
             Some(vec![inner_def])
         );
     });
@@ -386,28 +391,28 @@ fn test_forward_resolve_only_same_scope() {
     // Is import boundary
     scopes.with_scope(true, |scopes| {
         scopes.def_sym(
-            "fwd",
+            "fwd".into(),
             inner_def,
             SymbolKind::Forward(ForwardKind::Type, None),
             false,
         );
 
         assert_eq!(
-            scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+            scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
             Some(vec![inner_def])
         );
     });
 
     scopes.def_sym(
-        "fwd",
+        "fwd".into(),
         resolve_def,
         SymbolKind::Resolved(ForwardKind::Type),
         false,
     );
 
-    assert_eq!(scopes.use_sym("fwd", assert_declared), resolve_def);
+    assert_eq!(scopes.use_sym("fwd".into(), assert_declared), resolve_def);
     assert_eq!(
-        scopes.take_resolved_forwards("fwd", ForwardKind::Type),
+        scopes.take_resolved_forwards("fwd".into(), ForwardKind::Type),
         Some(vec![forward_def])
     );
 }

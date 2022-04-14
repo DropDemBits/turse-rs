@@ -1,7 +1,7 @@
 //! Expression nodes
 use toc_span::{SpanId, Spanned};
 
-use crate::symbol;
+use crate::symbol::{self, Symbol};
 
 pub use crate::ids::{BodyExpr, ExprId};
 
@@ -169,7 +169,7 @@ pub struct Field {
     /// Reference to lookup in
     pub lhs: ExprId,
     /// Field to lookup
-    pub field: Spanned<String>,
+    pub field: Spanned<Symbol>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

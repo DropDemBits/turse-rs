@@ -65,8 +65,8 @@ fn do_const_eval(source: &str) -> String {
                 let def_info = self.library.local_def(def_id);
                 format!(
                     "{:?}@{:?}",
-                    def_info.name.item(),
-                    def_info.name.span().lookup_in(&self.library.span_map)
+                    def_info.name,
+                    def_info.def_at.lookup_in(&self.library.span_map)
                 )
             };
 

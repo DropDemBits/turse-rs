@@ -99,9 +99,10 @@ impl<'out, 'hir> PrettyVisitor<'out, 'hir> {
     }
 
     fn display_def(&self, def_id: LocalDefId) -> String {
-        let name = &self.library.local_def(def_id).name;
-        let def_span = self.display_span(name.span());
-        format!("{:?}@{}", name.item(), def_span)
+        let def_info = &self.library.local_def(def_id);
+        let name = def_info.name;
+        let def_span = self.display_span(def_info.def_at);
+        format!("{name:?}@{def_span}")
     }
 
     fn display_extra_def(&self, def_id: LocalDefId) -> String {

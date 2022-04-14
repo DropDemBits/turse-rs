@@ -26,6 +26,7 @@ mod ty;
 use std::sync::Arc;
 
 use toc_ast_db::db::SourceParser;
+use toc_hir::symbol::{syms, Symbol};
 use toc_hir::{
     body,
     builder::{self, BodyBuilder},
@@ -148,7 +149,7 @@ impl<'ctx> FileLowering<'ctx> {
         );
 
         let module_def = self.library.add_def(
-            "<root>",
+            *syms::Root,
             self.library.span_map.dummy_span(),
             symbol::SymbolKind::Declared,
         );
@@ -184,9 +185,9 @@ impl<'ctx> FileLowering<'ctx> {
             // Reintroduce the names
             for def_id in param_defs.iter().copied().chain(result_name) {
                 let def_info = self.library.local_def(def_id);
-                let name = def_info.name.item();
 
-                self.scopes.def_sym(name, def_id, def_info.kind, false);
+                self.scopes
+                    .def_sym(def_info.name, def_id, def_info.kind, false);
             }
 
             let body_stmts = BodyLowering::new(self, &mut body).lower_stmt_list(stmt_list);
@@ -253,7 +254,7 @@ impl<'ctx> FileLowering<'ctx> {
     }
 
     // Helper for using a symbol, handling undeclared reporting
-    fn use_sym(&mut self, name: &str, span: Span) -> LocalDefId {
+    fn use_sym(&mut self, name: Symbol, span: Span) -> LocalDefId {
         self.scopes.use_sym(name, || {
             // make an undeclared
             self.messages.error(

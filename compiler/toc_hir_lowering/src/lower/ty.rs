@@ -1,4 +1,5 @@
 //! Lowering into `Type` HIR nodes
+use toc_hir::symbol::syms;
 use toc_hir::{symbol, ty};
 use toc_span::Span;
 use toc_syntax::ast::{self, AstNode};
@@ -100,7 +101,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Expr::NameExpr(expr) => {
                 // simple alias
                 let name = expr.name()?.identifier_token()?;
-                let def_id = self.ctx.use_sym(name.text(), span);
+                let def_id = self.ctx.use_sym(name.text().into(), span);
 
                 Some(ty::TypeKind::Alias(ty::Alias(def_id)))
             }
@@ -128,7 +129,7 @@ impl super::BodyLowering<'_, '_> {
         let def_id = self
             .ctx
             .library
-            .add_def("<anonymous>", span, symbol::SymbolKind::Declared);
+            .add_def(*syms::Anonymous, span, symbol::SymbolKind::Declared);
 
         Some(ty::TypeKind::Set(ty::Set {
             def_id,

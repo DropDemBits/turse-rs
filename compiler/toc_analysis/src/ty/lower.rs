@@ -447,7 +447,7 @@ fn field_ty(
 ) -> TypeId {
     db.fields_of((body.0, body_expr.0, expr.lhs).into())
         .and_then(|fields| {
-            fields.lookup(expr.field.item()).map(|field| {
+            fields.lookup(*expr.field.item()).map(|field| {
                 // FIXME: Handle opaque types
                 db.type_of(field.def_id.into())
             })

@@ -3,7 +3,11 @@
 use indexmap::IndexMap;
 use toc_span::SpanId;
 
-use crate::{body, symbol, ty};
+use crate::{
+    body,
+    symbol::{self, Symbol},
+    ty,
+};
 
 pub use crate::ids::ItemId;
 
@@ -222,12 +226,12 @@ pub enum QualifyAs {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Fields {
-    pub fields: IndexMap<String, FieldInfo>,
+    pub fields: IndexMap<Symbol, FieldInfo>,
 }
 
 impl Fields {
-    pub fn lookup(&self, field: &str) -> Option<&FieldInfo> {
-        self.fields.get(field)
+    pub fn lookup(&self, field: Symbol) -> Option<&FieldInfo> {
+        self.fields.get(&field)
     }
 }
 
