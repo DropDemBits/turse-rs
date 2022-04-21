@@ -90,11 +90,11 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
 
     // Poke through item exports
     match def_owner {
-        DefOwner::ItemExport(item_id, export_idx) => {
+        DefOwner::Export(mod_id, export_id) => {
             let library = db.library(def_id.0);
 
-            if let item::ItemKind::Module(module) = &library.item(item_id).kind {
-                let export = module.exports.get(export_idx).expect("bad export index");
+            if let item::ItemKind::Module(module) = &library.item(mod_id.0).kind {
+                let export = module.exports.get(export_id.0).expect("bad export index");
                 let exported_item = library.item(export.item_id);
                 DefId(def_id.0, exported_item.def_id)
             } else {
@@ -126,7 +126,10 @@ impl HirVisitor for DefCollector<'_> {
     fn visit_module(&self, id: item::ItemId, item: &item::Module) {
         // Add all exports as being owned by this one
         for (idx, export) in item.exports.iter().enumerate() {
-            self.add_owner(export.def_id, DefOwner::ItemExport(id, idx));
+            self.add_owner(
+                export.def_id,
+                DefOwner::Export(item::ModuleId(id), item::ExportId(idx)),
+            );
         }
     }
 

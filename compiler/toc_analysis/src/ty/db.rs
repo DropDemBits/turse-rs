@@ -100,6 +100,12 @@ impl From<InLibrary<ItemId>> for TypeSource {
     }
 }
 
+impl From<(LibraryId, ItemId)> for TypeSource {
+    fn from(id: (LibraryId, ItemId)) -> Self {
+        Self::Item(id.0, id.1)
+    }
+}
+
 impl From<InLibrary<BodyExpr>> for TypeSource {
     fn from(id: InLibrary<BodyExpr>) -> Self {
         Self::BodyExpr(id.0, id.1)
@@ -127,12 +133,6 @@ impl From<(LibraryId, BodyId, ExprId)> for TypeSource {
 impl From<(LibraryId, BodyId)> for TypeSource {
     fn from(id: (LibraryId, BodyId)) -> Self {
         Self::Body(id.0, id.1)
-    }
-}
-
-impl From<(LibraryId, ItemId)> for TypeSource {
-    fn from(id: (LibraryId, ItemId)) -> Self {
-        Self::Item(id.0, id.1)
     }
 }
 

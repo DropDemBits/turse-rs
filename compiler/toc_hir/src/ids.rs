@@ -43,6 +43,18 @@ crate::arena_id_wrapper!(
     pub struct ItemId(item::Item);
 );
 
+/// A library local reference to a specific module-like (e.g. [`Module`])
+///
+/// [`Module`]: crate::item::Module
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ModuleId(pub ItemId);
+
+/// A module-local specific reference to a specific export
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ExportId(pub usize);
+
 crate::arena_id_wrapper!(
     /// A library local reference to a body.
     pub struct BodyId(body::Body);
