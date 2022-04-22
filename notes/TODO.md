@@ -193,9 +193,9 @@
       - [ ] On pointer types
   - [ ] Type
     - [x] Prim (SeqLength)
-    - [~] Name
+    - [x] Name
       - [x] Just name
-      - [ ] Through module paths
+      - [x] Through module paths
     - [ ] Range
     - [ ] Enum
     - [ ] Array
@@ -207,7 +207,7 @@
     - [x] Proc
     - [ ] Collection
     - [ ] Condition
-    - [ ] Opaque
+    - [x] Opaque
 - [ ] Const Eval (in `toc_analysis`)
   - [x] Cache evals of `ConstExpr`s
   - [x] Deferred eval of `const` vars
