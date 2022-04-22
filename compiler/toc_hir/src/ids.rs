@@ -66,7 +66,6 @@ impl ModuleId {
 
     /// Makes a new [`ModuleId`], returning `None` if it doesn't point to a module-like
     ///
-    /// [`Item`]: crate::item::Item
     /// [`ModuleLike`]: crate::item::ModuleLike
     pub fn try_new(in_library: &crate::library::Library, item_id: ItemId) -> Option<Self> {
         if !matches!(
@@ -84,7 +83,7 @@ impl ModuleId {
     }
 }
 
-/// A module-local specific reference to a specific export
+/// A module-local reference to a specific export
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ExportId(pub usize);

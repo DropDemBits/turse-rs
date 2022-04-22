@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use toc_hir::item::ModuleTree;
 use toc_hir::{
     body::{self, BodyTable},
-    expr, item,
+    expr,
+    item::{self, ModuleTree},
     library::{InLibrary, LibraryId, LoweredLibrary},
     library_graph::LibraryGraph,
     stmt,

@@ -16,7 +16,7 @@ pub struct TypeTable {
 }
 
 // FIXME: "Unintern" HIR types
-// They're not actually interned because they have spans attached to them
+// They're not actually interned because they have spans attached to them, effectively making them all unique
 impl TypeTable {
     /// Interns the given type.
     /// Note: not actually interned because of spans.

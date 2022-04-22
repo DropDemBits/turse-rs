@@ -233,7 +233,7 @@ fn type_def_ty(
             .map_or(false, |export| export.is_opaque)
     };
 
-    // Opaque hidden types are equivalent to the peeled alias version
+    // Wrap type inside of an `Opaque`, if required
     let maybe_opaque = |hidden_ty| {
         if is_opaque {
             db.mk_opaque(def_id, hidden_ty)
@@ -442,7 +442,7 @@ fn name_ty(
     body_expr: InLibrary<expr::BodyExpr>,
     expr: &expr::Name,
 ) -> TypeId {
-    // Expected behaviour to leak the hidden type (same as name_ty)
+    // Expected behaviour to leak the hidden type
 
     // If def-id, fetch type from def id map
     // If self, then fetch type from provided class def id?
