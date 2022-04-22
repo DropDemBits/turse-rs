@@ -73,9 +73,7 @@ fn alias_ty(
     hir_id: InLibrary<hir_ty::TypeId>,
     ty: &hir_ty::Alias,
 ) -> TypeId {
-    let def_id = if ty.segments.is_empty() {
-        DefId(hir_id.0, *ty.base_def.item())
-    } else {
+    let def_id = {
         // Walk the segment path while we still can
         let mut def_id = DefId(hir_id.0, *ty.base_def.item());
 
