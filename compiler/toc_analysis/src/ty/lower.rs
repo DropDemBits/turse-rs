@@ -80,8 +80,6 @@ fn alias_ty(
         let mut def_id = DefId(hir_id.0, *ty.base_def.item());
 
         for segment in &ty.segments {
-            def_id = db.resolve_def(def_id);
-
             let next_def = db
                 .fields_of(def_id.into())
                 .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));

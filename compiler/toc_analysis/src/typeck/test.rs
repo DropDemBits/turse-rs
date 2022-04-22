@@ -2578,3 +2578,21 @@ test_named_group! { peel_ref,
         in_for_bound => r#"var a : int for : a .. a end for"#
     ]
 }
+
+test_named_group! { resolve_defs,
+    [
+        on_field_lookup => "
+        module m
+            export ~.* n
+            module n
+                export o, p
+                var o : int
+                type p : int
+            end n
+        end m
+
+        put n.o
+        var c : n.p
+        ",
+    ]
+}
