@@ -763,13 +763,16 @@ fn lower_type_alias() {
 
 #[test]
 fn lower_type_path() {
-    // Type paths aren't supported yet
+    // Chained type paths
     assert_lower(
         "
     type a : int
-    type not_yet: a.b.c.d.e
+    type chain: a.b.c.d.e
     ",
     );
+
+    // Stops at the first non-name
+    assert_lower("type soup: a.b().c");
 }
 
 #[test]

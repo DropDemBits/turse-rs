@@ -1,0 +1,15 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type soup: a.b().c"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..18): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..18): []
+        StmtItem@(FileId(1), 0..18): ItemId(0)
+          Type@(FileId(1), 0..18): "soup"@(FileId(1), 5..9)
+error in file FileId(1) at 11..16: invalid type
+| error in file FileId(1) for 11..16: expressions can't be used as types
+

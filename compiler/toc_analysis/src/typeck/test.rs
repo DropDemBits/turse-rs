@@ -1899,6 +1899,21 @@ test_named_group! { typeck_type_alias,
         // only type bindings are accepted
         from_var => "var a : int type k : a",
         from_const => "const a : int type k : a",
+
+        path_normal => "
+        module a export b module b export c type c : int end b end a
+        var d : a.b.c := 1
+        ",
+        path_no_fields => "
+        module a export b type b : int end a
+        var e : a.b.c := 1
+        var f : a.nope := 1
+        ",
+        // only type bindings are accepted
+        path_not_ty => "
+        module a export b var b : int end a
+        var e : a.b
+        ",
     ]
 }
 
@@ -2271,11 +2286,17 @@ test_named_group! { typeck_opaque_ty,
 
         var a : t
         var b := k.f()
-        % FIXME: uncomment once type paths are lowered
-        %var c : k.t
+        var c : k.t
         ",
         // inside module: also gets inferred as an opaque type
-        // FIXME: add inside module test once type paths are lowered
+        inside_module => "
+        module k
+            export opaque t
+            type t : int
+            var a : t := 2
+            var b : k.t := 3
+        end k
+        ",
         poke_opaque_constvar => "
         module m
             export opaque t, ~.* a
@@ -2555,5 +2576,23 @@ test_named_group! { peel_ref,
         in_put_arg => r#"var a : int put a : a : a : a"#,
         in_get_arg => r#"var a : int var s : string get s : a"#,
         in_for_bound => r#"var a : int for : a .. a end for"#
+    ]
+}
+
+test_named_group! { resolve_defs,
+    [
+        on_field_lookup => "
+        module m
+            export ~.* n
+            module n
+                export o, p
+                var o : int
+                type p : int
+            end n
+        end m
+
+        put n.o
+        var c : n.p
+        ",
     ]
 }

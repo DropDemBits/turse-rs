@@ -1511,18 +1511,55 @@ impl TypeCheck<'_> {
         }
     }
 
-    fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
-        let def_id = ty.0;
-        let target = DefId(self.library_id, def_id);
-        let binding_to = self.db.binding_to(target.into());
+    fn typeck_alias(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
+        let Self {
+            library,
+            library_id,
+            db,
+            ..
+        } = self;
+
+        let mut span = ty.base_def.span();
+        let mut def_id = DefId(*library_id, *ty.base_def.item());
+
+        for segment in &ty.segments {
+            def_id = db.resolve_def(def_id);
+
+            let next_def = db
+                .fields_of(def_id.into())
+                .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
+
+            if let Some(next_def) = next_def {
+                def_id = next_def;
+                span = segment.span();
+            } else {
+                let library = db.library(def_id.0);
+                let def_info = library.local_def(def_id.1);
+
+                let thing = def_info.name;
+                let field_name = segment.item();
+
+                // ???: Include decl here?
+
+                // No field
+                self.state().reporter.error(
+                    format!("no field named `{field_name}` in `{thing}`"),
+                    format!("no field named `{field_name}` in here"),
+                    segment.span().lookup_in(&self.library),
+                );
+
+                return;
+            }
+        }
+
+        let binding_to = self.db.binding_to(def_id.into());
 
         if !binding_to.map(BindingTo::is_type).or_missing() {
-            let span = self.library.lookup_type(id).span;
-            let span = span.lookup_in(&self.library);
+            let span = span.lookup_in(library);
 
             self.report_mismatched_binding(
                 BindingTo::Type,
-                target.into(),
+                def_id.into(),
                 span,
                 span,
                 |thing| format!("cannot use {thing} as a type alias"),

@@ -345,7 +345,7 @@ pub(crate) fn fields_of(
     match source {
         db::FieldsSource::DefId(def_id) => {
             // Defer to the owning item
-            let def_item = db.item_of(def_id)?;
+            let def_item = db.item_of(db.resolve_def(def_id))?;
             db.fields_of(def_item.into())
         }
         db::FieldsSource::Item(library_id, item_id) => {
