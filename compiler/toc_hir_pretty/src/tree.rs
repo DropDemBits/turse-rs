@@ -499,9 +499,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
         let span = self.type_span(id);
-        let def_id = &ty.0;
+        let def_id = &ty.base_def;
         let extra = self.display_extra_def(*def_id);
-        self.emit_node("Alias", span, Some(format_args!("{extra}")))
+        let segments = ty
+            .segments
+            .iter()
+            .flat_map(|s| vec![".", s.item().name()])
+            .collect::<String>();
+        self.emit_node("Alias", span, Some(format_args!("{extra}{segments}")))
     }
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
         let span = self.type_span(id);

@@ -73,7 +73,7 @@ fn alias_ty(
     hir_id: InLibrary<hir_ty::TypeId>,
     ty: &hir_ty::Alias,
 ) -> TypeId {
-    let def_id = DefId(hir_id.0, ty.0);
+    let def_id = DefId(hir_id.0, ty.base_def);
 
     if db
         .binding_to(def_id.into())

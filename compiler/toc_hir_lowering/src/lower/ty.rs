@@ -94,31 +94,47 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_name_type(&mut self, ty: ast::NameType) -> Option<ty::TypeKind> {
-        // First node should either be a NameExpr or a FieldExpr
-        let span = self.ctx.mk_span(ty.syntax().text_range());
+        let mut segments = vec![];
+        let mut expr = ty.expr()?;
 
-        match ty.expr()? {
-            ast::Expr::NameExpr(expr) => {
-                // simple alias
-                let name = expr.name()?.identifier_token()?;
-                let def_id = self.ctx.use_sym(name.text().into(), span);
+        loop {
+            match expr {
+                ast::Expr::NameExpr(expr) => {
+                    // was pushed in reverse order, need to correct it
+                    segments.reverse();
 
-                Some(ty::TypeKind::Alias(ty::Alias(def_id)))
-            }
-            ast::Expr::FieldExpr(_expr) => {
-                // FIXME: Support type paths
-                // (type) path, which is not supported yet
-                self.ctx
-                    .messages
-                    .error("unsupported type", "type paths are not handled yet", span);
-                None
-            }
-            _ => {
-                // Not a valid named type
-                self.ctx
-                    .messages
-                    .error("invalid type", "expressions can't be used as types", span);
-                None
+                    // at a simple alias
+                    let name = expr.name()?.identifier_token()?;
+                    let span = self.ctx.mk_span(name.text_range());
+                    let def_id = self.ctx.use_sym(name.text().into(), span);
+
+                    break Some(ty::TypeKind::Alias(ty::Alias {
+                        base_def: def_id,
+                        segments,
+                    }));
+                }
+                ast::Expr::FieldExpr(field) => {
+                    let name = field.name()?.identifier_token()?;
+
+                    segments.push(toc_span::Spanned::new(
+                        name.text().into(),
+                        self.ctx.intern_range(name.text_range()),
+                    ));
+
+                    // keep walking up chain
+                    expr = field.expr()?;
+                }
+                _ => {
+                    let span = self.ctx.mk_span(expr.syntax().text_range());
+
+                    // Not a valid named type
+                    self.ctx.messages.error(
+                        "invalid type",
+                        "expressions can't be used as types",
+                        span,
+                    );
+                    break None;
+                }
             }
         }
     }

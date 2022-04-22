@@ -95,7 +95,7 @@ impl fmt::Debug for Span {
 }
 
 /// An item with an associated text span
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Spanned<T>(T, SpanId);
 
 impl<T> Spanned<T> {

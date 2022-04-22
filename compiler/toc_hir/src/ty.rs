@@ -3,11 +3,15 @@
 use std::convert::TryInto;
 
 use indexmap::{IndexMap, IndexSet};
-use toc_span::SpanId;
+use toc_span::{SpanId, Spanned};
 
 pub use crate::ids::TypeId;
 
-use crate::{body, ids::TypeIndex, symbol};
+use crate::{
+    body,
+    ids::TypeIndex,
+    symbol::{self, Symbol},
+};
 
 /// An interner for HIR types
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -92,7 +96,12 @@ pub enum SeqLength {
 
 // FIXME: Use the proper representation of an item path
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Alias(pub symbol::LocalDefId);
+pub struct Alias {
+    /// [`LocalDefId`](symbol::LocalDefId) to start working through
+    pub base_def: symbol::LocalDefId,
+    /// Names of each segment to lookup
+    pub segments: Vec<Spanned<Symbol>>,
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Set {

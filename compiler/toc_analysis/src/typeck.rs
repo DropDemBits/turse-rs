@@ -1512,7 +1512,7 @@ impl TypeCheck<'_> {
     }
 
     fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
-        let def_id = ty.0;
+        let def_id = ty.base_def;
         let target = DefId(self.library_id, def_id);
         let binding_to = self.db.binding_to(target.into());
 
