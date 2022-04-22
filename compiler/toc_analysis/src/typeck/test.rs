@@ -1899,6 +1899,21 @@ test_named_group! { typeck_type_alias,
         // only type bindings are accepted
         from_var => "var a : int type k : a",
         from_const => "const a : int type k : a",
+
+        path_normal => "
+        module a export b module b export c type c : int end b end a
+        var d : a.b.c := 1
+        ",
+        path_no_fields => "
+        module a export b type b : int end a
+        var e : a.b.c := 1
+        var f : a.nope := 1
+        ",
+        // only type bindings are accepted
+        path_not_ty => "
+        module a export b var b : int end a
+        var e : a.b
+        ",
     ]
 }
 

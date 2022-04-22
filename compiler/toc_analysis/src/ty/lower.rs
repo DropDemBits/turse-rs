@@ -73,7 +73,28 @@ fn alias_ty(
     hir_id: InLibrary<hir_ty::TypeId>,
     ty: &hir_ty::Alias,
 ) -> TypeId {
-    let def_id = DefId(hir_id.0, ty.base_def);
+    let def_id = if ty.segments.is_empty() {
+        DefId(hir_id.0, *ty.base_def.item())
+    } else {
+        // Walk the segment path while we still can
+        let mut def_id = DefId(hir_id.0, *ty.base_def.item());
+
+        for segment in &ty.segments {
+            def_id = db.resolve_def(def_id);
+
+            let next_def = db
+                .fields_of(def_id.into())
+                .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
+
+            if let Some(next_def) = next_def {
+                def_id = next_def;
+            } else {
+                return db.mk_error();
+            }
+        }
+
+        def_id
+    };
 
     if db
         .binding_to(def_id.into())

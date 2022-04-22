@@ -109,7 +109,10 @@ impl super::BodyLowering<'_, '_> {
                     let def_id = self.ctx.use_sym(name.text().into(), span);
 
                     break Some(ty::TypeKind::Alias(ty::Alias {
-                        base_def: def_id,
+                        base_def: toc_span::Spanned::new(
+                            def_id,
+                            self.ctx.intern_range(name.text_range()),
+                        ),
                         segments,
                     }));
                 }

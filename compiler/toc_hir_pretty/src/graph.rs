@@ -1192,14 +1192,18 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
 
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {
-        let mut name = self.display_def_id(ty.base_def);
+        let mut name = self.display_def_id(*ty.base_def.item());
 
         for segment in &ty.segments {
             name.push('.');
             name.push_str(segment.item().name());
         }
 
-        self.emit_type(id, "Alias", Layout::Node(self.display_def_id(ty.base_def)));
+        self.emit_type(
+            id,
+            "Alias",
+            Layout::Node(self.display_def_id(*ty.base_def.item())),
+        );
     }
 
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
