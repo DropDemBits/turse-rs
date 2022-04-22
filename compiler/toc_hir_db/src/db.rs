@@ -151,6 +151,12 @@ impl From<(LibraryId, expr::BodyExpr)> for InsideModule {
     }
 }
 
+impl From<InLibrary<expr::BodyExpr>> for InsideModule {
+    fn from(InLibrary(library_id, body_expr): InLibrary<expr::BodyExpr>) -> Self {
+        Self::Expr(library_id, body_expr)
+    }
+}
+
 impl From<(LibraryId, body::BodyId, expr::ExprId)> for InsideModule {
     fn from((library_id, body_id, expr_id): (LibraryId, body::BodyId, expr::ExprId)) -> Self {
         Self::Expr(library_id, expr::BodyExpr(body_id, expr_id))

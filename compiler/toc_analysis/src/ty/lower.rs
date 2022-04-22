@@ -387,10 +387,10 @@ pub(crate) fn ty_from_expr(
         expr::ExprKind::Unary(expr) => unary_ty(db, body, expr, body_expr),
         expr::ExprKind::All => db.mk_error(), // Special case calling
         expr::ExprKind::Range(_) => db.mk_error(), // FIXME: Support range expressions
-        expr::ExprKind::Name(expr) => name_ty(db, body, expr),
-        expr::ExprKind::Field(expr) => field_ty(db, body, expr, body_expr),
+        expr::ExprKind::Name(expr) => name_ty(db, expr_in_lib, expr),
+        expr::ExprKind::Field(expr) => field_ty(db, expr_in_lib, expr),
         expr::ExprKind::Deref(expr) => deref_ty(db, expr_in_lib, expr),
-        expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr, body_expr),
+        expr::ExprKind::Call(expr) => call_expr_ty(db, body, expr_in_lib, expr),
     }
 }
 
@@ -437,22 +437,30 @@ fn unary_ty(
     ty::rules::infer_unary_op(db, *expr.op.item(), right).extract_ty()
 }
 
-fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Name) -> TypeId {
+fn name_ty(
+    db: &dyn TypeDatabase,
+    body_expr: InLibrary<expr::BodyExpr>,
+    expr: &expr::Name,
+) -> TypeId {
+    // Expected behaviour to leak the hidden type (same as name_ty)
+
     // If def-id, fetch type from def id map
     // If self, then fetch type from provided class def id?
     match expr {
         expr::Name::Name(def_id) => {
             // FIXME: Perform name resolution
-            let def_id = DefId(body.0, *def_id);
+            let def_id = DefId(body_expr.0, *def_id);
+            let in_module = db.inside_module(body_expr.into());
 
             // Defer to result type if it's a paren-less function
             let ty = db.type_of(def_id.into()).in_db(db);
+            let ty = ty.peel_opaque(in_module);
 
-            if let TypeKind::Subprogram(symbol::SubprogramKind::Function, None, result) = ty.kind()
-            {
-                *result
-            } else {
-                ty.id()
+            match ty.kind() {
+                TypeKind::Subprogram(symbol::SubprogramKind::Function, None, result) => {
+                    result.in_db(db).peel_opaque(in_module).id()
+                }
+                _ => ty.id(),
             }
         }
         expr::Name::Self_ => {
@@ -463,15 +471,17 @@ fn name_ty(db: &dyn TypeDatabase, body: InLibrary<&body::Body>, expr: &expr::Nam
 
 fn field_ty(
     db: &dyn TypeDatabase,
-    body: InLibrary<&body::Body>,
+    body_expr: InLibrary<expr::BodyExpr>,
     expr: &expr::Field,
-    body_expr: expr::BodyExpr,
 ) -> TypeId {
-    db.fields_of((body.0, body_expr.0, expr.lhs).into())
+    db.fields_of((body_expr.0, body_expr.1.with_expr(expr.lhs)).into())
         .and_then(|fields| {
             fields.lookup(*expr.field.item()).map(|field| {
-                // FIXME: Handle opaque types
-                db.type_of(field.def_id.into())
+                let ty_id = db.type_of(field.def_id.into());
+
+                // Expected behaviour to leak the hidden type (same as name_ty)
+                let in_module = db.inside_module(body_expr.into());
+                ty_id.in_db(db).peel_opaque(in_module).id()
             })
         })
         .unwrap_or_else(|| db.mk_error())
@@ -487,7 +497,8 @@ fn deref_ty(
 
     // Just needs to be a pointer type, no extra special things
     if let ty::TypeKind::Pointer(_, to_ty) = ty_ref.kind() {
-        *to_ty
+        let in_module = db.inside_module(body_expr.into());
+        to_ty.in_db(db).peel_opaque(in_module).id()
     } else {
         db.mk_error()
     }
@@ -496,10 +507,10 @@ fn deref_ty(
 fn call_expr_ty(
     db: &dyn TypeDatabase,
     body: InLibrary<&body::Body>,
+    body_expr: InLibrary<expr::BodyExpr>,
     expr: &expr::Call,
-    body_expr: expr::BodyExpr,
 ) -> TypeId {
-    let left = ty_from_expr(db, body, expr::BodyExpr(body_expr.0, expr.lhs));
+    let left = ty_from_expr(db, body, body_expr.1.with_expr(expr.lhs));
     let calling_ty = left.in_db(db).to_base_type();
 
     match calling_ty.kind() {
@@ -514,9 +525,11 @@ fn call_expr_ty(
             if matches!(result.kind(), TypeKind::Void) {
                 db.mk_error()
             } else {
+                let in_module = db.inside_module(body_expr.into());
+
                 // It's okay to always infer as the result type, since that gives
                 // better diagnostics
-                result.id()
+                result.peel_opaque(in_module).id()
             }
         }
         TypeKind::Set(..) => {

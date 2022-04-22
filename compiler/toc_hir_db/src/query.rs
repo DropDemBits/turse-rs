@@ -166,10 +166,18 @@ pub(crate) fn lookup_inside_module(
 ) -> item::ModuleId {
     let inside_module = match inside_module {
         InsideModule::Item(library_id, item_id) => {
-            return db
-                .module_tree_of(library_id)
-                .module_of(item_id)
-                .expect("root items aren't in any modules")
+            // We're either at a module-like, or at a plain old item
+            let library = db.library(library_id);
+
+            let module_id = match item::ModuleId::try_new(&library, item_id) {
+                Some(module_id) => module_id,
+                None => db
+                    .module_tree_of(library_id)
+                    .module_of(item_id)
+                    .expect("missing item link"),
+            };
+
+            return module_id;
         }
         InsideModule::Type(library_id, type_id) => {
             let owner = db.type_owner(InLibrary(library_id, type_id));
@@ -306,6 +314,10 @@ impl HirVisitor for BodyCollector<'_> {
         if let Some(init_expr) = item.init_expr {
             self.add_owner(init_expr, BodyOwner::Item(id));
         }
+    }
+
+    fn visit_bind_decl(&self, id: item::ItemId, item: &item::Binding) {
+        self.add_owner(item.bind_to, BodyOwner::Item(id));
     }
 
     fn visit_subprogram_decl(&self, id: item::ItemId, item: &item::Subprogram) {

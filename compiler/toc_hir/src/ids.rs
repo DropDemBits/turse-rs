@@ -61,15 +61,22 @@ impl ModuleId {
     /// [`Item`]: crate::item::Item
     /// [`ModuleLike`]: crate::item::ModuleLike
     pub fn new(in_library: &crate::library::Library, item_id: ItemId) -> Self {
-        assert!(
-            matches!(
-                in_library.item(item_id).kind,
-                crate::item::ItemKind::Module(_)
-            ),
-            "only module-likes accepted"
-        );
+        Self::try_new(in_library, item_id).expect("only module-likes accepted")
+    }
 
-        Self(item_id)
+    /// Makes a new [`ModuleId`], returning `None` if it doesn't point to a module-like
+    ///
+    /// [`Item`]: crate::item::Item
+    /// [`ModuleLike`]: crate::item::ModuleLike
+    pub fn try_new(in_library: &crate::library::Library, item_id: ItemId) -> Option<Self> {
+        if !matches!(
+            in_library.item(item_id).kind,
+            crate::item::ItemKind::Module(_)
+        ) {
+            return None;
+        }
+
+        Some(Self(item_id))
     }
 
     pub fn item_id(self) -> ItemId {

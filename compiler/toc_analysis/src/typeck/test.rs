@@ -2288,6 +2288,19 @@ test_named_group! { typeck_opaque_ty,
         var b := a
         b := 'c'
         ",
+        poke_opaque_result => "
+        module m
+            export opaque ~.* t
+            type t : int
+
+            % should be equivalent
+            fcn f() : t result 2 end f
+        end m
+
+        % should fail
+        fcn k() : t result 2 end k
+        ",
+        // assignment is also handled by name
         poke_opaque_name => "
         module m
             export opaque t, a, ~.* b
@@ -2295,12 +2308,26 @@ test_named_group! { typeck_opaque_ty,
 
             var a : t
             var b := a
+            a := 2
         end m
 
         % It's fine if `b` leaks the hidden type
-        var b : int := b
+        var c : int := b
         ",
-        // FIXME: add field & arrow pokes once records are lowered
+        poke_opaque_field => "
+        module m
+            export opaque t, var a, b
+            type t : int
+
+            var a : t
+            m.a := 2
+            var b := m.a
+        end m
+
+        % It's fine if `b` leaks the hidden type
+        var c : int := m.b
+        ",
+        // FIXME: add inside arrow poke once records are lowered
         poke_opaque_deref => "
         module m
             export opaque t, a
@@ -2313,7 +2340,84 @@ test_named_group! { typeck_opaque_ty,
         % should fail
         var c : int := ^b
         ",
-        // TODO: add tests for call (result & ingest)
+        poke_opaque_call_parens => "
+        module m
+            export opaque t, f
+            type t : int
+            fcn f() : t loop end loop end f
+
+            var a : int := f()
+        end m
+
+        % should fail
+        var b : int := m.f()
+        ",
+        poke_opaque_call_no_parens => "
+        module m
+            export opaque t, f
+            type t : int
+            fcn f : t loop end loop end f
+
+            var a : int := f
+        end m
+
+        % should fail
+        var b : int := m.f
+        ",
+        poke_opaque_call_param => "
+        module m
+            export opaque t, a, p
+            type t : int
+            proc p(a : t) end p
+            var a : t
+
+            % should be coercible
+            m.p(a)
+            m.p(69)
+        end m
+
+        % should be fine
+        var a := m.a
+        m.p(a)
+        % shouldn't be fine
+        m.p(2)
+        ",
+        poke_opaque_set_cons_param => "
+        module m
+            export opaque t, ~.* s, make
+            type t : char
+            type s : set of t
+
+            fcn make(c : char) : t
+                result c
+            end mk
+
+            % both should succeed
+            var a : s := s('6', '9')
+            a := s(make('i'))
+        end m
+
+        % should fail
+        var vs : s := s('i')
+        % should succeed
+        vs := s(m.make('i'))
+        ",
+
+        poke_opaque_set_elem_ty => "
+        module m
+            export opaque ~.* t, ~.* s, make
+            type t : char
+            type s : set of t
+            fcn make(c : char) : t result c end make
+        end m
+
+        % both should fail, is strictly opaque
+        type xs : set of t
+        var vs : s := s('i')
+
+        % should succeed
+        var _ : boolean := m.make('i') in vs
+        "
     ]
 }
 
