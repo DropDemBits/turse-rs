@@ -71,6 +71,9 @@ pub enum TypeKind {
     /// This is used to prevent cyclic type declarations, which we can't detect
     /// yet.
     Forward,
+    /// An alias exported as an opaque type. Points to the base (un-aliased) alias,
+    /// with the [`DefId`] pointing to the original alias.
+    Opaque(DefId, TypeId),
     /// Set type, with associated definition point
     Set(WithDef, TypeId),
     /// Set type, with a given checkedness
@@ -268,6 +271,9 @@ where
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
             // Defer to the aliased type
             TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
+            TypeKind::Opaque(_, base_ty) => {
+                return base_ty.in_db(self.db).peel_aliases().align_of()
+            }
             TypeKind::Forward => return None,
         };
 
@@ -312,7 +318,8 @@ where
             TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata
             TypeKind::Pointer(Checked::Unchecked, _) => POINTER_SIZE, // address only
             // Defer to the aliased type
-            TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).align_of(),
+            TypeKind::Alias(_, base_ty) => return base_ty.in_db(self.db).size_of(),
+            TypeKind::Opaque(_, base_ty) => return base_ty.in_db(self.db).size_of(),
             TypeKind::Integer | TypeKind::Forward | TypeKind::Error => return None,
         };
 

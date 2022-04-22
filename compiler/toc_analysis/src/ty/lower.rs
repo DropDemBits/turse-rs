@@ -222,6 +222,26 @@ fn type_def_ty(
 ) -> TypeId {
     let def_id = DefId(item_id.0, item.def_id);
 
+    let is_opaque = {
+        // Need to look at the exports to see if it's opaque
+        let library = db.library(item_id.0);
+        let module = library.module_item(db.inside_module(item_id.into()));
+        module
+            .exports_of()
+            .iter()
+            .find(|export| export.item_id == item_id.1)
+            .map_or(false, |export| export.is_opaque)
+    };
+
+    // Opaque hidden types are equivalent to the peeled alias version
+    let maybe_opaque = |hidden_ty| {
+        if is_opaque {
+            db.mk_opaque(def_id, hidden_ty)
+        } else {
+            hidden_ty
+        }
+    };
+
     match &item.type_def {
         item::DefinedType::Alias(to_ty) => {
             // Peel any aliases that are encountered
@@ -233,15 +253,17 @@ fn type_def_ty(
             // Specialize based on the kind
             // TODO: Specialize type when it's a record or union
             match base_ty.kind() {
-                // Forward base types get propagated as errors
+                // Forward base types get propagated as errors, since we require a resolved definition
                 ty::TypeKind::Forward => db.mk_error(),
                 // Associate anonymous sets with the def of the alias (equivalent behaviour)
                 ty::TypeKind::Set(ty::WithDef::Anonymous(_), elem_ty) => {
-                    db.mk_set(ty::WithDef::Named(def_id), *elem_ty)
+                    maybe_opaque(db.mk_set(ty::WithDef::Named(def_id), *elem_ty))
                 }
+                _ if is_opaque => db.mk_opaque(def_id, base_ty.id()),
                 _ => db.mk_alias(def_id, base_ty.id()),
             }
         }
+        item::DefinedType::Forward(_) if is_opaque => db.mk_opaque(def_id, db.mk_forward()),
         item::DefinedType::Forward(_) => db.mk_alias(def_id, db.mk_forward()),
     }
 }

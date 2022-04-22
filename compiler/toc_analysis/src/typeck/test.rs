@@ -1376,6 +1376,36 @@ test_named_group! { equivalence_of,
         for : ia0 .. ia1 end for
         for : ia1 .. ia0 end for
         "#,
+        // Over opaque types
+        opaques => "
+        module z
+            export unqualified opaque ty, unwrap, make
+
+            type ty : int
+
+            fcn unwrap(t : ty) : int
+                result t
+            end unwrap
+
+            fcn make(i : int) : ty
+                result i
+            end make
+        end z
+
+        % can't use path syntax since it isn't lowered yet
+        var a, b : ty
+        var c := z.make(1)
+
+        % is equivalent to self
+        a := b
+        a := c
+
+        % to the original alias def
+        var i : int := z.unwrap(a)
+
+        % but not the alias type
+        i := a
+        ",
         // Over set types
         sets => r#"
         type sb : set of boolean
@@ -2224,6 +2254,66 @@ test_named_group! { typeck_stringn_ty,
 
         wrong_type_size => "type _ : string(1.0)",
         wrong_value_size => "type k : int type _ : string(k)",
+    ]
+}
+
+test_named_group! { typeck_opaque_ty,
+    [
+        // Outside module: gets inferred as an opaque type
+        outside_module => "
+        module k
+            export opaque ~.* t, f
+
+            type t : int
+
+            fcn f() : t loop end loop end f
+        end k
+
+        var a : t
+        var b := k.f()
+        % FIXME: uncomment once type paths are lowered
+        %var c : k.t
+        ",
+        // inside module: also gets inferred as an opaque type
+        // FIXME: add inside module test once type paths are lowered
+        poke_opaque_constvar => "
+        module m
+            export opaque t, ~.* a
+            type t : char
+
+            var a : t := 'c'
+        end m
+
+        % Hidden type shouldn't be leaked
+        var b := a
+        b := 'c'
+        ",
+        poke_opaque_name => "
+        module m
+            export opaque t, a, ~.* b
+            type t : int
+
+            var a : t
+            var b := a
+        end m
+
+        % It's fine if `b` leaks the hidden type
+        var b : int := b
+        ",
+        // FIXME: add field & arrow pokes once records are lowered
+        poke_opaque_deref => "
+        module m
+            export opaque t, a
+            type t : int
+            var a : ^t
+            var b : int := ^a
+        end m
+
+        var b := m.a
+        % should fail
+        var c : int := ^b
+        ",
+        // TODO: add tests for call (result & ingest)
     ]
 }
 

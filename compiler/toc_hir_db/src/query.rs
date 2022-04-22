@@ -96,7 +96,7 @@ pub(crate) fn collect_module_tree(db: &dyn HirDatabase, library: LibraryId) -> A
     while let Some(event) = walker.next_event() {
         match event {
             WalkEvent::Enter(WalkNode::Item(item_id, item)) => {
-                if let item::ItemKind::Module(module) = &item.kind {
+                if let item::ItemKind::Module(_) = &item.kind {
                     let child_mod = ModuleId::new(&library, item_id);
 
                     // Link to parent
@@ -104,10 +104,12 @@ pub(crate) fn collect_module_tree(db: &dyn HirDatabase, library: LibraryId) -> A
                         module_tree.link_modules(parent_mod, child_mod);
                     }
 
-                    module_tree.link_declared_items(child_mod, &module.declares);
-
                     // Add to path
                     module_path.push(child_mod);
+                } else {
+                    // Attach items to the closest module
+                    let module_id = *module_path.last().expect("only modules can be root items");
+                    module_tree.link_declared_item(module_id, item_id);
                 }
             }
             WalkEvent::Leave(WalkNode::Item(item_id, item)) => {

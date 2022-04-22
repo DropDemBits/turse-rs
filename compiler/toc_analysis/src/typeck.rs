@@ -1799,7 +1799,7 @@ impl TypeCheck<'_> {
                     // Likely from an export
                     let exporting_def = self
                         .db
-                        .exporting_def(value_src)
+                        .exporting_def(value_src.into())
                         .expect("at mut storage but rejected it");
                     let exported_library = self.db.library(exporting_def.0);
                     let exported_span = exported_library

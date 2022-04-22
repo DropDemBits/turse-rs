@@ -260,6 +260,12 @@ impl ModuleLike<'_> {
             }
         }
     }
+
+    pub fn exports_of(&self) -> &[ExportItem] {
+        match self {
+            ModuleLike::Module(module) => &module.exports,
+        }
+    }
 }
 
 /// Represents the item hierarchy, from leaf items to root items
@@ -278,10 +284,8 @@ impl ModuleTree {
         self.in_module.insert(to.item_id().0, from)
     }
 
-    pub fn link_declared_items(&mut self, module_id: ModuleId, declares: &[ItemId]) {
-        for item_id in declares {
-            self.in_module.insert(item_id.0, module_id)
-        }
+    pub fn link_declared_item(&mut self, module_id: ModuleId, declares: ItemId) {
+        self.in_module.insert(declares.0, module_id)
     }
 
     /// Gets the parent of this module.

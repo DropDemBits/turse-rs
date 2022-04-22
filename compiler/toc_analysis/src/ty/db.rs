@@ -48,9 +48,9 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     #[salsa::invoke(ty::query::fields_of)]
     fn fields_of(&self, source: FieldsSource) -> Option<Arc<item::Fields>>;
 
-    /// Finds the associated exporting def from the given expression, or `None` if there isn't any
+    /// Finds the associated exporting def from the given [`BindingSource`], or `None` if there isn't any
     #[salsa::invoke(ty::query::find_exported_def)]
-    fn exporting_def(&self, source: ValueSource) -> Option<DefId>;
+    fn exporting_def(&self, source: BindingSource) -> Option<DefId>;
 }
 
 /// Helpers for working with the type interner
@@ -67,6 +67,7 @@ pub trait TypeInternExt {
     fn mk_char_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_string_n(&self, seq_size: ty::SeqSize) -> ty::TypeId;
     fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
+    fn mk_opaque(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_forward(&self) -> ty::TypeId;
     fn mk_set(&self, with_def: ty::WithDef, elem_ty: ty::TypeId) -> ty::TypeId;
     fn mk_pointer(&self, checked: ty::Checked, target_ty: ty::TypeId) -> ty::TypeId;
@@ -100,12 +101,6 @@ impl From<InLibrary<ItemId>> for TypeSource {
     }
 }
 
-impl From<(LibraryId, ItemId)> for TypeSource {
-    fn from(id: (LibraryId, ItemId)) -> Self {
-        Self::Item(id.0, id.1)
-    }
-}
-
 impl From<InLibrary<BodyExpr>> for TypeSource {
     fn from(id: InLibrary<BodyExpr>) -> Self {
         Self::BodyExpr(id.0, id.1)
@@ -133,6 +128,12 @@ impl From<(LibraryId, BodyId, ExprId)> for TypeSource {
 impl From<(LibraryId, BodyId)> for TypeSource {
     fn from(id: (LibraryId, BodyId)) -> Self {
         Self::Body(id.0, id.1)
+    }
+}
+
+impl From<(LibraryId, ItemId)> for TypeSource {
+    fn from(id: (LibraryId, ItemId)) -> Self {
+        Self::Item(id.0, id.1)
     }
 }
 
@@ -288,6 +289,7 @@ impl NotValueErrExt for Result<bool, NotValue> {
 pub enum FieldsSource {
     DefId(DefId),
     Type(ty::TypeId),
+    Item(LibraryId, item::ItemId),
     BodyExpr(LibraryId, expr::BodyExpr),
 }
 
@@ -300,6 +302,18 @@ impl From<symbol::DefId> for FieldsSource {
 impl From<ty::TypeId> for FieldsSource {
     fn from(type_id: ty::TypeId) -> Self {
         Self::Type(type_id)
+    }
+}
+
+impl From<InLibrary<item::ItemId>> for FieldsSource {
+    fn from(InLibrary(library_id, item_id): InLibrary<item::ItemId>) -> Self {
+        Self::Item(library_id, item_id)
+    }
+}
+
+impl From<(LibraryId, item::ItemId)> for FieldsSource {
+    fn from((library_id, item_id): (LibraryId, item::ItemId)) -> Self {
+        Self::Item(library_id, item_id)
     }
 }
 

@@ -37,7 +37,7 @@ impl TypeKind {
             // Sized charseqs use the parent type as the basename
             TypeKind::CharN(_) => "char",
             TypeKind::StringN(_) => "string",
-            TypeKind::Alias(_, _) => "",
+            TypeKind::Alias(_, _) | TypeKind::Opaque(_, _) => "",
             _ => self.debug_prefix(),
         }
     }
@@ -64,6 +64,7 @@ impl TypeKind {
             TypeKind::CharN(_) => "char_n",
             TypeKind::StringN(_) => "string_n",
             TypeKind::Alias(_, _) => "alias",
+            TypeKind::Opaque(_, _) => "opaque",
             TypeKind::Forward => "forward",
             TypeKind::Set(..) => "set",
             TypeKind::Pointer(Checked::Checked, _) => "pointer to",
@@ -88,6 +89,10 @@ where
         TypeKind::StringN(seq) | TypeKind::CharN(seq) => out.write_fmt(format_args!(" {seq:?}"))?,
         TypeKind::Alias(def_id, to) => {
             out.write_fmt(format_args!("[{def_id:?}] of "))?;
+            emit_debug_ty(db, out, *to)?
+        }
+        TypeKind::Opaque(def_id, to) => {
+            out.write_fmt(format_args!("[{def_id:?}] type to "))?;
             emit_debug_ty(db, out, *to)?
         }
         TypeKind::Set(with_def, to) => {
@@ -168,6 +173,11 @@ where
             out.write_fmt(format_args!("{name} (alias of "))?;
             emit_display_ty(db, out, *to, PokeAliases::Yes)?;
             out.write_char(')')?;
+        }
+        TypeKind::Opaque(def_id, _) => {
+            let library = db.library(def_id.0);
+            let name = library.local_def(def_id.1).name;
+            out.write_fmt(format_args!("{name} (an opaque type)"))?;
         }
         TypeKind::Set(with_def, to) => {
             let def_id = match with_def {
