@@ -5,6 +5,7 @@ use toc_span::SpanId;
 
 use crate::{
     body,
+    ids::ItemIndex,
     symbol::{self, Symbol},
     ty,
 };
@@ -261,11 +262,11 @@ impl ModuleLike<'_> {
     }
 }
 
-/// Represents the module hierarchy, from leaf modules to root modules
+/// Represents the item hierarchy, from leaf items to root items
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct ModuleTree {
-    /// Links up to the module root
-    modules: la_arena::ArenaMap<crate::ids::ItemIndex, ModuleId>,
+    /// Which module is this item declared in.
+    in_module: la_arena::ArenaMap<ItemIndex, ModuleId>,
 }
 
 impl ModuleTree {
@@ -274,10 +275,24 @@ impl ModuleTree {
     }
 
     pub fn link_modules(&mut self, from: ModuleId, to: ModuleId) {
-        self.modules.insert(to.0 .0, from)
+        self.in_module.insert(to.item_id().0, from)
     }
 
+    pub fn link_declared_items(&mut self, module_id: ModuleId, declares: &[ItemId]) {
+        for item_id in declares {
+            self.in_module.insert(item_id.0, module_id)
+        }
+    }
+
+    /// Gets the parent of this module.
+    /// Can be missing as root modules don't have a parent.
     pub fn parent_of(&self, module: ModuleId) -> Option<ModuleId> {
-        self.modules.get(module.0 .0).copied()
+        self.in_module.get(module.item_id().0).copied()
+    }
+
+    /// Gets which module declared this item.
+    /// Can be missing as root modules aren't declared in another item
+    pub fn module_of(&self, item_id: ItemId) -> Option<ModuleId> {
+        self.in_module.get(item_id.0).copied()
     }
 }

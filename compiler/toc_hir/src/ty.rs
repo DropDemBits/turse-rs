@@ -2,7 +2,7 @@
 
 use std::convert::TryInto;
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use toc_span::SpanId;
 
 pub use crate::ids::TypeId;
@@ -15,8 +15,11 @@ pub struct TypeTable {
     types: IndexSet<Type>,
 }
 
+// FIXME: "Unintern" HIR types
+// They're not actually interned because they have spans attached to them
 impl TypeTable {
-    /// Interns the given type
+    /// Interns the given type.
+    /// Note: not actually interned because of spans.
     pub(crate) fn intern_type(&mut self, ty: Type) -> TypeId {
         let id = self.types.insert_full(ty).0;
         let raw = id
@@ -142,4 +145,31 @@ pub enum PassBy {
     Value,
     /// Pass by reference, with the specified mutability
     Reference(symbol::Mutability),
+}
+
+/// Owner of a [`Type`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TypeOwner {
+    Item(crate::item::ItemId),
+    Type(TypeId),
+    // exprs can also own types, but nothing right now impls that
+}
+
+/// Table of type owners
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct TypeOwners {
+    owners: IndexMap<TypeId, TypeOwner>,
+}
+
+impl TypeOwners {
+    pub fn add_owner(&mut self, type_id: TypeId, owner: TypeOwner) {
+        self.owners.insert(type_id, owner);
+    }
+
+    pub fn lookup_owner(&self, type_id: TypeId) -> TypeOwner {
+        self.owners
+            .get(&type_id)
+            .copied()
+            .expect("missing type owner")
+    }
 }
