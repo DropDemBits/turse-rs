@@ -1041,7 +1041,8 @@ impl TypeCheck<'_> {
             // From an actual expression
             (db.type_of(lhs_expr.into()), false)
         };
-        let lhs_tyref = lhs_ty.in_db(db).to_base_type();
+        let in_module = db.inside_module(lhs_expr.into());
+        let lhs_tyref = lhs_ty.in_db(db).peel_opaque(in_module).to_base_type();
 
         // Bail on error types
         if lhs_tyref.kind().is_error() {

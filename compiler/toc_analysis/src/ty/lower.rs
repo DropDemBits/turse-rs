@@ -510,6 +510,8 @@ fn call_expr_ty(
     body_expr: InLibrary<expr::BodyExpr>,
     expr: &expr::Call,
 ) -> TypeId {
+    // Don't need to peel opaques here, since we're guaranteed to do so via NameExpr
+    // FIXME: Unify fetching call kind from typeck with here, since we may try to call a paren-less with parens
     let left = ty_from_expr(db, body, body_expr.1.with_expr(expr.lhs));
     let calling_ty = left.in_db(db).to_base_type();
 
@@ -534,8 +536,11 @@ fn call_expr_ty(
         }
         TypeKind::Set(..) => {
             // Set constructor
-            // Just use the set's type
-            left
+            // Just use the set's type (alias/opaque and all)
+            let lhs_expr = (body_expr.0, body_expr.1.with_expr(expr.lhs));
+
+            db.binding_def(lhs_expr.into())
+                .map_or_else(|| db.mk_error(), |def_id| db.type_of(def_id.into()))
         }
         _ => {
             // Not a callable subprogram

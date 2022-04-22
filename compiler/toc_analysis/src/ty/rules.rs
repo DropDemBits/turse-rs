@@ -220,8 +220,16 @@ where
                     InLibrary(library_id, def_module),
                     InLibrary(library_id, in_module),
                 ) {
-                    // Convert into an alias type
-                    db.mk_alias(*def_id, *hidden_ty).in_db(db)
+                    // Convert into an alias type (if needed)
+                    let hidden_tyref = hidden_ty.in_db(db);
+
+                    match hidden_tyref.kind() {
+                        // Sets, records, and unions don't need an alias
+                        // FIXME: add special cases for records and unions once lowered
+                        TypeKind::Set(..) => hidden_tyref,
+                        TypeKind::Alias(..) => unreachable!("found alias wrapped in opaque"),
+                        _ => db.mk_alias(*def_id, *hidden_ty).in_db(db),
+                    }
                 } else {
                     // Not visible, don't peel
                     self

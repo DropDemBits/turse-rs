@@ -2421,6 +2421,26 @@ test_named_group! { typeck_opaque_ty,
     ]
 }
 
+test_named_group! { typeck_opaque_alias,
+    [
+        // Sets, records, and unions deal with opaque aliases specially
+        of_set => "
+        var *_ : boolean
+
+        module m
+            export opaque s, var a
+            type s : set of boolean
+            var a := s(true)
+            _ := true in a
+        end m
+
+        % should fail
+        var vs := m.s(false)
+        _ := false in m.a
+        "
+    ]
+}
+
 test_named_group! { typeck_set_ty,
     [
         from_type_alias => "type s : set of boolean var _ : s",
