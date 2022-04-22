@@ -2402,6 +2402,7 @@ impl BodyCodeGenerator<'_> {
                     .emit_opcode(Opcode::PUSHINT(char_len.try_into().expect("not a u32")));
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
             }
+            ty::TypeKind::Opaque(_, ty) => return self.generate_assign(*ty, order), // defer to the opaque type
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
@@ -2467,6 +2468,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::Char => Opcode::FETCHNAT1(), // chars are equivalent to nat1 on regular Turing backend
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
+            ty::TypeKind::Opaque(_, ty) => return self.pick_fetch_op(*ty), // defer to the opaque type
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),

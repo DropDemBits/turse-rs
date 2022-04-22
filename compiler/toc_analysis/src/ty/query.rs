@@ -42,19 +42,15 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
             DefOwner::ItemParam(item_id, param_def) => {
                 lower::ty_from_item_param(db, InLibrary(def_id.0, (item_id, param_def)))
             }
-            DefOwner::ItemExport(item_id, export_idx) => {
+            DefOwner::Export(module_id, export_id) => {
                 // Refer to the corresponding exported item
                 let library = db.library(def_id.0);
 
-                if let item::ItemKind::Module(module) = &library.item(item_id).kind {
-                    let export_item = module.exports.get(export_idx).expect("bad export index");
-                    let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
+                let module = library.module_item(module_id);
+                let export = module.export(export_id);
+                let def_id = DefId(def_id.0, library.item(export.item_id).def_id);
 
-                    db.type_of(def_id.into())
-                } else {
-                    // Only applicable to module-likes
-                    unreachable!()
-                }
+                db.type_of(def_id.into())
             }
             DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
         }
@@ -145,7 +141,7 @@ pub(crate) fn binding_to(
                 }
             })
         }
-        Some(DefOwner::ItemExport(..)) => {
+        Some(DefOwner::Export(..)) => {
             unreachable!("already resolved defs to canon form")
         }
         Some(DefOwner::Stmt(stmt_id)) => {
@@ -251,19 +247,10 @@ pub(super) fn value_produced(
                     toc_hir::expr::Name::Name(def_id) => {
                         let def_id = DefId(lib_id, *def_id);
 
-                        if let Some(DefOwner::ItemExport(item_id, export_idx)) =
-                            db.def_owner(def_id)
-                        {
+                        if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id) {
                             // Keep track of export mutability
                             let mutability =
-                                if let item::ItemKind::Module(item) = &library.item(item_id).kind {
-                                    let export =
-                                        item.exports.get(export_idx).expect("bad export index");
-
-                                    export.mutability
-                                } else {
-                                    unreachable!("not from a module-like")
-                                };
+                                library.module_item(mod_id).export(export_id).mutability;
 
                             // Take initially from the binding kind
                             let kind = value_kind_from_binding(db, def_id)?;
@@ -357,10 +344,15 @@ pub(crate) fn fields_of(
 ) -> Option<Arc<item::Fields>> {
     match source {
         db::FieldsSource::DefId(def_id) => {
-            let InLibrary(library_id, item_id) = db.item_of(def_id)?;
+            // Defer to the owning item
+            let def_item = db.item_of(def_id)?;
+            db.fields_of(def_item.into())
+        }
+        db::FieldsSource::Item(library_id, item_id) => {
             let library = db.library(library_id);
+            let item = library.item(item_id);
 
-            match &library.item(item_id).kind {
+            match &item.kind {
                 item::ItemKind::Module(item) => {
                     // Build from the exports
                     let fields = item
@@ -385,7 +377,7 @@ pub(crate) fn fields_of(
                 }
                 _ => {
                     // Defer to the corresponding type
-                    let ty_id = db.type_of(def_id.into());
+                    let ty_id = db.type_of(DefId(library_id, item.def_id).into());
                     db.fields_of(ty_id.into())
                 }
             }
@@ -410,11 +402,27 @@ pub(crate) fn fields_of(
 
 pub(crate) fn find_exported_def(
     db: &dyn TypeDatabase,
-    value_src: db::ValueSource,
+    bind_src: db::BindingSource,
 ) -> Option<DefId> {
     let (library_id, library);
-    let (body_id, expr_id) = match value_src {
-        db::ValueSource::Body(lib_id, body_id) => {
+    let (body_id, expr_id) = match bind_src {
+        db::BindingSource::DefId(def_id @ DefId(lib_id, _)) => {
+            library_id = lib_id;
+            library = db.library(lib_id);
+
+            // Take from the def owner
+            let export_def = if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id)
+            {
+                let export_def = library.module_item(mod_id).export(export_id).def_id;
+                Some(DefId(library_id, export_def))
+            } else {
+                // Not an item export
+                None
+            };
+
+            return export_def;
+        }
+        db::BindingSource::Body(lib_id, body_id) => {
             library_id = lib_id;
             library = db.library(lib_id);
 
@@ -423,7 +431,7 @@ pub(crate) fn find_exported_def(
                 body::BodyKind::Exprs(expr_id) => (body_id, *expr_id),
             }
         }
-        db::ValueSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
+        db::BindingSource::BodyExpr(lib_id, expr::BodyExpr(body_id, expr_id)) => {
             library_id = lib_id;
             library = db.library(lib_id);
             (body_id, expr_id)
@@ -435,21 +443,8 @@ pub(crate) fn find_exported_def(
         expr::ExprKind::Name(expr) => {
             match expr {
                 expr::Name::Name(local_def) => {
-                    // Take from the def owner
-                    if let Some(DefOwner::ItemExport(item_id, export_idx)) =
-                        db.def_owner(DefId(library_id, *local_def))
-                    {
-                        if let item::ItemKind::Module(item) = &library.item(item_id).kind {
-                            let export = item.exports.get(export_idx).expect("bad export index");
-
-                            Some(DefId(library_id, export.def_id))
-                        } else {
-                            unreachable!("not from a module-like")
-                        }
-                    } else {
-                        // Not an item export
-                        None
-                    }
+                    // Take from the def
+                    db.exporting_def(DefId(library_id, *local_def).into())
                 }
                 expr::Name::Self_ => None,
             }
@@ -575,6 +570,15 @@ where
         self.intern_type(
             Type {
                 kind: TypeKind::Alias(def_id, base_ty),
+            }
+            .into(),
+        )
+    }
+
+    fn mk_opaque(&self, def_id: DefId, base_ty: TypeId) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Opaque(def_id, base_ty),
             }
             .into(),
         )

@@ -153,6 +153,10 @@ impl TypeKind {
                 // not one
                 false
             }
+            TypeKind::Opaque(_, _) => {
+                // Considered distinct from its alias type
+                false
+            }
             TypeKind::Forward => {
                 // Forward types are never scalars, since they never represent any type
                 false
@@ -199,6 +203,42 @@ where
         }
     }
 
+    /// Peels the opaque wrapper into an alias, but only if it would be visible
+    /// from `in_module`. Otherwise, returns itself.
+    pub fn peel_opaque(self, in_module: toc_hir::item::ModuleId) -> Self {
+        match self.kind() {
+            TypeKind::Opaque(def_id, hidden_ty) => {
+                use toc_hir::library::InLibrary;
+
+                let db = self.db;
+
+                let item_of @ InLibrary(library_id, _) =
+                    db.item_of(*def_id).expect("opaque not from type def");
+                let def_module = db.inside_module(item_of.into());
+
+                if db.is_module_ancestor(
+                    InLibrary(library_id, def_module),
+                    InLibrary(library_id, in_module),
+                ) {
+                    // Convert into an alias type (if needed)
+                    let hidden_tyref = hidden_ty.in_db(db);
+
+                    match hidden_tyref.kind() {
+                        // Sets, records, and unions don't need an alias
+                        // FIXME: add special cases for records and unions once lowered
+                        TypeKind::Set(..) => hidden_tyref,
+                        TypeKind::Alias(..) => unreachable!("found alias wrapped in opaque"),
+                        _ => db.mk_alias(*def_id, *hidden_ty).in_db(db),
+                    }
+                } else {
+                    // Not visible, don't peel
+                    self
+                }
+            }
+            _ => self,
+        }
+    }
+
     /// Transforms the type into its base representation.
     ///
     /// Turns ranges into its common type, and peels aliases.
@@ -210,6 +250,9 @@ where
 
 // TODO: Document type equivalence
 // steal from the old compiler
+/// Tests if the types are equivalent.
+///
+/// This is a symmetric relation.
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
     let left = left.in_db(db).to_base_type();
     let right = right.in_db(db).to_base_type();
@@ -322,6 +365,11 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
 
                 true
             }
+        }
+        // Opaque types are equivalent to their original alias definition
+        (TypeKind::Opaque(opaque_def, _), TypeKind::Alias(alias_def, _))
+        | (TypeKind::Alias(alias_def, _), TypeKind::Opaque(opaque_def, _)) => {
+            opaque_def == alias_def
         }
         // `void` is equivalent to itself
         (TypeKind::Void, TypeKind::Void) => true,

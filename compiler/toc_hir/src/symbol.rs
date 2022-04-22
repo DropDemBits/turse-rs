@@ -8,7 +8,7 @@ use toc_span::SpanId;
 
 pub use crate::ids::{DefId, LocalDefId};
 use crate::{
-    ids::{ItemId, LocalDefIndex},
+    ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
     stmt::BodyStmt,
 };
 
@@ -113,8 +113,8 @@ pub enum DefOwner {
     Item(ItemId),
     /// Parameter on a given `Item`
     ItemParam(ItemId, LocalDefId),
-    /// Export on a given `Item`
-    ItemExport(ItemId, usize),
+    /// Export from a given `Module`
+    Export(ModuleId, ExportId),
     /// Owned by a `Stmt`
     Stmt(BodyStmt),
 }

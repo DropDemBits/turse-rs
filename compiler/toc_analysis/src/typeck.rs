@@ -234,6 +234,10 @@ impl TypeCheck<'_> {
         let left = self.db.type_of(def_id.into());
         let right = self.db.type_of((self.library_id, init).into());
 
+        // Peel opaque just for assignability
+        let in_module = self.db.inside_module((self.library_id, id).into());
+        let left = left.in_db(self.db).peel_opaque(in_module).id();
+
         if !ty::rules::is_assignable(self.db, left, right) {
             // Incompatible, report it
             let init_span = self.library.body(init).span.lookup_in(&self.library);
@@ -856,8 +860,13 @@ impl TypeCheck<'_> {
         };
 
         if let Some(hir_ty) = result_ty {
+            // Peel any opaques first
+            let in_module = db.inside_module((self.library_id, hir_ty).into());
             let result_ty = db.from_hir_type(hir_ty.in_library(self.library_id));
-            let result_ty_ref = result_ty.in_db(db).to_base_type();
+            let result_ty_ref = result_ty.in_db(db).peel_opaque(in_module);
+
+            let result_ty = result_ty_ref.id();
+            let result_ty_ref = result_ty_ref.to_base_type();
 
             if matches!(result_ty_ref.kind(), ty::TypeKind::Void) {
                 // Not inside of function
@@ -1032,7 +1041,8 @@ impl TypeCheck<'_> {
             // From an actual expression
             (db.type_of(lhs_expr.into()), false)
         };
-        let lhs_tyref = lhs_ty.in_db(db).to_base_type();
+        let in_module = db.inside_module(lhs_expr.into());
+        let lhs_tyref = lhs_ty.in_db(db).peel_opaque(in_module).to_base_type();
 
         // Bail on error types
         if lhs_tyref.kind().is_error() {
@@ -1122,7 +1132,7 @@ impl TypeCheck<'_> {
 
         match call_kind {
             CallKind::SetCons(elem_ty) => {
-                self.typeck_call_set_cons(lhs_span, arg_list, body, elem_ty);
+                self.typeck_call_set_cons(lhs_expr, lhs_span, arg_list, body, elem_ty);
             }
             CallKind::SubprogramCall => self.typeck_call_subprogram(
                 lhs_tyref,
@@ -1137,6 +1147,7 @@ impl TypeCheck<'_> {
 
     fn typeck_call_set_cons(
         &self,
+        lhs_expr: (LibraryId, body::BodyId, expr::ExprId),
         lhs_span: Span,
         arg_list: Option<&expr::ArgList>,
         body_id: body::BodyId,
@@ -1178,6 +1189,10 @@ impl TypeCheck<'_> {
                     .finish();
             }
         }
+
+        // Peel the elem ty's opaque
+        let in_module = self.db.inside_module(lhs_expr.into());
+        let elem_ty = elem_ty.in_db(self.db).peel_opaque(in_module).id();
 
         // All args must be coercible into the element type
         for arg in arg_list {
@@ -1286,6 +1301,9 @@ impl TypeCheck<'_> {
             }
         }
 
+        // For peeling opaques
+        let in_module = self.db.inside_module(lhs_expr.into());
+
         loop {
             let (param, arg) = match (params.next(), args.next()) {
                 (None, None) => {
@@ -1392,7 +1410,9 @@ impl TypeCheck<'_> {
                     ty::PassBy::Reference(_) => ty::rules::is_coercible_into_param,
                 };
 
-                if !predicate(self.db, param.param_ty, arg_ty) {
+                let param_ty = param.param_ty.in_db(self.db).peel_opaque(in_module).id();
+
+                if !predicate(self.db, param_ty, arg_ty) {
                     self.report_mismatched_param_tys(
                         param.param_ty,
                         arg_ty,
@@ -1511,11 +1531,15 @@ impl TypeCheck<'_> {
         }
     }
 
-    fn typeck_set_ty(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
+    fn typeck_set_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         let db = self.db;
+        let in_module = db.inside_module((self.library_id, id).into());
+
+        // elem tyref should be the visible one
         let elem_tyref = db
             .from_hir_type(ty.elem_ty.in_library(self.library_id))
-            .in_db(db);
+            .in_db(db)
+            .peel_opaque(in_module);
         let span = self
             .library
             .lookup_type(ty.elem_ty)
@@ -1799,7 +1823,7 @@ impl TypeCheck<'_> {
                     // Likely from an export
                     let exporting_def = self
                         .db
-                        .exporting_def(value_src)
+                        .exporting_def(value_src.into())
                         .expect("at mut storage but rejected it");
                     let exported_library = self.db.library(exporting_def.0);
                     let exported_span = exported_library

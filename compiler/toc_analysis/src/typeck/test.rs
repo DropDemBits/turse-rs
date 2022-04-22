@@ -1376,6 +1376,36 @@ test_named_group! { equivalence_of,
         for : ia0 .. ia1 end for
         for : ia1 .. ia0 end for
         "#,
+        // Over opaque types
+        opaques => "
+        module z
+            export unqualified opaque ty, unwrap, make
+
+            type ty : int
+
+            fcn unwrap(t : ty) : int
+                result t
+            end unwrap
+
+            fcn make(i : int) : ty
+                result i
+            end make
+        end z
+
+        % can't use path syntax since it isn't lowered yet
+        var a, b : ty
+        var c := z.make(1)
+
+        % is equivalent to self
+        a := b
+        a := c
+
+        % to the original alias def
+        var i : int := z.unwrap(a)
+
+        % but not the alias type
+        i := a
+        ",
         // Over set types
         sets => r#"
         type sb : set of boolean
@@ -2224,6 +2254,190 @@ test_named_group! { typeck_stringn_ty,
 
         wrong_type_size => "type _ : string(1.0)",
         wrong_value_size => "type k : int type _ : string(k)",
+    ]
+}
+
+test_named_group! { typeck_opaque_ty,
+    [
+        // Outside module: gets inferred as an opaque type
+        outside_module => "
+        module k
+            export opaque ~.* t, f
+
+            type t : int
+
+            fcn f() : t loop end loop end f
+        end k
+
+        var a : t
+        var b := k.f()
+        % FIXME: uncomment once type paths are lowered
+        %var c : k.t
+        ",
+        // inside module: also gets inferred as an opaque type
+        // FIXME: add inside module test once type paths are lowered
+        poke_opaque_constvar => "
+        module m
+            export opaque t, ~.* a
+            type t : char
+
+            var a : t := 'c'
+        end m
+
+        % Hidden type shouldn't be leaked
+        var b := a
+        b := 'c'
+        ",
+        poke_opaque_result => "
+        module m
+            export opaque ~.* t
+            type t : int
+
+            % should be equivalent
+            fcn f() : t result 2 end f
+        end m
+
+        % should fail
+        fcn k() : t result 2 end k
+        ",
+        // assignment is also handled by name
+        poke_opaque_name => "
+        module m
+            export opaque t, a, ~.* b
+            type t : int
+
+            var a : t
+            var b := a
+            a := 2
+        end m
+
+        % It's fine if `b` leaks the hidden type
+        var c : int := b
+        ",
+        poke_opaque_field => "
+        module m
+            export opaque t, var a, b
+            type t : int
+
+            var a : t
+            m.a := 2
+            var b := m.a
+        end m
+
+        % It's fine if `b` leaks the hidden type
+        var c : int := m.b
+        ",
+        // FIXME: add inside arrow poke once records are lowered
+        poke_opaque_deref => "
+        module m
+            export opaque t, a
+            type t : int
+            var a : ^t
+            var b : int := ^a
+        end m
+
+        var b := m.a
+        % should fail
+        var c : int := ^b
+        ",
+        poke_opaque_call_parens => "
+        module m
+            export opaque t, f
+            type t : int
+            fcn f() : t loop end loop end f
+
+            var a : int := f()
+        end m
+
+        % should fail
+        var b : int := m.f()
+        ",
+        poke_opaque_call_no_parens => "
+        module m
+            export opaque t, f
+            type t : int
+            fcn f : t loop end loop end f
+
+            var a : int := f
+        end m
+
+        % should fail
+        var b : int := m.f
+        ",
+        poke_opaque_call_param => "
+        module m
+            export opaque t, a, p
+            type t : int
+            proc p(a : t) end p
+            var a : t
+
+            % should be coercible
+            m.p(a)
+            m.p(69)
+        end m
+
+        % should be fine
+        var a := m.a
+        m.p(a)
+        % shouldn't be fine
+        m.p(2)
+        ",
+        poke_opaque_set_cons_param => "
+        module m
+            export opaque t, ~.* s, make
+            type t : char
+            type s : set of t
+
+            fcn make(c : char) : t
+                result c
+            end mk
+
+            % both should succeed
+            var a : s := s('6', '9')
+            a := s(make('i'))
+        end m
+
+        % should fail
+        var vs : s := s('i')
+        % should succeed
+        vs := s(m.make('i'))
+        ",
+
+        poke_opaque_set_elem_ty => "
+        module m
+            export opaque ~.* t, ~.* s, make
+            type t : char
+            type s : set of t
+            fcn make(c : char) : t result c end make
+        end m
+
+        % both should fail, is strictly opaque
+        type xs : set of t
+        var vs : s := s('i')
+
+        % should succeed
+        var _ : boolean := m.make('i') in vs
+        "
+    ]
+}
+
+test_named_group! { typeck_opaque_alias,
+    [
+        // Sets, records, and unions deal with opaque aliases specially
+        of_set => "
+        var *_ : boolean
+
+        module m
+            export opaque s, var a
+            type s : set of boolean
+            var a := s(true)
+            _ := true in a
+        end m
+
+        % should fail
+        var vs := m.s(false)
+        _ := false in m.a
+        "
     ]
 }
 

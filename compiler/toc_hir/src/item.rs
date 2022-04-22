@@ -5,11 +5,12 @@ use toc_span::SpanId;
 
 use crate::{
     body,
+    ids::ItemIndex,
     symbol::{self, Symbol},
     ty,
 };
 
-pub use crate::ids::ItemId;
+pub use crate::ids::{ExportId, ItemId, ModuleId};
 
 /// An entity representing a declaration.
 ///
@@ -243,4 +244,59 @@ pub struct FieldInfo {
     pub mutability: symbol::Mutability,
     /// If this field refers to an opaque type
     pub is_opaque: bool,
+}
+
+/// A module-like item (e.g. a `module`, a `class`, a `monitor`)
+#[derive(Debug, PartialEq, Eq)]
+pub enum ModuleLike<'a> {
+    Module(&'a Module),
+}
+
+impl ModuleLike<'_> {
+    pub fn export(&self, export_id: ExportId) -> &ExportItem {
+        match self {
+            ModuleLike::Module(module) => {
+                module.exports.get(export_id.0).expect("bad export index")
+            }
+        }
+    }
+
+    pub fn exports_of(&self) -> &[ExportItem] {
+        match self {
+            ModuleLike::Module(module) => &module.exports,
+        }
+    }
+}
+
+/// Represents the item hierarchy, from leaf items to root items
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+pub struct ModuleTree {
+    /// Which module is this item declared in.
+    in_module: la_arena::ArenaMap<ItemIndex, ModuleId>,
+}
+
+impl ModuleTree {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn link_modules(&mut self, from: ModuleId, to: ModuleId) {
+        self.in_module.insert(to.item_id().0, from)
+    }
+
+    pub fn link_declared_item(&mut self, module_id: ModuleId, declares: ItemId) {
+        self.in_module.insert(declares.0, module_id)
+    }
+
+    /// Gets the parent of this module.
+    /// Can be missing as root modules don't have a parent.
+    pub fn parent_of(&self, module: ModuleId) -> Option<ModuleId> {
+        self.in_module.get(module.item_id().0).copied()
+    }
+
+    /// Gets which module declared this item.
+    /// Can be missing as root modules aren't declared in another item
+    pub fn module_of(&self, item_id: ItemId) -> Option<ModuleId> {
+        self.in_module.get(item_id.0).copied()
+    }
 }

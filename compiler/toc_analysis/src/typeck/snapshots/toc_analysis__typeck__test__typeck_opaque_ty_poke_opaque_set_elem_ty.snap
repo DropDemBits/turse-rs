@@ -1,0 +1,29 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module m\n    export opaque ~.* t, ~.* s, make\n    type t : char\n    type s : set of t\n    fcn make(c : char) : t result c end make\nend m\n\n% both should fail, is strictly opaque\ntype xs : set of t\nvar vs : s := s('i')\n\n% should succeed\nvar _ : boolean := m.make('i') in vs\n"
+
+---
+"m"@(FileId(1), 7..8) [Declared]: <error>
+"t"@(FileId(1), 55..56) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"<anonymous>"@(FileId(1), 77..85) [Declared]: <error>
+"s"@(FileId(1), 73..74) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"make"@(FileId(1), 94..98) [Declared]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"<unnamed>"@(dummy) [Declared]: <error>
+"c"@(FileId(1), 99..100) [Declared]: char
+"t"@(FileId(1), 20..32) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"s"@(FileId(1), 34..39) [ItemExport(LocalDefId(3))]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"make"@(FileId(1), 41..45) [ItemExport(LocalDefId(4))]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"<anonymous>"@(FileId(1), 187..195) [Declared]: <error>
+"xs"@(FileId(1), 182..184) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(11))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"vs"@(FileId(1), 200..202) [Declared]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"_"@(FileId(1), 239..240) [Declared]: boolean
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 194..195: mismatched types
+| error in file FileId(1) for 194..195: `t (an opaque type)` is not an index type
+| info: an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range
+error in file FileId(1) at 212..215: mismatched types
+| note in file FileId(1) for 212..215: this is of type `char`
+| note in file FileId(1) for 212..215: parameter expects type `t (an opaque type)`
+| info: `char` is not assignable into `t (an opaque type)`

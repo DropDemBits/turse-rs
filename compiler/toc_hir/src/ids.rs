@@ -41,7 +41,52 @@ impl fmt::Debug for DefId {
 crate::arena_id_wrapper!(
     /// A library local reference to an item.
     pub struct ItemId(item::Item);
+    /// Alias for the item arena index
+    pub(crate) type ItemIndex = Index;
 );
+
+/// A library local reference to a specific module-like item (e.g. [`Module`])
+///
+/// [`Module`]: crate::item::Module
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ModuleId(pub(crate) ItemId);
+
+impl ModuleId {
+    /// Makes a new [`ModuleId`], run-time verified to only accept module-likes
+    ///
+    /// ## Panics
+    /// If the [`Item`] from [`ItemId`] isn't a [`ModuleLike`]
+    ///
+    /// [`Item`]: crate::item::Item
+    /// [`ModuleLike`]: crate::item::ModuleLike
+    pub fn new(in_library: &crate::library::Library, item_id: ItemId) -> Self {
+        Self::try_new(in_library, item_id).expect("only module-likes accepted")
+    }
+
+    /// Makes a new [`ModuleId`], returning `None` if it doesn't point to a module-like
+    ///
+    /// [`ModuleLike`]: crate::item::ModuleLike
+    pub fn try_new(in_library: &crate::library::Library, item_id: ItemId) -> Option<Self> {
+        if !matches!(
+            in_library.item(item_id).kind,
+            crate::item::ItemKind::Module(_)
+        ) {
+            return None;
+        }
+
+        Some(Self(item_id))
+    }
+
+    pub fn item_id(self) -> ItemId {
+        self.0
+    }
+}
+
+/// A module-local reference to a specific export
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct ExportId(pub usize);
 
 crate::arena_id_wrapper!(
     /// A library local reference to a body.
