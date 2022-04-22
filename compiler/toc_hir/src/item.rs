@@ -244,3 +244,30 @@ pub struct FieldInfo {
     /// If this field refers to an opaque type
     pub is_opaque: bool,
 }
+
+/// A module-like item (e.g. a `module`, a `class`, a `monitor`)
+#[derive(Debug, PartialEq, Eq)]
+pub enum ModuleLike<'a> {
+    Module(&'a Module),
+}
+
+/// Represents the module hierarchy, from leaf modules to root modules
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+pub struct ModuleTree {
+    /// Links up to the module root
+    modules: la_arena::ArenaMap<crate::ids::ItemIndex, ModuleId>,
+}
+
+impl ModuleTree {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn link_modules(&mut self, from: ModuleId, to: ModuleId) {
+        self.modules.insert(to.0 .0, from)
+    }
+
+    pub fn parent_of(&self, module: ModuleId) -> Option<ModuleId> {
+        self.modules.get(module.0 .0).copied()
+    }
+}

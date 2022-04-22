@@ -46,7 +46,7 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
                 // Refer to the corresponding exported item
                 let library = db.library(def_id.0);
 
-                if let item::ItemKind::Module(module) = &library.item(mod_id.0).kind {
+                if let item::ItemKind::Module(module) = &library.item(mod_id.item_id()).kind {
                     let export_item = module.exports.get(export_id.0).expect("bad export index");
                     let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
 
@@ -251,10 +251,10 @@ pub(super) fn value_produced(
                     toc_hir::expr::Name::Name(def_id) => {
                         let def_id = DefId(lib_id, *def_id);
 
-                        if let Some(DefOwner::Export(item_id, export_id)) = db.def_owner(def_id) {
+                        if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id) {
                             // Keep track of export mutability
                             let mutability = if let item::ItemKind::Module(item) =
-                                &library.item(item_id.0).kind
+                                &library.item(mod_id.item_id()).kind
                             {
                                 let export =
                                     item.exports.get(export_id.0).expect("bad export index");
@@ -435,10 +435,10 @@ pub(crate) fn find_exported_def(
             match expr {
                 expr::Name::Name(local_def) => {
                     // Take from the def owner
-                    if let Some(DefOwner::Export(item_id, export_id)) =
+                    if let Some(DefOwner::Export(mod_id, export_id)) =
                         db.def_owner(DefId(library_id, *local_def))
                     {
-                        if let item::ItemKind::Module(item) = &library.item(item_id.0).kind {
+                        if let item::ItemKind::Module(item) = &library.item(mod_id.item_id()).kind {
                             let export = item.exports.get(export_id.0).expect("bad export index");
 
                             Some(DefId(library_id, export.def_id))

@@ -2,6 +2,7 @@
 
 use std::{cell::RefCell, sync::Arc};
 
+use toc_hir::item::{ModuleId, ModuleTree};
 use toc_hir::{
     body,
     body::{BodyOwner, BodyTable},
@@ -66,6 +67,78 @@ pub fn lookup_body_owner(
     db.body_owners_of(body_id.0).get_owner(body_id.1)
 }
 
+pub(crate) fn collect_module_tree(db: &dyn HirDatabase, library: LibraryId) -> Arc<ModuleTree> {
+    use toc_hir::visitor::{WalkEvent, WalkNode, Walker};
+
+    let library = db.library(library);
+
+    let mut walker = Walker::from_library(&library);
+    let mut module_tree = ModuleTree::default();
+    let mut module_path = vec![];
+
+    while let Some(event) = walker.next_event() {
+        match event {
+            WalkEvent::Enter(WalkNode::Item(item_id, item)) => {
+                if let item::ItemKind::Module(_) = &item.kind {
+                    let child_mod = ModuleId::new(&library, item_id);
+
+                    // Link to parent
+                    if let Some(&parent_mod) = module_path.last() {
+                        module_tree.link_modules(parent_mod, child_mod);
+                    }
+
+                    // Add to path
+                    module_path.push(child_mod);
+                }
+            }
+            WalkEvent::Leave(WalkNode::Item(item_id, item)) => {
+                if let item::ItemKind::Module(_) = &item.kind {
+                    // Pop from path
+                    let child_mod = module_path.pop();
+
+                    // Stack discipline should mean that we pop off the correct module
+                    assert_eq!(child_mod.map(|id| id.item_id()), Some(item_id));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Arc::new(module_tree)
+}
+
+pub(crate) fn lookup_module_parent(
+    db: &dyn HirDatabase,
+    module: InLibrary<ModuleId>,
+) -> Option<ModuleId> {
+    db.module_tree_of(module.0).parent_of(module.1)
+}
+
+pub(crate) fn is_module_ancestor(
+    db: &dyn HirDatabase,
+    parent: InLibrary<ModuleId>,
+    child: InLibrary<ModuleId>,
+) -> bool {
+    // Must be from the same library
+    if parent.0 != child.0 {
+        return false;
+    }
+
+    // All modules are their own ancestor
+    if parent == child {
+        return true;
+    }
+
+    // Don't need to route through query, would create redundant module tree clones
+    let module_tree = db.module_tree_of(parent.0);
+
+    // Module is only an ancestor if it's anywhere on the hierarchy
+    std::iter::successors(module_tree.parent_of(child.1), |id| {
+        module_tree.parent_of(*id)
+    })
+    .any(|mod_id| mod_id == parent.1)
+}
+
 pub fn lookup_item(db: &dyn HirDatabase, def_id: DefId) -> Option<InLibrary<item::ItemId>> {
     db.def_owner(def_id).and_then(|owner| match owner {
         DefOwner::Item(id) => Some(InLibrary(def_id.0, id)),
@@ -93,7 +166,7 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
         DefOwner::Export(mod_id, export_id) => {
             let library = db.library(def_id.0);
 
-            if let item::ItemKind::Module(module) = &library.item(mod_id.0).kind {
+            if let item::ItemKind::Module(module) = &library.item(mod_id.item_id()).kind {
                 let export = module.exports.get(export_id.0).expect("bad export index");
                 let exported_item = library.item(export.item_id);
                 DefId(def_id.0, exported_item.def_id)
@@ -128,7 +201,7 @@ impl HirVisitor for DefCollector<'_> {
         for (idx, export) in item.exports.iter().enumerate() {
             self.add_owner(
                 export.def_id,
-                DefOwner::Export(item::ModuleId(id), item::ExportId(idx)),
+                DefOwner::Export(item::ModuleId::new(self.library, id), item::ExportId(idx)),
             );
         }
     }

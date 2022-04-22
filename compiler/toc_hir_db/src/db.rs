@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use toc_hir::item::ModuleTree;
 use toc_hir::{
     body,
     body::BodyTable,
@@ -33,6 +34,11 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     #[salsa::invoke(query::collect_body_owners)]
     fn body_owners_of(&self, library: LibraryId) -> Arc<BodyTable>;
 
+    /// Gets the module tree from the library,
+    /// providing a link from child modules to parent modules.
+    #[salsa::invoke(query::collect_module_tree)]
+    fn module_tree_of(&self, library: LibraryId) -> Arc<ModuleTree>;
+
     /// Gets the corresponding [`DefOwner`] to the given [`DefId`]
     ///
     /// This does not perform any form of definition resolution.
@@ -42,6 +48,19 @@ pub trait HirDatabase: toc_hir_lowering::LoweringDb {
     /// Gets the corresponding [`BodyOwner`](body::BodyOwner) to the given [`BodyId`](body::BodyId)
     #[salsa::invoke(query::lookup_body_owner)]
     fn body_owner(&self, body: InLibrary<body::BodyId>) -> Option<body::BodyOwner>;
+
+    /// Gets the parent module of the given module.
+    #[salsa::invoke(query::lookup_module_parent)]
+    fn module_parent(&self, module: InLibrary<item::ModuleId>) -> Option<item::ModuleId>;
+
+    /// Tests if `parent` is an ancestor module of `child`.
+    /// All modules are their own ancestors.
+    #[salsa::invoke(query::is_module_ancestor)]
+    fn is_module_ancestor(
+        &self,
+        parent: InLibrary<item::ModuleId>,
+        child: InLibrary<item::ModuleId>,
+    ) -> bool;
 
     /// Looks up the corresponding item for the given [`DefId`],
     /// or `None` if it doesn't exist.
