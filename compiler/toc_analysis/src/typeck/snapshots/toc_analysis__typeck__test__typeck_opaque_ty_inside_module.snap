@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module k\n    export opaque t\n    type t : int\n    var a : t := 2\n    var b : k.t := 3\nend k\n"
+
+---
+"k"@(FileId(1), 7..8) [Declared]: <error>
+"t"@(FileId(1), 38..39) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"a"@(FileId(1), 54..55) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"b"@(FileId(1), 73..74) [Declared]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"t"@(FileId(1), 20..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to int
+"<root>"@(dummy) [Declared]: <error>
+

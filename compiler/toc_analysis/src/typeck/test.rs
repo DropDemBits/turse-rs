@@ -2286,11 +2286,17 @@ test_named_group! { typeck_opaque_ty,
 
         var a : t
         var b := k.f()
-        % FIXME: uncomment once type paths are lowered
-        %var c : k.t
+        var c : k.t
         ",
         // inside module: also gets inferred as an opaque type
-        // FIXME: add inside module test once type paths are lowered
+        inside_module => "
+        module k
+            export opaque t
+            type t : int
+            var a : t := 2
+            var b : k.t := 3
+        end k
+        ",
         poke_opaque_constvar => "
         module m
             export opaque t, ~.* a
