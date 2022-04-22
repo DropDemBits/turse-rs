@@ -89,6 +89,7 @@ pub(crate) fn collect_module_tree(db: &dyn HirDatabase, library: LibraryId) -> A
 
     let library = db.library(library);
 
+    // Need an in-line collection since we're also concerned about exit events
     let mut walker = Walker::from_library(&library);
     let mut module_tree = ModuleTree::default();
     let mut module_path = vec![];
@@ -167,6 +168,10 @@ pub(crate) fn lookup_inside_module(
     let inside_module = match inside_module {
         InsideModule::Item(library_id, item_id) => {
             // We're either at a module-like, or at a plain old item
+            //
+            // We stop at module-likes since we're directed here via bodies,
+            // and we don't need to distinguish between at module decl and inside body,
+            // at least right now.
             let library = db.library(library_id);
 
             let module_id = match item::ModuleId::try_new(&library, item_id) {
@@ -179,6 +184,7 @@ pub(crate) fn lookup_inside_module(
 
             return module_id;
         }
+        // Type gets referred to the type's owner
         InsideModule::Type(library_id, type_id) => {
             let owner = db.type_owner(InLibrary(library_id, type_id));
 
@@ -187,6 +193,7 @@ pub(crate) fn lookup_inside_module(
                 TypeOwner::Type(type_id) => (library_id, type_id).into(),
             }
         }
+        // Body gets referred to the body's owner
         InsideModule::Body(library_id, body_id) => {
             let owner = db
                 .body_owner(InLibrary(library_id, body_id))
@@ -197,6 +204,7 @@ pub(crate) fn lookup_inside_module(
                 BodyOwner::Type(type_id) => (library_id, type_id).into(),
             }
         }
+        // Body{Stmt,Expr} gets referred to the owning body
         InsideModule::Stmt(library_id, stmt::BodyStmt(body_id, _))
         | InsideModule::Expr(library_id, expr::BodyExpr(body_id, _)) => {
             (library_id, body_id).into()
