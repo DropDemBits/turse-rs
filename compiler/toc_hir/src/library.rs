@@ -79,6 +79,13 @@ impl Library {
         &self.items[item_id.into()]
     }
 
+    pub fn module_item(&self, module_id: item::ModuleId) -> item::ModuleLike<'_> {
+        match &self.item(module_id.item_id()).kind {
+            item::ItemKind::Module(module) => item::ModuleLike::Module(module),
+            _ => unreachable!("not a module-like"),
+        }
+    }
+
     pub fn local_def(&self, def_id: symbol::LocalDefId) -> &symbol::DefInfo {
         &self.defs[def_id.into()]
     }

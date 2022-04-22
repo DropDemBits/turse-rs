@@ -166,13 +166,12 @@ pub(crate) fn resolve_def(db: &dyn HirDatabase, def_id: DefId) -> DefId {
         DefOwner::Export(mod_id, export_id) => {
             let library = db.library(def_id.0);
 
-            if let item::ItemKind::Module(module) = &library.item(mod_id.item_id()).kind {
-                let export = module.exports.get(export_id.0).expect("bad export index");
-                let exported_item = library.item(export.item_id);
-                DefId(def_id.0, exported_item.def_id)
-            } else {
-                unreachable!("item not module-like");
-            }
+            // Get associated item
+            let module = library.module_item(mod_id);
+            let export = module.export(export_id);
+            let exported_item = library.item(export.item_id);
+
+            DefId(def_id.0, exported_item.def_id)
         }
         // Already the canonical definition
         _ => def_id,

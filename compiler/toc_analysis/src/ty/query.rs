@@ -42,19 +42,15 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
             DefOwner::ItemParam(item_id, param_def) => {
                 lower::ty_from_item_param(db, InLibrary(def_id.0, (item_id, param_def)))
             }
-            DefOwner::Export(mod_id, export_id) => {
+            DefOwner::Export(module_id, export_id) => {
                 // Refer to the corresponding exported item
                 let library = db.library(def_id.0);
 
-                if let item::ItemKind::Module(module) = &library.item(mod_id.item_id()).kind {
-                    let export_item = module.exports.get(export_id.0).expect("bad export index");
-                    let def_id = DefId(def_id.0, library.item(export_item.item_id).def_id);
+                let module = library.module_item(module_id);
+                let export = module.export(export_id);
+                let def_id = DefId(def_id.0, library.item(export.item_id).def_id);
 
-                    db.type_of(def_id.into())
-                } else {
-                    // Only applicable to module-likes
-                    unreachable!()
-                }
+                db.type_of(def_id.into())
             }
             DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
         }
@@ -253,16 +249,8 @@ pub(super) fn value_produced(
 
                         if let Some(DefOwner::Export(mod_id, export_id)) = db.def_owner(def_id) {
                             // Keep track of export mutability
-                            let mutability = if let item::ItemKind::Module(item) =
-                                &library.item(mod_id.item_id()).kind
-                            {
-                                let export =
-                                    item.exports.get(export_id.0).expect("bad export index");
-
-                                export.mutability
-                            } else {
-                                unreachable!("not from a module-like")
-                            };
+                            let mutability =
+                                library.module_item(mod_id).export(export_id).mutability;
 
                             // Take initially from the binding kind
                             let kind = value_kind_from_binding(db, def_id)?;
@@ -438,13 +426,9 @@ pub(crate) fn find_exported_def(
                     if let Some(DefOwner::Export(mod_id, export_id)) =
                         db.def_owner(DefId(library_id, *local_def))
                     {
-                        if let item::ItemKind::Module(item) = &library.item(mod_id.item_id()).kind {
-                            let export = item.exports.get(export_id.0).expect("bad export index");
-
-                            Some(DefId(library_id, export.def_id))
-                        } else {
-                            unreachable!("not from a module-like")
-                        }
+                        // Should be from a module-like
+                        let export_def = library.module_item(mod_id).export(export_id).def_id;
+                        Some(DefId(library_id, export_def))
                     } else {
                         // Not an item export
                         None

@@ -251,6 +251,16 @@ pub enum ModuleLike<'a> {
     Module(&'a Module),
 }
 
+impl ModuleLike<'_> {
+    pub fn export(&self, export_id: ExportId) -> &ExportItem {
+        match self {
+            ModuleLike::Module(module) => {
+                module.exports.get(export_id.0).expect("bad export index")
+            }
+        }
+    }
+}
+
 /// Represents the module hierarchy, from leaf modules to root modules
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct ModuleTree {
