@@ -509,8 +509,13 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
     }
     fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {
         let span = self.type_span(id);
-        let extra = itertools::intersperse(ty.variants.iter().map(|v| v.item().name()), ",")
-            .collect::<String>();
+        let extra = itertools::intersperse(
+            ty.variants
+                .iter()
+                .map(|&variant| self.library.local_def(variant).name.name()),
+            ",",
+        )
+        .collect::<String>();
         self.emit_node("Enum", span, Some(format_args!("[ {extra} ]")))
     }
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {

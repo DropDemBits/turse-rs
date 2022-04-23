@@ -152,10 +152,14 @@ impl super::BodyLowering<'_, '_> {
             .unwrap()
             .names()
             .filter_map(|name| {
-                let sym = name.identifier_token()?.text().into();
                 let span = self.ctx.intern_range(name.syntax().text_range());
+                let name = name.identifier_token()?.text().into();
+                let def_id = self
+                    .ctx
+                    .library
+                    .add_def(name, span, symbol::SymbolKind::Declared);
 
-                Some(Spanned::new(sym, span))
+                Some(def_id)
             })
             .collect();
 

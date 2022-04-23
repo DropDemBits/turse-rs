@@ -109,7 +109,7 @@ pub struct Enum {
     /// Definition uniquely identifying this type
     pub def_id: symbol::LocalDefId,
     /// Variants on this enum
-    pub variants: Vec<Spanned<Symbol>>,
+    pub variants: Vec<symbol::LocalDefId>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

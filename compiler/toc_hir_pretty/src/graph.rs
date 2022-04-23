@@ -1211,7 +1211,7 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         v_layout.extend(
             ty.variants
                 .iter()
-                .map(|v| Layout::Node(v.item().name().into())),
+                .map(|&variant| Layout::Node(self.display_def_id(variant))),
         );
 
         self.emit_type(id, "Enum", Layout::Vbox(v_layout))
