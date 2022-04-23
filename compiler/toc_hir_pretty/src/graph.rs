@@ -1206,6 +1206,17 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
     }
 
+    fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {
+        let mut v_layout = vec![Layout::Node(self.display_def_id(ty.def_id))];
+        v_layout.extend(
+            ty.variants
+                .iter()
+                .map(|&variant| Layout::Node(self.display_def_id(variant))),
+        );
+
+        self.emit_type(id, "Enum", Layout::Vbox(v_layout))
+    }
+
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
         self.emit_type(
             id,

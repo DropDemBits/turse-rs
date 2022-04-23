@@ -27,6 +27,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Enum(ty) => enum_ty(db, hir_id, ty),
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
         hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),
@@ -103,6 +104,19 @@ fn alias_ty(
         // Not a reference to a type
         db.mk_error()
     }
+}
+
+fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
+    let InLibrary(library_id, _) = hir_id;
+
+    let def_id = DefId(library_id, ty.def_id);
+    let variants = ty
+        .variants
+        .iter()
+        .map(|&def_id| DefId(library_id, def_id))
+        .collect();
+
+    db.mk_enum(ty::WithDef::Anonymous(def_id), variants)
 }
 
 fn set_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Set) -> TypeId {
@@ -272,9 +286,14 @@ fn type_def_ty(
             match base_ty.kind() {
                 // Forward base types get propagated as errors, since we require a resolved definition
                 ty::TypeKind::Forward => db.mk_error(),
-                // Associate anonymous sets with the def of the alias (equivalent behaviour)
-                ty::TypeKind::Set(ty::WithDef::Anonymous(_), elem_ty) => {
-                    maybe_opaque(db.mk_set(ty::WithDef::Named(def_id), *elem_ty))
+                // Make anonymous types not anonymous anymore
+                // They don't need to be wrapped in an alias, since that would result in
+                // "`<name>` (alias of `<name>`)" during display
+                ty::TypeKind::Set(ty::WithDef::Anonymous(def_id), elem_ty) => {
+                    maybe_opaque(db.mk_set(ty::WithDef::Named(*def_id), *elem_ty))
+                }
+                ty::TypeKind::Enum(ty::WithDef::Anonymous(def_id), variants) => {
+                    maybe_opaque(db.mk_enum(ty::WithDef::Named(*def_id), variants.clone()))
                 }
                 _ if is_opaque => db.mk_opaque(def_id, base_ty.id()),
                 _ => db.mk_alias(def_id, base_ty.id()),
@@ -336,6 +355,20 @@ pub(crate) fn ty_from_item_param(
     };
 
     require_resolved_hir_type(db, hir_ty.in_library(library_id))
+}
+
+pub(crate) fn ty_from_ty_field(
+    db: &dyn TypeDatabase,
+    type_id: InLibrary<hir_ty::TypeId>,
+    _field_id: hir_ty::FieldId,
+) -> TypeId {
+    let ty_ref = db.from_hir_type(type_id).in_db(db);
+
+    match ty_ref.kind() {
+        // Enum fields are the same type as the original enum
+        TypeKind::Enum(..) => ty_ref.id(),
+        _ => unreachable!("missing field"),
+    }
 }
 
 pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {

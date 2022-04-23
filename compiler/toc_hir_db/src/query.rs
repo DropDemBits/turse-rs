@@ -303,6 +303,12 @@ impl HirVisitor for DefCollector<'_> {
             self.add_owner(def_id, DefOwner::Stmt(id))
         }
     }
+
+    fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {
+        for (idx, &variant) in ty.variants.iter().enumerate() {
+            self.add_owner(variant, DefOwner::Field(id, ty::FieldId(idx)));
+        }
+    }
 }
 
 /// Library-local body collector

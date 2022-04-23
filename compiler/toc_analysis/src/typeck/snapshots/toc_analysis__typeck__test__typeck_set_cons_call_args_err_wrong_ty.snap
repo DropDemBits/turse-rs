@@ -4,9 +4,9 @@ assertion_line: 42
 expression: "type s : set of boolean\nvar _ := s(1, 2, 3)\n"
 
 ---
-"<anonymous>"@(FileId(1), 9..23) [Declared]: <error>
-"s"@(FileId(1), 5..6) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
-"_"@(FileId(1), 28..29) [Declared]: set[DefId(LibraryId(0), LocalDefId(1))] of boolean
+"s"@(FileId(1), 9..23) [Declared]: <error>
+"s"@(FileId(1), 5..6) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
+"_"@(FileId(1), 28..29) [Declared]: set[DefId(LibraryId(0), LocalDefId(0))] of boolean
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 35..36: mismatched types

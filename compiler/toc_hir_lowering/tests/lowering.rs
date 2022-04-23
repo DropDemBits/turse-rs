@@ -1405,3 +1405,21 @@ fn lower_pointer_ty() {
     // Just unchecked
     assert_lower("type _ : unchecked int");
 }
+
+#[test]
+fn lower_enum_type() {
+    // one variant
+    assert_lower("type _ : enum(a)");
+    // multiple variants
+    assert_lower("type _ : enum(a, b, c, d)");
+
+    // missing end
+    assert_lower("type _ : enum(a, )");
+    // missing middle
+    assert_lower("type _ : enum(a, , d)");
+    // missing start
+    assert_lower("type _ : enum(, a)");
+
+    // no variants
+    assert_lower("type _ : enum(a)");
+}

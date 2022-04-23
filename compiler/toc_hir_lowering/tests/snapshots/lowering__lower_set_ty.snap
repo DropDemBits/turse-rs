@@ -10,6 +10,6 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..23): []
         StmtItem@(FileId(1), 0..23): ItemId(0)
           Type@(FileId(1), 0..23): "_"@(FileId(1), 5..6)
-            Set@(FileId(1), 9..23): "<anonymous>"@(FileId(1), 9..23)
+            Set@(FileId(1), 9..23): "_"@(FileId(1), 9..23)
               Primitive@(FileId(1), 16..23): Boolean
 

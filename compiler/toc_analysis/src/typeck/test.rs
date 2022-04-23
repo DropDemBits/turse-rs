@@ -533,6 +533,27 @@ test_for_each_op! { comparison_op_charseqs,
     "#,
 }
 
+test_for_each_op! { comparison_op_enums,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    type s : enum(a)
+    var a, b : s
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := a {0} b
+    _v_res := b {0} a
+    % enum variants are covered by equivalence rules
+    "#,
+}
+
 test_for_each_op! { comparison_op_sets,
     [
         ("<", less),
@@ -637,6 +658,32 @@ test_for_each_op! { comparison_op_wrong_types,
     _v_res := bs1 {0} as2
     _v_res := aas {0} as1
     _v_res := as1 {0} aas
+    "#
+}
+
+test_for_each_op! { comparison_op_wrong_types_enums,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Different enums
+    type e1 : enum(v)
+    type e2 : enum(v)
+    var ae1 : e1
+    var be2 : e2
+    var aas : enum(v)
+
+    % should all produce boolean anyway
+    var _v_res : boolean
+
+    _v_res := ae1 {0} be2
+    _v_res := be1 {0} ae2
+    _v_res := aes {0} ae1
+    _v_res := ae1 {0} aes
     "#
 }
 
@@ -1406,6 +1453,22 @@ test_named_group! { equivalence_of,
         % but not the alias type
         i := a
         ",
+        // Over enum types
+        enums => "
+        type e : enum(v)
+        var a, b : e
+
+        % compatible with itself
+        a := b
+        % with its own variants
+        a := e.v
+
+        % incompatible with different defs
+        type f : enum(v)
+        var c : f
+        a := c
+        a := f.v
+        ",
         // Over set types
         sets => r#"
         type sb : set of boolean
@@ -1536,7 +1599,6 @@ test_named_group! { equivalence_of,
 test_named_group! { typeck_put_stmt,
     [
         normal_items => r#"
-        % TODO: Uncomment enum lines once enum types are lowered & checked
         var i : int
         var n : nat
         var r : real
@@ -1544,7 +1606,7 @@ test_named_group! { typeck_put_stmt,
         var cn : char(4)
         var s : string
         var sn : string(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         put i : 0
         put n : 0
@@ -1553,7 +1615,7 @@ test_named_group! { typeck_put_stmt,
         put cn : 0
         put s : 0
         put sn : 0
-        %put ef : 0
+        put ef : 0
         "#,
         valid_extended_opts => r#"
         var i : int
@@ -1570,18 +1632,17 @@ test_named_group! { typeck_put_stmt,
         put : o, w : o : u : o..
         ",
         invalid_extended_opts => r#"
-        % TODO: Uncomment enum lines once enum types are lowered & checked
         var c : char
         var cn : char(4)
         var s : string
         var sn : string(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         put c : 0 : 0 : 0
         put cn : 0 : 0 : 0
         put s : 0 : 0 : 0
         put sn : 0 : 0 : 0
-        %put ef : 0 : 0 : 0
+        put ef : 0 : 0 : 0
         "#,
         wrong_type_stream => r#"
         var s : real
@@ -1623,7 +1684,6 @@ test_named_group! { typeck_put_stmt,
 
 test_named_group! { typeck_get_stmt,
     [
-        // TODO: Uncomment enum lines once enum types are lowered & checked
         normal_items => r#"
         var i : int
         var n : nat
@@ -1633,7 +1693,7 @@ test_named_group! { typeck_get_stmt,
         var cn : char(4)
         var s : string
         var sn : string(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         get i
         get n
@@ -1643,7 +1703,7 @@ test_named_group! { typeck_get_stmt,
         get cn
         get s
         get sn
-        %get ef
+        get ef
         "#,
         valid_opts => r#"
         var cn : char(4)
@@ -1673,14 +1733,14 @@ test_named_group! { typeck_get_stmt,
         var r : real
         var c : char
         var b: boolean
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         get i : 0
         get n : 0
         get r : 0
         get c : 0
         get b : 0
-        %get ef : 0
+        get ef : 0
         "#,
         invalid_opts_lines => r#"
         var i : int
@@ -1689,7 +1749,7 @@ test_named_group! { typeck_get_stmt,
         var c : char
         var b: boolean
         var cn : char(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         get i : *
         get n : *
@@ -1697,7 +1757,7 @@ test_named_group! { typeck_get_stmt,
         get c : *
         get b : *
         get cn : *
-        %get ef : *
+        get ef : *
         "#,
         wrong_type_stream => r#"
         var s : real
@@ -1793,8 +1853,7 @@ test_named_group! { typeck_for,
         normal_boolean_bounds => r#"for : false .. true end for"#,
         normal_char_bounds => r#"for : 'a' .. 'z' end for"#,
         normal_int_bounds => r#"for : 1 .. 10 end for"#,
-        // TODO: Uncomment once enum types are lowered
-        //normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
+        normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
         wrong_types_bounds_not_same => r#"for : 1 .. true end for"#,
         wrong_types_bounds_not_index => r#"for : "no" .. "yes" end for"#,
         // Specialize error message in case of {integer} combined with concrete type
@@ -1913,6 +1972,26 @@ test_named_group! { typeck_type_alias,
         path_not_ty => "
         module a export b var b : int end a
         var e : a.b
+        ",
+    ]
+}
+
+test_named_group! { test_enum_field,
+    [
+        // only associated with the type name
+        on_type => "
+        type e : enum(a, b, c)
+        var _ := e.a
+        ",
+        // not on instances of the type
+        on_var => "
+        type e : enum(a, b, c)
+        var a : e
+        a := a.a
+        ",
+        not_variant => "
+        type e : enum(a, b, c)
+        var _ := e.e
         ",
     ]
 }
@@ -2462,6 +2541,14 @@ test_named_group! { typeck_opaque_alias,
     ]
 }
 
+test_named_group! { typeck_enum_ty,
+    [
+        from_type_alias => "type e : enum(a, b, c)",
+        from_var_decl => "var _ : enum(nice)",
+        no_variants => "type e : enum()",
+    ]
+}
+
 test_named_group! { typeck_set_ty,
     [
         from_type_alias => "type s : set of boolean var _ : s",
@@ -2469,9 +2556,11 @@ test_named_group! { typeck_set_ty,
         valid_index_ty => "
         % FIXME: Add corresponding test for range types
         type r : char
+        type e : enum(v)
         type _a : set of r
         type _b : set of boolean
         type _c : set of char
+        type _d : set of e
         ",
         not_index_ty => "type _ : set of real",
         large_range_integer => "
@@ -2555,6 +2644,10 @@ test_named_group! { report_aliased_type,
         var y : f
         var _ : int := y
         "#,
+        // FIXME: add tests for the following types
+        // - set
+        // - record
+        // - union
     ]
 }
 

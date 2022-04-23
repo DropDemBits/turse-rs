@@ -1,7 +1,7 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
-expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\n%type en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget b : 0\n%get ef : 0\n"
+assertion_line: 42
+expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolean\ntype en: enum(a, b) var ef : en\n\nget i : 0\nget n : 0\nget r : 0\nget c : 0\nget b : 0\nget ef : 0\n"
 
 ---
 "i"@(FileId(1), 4..5) [Declared]: int
@@ -9,25 +9,34 @@ expression: "var i : int\nvar n : nat\nvar r : real\nvar c : char\nvar b: boolea
 "r"@(FileId(1), 28..29) [Declared]: real
 "c"@(FileId(1), 41..42) [Declared]: char
 "b"@(FileId(1), 54..55) [Declared]: boolean
+"a"@(FileId(1), 79..80) [Declared]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 79..80), "b"@(FileId(1), 82..83), )
+"b"@(FileId(1), 82..83) [Declared]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 79..80), "b"@(FileId(1), 82..83), )
+"en"@(FileId(1), 74..84) [Declared]: <error>
+"en"@(FileId(1), 70..72) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 79..80), "b"@(FileId(1), 82..83), )
+"ef"@(FileId(1), 89..91) [Declared]: enum[DefId(LibraryId(0), LocalDefId(7))] ( "a"@(FileId(1), 79..80), "b"@(FileId(1), 82..83), )
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 107..108: invalid get option
-| note in file FileId(1) for 103..104: cannot specify character width for `int`
-| error in file FileId(1) for 107..108: this is the invalid option
+error in file FileId(1) at 106..107: invalid get option
+| note in file FileId(1) for 102..103: cannot specify character width for `int`
+| error in file FileId(1) for 106..107: this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 117..118: invalid get option
-| note in file FileId(1) for 113..114: cannot specify character width for `nat`
-| error in file FileId(1) for 117..118: this is the invalid option
+error in file FileId(1) at 116..117: invalid get option
+| note in file FileId(1) for 112..113: cannot specify character width for `nat`
+| error in file FileId(1) for 116..117: this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 127..128: invalid get option
-| note in file FileId(1) for 123..124: cannot specify character width for `real`
-| error in file FileId(1) for 127..128: this is the invalid option
+error in file FileId(1) at 126..127: invalid get option
+| note in file FileId(1) for 122..123: cannot specify character width for `real`
+| error in file FileId(1) for 126..127: this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 137..138: invalid get option
-| note in file FileId(1) for 133..134: cannot specify character width for `char`
-| error in file FileId(1) for 137..138: this is the invalid option
+error in file FileId(1) at 136..137: invalid get option
+| note in file FileId(1) for 132..133: cannot specify character width for `char`
+| error in file FileId(1) for 136..137: this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types
-error in file FileId(1) at 147..148: invalid get option
-| note in file FileId(1) for 143..144: cannot specify character width for `boolean`
-| error in file FileId(1) for 147..148: this is the invalid option
+error in file FileId(1) at 146..147: invalid get option
+| note in file FileId(1) for 142..143: cannot specify character width for `boolean`
+| error in file FileId(1) for 146..147: this is the invalid option
+| info: character width can only be specified for `string` and `char(N)` types
+error in file FileId(1) at 157..158: invalid get option
+| note in file FileId(1) for 152..154: cannot specify character width for `enum en`
+| error in file FileId(1) for 157..158: this is the invalid option
 | info: character width can only be specified for `string` and `char(N)` types

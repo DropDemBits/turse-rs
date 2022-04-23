@@ -786,7 +786,7 @@ UnsizedBound =
   '*'
 
 EnumType =
-  'enum' '(' fields:( Name ( ',' Name )* ) ')'
+  'enum' '(' fields:NameList ')'
 
 ArrayType =
   'flexible'? 'array' RangeList 'of' elem_ty:Type

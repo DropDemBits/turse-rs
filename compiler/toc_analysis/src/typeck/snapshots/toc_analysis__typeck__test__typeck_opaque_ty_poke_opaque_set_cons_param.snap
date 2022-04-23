@@ -6,16 +6,16 @@ expression: "module m\n    export opaque t, ~.* s, make\n    type t : char\n    
 ---
 "m"@(FileId(1), 7..8) [Declared]: <error>
 "t"@(FileId(1), 51..52) [Resolved(Type)]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"<anonymous>"@(FileId(1), 73..81) [Declared]: <error>
-"s"@(FileId(1), 69..70) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"s"@(FileId(1), 73..81) [Declared]: <error>
+"s"@(FileId(1), 69..70) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(2))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "make"@(FileId(1), 91..95) [Declared]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "<unnamed>"@(dummy) [Declared]: <error>
 "c"@(FileId(1), 96..97) [Declared]: char
-"a"@(FileId(1), 173..174) [Declared]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"a"@(FileId(1), 173..174) [Declared]: set[DefId(LibraryId(0), LocalDefId(2))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "t"@(FileId(1), 20..28) [ItemExport(LocalDefId(1))]: opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"s"@(FileId(1), 30..35) [ItemExport(LocalDefId(3))]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"s"@(FileId(1), 30..35) [ItemExport(LocalDefId(3))]: set[DefId(LibraryId(0), LocalDefId(2))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "make"@(FileId(1), 37..41) [ItemExport(LocalDefId(4))]: function ( pass(value) char, ) -> opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
-"vs"@(FileId(1), 241..243) [Declared]: set[DefId(LibraryId(0), LocalDefId(3))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
+"vs"@(FileId(1), 241..243) [Declared]: set[DefId(LibraryId(0), LocalDefId(2))] of opaque[DefId(LibraryId(0), LocalDefId(1))] type to char
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 253..256: mismatched types

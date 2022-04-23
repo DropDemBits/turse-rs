@@ -46,7 +46,11 @@ impl TypeKind {
     }
 
     pub fn is_alias(&self) -> bool {
-        matches!(self, TypeKind::Alias(_, _))
+        matches!(self, TypeKind::Alias(..))
+    }
+
+    pub fn is_enum(&self) -> bool {
+        matches!(self, TypeKind::Enum(..))
     }
 
     pub fn is_set(&self) -> bool {
@@ -98,7 +102,11 @@ impl TypeKind {
 
     /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
     pub fn is_index(&self) -> bool {
-        self.is_integer() || matches!(self, TypeKind::Char | TypeKind::Boolean)
+        self.is_integer()
+            || matches!(
+                self,
+                TypeKind::Char | TypeKind::Boolean | TypeKind::Enum(..)
+            )
     }
 
     /// If the type can be printed in a `put` stmt
@@ -114,7 +122,6 @@ impl TypeKind {
     /// - Boolean
     /// - Enum
     pub fn is_printable(&self) -> bool {
-        // missing: Enum
         matches!(
             self,
             TypeKind::Boolean
@@ -126,6 +133,7 @@ impl TypeKind {
                 | TypeKind::CharN(_)
                 | TypeKind::String
                 | TypeKind::StringN(_)
+                | TypeKind::Enum(..)
         )
     }
 
@@ -139,11 +147,11 @@ impl TypeKind {
             | TypeKind::Real(_)
             | TypeKind::Integer
             | TypeKind::Char
-            | TypeKind::Pointer(_, _)
+            | TypeKind::Enum(..)
+            | TypeKind::Pointer(..)
             | TypeKind::Subprogram(..) => true,
             // Missing scalars:
             // - subrange
-            // - enum
             TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
                 // Aggregate types of characters
                 false
@@ -224,9 +232,9 @@ where
                     let hidden_tyref = hidden_ty.in_db(db);
 
                     match hidden_tyref.kind() {
-                        // Sets, records, and unions don't need an alias
+                        // Enums, sets, records, and unions don't need an alias
                         // FIXME: add special cases for records and unions once lowered
-                        TypeKind::Set(..) => hidden_tyref,
+                        TypeKind::Enum(..) | TypeKind::Set(..) => hidden_tyref,
                         TypeKind::Alias(..) => unreachable!("found alias wrapped in opaque"),
                         _ => db.mk_alias(*def_id, *hidden_ty).in_db(db),
                     }
@@ -301,8 +309,17 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
             // sized charseqs are treated as equivalent types if the sizes are equal
             left_sz.cmp(right_sz).is_eq()
         }
-        // Set types are equivalent if they come from the same definition
-        (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => left_def == right_def,
+
+        // The following types are equivalent to the other type if they both come from the same definition:
+        // - Enum
+        // - Set
+        // x Record
+        // x Union
+        (TypeKind::Enum(left_def, _), TypeKind::Enum(right_def, _))
+        | (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => {
+            left_def.def_id() == right_def.def_id()
+        }
+
         // Pointer types are equivalent if they have the same checkedness and equivalent target types
         (TypeKind::Pointer(left_chk, left_to), TypeKind::Pointer(right_chk, right_to)) => {
             left_chk == right_chk && is_equivalent(db, *left_to, *right_to)
@@ -1069,7 +1086,7 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
             // Operations:
             // - Numeric compare (number, number => boolean)
             // - Charseq compare (charseq, charseq => boolean)
-            // x Enum compare (enum, enum => boolean)
+            // - Enum compare (enum, enum => boolean)
             // - Set sub/supersets (set, set => boolean)
             // x Class hierarchy (class, class => boolean)
 
@@ -1078,8 +1095,17 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                 (lhs, rhs) if lhs.is_number() && rhs.is_number() => Ok(()),
                 // Charseqs that can be coerced to a sized type are comparable
                 (lhs, rhs) if lhs.is_cmp_charseq() && rhs.is_cmp_charseq() => Ok(()),
-                // Sets that are equivalent are comparable
-                (lhs, _) if is_equivalent(db, left.id(), right.id()) && lhs.is_set() => Ok(()),
+                // Types that are equivalent may be compared
+                (lhs, _) if is_equivalent(db, left.id(), right.id()) => {
+                    // This only applies to the following types:
+                    // - Sets
+                    // - Enums
+                    if lhs.is_set() || lhs.is_enum() {
+                        Ok(())
+                    } else {
+                        mk_type_error()
+                    }
+                }
                 // All other types aren't comparable
                 _ => mk_type_error(),
             }
@@ -1108,11 +1134,12 @@ pub fn check_binary_op<T: ?Sized + db::ConstEval>(
                         mk_type_error()
                     }
                 }
+                // Types that are equivalent may be tested for equality
                 (lhs, _) if is_equivalent(db, left.id(), right.id()) => {
-                    // If they are equivalent and are the following types:
+                    // This only applies to the following types:
                     // - Sets
+                    // - Enums
                     // - Pointers
-                    // They can be tested for equality
                     if lhs.is_set() || lhs.is_pointer() {
                         Ok(())
                     } else {

@@ -5,7 +5,7 @@ use std::convert::TryInto;
 use indexmap::{IndexMap, IndexSet};
 use toc_span::{SpanId, Spanned};
 
-pub use crate::ids::TypeId;
+pub use crate::ids::{FieldId, TypeId};
 
 use crate::{
     body,
@@ -55,6 +55,8 @@ pub enum TypeKind {
     Primitive(Primitive),
     /// Alias Type
     Alias(Alias),
+    /// Enum Type
+    Enum(Enum),
     /// Set type
     Set(Set),
     /// Pointer type
@@ -94,13 +96,20 @@ pub enum SeqLength {
     Expr(body::BodyId),
 }
 
-// FIXME: Use the proper representation of an item path
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Alias {
     /// [`LocalDefId`](symbol::LocalDefId) to start working through
     pub base_def: Spanned<symbol::LocalDefId>,
     /// Names of each segment to lookup
     pub segments: Vec<Spanned<Symbol>>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Enum {
+    /// Definition uniquely identifying this type
+    pub def_id: symbol::LocalDefId,
+    /// Variants on this enum
+    pub variants: Vec<symbol::LocalDefId>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

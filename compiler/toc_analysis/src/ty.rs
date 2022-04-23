@@ -74,6 +74,8 @@ pub enum TypeKind {
     /// An alias exported as an opaque type. Points to the base (un-aliased) alias,
     /// with the [`DefId`] pointing to the original alias.
     Opaque(DefId, TypeId),
+    /// An enumeration type, with associated definition point and variants.
+    Enum(WithDef, Vec<DefId>),
     /// Set type, with associated definition point
     Set(WithDef, TypeId),
     /// Set type, with a given checkedness
@@ -176,6 +178,14 @@ pub enum WithDef {
     Anonymous(DefId),
 }
 
+impl WithDef {
+    pub fn def_id(self) -> DefId {
+        match self {
+            WithDef::Named(def_id) | WithDef::Anonymous(def_id) => def_id,
+        }
+    }
+}
+
 /// Pointer checkedness
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Checked {
@@ -267,6 +277,7 @@ where
             TypeKind::StringN(_) => 1,
             TypeKind::Subprogram(..) => POINTER_ALIGNMENT,
             TypeKind::Void => return None,
+            TypeKind::Enum(..) => 4, // ???: Alignment based on user-specified size?
             TypeKind::Set(..) => 2,
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
             // Defer to the aliased type
@@ -314,6 +325,7 @@ where
             }
             TypeKind::Subprogram(..) => POINTER_SIZE,
             TypeKind::Void => return None,
+            TypeKind::Enum(..) => 4, // FIXME: Have size be based on a user-specified size
             TypeKind::Set(_, _elem_ty) => return None, // FIXME: Compute size of sets
             TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata
             TypeKind::Pointer(Checked::Unchecked, _) => POINTER_SIZE, // address only

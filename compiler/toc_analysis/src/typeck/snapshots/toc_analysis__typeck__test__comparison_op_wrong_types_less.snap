@@ -12,12 +12,12 @@ expression: "\n    % Numerics\n    var r : real\n    var i : int\n    var n : na
 "c_sz"@(FileId(1), 153..157) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
 "s"@(FileId(1), 176..177) [Declared]: string
 "s_sz"@(FileId(1), 195..199) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
-"<anonymous>"@(FileId(1), 248..262) [Declared]: <error>
-"s1"@(FileId(1), 243..245) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(9))] of boolean
-"<anonymous>"@(FileId(1), 277..291) [Declared]: <error>
-"s2"@(FileId(1), 272..274) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(11))] of boolean
-"as1"@(FileId(1), 300..303) [Declared]: set[DefId(LibraryId(0), LocalDefId(9))] of boolean
-"bs2"@(FileId(1), 317..320) [Declared]: set[DefId(LibraryId(0), LocalDefId(11))] of boolean
+"s1"@(FileId(1), 248..262) [Declared]: <error>
+"s1"@(FileId(1), 243..245) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(8))] of boolean
+"s2"@(FileId(1), 277..291) [Declared]: <error>
+"s2"@(FileId(1), 272..274) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(10))] of boolean
+"as1"@(FileId(1), 300..303) [Declared]: set[DefId(LibraryId(0), LocalDefId(8))] of boolean
+"bs2"@(FileId(1), 317..320) [Declared]: set[DefId(LibraryId(0), LocalDefId(10))] of boolean
 "<anonymous>"@(FileId(1), 340..354) [Declared]: <error>
 "aas"@(FileId(1), 334..337) [Declared]: set[DefId(LibraryId(0), LocalDefId(14))] of boolean
 "_v_res"@(FileId(1), 404..410) [Declared]: boolean

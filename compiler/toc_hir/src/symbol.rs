@@ -10,6 +10,7 @@ pub use crate::ids::{DefId, LocalDefId};
 use crate::{
     ids::{ExportId, ItemId, LocalDefIndex, ModuleId},
     stmt::BodyStmt,
+    ty::{FieldId, TypeId},
 };
 
 pub mod syms;
@@ -115,6 +116,8 @@ pub enum DefOwner {
     ItemParam(ItemId, LocalDefId),
     /// Export from a given `Module`
     Export(ModuleId, ExportId),
+    /// Field on a given `Type`
+    Field(TypeId, FieldId),
     /// Owned by a `Stmt`
     Stmt(BodyStmt),
 }
@@ -147,6 +150,8 @@ pub enum BindingTo {
     Module,
     /// Binding to a subprogram
     Subprogram(SubprogramKind),
+    /// Binding to an enum field
+    EnumField,
 }
 
 impl BindingTo {
@@ -160,7 +165,7 @@ impl BindingTo {
     pub fn is_ref(self) -> bool {
         matches!(
             self,
-            Self::Storage(_) | Self::Register(_) | Self::Subprogram(_)
+            Self::Storage(_) | Self::Register(_) | Self::Subprogram(_) | Self::EnumField
         )
     }
 
@@ -200,6 +205,7 @@ impl std::fmt::Display for BindingTo {
             BindingTo::Subprogram(SubprogramKind::Procedure) => "a procedure",
             BindingTo::Subprogram(SubprogramKind::Function) => "a function",
             BindingTo::Subprogram(SubprogramKind::Process) => "a process",
+            BindingTo::EnumField => "an enum variant",
         };
 
         f.write_str(name)
