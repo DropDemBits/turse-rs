@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type e : enum(a, b, c)\nvar a : e\na := a.a\n"
+
+---
+"a"@(FileId(1), 14..15) [Declared]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"b"@(FileId(1), 17..18) [Declared]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"c"@(FileId(1), 20..21) [Declared]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"e"@(FileId(1), 9..22) [Declared]: <error>
+"e"@(FileId(1), 5..6) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"a"@(FileId(1), 27..28) [Declared]: enum[DefId(LibraryId(0), LocalDefId(3))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 40..41: no field named `a` in expression
+| error in file FileId(1) for 40..41: no field named `a` in here

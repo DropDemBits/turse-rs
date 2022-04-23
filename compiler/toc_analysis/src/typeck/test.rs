@@ -1917,6 +1917,26 @@ test_named_group! { typeck_type_alias,
     ]
 }
 
+test_named_group! { test_enum_field,
+    [
+        // only associated with the type name
+        on_type => "
+        type e : enum(a, b, c)
+        var _ := e.a
+        ",
+        // not on instances of the type
+        on_var => "
+        type e : enum(a, b, c)
+        var a : e
+        a := a.a
+        ",
+        not_variant => "
+        type e : enum(a, b, c)
+        var _ := e.e
+        ",
+    ]
+}
+
 test_named_group! { typeck_bind_decl,
     [
         normal => "
