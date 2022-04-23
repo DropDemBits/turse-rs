@@ -5,7 +5,7 @@ use std::convert::TryInto;
 use indexmap::{IndexMap, IndexSet};
 use toc_span::{SpanId, Spanned};
 
-pub use crate::ids::TypeId;
+pub use crate::ids::{FieldId, TypeId};
 
 use crate::{
     body,

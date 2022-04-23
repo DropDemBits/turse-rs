@@ -355,6 +355,20 @@ pub(crate) fn ty_from_item_param(
     require_resolved_hir_type(db, hir_ty.in_library(library_id))
 }
 
+pub(crate) fn ty_from_ty_field(
+    db: &dyn TypeDatabase,
+    type_id: InLibrary<hir_ty::TypeId>,
+    _field_id: hir_ty::FieldId,
+) -> TypeId {
+    let ty_ref = db.from_hir_type(type_id).in_db(db);
+
+    match ty_ref.kind() {
+        // Enum fields are the same type as the original enum
+        TypeKind::Enum(..) => ty_ref.id(),
+        _ => unreachable!("missing field"),
+    }
+}
+
 pub(crate) fn ty_from_stmt(db: &dyn TypeDatabase, stmt_id: InLibrary<stmt::BodyStmt>) -> TypeId {
     let library_id = stmt_id.0;
     let stmt_id = stmt_id.1;

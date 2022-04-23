@@ -52,6 +52,9 @@ fn ty_of_def(db: &dyn db::TypeDatabase, def_id: DefId) -> TypeId {
 
                 db.type_of(def_id.into())
             }
+            DefOwner::Field(type_id, field_id) => {
+                lower::ty_from_ty_field(db, InLibrary(def_id.0, type_id), field_id)
+            }
             DefOwner::Stmt(stmt_id) => lower::ty_from_stmt(db, InLibrary(def_id.0, stmt_id)),
         }
     } else {
@@ -144,6 +147,10 @@ pub(crate) fn binding_to(
         Some(DefOwner::Export(..)) => {
             unreachable!("already resolved defs to canon form")
         }
+        Some(DefOwner::Field(type_id, _field_id)) => match &library.lookup_type(type_id).kind {
+            hir_ty::TypeKind::Enum(..) => Ok(BindingTo::EnumField),
+            _ => unreachable!("field def owner on a non-field type"),
+        },
         Some(DefOwner::Stmt(stmt_id)) => {
             match &library.body(stmt_id.0).stmt(stmt_id.1).kind {
                 stmt::StmtKind::Item(_) => {

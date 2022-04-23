@@ -146,3 +146,8 @@ impl StmtId {
 #[repr(transparent)]
 pub struct TypeId(pub(crate) TypeIndex);
 pub(crate) type TypeIndex = std::num::NonZeroU32;
+
+/// A type-local reference to a specific field
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct FieldId(pub usize);

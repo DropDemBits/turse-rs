@@ -5,9 +5,9 @@ expression: "type e : enum(a, b, c)"
 
 ---
 "<anonymous>"@(FileId(1), 9..22) [Declared]: <error>
-"a"@(FileId(1), 14..15) [Declared]: <error>
-"b"@(FileId(1), 17..18) [Declared]: <error>
-"c"@(FileId(1), 20..21) [Declared]: <error>
+"a"@(FileId(1), 14..15) [Declared]: enum[DefId(LibraryId(0), LocalDefId(0))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"b"@(FileId(1), 17..18) [Declared]: enum[DefId(LibraryId(0), LocalDefId(0))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
+"c"@(FileId(1), 20..21) [Declared]: enum[DefId(LibraryId(0), LocalDefId(0))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
 "e"@(FileId(1), 5..6) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "a"@(FileId(1), 14..15), "b"@(FileId(1), 17..18), "c"@(FileId(1), 20..21), )
 "<root>"@(dummy) [Declared]: <error>
 
