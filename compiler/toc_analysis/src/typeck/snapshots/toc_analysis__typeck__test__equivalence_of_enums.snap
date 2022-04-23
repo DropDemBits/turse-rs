@@ -1,0 +1,25 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type e : enum(v)\nvar a, b : e\n\n% compatible with itself\na := b\n% with its own variants\na := e.v\n\n% incompatible with different defs\ntype f : enum(v)\nvar c : f\na := c\na := f.v\n"
+
+---
+"v"@(FileId(1), 14..15) [Declared]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
+"e"@(FileId(1), 9..16) [Declared]: <error>
+"e"@(FileId(1), 5..6) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
+"a"@(FileId(1), 21..22) [Declared]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
+"b"@(FileId(1), 24..25) [Declared]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 14..15), )
+"v"@(FileId(1), 146..147) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
+"f"@(FileId(1), 141..148) [Declared]: <error>
+"f"@(FileId(1), 137..138) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
+"c"@(FileId(1), 153..154) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "v"@(FileId(1), 146..147), )
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 161..163: mismatched types
+| note in file FileId(1) for 164..165: this is of type `enum f`
+| note in file FileId(1) for 159..160: this is of type `enum e`
+| info: `enum f` is not assignable into `enum e`
+error in file FileId(1) at 168..170: mismatched types
+| note in file FileId(1) for 171..174: this is of type `enum f`
+| note in file FileId(1) for 166..167: this is of type `enum e`
+| info: `enum f` is not assignable into `enum e`

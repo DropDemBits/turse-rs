@@ -1406,6 +1406,22 @@ test_named_group! { equivalence_of,
         % but not the alias type
         i := a
         ",
+        // Over enum typs
+        enums => "
+        type e : enum(v)
+        var a, b : e
+
+        % compatible with itself
+        a := b
+        % with its own variants
+        a := e.v
+
+        % incompatible with different defs
+        type f : enum(v)
+        var c : f
+        a := c
+        a := f.v
+        ",
         // Over set types
         sets => r#"
         type sb : set of boolean

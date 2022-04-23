@@ -301,8 +301,17 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
             // sized charseqs are treated as equivalent types if the sizes are equal
             left_sz.cmp(right_sz).is_eq()
         }
-        // Set types are equivalent if they come from the same definition
-        (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => left_def == right_def,
+
+        // The following types are equivalent to the other type if they both come from the same definition:
+        // - Enum
+        // - Set
+        // x Record
+        // x Union
+        (TypeKind::Enum(left_def, _), TypeKind::Enum(right_def, _))
+        | (TypeKind::Set(left_def, _), TypeKind::Set(right_def, _)) => {
+            left_def.def_id() == right_def.def_id()
+        }
+
         // Pointer types are equivalent if they have the same checkedness and equivalent target types
         (TypeKind::Pointer(left_chk, left_to), TypeKind::Pointer(right_chk, right_to)) => {
             left_chk == right_chk && is_equivalent(db, *left_to, *right_to)
