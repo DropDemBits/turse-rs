@@ -286,12 +286,14 @@ fn type_def_ty(
             match base_ty.kind() {
                 // Forward base types get propagated as errors, since we require a resolved definition
                 ty::TypeKind::Forward => db.mk_error(),
-                // Associate anonymous types with the def of the alias (equivalent behaviour)
-                ty::TypeKind::Set(ty::WithDef::Anonymous(_), elem_ty) => {
-                    maybe_opaque(db.mk_set(ty::WithDef::Named(def_id), *elem_ty))
+                // Make anonymous types not anonymous anymore
+                // They don't need to be wrapped in an alias, since that would result in
+                // "`<name>` (alias of `<name>`)" during display
+                ty::TypeKind::Set(ty::WithDef::Anonymous(def_id), elem_ty) => {
+                    maybe_opaque(db.mk_set(ty::WithDef::Named(*def_id), *elem_ty))
                 }
-                ty::TypeKind::Enum(ty::WithDef::Anonymous(_), variants) => {
-                    maybe_opaque(db.mk_enum(ty::WithDef::Named(def_id), variants.clone()))
+                ty::TypeKind::Enum(ty::WithDef::Anonymous(def_id), variants) => {
+                    maybe_opaque(db.mk_enum(ty::WithDef::Named(*def_id), variants.clone()))
                 }
                 _ if is_opaque => db.mk_opaque(def_id, base_ty.id()),
                 _ => db.mk_alias(def_id, base_ty.id()),

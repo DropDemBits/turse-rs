@@ -143,10 +143,6 @@ impl super::BodyLowering<'_, '_> {
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
         let span = self.ctx.intern_range(ty.syntax().text_range());
-        let def_id = self
-            .ctx
-            .library
-            .add_def(*syms::Anonymous, span, symbol::SymbolKind::Declared);
         let variants = ty
             .fields()
             .unwrap()
@@ -162,6 +158,10 @@ impl super::BodyLowering<'_, '_> {
                 Some(def_id)
             })
             .collect();
+        let def_id =
+            self.ctx
+                .library
+                .add_def(type_decl_name(ty), span, symbol::SymbolKind::Declared);
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }
@@ -169,10 +169,10 @@ impl super::BodyLowering<'_, '_> {
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {
         let span = self.ctx.intern_range(ty.syntax().text_range());
         let elem = self.lower_required_type(ty.elem_ty());
-        let def_id = self
-            .ctx
-            .library
-            .add_def(*syms::Anonymous, span, symbol::SymbolKind::Declared);
+        let def_id =
+            self.ctx
+                .library
+                .add_def(type_decl_name(ty), span, symbol::SymbolKind::Declared);
 
         Some(ty::TypeKind::Set(ty::Set {
             def_id,
@@ -227,4 +227,15 @@ impl super::BodyLowering<'_, '_> {
             result_ty: return_ty,
         }))
     }
+}
+
+/// Gets the name from the enclosing `type` decl, or the [`Anonymous`](syms::Anonymous) symbol
+fn type_decl_name(ty: impl ast::AstNode) -> symbol::Symbol {
+    ty.syntax()
+        .parent()
+        .and_then(ast::TypeDecl::cast)
+        .and_then(|node| node.decl_name())
+        .map_or(*syms::Anonymous, |name| {
+            name.identifier_token().unwrap().text().into()
+        })
 }
