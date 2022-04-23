@@ -451,7 +451,6 @@ pub(crate) fn fields_of(
                 BindingTo::Storage(_) | BindingTo::Register(_) => {
                     // To some storage
                     // Get fields based off of the type
-                    eprintln!("fields of {binding_to:?} ({lib_id:?}, {body_expr:?})");
 
                     // Defer to the corresponding type
                     let ty_id = db.type_of((lib_id, body_expr).into());
