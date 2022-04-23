@@ -1,0 +1,28 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "\n    % Different enums\n    type e1 : enum(v)\n    type e2 : enum(v)\n    var ae1 : e1\n    var be2 : e2\n    var aas : enum(v)\n\n    % should all produce boolean anyway\n    var _v_res : boolean\n\n    _v_res := ae1 > be2\n    _v_res := be1 > ae2\n    _v_res := aes > ae1\n    _v_res := ae1 > aes\n    "
+
+---
+"v"@(FileId(1), 42..43) [Declared]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
+"e1"@(FileId(1), 37..44) [Declared]: <error>
+"e1"@(FileId(1), 32..34) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
+"v"@(FileId(1), 64..65) [Declared]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
+"e2"@(FileId(1), 59..66) [Declared]: <error>
+"e2"@(FileId(1), 54..56) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
+"ae1"@(FileId(1), 75..78) [Declared]: enum[DefId(LibraryId(0), LocalDefId(1))] ( "v"@(FileId(1), 42..43), )
+"be2"@(FileId(1), 92..95) [Declared]: enum[DefId(LibraryId(0), LocalDefId(4))] ( "v"@(FileId(1), 64..65), )
+"v"@(FileId(1), 120..121) [Declared]: enum[DefId(LibraryId(0), LocalDefId(9))] ( "v"@(FileId(1), 120..121), )
+"<anonymous>"@(FileId(1), 115..122) [Declared]: <error>
+"aas"@(FileId(1), 109..112) [Declared]: enum[DefId(LibraryId(0), LocalDefId(9))] ( "v"@(FileId(1), 120..121), )
+"_v_res"@(FileId(1), 172..178) [Declared]: boolean
+"be1"@(FileId(1), 228..231) [Undeclared]: <error>
+"ae2"@(FileId(1), 234..237) [Undeclared]: <error>
+"aes"@(FileId(1), 252..255) [Undeclared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 208..209: mismatched types for `>`
+| note in file FileId(1) for 210..213: this is of type `enum e2`
+| note in file FileId(1) for 204..207: this is of type `enum e1`
+| error in file FileId(1) for 208..209: `enum e1` cannot be compared to `enum e2`
+| info: operands must both be the same type

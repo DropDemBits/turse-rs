@@ -533,6 +533,27 @@ test_for_each_op! { comparison_op_charseqs,
     "#,
 }
 
+test_for_each_op! { comparison_op_enums,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    type s : enum(a)
+    var a, b : s
+
+    % should all produce booleans
+    var _v_res : boolean
+
+    _v_res := a {0} b
+    _v_res := b {0} a
+    % enum variants are covered by equivalence rules
+    "#,
+}
+
 test_for_each_op! { comparison_op_sets,
     [
         ("<", less),
@@ -637,6 +658,32 @@ test_for_each_op! { comparison_op_wrong_types,
     _v_res := bs1 {0} as2
     _v_res := aas {0} as1
     _v_res := as1 {0} aas
+    "#
+}
+
+test_for_each_op! { comparison_op_wrong_types_enums,
+    [
+        ("<", less),
+        (">", greater),
+        ("<=", less_eq),
+        (">=", greater_eq),
+        ("=", equal),
+        ("not=", not_equal),
+    ] => r#"
+    % Different enums
+    type e1 : enum(v)
+    type e2 : enum(v)
+    var ae1 : e1
+    var be2 : e2
+    var aas : enum(v)
+
+    % should all produce boolean anyway
+    var _v_res : boolean
+
+    _v_res := ae1 {0} be2
+    _v_res := be1 {0} ae2
+    _v_res := aes {0} ae1
+    _v_res := ae1 {0} aes
     "#
 }
 
@@ -1406,7 +1453,7 @@ test_named_group! { equivalence_of,
         % but not the alias type
         i := a
         ",
-        // Over enum typs
+        // Over enum types
         enums => "
         type e : enum(v)
         var a, b : e
