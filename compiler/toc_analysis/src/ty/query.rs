@@ -593,6 +593,15 @@ where
         )
     }
 
+    fn mk_enum(&self, with_def: WithDef, variants: Vec<DefId>) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Enum(with_def, variants),
+            }
+            .into(),
+        )
+    }
+
     fn mk_set(&self, with_def: WithDef, elem_ty: TypeId) -> TypeId {
         self.intern_type(
             Type {

@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type e : enum()"
+
+---
+"<anonymous>"@(FileId(1), 9..15) [Declared]: <error>
+"e"@(FileId(1), 5..6) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(1))] ( )
+"<root>"@(dummy) [Declared]: <error>
+

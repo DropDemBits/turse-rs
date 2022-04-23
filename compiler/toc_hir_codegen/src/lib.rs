@@ -2403,6 +2403,7 @@ impl BodyCodeGenerator<'_> {
                 (Opcode::ASNSTR(), Opcode::ASNSTRINV())
             }
             ty::TypeKind::Opaque(_, ty) => return self.generate_assign(*ty, order), // defer to the opaque type
+            ty::TypeKind::Enum(..) => unimplemented!(),
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => (Opcode::ASNADDR(), Opcode::ASNADDRINV()),
@@ -2469,6 +2470,7 @@ impl BodyCodeGenerator<'_> {
             ty::TypeKind::String | ty::TypeKind::StringN(_) => Opcode::FETCHSTR(),
             ty::TypeKind::CharN(_) => return None, // don't need to dereference the pointer to storage
             ty::TypeKind::Opaque(_, ty) => return self.pick_fetch_op(*ty), // defer to the opaque type
+            ty::TypeKind::Enum(..) => unimplemented!(),
             ty::TypeKind::Set(..) => unimplemented!(),
             ty::TypeKind::Pointer(..) => unimplemented!(),
             ty::TypeKind::Subprogram(..) => Opcode::FETCHADDR(),

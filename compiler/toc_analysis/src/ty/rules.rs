@@ -139,11 +139,11 @@ impl TypeKind {
             | TypeKind::Real(_)
             | TypeKind::Integer
             | TypeKind::Char
-            | TypeKind::Pointer(_, _)
+            | TypeKind::Enum(..)
+            | TypeKind::Pointer(..)
             | TypeKind::Subprogram(..) => true,
             // Missing scalars:
             // - subrange
-            // - enum
             TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
                 // Aggregate types of characters
                 false

@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ : enum(nice)"
+
+---
+"<anonymous>"@(FileId(1), 8..18) [Declared]: <error>
+"nice"@(FileId(1), 13..17) [Declared]: <error>
+"_"@(FileId(1), 4..5) [Declared]: enum[DefId(LibraryId(0), LocalDefId(0))] ( "nice"@(FileId(1), 13..17), )
+"<root>"@(dummy) [Declared]: <error>
+

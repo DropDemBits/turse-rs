@@ -2462,6 +2462,14 @@ test_named_group! { typeck_opaque_alias,
     ]
 }
 
+test_named_group! { typeck_enum_ty,
+    [
+        from_type_alias => "type e : enum(a, b, c)",
+        from_var_decl => "var _ : enum(nice)",
+        no_variants => "type e : enum()",
+    ]
+}
+
 test_named_group! { typeck_set_ty,
     [
         from_type_alias => "type s : set of boolean var _ : s",

@@ -66,6 +66,7 @@ impl TypeKind {
             TypeKind::Alias(_, _) => "alias",
             TypeKind::Opaque(_, _) => "opaque",
             TypeKind::Forward => "forward",
+            TypeKind::Enum(..) => "enum",
             TypeKind::Set(..) => "set",
             TypeKind::Pointer(Checked::Checked, _) => "pointer to",
             TypeKind::Pointer(Checked::Unchecked, _) => "unchecked pointer to",
@@ -94,6 +95,27 @@ where
         TypeKind::Opaque(def_id, to) => {
             out.write_fmt(format_args!("[{def_id:?}] type to "))?;
             emit_debug_ty(db, out, *to)?
+        }
+        TypeKind::Enum(with_def, variants) => {
+            let def_id = match with_def {
+                WithDef::Named(def_id) => def_id,
+                WithDef::Anonymous(def_id) => def_id,
+            };
+            out.write_fmt(format_args!("[{def_id:?}] "))?;
+
+            out.write_str("( ")?;
+            if !variants.is_empty() {
+                let library = db.library(def_id.0);
+
+                for variant in variants {
+                    let def_info = library.local_def(variant.1);
+                    let name = def_info.name;
+                    let span = def_info.def_at.lookup_in(&library);
+
+                    write!(out, "{name:?}@{span:?}, ")?;
+                }
+            }
+            out.write_char(')')?;
         }
         TypeKind::Set(with_def, to) => {
             let def_id = match with_def {
@@ -178,6 +200,15 @@ where
             let library = db.library(def_id.0);
             let name = library.local_def(def_id.1).name;
             out.write_fmt(format_args!("{name} (an opaque type)"))?;
+        }
+        TypeKind::Enum(with_def, _) => {
+            let def_id = match with_def {
+                WithDef::Named(def_id) => def_id,
+                WithDef::Anonymous(def_id) => def_id,
+            };
+            let library = db.library(def_id.0);
+            let name = library.local_def(def_id.1).name;
+            out.write_fmt(format_args!(" {name}"))?;
         }
         TypeKind::Set(with_def, to) => {
             let def_id = match with_def {
