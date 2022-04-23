@@ -1,44 +1,57 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
-assertion_line: 41
-expression: "% TODO: Uncomment enum lines once enum types are lowered & checked\nvar c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\n%type en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\n%put ef : 0 : 0 : 0\n"
+assertion_line: 42
+expression: "var c : char\nvar cn : char(4)\nvar s : string\nvar sn : string(4)\ntype en: enum(a, b) var ef : en\n\nput c : 0 : 0 : 0\nput cn : 0 : 0 : 0\nput s : 0 : 0 : 0\nput sn : 0 : 0 : 0\nput ef : 0 : 0 : 0\n"
 
 ---
-"c"@(FileId(1), 71..72) [Declared]: char
-"cn"@(FileId(1), 84..86) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
-"s"@(FileId(1), 101..102) [Declared]: string
-"sn"@(FileId(1), 116..118) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"c"@(FileId(1), 4..5) [Declared]: char
+"cn"@(FileId(1), 17..19) [Declared]: char_n Fixed(Unevaluated(LibraryId(0), BodyId(0)))
+"s"@(FileId(1), 34..35) [Declared]: string
+"sn"@(FileId(1), 49..51) [Declared]: string_n Fixed(Unevaluated(LibraryId(0), BodyId(1)))
+"a"@(FileId(1), 78..79) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"b"@(FileId(1), 81..82) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"en"@(FileId(1), 73..83) [Declared]: <error>
+"en"@(FileId(1), 69..71) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
+"ef"@(FileId(1), 88..90) [Declared]: enum[DefId(LibraryId(0), LocalDefId(6))] ( "a"@(FileId(1), 78..79), "b"@(FileId(1), 81..82), )
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 177..178: invalid put option
-| note in file FileId(1) for 169..170: cannot specify fraction width for `char`
-| error in file FileId(1) for 177..178: this is the invalid option
+error in file FileId(1) at 109..110: invalid put option
+| note in file FileId(1) for 101..102: cannot specify fraction width for `char`
+| error in file FileId(1) for 109..110: this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 181..182: invalid put option
-| note in file FileId(1) for 169..170: cannot specify exponent width for `char`
-| error in file FileId(1) for 181..182: this is the invalid option
+error in file FileId(1) at 113..114: invalid put option
+| note in file FileId(1) for 101..102: cannot specify exponent width for `char`
+| error in file FileId(1) for 113..114: this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 196..197: invalid put option
-| note in file FileId(1) for 187..189: cannot specify fraction width for `char(4)`
-| error in file FileId(1) for 196..197: this is the invalid option
+error in file FileId(1) at 128..129: invalid put option
+| note in file FileId(1) for 119..121: cannot specify fraction width for `char(4)`
+| error in file FileId(1) for 128..129: this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 200..201: invalid put option
-| note in file FileId(1) for 187..189: cannot specify exponent width for `char(4)`
-| error in file FileId(1) for 200..201: this is the invalid option
+error in file FileId(1) at 132..133: invalid put option
+| note in file FileId(1) for 119..121: cannot specify exponent width for `char(4)`
+| error in file FileId(1) for 132..133: this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 214..215: invalid put option
-| note in file FileId(1) for 206..207: cannot specify fraction width for `string`
-| error in file FileId(1) for 214..215: this is the invalid option
+error in file FileId(1) at 146..147: invalid put option
+| note in file FileId(1) for 138..139: cannot specify fraction width for `string`
+| error in file FileId(1) for 146..147: this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 218..219: invalid put option
-| note in file FileId(1) for 206..207: cannot specify exponent width for `string`
-| error in file FileId(1) for 218..219: this is the invalid option
+error in file FileId(1) at 150..151: invalid put option
+| note in file FileId(1) for 138..139: cannot specify exponent width for `string`
+| error in file FileId(1) for 150..151: this is the invalid option
 | info: exponent width can only be specified for numeric types
-error in file FileId(1) at 233..234: invalid put option
-| note in file FileId(1) for 224..226: cannot specify fraction width for `string(4)`
-| error in file FileId(1) for 233..234: this is the invalid option
+error in file FileId(1) at 165..166: invalid put option
+| note in file FileId(1) for 156..158: cannot specify fraction width for `string(4)`
+| error in file FileId(1) for 165..166: this is the invalid option
 | info: fraction width can only be specified for numeric put types
-error in file FileId(1) at 237..238: invalid put option
-| note in file FileId(1) for 224..226: cannot specify exponent width for `string(4)`
-| error in file FileId(1) for 237..238: this is the invalid option
+error in file FileId(1) at 169..170: invalid put option
+| note in file FileId(1) for 156..158: cannot specify exponent width for `string(4)`
+| error in file FileId(1) for 169..170: this is the invalid option
+| info: exponent width can only be specified for numeric types
+error in file FileId(1) at 184..185: invalid put option
+| note in file FileId(1) for 175..177: cannot specify fraction width for `enum en`
+| error in file FileId(1) for 184..185: this is the invalid option
+| info: fraction width can only be specified for numeric put types
+error in file FileId(1) at 188..189: invalid put option
+| note in file FileId(1) for 175..177: cannot specify exponent width for `enum en`
+| error in file FileId(1) for 188..189: this is the invalid option
 | info: exponent width can only be specified for numeric types

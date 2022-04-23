@@ -1,15 +1,20 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 42
-expression: "% FIXME: Add corresponding test for range types\ntype r : char\ntype _a : set of r\ntype _b : set of boolean\ntype _c : set of char\n"
+expression: "% FIXME: Add corresponding test for range types\ntype r : char\ntype e : enum(v)\ntype _a : set of r\ntype _b : set of boolean\ntype _c : set of char\ntype _d : set of e\n"
 
 ---
 "r"@(FileId(1), 53..54) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of char
-"_a"@(FileId(1), 72..80) [Declared]: <error>
-"_a"@(FileId(1), 67..69) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of alias[DefId(LibraryId(0), LocalDefId(0))] of char
-"_b"@(FileId(1), 91..105) [Declared]: <error>
-"_b"@(FileId(1), 86..88) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(3))] of boolean
-"_c"@(FileId(1), 116..127) [Declared]: <error>
-"_c"@(FileId(1), 111..113) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(5))] of char
+"v"@(FileId(1), 76..77) [Declared]: enum[DefId(LibraryId(0), LocalDefId(2))] ( "v"@(FileId(1), 76..77), )
+"e"@(FileId(1), 71..78) [Declared]: <error>
+"e"@(FileId(1), 67..68) [Resolved(Type)]: enum[DefId(LibraryId(0), LocalDefId(2))] ( "v"@(FileId(1), 76..77), )
+"_a"@(FileId(1), 89..97) [Declared]: <error>
+"_a"@(FileId(1), 84..86) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(4))] of alias[DefId(LibraryId(0), LocalDefId(0))] of char
+"_b"@(FileId(1), 108..122) [Declared]: <error>
+"_b"@(FileId(1), 103..105) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(6))] of boolean
+"_c"@(FileId(1), 133..144) [Declared]: <error>
+"_c"@(FileId(1), 128..130) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(8))] of char
+"_d"@(FileId(1), 155..163) [Declared]: <error>
+"_d"@(FileId(1), 150..152) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(10))] of enum[DefId(LibraryId(0), LocalDefId(2))] ( "v"@(FileId(1), 76..77), )
 "<root>"@(dummy) [Declared]: <error>
 

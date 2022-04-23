@@ -1599,7 +1599,6 @@ test_named_group! { equivalence_of,
 test_named_group! { typeck_put_stmt,
     [
         normal_items => r#"
-        % TODO: Uncomment enum lines once enum types are lowered & checked
         var i : int
         var n : nat
         var r : real
@@ -1607,7 +1606,7 @@ test_named_group! { typeck_put_stmt,
         var cn : char(4)
         var s : string
         var sn : string(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         put i : 0
         put n : 0
@@ -1616,7 +1615,7 @@ test_named_group! { typeck_put_stmt,
         put cn : 0
         put s : 0
         put sn : 0
-        %put ef : 0
+        put ef : 0
         "#,
         valid_extended_opts => r#"
         var i : int
@@ -1633,18 +1632,17 @@ test_named_group! { typeck_put_stmt,
         put : o, w : o : u : o..
         ",
         invalid_extended_opts => r#"
-        % TODO: Uncomment enum lines once enum types are lowered & checked
         var c : char
         var cn : char(4)
         var s : string
         var sn : string(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         put c : 0 : 0 : 0
         put cn : 0 : 0 : 0
         put s : 0 : 0 : 0
         put sn : 0 : 0 : 0
-        %put ef : 0 : 0 : 0
+        put ef : 0 : 0 : 0
         "#,
         wrong_type_stream => r#"
         var s : real
@@ -1686,7 +1684,6 @@ test_named_group! { typeck_put_stmt,
 
 test_named_group! { typeck_get_stmt,
     [
-        // TODO: Uncomment enum lines once enum types are lowered & checked
         normal_items => r#"
         var i : int
         var n : nat
@@ -1696,7 +1693,7 @@ test_named_group! { typeck_get_stmt,
         var cn : char(4)
         var s : string
         var sn : string(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         get i
         get n
@@ -1706,7 +1703,7 @@ test_named_group! { typeck_get_stmt,
         get cn
         get s
         get sn
-        %get ef
+        get ef
         "#,
         valid_opts => r#"
         var cn : char(4)
@@ -1736,14 +1733,14 @@ test_named_group! { typeck_get_stmt,
         var r : real
         var c : char
         var b: boolean
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         get i : 0
         get n : 0
         get r : 0
         get c : 0
         get b : 0
-        %get ef : 0
+        get ef : 0
         "#,
         invalid_opts_lines => r#"
         var i : int
@@ -1752,7 +1749,7 @@ test_named_group! { typeck_get_stmt,
         var c : char
         var b: boolean
         var cn : char(4)
-        %type en: enum(a, b) var ef : en
+        type en: enum(a, b) var ef : en
 
         get i : *
         get n : *
@@ -1760,7 +1757,7 @@ test_named_group! { typeck_get_stmt,
         get c : *
         get b : *
         get cn : *
-        %get ef : *
+        get ef : *
         "#,
         wrong_type_stream => r#"
         var s : real
@@ -1856,8 +1853,7 @@ test_named_group! { typeck_for,
         normal_boolean_bounds => r#"for : false .. true end for"#,
         normal_char_bounds => r#"for : 'a' .. 'z' end for"#,
         normal_int_bounds => r#"for : 1 .. 10 end for"#,
-        // TODO: Uncomment once enum types are lowered
-        //normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
+        normal_enum_bounds => r#"type e : enum(a, b, c) for : e.a .. e.c end for"#,
         wrong_types_bounds_not_same => r#"for : 1 .. true end for"#,
         wrong_types_bounds_not_index => r#"for : "no" .. "yes" end for"#,
         // Specialize error message in case of {integer} combined with concrete type
@@ -2560,9 +2556,11 @@ test_named_group! { typeck_set_ty,
         valid_index_ty => "
         % FIXME: Add corresponding test for range types
         type r : char
+        type e : enum(v)
         type _a : set of r
         type _b : set of boolean
         type _c : set of char
+        type _d : set of e
         ",
         not_index_ty => "type _ : set of real",
         large_range_integer => "
@@ -2646,6 +2644,10 @@ test_named_group! { report_aliased_type,
         var y : f
         var _ : int := y
         "#,
+        // FIXME: add tests for the following types
+        // - set
+        // - record
+        // - union
     ]
 }
 
