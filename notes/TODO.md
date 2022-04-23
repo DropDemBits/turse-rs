@@ -20,8 +20,8 @@
     - [x] AssignStmt
     - [ ] OpenStmt
     - [ ] CloseStmt
-    - [X] PutStmt
-    - [X] GetStmt
+    - [x] PutStmt
+    - [x] GetStmt
     - [ ] ReadStmt
     - [ ] WriteStmt
     - [ ] SeekStmt
@@ -88,7 +88,7 @@
     - [x] PrimType
     - [ ] NameType
     - [ ] RangeType
-    - [ ] EnumType
+    - [x] EnumType
     - [ ] ArrayType
     - [x] SetType
     - [ ] RecordType
@@ -172,7 +172,7 @@
         - [x] Numeric
         - [x] Lexicographic (over charseqs)
         - [ ] Class hierarchy
-        - [ ] Enums
+        - [x] Enums
         - [x] Sets (sub/superset tests)
       - [x] String concatenation
       - [x] Set manipulation
@@ -197,7 +197,7 @@
       - [x] Just name
       - [x] Through module paths
     - [ ] Range
-    - [ ] Enum
+    - [x] Enum
     - [ ] Array
     - [x] Set
     - [ ] Record
