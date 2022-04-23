@@ -1,7 +1,7 @@
 //! Lowering into `Type` HIR nodes
 use toc_hir::symbol::syms;
 use toc_hir::{symbol, ty};
-use toc_span::{HasSpanTable, Span};
+use toc_span::{HasSpanTable, Span, Spanned};
 use toc_syntax::ast::{self, AstNode};
 
 impl super::BodyLowering<'_, '_> {
@@ -26,7 +26,9 @@ impl super::BodyLowering<'_, '_> {
             ast::Type::NameType(ty) => self.lower_name_type(ty),
 
             ast::Type::RangeType(_) => self.unsupported_ty(span),
-            ast::Type::EnumType(_) => self.unsupported_ty(span),
+
+            ast::Type::EnumType(ty) => self.lower_enum_type(ty),
+
             ast::Type::ArrayType(_) => self.unsupported_ty(span),
 
             ast::Type::SetType(ty) => self.lower_set_type(ty),
@@ -109,17 +111,14 @@ impl super::BodyLowering<'_, '_> {
                     let def_id = self.ctx.use_sym(name.text().into(), span);
 
                     break Some(ty::TypeKind::Alias(ty::Alias {
-                        base_def: toc_span::Spanned::new(
-                            def_id,
-                            self.ctx.intern_range(name.text_range()),
-                        ),
+                        base_def: Spanned::new(def_id, self.ctx.intern_range(name.text_range())),
                         segments,
                     }));
                 }
                 ast::Expr::FieldExpr(field) => {
                     let name = field.name()?.identifier_token()?;
 
-                    segments.push(toc_span::Spanned::new(
+                    segments.push(Spanned::new(
                         name.text().into(),
                         self.ctx.intern_range(name.text_range()),
                     ));
@@ -140,6 +139,27 @@ impl super::BodyLowering<'_, '_> {
                 }
             }
         }
+    }
+
+    fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {
+        let span = self.ctx.intern_range(ty.syntax().text_range());
+        let def_id = self
+            .ctx
+            .library
+            .add_def(*syms::Anonymous, span, symbol::SymbolKind::Declared);
+        let variants = ty
+            .fields()
+            .unwrap()
+            .names()
+            .filter_map(|name| {
+                let sym = name.identifier_token()?.text().into();
+                let span = self.ctx.intern_range(name.syntax().text_range());
+
+                Some(Spanned::new(sym, span))
+            })
+            .collect();
+
+        Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
     }
 
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {

@@ -3418,7 +3418,7 @@ impl AstNode for EnumType {
 impl EnumType {
     pub fn enum_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::KwEnum) }
     pub fn l_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::LeftParen) }
-    pub fn fields(&self) -> impl Iterator<Item = Name> + '_ { helper::nodes(&self.0) }
+    pub fn fields(&self) -> Option<NameList> { helper::node(&self.0) }
     pub fn r_paren_token(&self) -> Option<SyntaxToken> { helper::token(&self.0, SyntaxKind::RightParen) }
 }
 #[derive(Debug, PartialEq, Eq, Hash)]

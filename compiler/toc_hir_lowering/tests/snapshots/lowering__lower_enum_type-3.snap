@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : enum(a, )"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..18): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..18): []
+        StmtItem@(FileId(1), 0..18): ItemId(0)
+          Type@(FileId(1), 0..18): "_"@(FileId(1), 5..6)
+            Enum@(FileId(1), 9..18): [ a ]
+error in file FileId(1) at 17..18: unexpected token
+| error in file FileId(1) for 17..18: expected identifier, but found `)`
+
