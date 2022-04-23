@@ -10,7 +10,7 @@ Library@(dummy)
       StmtBody@(FileId(1), 0..21): []
         StmtItem@(FileId(1), 0..21): ItemId(0)
           Type@(FileId(1), 0..21): "_"@(FileId(1), 5..6)
-            Enum@(FileId(1), 9..21): [ a,d ]
+            Enum@(FileId(1), 9..21): "_"@(FileId(1), 9..21) [ a,d ]
 error in file FileId(1) at 17..18: unexpected token
 | error in file FileId(1) for 17..18: expected identifier, but found `,`
 

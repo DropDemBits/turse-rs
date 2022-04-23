@@ -5,10 +5,10 @@ expression: "type bogos : int\ntype _si : set of bogos\ntype _sn : set of nat\n"
 
 ---
 "bogos"@(FileId(1), 5..10) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"<anonymous>"@(FileId(1), 28..40) [Declared]: <error>
-"_si"@(FileId(1), 22..25) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(2))] of alias[DefId(LibraryId(0), LocalDefId(0))] of int
-"<anonymous>"@(FileId(1), 52..62) [Declared]: <error>
-"_sn"@(FileId(1), 46..49) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(4))] of nat
+"_si"@(FileId(1), 28..40) [Declared]: <error>
+"_si"@(FileId(1), 22..25) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(1))] of alias[DefId(LibraryId(0), LocalDefId(0))] of int
+"_sn"@(FileId(1), 52..62) [Declared]: <error>
+"_sn"@(FileId(1), 46..49) [Resolved(Type)]: set[DefId(LibraryId(0), LocalDefId(3))] of nat
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 35..40: element range is too large
