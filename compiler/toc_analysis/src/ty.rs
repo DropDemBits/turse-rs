@@ -178,6 +178,14 @@ pub enum WithDef {
     Anonymous(DefId),
 }
 
+impl WithDef {
+    pub fn def_id(self) -> DefId {
+        match self {
+            WithDef::Named(def_id) | WithDef::Anonymous(def_id) => def_id,
+        }
+    }
+}
+
 /// Pointer checkedness
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Checked {
