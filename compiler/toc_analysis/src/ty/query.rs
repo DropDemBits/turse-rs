@@ -385,13 +385,43 @@ pub(crate) fn fields_of(
                     Some(Arc::new(item::Fields { fields }))
                 }
                 _ => {
-                    // Defer to the corresponding type
+                    // Defer to the corresponding type (associated fields)
                     let ty_id = db.type_of(DefId(library_id, item.def_id).into());
-                    db.fields_of(ty_id.into())
+                    db.fields_of(db::FieldsSource::TypeAssociated(ty_id))
                 }
             }
         }
-        db::FieldsSource::Type(ty_id) => {
+        db::FieldsSource::TypeAssociated(ty_id) => {
+            // Fields associated with the type's definition
+
+            // We're assuming that opaques and aliases have already been peeled,
+            // if applicable
+            let ty_ref = ty_id.in_db(db);
+
+            // Only applicable for enums
+            let (library, variants) = if let TypeKind::Enum(with_def, variants) = ty_ref.kind() {
+                (db.library(with_def.def_id().0), variants)
+            } else {
+                return None;
+            };
+
+            let fields = variants
+                .iter()
+                .map(|&def_id| {
+                    let def_info = library.local_def(def_id.1);
+                    let field_info = item::FieldInfo {
+                        def_id,
+                        mutability: Mutability::Const,
+                        is_opaque: false,
+                    };
+
+                    (def_info.name, field_info)
+                })
+                .collect();
+
+            Some(Arc::new(item::Fields { fields }))
+        }
+        db::FieldsSource::TypeInstance(ty_id) => {
             // Fields on an instance of a type
 
             // We're assuming that opaques and aliases have already been peeled,
@@ -419,46 +449,22 @@ pub(crate) fn fields_of(
                 }
                 BindingTo::Type => {
                     // Fields associated with the type
-                    let ty_ref = db.type_of((lib_id, body_expr).into()).in_db(db);
-
-                    // Peel opaque & aliases
-                    let ty_ref = ty_ref.peel_opaque(in_module).peel_aliases();
-
-                    // Only applicable for enums
-                    let (library, variants) =
-                        if let TypeKind::Enum(with_def, variants) = ty_ref.kind() {
-                            (db.library(with_def.def_id().0), variants)
-                        } else {
-                            return None;
-                        };
-
-                    let fields = variants
-                        .iter()
-                        .map(|&def_id| {
-                            let def_info = library.local_def(def_id.1);
-                            let field_info = item::FieldInfo {
-                                def_id,
-                                mutability: Mutability::Const,
-                                is_opaque: false,
-                            };
-
-                            (def_info.name, field_info)
-                        })
-                        .collect();
-
-                    Some(Arc::new(item::Fields { fields }))
-                }
-                BindingTo::Storage(_) | BindingTo::Register(_) => {
-                    // To some storage
-                    // Get fields based off of the type
-
-                    // Defer to the corresponding type
                     let ty_id = db.type_of((lib_id, body_expr).into());
 
                     // Peel opaque & aliases
                     let ty_id = ty_id.in_db(db).peel_opaque(in_module).peel_aliases().id();
 
-                    db.fields_of(ty_id.into())
+                    db.fields_of(db::FieldsSource::TypeAssociated(ty_id))
+                }
+                BindingTo::Storage(_) | BindingTo::Register(_) => {
+                    // To some storage
+                    // Get fields based off of the type (instance fields)
+                    let ty_id = db.type_of((lib_id, body_expr).into());
+
+                    // Peel opaque & aliases
+                    let ty_id = ty_id.in_db(db).peel_opaque(in_module).peel_aliases().id();
+
+                    db.fields_of(db::FieldsSource::TypeInstance(ty_id))
                 }
                 _ => None,
             }

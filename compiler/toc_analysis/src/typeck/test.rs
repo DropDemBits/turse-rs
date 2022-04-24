@@ -1973,6 +1973,10 @@ test_named_group! { typeck_type_alias,
         module a export b var b : int end a
         var e : a.b
         ",
+        path_field_not_ty => "
+        type e : enum(v)
+        var a : e.v
+        ",
     ]
 }
 

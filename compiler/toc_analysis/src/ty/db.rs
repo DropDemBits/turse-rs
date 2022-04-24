@@ -289,7 +289,10 @@ impl NotValueErrExt for Result<bool, NotValue> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FieldsSource {
     DefId(DefId),
-    Type(ty::TypeId),
+    /// Associated with the original definition of a type
+    TypeAssociated(ty::TypeId),
+    /// On an instance of a type (e.g as the type of a `var`)
+    TypeInstance(ty::TypeId),
     Item(LibraryId, item::ItemId),
     BodyExpr(LibraryId, expr::BodyExpr),
 }
@@ -297,12 +300,6 @@ pub enum FieldsSource {
 impl From<symbol::DefId> for FieldsSource {
     fn from(def_id: symbol::DefId) -> Self {
         Self::DefId(def_id)
-    }
-}
-
-impl From<ty::TypeId> for FieldsSource {
-    fn from(type_id: ty::TypeId) -> Self {
-        Self::Type(type_id)
     }
 }
 
