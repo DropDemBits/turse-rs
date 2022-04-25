@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : .."
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..10): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..10): []
+        StmtItem@(FileId(1), 0..10): ItemId(0)
+          ConstVar@(FileId(1), 0..10): var "_"@(FileId(1), 4..5)
+            Constrained@(FileId(1), 8..10): end => Expr
+              ExprBody@(dummy)
+              ExprBody@(dummy)
+error in file FileId(1) at 8..10: unexpected token
+| error in file FileId(1) for 8..10: expected expression, but found `..`
+

@@ -58,6 +58,7 @@ pub trait HirVisitor {
     fn visit_missing_type(&self, id: ty::TypeId) {}
     fn visit_primitive(&self, id: ty::TypeId, ty: &ty::Primitive) {}
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
+    fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {}
     fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {}
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {}
     fn visit_pointer(&self, id: ty::TypeId, ty: &ty::Pointer) {}
@@ -114,6 +115,7 @@ pub trait HirVisitor {
             ty::TypeKind::Missing => self.visit_missing_type(id),
             ty::TypeKind::Primitive(ty) => self.visit_primitive(id, ty),
             ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
+            ty::TypeKind::Constrained(ty) => self.visit_constrained(id, ty),
             ty::TypeKind::Enum(ty) => self.visit_enum(id, ty),
             ty::TypeKind::Set(ty) => self.visit_set(id, ty),
             ty::TypeKind::Pointer(ty) => self.visit_pointer(id, ty),
@@ -570,6 +572,7 @@ impl<'hir> Walker<'hir> {
             ty::TypeKind::Missing => {}
             ty::TypeKind::Primitive(ty) => self.walk_primitive(ty),
             ty::TypeKind::Alias(_) => {}
+            ty::TypeKind::Constrained(ty) => self.walk_constrained(ty),
             ty::TypeKind::Enum(_) => {}
             ty::TypeKind::Set(ty) => self.walk_set(ty),
             ty::TypeKind::Pointer(ty) => self.walk_pointer(ty),
@@ -585,6 +588,14 @@ impl<'hir> Walker<'hir> {
                 self.enter_body(*id, self.lib.body(*id));
             }
             _ => {}
+        }
+    }
+
+    fn walk_constrained(&mut self, node: &ty::Constrained) {
+        self.enter_body(node.start, self.lib.body(node.start));
+
+        if let ty::ConstrainedEnd::Expr(end) = node.end {
+            self.enter_body(end, self.lib.body(end))
         }
     }
 

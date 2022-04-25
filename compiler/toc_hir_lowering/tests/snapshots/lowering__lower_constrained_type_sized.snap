@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : 1 .. 2"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..14): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..14): []
+        StmtItem@(FileId(1), 0..14): ItemId(0)
+          ConstVar@(FileId(1), 0..14): var "_"@(FileId(1), 4..5)
+            Constrained@(FileId(1), 8..14): end => Expr
+              ExprBody@(FileId(1), 8..9)
+                Literal@(FileId(1), 8..9): Integer(1)
+              ExprBody@(FileId(1), 13..14)
+                Literal@(FileId(1), 13..14): Integer(2)
+
