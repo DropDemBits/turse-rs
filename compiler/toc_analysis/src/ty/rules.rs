@@ -100,7 +100,13 @@ impl TypeKind {
         matches!(self, TypeKind::String | TypeKind::StringN(_))
     }
 
-    /// index types includes all integer types, `Char`, `Boolean`, `Enum`, and `Range` types
+    /// index types includes the following types:
+    ///
+    /// - all integer types
+    /// - `Char`
+    /// - `Boolean`
+    /// - `Enum`
+    /// - `Constrained` (only if the base type is)
     pub fn is_index(&self) -> bool {
         self.is_integer()
             || matches!(
@@ -150,8 +156,10 @@ impl TypeKind {
             | TypeKind::Enum(..)
             | TypeKind::Pointer(..)
             | TypeKind::Subprogram(..) => true,
-            // Missing scalars:
-            // - subrange
+            TypeKind::Constrained(..) => {
+                // Only if the base type is, but we don't have access to db
+                unreachable!("missing to_base_type")
+            }
             TypeKind::String | TypeKind::CharN(_) | TypeKind::StringN(_) => {
                 // Aggregate types of characters
                 false
@@ -249,10 +257,14 @@ where
 
     /// Transforms the type into its base representation.
     ///
-    /// Turns ranges into its common type, and peels aliases.
+    /// Turns [`TypeKind::Constrained`] into its common type, and peels aliases.
     pub fn to_base_type(self) -> Self {
-        // TODO: Range -> base type
-        self.peel_aliases()
+        let ty_ref = self.peel_aliases();
+
+        match ty_ref.kind() {
+            TypeKind::Constrained(base_ty, ..) => base_ty.in_db(ty_ref.db),
+            _ => ty_ref,
+        }
     }
 }
 

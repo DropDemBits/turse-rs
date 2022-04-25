@@ -74,6 +74,9 @@ pub enum TypeKind {
     /// An alias exported as an opaque type. Points to the base (un-aliased) alias,
     /// with the [`DefId`] pointing to the original alias.
     Opaque(DefId, TypeId),
+    /// Constrained value type, with base type, range start, and range end.
+    /// Base type is already de-aliased
+    Constrained(TypeId, Const, EndBound),
     /// An enumeration type, with associated definition point and variants.
     Enum(WithDef, Vec<DefId>),
     /// Set type, with associated definition point
@@ -166,6 +169,15 @@ pub enum NotFixedLen {
     AnySize,
     /// Error while trying to evaluate the sequence
     ConstError(ConstError),
+}
+
+/// End bound of a [`TypeKind::Constrained`]
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum EndBound {
+    /// From a constant expression
+    Expr(Const),
+    /// From an element count
+    Unsized(u32),
 }
 
 // FIXME: Replace with comparison to "<anonymous>" symbol id
@@ -277,6 +289,10 @@ where
             TypeKind::StringN(_) => 1,
             TypeKind::Subprogram(..) => POINTER_ALIGNMENT,
             TypeKind::Void => return None,
+            TypeKind::Constrained(base_ty, ..) => {
+                // Defer to the base type
+                return base_ty.in_db(self.db).peel_aliases().align_of();
+            }
             TypeKind::Enum(..) => 4, // ???: Alignment based on user-specified size?
             TypeKind::Set(..) => 2,
             TypeKind::Pointer(_, _) => POINTER_ALIGNMENT,
@@ -325,6 +341,10 @@ where
             }
             TypeKind::Subprogram(..) => POINTER_SIZE,
             TypeKind::Void => return None,
+            TypeKind::Constrained(base_ty, ..) => {
+                // Defer to the base type
+                return base_ty.in_db(self.db).peel_aliases().size_of();
+            }
             TypeKind::Enum(..) => 4, // FIXME: Have size be based on a user-specified size
             TypeKind::Set(_, _elem_ty) => return None, // FIXME: Compute size of sets
             TypeKind::Pointer(Checked::Checked, _) => POINTER_SIZE * 2, // address + metadata
@@ -387,6 +407,7 @@ where
                 ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
             }
             TypeKind::Integer => unreachable!("integer should be concrete"),
+            // TODO: add constrained start bound case
             _ => return None,
         };
 
@@ -426,6 +447,7 @@ where
                 ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
             }
             TypeKind::Integer => unreachable!("integer should be concrete"),
+            // TODO: add constrained end bound case
             _ => return None,
         };
 

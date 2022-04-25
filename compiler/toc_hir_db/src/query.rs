@@ -358,6 +358,14 @@ impl HirVisitor for BodyCollector<'_> {
             _ => (),
         }
     }
+
+    fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {
+        self.add_owner(ty.start, BodyOwner::Type(id));
+
+        if let ty::ConstrainedEnd::Expr(end) = ty.end {
+            self.add_owner(end, BodyOwner::Type(id))
+        }
+    }
 }
 
 /// Library-local type owner collector

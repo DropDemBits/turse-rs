@@ -11,7 +11,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{NotFixedLen, PassBy, TypeId, WithDef};
+use super::{EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -37,7 +37,7 @@ impl TypeKind {
             // Sized charseqs use the parent type as the basename
             TypeKind::CharN(_) => "char",
             TypeKind::StringN(_) => "string",
-            TypeKind::Alias(_, _) | TypeKind::Opaque(_, _) => "",
+            TypeKind::Alias(_, _) | TypeKind::Opaque(_, _) | TypeKind::Constrained(..) => "",
             _ => self.debug_prefix(),
         }
     }
@@ -66,6 +66,7 @@ impl TypeKind {
             TypeKind::Alias(_, _) => "alias",
             TypeKind::Opaque(_, _) => "opaque",
             TypeKind::Forward => "forward",
+            TypeKind::Constrained(..) => "range of",
             TypeKind::Enum(..) => "enum",
             TypeKind::Set(..) => "set",
             TypeKind::Pointer(Checked::Checked, _) => "pointer to",
@@ -95,6 +96,10 @@ where
         TypeKind::Opaque(def_id, to) => {
             out.write_fmt(format_args!("[{def_id:?}] type to "))?;
             emit_debug_ty(db, out, *to)?
+        }
+        TypeKind::Constrained(base_ty, start, end) => {
+            let base_ty = base_ty.in_db(db);
+            out.write_fmt(format_args!(" `{base_ty:?}` ({start:?} .. {end:?})"))?;
         }
         TypeKind::Enum(with_def, variants) => {
             let def_id = match with_def {
@@ -200,6 +205,28 @@ where
             let library = db.library(def_id.0);
             let name = library.local_def(def_id.1).name;
             out.write_fmt(format_args!("{name} (an opaque type)"))?;
+        }
+        TypeKind::Constrained(_, start, end) => {
+            // FIXME: Use the correct eval params
+            // TODO: allow displaying const values
+            let eval_params = crate::const_eval::EvalParams::default();
+
+            match db.evaluate_const(start.clone(), eval_params) {
+                Ok(v) => write!(out, "{v:?} .. ")?,
+                Err(err) => {
+                    unreachable!("should not show errors! ({err:?})")
+                }
+            };
+
+            match end {
+                EndBound::Expr(end) => match db.evaluate_const(end.clone(), eval_params) {
+                    Ok(v) => write!(out, "{v:?}")?,
+                    Err(err) => {
+                        unreachable!("should not show errors! ({err:?})")
+                    }
+                },
+                EndBound::Unsized(_) => write!(out, "*")?,
+            }
         }
         TypeKind::Enum(with_def, _) => {
             let def_id = match with_def {

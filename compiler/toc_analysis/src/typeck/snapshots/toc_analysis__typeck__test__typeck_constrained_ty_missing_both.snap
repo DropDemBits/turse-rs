@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type c : .. "
+
+---
+"c"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `<error>` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"<root>"@(dummy) [Declared]: <error>
+

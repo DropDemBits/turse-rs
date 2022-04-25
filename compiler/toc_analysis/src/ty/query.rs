@@ -15,8 +15,9 @@ use toc_hir::{
     ty::TypeId as HirTypeId,
 };
 
+use crate::const_eval;
 use crate::db::{self, BindingSource, TypeDatabase};
-use crate::ty::WithDef;
+use crate::ty::{EndBound, WithDef};
 
 use super::{lower, Checked, IntSize, NatSize, Param, RealSize, SeqSize, Type, TypeId, TypeKind};
 
@@ -646,6 +647,15 @@ where
         self.intern_type(
             Type {
                 kind: TypeKind::Forward,
+            }
+            .into(),
+        )
+    }
+
+    fn mk_constrained(&self, base_ty: TypeId, start: const_eval::Const, end: EndBound) -> TypeId {
+        self.intern_type(
+            Type {
+                kind: TypeKind::Constrained(base_ty, start, end),
             }
             .into(),
         )

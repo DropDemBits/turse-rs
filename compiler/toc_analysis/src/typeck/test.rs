@@ -2563,6 +2563,29 @@ test_named_group! { typeck_opaque_alias,
     ]
 }
 
+test_named_group! { typeck_constrained_ty,
+    [
+        // Sized variation
+        from_ints => "type c : 1 .. 1",
+        from_chars => "type c : 'a' .. 'c'",
+        from_booleans => "type c : false .. true",
+        from_enums => "
+        type e : enum(uwu, owo)
+        type c : e.uwu .. e.owo",
+
+        mismatched_tys => "type c : 1 .. true",
+        missing_end => "type c : 1 .. ",
+        missing_start => "type c : .. 2",
+        missing_both => "type c : .. ",
+
+        // TODO: add tests for non-index types
+        // TODO: add tests for bad range sizes (negative elem sizes)
+
+        // Unsized variation
+        // FIXME: add tests for unsized range once arrays are being lowered
+    ]
+}
+
 test_named_group! { typeck_enum_ty,
     [
         from_type_alias => "type e : enum(a, b, c)",

@@ -12,7 +12,7 @@ use toc_hir::{
 };
 use toc_salsa::salsa;
 
-use crate::ty;
+use crate::{const_eval, ty};
 
 #[salsa::query_group(TypeInternStorage)]
 pub trait TypeIntern: toc_hir_db::db::HirDatabase {
@@ -69,6 +69,12 @@ pub trait TypeInternExt {
     fn mk_alias(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_opaque(&self, def_id: DefId, base_ty: ty::TypeId) -> ty::TypeId;
     fn mk_forward(&self) -> ty::TypeId;
+    fn mk_constrained(
+        &self,
+        base_ty: ty::TypeId,
+        start: const_eval::Const,
+        end: ty::EndBound,
+    ) -> ty::TypeId;
     fn mk_enum(&self, with_def: ty::WithDef, variants: Vec<DefId>) -> ty::TypeId;
     fn mk_set(&self, with_def: ty::WithDef, elem_ty: ty::TypeId) -> ty::TypeId;
     fn mk_pointer(&self, checked: ty::Checked, target_ty: ty::TypeId) -> ty::TypeId;

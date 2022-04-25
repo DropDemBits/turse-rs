@@ -27,7 +27,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Missing => db.mk_error(),
         hir_ty::TypeKind::Primitive(ty) => primitive_ty(db, hir_id, ty),
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
-        hir_ty::TypeKind::Constrained(_ty) => db.mk_error(),
+        hir_ty::TypeKind::Constrained(ty) => constrained_ty(db, hir_id, ty),
         hir_ty::TypeKind::Enum(ty) => enum_ty(db, hir_id, ty),
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
@@ -106,6 +106,48 @@ fn alias_ty(
         // Not a reference to a type
         db.mk_error()
     }
+}
+
+fn constrained_ty(
+    db: &dyn TypeDatabase,
+    hir_id: InLibrary<hir_ty::TypeId>,
+    ty: &hir_ty::Constrained,
+) -> TypeId {
+    let hir_id @ InLibrary(library_id, _) = hir_id;
+    let in_module = db.inside_module(hir_id.into());
+
+    // Infer base ty (from start, or end if start isn't present)
+    let base_tyref = {
+        let start_tyref = db.type_of(ty.start.in_library(library_id).into()).in_db(db);
+
+        let base_tyref = if start_tyref.kind().is_error() {
+            match ty.end {
+                hir_ty::ConstrainedEnd::Expr(end) => {
+                    db.type_of(end.in_library(library_id).into()).in_db(db)
+                }
+                hir_ty::ConstrainedEnd::Unsized(_) => db.mk_error().in_db(db),
+            }
+        } else {
+            start_tyref
+        };
+
+        base_tyref.peel_opaque(in_module).peel_aliases()
+    };
+
+    // Require a concrete type
+    let base_ty = if base_tyref.kind() == &TypeKind::Integer {
+        db.mk_int(IntSize::Int)
+    } else {
+        base_tyref.id()
+    };
+
+    let start = Const::from_body(library_id, ty.start);
+    let end = match ty.end {
+        hir_ty::ConstrainedEnd::Expr(end) => ty::EndBound::Expr(Const::from_body(library_id, end)),
+        hir_ty::ConstrainedEnd::Unsized(sz) => ty::EndBound::Unsized(sz.item().unwrap_or(0)),
+    };
+
+    db.mk_constrained(base_ty, start, end)
 }
 
 fn enum_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>, ty: &hir_ty::Enum) -> TypeId {
