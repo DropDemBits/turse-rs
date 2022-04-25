@@ -274,8 +274,8 @@ where
 ///
 /// This is a symmetric relation.
 pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: TypeId) -> bool {
-    let left = left.in_db(db).to_base_type();
-    let right = right.in_db(db).to_base_type();
+    let left = left.in_db(db).peel_aliases();
+    let right = right.in_db(db).peel_aliases();
 
     // Quick bailout
     if left.id() == right.id() {
@@ -320,6 +320,50 @@ pub fn is_equivalent<T: db::ConstEval + ?Sized>(db: &T, left: TypeId, right: Typ
 
             // sized charseqs are treated as equivalent types if the sizes are equal
             left_sz.cmp(right_sz).is_eq()
+        }
+
+        // Constrained types are equivalent if their bounds are equal
+        (
+            TypeKind::Constrained(_, left_start, left_end),
+            TypeKind::Constrained(_, right_start, right_end),
+        ) => {
+            // FIXME: use the correct eval params
+            let eval_params = Default::default();
+
+            let left_start = match db.evaluate_const(left_start.clone(), eval_params) {
+                Ok(v) => v,
+                Err(_) => return true, // invalid evaluations treated as equivalent types
+            };
+            let right_start = match db.evaluate_const(right_start.clone(), eval_params) {
+                Ok(v) => v,
+                Err(_) => return true, // invalid evaluations treated as equivalent types
+            };
+
+            // Bail if the start bounds weren't the same
+            if left_start != right_start {
+                return false;
+            }
+
+            // Fully equivalent if the end bounds are the same
+            match (left_end, right_end) {
+                (ty::EndBound::Expr(left_end), ty::EndBound::Expr(right_end)) => {
+                    let left_end = match db.evaluate_const(left_end.clone(), eval_params) {
+                        Ok(v) => v,
+                        Err(_) => return true, // invalid evaluations treated as equivalent types
+                    };
+                    let right_end = match db.evaluate_const(right_end.clone(), eval_params) {
+                        Ok(v) => v,
+                        Err(_) => return true, // invalid evaluations treated as equivalent types
+                    };
+
+                    left_end == right_end
+                }
+                (ty::EndBound::Unsized(left_end), ty::EndBound::Unsized(right_end)) => {
+                    left_end == right_end
+                }
+                // Different end bound kinds
+                _ => false,
+            }
         }
 
         // The following types are equivalent to the other type if they both come from the same definition:
@@ -416,8 +460,8 @@ pub fn is_coercible_into_param<T: ?Sized + db::ConstEval>(
     lhs: TypeId,
     rhs: TypeId,
 ) -> bool {
-    let left = lhs.in_db(db).to_base_type();
-    let right = rhs.in_db(db).to_base_type();
+    let left = lhs.in_db(db).peel_aliases();
+    let right = rhs.in_db(db).peel_aliases();
 
     // Equivalent types imply trivial coercion
     if is_equivalent(db, left.id(), right.id()) {
@@ -600,7 +644,11 @@ pub fn is_coercible_into<T: ?Sized + db::ConstEval>(db: &T, lhs: TypeId, rhs: Ty
             }
         }
 
-        // FIXME: Coercion rule for Opaque to base type
+        // [`TypeKind::Opaque`] can be coerced into an alias of the equivalent type
+        // Handled by [`peel_opaque`] conversions
+
+        // [`TypeKind::Constrained`] can be coerced into its base type
+        // Handled by [`to_base_type`] conversions
 
         // Not coercible otherwise
         _ => false,

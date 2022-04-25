@@ -131,7 +131,8 @@ fn constrained_ty(
             start_tyref
         };
 
-        base_tyref.peel_opaque(in_module).peel_aliases()
+        // FIXME: add test differentiating between alias & base type
+        base_tyref.peel_opaque(in_module).to_base_type()
     };
 
     // Require a concrete type

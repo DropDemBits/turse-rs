@@ -190,6 +190,10 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_alias(id, ty);
     }
 
+    fn visit_constrained(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Constrained) {
+        self.typeck_constrained_ty(id, ty);
+    }
+
     fn visit_set(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Set) {
         self.typeck_set_ty(id, ty);
     }
@@ -1564,6 +1568,113 @@ impl TypeCheck<'_> {
                 |thing| format!("cannot use {thing} as a type alias"),
                 None,
             );
+        }
+    }
+
+    fn typeck_constrained_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Constrained) {
+        let db = self.db;
+        let library = &self.library;
+        let library_id = self.library_id;
+
+        let ty_span = library.lookup_type(id).span.lookup_in(library);
+
+        let cons_tyref = db.from_hir_type(id.in_library(library_id)).in_db(db);
+        let (base_ty, start_bound, end_bound) = match cons_tyref.kind() {
+            ty::TypeKind::Constrained(base_ty, start_bound, end_bound) => {
+                (base_ty, start_bound, end_bound)
+            }
+            _ => unreachable!(),
+        };
+        let base_tyref = base_ty.in_db(db);
+
+        let start_span = library.body(ty.start).span.lookup_in(library);
+        let end_span = match ty.end {
+            toc_hir::ty::ConstrainedEnd::Expr(end) => library.body(end).span.lookup_in(library),
+            toc_hir::ty::ConstrainedEnd::Unsized(sz) => sz.span().lookup_in(library),
+        };
+
+        let end = match ty.end {
+            toc_hir::ty::ConstrainedEnd::Expr(end) => Some(end),
+            _ => None,
+        };
+
+        let start_ty = db.type_of(ty.start.in_library(library_id).into());
+        let end_ty = end.map(|end| db.type_of(end.in_library(library_id).into()));
+
+        if let Some(end_ty) = end_ty {
+            if !ty::rules::is_equivalent(db, start_ty, end_ty) {
+                // Bounds must be equivalent tys
+                let start_tyref = start_ty.in_db(db);
+                let end_tyref = end_ty.in_db(db);
+
+                self.state()
+                    .reporter
+                    .error_detailed("mismatched types", ty_span)
+                    .with_note(format!("this is of type `{end_tyref}`"), end_span)
+                    .with_note(format!("this is of type `{start_tyref}`"), start_span)
+                    .with_error(
+                        format!(
+                            "`{start_tyref}` is not equivalent to `{end_tyref}`",
+                            start_tyref = start_tyref.peel_aliases(),
+                            end_tyref = end_tyref.peel_aliases()
+                        ),
+                        ty_span,
+                    )
+                    .with_info("range bound types must be equivalent")
+                    .finish();
+            } else if !base_tyref.kind().is_index() {
+                // base_ty must be an index ty
+                self.state().reporter.error_detailed("mismatched types", ty_span)
+                .with_note(format!("bounds are of type `{base_tyref}`"), ty_span)
+                .with_error(format!("`{base_tyref}` is not an index type"), ty_span)
+                .with_info(
+                    "an index type is an integer, a `boolean`, a `char`, an enumerated type, or a range of those types",
+                ).finish()
+            }
+        }
+
+        // Bounds must be compile-time exprs
+        // FIXME: use the correct eval params
+        let eval_params = Default::default();
+
+        let check_const_bound = |bound_ty: ty::TypeId, bound_const, bound_span| {
+            match db.evaluate_const(bound_const, eval_params) {
+                Ok(ConstValue::String(s)) if matches!(base_tyref.kind(), ty::TypeKind::Char) => {
+                    let bound_tyref = bound_ty.in_db(db);
+                    let base_base_tyref = base_tyref.clone().to_base_type();
+
+                    // must be length 1
+                    if s.len() != 1 {
+                        self.state()
+                            .reporter
+                            .error_detailed("mismatched types", bound_span)
+                            .with_note(
+                                format!(
+                                    "this is of type `{bound_tyref}`, of length `{len}`",
+                                    len = s.len()
+                                ),
+                                bound_span,
+                            )
+                            .with_note(
+                                format!("range bound expects type `{base_tyref}`"),
+                                bound_span,
+                            )
+                            .with_info(format!(
+                                "`{base_base_tyref}` only allows `char` or `string`s of length 1"
+                            ))
+                            .finish();
+                    }
+                }
+                Ok(_) => {}
+                Err(err) => {
+                    err.report_to(db, &mut self.state().reporter);
+                }
+            }
+        };
+
+        check_const_bound(start_ty, start_bound.clone(), start_span);
+        if let ty::EndBound::Expr(end_bound) = end_bound {
+            check_const_bound(end_ty.unwrap(), end_bound.clone(), end_span);
         }
     }
 
