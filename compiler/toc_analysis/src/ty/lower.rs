@@ -75,13 +75,24 @@ fn alias_ty(
     ty: &hir_ty::Alias,
 ) -> TypeId {
     let def_id = {
+        let in_module = db.inside_module(hir_id.into());
         // Walk the segment path while we still can
         let mut def_id = DefId(hir_id.0, *ty.base_def.item());
 
         for segment in &ty.segments {
-            let next_def = db
-                .fields_of(def_id.into())
-                .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
+            def_id = db.resolve_def(def_id);
+
+            let fields = match db.binding_to(def_id.into()) {
+                Ok(BindingTo::Type) => {
+                    let ty_ref = db.type_of(def_id.into()).in_db(db);
+                    let ty_ref = ty_ref.peel_opaque(in_module).peel_aliases();
+
+                    db.fields_of(ty::db::FieldsSource::TypeAssociated(ty_ref.id()))
+                }
+                _ => db.fields_of(def_id.into()),
+            };
+            let next_def =
+                fields.and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
 
             if let Some(next_def) = next_def {
                 def_id = next_def;
