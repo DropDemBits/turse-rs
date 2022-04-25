@@ -62,22 +62,29 @@ fn ty_or_ty_expr(p: &mut Parser, allow_ty_expr: bool) -> Option<CompletedMarker>
             TokenKind::Condition => condition_type(p), // condition_type
             _ => {
                 if allow_ty_expr {
-                    expr::expr(p).and_then(|cm| {
-                        // either name type or range type
-                        // further checks are pushed down to AST validation
-                        // so e.g. int literals are allowed in type position
-                        if p.at(TokenKind::Range) {
-                            // range tail
-                            range_type_tail(p, cm)
-                        } else {
-                            // Enclose expr (potential name ref) inside NameType
-                            Some(cm.precede(p).complete(p, SyntaxKind::NameType))
+                    p.with_extra_recovery(&[TokenKind::Range], |p| {
+                        let start = expr::expr(p);
+
+                        // Report missing head expr
+                        if p.at_hidden(TokenKind::Range) && start.is_none() {
+                            p.error_unexpected().with_category(Expected::Expression).report();
                         }
-                    })
-                    .or_else(|| {
-                        // not a ty
-                        p.error_unexpected().with_category(Expected::Type).report();
-                        None
+
+                        if p.at(TokenKind::Range) {
+                            // at a range type
+                            range_type_tail(p, start)
+                        } else if let Some(expr) = start {
+                            // maybe at a name type
+                            // further checks are pushed down to typeck
+                            // so e.g. int literals are allowed in type position
+
+                            // Enclose expr (potential name ref) inside NameType
+                            Some(expr.precede(p).complete(p, SyntaxKind::NameType))
+                        } else {
+                            // not a ty
+                            p.error_unexpected().with_category(Expected::Type).report();
+                            None
+                        }
                     })
                 } else {
                     None
@@ -486,10 +493,13 @@ fn condition_type(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m.complete(p, SyntaxKind::ConditionType))
 }
 
-fn range_type_tail(p: &mut Parser, lhs: CompletedMarker) -> Option<CompletedMarker> {
+fn range_type_tail(p: &mut Parser, lhs: Option<CompletedMarker>) -> Option<CompletedMarker> {
     debug_assert!(p.at(TokenKind::Range));
 
-    let m = lhs.precede(p);
+    let m = match lhs {
+        Some(lhs) => lhs.precede(p),
+        None => p.start(),
+    };
     p.bump();
 
     if p.at(TokenKind::Star) {

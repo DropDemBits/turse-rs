@@ -676,6 +676,31 @@ fn recover_range_type_missing_tail() {
 }
 
 #[test]
+fn recover_range_type_missing_head() {
+    check(
+        "type _ : .. 1",
+        expect![[r#"
+        Source@0..13
+          StmtList@0..13
+            TypeDecl@0..13
+              KwType@0..4 "type"
+              Whitespace@4..5 " "
+              Name@5..6
+                Identifier@5..6 "_"
+              Whitespace@6..7 " "
+              Colon@7..8 ":"
+              Whitespace@8..9 " "
+              RangeType@9..13
+                Range@9..11 ".."
+                Whitespace@11..12 " "
+                LiteralExpr@12..13
+                  IntLiteral@12..13 "1"
+        error in file FileId(1) at 9..11: unexpected token
+        | error in file FileId(1) for 9..11: expected expression, but found `..`"#]],
+    );
+}
+
+#[test]
 fn recover_range_type_not_an_expr() {
     check(
         "type _ : 1 .. boolean",
