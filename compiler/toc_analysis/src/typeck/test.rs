@@ -1973,6 +1973,10 @@ test_named_group! { typeck_type_alias,
         module a export b var b : int end a
         var e : a.b
         ",
+        path_field_not_ty => "
+        type e : enum(v)
+        var a : e.v
+        ",
     ]
 }
 
@@ -2523,7 +2527,25 @@ test_named_group! { typeck_opaque_ty,
 
 test_named_group! { typeck_opaque_alias,
     [
-        // Sets, records, and unions deal with opaque aliases specially
+        // Enums, sets, records, and unions deal with opaque aliases specially
+        of_enum => "
+        var *_ : boolean
+
+        module m
+            export opaque e, var a
+            type e : enum(a)
+            var a : e := e.a
+
+            _ := e.a = a
+
+            % should give a not usable as ty error
+            type not_ty : e.a
+        end m
+
+        var u : m.e := m.e.a
+        _ := m.e.a = u
+        type no_field : m.e.a
+        ",
         of_set => "
         var *_ : boolean
 
@@ -2537,7 +2559,7 @@ test_named_group! { typeck_opaque_alias,
         % should fail
         var vs := m.s(false)
         _ := false in m.a
-        "
+        ",
     ]
 }
 

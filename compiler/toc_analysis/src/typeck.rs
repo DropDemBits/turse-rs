@@ -1511,7 +1511,7 @@ impl TypeCheck<'_> {
         }
     }
 
-    fn typeck_alias(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
+    fn typeck_alias(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Alias) {
         let Self {
             library,
             library_id,
@@ -1519,15 +1519,14 @@ impl TypeCheck<'_> {
             ..
         } = self;
 
+        let in_module = db.inside_module(id.in_library(*library_id).into());
         let mut span = ty.base_def.span();
         let mut def_id = DefId(*library_id, *ty.base_def.item());
 
         for segment in &ty.segments {
-            def_id = db.resolve_def(def_id);
-
-            let next_def = db
-                .fields_of(def_id.into())
-                .and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
+            let fields = db.fields_of((def_id, in_module).into());
+            let next_def =
+                fields.and_then(|fields| fields.lookup(*segment.item()).map(|field| field.def_id));
 
             if let Some(next_def) = next_def {
                 def_id = next_def;
