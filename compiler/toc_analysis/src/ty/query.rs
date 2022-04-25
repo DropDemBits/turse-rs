@@ -349,15 +349,12 @@ pub(super) fn value_produced(
 
 pub(crate) fn fields_of(
     db: &dyn db::TypeDatabase,
-    source: db::FieldsSource,
+    source: db::FieldSource,
 ) -> Option<Arc<item::Fields>> {
     match source {
-        db::FieldsSource::DefId(def_id) => {
+        db::FieldSource::DefId(def_id, in_module) => {
             // Defer to the owning item
-            let def_item = db.item_of(db.resolve_def(def_id))?;
-            db.fields_of(def_item.into())
-        }
-        db::FieldsSource::Item(library_id, item_id) => {
+            let InLibrary(library_id, item_id) = db.item_of(db.resolve_def(def_id))?;
             let library = db.library(library_id);
             let item = library.item(item_id);
 
@@ -387,16 +384,14 @@ pub(crate) fn fields_of(
                 _ => {
                     // Defer to the corresponding type (associated fields)
                     let ty_id = db.type_of(DefId(library_id, item.def_id).into());
-                    db.fields_of(db::FieldsSource::TypeAssociated(ty_id))
+
+                    db.fields_of(db::FieldSource::TypeAssociated(ty_id, in_module))
                 }
             }
         }
-        db::FieldsSource::TypeAssociated(ty_id) => {
+        db::FieldSource::TypeAssociated(ty_id, in_module) => {
             // Fields associated with the type's definition
-
-            // We're assuming that opaques and aliases have already been peeled,
-            // if applicable
-            let ty_ref = ty_id.in_db(db);
+            let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
 
             // Only applicable for enums
             let (library, variants) = if let TypeKind::Enum(with_def, variants) = ty_ref.kind() {
@@ -421,12 +416,9 @@ pub(crate) fn fields_of(
 
             Some(Arc::new(item::Fields { fields }))
         }
-        db::FieldsSource::TypeInstance(ty_id) => {
+        db::FieldSource::TypeInstance(ty_id, in_module) => {
             // Fields on an instance of a type
-
-            // We're assuming that opaques and aliases have already been peeled,
-            // if applicable
-            let ty_ref = ty_id.in_db(db);
+            let ty_ref = ty_id.in_db(db).peel_opaque(in_module).peel_aliases();
 
             match ty_ref.kind() {
                 // While an enum does have fields, it's attached to the type
@@ -436,7 +428,7 @@ pub(crate) fn fields_of(
                 _ => None,
             }
         }
-        db::FieldsSource::BodyExpr(lib_id, body_expr) => {
+        db::FieldSource::BodyExpr(lib_id, body_expr) => {
             let in_module = db.inside_module((lib_id, body_expr).into());
             let binding_to = db.binding_to((lib_id, body_expr).into()).ok()?;
 
@@ -445,26 +437,20 @@ pub(crate) fn fields_of(
                     // Exports from a given module
                     // Defer to the corresponding def
                     let def_id = db.binding_def((lib_id, body_expr).into())?;
-                    db.fields_of(def_id.into())
+                    db.fields_of((def_id, in_module).into())
                 }
                 BindingTo::Type => {
                     // Fields associated with the type
                     let ty_id = db.type_of((lib_id, body_expr).into());
 
-                    // Peel opaque & aliases
-                    let ty_id = ty_id.in_db(db).peel_opaque(in_module).peel_aliases().id();
-
-                    db.fields_of(db::FieldsSource::TypeAssociated(ty_id))
+                    db.fields_of(db::FieldSource::TypeAssociated(ty_id, in_module))
                 }
                 BindingTo::Storage(_) | BindingTo::Register(_) => {
                     // To some storage
                     // Get fields based off of the type (instance fields)
                     let ty_id = db.type_of((lib_id, body_expr).into());
 
-                    // Peel opaque & aliases
-                    let ty_id = ty_id.in_db(db).peel_opaque(in_module).peel_aliases().id();
-
-                    db.fields_of(db::FieldsSource::TypeInstance(ty_id))
+                    db.fields_of(db::FieldSource::TypeInstance(ty_id, in_module))
                 }
                 _ => None,
             }

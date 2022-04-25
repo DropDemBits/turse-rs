@@ -44,9 +44,9 @@ pub trait TypeDatabase: TypeIntern + TypeInternExt {
     #[salsa::invoke(ty::query::binding_def)]
     fn binding_def(&self, bind_src: BindingSource) -> Option<DefId>;
 
-    /// Gets the fields from the given [`FieldsSource`]
+    /// Gets the fields from the given [`FieldSource`]
     #[salsa::invoke(ty::query::fields_of)]
-    fn fields_of(&self, source: FieldsSource) -> Option<Arc<item::Fields>>;
+    fn fields_of(&self, source: FieldSource) -> Option<Arc<item::Fields>>;
 
     /// Finds the associated exporting def from the given [`BindingSource`], or `None` if there isn't any
     #[salsa::invoke(ty::query::find_exported_def)]
@@ -286,42 +286,34 @@ impl NotValueErrExt for Result<bool, NotValue> {
     }
 }
 
+/// Any place we'd want to get fields from
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum FieldsSource {
-    DefId(DefId),
-    /// Associated with the original definition of a type
-    TypeAssociated(ty::TypeId),
-    /// On an instance of a type (e.g as the type of a `var`)
-    TypeInstance(ty::TypeId),
-    Item(LibraryId, item::ItemId),
+pub enum FieldSource {
+    /// From the definition, with context on the module the def is accessed from
+    DefId(DefId, item::ModuleId),
+    /// Associated with the original definition of a type,
+    /// with context on the module the type is accessed from
+    TypeAssociated(ty::TypeId, item::ModuleId),
+    /// On an instance of a type (e.g as the type of a `var`),
+    /// with context on the module the type is accessed from
+    TypeInstance(ty::TypeId, item::ModuleId),
+    /// On an expression
     BodyExpr(LibraryId, expr::BodyExpr),
 }
 
-impl From<symbol::DefId> for FieldsSource {
-    fn from(def_id: symbol::DefId) -> Self {
-        Self::DefId(def_id)
+impl From<(DefId, item::ModuleId)> for FieldSource {
+    fn from((def_id, in_mod): (DefId, item::ModuleId)) -> Self {
+        Self::DefId(def_id, in_mod)
     }
 }
 
-impl From<InLibrary<item::ItemId>> for FieldsSource {
-    fn from(InLibrary(library_id, item_id): InLibrary<item::ItemId>) -> Self {
-        Self::Item(library_id, item_id)
-    }
-}
-
-impl From<(LibraryId, item::ItemId)> for FieldsSource {
-    fn from((library_id, item_id): (LibraryId, item::ItemId)) -> Self {
-        Self::Item(library_id, item_id)
-    }
-}
-
-impl From<(LibraryId, BodyExpr)> for FieldsSource {
+impl From<(LibraryId, BodyExpr)> for FieldSource {
     fn from(expr: (LibraryId, BodyExpr)) -> Self {
         Self::BodyExpr(expr.0, expr.1)
     }
 }
 
-impl From<(LibraryId, BodyId, ExprId)> for FieldsSource {
+impl From<(LibraryId, BodyId, ExprId)> for FieldSource {
     fn from(expr: (LibraryId, BodyId, ExprId)) -> Self {
         Self::BodyExpr(expr.0, BodyExpr(expr.1, expr.2))
     }
