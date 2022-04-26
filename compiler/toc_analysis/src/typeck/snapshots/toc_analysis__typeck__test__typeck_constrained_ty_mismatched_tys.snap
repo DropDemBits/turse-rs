@@ -1,0 +1,14 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "type c : 1 .. true"
+
+---
+"c"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 9..18: mismatched types
+| note in file FileId(1) for 14..18: this is of type `boolean`
+| note in file FileId(1) for 9..10: this is of type `{integer}`
+| error in file FileId(1) for 9..18: `{integer}` is not equivalent to `boolean`
+| info: range bound types must be equivalent

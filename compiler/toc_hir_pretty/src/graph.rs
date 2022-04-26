@@ -1206,6 +1206,25 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         );
     }
 
+    fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {
+        let type_id = self.type_id(id);
+        let mut v_layout = vec![Layout::Port("begin".into())];
+
+        self.emit_edge(format!("{type_id}:begin"), self.body_id(ty.start));
+
+        match ty.end {
+            ty::ConstrainedEnd::Expr(end) => {
+                v_layout.push(Layout::Port("end".into()));
+                self.emit_edge(format!("{type_id}:end"), self.body_id(end));
+            }
+            ty::ConstrainedEnd::Unsized(sz) => {
+                v_layout.push(Layout::Node(format!("Unsized({sz:?})", sz = sz.item())))
+            }
+        }
+
+        self.emit_type(id, "Constrained", Layout::Vbox(v_layout));
+    }
+
     fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {
         let mut v_layout = vec![Layout::Node(self.display_def_id(ty.def_id))];
         v_layout.extend(

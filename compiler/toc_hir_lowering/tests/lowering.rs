@@ -1423,3 +1423,29 @@ fn lower_enum_type() {
     // no variants
     assert_lower("type _ : enum(a)");
 }
+
+#[test]
+fn lower_constrained_type_sized() {
+    // Full range
+    assert_lower("var _ : 1 .. 2");
+    // Missing bits
+    // ???: We could support this syntax in the future
+    assert_lower("var _ : .. 2");
+    assert_lower("var _ : 1 ..");
+    assert_lower("var _ : ..");
+}
+
+// FIXME: Uncomment once array types are being lowered
+// #[test]
+#[allow(unused)] // waiting on array types to be lowered
+fn lower_constrained_type_unsized() {
+    // Valid everything
+    assert_lower("var _ : array 1 .. * of int := init(1, 2, 3)");
+    // Invalid initializer
+    assert_lower("var _ : array 1 .. * of int := 2");
+    // Missing initializer
+    assert_lower("var _ : array 1 .. * of int");
+    // Outside of an array
+    assert_lower("var _ : 1 .. *");
+    assert_lower("type _ : 1 .. *");
+}

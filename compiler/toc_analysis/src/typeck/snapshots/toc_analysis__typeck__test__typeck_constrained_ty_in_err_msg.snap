@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var _ : 1 .. 2 := 'c'"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 18..21: mismatched types
+| note in file FileId(1) for 18..21: this is of type `char`
+| note in file FileId(1) for 8..14: this is of type `1 .. 2`
+| info: `char` is not assignable into `1 .. 2`

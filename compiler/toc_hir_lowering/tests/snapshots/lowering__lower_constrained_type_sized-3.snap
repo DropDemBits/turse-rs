@@ -1,0 +1,19 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : 1 .."
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..12): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..12): []
+        StmtItem@(FileId(1), 0..12): ItemId(0)
+          ConstVar@(FileId(1), 0..12): var "_"@(FileId(1), 4..5)
+            Constrained@(FileId(1), 8..12): end => Expr
+              ExprBody@(FileId(1), 8..9)
+                Literal@(FileId(1), 8..9): Integer(1)
+              ExprBody@(dummy)
+error in file FileId(1) at 10..12: unexpected end of file
+| error in file FileId(1) for 10..12: expected expression after here
+

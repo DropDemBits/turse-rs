@@ -507,6 +507,14 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             .collect::<String>();
         self.emit_node("Alias", span, Some(format_args!("{extra}{segments}")))
     }
+    fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {
+        let span = self.type_span(id);
+        let extra = match ty.end {
+            ty::ConstrainedEnd::Expr(_) => "end => Expr".into(),
+            ty::ConstrainedEnd::Unsized(sz) => format!("end => Unsized({sz:?})", sz = sz.item()),
+        };
+        self.emit_node("Constrained", span, Some(format_args!("{extra}")))
+    }
     fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {
         let span = self.type_span(id);
         let def_name = self.display_extra_def(ty.def_id);

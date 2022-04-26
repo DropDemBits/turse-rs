@@ -55,6 +55,8 @@ pub enum TypeKind {
     Primitive(Primitive),
     /// Alias Type
     Alias(Alias),
+    /// Constrained Value Type
+    Constrained(Constrained),
     /// Enum Type
     Enum(Enum),
     /// Set type
@@ -102,6 +104,24 @@ pub struct Alias {
     pub base_def: Spanned<symbol::LocalDefId>,
     /// Names of each segment to lookup
     pub segments: Vec<Spanned<Symbol>>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Constrained {
+    /// Minimum accepted value
+    pub start: body::BodyId,
+    /// Maximum accepted value, based on a [`ConstrainedEnd`]
+    pub end: ConstrainedEnd,
+}
+
+/// Possible ending values of a constrained range
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ConstrainedEnd {
+    /// From an expression
+    Expr(body::BodyId),
+    /// An unsized bound, where the element count is taken from
+    /// the closest `init` initializer
+    Unsized(Spanned<Option<u32>>),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

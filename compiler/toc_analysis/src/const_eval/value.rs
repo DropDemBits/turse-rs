@@ -50,6 +50,18 @@ impl PartialEq for ConstValue {
 impl Eq for ConstValue {}
 
 impl ConstValue {
+    /// Formats the constant value for display.
+    pub fn display<DB: crate::ty::db::TypeDatabase + ?Sized>(&self, _db: &DB) -> String {
+        match self {
+            ConstValue::Integer(v) => format!("{v}"),
+            ConstValue::Real(v) => format!("{v}"),
+            ConstValue::Bool(v) => format!("{v}"),
+            ConstValue::Char(v) => format!("'{v}'"),
+            ConstValue::String(v) => format!(r#""{v}""#),
+            ConstValue::CharN(v) => format!(r#"'{v}'"#),
+        }
+    }
+
     /// Unwraps a `ConstValue` into the corresponding `ConstInt`.
     ///
     /// The span provided is for reporting conversion errors

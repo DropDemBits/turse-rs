@@ -24,9 +24,7 @@ impl super::BodyLowering<'_, '_> {
         let kind = match ty {
             ast::Type::PrimType(ty) => self.lower_prim_type(ty),
             ast::Type::NameType(ty) => self.lower_name_type(ty),
-
-            ast::Type::RangeType(_) => self.unsupported_ty(span),
-
+            ast::Type::RangeType(ty) => self.lower_constrained_type(ty),
             ast::Type::EnumType(ty) => self.lower_enum_type(ty),
 
             ast::Type::ArrayType(_) => self.unsupported_ty(span),
@@ -139,6 +137,106 @@ impl super::BodyLowering<'_, '_> {
                 }
             }
         }
+    }
+
+    fn lower_constrained_type(&mut self, ty: ast::RangeType) -> Option<ty::TypeKind> {
+        let start = self.lower_required_expr_body(ty.start());
+        let end = match ty.end() {
+            Some(ast::EndBound::Expr(end)) => ty::ConstrainedEnd::Expr(self.lower_expr_body(end)),
+            Some(ast::EndBound::UnsizedBound(bound)) => {
+                let bound_span = self.ctx.intern_range(bound.syntax().text_range());
+
+                // Get the closest `init` initializer to steal from
+                let elem_count = if let Some(array) =
+                    ty.syntax().parent().and_then(ast::ArrayType::cast)
+                {
+                    if let Some(decl) = array.syntax().parent().and_then(ast::ConstVarDecl::cast) {
+                        if let Some(ast::Expr::InitExpr(init)) = decl.init() {
+                            // Count elems directly
+                            let elem_count = init
+                                .expr_list()
+                                .map(|list| list.exprs().count())
+                                .unwrap_or(0);
+
+                            match u32::try_from(elem_count) {
+                                Ok(count) => Some(count),
+                                Err(_) => {
+                                    // Does not fit within a u32
+                                    // Even though we may support 64-bit ints in the future,
+                                    // this is for reserving elements for an array, so capping
+                                    // the elem count at `u32::MAX` seems reasonable
+                                    //
+                                    // This is different from the use case as constraining value
+                                    // range, which uses explicit sized bounds.
+
+                                    // We can't test this without lowering the limit
+                                    self.ctx.messages.error(
+                                        "too many elements in `init` initializer",
+                                        format!(
+                                            "`init` initializer has more than {limit} elements",
+                                            limit = u32::MAX
+                                        ),
+                                        self.ctx.mk_span(init.syntax().text_range()),
+                                    );
+
+                                    // Saturate at u32::MAX
+                                    Some(u32::MAX)
+                                }
+                            }
+                        } else {
+                            // Is a `ConstVar`, but the initializer isn't an `init`
+                            let this_span = self.ctx.mk_span(ty.syntax().text_range());
+                            let (err, err_span) = match decl.init() {
+                                Some(expr) => {
+                                    let err_span = self.ctx.mk_span(expr.syntax().text_range());
+                                    ("not an `init` expression", err_span)
+                                }
+                                None => {
+                                    let err_span = self.ctx.mk_span(decl.syntax().text_range());
+                                    ("missing an initializer expression", err_span)
+                                }
+                            };
+
+                            self.ctx
+                                .messages
+                                .error_detailed(
+                                    "unsized range types require an `init` initializer",
+                                    this_span,
+                                )
+                                .with_error(err, err_span)
+                                .finish();
+
+                            None
+                        }
+                    } else {
+                        // Not inside a `ConstVar` type spec
+                        let this_span = self.ctx.mk_span(ty.syntax().text_range());
+                        self.ctx.messages.error(
+                            "unsized range types require an `init` initializer",
+                            "not inside a `const` or `var` declaration",
+                            this_span,
+                        );
+
+                        None
+                    }
+                } else {
+                    // Only allowed in array types
+                    let this_span = self.ctx.mk_span(ty.syntax().text_range());
+                    self.ctx.messages.error(
+                        "cannot use unsized range type here",
+                        "unsized range types can only be used in array ranges",
+                        this_span,
+                    );
+                    None
+                };
+
+                ty::ConstrainedEnd::Unsized(Spanned::new(elem_count, bound_span))
+            }
+            // Treat as a missing end
+            None => ty::ConstrainedEnd::Expr(self.lower_required_expr_body(None)),
+        };
+
+        Some(ty::TypeKind::Constrained(ty::Constrained { start, end }))
     }
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {

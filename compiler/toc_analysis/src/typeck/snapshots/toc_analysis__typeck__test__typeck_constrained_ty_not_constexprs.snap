@@ -1,0 +1,16 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "var c := 1\ntype _ : c .. c"
+
+---
+"c"@(FileId(1), 4..5) [Declared]: int
+"_"@(FileId(1), 16..17) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(1))] of range of `int` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2))))
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 20..21: cannot compute `c` at compile-time
+| error in file FileId(1) for 20..21: `c` is a reference to a variable, not a constant
+| note in file FileId(1) for 4..5: `c` declared here
+error in file FileId(1) at 25..26: cannot compute `c` at compile-time
+| error in file FileId(1) for 25..26: `c` is a reference to a variable, not a constant
+| note in file FileId(1) for 4..5: `c` declared here
