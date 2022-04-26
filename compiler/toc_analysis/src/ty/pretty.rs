@@ -208,11 +208,10 @@ where
         }
         TypeKind::Constrained(_, start, end) => {
             // FIXME: Use the correct eval params
-            // TODO: allow displaying const values
             let eval_params = crate::const_eval::EvalParams::default();
 
             match db.evaluate_const(start.clone(), eval_params) {
-                Ok(v) => write!(out, "{v:?} .. ")?,
+                Ok(v) => write!(out, "{v} .. ", v = v.display(db))?,
                 Err(err) => {
                     unreachable!("should not show errors! ({err:?})")
                 }
@@ -220,7 +219,7 @@ where
 
             match end {
                 EndBound::Expr(end) => match db.evaluate_const(end.clone(), eval_params) {
-                    Ok(v) => write!(out, "{v:?}")?,
+                    Ok(v) => write!(out, "{v}", v = v.display(db))?,
                     Err(err) => {
                         unreachable!("should not show errors! ({err:?})")
                     }

@@ -1601,12 +1601,6 @@ impl TypeCheck<'_> {
         let start_ty = db.type_of(ty.start.in_library(library_id).into());
         let end_ty = end.map(|end| db.type_of(end.in_library(library_id).into()));
 
-        eprintln!(
-            "bounds: {start_ty:?} .. {end_ty:?}",
-            start_ty = start_ty.in_db(db),
-            end_ty = end_ty.map(|ty| ty.in_db(db))
-        );
-
         if let Some(end_ty) = end_ty {
             if !ty::rules::is_equivalent(db, start_ty, end_ty) {
                 // Bounds must be equivalent tys

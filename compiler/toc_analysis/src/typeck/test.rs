@@ -2621,8 +2621,7 @@ test_named_group! { typeck_constrained_ty,
 
         // TODO: add tests for bad range sizes (negative elem sizes)
 
-        // TODO: uncomment once constexprs have display impl
-        // in_err_msg => "var _ : 1 .. 2 := 'c'",
+        in_err_msg => "var _ : 1 .. 2 := 'c'",
 
         // Unsized variation
         // FIXME: add tests for unsized range once arrays are being lowered
