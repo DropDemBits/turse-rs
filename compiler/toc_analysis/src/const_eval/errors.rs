@@ -1,6 +1,6 @@
 //! Errors during constant evaluation
-use toc_hir::symbol::{DefId, NotBinding};
-use toc_span::Span;
+use toc_hir::symbol::{DefId, NotBinding, Symbol};
+use toc_span::{Span, Spanned};
 
 use crate::const_eval::db;
 
@@ -146,6 +146,8 @@ pub(super) enum ErrorKind {
     /// Produced a char(n) that is too big
     #[error("produced a character sequence that is too large")]
     CharNTooBig,
+    #[error("no field `!!!` in expression")]
+    NoFields(Span, Spanned<Symbol>),
 
     // Unsupported messages
     /// Currently unsupported const eval value

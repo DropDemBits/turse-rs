@@ -988,6 +988,11 @@ fn supported_values() {
         r#"'fun times'"#
         r#"'e'"#
     ];
+    assert_const_eval(&unindent(
+        "
+    type u : enum(wu)
+    const _ := u.wu",
+    ))
 }
 
 #[test]
