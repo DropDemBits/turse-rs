@@ -116,23 +116,26 @@ fn constrained_ty(
     let hir_id @ InLibrary(library_id, _) = hir_id;
     let in_module = db.inside_module(hir_id.into());
 
-    // Infer base ty (from start, or end if start isn't present)
+    // Infer base ty (from start, or end if start isn't present / is {integer})
     let base_tyref = {
         let start_tyref = db.type_of(ty.start.in_library(library_id).into()).in_db(db);
+        let end_tyref = match ty.end {
+            hir_ty::ConstrainedEnd::Expr(end) => db.type_of(end.in_library(library_id).into()),
+            hir_ty::ConstrainedEnd::Unsized(_) => db.mk_error(),
+        }
+        .in_db(db);
 
-        let base_tyref = if start_tyref.kind().is_error() {
-            match ty.end {
-                hir_ty::ConstrainedEnd::Expr(end) => {
-                    db.type_of(end.in_library(library_id).into()).in_db(db)
-                }
-                hir_ty::ConstrainedEnd::Unsized(_) => db.mk_error().in_db(db),
-            }
-        } else {
-            start_tyref
+        let start_tyref = start_tyref.peel_opaque(in_module).to_base_type();
+        let end_tyref = end_tyref.peel_opaque(in_module).to_base_type();
+
+        // Pick whichever is more concrete
+        let base_tyref = match (start_tyref.kind(), end_tyref.kind()) {
+            (TypeKind::Error, _) => end_tyref,
+            (TypeKind::Integer, rhs) if rhs.is_number() => end_tyref,
+            (_, _) => start_tyref,
         };
 
-        // FIXME: add test differentiating between alias & base type
-        base_tyref.peel_opaque(in_module).to_base_type()
+        base_tyref
     };
 
     // Require a concrete type

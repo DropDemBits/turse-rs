@@ -923,7 +923,6 @@ test_named_group! { do_type_coercion,
         end case
         "#,
         */
-        // FIXME: add coercion tests for range element types and set member ops
     ]
 }
 
@@ -1390,6 +1389,32 @@ test_named_group! { assignability_into,
         _v09 := c_any
         end __
         "#,
+        constrained => "
+        type c : 1 .. 2
+        var a, b : c := 2
+        var i : int
+        var n : nat
+        % can be coerced into the base type
+        a := b
+        a := 1
+        a := i
+        a := n
+        % coercible into the base type
+        i := a
+        n := a
+        ",
+        constrained_set_elem => "
+        type cs : set of 1 .. 2
+        var i : int
+        var n : int
+        var _ : boolean
+
+        var s : cs := cs(1, 2)
+        _ := 1 in s
+        _ := i in s
+        _ := n in s
+        ",
+        // FIXME: add coercion tests for range element types and set member ops
     ]
 }
 
@@ -1469,6 +1494,7 @@ test_named_group! { equivalence_of,
         a := c
         a := f.v
         ",
+        // FIXME: add equivalence tests for arrays (covers both arrays and constrained/ranges)
         // Over set types
         sets => r#"
         type sb : set of boolean
@@ -2569,17 +2595,34 @@ test_named_group! { typeck_constrained_ty,
         from_ints => "type c : 1 .. 1",
         from_chars => "type c : 'a' .. 'c'",
         from_booleans => "type c : false .. true",
+        // FIXME: uncomment once enum fields are available in const eval
+        /*
         from_enums => "
         type e : enum(uwu, owo)
         type c : e.uwu .. e.owo",
+        */
 
         mismatched_tys => "type c : 1 .. true",
         missing_end => "type c : 1 .. ",
         missing_start => "type c : .. 2",
         missing_both => "type c : .. ",
 
-        // TODO: add tests for non-index types
+        not_index_ty_both => "type _ : 1.0 .. 1.0",
+        not_index_ty_l => "type _ : 1.0 .. 1",
+        not_index_ty_r => "type _ : 1 .. 1.0",
+
+        double_constrained => "
+        const c : 1 .. 2 := 1
+        type _ : c .. c",
+
+        not_constexprs => "
+        var c := 1
+        type _ : c .. c",
+
         // TODO: add tests for bad range sizes (negative elem sizes)
+
+        // TODO: uncomment once constexprs have display impl
+        // in_err_msg => "var _ : 1 .. 2 := 'c'",
 
         // Unsized variation
         // FIXME: add tests for unsized range once arrays are being lowered
