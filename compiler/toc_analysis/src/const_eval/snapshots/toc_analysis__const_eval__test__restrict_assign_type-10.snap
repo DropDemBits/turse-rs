@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "const a : char := \"a\" const _:=a"
+
+---
+"a"@(FileId(1), 6..7) -> String("a")
+"_"@(FileId(1), 28..29) -> Char('a')
+
+

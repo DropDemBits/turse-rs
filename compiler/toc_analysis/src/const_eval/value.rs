@@ -81,6 +81,32 @@ impl ConstValue {
         }
     }
 
+    /// Gets the corresponding ordinal value of this [`ConstValue`], or [`None`] if it
+    /// isn't applicable
+    pub fn ordinal(&self) -> Option<ConstInt> {
+        match self {
+            // Identity transform
+            ConstValue::Integer(v) => Some(*v),
+            // Simple mapping to 0 and 1
+            ConstValue::Bool(v) => ConstInt::from_unsigned(if *v { 1 } else { 0 }, false).ok(),
+            // Just the codepoint
+            ConstValue::Char(v) => ConstInt::from_unsigned((*v).into(), false).ok(),
+            // From the ord value inside
+            ConstValue::EnumVariant(_, ord) => {
+                ConstInt::from_unsigned((*ord).try_into().ok()?, false).ok()
+            }
+
+            // Only applicable to values of length 1
+            // Corresponds to the codepoint value of the first character
+            ConstValue::String(v) | ConstValue::CharN(v) if v.len() == 1 => {
+                ConstInt::from_unsigned(v.chars().next()?.into(), false).ok()
+            }
+
+            // The rest don't have a corresponding ordinal integer value
+            _ => None,
+        }
+    }
+
     /// Unwraps a `ConstValue` into the corresponding `ConstInt`.
     ///
     /// The span provided is for reporting conversion errors
@@ -129,6 +155,29 @@ impl ConstValue {
     pub(super) fn cast_into_bool(self) -> Result<bool, ConstError> {
         match self {
             ConstValue::Bool(v) => Ok(v),
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
+        }
+    }
+
+    /// Converts a `ConstValue` into a `char`.
+    ///
+    /// The only value types that are allowed to be cast into `bool` are:
+    ///
+    /// - `char`
+    /// - `char(N)` where N = 1
+    /// - `string(N)` where N = 1
+    pub(super) fn cast_into_char(self) -> Result<char, ConstError> {
+        match self {
+            ConstValue::Char(v) => Ok(v),
+            ConstValue::String(v) | ConstValue::CharN(v) => {
+                let mut chars = v.chars();
+
+                // Only one character is allowed in the string
+                chars
+                    .next()
+                    .filter(|_| chars.next().is_none())
+                    .ok_or_else(|| (ConstError::without_span(ErrorKind::WrongOperandType)))
+            }
             _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
         }
     }

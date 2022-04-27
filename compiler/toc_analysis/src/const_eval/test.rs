@@ -1,3 +1,6 @@
+// Note: when testing assignment restrictions, the value needs to be used in a
+// separate `const` decl, as `do_const_eval` only evaluates the body of the decl
+// without any regards to the type spec.
 use std::cell::RefCell;
 
 use toc_hir::library::{LibraryId, LoweredLibrary};
@@ -906,6 +909,31 @@ fn error_outside_range_int() {
 }
 
 #[test]
+fn error_outside_range_constrained() {
+    // int
+    assert_const_eval("const a : 1 .. 2 := 1 const _:=a");
+    assert_const_eval("const a : 1 .. 2 := 2 const _:=a");
+    assert_const_eval("const a : 1 .. 2 := 3 const _:=a");
+
+    // boolean
+    assert_const_eval("const a : false .. false := false const _:=a");
+    assert_const_eval("const a : false .. false := true  const _:=a");
+
+    // char
+    assert_const_eval("const a : 'a' .. 'b' := 'a' const _:=a");
+    assert_const_eval("const a : 'a' .. 'b' := 'b' const _:=a");
+    assert_const_eval("const a : 'a' .. 'b' := 'c' const _:=a");
+    // coerced
+    assert_const_eval(r#"const a : 'a' .. 'b' := "a" const _:=a"#);
+    assert_const_eval(r#"const c : char(1) := 'a' const a : 'a' .. 'b' := c const_:=a"#);
+
+    // enum variants
+    assert_const_eval("type e : enum(a, b, c) const a : e.a .. e.b := e.a const _:=a");
+    assert_const_eval("type e : enum(a, b, c) const a : e.a .. e.b := e.b const _:=a");
+    assert_const_eval("type e : enum(a, b, c) const a : e.a .. e.b := e.c const _:=a");
+}
+
+#[test]
 fn error_propagation() {
     // Propagation of errors
     assert_const_eval(&unindent(
@@ -1039,6 +1067,11 @@ fn restrict_assign_type() {
     assert_const_eval(r#"const a : real := 1 const _:=a"#);
     // Real is assignable into real
     assert_const_eval(r#"const a : real := 1.0 const _:=a"#);
+
+    // String into char is only allowed for strings of length 1
+    assert_const_eval(r#"const a : char := "a" const _:=a"#);
+    // Not allowed
+    assert_const_eval(r#"const a : char := "aa" const _:=a"#);
 }
 
 #[test]
@@ -1065,4 +1098,26 @@ fn unsupported_ops() {
         "1 in 1"
         "1 ~in 1"
     ];
+}
+
+#[test]
+fn poke_aliases() {
+    // Aliases should be poked during evaluation
+    assert_const_eval(&unindent(
+        "
+    type a : int
+    type b : int
+    const k : a := 1
+    const l : b := k
+    const _ := l
+    ",
+    ));
+
+    assert_const_eval(&unindent(
+        "
+        type a : 1 .. 2
+        const k : a := 3
+        const _ := k
+        ",
+    ))
 }

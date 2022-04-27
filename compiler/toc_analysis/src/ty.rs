@@ -5,7 +5,7 @@ use std::{fmt::Debug, sync::Arc};
 use toc_hir::symbol::{self, DefId};
 use toc_span::Span;
 
-use crate::const_eval::{Const, ConstError, ConstInt};
+use crate::const_eval::{Const, ConstError, ConstInt, ConstValue};
 
 pub(crate) mod db;
 mod lower;
@@ -380,11 +380,12 @@ where
     /// Minimum integer value of this type, or `None` if this is not an integer
     pub fn min_int_of(&self) -> Option<ConstInt> {
         let value = match self.kind() {
-            TypeKind::Char => ConstInt::from_unsigned(0, false).expect("const construction"),
-            TypeKind::Boolean => {
-                // acts like 0 in a range
-                ConstInt::from_unsigned(0, false).expect("const construction")
-            }
+            TypeKind::Char => ConstValue::Char('\x00')
+                .ordinal()
+                .expect("const construction"),
+            TypeKind::Boolean => ConstValue::Bool(false)
+                .ordinal()
+                .expect("const construction"),
             TypeKind::Int(size) => {
                 let (min, allow_64bit_ops) = match size {
                     IntSize::Int1 => (0x80, false),
@@ -407,6 +408,18 @@ where
                 ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
             }
             TypeKind::Integer => unreachable!("integer should be concrete"),
+            TypeKind::Enum(_, _) => {
+                // Always zero
+                ConstInt::from_unsigned(0, false).expect("const construction")
+            }
+            TypeKind::Constrained(_, start_bound, _end_bound) => {
+                // FIXME: use the correct eval params
+                // Just the ordinal value of the start bound
+                self.db
+                    .evaluate_const(start_bound.clone(), Default::default())
+                    .ok()
+                    .and_then(|v| v.ordinal())?
+            }
             // TODO: add constrained start bound case
             _ => return None,
         };
@@ -418,13 +431,14 @@ where
     pub fn max_int_of(&self) -> Option<ConstInt> {
         let value = match self.kind() {
             TypeKind::Char => {
-                // Can only hold 1 UTF-8 code scalar
-                ConstInt::from_unsigned(u8::MAX.into(), false).expect("const construction")
+                // Codepoint can only fit inside of a u8
+                ConstValue::Char('\u{FF}')
+                    .ordinal()
+                    .expect("const construction")
             }
-            TypeKind::Boolean => {
-                // acts like 1 in a range
-                ConstInt::from_unsigned(1, false).expect("const construction")
-            }
+            TypeKind::Boolean => ConstValue::Bool(false)
+                .ordinal()
+                .expect("const construction"),
             TypeKind::Int(size) => {
                 let (max, allow_64bit_ops) = match size {
                     IntSize::Int1 => (0x7F, false),
@@ -447,7 +461,39 @@ where
                 ConstInt::from_unsigned(max, allow_64bit_ops).expect("const construction")
             }
             TypeKind::Integer => unreachable!("integer should be concrete"),
-            // TODO: add constrained end bound case
+            TypeKind::Enum(_, variants) => {
+                // Always the ordinal of the last variant
+                let last_ord = variants.len().checked_sub(1)?;
+                ConstInt::from_unsigned(last_ord.try_into().ok()?, false)
+                    .expect("const construction")
+            }
+            TypeKind::Constrained(_, start_bound, end_bound) => {
+                // FIXME: use the correct eval params
+                let eval_params = Default::default();
+
+                match end_bound {
+                    EndBound::Expr(end_bound) => {
+                        // Just the ordinal value of the end bound
+                        self.db
+                            .evaluate_const(end_bound.clone(), eval_params)
+                            .ok()
+                            .and_then(|v| v.ordinal())?
+                    }
+                    EndBound::Unsized(count) => {
+                        // Based on the ordinal value of the start bound
+                        let start_bound = self
+                            .db
+                            .evaluate_const(start_bound.clone(), eval_params)
+                            .ok()
+                            .and_then(|v| v.ordinal())?;
+
+                        // Offset by the gathered count
+                        ConstInt::from_unsigned((*count).into(), eval_params.allow_64bit_ops)
+                            .and_then(|count| start_bound.checked_add(count))
+                            .ok()?
+                    }
+                }
+            }
             _ => return None,
         };
 
