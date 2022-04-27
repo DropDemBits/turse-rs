@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "type e : enum(a) const _ := e.o"
+
+---
+"_"@(FileId(1), 23..24) -> ConstError { kind: NoFields("o"), span: (FileId(1), 30..31) }
+
+error in file FileId(1) at 30..31: cannot compute expression at compile-time
+| error in file FileId(1) for 30..31: no field `o` in expression
+

@@ -5,6 +5,7 @@ use std::sync::Arc;
 use toc_span::Span;
 
 use crate::const_eval::{errors::ErrorKind, ConstError, ConstInt};
+use crate::ty;
 
 /// A compile-time constant literal
 ///
@@ -25,6 +26,8 @@ pub enum ConstValue {
     String(Arc<String>),
     /// CharN value (wrapped in `Arc` to be cheaply cloneable)
     CharN(Arc<String>),
+    /// Enum variant (with type + ordinal)
+    EnumVariant(ty::TypeId, usize),
 }
 
 impl std::hash::Hash for ConstValue {
@@ -51,7 +54,7 @@ impl Eq for ConstValue {}
 
 impl ConstValue {
     /// Formats the constant value for display.
-    pub fn display<DB: crate::ty::db::TypeDatabase + ?Sized>(&self, _db: &DB) -> String {
+    pub fn display<DB: ty::db::TypeDatabase + ?Sized>(&self, db: &DB) -> String {
         match self {
             ConstValue::Integer(v) => format!("{v}"),
             ConstValue::Real(v) => format!("{v}"),
@@ -59,6 +62,22 @@ impl ConstValue {
             ConstValue::Char(v) => format!("'{v}'"),
             ConstValue::String(v) => format!(r#""{v}""#),
             ConstValue::CharN(v) => format!(r#"'{v}'"#),
+            ConstValue::EnumVariant(ty_id, ord) => {
+                let ty_ref = ty_id.in_db(db);
+                let (def_id, variants) = if let ty::TypeKind::Enum(def_id, variants) = ty_ref.kind()
+                {
+                    (def_id.def_id(), variants)
+                } else {
+                    unreachable!("not enum ty for `EnumVariant` ty");
+                };
+                let variant_def = variants.get(*ord).expect("bad ordinal for `EnumVariant`");
+
+                let library = db.library(def_id.0);
+                let ty_name = library.local_def(def_id.1).name;
+                let variant_name = library.local_def(variant_def.1).name;
+
+                format!("{ty_name}.{variant_name}")
+            }
         }
     }
 

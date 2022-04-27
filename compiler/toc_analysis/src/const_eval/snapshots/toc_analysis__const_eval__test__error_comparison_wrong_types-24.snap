@@ -1,0 +1,11 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "type e1 : enum(a) type e2 : enum(a) const _ := e1.a >= e2.a"
+
+---
+"_"@(FileId(1), 42..43) -> ConstError { kind: WrongOperandType, span: (FileId(1), 52..54) }
+
+error in file FileId(1) at 52..54: cannot compute expression at compile-time
+| error in file FileId(1) for 52..54: wrong type for compile-time expression
+

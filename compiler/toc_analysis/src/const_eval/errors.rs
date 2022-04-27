@@ -1,5 +1,5 @@
 //! Errors during constant evaluation
-use toc_hir::symbol::{DefId, NotBinding};
+use toc_hir::symbol::{DefId, NotBinding, Symbol};
 use toc_span::Span;
 
 use crate::const_eval::db;
@@ -55,7 +55,6 @@ impl ConstError {
             return;
         }
 
-        // Report common message header
         match &self.kind {
             ErrorKind::NotConstExpr(Some(def_id)) => {
                 // Report at the reference's definition spot
@@ -80,6 +79,7 @@ impl ConstError {
                     )
                     .with_note(format!("`{name}` declared here",), def_span)
             }
+            // Report common message header
             _ => reporter
                 .error_detailed("cannot compute expression at compile-time", self.span)
                 .with_error(format!("{}", self.kind), self.span),
@@ -146,6 +146,9 @@ pub(super) enum ErrorKind {
     /// Produced a char(n) that is too big
     #[error("produced a character sequence that is too large")]
     CharNTooBig,
+    /// No field named `{sym}` on the given type.
+    #[error("no field `{0}` in expression")]
+    NoFields(Symbol),
 
     // Unsupported messages
     /// Currently unsupported const eval value

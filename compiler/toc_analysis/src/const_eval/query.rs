@@ -49,6 +49,7 @@ pub(crate) fn evaluate_const(
         Const::UnevaluatedExpr(_, expr) => expr.1,
         _ => unreachable!(),
     };
+    let in_module = db.inside_module((library_id, body_id, root_expr).into());
 
     // Do the actual evaluation, as a stack machine
     let mut eval_stack = vec![Eval::Expr(root_expr)];
@@ -199,9 +200,53 @@ pub(crate) fn evaluate_const(
                     }
                 }
             }
-            expr::ExprKind::Field(_) => {
-                // FIXME: Handle const-eval field lookups
-                return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+            expr::ExprKind::Field(expr) => {
+                // Possible things:
+                // - module export (constvar reference)
+                // - enum variants (enum variant value)
+                let lhs_expr = (library_id, body_id, expr.lhs);
+                let lhs_tyref = db
+                    .type_of(lhs_expr.into())
+                    .in_db(db)
+                    .peel_opaque(in_module)
+                    .peel_aliases();
+
+                match lhs_tyref.kind() {
+                    ty::TypeKind::Enum(_, variants) => {
+                        // Enum variants
+                        let library_id = if let Some(first) = variants.first() {
+                            first.0
+                        } else {
+                            return Err(ConstError::new(
+                                ErrorKind::NoFields(*expr.field.item()),
+                                expr.field.span().lookup_in(&library),
+                            ));
+                        };
+                        let library = db.library(library_id);
+
+                        // Get variant ordinal
+                        let ordinal = variants
+                            .iter()
+                            .enumerate()
+                            .find_map(|(idx, def_id)| {
+                                (library.local_def(def_id.1).name == *expr.field.item())
+                                    .then(|| idx)
+                            })
+                            .ok_or_else(|| {
+                                ConstError::new(
+                                    ErrorKind::NoFields(*expr.field.item()),
+                                    expr.field.span().lookup_in(&library),
+                                )
+                            })?;
+
+                        operand_stack.push(ConstValue::EnumVariant(lhs_tyref.id(), ordinal));
+                    }
+                    _ => {
+                        // Defer to normal field lookup
+                        // FIXME: Handle const-eval field lookups for modules
+                        return Err(ConstError::new(ErrorKind::NotConstExpr(None), expr_span));
+                    }
+                }
             }
             expr::ExprKind::Call(_) => {
                 // There are some functions which are allowed to be const-fns, but they're all builtins
