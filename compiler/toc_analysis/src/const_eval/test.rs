@@ -1099,3 +1099,25 @@ fn unsupported_ops() {
         "1 ~in 1"
     ];
 }
+
+#[test]
+fn poke_aliases() {
+    // Aliases should be poked during evaluation
+    assert_const_eval(&unindent(
+        "
+    type a : int
+    type b : int
+    const k : a := 1
+    const l : b := k
+    const _ := l
+    ",
+    ));
+
+    assert_const_eval(&unindent(
+        "
+        type a : 1 .. 2
+        const k : a := 3
+        const _ := k
+        ",
+    ))
+}

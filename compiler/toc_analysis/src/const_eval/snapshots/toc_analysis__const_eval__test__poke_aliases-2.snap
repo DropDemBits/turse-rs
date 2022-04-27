@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 15
+expression: "type a : 1 .. 2\nconst k : a := 3\nconst _ := k\n"
+
+---
+"k"@(FileId(1), 22..23) -> Integer(ConstInt { magnitude: 3, sign: Positive, width: As32 })
+"_"@(FileId(1), 39..40) -> ConstError { kind: OutsideRange, span: (FileId(1), 31..32) }
+
+error in file FileId(1) at 31..32: cannot compute expression at compile-time
+| error in file FileId(1) for 31..32: value is outside of the type's range
+
