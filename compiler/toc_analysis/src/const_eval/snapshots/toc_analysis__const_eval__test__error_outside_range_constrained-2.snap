@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "const a : 1 .. 2 := 2 const _:=a"
+
+---
+"a"@(FileId(1), 6..7) -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
+"_"@(FileId(1), 28..29) -> Integer(ConstInt { magnitude: 2, sign: Positive, width: As32 })
+
+

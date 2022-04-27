@@ -147,6 +147,7 @@ pub(crate) fn evaluate_const(
                         let value =
                             db.evaluate_const(Const::from_body(library_id, body), params)?;
 
+                        // FIXME: add tests with opaque tys once module exports are in const eval
                         // Check that the produced value matches the real type of the def
                         let left = db.type_of(canonical_def.into());
                         let right = db.type_of((library_id, body).into());
@@ -162,23 +163,11 @@ pub(crate) fn evaluate_const(
 
                         if let Some((min, max)) = left_ty.min_int_of().zip(left_ty.max_int_of()) {
                             // Since right is assignable into left, we can treat right as ConstInt
-                            let as_ordinal = match &value {
-                                ConstValue::Integer(val) => *val,
-                                ConstValue::Bool(val) => {
-                                    if *val {
-                                        ConstInt::from_unsigned(0, false)
-                                            .expect("const construction")
-                                    } else {
-                                        ConstInt::from_unsigned(1, false)
-                                            .expect("const construction")
-                                    }
-                                }
-                                ConstValue::Char(val) => {
-                                    ConstInt::from_unsigned(u64::from(*val), false)
-                                        .expect("const construction")
-                                }
-                                _ => unreachable!(),
-                            };
+                            let as_ordinal = value.ordinal().ok_or_else(|| {
+                                // Definitely the wrong type
+                                let span = library.body(body).span.lookup_in(&library);
+                                ConstError::new(ErrorKind::WrongResultType, span)
+                            })?;
 
                             if !(min..=max).contains(&as_ordinal) {
                                 // Is outside of value range
@@ -186,6 +175,19 @@ pub(crate) fn evaluate_const(
                                 return Err(ConstError::new(ErrorKind::OutsideRange, span));
                             }
                         }
+
+                        // Cast into the canonical value
+                        let value = match left_ty.to_base_type().kind() {
+                            ty::TypeKind::Char => value.cast_into_char().map_or_else(
+                                |err| {
+                                    // Definitely the wrong type
+                                    let span = library.body(body).span.lookup_in(&library);
+                                    Err(err.change_span(span))
+                                },
+                                |v| Ok(ConstValue::Char(v)),
+                            )?,
+                            _ => value,
+                        };
 
                         // Push (cached) value to the operand stack
                         operand_stack.push(value);

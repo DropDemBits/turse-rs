@@ -1,0 +1,10 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "type e : enum(a, b, c) const a : e.a .. e.b := e.a const _:=a"
+
+---
+"a"@(FileId(1), 29..30) -> EnumVariant(TypeId(1), 0)
+"_"@(FileId(1), 57..58) -> EnumVariant(TypeId(1), 0)
+
+

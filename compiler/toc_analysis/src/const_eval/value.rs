@@ -158,4 +158,27 @@ impl ConstValue {
             _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
         }
     }
+
+    /// Converts a `ConstValue` into a `char`.
+    ///
+    /// The only value types that are allowed to be cast into `bool` are:
+    ///
+    /// - `char`
+    /// - `char(N)` where N = 1
+    /// - `string(N)` where N = 1
+    pub(super) fn cast_into_char(self) -> Result<char, ConstError> {
+        match self {
+            ConstValue::Char(v) => Ok(v),
+            ConstValue::String(v) | ConstValue::CharN(v) => {
+                let mut chars = v.chars();
+
+                // Only one character is allowed in the string
+                chars
+                    .next()
+                    .filter(|_| chars.next().is_none())
+                    .ok_or_else(|| (ConstError::without_span(ErrorKind::WrongOperandType)))
+            }
+            _ => Err(ConstError::without_span(ErrorKind::WrongOperandType)),
+        }
+    }
 }

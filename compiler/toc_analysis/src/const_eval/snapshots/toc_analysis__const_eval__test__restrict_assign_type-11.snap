@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "const a : char := \"aa\" const _:=a"
+
+---
+"a"@(FileId(1), 6..7) -> String("aa")
+"_"@(FileId(1), 29..30) -> ConstError { kind: WrongResultType, span: (FileId(1), 18..22) }
+
+error in file FileId(1) at 18..22: cannot compute expression at compile-time
+| error in file FileId(1) for 18..22: wrong type for compile-time expression
+
