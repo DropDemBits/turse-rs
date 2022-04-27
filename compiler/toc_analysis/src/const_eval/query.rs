@@ -210,11 +210,6 @@ pub(crate) fn evaluate_const(
                     .in_db(db)
                     .peel_opaque(in_module)
                     .peel_aliases();
-                let lhs_span = library
-                    .body(body_id)
-                    .expr(expr.lhs)
-                    .span
-                    .lookup_in(&library);
 
                 match lhs_tyref.kind() {
                     ty::TypeKind::Enum(_, variants) => {
@@ -223,8 +218,8 @@ pub(crate) fn evaluate_const(
                             first.0
                         } else {
                             return Err(ConstError::new(
-                                ErrorKind::NoFields(lhs_span, expr.field),
-                                expr_span,
+                                ErrorKind::NoFields(*expr.field.item()),
+                                expr.field.span().lookup_in(&library),
                             ));
                         };
                         let library = db.library(library_id);
@@ -239,8 +234,8 @@ pub(crate) fn evaluate_const(
                             })
                             .ok_or_else(|| {
                                 ConstError::new(
-                                    ErrorKind::NoFields(lhs_span, expr.field),
-                                    expr_span,
+                                    ErrorKind::NoFields(*expr.field.item()),
+                                    expr.field.span().lookup_in(&library),
                                 )
                             })?;
 

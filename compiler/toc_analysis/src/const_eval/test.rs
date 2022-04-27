@@ -953,6 +953,19 @@ fn error_string_too_big() {
 }
 
 #[test]
+fn error_no_fields_enum() {
+    // At least one variant
+    assert_const_eval("type e : enum(a) const _ := e.o");
+    // No variants
+    assert_const_eval("type e : enum() const _ := e.o");
+}
+
+#[test]
+fn error_no_fields_other() {
+    assert_const_eval("const a := 1 const _ := a.o");
+}
+
+#[test]
 fn restrict_assign_type() {
     // Assignment type restriction is only checked on const use (for eval only)
     // Boolean is assignable into boolean
