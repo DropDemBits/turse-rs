@@ -1,0 +1,9 @@
+---
+source: compiler/toc_analysis/src/const_eval/test.rs
+assertion_line: 12
+expression: "type u : enum(wu)\nconst _ := u.wu"
+
+---
+"_"@(FileId(1), 24..25) -> EnumVariant(TypeId(1), 0)
+
+
