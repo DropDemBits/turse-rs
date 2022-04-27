@@ -20,6 +20,9 @@ fn assert_const_eval_expr(expr: &str) {
 }
 
 macro_rules! for_all_const_exprs {
+    (setup: $setup:literal $($src:literal)+) => {
+        $(assert_const_eval(concat!($setup, " const _ := ", $src));)+
+    };
     ($($src:literal)+) => {
         $(assert_const_eval_expr($src);)+
     };
@@ -351,6 +354,23 @@ fn compare_ops_charseq() {
 }
 
 #[test]
+fn compare_ops_enum_variants() {
+    for_all_const_exprs! [
+        setup: "type e : enum(a, b)"
+
+        "e.a < e.b"
+        "e.a > e.b"
+        "e.a <= e.b"
+        "e.a >= e.b"
+
+        "e.a < e.a"
+        "e.a > e.a"
+        "e.a <= e.a"
+        "e.a >= e.a"
+    ];
+}
+
+#[test]
 fn equality_ops_numeric() {
     for_all_const_exprs![
         // With reals
@@ -402,6 +422,19 @@ fn equality_ops_charseq() {
 
         r#"'cc' = "dd""#
         r#"'cc' ~= "dd""#
+    ];
+}
+
+#[test]
+fn equality_ops_enum_variants() {
+    for_all_const_exprs! [
+        setup: "type e : enum(a, b)"
+
+        "e.a = e.b"
+        "e.a ~= e.b"
+
+        "e.a = e.a"
+        "e.a ~= e.a"
     ];
 }
 
@@ -656,6 +689,16 @@ fn error_comparison_wrong_types() {
         r#"true < true"#
         r#"true >= true"#
     ];
+
+    // enums must be from the exact same variant
+    for_all_const_exprs! [
+        setup: "type e1 : enum(a) type e2 : enum(a)"
+
+        "e1.a < e2.a"
+        "e1.a > e2.a"
+        "e1.a <= e2.a"
+        "e1.a >= e2.a"
+    ];
 }
 
 #[test]
@@ -680,6 +723,14 @@ fn error_equality_wrong_types() {
         r#"'cc' = 1.0"#
         r#""cc" = 1.0"#
         r#"true = 1.0"#
+    ];
+
+    // enums must be from the exact same variant
+    for_all_const_exprs! [
+        setup: "type e1 : enum(a) type e2 : enum(a)"
+
+        "e1.a = e2.a"
+        "e1.a ~= e2.a"
     ];
 }
 

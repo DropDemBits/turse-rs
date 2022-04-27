@@ -498,6 +498,19 @@ fn compare_values(
             ConstValue::String(lhs) | ConstValue::CharN(lhs),
             ConstValue::String(rhs) | ConstValue::CharN(rhs),
         ) => lhs.cmp(&rhs),
+
+        // Over enum fields
+        (
+            ConstValue::EnumVariant(left_ty, left_ord),
+            ConstValue::EnumVariant(right_ty, right_ord),
+        ) => {
+            // Must be equivalent enums
+            if left_ty != right_ty {
+                return Err(ConstError::without_span(ErrorKind::WrongOperandType));
+            }
+
+            left_ord.cmp(&right_ord)
+        }
         _ => return Err(ConstError::without_span(ErrorKind::WrongOperandType)),
     };
 
