@@ -2595,12 +2595,9 @@ test_named_group! { typeck_constrained_ty,
         from_ints => "type c : 1 .. 1",
         from_chars => "type c : 'a' .. 'c'",
         from_booleans => "type c : false .. true",
-        // FIXME: uncomment once enum fields are available in const eval
-        /*
         from_enums => "
         type e : enum(uwu, owo)
         type c : e.uwu .. e.owo",
-        */
 
         mismatched_tys => "type c : 1 .. true",
         missing_end => "type c : 1 .. ",
