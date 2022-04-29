@@ -135,9 +135,39 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::InvariantStmt(stmt) => stmt::validate_invariant_stmt(stmt, ctx),
             ast::ReturnStmt(stmt) => stmt::validate_return_stmt(stmt, ctx),
             ast::ResultStmt(stmt) => stmt::validate_result_stmt(stmt, ctx),
+            ast::PreStmt(stmt) =>
+                stmt::validate_in_module_or_subprogram(stmt.syntax(), "`pre` statement", ctx),
+            ast::InitStmt(stmt) =>
+                stmt::validate_in_subprogram(stmt.syntax(), "`init` statement", ctx),
+            ast::PostStmt(stmt) =>
+                stmt::validate_in_module_or_subprogram(stmt.syntax(), "`post` statement", ctx),
+            ast::HandlerStmt(stmt) =>
+                stmt::validate_in_subprogram(stmt.syntax(), "`handler` statement", ctx),
+            ast::InheritStmt(stmt) => stmt::validate_inherit_stmt(stmt, ctx),
+            ast::ImplementStmt(stmt) =>
+                stmt::validate_in_module_kind(stmt.syntax(), "`implement` statement", ctx),
+            ast::ImplementByStmt(stmt) =>
+                stmt::validate_in_module_kind(stmt.syntax(), "`implement by` statement", ctx),
+            // Missing:
+            // - Import (just location)
+            // - ImportItem
+            // - Export (just location)
+            // - ExternalItem
+
+            // Exprs
+            // Missing:
+            // - InitExpr (just location)
+            // - SelfExpr (just location)
+
             // Types
             ast::SetType(ty) => ty::validate_set_type(ty, ctx),
             ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
+
+            // Missing:
+            // - Array (location for flexible)
+            // - Union
+            // - Collection
+            // - Condition
             _ => (),
         })
     }
@@ -206,8 +236,12 @@ impl BlockKind {
     fn is_monitor(self) -> bool {
         matches!(
             self,
-            BlockKind::Monitor | BlockKind::MonitorClass | BlockKind::MonitorDevice
+            Self::Monitor | Self::MonitorClass | Self::MonitorDevice
         )
+    }
+
+    fn is_class(self) -> bool {
+        matches!(self, Self::Class | Self::MonitorClass)
     }
 
     fn is_module_kind(self) -> bool {

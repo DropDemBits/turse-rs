@@ -522,6 +522,16 @@ pub(super) fn validate_result_stmt(stmt: ast::ResultStmt, ctx: &mut ValidateCtx)
     }
 }
 
+pub(super) fn validate_inherit_stmt(stmt: ast::InheritStmt, ctx: &mut ValidateCtx) {
+    if !block_containing_node(stmt.syntax()).is_class() {
+        ctx.push_error(
+            "cannot use `inherit` statement here",
+            "`inherit` statement is only allowed in classes",
+            stmt.syntax().text_range(),
+        );
+    }
+}
+
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_module_kind() {
         ctx.push_error(
@@ -537,6 +547,31 @@ pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut Val
         ctx.push_error(
             format!("cannot use {kind} here"),
             format!("{kind} is only allowed at module-like or program level"),
+            node.text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_in_subprogram(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
+    if !block_containing_node(node).is_subprogram() {
+        ctx.push_error(
+            format!("cannot use {kind} here"),
+            format!("{kind} is only allowed at the top level of subprograms"),
+            node.text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_in_module_or_subprogram(
+    node: &SyntaxNode,
+    kind: &str,
+    ctx: &mut ValidateCtx,
+) {
+    let block = block_containing_node(node);
+    if !block.is_top_level() && !block.is_subprogram() {
+        ctx.push_error(
+            format!("cannot use {kind} here"),
+            format!("{kind} is only allowed at the top level of module-likes and subprograms"),
             node.text_range(),
         );
     }

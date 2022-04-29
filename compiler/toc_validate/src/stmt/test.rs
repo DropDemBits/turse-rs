@@ -1036,3 +1036,213 @@ fn result_stmt_in_function_inner_body() {
         expect![[r#""#]],
     );
 }
+
+#[test]
+fn pre_stmt_in_module_top_level() {
+    check("module m pre true end m", expect![[]]);
+}
+
+#[test]
+fn report_pre_stmt_in_module_inner() {
+    check(
+        "module m begin pre true end end m",
+        expect![[r#"
+        error in file FileId(1) at 15..23: cannot use `pre` statement here
+        | error in file FileId(1) for 15..23: `pre` statement is only allowed at the top level of module-likes and subprograms"#]],
+    );
+}
+
+#[test]
+fn pre_stmt_in_subprogram_top_level() {
+    check("proc p pre true end p", expect![[]]);
+}
+
+#[test]
+fn report_pre_stmt_in_subprogram_inner() {
+    check(
+        "proc p begin pre true end end p",
+        expect![[r#"
+        error in file FileId(1) at 13..21: cannot use `pre` statement here
+        | error in file FileId(1) for 13..21: `pre` statement is only allowed at the top level of module-likes and subprograms"#]],
+    );
+}
+
+#[test]
+fn init_stmt_in_subprogram_top_level() {
+    check("proc p init uwu := 2 end p", expect![[]])
+}
+
+#[test]
+fn report_init_stmt_in_subprogram_inner() {
+    check(
+        "proc p begin init uwu := 2 end end p",
+        expect![[r#"
+        error in file FileId(1) at 13..26: cannot use `init` statement here
+        | error in file FileId(1) for 13..26: `init` statement is only allowed at the top level of subprograms"#]],
+    )
+}
+
+#[test]
+fn post_stmt_in_module_top_level() {
+    check("module m post true end m", expect![[]]);
+}
+
+#[test]
+fn report_post_stmt_in_module_inner() {
+    check(
+        "module m begin post true end end m",
+        expect![[r#"
+            error in file FileId(1) at 15..24: cannot use `post` statement here
+            | error in file FileId(1) for 15..24: `post` statement is only allowed at the top level of module-likes and subprograms"#]],
+    );
+}
+
+#[test]
+fn post_stmt_in_subprogram_top_level() {
+    check("proc p post true end p", expect![[]]);
+}
+
+#[test]
+fn report_post_stmt_in_subprogram_inner() {
+    check(
+        "proc p begin post true end end p",
+        expect![[r#"
+            error in file FileId(1) at 13..22: cannot use `post` statement here
+            | error in file FileId(1) for 13..22: `post` statement is only allowed at the top level of module-likes and subprograms"#]],
+    );
+}
+
+#[test]
+fn handler_stmt_in_subprogram_top_level() {
+    check("proc p handler(owo) end handler end p", expect![[]]);
+}
+
+#[test]
+fn report_handler_stmt_in_subprogram_inner() {
+    check(
+        "proc p begin handler(owo) end handler end end p",
+        expect![[r#"
+            error in file FileId(1) at 13..37: cannot use `handler` statement here
+            | error in file FileId(1) for 13..37: `handler` statement is only allowed at the top level of subprograms"#]],
+    );
+}
+
+#[test]
+fn inherit_stmt_in_class_top_level() {
+    check("class c inherit owo end c", expect![[]]);
+}
+
+#[test]
+fn inherit_stmt_in_monitor_class_top_level() {
+    check("monitor class c inherit owo end c", expect![[]]);
+}
+
+#[test]
+fn report_inherit_stmt_in_class_inner() {
+    check(
+        "class c begin inherit owo end end c",
+        expect![[r#"
+        error in file FileId(1) at 14..25: cannot use `inherit` statement here
+        | error in file FileId(1) for 14..25: `inherit` statement is only allowed in classes"#]],
+    );
+}
+
+#[test]
+fn report_inherit_stmt_in_monitor_class_inner() {
+    check(
+        "monitor class c begin inherit owo end end c",
+        expect![[r#"
+        error in file FileId(1) at 22..33: cannot use `inherit` statement here
+        | error in file FileId(1) for 22..33: `inherit` statement is only allowed in classes"#]],
+    );
+}
+
+#[test]
+fn report_inherit_stmt_in_module() {
+    check(
+        "module m inherit owo end m",
+        expect![[r#"
+        error in file FileId(1) at 9..20: cannot use `inherit` statement here
+        | error in file FileId(1) for 9..20: `inherit` statement is only allowed in classes"#]],
+    );
+}
+
+#[test]
+fn implement_stmt_in_module_top_level() {
+    check("module m implement sus end m", expect![[]]);
+}
+
+#[test]
+fn implement_stmt_in_monitor_top_level() {
+    check("monitor m implement sus end m", expect![[]]);
+}
+
+#[test]
+fn implement_stmt_in_class_top_level() {
+    check("class m implement sus end m", expect![[]]);
+}
+
+#[test]
+fn implement_stmt_in_monitor_class_top_level() {
+    check("monitor class m implement sus end m", expect![[]]);
+}
+
+#[test]
+fn report_implement_stmt_in_module_inner() {
+    check(
+        "module m begin implement sus end end m",
+        expect![[r#"
+        error in file FileId(1) at 15..28: cannot use `implement` statement here
+        | error in file FileId(1) for 15..28: `implement` statement is only allowed in module-like blocks"#]],
+    );
+}
+
+#[test]
+fn report_implement_stmt_in_top_level() {
+    check(
+        "implement sus",
+        expect![[r#"
+        error in file FileId(1) at 0..13: cannot use `implement` statement here
+        | error in file FileId(1) for 0..13: `implement` statement is only allowed in module-like blocks"#]],
+    );
+}
+
+#[test]
+fn implement_by_stmt_in_module_top_level() {
+    check("module m implement by sus end m", expect![[]]);
+}
+
+#[test]
+fn implement_by_stmt_in_monitor_top_level() {
+    check("monitor m implement by sus end m", expect![[]]);
+}
+
+#[test]
+fn implement_by_stmt_in_class_top_level() {
+    check("class m implement by sus end m", expect![[]]);
+}
+
+#[test]
+fn implement_by_stmt_in_monitor_class_top_level() {
+    check("monitor class m implement by sus end m", expect![[]]);
+}
+
+#[test]
+fn report_implement_by_stmt_in_module_inner() {
+    check(
+        "module m begin implement by sus end end m",
+        expect![[r#"
+        error in file FileId(1) at 15..31: cannot use `implement by` statement here
+        | error in file FileId(1) for 15..31: `implement by` statement is only allowed in module-like blocks"#]],
+    );
+}
+
+#[test]
+fn report_implement_by_stmt_in_top_level() {
+    check(
+        "implement by sus",
+        expect![[r#"
+        error in file FileId(1) at 0..16: cannot use `implement by` statement here
+        | error in file FileId(1) for 0..16: `implement by` statement is only allowed in module-like blocks"#]],
+    );
+}
