@@ -414,12 +414,12 @@ node restrictions.
 
 ### `CaseArm`
 
-- None
+- (Type Restriction) `select` exprs must be indexable types
+- (Type Restriction) `select` exprs must be compatable with the parent `CaseStmt`'s expr
 
 ### `BlockStmt`
 
-- (Type Restriction) `select` exprs must be indexable types
-- (Type Restriction) `select` exprs must be compatable with the parent `CaseStmt`'s expr
+- None
 
 ### `InvariantStmt`
 
