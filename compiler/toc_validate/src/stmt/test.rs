@@ -66,6 +66,61 @@ fn report_mismatched_monitor_names() {
 }
 
 #[test]
+fn report_mismatched_fcn_names() {
+    check(
+        "fcn a() : int end b",
+        expect![[r#"
+        error in file FileId(1) at 18..19: mismatched identifier names
+        | note in file FileId(1) for 4..5: `a` does not match...
+        | note in file FileId(1) for 18..19: ...`b` defined here"#]],
+    );
+}
+
+#[test]
+fn report_mismatched_process_names() {
+    check(
+        "process a() end b",
+        expect![[r#"
+        error in file FileId(1) at 16..17: mismatched identifier names
+        | note in file FileId(1) for 8..9: `a` does not match...
+        | note in file FileId(1) for 16..17: ...`b` defined here"#]],
+    );
+}
+
+#[test]
+fn report_mismatched_body_proc_names() {
+    check(
+        "body proc a end b",
+        expect![[r#"
+        error in file FileId(1) at 16..17: mismatched identifier names
+        | note in file FileId(1) for 10..11: `a` does not match...
+        | note in file FileId(1) for 16..17: ...`b` defined here"#]],
+    );
+}
+
+#[test]
+fn report_mismatched_body_fcn_names() {
+    check(
+        "body function a : int end b",
+        expect![[r#"
+        error in file FileId(1) at 26..27: mismatched identifier names
+        | note in file FileId(1) for 14..15: `a` does not match...
+        | note in file FileId(1) for 26..27: ...`b` defined here"#]],
+    );
+}
+
+#[test]
+fn report_mismatched_body_plain_names() {
+    check(
+        "body a end b",
+        expect![[r#"
+        error in file FileId(1) at 11..12: mismatched identifier names
+        | note in file FileId(1) for 5..6: `a` does not match...
+        | note in file FileId(1) for 11..12: ...`b` defined here"#]],
+    );
+}
+
+#[test]
 fn only_missing_module_decl_name() {
     check(
         "monitor end b",

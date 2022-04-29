@@ -114,11 +114,9 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             // Stmts
             ast::ConstVarDecl(decl) => stmt::validate_constvar_decl(decl, ctx),
             ast::BindDecl(decl) => stmt::validate_bind_decl(decl, ctx),
-            ast::ProcDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "`procedure` declaration", ctx),
+            ast::ProcDecl(decl) => stmt::validate_proc_decl(decl, ctx),
             ast::ProcHeader(node) => stmt::validate_proc_header(node, ctx),
-            ast::FcnDecl(decl) =>
-                stmt::validate_in_top_level(decl.syntax(), "`function` declaration", ctx),
+            ast::FcnDecl(decl) => stmt::validate_fcn_decl(decl, ctx),
             ast::ProcessDecl(decl) => stmt::validate_process_decl(decl, ctx),
             ast::ExternalVar(var) => stmt::validate_external_var(var, ctx),
             ast::ForwardDecl(decl) =>

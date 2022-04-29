@@ -132,6 +132,16 @@ pub(super) fn validate_bind_decl(decl: ast::BindDecl, ctx: &mut ValidateCtx) {
     }
 }
 
+pub(super) fn validate_proc_decl(decl: ast::ProcDecl, ctx: &mut ValidateCtx) {
+    validate_in_top_level(decl.syntax(), "`procedure` declaration", ctx);
+
+    check_matching_names(
+        decl.proc_header().and_then(|header| header.name()),
+        decl.end_group(),
+        ctx,
+    );
+}
+
 pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx) {
     if let Some(dev_spec) = node.device_spec() {
         // Check if we're in a device monitor block, at the top level
@@ -161,6 +171,16 @@ pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx)
     }
 }
 
+pub(super) fn validate_fcn_decl(decl: ast::FcnDecl, ctx: &mut ValidateCtx) {
+    validate_in_top_level(decl.syntax(), "`function` declaration", ctx);
+
+    check_matching_names(
+        decl.fcn_header().and_then(|header| header.name()),
+        decl.end_group(),
+        ctx,
+    );
+}
+
 pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCtx) {
     let location_error = match block_containing_node(decl.syntax()) {
         BlockKind::Class | BlockKind::MonitorClass => {
@@ -179,6 +199,12 @@ pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCt
             decl.syntax().text_range(),
         );
     }
+
+    check_matching_names(
+        decl.process_header().and_then(|header| header.name()),
+        decl.end_group(),
+        ctx,
+    );
 }
 
 pub(super) fn validate_external_var(decl: ast::ExternalVar, ctx: &mut ValidateCtx) {
@@ -203,6 +229,13 @@ pub(super) fn validate_body_decl(decl: ast::BodyDecl, ctx: &mut ValidateCtx) {
             import.syntax().text_range(),
         )
     }
+
+    let body_name = decl.body_kind().and_then(|kind| match kind {
+        ast::BodyKind::PlainHeader(decl) => decl.name(),
+        ast::BodyKind::ProcHeader(decl) => decl.name(),
+        ast::BodyKind::FcnHeader(decl) => decl.name(),
+    });
+    check_matching_names(body_name, decl.end_group(), ctx);
 }
 
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
