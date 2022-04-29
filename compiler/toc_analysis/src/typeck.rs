@@ -573,16 +573,113 @@ impl TypeCheck<'_> {
     fn typeck_for(&self, body_id: body::BodyId, stmt: &stmt::For) {
         let db = self.db;
 
+        // Check step by first so that we can bail bounds typeck early
+        if let Some(step_by) = stmt.step_by {
+            // `step_by` must evaluate to an integer type
+            // ???: Does this make sense for other range types?
+            self.expect_integer_value((self.library_id, body_id, step_by).into());
+        }
+
         match stmt.bounds {
             stmt::ForBounds::Implicit(expr) => {
-                // These are not supported yet, until range types are lowered
-                let expr_span = self.library.body(body_id).expr(expr).span;
+                // Bounds implied from the expr
 
-                self.state().reporter.error(
-                    "unsupported expression",
-                    "implicit range bounds are not supported yet",
-                    expr_span.lookup_in(&self.library),
-                )
+                // Cases:
+                // - plain expr
+                //   - iterable (i.e. arrays)
+                //   - not iterable
+                // - ty alias
+                //   - index type (but not integer)
+                //   - integer type
+                //   - other
+                // - other
+                //   - error!
+
+                let bounds_expr = (self.library_id, body_id, expr);
+                let bounds_span = self
+                    .library
+                    .body(body_id)
+                    .expr(expr)
+                    .span
+                    .lookup_in(&self.library);
+                let in_module = db.inside_module(bounds_expr.into());
+
+                if db
+                    .value_produced(bounds_expr.into())
+                    .map(ValueKind::is_value)
+                    .or_missing()
+                {
+                    // for-each loop
+                    // These are not supported yet, until after 0.1 tagging
+                    let bounds_ty = db.type_of(bounds_expr.into());
+                    let bounds_tyref = bounds_ty.in_db(db).peel_opaque(in_module);
+                    let bounds_base_ty = bounds_tyref.clone().peel_aliases();
+
+                    // FIXME(for-each): Specialize message for iterables
+                    self.state()
+                        .reporter
+                        .error_detailed("mismatched types", bounds_span)
+                        .with_note(format!("this is of type `{bounds_tyref}`"), bounds_span)
+                        .with_error(format!("`{bounds_base_ty}` is not iterable"), bounds_span)
+                        .with_info("only arrays types can be iterated over")
+                        .finish();
+
+                    return;
+                }
+
+                // Must be a type alias
+                let binding_def = if let Some(def_id) = db.binding_def(bounds_expr.into()) {
+                    def_id
+                } else {
+                    return;
+                };
+
+                if !db
+                    .binding_to(binding_def.into())
+                    .map(BindingTo::is_type)
+                    .or_missing()
+                {
+                    self.report_mismatched_binding(
+                        BindingTo::Type,
+                        binding_def.into(),
+                        bounds_span,
+                        bounds_span,
+                        |thing| format!("cannot use {thing} as a `for` bound"),
+                        None,
+                    );
+                    return;
+                }
+
+                let bounds_ty = db.type_of(binding_def.into());
+                let bounds_tyref = bounds_ty.in_db(db).peel_opaque(in_module);
+                let bounds_base_ty = bounds_tyref.clone().to_base_type();
+
+                // Should be an index type
+                if !bounds_base_ty.kind().is_index() {
+                    self.state()
+                        .reporter
+                        .error_detailed("mismatched types", bounds_span)
+                        .with_note(format!("this is of type `{bounds_tyref}`"), bounds_span)
+                        .with_error(
+                            format!("`{bounds_base_ty}` is not an index type"),
+                            bounds_span,
+                        ).with_info(
+                            "range bound type must be an index type (an integer, `boolean`, `char`, enumerated type, or a range)",
+                        )
+                        .finish();
+                } else if bounds_tyref.clone().peel_aliases().kind().is_integer() {
+                    // Is an integer type, but not from a range
+                    // Range would be too big
+                    self.state()
+                        .reporter
+                        .error_detailed("bound range is too large", bounds_span)
+                        .with_error(
+                            format!("a range over all `{bounds_tyref}` values is too large"),
+                            bounds_span,
+                        )
+                        .with_info("use a range type to shrink the range of the bound")
+                        .finish()
+                }
             }
             stmt::ForBounds::Full(start, end) => {
                 // Must both be values
@@ -661,12 +758,6 @@ impl TypeCheck<'_> {
                     }
                 }
             }
-        }
-
-        if let Some(step_by) = stmt.step_by {
-            // `step_by` must evaluate to an integer type
-            // ???: Does this make sense for other range types?
-            self.expect_integer_value((self.library_id, body_id, step_by).into());
         }
     }
 

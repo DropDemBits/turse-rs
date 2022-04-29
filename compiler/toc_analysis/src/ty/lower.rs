@@ -10,11 +10,14 @@ use toc_hir::{
     ty as hir_ty,
 };
 
-use crate::ty::Checked;
 use crate::{
     const_eval::{Const, ConstInt},
     db::TypeDatabase,
-    ty::{self, Param, TypeId, TypeKind},
+    ty::{
+        self,
+        db::{NotValueErrExt, ValueKind},
+        Checked, Param, TypeId, TypeKind,
+    },
 };
 
 use super::{IntSize, NatSize, RealSize, SeqSize};
@@ -438,12 +441,48 @@ fn for_counter_ty(
     stmt_id: stmt::BodyStmt,
     stmt: &stmt::For,
 ) -> TypeId {
+    let in_module = db.inside_module((library_id, stmt_id).into());
+
     // infer the counter type from the range bounds
     match stmt.bounds {
-        stmt::ForBounds::Implicit(_expr) => {
-            // We don't support implicit bounds yet, so make an error
-            // TODO: Do the proper thing once range types & type aliases are lowered
-            db.mk_error()
+        stmt::ForBounds::Implicit(expr) => {
+            // Bounds implied from the given expr, which could be:
+            // - alias to a constrained ty
+            // - expr with an iterable ty (notably, arrays)
+            let bounds_expr = (library_id, stmt_id.0, expr);
+
+            if db
+                .value_produced(bounds_expr.into())
+                .map(ValueKind::is_value)
+                .or_missing()
+            {
+                // - expr that may or may not be iterable
+                // We don't support for-each loops yet
+                // FIXME(new-features): Support for-each loop
+                db.mk_error()
+            } else {
+                // - maybe alias
+                let binding_def = if let Some(def_id) = db.binding_def(bounds_expr.into()) {
+                    def_id
+                } else {
+                    return db.mk_error();
+                };
+
+                // Must be a type alias
+                if !db
+                    .binding_to(binding_def.into())
+                    .map(BindingTo::is_type)
+                    .or_missing()
+                {
+                    return db.mk_error();
+                }
+
+                let bounds_ty = db.type_of(binding_def.into());
+
+                // Just infer as a peeled opaque
+                // We're expecting constrained ty's to be here, so it makes sense for it to carry through
+                bounds_ty.in_db(db).peel_opaque(in_module).id()
+            }
         }
         stmt::ForBounds::Full(start, end) => {
             // Always infer from the start type
@@ -451,17 +490,20 @@ fn for_counter_ty(
             let start_ty = db.type_of((library_id, stmt_id.0, start).into()).in_db(db);
             let end_ty = db.type_of((library_id, stmt_id.0, end).into()).in_db(db);
 
-            // Pick the concrete type
-            let counter_ty = if *start_ty.kind() != TypeKind::Integer {
-                start_ty.id()
-            } else if *end_ty.kind() != TypeKind::Integer {
-                end_ty.id()
-            } else {
-                // Integer decomposes into a normal `int`
-                db.mk_int(IntSize::Int)
+            // Pick whichever is the more concrete type
+            let counter_tyref = match (start_ty.kind(), end_ty.kind()) {
+                (TypeKind::Error, _) => end_ty,
+                (TypeKind::Integer, rhs) if rhs.is_number() => end_ty,
+                _ => start_ty,
             };
 
-            counter_ty
+            // Decompose into a concrete type
+            if counter_tyref.kind() == &TypeKind::Integer {
+                // Integer decomposes into a normal `int`
+                db.mk_int(IntSize::Int)
+            } else {
+                counter_tyref.id()
+            }
         }
     }
 }
