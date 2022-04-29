@@ -1892,7 +1892,7 @@ test_named_group! { typeck_for,
         immut_counter => r#"for i : false .. true i := false end for"#,
 
         // Be resilient against missing bounds
-        missing_left_bound => "for : 1 .. end for", // FIXME(typo): swap to right bound
+        missing_left_bound => "for : .. 1 end for",
         missing_right_bound => "for : 1 .. end for",
 
         wrong_value_bounds => "
