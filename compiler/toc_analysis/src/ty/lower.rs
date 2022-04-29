@@ -490,27 +490,20 @@ fn for_counter_ty(
             let start_ty = db.type_of((library_id, stmt_id.0, start).into()).in_db(db);
             let end_ty = db.type_of((library_id, stmt_id.0, end).into()).in_db(db);
 
-            // Pick the concrete type
-            let counter_ty = if *start_ty.kind() != TypeKind::Integer {
-                start_ty.id()
-            } else if *end_ty.kind() != TypeKind::Integer {
-                end_ty.id()
-            } else {
+            // Pick whichever is the more concrete type
+            let counter_tyref = match (start_ty.kind(), end_ty.kind()) {
+                (TypeKind::Error, _) => end_ty,
+                (TypeKind::Integer, rhs) if rhs.is_number() => end_ty,
+                _ => start_ty,
+            };
+
+            // Decompose into a concrete type
+            if counter_tyref.kind() == &TypeKind::Integer {
                 // Integer decomposes into a normal `int`
                 db.mk_int(IntSize::Int)
-            };
-
-            // ??? is this equivalent behaviour to what we have in constrained ty?
-            /*
-            // Pick whichever is more concrete
-            let base_tyref = match (start_tyref.kind(), end_tyref.kind()) {
-                (TypeKind::Error, _) => end_tyref,
-                (TypeKind::Integer, rhs) if rhs.is_number() => end_tyref,
-                (_, _) => start_tyref,
-            };
-             */
-
-            counter_ty
+            } else {
+                counter_tyref.id()
+            }
         }
     }
 }

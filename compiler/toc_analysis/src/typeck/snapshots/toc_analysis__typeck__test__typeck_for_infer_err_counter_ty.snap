@@ -1,0 +1,20 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "% Both should fail\nfor c : 1.0 .. () var k : int := c end for\nfor c : () .. 1.0 var k : int := c end for\n"
+
+---
+"c"@(FileId(1), 23..24) [Declared]: real
+"k"@(FileId(1), 41..42) [Declared]: int
+"c"@(FileId(1), 66..67) [Declared]: real
+"k"@(FileId(1), 84..85) [Declared]: int
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 52..53: mismatched types
+| note in file FileId(1) for 52..53: this is of type `real`
+| note in file FileId(1) for 45..48: this is of type `int`
+| info: `real` is not assignable into `int`
+error in file FileId(1) at 95..96: mismatched types
+| note in file FileId(1) for 95..96: this is of type `real`
+| note in file FileId(1) for 88..91: this is of type `int`
+| info: `real` is not assignable into `int`

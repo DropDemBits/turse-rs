@@ -1876,6 +1876,16 @@ test_named_group! { typeck_for,
         for c : 1.0 .. 1 var k : int := c end for
         for c : 1 .. 1.0 var k : int := c end for
         "#,
+        infer_err_counter_ty => "
+        % Both should fail
+        for c : 1.0 .. () var k : int := c end for
+        for c : () .. 1.0 var k : int := c end for
+        ",
+        infer_left_counter_ty => "
+        % Biased towards left inference
+        var i : int
+        for c : i .. 1.0 var k : int := c end for
+        ",
         normal_boolean_bounds => r#"for : false .. true end for"#,
         normal_char_bounds => r#"for : 'a' .. 'z' end for"#,
         normal_int_bounds => r#"for : 1 .. 10 end for"#,
