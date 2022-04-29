@@ -19,6 +19,13 @@ pub struct ConstInt {
 }
 
 impl ConstInt {
+    /// Literal `1u64` constant. Compatible with 32-bit ops as well.
+    pub const ONE: ConstInt = ConstInt {
+        magnitude: 1,
+        sign: Sign::Positive,
+        width: Width::As64,
+    };
+
     /// Constructs a new integer constant from an unsigned value
     ///
     /// ## Parameters
@@ -139,9 +146,13 @@ impl ConstInt {
 
     /// Returns `true` if the integer has a positive sign or is zero, or
     /// `false` if the integer has a negative sign.
-    #[allow(dead_code)] // symmetric with `is_negative`
     pub fn is_positive(self) -> bool {
         matches!(self.sign, Sign::Positive)
+    }
+
+    /// Returns `true` if the integer is zero, or `false` otherwise
+    pub fn is_zero(self) -> bool {
+        self.magnitude == 0
     }
 
     /// Checked integer addition.

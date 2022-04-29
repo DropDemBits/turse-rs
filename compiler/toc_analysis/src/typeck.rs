@@ -198,7 +198,9 @@ impl toc_hir::visitor::HirVisitor for TypeCheck<'_> {
         self.typeck_set_ty(id, ty);
     }
 
-    // FIXME: reject collection types as unchecked pointer targets
+    fn visit_pointer(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Pointer) {
+        self.typeck_pointer_ty(id, ty);
+    }
 
     fn visit_subprogram_ty(&self, id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
         self.typeck_subprogram_ty(id, ty);
@@ -211,8 +213,8 @@ impl TypeCheck<'_> {
             // Type spec must be resolved at this point
             self.require_resolved_type(ty_spec);
 
-            // Type must not be any-sized charseq or unsized
-            self.require_known_size(ty_spec, || {
+            // Type must not be any-sized charseq, unsized, or non-positive sized
+            self.require_known_positive_size(ty_spec, || {
                 let maybe_const = match item.mutability {
                     Mutability::Const => "const",
                     Mutability::Var => "var",
@@ -262,7 +264,9 @@ impl TypeCheck<'_> {
 
     fn typeck_type_decl(&self, _id: item::ItemId, item: &item::Type) {
         if let item::DefinedType::Alias(ty) = &item.type_def {
-            self.require_resolved_type(*ty)
+            // Must be resoled & positive
+            self.require_resolved_type(*ty);
+            self.require_positive_size(*ty, || "`type` declarations".into());
         }
     }
 
@@ -298,14 +302,22 @@ impl TypeCheck<'_> {
     }
 
     fn typeck_subprogram_decl(&self, _id: item::ItemId, item: &item::Subprogram) {
-        self.require_known_size(item.result.ty, || {
+        let in_where = || {
             let kind = match item.kind {
                 SubprogramKind::Procedure => "procedure",
                 SubprogramKind::Function => "function",
                 SubprogramKind::Process => "process",
             };
             format!("`{kind}` declarations")
-        });
+        };
+
+        self.require_known_positive_size(item.result.ty, &in_where);
+
+        if let Some(param_list) = &item.param_list {
+            for param in &param_list.tys {
+                self.require_positive_size(param.param_ty, &in_where);
+            }
+        }
 
         match item.extra {
             item::SubprogramExtra::None => {}
@@ -1780,21 +1792,95 @@ impl TypeCheck<'_> {
                 .with_info("use a range type to shrink the range of elements")
                 .finish()
         }
+
+        self.require_known_positive_size(ty.elem_ty, || "`set` element types".into());
+    }
+
+    fn typeck_pointer_ty(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Pointer) {
+        self.require_positive_size(ty.ty, || "pointer types".into());
+
+        // FIXME: reject collection types as unchecked pointer targets
     }
 
     fn typeck_subprogram_ty(&self, _id: toc_hir::ty::TypeId, ty: &toc_hir::ty::Subprogram) {
-        self.require_known_size(ty.result_ty, || {
+        let in_where = || {
             let kind = match ty.kind {
                 SubprogramKind::Procedure => "procedure",
                 SubprogramKind::Function => "function",
                 SubprogramKind::Process => "process",
             };
             format!("`{kind}` types")
-        })
+        };
+
+        self.require_known_positive_size(ty.result_ty, &in_where);
+
+        if let Some(param_list) = &ty.param_list {
+            for param in param_list {
+                self.require_positive_size(param.param_ty, &in_where);
+            }
+        }
+    }
+
+    // Checks both a size known at compile time, and a size that isn't zero
+    fn require_known_positive_size(
+        &self,
+        ty_spec: toc_hir::ty::TypeId,
+        in_where: impl Fn() -> String,
+    ) {
+        self.require_known_size(ty_spec, &in_where);
+        self.require_positive_size(ty_spec, &in_where);
+    }
+
+    // Requirement that the size must be positive (greater than zero)
+    fn require_positive_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl Fn() -> String) {
+        let db = self.db;
+        let library_id = self.library_id;
+        let library = &self.library;
+
+        let ty_id = db.from_hir_type(ty_spec.in_library(library_id));
+        let ty_ref = ty_id.in_db(db);
+
+        // Only need to check constrained types
+        // The rest are guaranteed to have a positive size
+        if let ty::TypeKind::Constrained(_, _, _) = ty_ref.kind() {
+            let ty_span = library.lookup_type(ty_spec).span.lookup_in(library);
+
+            match ty_ref.element_count() {
+                Some(Ok(size)) if size.is_positive() && !size.is_zero() => {}
+                Some(Ok(size)) => {
+                    let place = in_where();
+
+                    let size_kind = if size.is_zero() {
+                        "zero sized ranges"
+                    } else {
+                        "negative sized ranges"
+                    };
+
+                    // Zero or negative size
+                    self.state()
+                        .reporter
+                        .error_detailed("element range is too small", ty_span)
+                        .with_note(format!("computed range size is {size}"), ty_span)
+                        .with_error(format!("{size_kind} cannot be used in {place}"), ty_span)
+                        .finish();
+                }
+                Some(Err(_err)) => {
+                    // Overflow
+                    self.state()
+                        .reporter
+                        .error_detailed("invalid range size", ty_span)
+                        .with_error("range size is too large", ty_span)
+                        .finish();
+                }
+                None => {
+                    // Error during const-eval, already reported
+                }
+            }
+        }
     }
 
     // For now, we only check for any-sized charseq
-    fn require_known_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl FnOnce() -> String) {
+    fn require_known_size(&self, ty_spec: toc_hir::ty::TypeId, in_where: impl Fn() -> String) {
         let ty_id = self.db.from_hir_type(ty_spec.in_library(self.library_id));
         let ty_ref = ty_id.in_db(self.db);
         match ty_ref.kind() {

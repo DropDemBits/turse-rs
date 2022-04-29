@@ -2823,3 +2823,32 @@ test_named_group! { resolve_defs,
         ",
     ]
 }
+
+test_named_group! { require_positive_size,
+    [
+        with_negative_size => "var _ : 2 .. 0",
+        with_overflowing_size => "var _ : (-16#7FFFFFFF - 1)..(16#7FFFFFFF + 1)",
+
+        in_constvar => "var _ : 1 .. 0",
+        in_type_decl => "type _ : 1 .. 0",
+        in_subprogram_param => "proc p(_:1..0) end p",
+        in_subprogram_result => "fcn _() : 1..0 end _",
+        in_subprogram_ty_param => "type _ : proc p(_:1..0)",
+        in_subprogram_ty_result => "type _ : fcn _() : 1..0",
+        // FIXME: Add positive size tests for the following items
+        // - body decl (via headers)
+        // - forward decl (via headers)
+        // - external subprog decl (via headers)
+        // - external var decl (via headers)
+
+        in_set_ty => "type _ : set of 1..0",
+        in_pointer_ty => "type _ : ^1..0",
+        // FIXME: Add positive size tests for the following types
+        // - collection type
+        // - arrays (static)
+        // - record field
+        // - union field
+        // - union tag
+        // - collection type
+    ]
+}

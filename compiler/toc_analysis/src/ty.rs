@@ -377,6 +377,20 @@ where
         Some(length)
     }
 
+    /// If this type were to be used as a range, computes the number of elements in the range,
+    /// or `None` if it can't be used as a range
+    pub fn element_count(&self) -> Option<Result<ConstInt, ConstError>> {
+        // FIXME: Properly compute element count for array types
+        let min = self.min_int_of()?;
+        let max = self.max_int_of()?;
+
+        // Range is inclusive, so also add 1
+        Some(
+            max.checked_sub(min)
+                .and_then(|count| count.checked_add(ConstInt::ONE)),
+        )
+    }
+
     /// Minimum integer value of this type, or `None` if this is not an integer
     pub fn min_int_of(&self) -> Option<ConstInt> {
         let value = match self.kind() {
