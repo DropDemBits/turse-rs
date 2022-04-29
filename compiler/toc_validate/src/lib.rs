@@ -262,9 +262,7 @@ pub(crate) fn block_containing_node(start: &SyntaxNode) -> BlockKind {
 }
 
 pub(crate) fn item_block_containing_node(start: &SyntaxNode) -> BlockKind {
-    walk_blocks(start)
-        .find(|kind| !matches!(kind, BlockKind::Inner | BlockKind::Loop))
-        .unwrap()
+    walk_item_blocks(start).next().unwrap()
 }
 
 pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {
@@ -313,4 +311,8 @@ pub(crate) fn walk_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind>
 
         Some(kind)
     })
+}
+
+pub(crate) fn walk_item_blocks(start: &SyntaxNode) -> impl Iterator<Item = BlockKind> {
+    walk_blocks(start).filter(|kind| !matches!(kind, BlockKind::Inner | BlockKind::Loop))
 }

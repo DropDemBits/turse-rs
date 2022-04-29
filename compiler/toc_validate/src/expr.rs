@@ -4,7 +4,7 @@ mod test;
 
 use toc_syntax::ast::{self, AstNode};
 
-use crate::{item_block_containing_node, walk_blocks, BlockKind, ValidateCtx};
+use crate::{item_block_containing_node, walk_item_blocks, ValidateCtx};
 
 pub(super) fn validate_init_expr(expr: ast::InitExpr, ctx: &mut ValidateCtx) {
     // Only allowed in ConstVar decl
@@ -24,8 +24,7 @@ pub(super) fn validate_init_expr(expr: ast::InitExpr, ctx: &mut ValidateCtx) {
 
 pub(super) fn validate_self_expr(expr: ast::SelfExpr, ctx: &mut ValidateCtx) {
     // Only allowed in class subprograms
-    let mut item_blocks = walk_blocks(expr.syntax())
-        .filter(|kind| !matches!(kind, BlockKind::Inner | BlockKind::Loop));
+    let mut item_blocks = walk_item_blocks(expr.syntax());
 
     let is_allowed =
         if let Some((maybe_subprog, maybe_class)) = item_blocks.next().zip(item_blocks.next()) {
