@@ -222,14 +222,6 @@ pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut Validate
 pub(super) fn validate_body_decl(decl: ast::BodyDecl, ctx: &mut ValidateCtx) {
     validate_in_top_level(decl.syntax(), "`body` declaration", ctx);
 
-    if let Some(import) = decl.subprog_body().and_then(|body| body.import_stmt()) {
-        ctx.push_error(
-            "useless `import` statement",
-            "`import` statements are ignored in `body` declaration",
-            import.syntax().text_range(),
-        )
-    }
-
     let body_name = decl.body_kind().and_then(|kind| match kind {
         ast::BodyKind::PlainHeader(decl) => decl.name(),
         ast::BodyKind::ProcHeader(decl) => decl.name(),
@@ -531,6 +523,116 @@ pub(super) fn validate_inherit_stmt(stmt: ast::InheritStmt, ctx: &mut ValidateCt
         );
     }
 }
+
+pub(super) fn validate_import_stmt(stmt: ast::ImportStmt, ctx: &mut ValidateCtx) {
+    // Valid in top level of program module-likes, and subprogram bodies (except for `body`)
+    let block = block_containing_node(stmt.syntax());
+
+    if !(matches!(block, BlockKind::Main)
+        || block.is_module_kind()
+        || (block.is_subprogram() && !matches!(block, BlockKind::Body)))
+    {
+        if matches!(block, BlockKind::Body) {
+            // Specialize message for body blocks
+            ctx.push_error(
+                "useless `import` statement",
+                "`import` statements are ignored in `body` declaration",
+                stmt.syntax().text_range(),
+            )
+        } else {
+            ctx.push_error(
+                "cannot use `import` statement here",
+                "`import` statement is only allowed at the top level of subprograms, module-likes, or programs",
+                stmt.syntax().text_range(),
+            );
+        }
+    }
+}
+
+pub(super) fn validate_import_item(item: ast::ImportItem, ctx: &mut ValidateCtx) {
+    let forward_attr = item.attrs().and_then(|attr| match attr {
+        ast::ImportAttr::ForwardAttr(attr) => Some(attr),
+        _ => None,
+    });
+
+    if let Some(forward_attr) = forward_attr {
+        // Only allowed when inside of a `ForwardDecl`
+        let import_list = item
+            .syntax()
+            .parent()
+            .and_then(ast::ImportList::cast)
+            .unwrap();
+
+        let inside_forward_decl = import_list
+            .syntax()
+            .parent()
+            .map(|node| ast::ForwardDecl::can_cast(&node))
+            .unwrap_or(false);
+
+        if !inside_forward_decl {
+            ctx.push_error(
+                "cannot use `forward` attribute here",
+                "`forward` attribute can only be used in `forward` declarations",
+                forward_attr.syntax().text_range(),
+            );
+        }
+    }
+}
+
+pub(super) fn validate_external_item(item: ast::ExternalItem, ctx: &mut ValidateCtx) {
+    // Only caring about external items with paths
+    let path_node = if let Some(node) = item.path() {
+        node
+    } else {
+        return;
+    };
+
+    // If we're in an import list, it must not be inside of a forward decl
+    let import_list = item
+        .syntax()
+        .ancestors()
+        .nth(2)
+        .and_then(ast::ImportList::cast);
+
+    if let Some(import_list) = import_list {
+        let inside_forward_decl = import_list
+            .syntax()
+            .parent()
+            .map(|node| ast::ForwardDecl::can_cast(&node))
+            .unwrap_or(false);
+
+        if inside_forward_decl {
+            ctx.push_error(
+                "cannot use external path here",
+                "external paths can only be used in top-level `import` statements",
+                path_node.syntax().text_range(),
+            );
+
+            return;
+        }
+    }
+
+    // We need to be in something containing an import stmt, then that should be contained in the root level
+    let mut ancestor_blocks = walk_blocks(item.syntax());
+
+    let is_external_path_allowed = match (ancestor_blocks.next(), ancestor_blocks.next()) {
+        // Allowed in immediate top-level
+        (Some(BlockKind::Main | BlockKind::Unit), None) => true,
+        // Or allowed in a module-like contained in a unit
+        (Some(kind), Some(BlockKind::Unit)) => kind.is_module_kind(),
+        _ => false,
+    };
+
+    if !is_external_path_allowed {
+        ctx.push_error(
+            "cannot use external path here",
+            "external paths can only be used in top-level `import` statements",
+            path_node.syntax().text_range(),
+        );
+    }
+}
+
+// Helpers //
 
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_module_kind() {

@@ -148,11 +148,11 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
                 stmt::validate_in_module_kind(stmt.syntax(), "`implement` statement", ctx),
             ast::ImplementByStmt(stmt) =>
                 stmt::validate_in_module_kind(stmt.syntax(), "`implement by` statement", ctx),
-            // Missing:
-            // - Import (just location)
-            // - ImportItem
-            // - Export (just location)
-            // - ExternalItem
+            ast::ImportStmt(stmt) => stmt::validate_import_stmt(stmt, ctx),
+            ast::ImportItem(item) => stmt::validate_import_item(item, ctx),
+            ast::ExportStmt(stmt) =>
+                stmt::validate_in_module_kind(stmt.syntax(), "`export` statement", ctx),
+            ast::ExternalItem(item) => stmt::validate_external_item(item, ctx),
 
             // Exprs
             // Missing:
@@ -161,13 +161,11 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
 
             // Types
             ast::SetType(ty) => ty::validate_set_type(ty, ctx),
+            // (Missing) Array (location for flexible)
             ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
-
-            // Missing:
-            // - Array (location for flexible)
-            // - Union
-            // - Collection
-            // - Condition
+            // (Missing) Union
+            // (Missing) Collection
+            // (Missing) Condition
             _ => (),
         })
     }

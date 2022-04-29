@@ -908,16 +908,6 @@ fn report_invariant_stmt_in_inner() {
 }
 
 #[test]
-fn report_import_stmt_in_body() {
-    check(
-        "body a import nothing end a",
-        expect![[r#"
-        error in file FileId(1) at 7..21: useless `import` statement
-        | error in file FileId(1) for 7..21: `import` statements are ignored in `body` declaration"#]],
-    );
-}
-
-#[test]
 fn return_stmt_in_main() {
     check("return", expect![[r#""#]]);
 }
@@ -1245,4 +1235,127 @@ fn report_implement_by_stmt_in_top_level() {
         error in file FileId(1) at 0..16: cannot use `implement by` statement here
         | error in file FileId(1) for 0..16: `implement by` statement is only allowed in module-like blocks"#]],
     );
+}
+
+#[test]
+fn import_stmt_in_program() {
+    check("import ()", expect![[]]);
+}
+
+#[test]
+fn report_import_stmt_in_unit() {
+    check(
+        "unit import ()",
+        expect![[r#"
+        error in file FileId(1) at 5..14: invalid unit file
+        | error in file FileId(1) for 5..14: expected a module, class, or monitor declaration"#]],
+    );
+}
+
+#[test]
+fn import_stmt_in_program_inner() {
+    check(
+        "begin import () end",
+        expect![[r#"
+        error in file FileId(1) at 6..15: cannot use `import` statement here
+        | error in file FileId(1) for 6..15: `import` statement is only allowed at the top level of subprograms, module-likes, or programs"#]],
+    );
+}
+
+#[test]
+fn import_stmt_in_module() {
+    check("module m import () end m", expect![[]]);
+}
+
+#[test]
+fn import_stmt_in_subprogram() {
+    check("proc p import () end p", expect![[]]);
+}
+
+#[test]
+fn report_import_stmt_in_body() {
+    check(
+        "body a import nothing end a",
+        expect![[r#"
+        error in file FileId(1) at 7..21: useless `import` statement
+        | error in file FileId(1) for 7..21: `import` statements are ignored in `body` declaration"#]],
+    );
+}
+
+#[test]
+fn export_stmt_in_module() {
+    check("module m export() end m", expect![[]]);
+}
+
+#[test]
+fn report_export_stmt_in_module_inner() {
+    check(
+        "module m begin export() end end m",
+        expect![[r#"
+        error in file FileId(1) at 15..23: cannot use `export` statement here
+        | error in file FileId(1) for 15..23: `export` statement is only allowed in module-like blocks"#]],
+    );
+}
+
+#[test]
+fn report_export_stmt_in_program_level() {
+    check(
+        "export()",
+        expect![[r#"
+        error in file FileId(1) at 0..8: cannot use `export` statement here
+        | error in file FileId(1) for 0..8: `export` statement is only allowed in module-like blocks"#]],
+    );
+}
+
+#[test]
+fn forward_attr_in_forward_decl() {
+    check("forward proc uwu import forward owo", expect![[]]);
+}
+
+#[test]
+fn report_forward_attr_in_plain_import() {
+    check(
+        "import forward owo",
+        expect![[r#"
+        error in file FileId(1) at 7..14: cannot use `forward` attribute here
+        | error in file FileId(1) for 7..14: `forward` attribute can only be used in `forward` declarations"#]],
+    );
+}
+
+#[test]
+fn external_item_explicit_path_in_program_level() {
+    check(r#"import "sus""#, expect![[]])
+}
+
+#[test]
+fn report_external_item_explicit_path_in_program_level_inner() {
+    check(r#"begin import "sus" end"#, expect![[r#"
+        error in file FileId(1) at 6..18: cannot use `import` statement here
+        | error in file FileId(1) for 6..18: `import` statement is only allowed at the top level of subprograms, module-likes, or programs
+        error in file FileId(1) at 13..18: cannot use external path here
+        | error in file FileId(1) for 13..18: external paths can only be used in top-level `import` statements"#]])
+}
+
+#[test]
+fn external_item_explicit_path_in_module_unit_level() {
+    check(r#"unit module u import "sus" end u"#, expect![[]])
+}
+
+#[test]
+fn external_item_explicit_path_in_class_unit() {
+    check(r#"unit class m inherit "sus" end m"#, expect![[]])
+}
+
+#[test]
+fn report_external_item_explicit_path_in_forward_decl() {
+    check(r#"forward proc owo import "sus""#, expect![[r#"
+        error in file FileId(1) at 24..29: cannot use external path here
+        | error in file FileId(1) for 24..29: external paths can only be used in top-level `import` statements"#]])
+}
+
+#[test]
+fn report_external_item_explicit_path_in_nested_module() {
+    check(r#"module m module n import "sus" end n end m"#, expect![[r#"
+        error in file FileId(1) at 25..30: cannot use external path here
+        | error in file FileId(1) for 25..30: external paths can only be used in top-level `import` statements"#]])
 }
