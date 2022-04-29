@@ -1,5 +1,6 @@
 //! AST validation
 //! Checking if things hold up to stricter syntax semantics, but are still representable in HIR
+mod expr;
 mod preproc;
 mod stmt;
 mod ty;
@@ -155,9 +156,8 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::ExternalItem(item) => stmt::validate_external_item(item, ctx),
 
             // Exprs
-            // Missing:
-            // - InitExpr (just location)
-            // - SelfExpr (just location)
+            ast::InitExpr(expr) => expr::validate_init_expr(expr, ctx),
+            ast::SelfExpr(expr) => expr::validate_self_expr(expr, ctx),
 
             // Types
             ast::SetType(ty) => ty::validate_set_type(ty, ctx),
