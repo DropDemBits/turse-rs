@@ -1,0 +1,13 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "fcn _() : 1..0 end _"
+
+---
+"_"@(FileId(1), 4..5) [Declared]: function ( ) -> range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"<unnamed>"@(dummy) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 10..14: element range is too small
+| note in file FileId(1) for 10..14: computed range size is 0
+| error in file FileId(1) for 10..14: zero sized ranges cannot be used in `function` declarations

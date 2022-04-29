@@ -2666,7 +2666,14 @@ test_named_group! { typeck_constrained_ty,
         var c := 1
         type _ : c .. c",
 
-        // TODO: add tests for bad range sizes (negative elem sizes)
+        outside_ty_range_signed => "
+        const min : int1 := -16#7F
+        type _ : min .. 16#80
+        ",
+        outside_ty_range_unsigned => "
+        const max : nat1 := 1
+        type _ : -1 .. max
+        ",
 
         in_err_msg => "var _ : 1 .. 2 := 'c'",
 
@@ -2821,5 +2828,38 @@ test_named_group! { resolve_defs,
         put n.o
         var c : n.p
         ",
+    ]
+}
+
+test_named_group! { require_positive_size,
+    [
+        with_negative_size => "var _ : 2 .. 0",
+        // Note: this test is partially overshadowed by range value bound tests
+        with_overflowing_size => "
+        const min : int4 := -16#7FFFFFFF - 1
+        var _ : min..(16#7FFFFFFF + 1)
+        ",
+
+        in_constvar => "var _ : 1 .. 0",
+        in_type_decl => "type _ : 1 .. 0",
+        in_subprogram_param => "proc p(_:1..0) end p",
+        in_subprogram_result => "fcn _() : 1..0 end _",
+        in_subprogram_ty_param => "type _ : proc p(_:1..0)",
+        in_subprogram_ty_result => "type _ : fcn _() : 1..0",
+        // FIXME: Add positive size tests for the following items
+        // - body decl (via headers)
+        // - forward decl (via headers)
+        // - external subprog decl (via headers)
+        // - external var decl (via headers)
+
+        in_set_ty => "type _ : set of 1..0",
+        in_pointer_ty => "type _ : ^1..0",
+        // FIXME: Add positive size tests for the following types
+        // - collection type
+        // - arrays (static)
+        // - record field
+        // - union field
+        // - union tag
+        // - collection type
     ]
 }
