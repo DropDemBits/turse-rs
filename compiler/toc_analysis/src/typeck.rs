@@ -1736,20 +1736,47 @@ impl TypeCheck<'_> {
             }
         }
 
-        // Bounds must be compile-time exprs
+        // Bounds must be compile-time exprs and within the value range of the type
         // FIXME: use the correct eval params
         let eval_params = Default::default();
 
-        let check_const_bound = |bound_const| match db.evaluate_const(bound_const, eval_params) {
-            Ok(_) => {}
-            Err(err) => {
-                err.report_to(db, &mut self.state().reporter);
-            }
+        let check_const_bound = |bound_const, reporter: &mut toc_reporting::MessageSink| {
+            db.evaluate_const(bound_const, eval_params)
+                .map_err(|err| err.report_to(db, reporter))
+                .ok()
         };
 
-        check_const_bound(start_bound.clone());
+        let mut state = self.state();
+        if let Some(value) = check_const_bound(start_bound.clone(), &mut state.reporter) {
+            if let Some((ordinal, min_value)) = value.ordinal().zip(base_tyref.min_int_of()) {
+                if ordinal < min_value {
+                    state.reporter.error(
+                        "computed value is outside the type's range",
+                        format!(
+                            "`{value}` is smaller than the smallest possible `{base_tyref}`",
+                            value = value.display(db)
+                        ),
+                        start_span,
+                    );
+                }
+            }
+        }
+
         if let ty::EndBound::Expr(end_bound) = end_bound {
-            check_const_bound(end_bound.clone());
+            if let Some(value) = check_const_bound(end_bound.clone(), &mut state.reporter) {
+                if let Some((ordinal, max_value)) = value.ordinal().zip(base_tyref.max_int_of()) {
+                    if max_value < ordinal {
+                        state.reporter.error(
+                            "computed value is outside the type's range",
+                            format!(
+                                "`{value}` is larger than the largest possible `{base_tyref}`",
+                                value = value.display(db)
+                            ),
+                            end_span,
+                        );
+                    }
+                }
+            }
         }
     }
 

@@ -1,11 +1,14 @@
 ---
 source: compiler/toc_analysis/src/typeck/test.rs
 assertion_line: 42
-expression: "var _ : (-16#7FFFFFFF - 1)..(16#7FFFFFFF + 1)"
+expression: "const min : int4 := -16#7FFFFFFF - 1\nvar _ : min..(16#7FFFFFFF + 1)\n"
 
 ---
-"_"@(FileId(1), 4..5) [Declared]: range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"min"@(FileId(1), 6..9) [Declared]: int4
+"_"@(FileId(1), 41..42) [Declared]: range of `int4` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2))))
 "<root>"@(dummy) [Declared]: <error>
 
-error in file FileId(1) at 8..45: invalid range size
-| error in file FileId(1) for 8..45: range size is too large
+error in file FileId(1) at 45..67: invalid range size
+| error in file FileId(1) for 45..67: range size is too large
+error in file FileId(1) at 51..66: computed value is outside the type's range
+| error in file FileId(1) for 51..66: `2147483648` is larger than the largest possible `int4`

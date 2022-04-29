@@ -434,7 +434,6 @@ where
                     .ok()
                     .and_then(|v| v.ordinal())?
             }
-            // TODO: add constrained start bound case
             _ => return None,
         };
 
@@ -450,7 +449,7 @@ where
                     .ordinal()
                     .expect("const construction")
             }
-            TypeKind::Boolean => ConstValue::Bool(false)
+            TypeKind::Boolean => ConstValue::Bool(true)
                 .ordinal()
                 .expect("const construction"),
             TypeKind::Int(size) => {
