@@ -1,0 +1,12 @@
+---
+source: compiler/toc_analysis/src/typeck/test.rs
+assertion_line: 42
+expression: "module b end b /**/ for : b end for"
+
+---
+"b"@(FileId(1), 7..8) [Declared]: <error>
+"<root>"@(dummy) [Declared]: <error>
+
+error in file FileId(1) at 26..27: cannot use `b` as a `for` bound
+| error in file FileId(1) for 26..27: `b` is a reference to a module, not a type
+| note in file FileId(1) for 7..8: `b` declared here

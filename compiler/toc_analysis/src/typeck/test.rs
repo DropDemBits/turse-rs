@@ -1891,10 +1891,8 @@ test_named_group! { typeck_for,
 
         immut_counter => r#"for i : false .. true i := false end for"#,
 
-        unsupported_implicit_bounds => r#"var implied : int for : implied end for"#,
-
         // Be resilient against missing bounds
-        missing_left_bound => "for : 1 .. end for",
+        missing_left_bound => "for : 1 .. end for", // FIXME(typo): swap to right bound
         missing_right_bound => "for : 1 .. end for",
 
         wrong_value_bounds => "
@@ -1904,6 +1902,28 @@ test_named_group! { typeck_for,
         for : k .. 1 end for
         ",
         wrong_value_by => "type k : int for : 1 .. 2 by k end for",
+
+        // implicit bounds tests:
+        // - not ty alias
+        //   - is expr
+        //   - other
+        // - is ty alias
+        //   - is constrained
+        //   - is boolean
+        //   - is char
+        //   - is enum
+        //   - is int (error, range too large)
+        //   - other
+        for_each_not_iterable => "for : 1 end for",
+        // FIXME: Add test for `for-each` on array (only iterable so far)
+
+        implied_bounds_boolean => "type b : boolean for _ : b end for",
+        implied_bounds_char => "type b : char for _ : b end for",
+        implied_bounds_enum => "type b : enum(a) for _ : b end for",
+        implied_bounds_constrained => "type b : 1 .. 2 for _ : b end for",
+        implied_bounds_int_err => "type b : int for _ : b end for",
+        implied_bounds_real_err => "type b : real for _ : b end for",
+        implied_not_ty => "module b end b /**/ for : b end for",
     ]
 }
 
@@ -2547,7 +2567,27 @@ test_named_group! { typeck_opaque_ty,
 
         % should succeed
         var _ : boolean := m.make('i') in vs
-        "
+        ",
+
+        poke_opaque_for_bounds_explicit => "
+        module m
+            export opaque t, v
+            type t : int
+            var v : t
+            for _ : v .. v end for
+        end m
+
+        for _ : m.v .. m.v end for
+        ",
+        poke_opaque_for_bounds_implicit => "
+        module m
+            export opaque t
+            type t : 1 .. 2
+            for _ : t end for
+        end m
+
+        for _ : m.t end for
+        ",
     ]
 }
 
