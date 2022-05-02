@@ -25,6 +25,56 @@ fn report_function_type_parameterless_unnamed() {
 }
 
 #[test]
+fn flexible_array_in_var_decl() {
+    check("var _ : flexible array char of int", expect![[]]);
+}
+
+#[test]
+fn report_flexible_array_in_const_decl() {
+    check(
+        "const _ : flexible array char of int",
+        expect![[r#"
+        error in file FileId(1) at 33..36: unexpected end of file
+        | error in file FileId(1) for 33..36: expected `:=` after here
+        error in file FileId(1) at 10..18: `flexible` is not allowed here
+        | error in file FileId(1) for 10..18: `flexible` arrays cannot be specified in `const` variables
+        | info: growing or shrinking `flexible` arrays requires allowing changes to it"#]],
+    );
+}
+
+#[test]
+fn report_flexible_array_in_type_decl() {
+    check(
+        "type _ : flexible array char of int",
+        expect![[r#"
+        error in file FileId(1) at 9..17: `flexible` is not allowed here
+        | error in file FileId(1) for 9..17: `flexible` arrays can only be specified in `var` declarations"#]],
+    );
+}
+
+#[test]
+fn report_flexible_array_in_union_field() {
+    check(
+        "type _ : union : 1 .. 1 of label : oeuf: flexible array char of int end union",
+        expect![[r#"
+            error in file FileId(1) at 41..49: `flexible` is not allowed here
+            | error in file FileId(1) for 41..49: `flexible` arrays are not allowed in `union` fields
+            | info: `union` types can be passed to `read` and `write`, but `flexible` arrays cannot be"#]],
+    );
+}
+
+#[test]
+fn report_flexible_array_in_record_field() {
+    check(
+        "type _ : record oeuf: flexible array char of int end record",
+        expect![[r#"
+            error in file FileId(1) at 22..30: `flexible` is not allowed here
+            | error in file FileId(1) for 22..30: `flexible` arrays are not allowed in `record` fields
+            | info: `record` types can be passed to `read` and `write`, but `flexible` arrays cannot be"#]],
+    );
+}
+
+#[test]
 fn set_type_in_type_decl() {
     check("type _ : set of boolean", expect![[]]);
 }

@@ -26,6 +26,61 @@ pub(super) fn validate_function_type(ty: ast::FcnType, ctx: &mut ValidateCtx) {
     }
 }
 
+pub(super) fn validate_array_type(ty: ast::ArrayType, ctx: &mut ValidateCtx) {
+    // Dealing with `{expr} .. *` ranges will be dealt with during lowering to HIR
+
+    // only care about flexible arrays
+    if let Some(flexible) = ty.flexible_token() {
+        let flexible_span = ctx.mk_span(flexible.text_range());
+
+        if let Some(record_field) = ty.syntax().parent().and_then(ast::RecordField::cast) {
+            use toc_syntax::SyntaxKind;
+            // `flexible` arrays aren't allowed in `union` and `record` types
+            //
+            // The best explanation that we can think of is that it's related to how `union`s and `record`s
+            // can be passed to `read` and `write` statements, but `flexible` arrays do not have a stable
+            // serialized representation
+
+            let in_container = record_field.syntax().parent().map(|node| node.kind());
+            let container = match in_container {
+                Some(SyntaxKind::RecordType) => "`record`",
+                Some(SyntaxKind::UnionVariant) => "`union`",
+                _ => unreachable!("missing handling for `RecordField` container"),
+            };
+
+            ctx.sink
+                .error_detailed("`flexible` is not allowed here", flexible_span)
+                .with_error(
+                    format!("`flexible` arrays are not allowed in {container} fields"),
+                    flexible_span,
+                )
+                .with_info(format!("{container} types can be passed to `read` and `write`, but `flexible` arrays cannot be"))
+                .finish();
+        } else if let Some(cv_decl) = ty.syntax().parent().and_then(ast::ConstVarDecl::cast) {
+            // Must be in a `var` decl, not a `const` decl
+            if cv_decl.var_token().is_none() {
+                ctx.sink
+                    .error_detailed("`flexible` is not allowed here", flexible_span)
+                    .with_error(
+                        "`flexible` arrays cannot be specified in `const` variables",
+                        flexible_span,
+                    )
+                    .with_info(
+                        "growing or shrinking `flexible` arrays requires allowing changes to it",
+                    )
+                    .finish()
+            }
+        } else {
+            // Not in a `var` decl
+            ctx.sink.error(
+                "`flexible` is not allowed here",
+                "`flexible` arrays can only be specified in `var` declarations",
+                flexible_span,
+            )
+        }
+    }
+}
+
 pub(super) fn validate_set_type(ty: ast::SetType, ctx: &mut ValidateCtx) {
     // Must be in a type decl
     if ty.syntax().parent().and_then(ast::TypeDecl::cast).is_none() {
