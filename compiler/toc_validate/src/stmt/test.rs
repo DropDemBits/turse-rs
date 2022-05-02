@@ -1329,11 +1329,14 @@ fn external_item_explicit_path_in_program_level() {
 
 #[test]
 fn report_external_item_explicit_path_in_program_level_inner() {
-    check(r#"begin import "sus" end"#, expect![[r#"
+    check(
+        r#"begin import "sus" end"#,
+        expect![[r#"
         error in file FileId(1) at 6..18: cannot use `import` statement here
         | error in file FileId(1) for 6..18: `import` statement is only allowed at the top level of subprograms, module-likes, or programs
         error in file FileId(1) at 13..18: cannot use external path here
-        | error in file FileId(1) for 13..18: external paths can only be used in top-level `import` statements"#]])
+        | error in file FileId(1) for 13..18: external paths can only be used in top-level `import` statements"#]],
+    )
 }
 
 #[test]
@@ -1348,14 +1351,20 @@ fn external_item_explicit_path_in_class_unit() {
 
 #[test]
 fn report_external_item_explicit_path_in_forward_decl() {
-    check(r#"forward proc owo import "sus""#, expect![[r#"
+    check(
+        r#"forward proc owo import "sus""#,
+        expect![[r#"
         error in file FileId(1) at 24..29: cannot use external path here
-        | error in file FileId(1) for 24..29: external paths can only be used in top-level `import` statements"#]])
+        | error in file FileId(1) for 24..29: external paths can only be used in top-level `import` statements"#]],
+    )
 }
 
 #[test]
 fn report_external_item_explicit_path_in_nested_module() {
-    check(r#"module m module n import "sus" end n end m"#, expect![[r#"
+    check(
+        r#"module m module n import "sus" end n end m"#,
+        expect![[r#"
         error in file FileId(1) at 25..30: cannot use external path here
-        | error in file FileId(1) for 25..30: external paths can only be used in top-level `import` statements"#]])
+        | error in file FileId(1) for 25..30: external paths can only be used in top-level `import` statements"#]],
+    )
 }
