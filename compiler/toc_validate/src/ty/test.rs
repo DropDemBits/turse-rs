@@ -72,11 +72,11 @@ fn report_collection_type_in_const_decl() {
     check(
         "const _ : collection of int",
         expect![[r#"
-        error in file FileId(1) at 24..27: unexpected end of file
-        | error in file FileId(1) for 24..27: expected `:=` after here
-        error in file FileId(1) at 10..27: `collection` type is not allowed here
-        | error in file FileId(1) for 10..27: `collection` type cannot be used in a `const` variable
-        | info: adding or removing elements from a `collection` requires allowing changes to it"#]],
+            error in file FileId(1) at 24..27: unexpected end of file
+            | error in file FileId(1) for 24..27: expected `:=` after here
+            error in file FileId(1) at 10..27: `collection` type is not allowed here
+            | error in file FileId(1) for 10..27: `collection` type cannot be specified in a `const` variable
+            | info: adding or removing elements from a `collection` requires allowing changes to it"#]],
     );
 }
 

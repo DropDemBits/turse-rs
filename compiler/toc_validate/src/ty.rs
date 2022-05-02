@@ -70,7 +70,7 @@ pub(super) fn validate_collection_type(ty: ast::CollectionType, ctx: &mut Valida
         ctx.sink
             .error_detailed("`collection` type is not allowed here", span)
             .with_error(
-                "`collection` type cannot be used in a `const` variable",
+                "`collection` type cannot be specified in a `const` variable",
                 span,
             )
             .with_info(
