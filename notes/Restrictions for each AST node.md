@@ -753,7 +753,6 @@ node restrictions.
 ### `UnionType`
 
 - Must have at least one `UnionVariant` present
-- If only one `UnionVariant` is present, `UnionVariant`'s `selector` is required to be present
 - (Type Restriction) `range_ty` must be an indexable type
 
 ### `UnionVariant`

@@ -39,6 +39,21 @@ fn report_set_type_in_var() {
     );
 }
 
+#[test]
+fn union_type_one_variant() {
+    check("type _ : union : 1 .. 1 of label : end union", expect![[]]);
+}
+
+#[test]
+fn report_union_type_no_variants() {
+    check(
+        "type _ : union : 1 .. 1 of end union",
+        expect![[r#"
+        error in file FileId(1) at 9..36: missing `union` variants
+        | error in file FileId(1) for 9..36: at least one `union` variant must be present"#]],
+    );
+}
+
 // collection type:
 // - must be in a var decl
 //   - not ty alias
@@ -114,10 +129,7 @@ fn report_collection_type_in_module_inner() {
 
 #[test]
 fn condition_type_in_var_decl() {
-    check(
-        "monitor m var _ : condition end m",
-        expect![[r#""#]],
-    );
+    check("monitor m var _ : condition end m", expect![[r#""#]]);
 }
 
 #[test]

@@ -38,6 +38,18 @@ pub(super) fn validate_set_type(ty: ast::SetType, ctx: &mut ValidateCtx) {
     }
 }
 
+pub(super) fn validate_union_type(ty: ast::UnionType, ctx: &mut ValidateCtx) {
+    // At least one variant must be present
+    if ty.union_variant().next().is_none() {
+        let span = ctx.mk_span(ty.syntax().text_range());
+        ctx.sink.error(
+            "missing `union` variants",
+            "at least one `union` variant must be present",
+            span,
+        );
+    }
+}
+
 pub(super) fn validate_collection_type(ty: ast::CollectionType, ctx: &mut ValidateCtx) {
     // Must be in a `var` decl
     let cv_decl = if let Some(cv_decl) = ty.syntax().parent().and_then(ast::ConstVarDecl::cast) {

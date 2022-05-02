@@ -163,7 +163,7 @@ fn validate_source(src: ast::Source, ctx: &mut ValidateCtx) {
             ast::SetType(ty) => ty::validate_set_type(ty, ctx),
             // (Missing) Array (location for flexible)
             ast::FcnType(ty) => ty::validate_function_type(ty, ctx),
-            // (Missing) Union
+            ast::UnionType(ty) => ty::validate_union_type(ty, ctx),
             ast::CollectionType(ty) => ty::validate_collection_type(ty, ctx),
             ast::ConditionType(ty) => ty::validate_condition_type(ty, ctx),
             _ => (),
