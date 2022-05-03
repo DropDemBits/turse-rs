@@ -414,12 +414,12 @@ node restrictions.
 
 ### `CaseArm`
 
-- None
+- (Type Restriction) `select` exprs must be indexable types
+- (Type Restriction) `select` exprs must be compatable with the parent `CaseStmt`'s expr
 
 ### `BlockStmt`
 
-- (Type Restriction) `select` exprs must be indexable types
-- (Type Restriction) `select` exprs must be compatable with the parent `CaseStmt`'s expr
+- None
 
 ### `InvariantStmt`
 
@@ -753,7 +753,6 @@ node restrictions.
 ### `UnionType`
 
 - Must have at least one `UnionVariant` present
-- If only one `UnionVariant` is present, `UnionVariant`'s `selector` is required to be present
 - (Type Restriction) `range_ty` must be an indexable type
 
 ### `UnionVariant`

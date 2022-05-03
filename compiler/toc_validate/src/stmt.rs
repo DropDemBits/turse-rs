@@ -132,6 +132,16 @@ pub(super) fn validate_bind_decl(decl: ast::BindDecl, ctx: &mut ValidateCtx) {
     }
 }
 
+pub(super) fn validate_proc_decl(decl: ast::ProcDecl, ctx: &mut ValidateCtx) {
+    validate_in_top_level(decl.syntax(), "`procedure` declaration", ctx);
+
+    check_matching_names(
+        decl.proc_header().and_then(|header| header.name()),
+        decl.end_group(),
+        ctx,
+    );
+}
+
 pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx) {
     if let Some(dev_spec) = node.device_spec() {
         // Check if we're in a device monitor block, at the top level
@@ -161,6 +171,16 @@ pub(super) fn validate_proc_header(node: ast::ProcHeader, ctx: &mut ValidateCtx)
     }
 }
 
+pub(super) fn validate_fcn_decl(decl: ast::FcnDecl, ctx: &mut ValidateCtx) {
+    validate_in_top_level(decl.syntax(), "`function` declaration", ctx);
+
+    check_matching_names(
+        decl.fcn_header().and_then(|header| header.name()),
+        decl.end_group(),
+        ctx,
+    );
+}
+
 pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCtx) {
     let location_error = match block_containing_node(decl.syntax()) {
         BlockKind::Class | BlockKind::MonitorClass => {
@@ -179,6 +199,12 @@ pub(super) fn validate_process_decl(decl: ast::ProcessDecl, ctx: &mut ValidateCt
             decl.syntax().text_range(),
         );
     }
+
+    check_matching_names(
+        decl.process_header().and_then(|header| header.name()),
+        decl.end_group(),
+        ctx,
+    );
 }
 
 pub(super) fn validate_external_var(decl: ast::ExternalVar, ctx: &mut ValidateCtx) {
@@ -196,13 +222,12 @@ pub(super) fn validate_deferred_decl(decl: ast::DeferredDecl, ctx: &mut Validate
 pub(super) fn validate_body_decl(decl: ast::BodyDecl, ctx: &mut ValidateCtx) {
     validate_in_top_level(decl.syntax(), "`body` declaration", ctx);
 
-    if let Some(import) = decl.subprog_body().and_then(|body| body.import_stmt()) {
-        ctx.push_error(
-            "useless `import` statement",
-            "`import` statements are ignored in `body` declaration",
-            import.syntax().text_range(),
-        )
-    }
+    let body_name = decl.body_kind().and_then(|kind| match kind {
+        ast::BodyKind::PlainHeader(decl) => decl.name(),
+        ast::BodyKind::ProcHeader(decl) => decl.name(),
+        ast::BodyKind::FcnHeader(decl) => decl.name(),
+    });
+    check_matching_names(body_name, decl.end_group(), ctx);
 }
 
 pub(super) fn validate_module_decl(decl: ast::ModuleDecl, ctx: &mut ValidateCtx) {
@@ -489,6 +514,126 @@ pub(super) fn validate_result_stmt(stmt: ast::ResultStmt, ctx: &mut ValidateCtx)
     }
 }
 
+pub(super) fn validate_inherit_stmt(stmt: ast::InheritStmt, ctx: &mut ValidateCtx) {
+    if !block_containing_node(stmt.syntax()).is_class() {
+        ctx.push_error(
+            "cannot use `inherit` statement here",
+            "`inherit` statement is only allowed in classes",
+            stmt.syntax().text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_import_stmt(stmt: ast::ImportStmt, ctx: &mut ValidateCtx) {
+    // Valid in top level of program module-likes, and subprogram bodies (except for `body`)
+    let block = block_containing_node(stmt.syntax());
+
+    if !(matches!(block, BlockKind::Main)
+        || block.is_module_kind()
+        || (block.is_subprogram() && !matches!(block, BlockKind::Body)))
+    {
+        if matches!(block, BlockKind::Body) {
+            // Specialize message for body blocks
+            ctx.push_error(
+                "useless `import` statement",
+                "`import` statements are ignored in `body` declaration",
+                stmt.syntax().text_range(),
+            )
+        } else {
+            ctx.push_error(
+                "cannot use `import` statement here",
+                "`import` statement is only allowed at the top level of subprograms, module-likes, or programs",
+                stmt.syntax().text_range(),
+            );
+        }
+    }
+}
+
+pub(super) fn validate_import_item(item: ast::ImportItem, ctx: &mut ValidateCtx) {
+    let forward_attr = item.attrs().and_then(|attr| match attr {
+        ast::ImportAttr::ForwardAttr(attr) => Some(attr),
+        _ => None,
+    });
+
+    if let Some(forward_attr) = forward_attr {
+        // Only allowed when inside of a `ForwardDecl`
+        let import_list = item
+            .syntax()
+            .parent()
+            .and_then(ast::ImportList::cast)
+            .unwrap();
+
+        let inside_forward_decl = import_list
+            .syntax()
+            .parent()
+            .map(|node| ast::ForwardDecl::can_cast(&node))
+            .unwrap_or(false);
+
+        if !inside_forward_decl {
+            ctx.push_error(
+                "cannot use `forward` attribute here",
+                "`forward` attribute can only be used in `forward` declarations",
+                forward_attr.syntax().text_range(),
+            );
+        }
+    }
+}
+
+pub(super) fn validate_external_item(item: ast::ExternalItem, ctx: &mut ValidateCtx) {
+    // Only caring about external items with paths
+    let path_node = if let Some(node) = item.path() {
+        node
+    } else {
+        return;
+    };
+
+    // If we're in an import list, it must not be inside of a forward decl
+    let import_list = item
+        .syntax()
+        .ancestors()
+        .nth(2)
+        .and_then(ast::ImportList::cast);
+
+    if let Some(import_list) = import_list {
+        let inside_forward_decl = import_list
+            .syntax()
+            .parent()
+            .map(|node| ast::ForwardDecl::can_cast(&node))
+            .unwrap_or(false);
+
+        if inside_forward_decl {
+            ctx.push_error(
+                "cannot use external path here",
+                "external paths can only be used in top-level `import` statements",
+                path_node.syntax().text_range(),
+            );
+
+            return;
+        }
+    }
+
+    // We need to be in something containing an import stmt, then that should be contained in the root level
+    let mut ancestor_blocks = walk_blocks(item.syntax());
+
+    let is_external_path_allowed = match (ancestor_blocks.next(), ancestor_blocks.next()) {
+        // Allowed in immediate top-level
+        (Some(BlockKind::Main | BlockKind::Unit), None) => true,
+        // Or allowed in a module-like contained in a unit
+        (Some(kind), Some(BlockKind::Unit)) => kind.is_module_kind(),
+        _ => false,
+    };
+
+    if !is_external_path_allowed {
+        ctx.push_error(
+            "cannot use external path here",
+            "external paths can only be used in top-level `import` statements",
+            path_node.syntax().text_range(),
+        );
+    }
+}
+
+// Helpers //
+
 pub(super) fn validate_in_module_kind(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
     if !block_containing_node(node).is_module_kind() {
         ctx.push_error(
@@ -504,6 +649,31 @@ pub(super) fn validate_in_top_level(node: &SyntaxNode, kind: &str, ctx: &mut Val
         ctx.push_error(
             format!("cannot use {kind} here"),
             format!("{kind} is only allowed at module-like or program level"),
+            node.text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_in_subprogram(node: &SyntaxNode, kind: &str, ctx: &mut ValidateCtx) {
+    if !block_containing_node(node).is_subprogram() {
+        ctx.push_error(
+            format!("cannot use {kind} here"),
+            format!("{kind} is only allowed at the top level of subprograms"),
+            node.text_range(),
+        );
+    }
+}
+
+pub(super) fn validate_in_module_or_subprogram(
+    node: &SyntaxNode,
+    kind: &str,
+    ctx: &mut ValidateCtx,
+) {
+    let block = block_containing_node(node);
+    if !block.is_top_level() && !block.is_subprogram() {
+        ctx.push_error(
+            format!("cannot use {kind} here"),
+            format!("{kind} is only allowed at the top level of module-likes and subprograms"),
             node.text_range(),
         );
     }
