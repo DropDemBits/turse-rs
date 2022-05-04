@@ -26,9 +26,7 @@ impl super::BodyLowering<'_, '_> {
             ast::Type::NameType(ty) => self.lower_name_type(ty),
             ast::Type::RangeType(ty) => self.lower_constrained_type(ty),
             ast::Type::EnumType(ty) => self.lower_enum_type(ty),
-
-            ast::Type::ArrayType(_) => self.unsupported_ty(span),
-
+            ast::Type::ArrayType(ty) => self.lower_array_type(ty),
             ast::Type::SetType(ty) => self.lower_set_type(ty),
 
             ast::Type::RecordType(_) => self.unsupported_ty(span),
@@ -262,6 +260,38 @@ impl super::BodyLowering<'_, '_> {
                 .add_def(type_decl_name(ty), span, symbol::SymbolKind::Declared);
 
         Some(ty::TypeKind::Enum(ty::Enum { def_id, variants }))
+    }
+
+    fn lower_array_type(&mut self, ty: ast::ArrayType) -> Option<ty::TypeKind> {
+        let is_flexible = ty.flexible_token().is_some();
+        let allow_dyn_size = ty
+            .syntax()
+            .parent()
+            .and_then(ast::ConstVarDecl::cast)
+            .map(|cv_decl| cv_decl.var_token().is_some())
+            .unwrap_or(false);
+
+        let sizing = if is_flexible {
+            ty::ArraySize::Flexible
+        } else if allow_dyn_size {
+            ty::ArraySize::MaybeDyn
+        } else {
+            ty::ArraySize::Static
+        };
+        let range_list = ty.range_list().unwrap();
+        let ranges = range_list
+            .ranges()
+            .map(|ty| self.lower_required_type(Some(ty)))
+            .collect();
+        let elem_ty = self.lower_required_type(ty.elem_ty());
+
+        // TODO: Checking for if {expr}..*, then that's the only bound allowed
+
+        Some(ty::TypeKind::Array(ty::Array {
+            sizing,
+            ranges,
+            elem_ty,
+        }))
     }
 
     fn lower_set_type(&mut self, ty: ast::SetType) -> Option<ty::TypeKind> {

@@ -60,6 +60,7 @@ pub trait HirVisitor {
     fn visit_alias(&self, id: ty::TypeId, ty: &ty::Alias) {}
     fn visit_constrained(&self, id: ty::TypeId, ty: &ty::Constrained) {}
     fn visit_enum(&self, id: ty::TypeId, ty: &ty::Enum) {}
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {}
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {}
     fn visit_pointer(&self, id: ty::TypeId, ty: &ty::Pointer) {}
     fn visit_subprogram_ty(&self, id: ty::TypeId, ty: &ty::Subprogram) {}
@@ -117,6 +118,7 @@ pub trait HirVisitor {
             ty::TypeKind::Alias(ty) => self.visit_alias(id, ty),
             ty::TypeKind::Constrained(ty) => self.visit_constrained(id, ty),
             ty::TypeKind::Enum(ty) => self.visit_enum(id, ty),
+            ty::TypeKind::Array(ty) => self.visit_array(id, ty),
             ty::TypeKind::Set(ty) => self.visit_set(id, ty),
             ty::TypeKind::Pointer(ty) => self.visit_pointer(id, ty),
             ty::TypeKind::Subprogram(ty) => self.visit_subprogram_ty(id, ty),
@@ -574,6 +576,7 @@ impl<'hir> Walker<'hir> {
             ty::TypeKind::Alias(_) => {}
             ty::TypeKind::Constrained(ty) => self.walk_constrained(ty),
             ty::TypeKind::Enum(_) => {}
+            ty::TypeKind::Array(ty) => self.walk_array(ty),
             ty::TypeKind::Set(ty) => self.walk_set(ty),
             ty::TypeKind::Pointer(ty) => self.walk_pointer(ty),
             ty::TypeKind::Subprogram(ty) => self.walk_subprogram_ty(ty),
@@ -597,6 +600,14 @@ impl<'hir> Walker<'hir> {
         if let ty::ConstrainedEnd::Expr(end) = node.end {
             self.enter_body(end, self.lib.body(end))
         }
+    }
+
+    fn walk_array(&mut self, node: &ty::Array) {
+        for range_ty in &node.ranges {
+            self.enter_type(*range_ty, self.lib.lookup_type(*range_ty));
+        }
+
+        self.enter_type(node.elem_ty, self.lib.lookup_type(node.elem_ty));
     }
 
     fn walk_set(&mut self, node: &ty::Set) {

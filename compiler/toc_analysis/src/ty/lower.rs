@@ -32,6 +32,7 @@ pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::Ty
         hir_ty::TypeKind::Alias(ty) => alias_ty(db, hir_id, ty),
         hir_ty::TypeKind::Constrained(ty) => constrained_ty(db, hir_id, ty),
         hir_ty::TypeKind::Enum(ty) => enum_ty(db, hir_id, ty),
+        hir_ty::TypeKind::Array(_ty) => db.mk_error(), // TODO(array-ty): Lower array types
         hir_ty::TypeKind::Set(ty) => set_ty(db, hir_id, ty),
         hir_ty::TypeKind::Pointer(ty) => pointer_ty(db, hir_id, ty),
         hir_ty::TypeKind::Subprogram(ty) => subprogram_ty(db, hir_id, ty),

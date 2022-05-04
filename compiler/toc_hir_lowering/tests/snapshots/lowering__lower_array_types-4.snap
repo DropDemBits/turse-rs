@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : array boolean of int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..28): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..28): []
+        StmtItem@(FileId(1), 0..28): ItemId(0)
+          ConstVar@(FileId(1), 0..28): var "_"@(FileId(1), 4..5)
+            Array@(FileId(1), 8..28): MaybeDyn
+              Primitive@(FileId(1), 14..21): Boolean
+              Primitive@(FileId(1), 25..28): Int
+

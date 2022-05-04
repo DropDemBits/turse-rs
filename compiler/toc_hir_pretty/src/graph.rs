@@ -1236,6 +1236,24 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
         self.emit_type(id, "Enum", Layout::Vbox(v_layout))
     }
 
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {
+        let mut v_layout = vec![Layout::Node(format!("{:?}", ty.sizing))];
+        v_layout.extend(
+            ty.ranges
+                .iter()
+                .enumerate()
+                .map(|(idx, _range)| Layout::Port(format!("dim{idx}"))),
+        );
+        v_layout.push(Layout::Port("element".into()));
+
+        self.emit_type(id, "Array", Layout::Vbox(v_layout));
+
+        let type_id = self.type_id(id);
+        for (idx, range_ty) in ty.ranges.iter().enumerate() {
+            self.emit_edge(format!("{type_id}:dim{idx}"), self.type_id(*range_ty));
+        }
+    }
+
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
         self.emit_type(
             id,

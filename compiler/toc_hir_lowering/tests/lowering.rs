@@ -1449,3 +1449,19 @@ fn lower_constrained_type_unsized() {
     assert_lower("var _ : 1 .. *");
     assert_lower("type _ : 1 .. *");
 }
+
+#[test]
+fn lower_array_types() {
+    // One bound
+    assert_lower("type _ : array char of int");
+    // Multiple bounds
+    assert_lower("type _ : array char, boolean of int");
+    // No bounds
+    assert_lower("type _ : array of int");
+
+    // Maybe dyn
+    assert_lower("var _ : array boolean of int");
+
+    // Flexible
+    assert_lower("var _ : flexible array 1 .. 0 of int");
+}

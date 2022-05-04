@@ -59,6 +59,8 @@ pub enum TypeKind {
     Constrained(Constrained),
     /// Enum Type
     Enum(Enum),
+    /// Array type
+    Array(Array),
     /// Set type
     Set(Set),
     /// Pointer type
@@ -130,6 +132,34 @@ pub struct Enum {
     pub def_id: symbol::LocalDefId,
     /// Variants on this enum
     pub variants: Vec<symbol::LocalDefId>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Array {
+    /// Specification of the array's size
+    pub sizing: ArraySize,
+    /// Types of each of the array's dimensions
+    pub ranges: Vec<TypeId>,
+    /// Type of the array's elements
+    pub elem_ty: TypeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ArraySize {
+    /// Array size is not fixed, and zero-sized ranges are allowed.
+    /// Initialization from dynamic values is implied to be allowed.
+    Flexible,
+    /// Array size is fixed, but allowed to be derived from runtime values
+    MaybeDyn,
+    /// Array size is fixed, and must be known at compile-time
+    Static,
+}
+
+impl ArraySize {
+    /// If the size specification allows dynamic values in the size computation
+    pub fn allow_dyn(self) -> bool {
+        matches!(self, Self::Flexible | Self::MaybeDyn)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

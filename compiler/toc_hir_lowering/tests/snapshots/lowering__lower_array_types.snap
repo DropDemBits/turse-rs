@@ -1,0 +1,16 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : array char of int"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..26): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..26): []
+        StmtItem@(FileId(1), 0..26): ItemId(0)
+          Type@(FileId(1), 0..26): "_"@(FileId(1), 5..6)
+            Array@(FileId(1), 9..26): Static
+              Primitive@(FileId(1), 15..19): Char
+              Primitive@(FileId(1), 23..26): Int
+

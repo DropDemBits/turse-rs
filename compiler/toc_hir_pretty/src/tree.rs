@@ -531,6 +531,10 @@ impl<'out, 'hir> HirVisitor for PrettyVisitor<'out, 'hir> {
             Some(format_args!("{def_name} [ {variants} ]")),
         )
     }
+    fn visit_array(&self, id: ty::TypeId, ty: &ty::Array) {
+        let span = self.type_span(id);
+        self.emit_node("Array", span, Some(format_args!("{:?}", ty.sizing)))
+    }
     fn visit_set(&self, id: ty::TypeId, ty: &ty::Set) {
         let span = self.type_span(id);
         let extra = self.display_extra_def(ty.def_id);
