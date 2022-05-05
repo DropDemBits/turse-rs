@@ -402,30 +402,6 @@ fn init_expr_with_union_ty() {
 }
 
 #[test]
-fn report_not_init_expr_with_unbounded_array() {
-    check(
-        "var a : array 1 .. * of int := 2",
-        expect![[r#"
-            error in file FileId(1) at 31..32: mismatched initializer
-            | error in file FileId(1) for 31..32: `init` initializer required here
-            | note in file FileId(1) for 8..27: this is an unbounded array type
-            | info: unbounded arrays have their upper bounds specified by `init` initializers"#]],
-    );
-}
-
-#[test]
-fn report_no_initializer_with_unbounded_array() {
-    check(
-        "var a : array 1 .. * of int",
-        expect![[r#"
-            error in file FileId(1) at 8..27: mismatched initializer
-            | error in file FileId(1) for 8..27: `init` initializer required after here
-            | note in file FileId(1) for 8..27: this is an unbounded array type
-            | info: unbounded arrays have their upper bounds specified by `init` initializers"#]],
-    );
-}
-
-#[test]
 fn proc_decl_in_main() {
     check("proc a end a", expect![[]]);
 }

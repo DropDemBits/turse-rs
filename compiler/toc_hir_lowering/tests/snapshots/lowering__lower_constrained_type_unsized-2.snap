@@ -1,0 +1,22 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : array 1 .. * of int := 2"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..32): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..32): []
+        StmtItem@(FileId(1), 0..32): ItemId(0)
+          ConstVar@(FileId(1), 0..32): var "_"@(FileId(1), 4..5)
+            Array@(FileId(1), 8..27): MaybeDyn
+              Constrained@(FileId(1), 14..20): end => Unsized(None)
+                ExprBody@(FileId(1), 14..15)
+                  Literal@(FileId(1), 14..15): Integer(1)
+              Primitive@(FileId(1), 24..27): Int
+            ExprBody@(FileId(1), 31..32)
+              Literal@(FileId(1), 31..32): Integer(2)
+error in file FileId(1) at 14..20: unsized range types require an `init` initializer
+| error in file FileId(1) for 31..32: not an `init` expression
+

@@ -145,8 +145,12 @@ impl super::BodyLowering<'_, '_> {
                 let bound_span = self.ctx.intern_range(bound.syntax().text_range());
 
                 // Get the closest `init` initializer to steal from
-                let elem_count = if let Some(array) =
-                    ty.syntax().parent().and_then(ast::ArrayType::cast)
+                let elem_count = if let Some(array) = ty
+                    .syntax()
+                    .parent()
+                    .and_then(ast::RangeList::cast)
+                    .and_then(|list| list.syntax().parent())
+                    .and_then(ast::ArrayType::cast)
                 {
                     if let Some(decl) = array.syntax().parent().and_then(ast::ConstVarDecl::cast) {
                         if let Some(ast::Expr::InitExpr(init)) = decl.init() {
@@ -263,6 +267,80 @@ impl super::BodyLowering<'_, '_> {
     }
 
     fn lower_array_type(&mut self, ty: ast::ArrayType) -> Option<ty::TypeKind> {
+        let range_list = ty.range_list().unwrap();
+
+        // If there's one init-sized bound, then that must be the only one
+        let init_bound = range_list.ranges().find_map(|range| {
+            if let ast::Type::RangeType(range) = range {
+                let is_init_sized = range
+                    .end()
+                    .map(|end| matches!(end, ast::EndBound::UnsizedBound(_)))
+                    .is_some();
+
+                is_init_sized.then(|| range)
+            } else {
+                None
+            }
+        });
+
+        let ranges = if let Some(init_sized) = init_bound {
+            // Must be the only bound
+            let (mut ranges_before, ranges_after) =
+                range_list.ranges().partition::<Vec<_>, _>(|range| {
+                    range
+                        .syntax()
+                        .text_range()
+                        .ordering(init_sized.syntax().text_range())
+                        .is_le()
+                });
+
+            // Remove the duplicate init-sized range
+            {
+                let before = ranges_before.pop();
+                assert!(matches!(before, Some(ast::Type::RangeType(other)) if other == init_sized));
+            }
+
+            if !ranges_before.is_empty() || !ranges_after.is_empty() {
+                // Extra ranges specified
+                let before_span = ranges_before
+                    .first()
+                    .zip(ranges_before.last())
+                    .map(|(a, b)| {
+                        self.ctx
+                            .mk_span(a.syntax().text_range().cover(b.syntax().text_range()))
+                    });
+                let after_span = ranges_after.first().zip(ranges_after.last()).map(|(a, b)| {
+                    self.ctx
+                        .mk_span(a.syntax().text_range().cover(b.syntax().text_range()))
+                });
+                let init_span = self.ctx.mk_span(init_sized.syntax().text_range());
+
+                let mut builder = self
+                    .ctx
+                    .messages
+                    .error_detailed("extra ranges specified", init_span);
+                if let Some(before_span) = before_span {
+                    builder = builder.with_error("extra ranges before", before_span);
+                }
+                if let Some(after_span) = after_span {
+                    builder = builder.with_error("extra ranges after", after_span);
+                }
+                builder
+                    .with_note("this must be the only range present", init_span)
+                    .with_info("`init`-sized arrays must have this range be the only range present")
+                    .finish();
+            }
+
+            // Let this be the only bound
+            vec![self.lower_required_type(Some(ast::Type::RangeType(init_sized)))]
+        } else {
+            // Lower all of the bounds
+            range_list
+                .ranges()
+                .map(|ty| self.lower_required_type(Some(ty)))
+                .collect()
+        };
+
         let is_flexible = ty.flexible_token().is_some();
         let allow_dyn_size = ty
             .syntax()
@@ -278,14 +356,7 @@ impl super::BodyLowering<'_, '_> {
         } else {
             ty::ArraySize::Static
         };
-        let range_list = ty.range_list().unwrap();
-        let ranges = range_list
-            .ranges()
-            .map(|ty| self.lower_required_type(Some(ty)))
-            .collect();
         let elem_ty = self.lower_required_type(ty.elem_ty());
-
-        // TODO: Checking for if {expr}..*, then that's the only bound allowed
 
         Some(ty::TypeKind::Array(ty::Array {
             sizing,

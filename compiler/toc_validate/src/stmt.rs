@@ -41,6 +41,8 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
     //     if decl.type_spec() is Some(Type::ArrayType(array_ty))
     //        and array_ty.ranges() contains unbounded range
 
+    // Note: array case + `init` initializer is handled during lowering to HIR
+
     if let Some(ast::Expr::InitExpr(init_expr)) = decl.init() {
         // Has init expr initializer, allowed here?
         if let Some(ty) = decl.type_spec() {
@@ -68,56 +70,6 @@ pub(super) fn validate_constvar_decl(decl: ast::ConstVarDecl, ctx: &mut Validate
                 .with_error("`init` initializer is not allowed here", span)
                 .with_info("`init` initializer requires a type to be specified")
                 .finish();
-        }
-    } else if let Some(ast::Type::ArrayType(array_ty)) = decl.type_spec() {
-        // Has array type spec, is unbounded?
-        // An array is unbounded if at least one of its ranges is unbounded
-        if let Some(ranges) = array_ty.range_list() {
-            let mut ranges = ranges.ranges();
-
-            // Check if the array is unbounded
-            let is_unbounded = loop {
-                let range = if let Some(range) = ranges.next() {
-                    range
-                } else {
-                    break false;
-                };
-
-                if let ast::Type::RangeType(range_ty) = range {
-                    let is_unbounded = range_ty
-                        .end()
-                        .map(|end_bound| matches!(end_bound, ast::EndBound::UnsizedBound(_)))
-                        .unwrap_or_default();
-
-                    if is_unbounded {
-                        break true;
-                    }
-                }
-            };
-
-            if is_unbounded {
-                // init expr is required
-                if !matches!(decl.init(), Some(ast::Expr::InitExpr(_))) {
-                    // Report at either the initializer expr, or the array type spec
-                    let ty_span = ctx.mk_span(array_ty.syntax().text_range());
-
-                    let (message, report_at) = if let Some(init) = decl.init() {
-                        let report_here = init.syntax().text_range();
-                        let span = ctx.mk_span(report_here);
-                        ("`init` initializer required here", span)
-                    } else {
-                        let report_after = array_ty.syntax().text_range();
-                        let span = ctx.mk_span(report_after);
-                        ("`init` initializer required after here", span)
-                    };
-
-                    ctx.push_detailed_error("mismatched initializer", report_at)
-                        .with_error(message, report_at)
-                        .with_note("this is an unbounded array type", ty_span)
-                        .with_info("unbounded arrays have their upper bounds specified by `init` initializers")
-                        .finish();
-                }
-            }
         }
     }
 }

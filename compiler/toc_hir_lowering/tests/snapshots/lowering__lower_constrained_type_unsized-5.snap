@@ -1,0 +1,18 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "type _ : 1 .. *"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..15): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..15): []
+        StmtItem@(FileId(1), 0..15): ItemId(0)
+          Type@(FileId(1), 0..15): "_"@(FileId(1), 5..6)
+            Constrained@(FileId(1), 9..15): end => Unsized(None)
+              ExprBody@(FileId(1), 9..10)
+                Literal@(FileId(1), 9..10): Integer(1)
+error in file FileId(1) at 9..15: cannot use unsized range type here
+| error in file FileId(1) for 9..15: unsized range types can only be used in array ranges
+

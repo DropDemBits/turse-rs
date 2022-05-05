@@ -1,0 +1,27 @@
+---
+source: compiler/toc_hir_lowering/tests/lowering.rs
+assertion_line: 61
+expression: "var _ : array char,,char, 1 .. * of int := init(1)"
+
+---
+Library@(dummy)
+  Root@(dummy): FileId(1) -> ItemId(1)
+    Module@(FileId(1), 0..50): "<root>"@(dummy)
+      StmtBody@(FileId(1), 0..50): []
+        StmtItem@(FileId(1), 0..50): ItemId(0)
+          ConstVar@(FileId(1), 0..50): var "_"@(FileId(1), 4..5)
+            Array@(FileId(1), 8..39): MaybeDyn
+              Constrained@(FileId(1), 26..32): end => Unsized(Some(1))
+                ExprBody@(FileId(1), 26..27)
+                  Literal@(FileId(1), 26..27): Integer(1)
+              Primitive@(FileId(1), 36..39): Int
+            ExprBody@(FileId(1), 43..50)
+error in file FileId(1) at 19..20: unexpected token
+| error in file FileId(1) for 19..20: expected type specifier, but found `,`
+error in file FileId(1) at 26..32: extra ranges specified
+| error in file FileId(1) for 14..24: extra ranges before
+| note in file FileId(1) for 26..32: this must be the only range present
+| info: `init`-sized arrays must have this range be the only range present
+error in file FileId(1) at 43..50: unsupported expression
+| error in file FileId(1) for 43..50: this expression is not supported yet
+

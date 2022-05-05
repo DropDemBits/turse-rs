@@ -1435,9 +1435,7 @@ fn lower_constrained_type_sized() {
     assert_lower("var _ : ..");
 }
 
-// FIXME: Uncomment once array types are being lowered
-// #[test]
-#[allow(unused)] // waiting on array types to be lowered
+#[test]
 fn lower_constrained_type_unsized() {
     // Valid everything
     assert_lower("var _ : array 1 .. * of int := init(1, 2, 3)");
@@ -1464,4 +1462,21 @@ fn lower_array_types() {
 
     // Flexible
     assert_lower("var _ : flexible array 1 .. 0 of int");
+}
+
+#[test]
+fn lower_array_types_init_sized() {
+    // Init-sized
+    assert_lower("var _ : array 1 .. * of int := init(1)");
+    // Only 1 init-sized range allowed
+    assert_lower("var _ : array 1 .. *, 1 .. * of int := init(1)");
+    // Init-sized range must be the first
+    // ranges before
+    assert_lower("var _ : array 1 .. *, char of int := init(1)");
+    assert_lower("var _ : array 1 .. *, char,,char of int := init(1)");
+    // ranges after
+    assert_lower("var _ : array char, 1 .. * of int := init(1)");
+    assert_lower("var _ : array char,,char, 1 .. * of int := init(1)");
+    // both
+    assert_lower("var _ : array char, 1 .. *, char of int := init(1)");
 }
