@@ -1740,14 +1740,26 @@ impl TypeCheck<'_> {
         // FIXME: use the correct eval params
         let eval_params = Default::default();
 
-        let check_const_bound = |bound_const, reporter: &mut toc_reporting::MessageSink| {
-            db.evaluate_const(bound_const, eval_params)
-                .map_err(|err| err.report_to(db, reporter))
-                .ok()
-        };
+        // Note: report type is specified to make lifetime disjoint from db
+        let check_const_bound =
+            |bound_const, allow_dyn, reporter: &mut toc_reporting::MessageSink| match db
+                .evaluate_const(bound_const, eval_params)
+            {
+                Ok(v) => Some(v),
+                Err(err) => {
+                    // Only report if it's not a compile-time expr and we allow dynamic expressions
+                    if !(err.is_not_compile_time() && matches!(allow_dyn, ty::AllowDyn::Yes)) {
+                        err.report_to(db, reporter);
+                    }
+
+                    None
+                }
+            };
 
         let mut state = self.state();
-        if let Some(value) = check_const_bound(start_bound.clone(), &mut state.reporter) {
+        if let Some(value) =
+            check_const_bound(start_bound.clone(), ty::AllowDyn::No, &mut state.reporter)
+        {
             if let Some((ordinal, min_value)) = value.ordinal().zip(base_tyref.min_int_of()) {
                 if ordinal < min_value {
                     state.reporter.error(
@@ -1762,8 +1774,10 @@ impl TypeCheck<'_> {
             }
         }
 
-        if let ty::EndBound::Expr(end_bound) = end_bound {
-            if let Some(value) = check_const_bound(end_bound.clone(), &mut state.reporter) {
+        if let ty::EndBound::Expr(end_bound, allow_dyn) = end_bound {
+            if let Some(value) =
+                check_const_bound(end_bound.clone(), *allow_dyn, &mut state.reporter)
+            {
                 if let Some((ordinal, max_value)) = value.ordinal().zip(base_tyref.max_int_of()) {
                     if max_value < ordinal {
                         state.reporter.error(

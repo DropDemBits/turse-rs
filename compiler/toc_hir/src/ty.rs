@@ -114,6 +114,8 @@ pub struct Constrained {
     pub start: body::BodyId,
     /// Maximum accepted value, based on a [`ConstrainedEnd`]
     pub end: ConstrainedEnd,
+    /// If the constrained range allows a dynamic (i.e. runtime-inferred) end bound,
+    pub allow_dyn: bool,
 }
 
 /// Possible ending values of a constrained range

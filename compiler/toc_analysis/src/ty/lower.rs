@@ -20,7 +20,7 @@ use crate::{
     },
 };
 
-use super::{IntSize, NatSize, RealSize, SeqSize};
+use super::{AllowDyn, IntSize, NatSize, RealSize, SeqSize};
 
 pub(crate) fn ty_from_hir_ty(db: &dyn TypeDatabase, hir_id: InLibrary<hir_ty::TypeId>) -> TypeId {
     let library = db.library(hir_id.0);
@@ -149,9 +149,16 @@ fn constrained_ty(
         base_tyref.id()
     };
 
+    let allow_dyn = if ty.allow_dyn {
+        AllowDyn::Yes
+    } else {
+        AllowDyn::No
+    };
     let start = Const::from_body(library_id, ty.start);
     let end = match ty.end {
-        hir_ty::ConstrainedEnd::Expr(end) => ty::EndBound::Expr(Const::from_body(library_id, end)),
+        hir_ty::ConstrainedEnd::Expr(end) => {
+            ty::EndBound::Expr(Const::from_body(library_id, end), allow_dyn)
+        }
         hir_ty::ConstrainedEnd::Unsized(sz) => ty::EndBound::Unsized(sz.item().unwrap_or(0)),
     };
 

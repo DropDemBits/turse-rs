@@ -4,9 +4,9 @@ assertion_line: 42
 expression: "type c : 1 .. 2\nvar a, b : c := 2\nvar i : int\nvar n : nat\n% can be coerced into the base type\na := b\na := 1\na := i\na := n\n% coercible into the base type\ni := a\nn := a\n"
 
 ---
-"c"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
-"a"@(FileId(1), 20..21) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
-"b"@(FileId(1), 23..24) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1))))
+"c"@(FileId(1), 5..6) [Resolved(Type)]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"a"@(FileId(1), 20..21) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
+"b"@(FileId(1), 23..24) [Declared]: alias[DefId(LibraryId(0), LocalDefId(0))] of range of `int` (Unevaluated(LibraryId(0), BodyId(0)) .. Expr(Unevaluated(LibraryId(0), BodyId(1)), No))
 "i"@(FileId(1), 38..39) [Declared]: int
 "n"@(FileId(1), 50..51) [Declared]: nat
 "<root>"@(dummy) [Declared]: <error>

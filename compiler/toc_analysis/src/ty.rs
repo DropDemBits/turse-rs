@@ -171,11 +171,18 @@ pub enum NotFixedLen {
     ConstError(ConstError),
 }
 
+/// If dynamic (i.e. runtime-evaluable) expressions are allowed
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AllowDyn {
+    No,
+    Yes,
+}
+
 /// End bound of a [`TypeKind::Constrained`]
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EndBound {
     /// From a constant expression
-    Expr(Const),
+    Expr(Const, AllowDyn),
     /// From an element count
     Unsized(u32),
 }
@@ -485,7 +492,7 @@ where
                 let eval_params = Default::default();
 
                 match end_bound {
-                    EndBound::Expr(end_bound) => {
+                    EndBound::Expr(end_bound, _) => {
                         // Just the ordinal value of the end bound
                         self.db
                             .evaluate_const(end_bound.clone(), eval_params)

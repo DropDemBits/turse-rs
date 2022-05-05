@@ -5,7 +5,7 @@ expression: "const min : int4 := -16#7FFFFFFF - 1\nvar _ : min..(16#7FFFFFFF + 1
 
 ---
 "min"@(FileId(1), 6..9) [Declared]: int4
-"_"@(FileId(1), 41..42) [Declared]: range of `int4` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2))))
+"_"@(FileId(1), 41..42) [Declared]: range of `int4` (Unevaluated(LibraryId(0), BodyId(1)) .. Expr(Unevaluated(LibraryId(0), BodyId(2)), No))
 "<root>"@(dummy) [Declared]: <error>
 
 error in file FileId(1) at 45..67: invalid range size

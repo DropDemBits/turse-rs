@@ -238,7 +238,26 @@ impl super::BodyLowering<'_, '_> {
             None => ty::ConstrainedEnd::Expr(self.lower_required_expr_body(None)),
         };
 
-        Some(ty::TypeKind::Constrained(ty::Constrained { start, end }))
+        // Dynamic end bound is only allowed if we're in a `var` decl, and part of the array ranges
+        let allow_dyn = if let Some(cv_decl) = ty
+            .syntax()
+            .parent()
+            .and_then(ast::RangeList::cast)
+            .and_then(|ty| ty.syntax().parent())
+            .and_then(ast::ArrayType::cast)
+            .and_then(|ty| ty.syntax().parent())
+            .and_then(ast::ConstVarDecl::cast)
+        {
+            cv_decl.var_token().is_some()
+        } else {
+            false
+        };
+
+        Some(ty::TypeKind::Constrained(ty::Constrained {
+            start,
+            end,
+            allow_dyn,
+        }))
     }
 
     fn lower_enum_type(&mut self, ty: ast::EnumType) -> Option<ty::TypeKind> {

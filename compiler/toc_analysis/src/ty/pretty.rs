@@ -11,7 +11,7 @@ use crate::{
     ty::{IntSize, NatSize, RealSize, TyRef, TypeKind},
 };
 
-use super::{EndBound, NotFixedLen, PassBy, TypeId, WithDef};
+use super::{AllowDyn, EndBound, NotFixedLen, PassBy, TypeId, WithDef};
 
 impl<'db, DB> fmt::Debug for TyRef<'db, DB>
 where
@@ -218,8 +218,12 @@ where
             };
 
             match end {
-                EndBound::Expr(end) => match db.evaluate_const(end.clone(), eval_params) {
+                EndBound::Expr(end, allow_dyn) => match db.evaluate_const(end.clone(), eval_params)
+                {
                     Ok(v) => write!(out, "{v}", v = v.display(db))?,
+                    Err(err) if err.is_not_compile_time() && matches!(allow_dyn, AllowDyn::Yes) => {
+                        write!(out, "{{dynamic}}")?
+                    }
                     Err(err) => {
                         unreachable!("should not show errors! ({err:?})")
                     }
